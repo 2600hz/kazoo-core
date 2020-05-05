@@ -77,6 +77,7 @@
         ,classifier_restriction/2, classifier_restriction/3, set_classifier_restriction/3
         ,full_name/1, full_name/2, full_name/3
         ,validate/3
+        ,get_setters/0
         ]).
 
 -include("kz_documents.hrl").
