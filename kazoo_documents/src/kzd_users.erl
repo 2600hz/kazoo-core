@@ -1103,7 +1103,7 @@ maybe_validate_username_is_unique(AccountId, UserId, {Doc, Errors}) ->
 %% value (Function name) is an atom.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_setters() -> map().
+-spec get_setters() -> #{kz_term:ne_binary() => atom()}.
 get_setters() ->
     kzd_module_utils:get_setters(?MODULE).
 

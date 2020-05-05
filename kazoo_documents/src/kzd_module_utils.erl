@@ -38,7 +38,7 @@
 %% value (Function name) is an atom.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_setters(atom()) -> map().
+-spec get_setters(atom()) -> #{kz_term:ne_binary() => atom()}.
 get_setters(Module) ->
     ModInfo = erlang:apply(Module, 'module_info', []),
     {'exports', ExportedFuns} = lists:keyfind('exports', 1, ModInfo),
