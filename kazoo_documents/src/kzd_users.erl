@@ -1097,6 +1097,17 @@ maybe_validate_username_is_unique(AccountId, UserId, {Doc, Errors}) ->
     end.
 
 %%------------------------------------------------------------------------------
+%% @doc Get a mapping of all setter functions (start with set_) with arity 2 for
+%% a users document.
+%% Returns map where the key (Function name without set_) is a binary and the
+%% value (Function name) is an atom.
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_setters() -> map().
+get_setters() ->
+    kzd_module_utils:get_setters(?MODULE).
+
+%%------------------------------------------------------------------------------
 %% @doc Return true if a user's username is unique within an account, else
 %% return false.
 %% @end
