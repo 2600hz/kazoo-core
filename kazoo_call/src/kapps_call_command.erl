@@ -1433,8 +1433,6 @@ b_hold(Timeout, MOH, Call) ->
     hold(MOH, Call),
     wait_for_message(Call, <<"hold">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, Timeout).
 
-
-
 -spec hold_control(kapps_call:call()) -> 'ok'.
 hold_control(Call) -> hold_control(<<"toggle">>, Call).
 
@@ -2662,22 +2660,22 @@ maybe_flash_on_digit(_FlushOnDigit, _Digits, _Call) -> 'ok'.
 %% @end
 %%------------------------------------------------------------------------------
 
--spec wait_for_message(kapps_call:call(), binary()) ->
+-spec wait_for_message(kapps_call:call(), kz_term:api_binary()) ->
           kapps_api_std_return().
 wait_for_message(Call, Application) ->
     wait_for_message(Call, Application, <<"CHANNEL_EXECUTE_COMPLETE">>).
 
--spec wait_for_message(kapps_call:call(), binary(), kz_term:ne_binary()) ->
+-spec wait_for_message(kapps_call:call(), kz_term:api_binary(), kz_term:ne_binary()) ->
           kapps_api_std_return().
 wait_for_message(Call, Application, Event) ->
     wait_for_message(Call, Application, Event, <<"call_event">>).
 
--spec wait_for_message(kapps_call:call(), binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+-spec wait_for_message(kapps_call:call(), kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           kapps_api_std_return().
 wait_for_message(Call, Application, Event, Type) ->
     wait_for_message(Call, Application, Event, Type, ?DEFAULT_MESSAGE_TIMEOUT).
 
--spec wait_for_message(kapps_call:call(), binary(), kz_term:ne_binary(), kz_term:ne_binary(), timeout()) ->
+-spec wait_for_message(kapps_call:call(), kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), timeout()) ->
           kapps_api_std_return().
 wait_for_message(Call, Application, Event, Type, Timeout) ->
     Start = kz_time:start_time(),
