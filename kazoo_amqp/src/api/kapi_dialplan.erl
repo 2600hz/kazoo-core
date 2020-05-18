@@ -197,6 +197,9 @@
         ,publish_error/2
         ,publish_error/3
         ]).
+-export([detect_speech/1
+        ,detect_speech_v/1
+        ]).
 
 -export([build_command/1
         ,build_command/2
@@ -291,6 +294,7 @@ api_definitions() ->
     ,event_actions_definition()
     ,queue_definition()
     ,error_definition()
+    ,detect_speech_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -414,7 +418,9 @@ api_definition(<<"event_actions">>) ->
 api_definition(<<"queue">>) ->
     queue_definition();
 api_definition(<<"error">>) ->
-    error_definition().
+    error_definition();
+api_definition(<<"detect_speech">>) ->
+    detect_speech_definition().
 
 -spec bridge_definition() -> kapi_definition:api().
 bridge_definition() ->
@@ -472,6 +478,7 @@ bridge_definition() ->
                                                             ,<<"Privacy-Hide-Name">>
                                                             ,<<"Privacy-Hide-Number">>
                                                             ,<<"Privacy-Method">>
+                                                            ,<<"Proxy-Path">>
                                                             ,<<"Ringback">>
                                                             ,<<"Secure-RTP">>
                                                             ,<<"Simplify-Loopback">>
@@ -557,6 +564,7 @@ bridge_endpoint_definition() ->
                                                             ,<<"Privacy-Hide-Number">>
                                                             ,<<"Privacy-Method">>
                                                             ,<<"Proxy-IP">>
+                                                            ,<<"Proxy-Path">>
                                                             ,<<"Proxy-Zone">>
                                                             ,<<"Route">>
                                                             ,<<"Simplify-Loopback">>
@@ -3377,3 +3385,52 @@ event_actions(Req) ->
 -spec event_actions_v(kz_term:api_terms()) -> boolean().
 event_actions_v(Req) ->
     kapi_definition:validate(Req, event_actions_definition()).
+
+%%------------------------------------------------------------------------------
+%% @doc detect speech.
+%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec detect_speech(kz_term:api_terms()) -> kz_api:api_formatter_return().
+detect_speech(Req) ->
+    kapi_definition:build_message(Req, detect_speech_definition()).
+
+-spec detect_speech_v(kz_term:api_terms()) -> boolean().
+detect_speech_v(Req) ->
+    kapi_definition:validate(Req, detect_speech_definition()).
+
+-spec detect_speech_definition() -> kapi_definition:api().
+detect_speech_definition() ->
+    EventName = <<"command">>,
+    Category = <<"call">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Detect Speech">>}
+              ,{fun kapi_definition:set_description/2, <<"Detect Speech">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun detect_speech/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun detect_speech_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Action">>
+                                                            ,<<"Application-Name">>
+                                                            ,<<"Call-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"ASR-Engine">>
+                                                            ,<<"ASR-Engine-Params">>
+                                                            ,<<"ASR-Engine-Settings">>
+                                                            ,<<"Insert-At">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"detect_speech">>}
+                ,{<<"Action">>, [<<"start">>, <<"stop">>]}
+                ,?INSERT_AT_TUPLE
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"ASR-Engine">>, fun is_binary/1}
+                ,{<<"ASR-Engine-Params">>, fun kz_json:is_json_object/1}
+                ,{<<"ASR-Engine-Settings">>, fun kz_json:is_json_object/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).

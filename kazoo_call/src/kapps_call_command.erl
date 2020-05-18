@@ -226,6 +226,8 @@
         ,register_event_actions/2
         ]).
 
+-export([detect_speech_command/2, start_detect_speech/2, stop_detect_speech/1]).
+
 -include("kapps_call_command.hrl").
 
 -type audio_macro_prompt() ::
@@ -3602,4 +3604,23 @@ event_actions_command(Actions, Call) ->
 -spec register_event_actions(kz_json:object(), kapps_call:call()) -> 'ok'.
 register_event_actions(Actions, Call) ->
     Command = event_actions_command(Actions, Call),
+    send_command(Command, Call).
+
+-spec detect_speech_command(kz_term:proplist(), kapps_call:call()) ->kz_term:api_terms().
+detect_speech_command(Options, Call) ->
+    kz_json:from_list(
+      [{<<"Application-Name">>, <<"detect_speech">>}
+      ,{<<"Insert-At">>, <<"now">>}
+      ,{<<"Call-ID">>, kapps_call:call_id(Call)}
+       | Options
+      ]).
+
+-spec start_detect_speech(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+start_detect_speech(Options, Call) ->
+    Command = detect_speech_command([{<<"Action">>, <<"start">>} | Options], Call),
+    send_command(Command, Call).
+
+-spec stop_detect_speech(kapps_call:call()) -> 'ok'.
+stop_detect_speech(Call) ->
+    Command = detect_speech_command([{<<"Action">>, <<"stop">>}], Call),
     send_command(Command, Call).
