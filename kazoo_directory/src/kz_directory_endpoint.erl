@@ -312,26 +312,14 @@ maybe_generate_profile(EndpointId, AccountId, Endpoint, Options) ->
     end.
 
 -spec generate_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-generate_profile(EndpointId, AccountId, Endpoint, Options) ->
+generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint),
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint),
 
-    CID = {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
-    CED = {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
+    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
+    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
 
-    {Number, Name} = case props:get_ne_binary_value('kcid_type', Options, <<"Internal">>) of
-                         <<"Internal">> -> CID;
-                         _ -> CED
-                     end,
-
-    CIDType = case props:get_ne_binary_value('fetch_type', Options, <<"sip_auth">>) of
-                  <<"sip_auth">> -> <<"Caller">>;
-                  _ -> <<"Callee">>
-              end,
-
-    CPVs = [{<<CIDType/binary,"-ID-Number">>, Number}
-           ,{<<CIDType/binary,"-ID-Name">>, Name}
-           ,{<<"Internal-Caller-ID-Number">>, CIDNumber}
+    CPVs = [{<<"Internal-Caller-ID-Number">>, CIDNumber}
            ,{<<"Internal-Caller-ID-Name">>, CIDName}
            ,{<<"External-Caller-ID-Number">>, CEDNumber}
            ,{<<"External-Caller-ID-Name">>, CEDName}
