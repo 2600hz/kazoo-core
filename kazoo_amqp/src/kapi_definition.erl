@@ -52,6 +52,7 @@
              ,name/0
              ,friendly_name/0
              ,binding/0
+             ,build_fun/0
              ]).
 
 %%%=============================================================================
@@ -102,30 +103,30 @@ set_description(API, Description) -> API#kapi_definition{description = Descripti
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec build_fun(api()) -> fun((kz_term:api_terms()) -> kz_api:api_formatter_return()).
+-spec build_fun(api()) -> build_fun().
 build_fun(#kapi_definition{build_fun = BuildFun}) -> BuildFun.
 
--spec set_build_fun(api(), fun((kz_term:api_terms()) -> kz_api:api_formatter_return())) -> api().
+-spec set_build_fun(api(), build_fun()) -> api().
 set_build_fun(API, BuildFun) -> API#kapi_definition{build_fun = BuildFun}.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_fun(api()) -> fun((kz_term:api_terms()) -> boolean()).
+-spec validate_fun(api()) -> validate_fun().
 validate_fun(#kapi_definition{validate_fun = ValidateFun}) -> ValidateFun.
 
--spec set_validate_fun(api(), fun((kz_term:api_terms()) -> boolean())) -> api().
+-spec set_validate_fun(api(), validate_fun()) -> api().
 set_validate_fun(API, ValidateFun) -> API#kapi_definition{validate_fun = ValidateFun}.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec publish_fun(api()) -> fun((kz_term:api_terms()) -> kz_api:api_formatter_return()).
+-spec publish_fun(api()) -> publish_fun().
 publish_fun(#kapi_definition{publish_fun = PublishFun}) -> PublishFun.
 
--spec set_publish_fun(api(), fun((kz_term:api_terms()) -> kz_api:api_formatter_return())) -> api().
+-spec set_publish_fun(api(), publish_fun()) -> api().
 set_publish_fun(API, PublishFun) -> API#kapi_definition{publish_fun = PublishFun}.
 
 %%------------------------------------------------------------------------------
