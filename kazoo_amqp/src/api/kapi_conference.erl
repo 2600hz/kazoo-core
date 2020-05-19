@@ -2389,11 +2389,11 @@ publish_command(ConferenceId, Req, ContentType) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec publish_targeted_command(atom(), kz_term:api_terms()) -> 'ok'.
+-spec publish_targeted_command(atom(), kz_term:api_terms()) -> no_return() | 'ok'.
 publish_targeted_command(Focus, JObj) ->
     publish_targeted_command(Focus, JObj, ?DEFAULT_CONTENT_TYPE).
 
--spec publish_targeted_command(atom(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+-spec publish_targeted_command(atom(), kz_term:api_terms(), kz_term:ne_binary()) -> no_return() | 'ok'.
 publish_targeted_command(Focus, Req, ContentType) ->
     App = props:get_value(<<"Application-Name">>, Req),
     case lists:keyfind(App, 1, ?APPLICATION_MAP) of
