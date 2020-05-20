@@ -700,8 +700,8 @@ participants_req_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"participants">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
-               ,kapi_definition:event_type_headers(Category, EventName)
                }
               ,{fun kapi_definition:set_types/2
                ,[{<<"Conference-ID">>, fun is_binary/1}
@@ -2389,11 +2389,11 @@ publish_command(ConferenceId, Req, ContentType) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec publish_targeted_command(atom(), kz_term:api_terms()) -> no_return() | 'ok'.
+-spec publish_targeted_command(atom(), kz_term:api_terms()) -> 'ok'.
 publish_targeted_command(Focus, JObj) ->
     publish_targeted_command(Focus, JObj, ?DEFAULT_CONTENT_TYPE).
 
--spec publish_targeted_command(atom(), kz_term:api_terms(), kz_term:ne_binary()) -> no_return() | 'ok'.
+-spec publish_targeted_command(atom(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_targeted_command(Focus, Req, ContentType) ->
     App = props:get_value(<<"Application-Name">>, Req),
     case lists:keyfind(App, 1, ?APPLICATION_MAP) of
