@@ -150,8 +150,8 @@
         ]).
 -export([conference_error/1
         ,conference_error_v/1
-        ,publish_conference_error/2
-        ,publish_conference_error/3
+        ,publish_error/2
+        ,publish_error/3
         ]).
 -export([config_req/1
         ,config_req_v/1
@@ -1234,7 +1234,7 @@ conference_error_definition() ->
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun conference_error/1}
               ,{fun kapi_definition:set_validate_fun/2, fun conference_error_v/1}
-              ,{fun kapi_definition:set_publish_fun/2, fun publish_conference_error/2}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_error/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Conference-ID">>
                                                             ,<<"Error-Message">>
                                                             ,<<"Request">>
@@ -2127,12 +2127,12 @@ conference_error(Req) ->
 conference_error_v(Req) ->
     kapi_definition:validate(Req, conference_error_definition()).
 
--spec publish_conference_error(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_conference_error(Queue, JObj) ->
-    publish_conference_error(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
+-spec publish_error(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_error(Queue, JObj) ->
+    publish_error(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
 
--spec publish_conference_error(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_conference_error(Queue, Req, ContentType) ->
+-spec publish_error(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_error(Queue, Req, ContentType) ->
     Definition = conference_error_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(Req
                                                 ,kapi_definition:values(Definition)
