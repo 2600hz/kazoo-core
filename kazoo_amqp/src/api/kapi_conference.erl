@@ -10,84 +10,190 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_conference).
 
--export([event/1, event_v/1]).
+-export([api_definitions/0, api_definition/1]).
+
 -export([focus_queue_name/1]).
--export([search_req/1, search_req_v/1]).
--export([search_resp/1, search_resp_v/1]).
--export([discovery_req/1, discovery_req_v/1]).
--export([discovery_resp/1, discovery_resp_v/1]).
 
--export([add_participant/1, add_participant_v/1]).
--export([deaf_participant/1, deaf_participant_v/1]).
--export([participant_energy/1, participant_energy_v/1]).
--export([kick/1, kick_v/1]).
--export([participants_req/1, participants_req_v/1]).
--export([participants_resp/1, participants_resp_v/1]).
--export([lock/1, lock_v/1]).
--export([mute_participant/1, mute_participant_v/1]).
--export([play/1, play_v/1
-        ,tones/1, tones_v/1
-        ,say/1, say_v/1
-        ,tts/1, tts_v/1
+-export([event/1
+        ,event_v/1
+        ,publish_event/1
+        ,publish_event/2
         ]).
--export([record/1, record_v/1]).
--export([recordstop/1, recordstop_v/1]).
--export([relate_participants/1, relate_participants_v/1]).
--export([set/1, set_v/1]).
--export([stop_play/1, stop_play_v/1]).
--export([undeaf_participant/1, undeaf_participant_v/1]).
--export([unlock/1, unlock_v/1]).
--export([unmute_participant/1, unmute_participant_v/1]).
--export([participant_volume_in/1, participant_volume_in_v/1]).
--export([participant_volume_out/1, participant_volume_out_v/1]).
--export([participant_event/1, participant_event_v/1]).
--export([conference_error/1, conference_error_v/1]).
--export([config_req/1, config_req_v/1
-        ,config_resp/1, config_resp_v/1
+-export([search_req/1
+        ,search_req_v/1
+        ,publish_search_req/1
+        ,publish_search_req/2
         ]).
--export([play_macro_req/1, play_macro_req_v/1]).
--export([dial/1, dial_v/1
-        ,dial_resp/1, dial_resp_v/1
+-export([search_resp/1
+        ,search_resp_v/1
+        ,publish_search_resp/2
+        ,publish_search_resp/3
+        ]).
+-export([discovery_req/1
+        ,discovery_req_v/1
+        ,publish_discovery_req/1
+        ,publish_discovery_req/2
+        ]).
+-export([discovery_resp/1
+        ,discovery_resp_v/1
+        ,publish_discovery_resp/2
+        ,publish_discovery_resp/3
+        ]).
+-export([add_participant/1
+        ,add_participant_v/1
+        ,publish_add_participant/2
+        ,publish_add_participant/3
+        ]).
+-export([deaf_participant/1
+        ,deaf_participant_v/1
+        ,publish_deaf_participant/2
+        ,publish_deaf_participant/3
+        ]).
+-export([participant_energy/1
+        ,participant_energy_v/1
+        ,publish_participant_energy/2
+        ,publish_participant_energy/3
+        ]).
+-export([kick/1
+        ,kick_v/1
+        ,publish_kick/2
+        ,publish_kick/3
+        ]).
+-export([participants_req/1
+        ,participants_req_v/1
+        ,publish_participants_req/2
+        ,publish_participants_req/3
+        ]).
+-export([participants_resp/1
+        ,participants_resp_v/1
+        ,publish_participants_resp/2
+        ,publish_participants_resp/3
+        ]).
+-export([lock/1
+        ,lock_v/1
+        ,publish_lock/2
+        ,publish_lock/3
+        ]).
+-export([mute_participant/1
+        ,mute_participant_v/1
+        ,publish_mute_participant/2
+        ,publish_mute_participant/3
+        ]).
+-export([play/1
+        ,play_v/1
+        ,publish_play/2
+        ,publish_play/3
+        ]).
+-export([tones/1
+        ,tones_v/1
+        ]).
+-export([say/1
+        ,say_v/1
+        ]).
+-export([tts/1
+        ,tts_v/1
+        ]).
+-export([record/1
+        ,record_v/1
+        ,publish_record/2
+        ,publish_record/3
+        ]).
+-export([recordstop/1
+        ,recordstop_v/1
+        ,publish_recordstop/2
+        ,publish_recordstop/3
+        ]).
+-export([relate_participants/1
+        ,relate_participants_v/1
+        ,publish_relate_participants/2
+        ,publish_relate_participants/3
+        ]).
+-export([set/1
+        ,set_v/1
+        ,publish_set/2
+        ,publish_set/3
+        ]).
+-export([stop_play/1
+        ,stop_play_v/1
+        ,publish_stop_play/2
+        ,publish_stop_play/3
+        ]).
+-export([undeaf_participant/1
+        ,undeaf_participant_v/1
+        ,publish_undeaf_participant/2
+        ,publish_undeaf_participant/3
+        ]).
+-export([unlock/1
+        ,unlock_v/1
+        ,publish_unlock/2
+        ,publish_unlock/3
+        ]).
+-export([unmute_participant/1
+        ,unmute_participant_v/1
+        ,publish_unmute_participant/2
+        ,publish_unmute_participant/3
+        ]).
+-export([participant_volume_in/1
+        ,participant_volume_in_v/1
+        ,publish_participant_volume_in/2
+        ,publish_participant_volume_in/3
+        ]).
+-export([participant_volume_out/1
+        ,participant_volume_out_v/1
+        ,publish_participant_volume_out/2
+        ,publish_participant_volume_out/3
+        ]).
+-export([participant_event/1
+        ,participant_event_v/1
+        ,publish_participant_event/3
+        ,publish_participant_event/4
+        ]).
+-export([conference_error/1
+        ,conference_error_v/1
+        ,publish_error/2
+        ,publish_error/3
+        ]).
+-export([config_req/1
+        ,config_req_v/1
+        ,publish_config_req/1
+        ,publish_config_req/2
+        ]).
+-export([config_resp/1
+        ,config_resp_v/1
+        ,publish_config_resp/2
+        ,publish_config_resp/3
+        ]).
+-export([play_macro_req/1
+        ,play_macro_req_v/1
+        ]).
+-export([dial/1
+        ,dial_v/1
+        ,publish_dial/2
+        ,publish_dial/3
+        ]).
+-export([dial_resp/1
+        ,dial_resp_v/1
+        ,publish_dial_resp/2
+        ,publish_dial_resp/3
         ]).
 
--export([bind_q/2, unbind_q/2]).
+-export([bind_q/2
+        ,unbind_q/2
+        ]).
 -export([declare_exchanges/0]).
 
--export([publish_search_req/1, publish_search_req/2]).
--export([publish_search_resp/2, publish_search_resp/3]).
--export([publish_discovery_req/1, publish_discovery_req/2]).
--export([publish_discovery_resp/2, publish_discovery_resp/3]).
-
--export([publish_add_participant/2, publish_add_participant/3]).
--export([publish_deaf_participant/2, publish_deaf_participant/3]).
--export([publish_participant_energy/2, publish_participant_energy/3]).
--export([publish_kick/2, publish_kick/3]).
--export([publish_participants_req/2, publish_participants_req/3]).
--export([publish_participants_resp/2, publish_participants_resp/3]).
--export([publish_lock/2, publish_lock/3]).
--export([publish_mute_participant/2, publish_mute_participant/3]).
--export([publish_play/2, publish_play/3]).
--export([publish_record/2, publish_record/3]).
--export([publish_recordstop/2, publish_recordstop/3]).
--export([publish_relate_participants/2, publish_relate_participants/3]).
--export([publish_set/2, publish_set/3]).
--export([publish_stop_play/2, publish_stop_play/3]).
--export([publish_undeaf_participant/2, publish_undeaf_participant/3]).
--export([publish_unlock/2, publish_unlock/3]).
--export([publish_unmute_participant/2, publish_unmute_participant/3]).
--export([publish_participant_volume_in/2, publish_participant_volume_in/3]).
--export([publish_participant_volume_out/2, publish_participant_volume_out/3]).
--export([publish_error/2, publish_error/3]).
--export([publish_participant_event/3, publish_participant_event/4]).
--export([publish_command/2, publish_command/3]).
--export([publish_event/1, publish_event/2]).
--export([publish_targeted_command/2, publish_targeted_command/3]).
--export([publish_config_req/1, publish_config_req/2
-        ,publish_config_resp/2, publish_config_resp/3
-        ,publish_dial/2, publish_dial/3
-        ,publish_dial_resp/2, publish_dial_resp/3
+-export([publish_command/2
+        ,publish_command/3
+        ]).
+-export([publish_targeted_command/2
+        ,publish_targeted_command/3
         ]).
 -export([events/0]).
+
+-ifdef(TEST).
+-export([conference_event_key/4
+        ]).
+-endif.
 
 -include_lib("kz_amqp_util.hrl").
 -include("kapi_dialplan.hrl").
@@ -98,483 +204,31 @@
              ,discovery_req/0
              ]).
 
-%% Conference Search Request
--define(SEARCH_REQ_HEADERS, [ [<<"Conference-ID">>, <<"Account-ID">>] ]).
--define(OPTIONAL_SEARCH_REQ_HEADERS, []).
--define(SEARCH_REQ_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                           ,{<<"Event-Name">>, <<"search_req">>}
-                           ]).
--define(SEARCH_REQ_TYPES, [{<<"Conference-ID">>, fun is_binary/1}]).
-
-%% Conference Search Response
--define(SEARCH_RESP_HEADERS, [ [<<"Conferences">>, <<"Conference-ID">>] ]).
--define(OPTIONAL_SEARCH_RESP_HEADERS, [<<"Answered">>
-                                      ,<<"Dynamic">>
-                                      ,<<"Locked">>
-                                      ,<<"Participant-Count">>
-                                      ,<<"Participants">>
-                                      ,<<"Run-Time">>
-                                      ,<<"Running">>
-                                      ,<<"Start-Time">>
-                                      ,<<"Switch-External-IP">>
-                                      ,<<"Switch-Hostname">>
-                                      ,<<"Switch-URL">>
-                                      ,<<"UUID">>
-                                      ]).
--define(SEARCH_RESP_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                            ,{<<"Event-Name">>, <<"search_resp">>}
-                            ]).
--define(SEARCH_RESP_TYPES, [{<<"Conference-ID">>, fun is_binary/1}]).
-
-%% Conference Discovery Request
--define(DISCOVERY_REQ_HEADERS, [<<"Call">>]).
--define(OPTIONAL_DISCOVERY_REQ_HEADERS, [<<"Conference-Doc">>
-                                        ,<<"Conference-ID">>
-                                        ,<<"Conference-Name">>
-                                        ,<<"Moderator">>
-                                        ,<<"Play-Entry-Tone">>
-                                        ,<<"Play-Exit-Tone">>
-                                        ,<<"Play-Welcome">>
-                                        ,<<"Play-Welcome-Media">>
-                                        ]).
--define(DISCOVERY_REQ_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                              ,{<<"Event-Name">>, <<"discovery_req">>}
-                              ]).
--define(DISCOVERY_REQ_TYPES, [{<<"Moderator">>, fun kz_term:is_boolean/1}
-                             ,{<<"Play-Welcome">>, fun kz_term:is_boolean/1}
-                             ]).
-
-%% Conference Discovery Request
--define(DISCOVERY_RESP_HEADERS, [<<"Participant-ID">>]).
--define(OPTIONAL_DISCOVERY_RESP_HEADERS, [<<"Conference-ID">>]).
--define(DISCOVERY_RESP_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                               ,{<<"Event-Name">>, <<"discovery_resp">>}
-                               ]).
--define(DISCOVERY_RESP_TYPES, []).
-
--define(ADD_PARTICIPANT_HEADERS, [<<"Call-ID">>
-                                 ,<<"Conference-ID">>
-                                 ,<<"Control-Queue">>
-                                 ]).
--define(OPTIONAL_ADD_PARTICIPANT_HEADERS, [<<"Account-ID">>
-                                          ,<<"Answered">>
-                                          ,<<"Authorizing-ID">>
-                                          ,<<"Authorizing-Type">>
-                                          ,<<"Bridge-ID">>
-                                          ,<<"Call-Direction">>
-                                          ,<<"Call-ID">>
-                                          ,<<"Callee-ID-Name">>
-                                          ,<<"Callee-ID-Number">>
-                                          ,<<"Caller-ID-Name">>
-                                          ,<<"Caller-ID-Number">>
-                                          ,<<"Channel-Authorized">>
-                                          ,<<"Channel-Call-State">>
-                                          ,<<"Channel-Created-Time">>
-                                          ,<<"Channel-Is-Loopback">>
-                                          ,<<"Channel-Loopback-Bowout">>
-                                          ,<<"Channel-Loopback-Bowout-Execute">>
-                                          ,<<"Channel-Loopback-Leg">>
-                                          ,<<"Channel-Loopback-Other-Leg-ID">>
-                                          ,<<"Channel-Moving">>
-                                          ,<<"Channel-Name">>
-                                          ,<<"Channel-State">>
-                                          ,<<"Custom-Application-Vars">>
-                                          ,<<"Custom-Channel-Vars">>
-                                          ,<<"Custom-SIP-Headers">>
-                                          ,<<"Destination">>
-                                          ,<<"Disposition">>
-                                          ,<<"Ecallmgr-Node">>
-                                          ,<<"From">>
-                                          ,<<"From-Tag">>
-                                          ,<<"Hangup-Cause">>
-                                          ,<<"Hangup-Code">>
-                                          ,<<"Is-Loopback">>
-                                          ,<<"Is-On-Hold">>
-                                          ,<<"Media-Node">>
-                                          ,<<"Media-Server">>
-                                          ,<<"Msg-ID">>
-                                          ,<<"Node">>
-                                          ,<<"Origination-Call-ID">>
-                                          ,<<"Other-Leg-Call-ID">>
-                                          ,<<"Other-Leg-Caller-ID-Name">>
-                                          ,<<"Other-Leg-Caller-ID-Number">>
-                                          ,<<"Other-Leg-Destination-Number">>
-                                          ,<<"Other-Leg-Direction">>
-                                          ,<<"Participant-Flags">>
-                                          ,<<"Profile-Name">>
-                                          ,<<"Presence-ID">>
-                                          ,<<"Raw-Application-Data">>
-                                          ,<<"Raw-Application-Name">>
-                                          ,<<"Realm">>
-                                          ,<<"Replaced-By">>
-                                          ,<<"Request">>
-                                          ,<<"Switch-Hostname">>
-                                          ,<<"Switch-Nodename">>
-                                          ,<<"Switch-URI">>
-                                          ,<<"Switch-URL">>
-                                          ,<<"Timestamp">>
-                                          ,<<"To">>
-                                          ,<<"To-Tag">>
-                                          ,<<"Transfer-History">>
-                                          ,<<"Username">>
-                                          ]).
-
--define(ADD_PARTICIPANT_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                ,{<<"Event-Name">>, <<"add_participant">>}
-                                ]).
--define(ADD_PARTICIPANT_TYPES, []).
-
-%% Conference Deaf
--define(DEAF_PARTICIPANT_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>, <<"Participant-ID">>]).
--define(OPTIONAL_DEAF_PARTICIPANT_HEADERS, []).
--define(DEAF_PARTICIPANT_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                 ,{<<"Event-Name">>, <<"command">>}
-                                 ,{<<"Application-Name">>, <<"deaf_participant">>}
-                                 ]).
--define(DEAF_PARTICIPANT_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                                ]).
-
-%% Conference Energy
--define(PARTICIPANT_ENERGY_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>
-                                    ,<<"Participant-ID">>, <<"Energy-Level">>
-                                    ]).
--define(OPTIONAL_PARTICIPANT_ENERGY_HEADERS, []).
--define(PARTICIPANT_ENERGY_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                   ,{<<"Event-Name">>, <<"command">>}
-                                   ,{<<"Application-Name">>, <<"participant_energy">>}
-                                   ]).
--define(PARTICIPANT_ENERGY_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                                  ]).
-
-%% Conference Kick
--define(KICK_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>]).
--define(OPTIONAL_KICK_HEADERS, [<<"Participant-ID">>]).
--define(KICK_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                     ,{<<"Event-Name">>, <<"command">>}
-                     ,{<<"Application-Name">>, <<"kick">>}
-                     ]).
--define(KICK_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                    ]).
-
-%% Conference Participants Req
--define(PARTICIPANTS_REQ_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>]).
--define(OPTIONAL_PARTICIPANTS_REQ_HEADERS, []).
--define(PARTICIPANTS_REQ_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                 ,{<<"Event-Name">>, <<"command">>}
-                                 ,{<<"Application-Name">>, <<"participants">>}
-                                 ]).
--define(PARTICIPANTS_REQ_TYPES, [{<<"Conference-ID">>, fun is_binary/1}]).
-
-%% Conference Participants Resp
--define(PARTICIPANTS_RESP_HEADERS, [<<"Participants">>]).
--define(OPTIONAL_PARTICIPANTS_RESP_HEADERS, []).
--define(PARTICIPANTS_RESP_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                  ,{<<"Event-Name">>, <<"participants_resp">>}
-                                  ]).
--define(PARTICIPANTS_RESP_TYPES, [{<<"Conference-ID">>, fun is_binary/1}]).
-
-%% Conference Lock
--define(LOCK_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>]).
--define(OPTIONAL_LOCK_HEADERS, []).
--define(LOCK_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                     ,{<<"Event-Name">>, <<"command">>}
-                     ,{<<"Application-Name">>, <<"lock">>}
-                     ]).
--define(LOCK_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                    ]).
-
-%% Conference Mute
--define(MUTE_PARTICIPANT_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>, <<"Participant-ID">>]).
--define(OPTIONAL_MUTE_PARTICIPANT_HEADERS, []).
--define(MUTE_PARTICIPANT_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                 ,{<<"Event-Name">>, <<"command">>}
-                                 ,{<<"Application-Name">>, <<"mute_participant">>}
-                                 ]).
--define(MUTE_PARTICIPANT_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                                ]).
-
-%% Conference Play
--define(PLAY_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>, <<"Media-Name">>]).
--define(OPTIONAL_PLAY_HEADERS, [<<"Participant-ID">>, <<"Call-ID">>]).
--define(PLAY_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                     ,{<<"Event-Name">>, <<"command">>}
-                     ,{<<"Application-Name">>, <<"play">>}
-                     ]).
--define(PLAY_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                    ,{<<"Media-Name">>, fun is_binary/1}
-                    ]).
-
-%% Conference Record
--define(RECORD_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>, <<"Media-Name">>]).
--define(OPTIONAL_RECORD_HEADERS, [<<"Call-ID">>]).
--define(RECORD_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                       ,{<<"Event-Name">>, <<"command">>}
-                       ,{<<"Application-Name">>, <<"record">>}
-                       ]).
--define(RECORD_TYPES, [{<<"Conference-ID">>, fun is_binary/1}]).
-
-%% Conference RecordStop
--define(RECORDSTOP_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>, <<"Media-Name">>]).
--define(OPTIONAL_RECORDSTOP_HEADERS, [<<"Call-ID">>]).
--define(RECORDSTOP_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                           ,{<<"Event-Name">>, <<"command">>}
-                           ,{<<"Application-Name">>, <<"recordstop">>}
-                           ]).
--define(RECORDSTOP_TYPES, [{<<"Conference-ID">>, fun is_binary/1}]).
-
-
-%% Conference Relate Participants
--define(RELATE_PARTICIPANTS_HEADERS, [<<"Application-Name">>
-                                     ,<<"Conference-ID">>
-                                     ,<<"Other-Participant">>
-                                     ,<<"Participant-ID">>
-                                     ]).
--define(OPTIONAL_RELATE_PARTICIPANTS_HEADERS, [<<"Relationship">>]).
--define(RELATE_PARTICIPANTS_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                    ,{<<"Event-Name">>, <<"command">>}
-                                    ,{<<"Application-Name">>, <<"relate_participants">>}
-                                    ,{<<"Relationship">>, [<<"deaf">>, <<"mute">>, <<"clear">>]}
-                                    ]).
--define(RELATE_PARTICIPANTS_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                                   ,{<<"Participant-ID">> ,fun(ID) -> is_integer(ID)
-                                                                          orelse is_binary(ID)
-                                                           end
-                                    }
-                                   ,{<<"Other-Participant">>, fun(ID) -> is_integer(ID)
-                                                                             orelse is_binary(ID)
-                                                              end
-                                    }
-                                   ]).
-
-%% Conference Set
--define(SET_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>, <<"Parameter">>, <<"Value">>]).
--define(OPTIONAL_SET_HEADERS, []).
--define(SET_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                    ,{<<"Event-Name">>, <<"command">>}
-                    ,{<<"Application-Name">>, <<"set">>}
-                    ,{<<"Parameter">>, [<<"Max-Members">>, <<"Caller-ID-Name">>, <<"Caller-ID-Number">>]}
-                    ]).
--define(SET_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                   ,{<<"Value">>, fun is_binary/1}
-                   ]).
-
-%% Conference Stop Play
--define(STOP_PLAY_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>]).
--define(OPTIONAL_STOP_PLAY_HEADERS, [<<"Participant-ID">>, <<"Affects">>]).
--define(STOP_PLAY_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                          ,{<<"Event-Name">>, <<"command">>}
-                          ,{<<"Application-Name">>, <<"stop_play">>}
-                          ,{<<"Affects">>, [<<"current">>, <<"all">>]}
-                          ]).
--define(STOP_PLAY_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
+-define(APPLICATION_MAP, [appmap_tuple(<<"deaf_participant">>, deaf_participant_definition())
+                         ,appmap_tuple(<<"participant_energy">>, participant_energy_definition())
+                         ,appmap_tuple(<<"kick">>, kick_definition())
+                         ,appmap_tuple(<<"participants">>, participants_req_definition())
+                         ,appmap_tuple(<<"lock">>, lock_definition())
+                         ,appmap_tuple(<<"mute_participant">>, mute_participant_definition())
+                         ,appmap_tuple(<<"play">>, play_definition())
+                         ,appmap_tuple(<<"record">>, record_definition())
+                         ,appmap_tuple(<<"recordstop">>, recordstop_definition())
+                         ,appmap_tuple(<<"relate_participants">>, relate_participants_definition())
+                         ,appmap_tuple(<<"stop_play">>, stop_play_definition())
+                         ,appmap_tuple(<<"undeaf_participant">>, undeaf_participant_definition())
+                         ,appmap_tuple(<<"unlock">>, unlock_definition())
+                         ,appmap_tuple(<<"unmute_participant">>, unmute_participant_definition())
+                         ,appmap_tuple(<<"participant_volume_in">>,
+                                       participant_volume_in_definition())
+                         ,appmap_tuple(<<"participant_volume_out">>,
+                                       participant_volume_out_definition())
+                         ,appmap_tuple(<<"dial">>, dial_definition())
+                         ,appmap_tuple(<<"dial_resp">>, dial_resp_definition())
+                         ,appmap_tuple(<<"tones">>, tones_definition())
+                         ,appmap_tuple(<<"say">>, say_definition())
+                         ,appmap_tuple(<<"tts">>, tts_definition())
+                         ,appmap_tuple(<<"play_macro">>, play_macro_req_definition())
                          ]).
-%% Conference Undeaf
--define(UNDEAF_PARTICIPANT_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>, <<"Participant-ID">>]).
--define(OPTIONAL_UNDEAF_PARTICIPANT_HEADERS, []).
--define(UNDEAF_PARTICIPANT_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                   ,{<<"Event-Name">>, <<"command">>}
-                                   ,{<<"Application-Name">>, <<"undeaf_participant">>}
-                                   ]).
--define(UNDEAF_PARTICIPANT_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                                  ]).
-
-%% Conference Unlock
--define(UNLOCK_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>]).
--define(OPTIONAL_UNLOCK_HEADERS, []).
--define(UNLOCK_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                       ,{<<"Event-Name">>, <<"command">>}
-                       ,{<<"Application-Name">>, <<"unlock">>}
-                       ]).
--define(UNLOCK_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                      ]).
-
-%% Conference Unmute
--define(UNMUTE_PARTICIPANT_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>, <<"Participant-ID">>]).
--define(OPTIONAL_UNMUTE_PARTICIPANT_HEADERS, []).
--define(UNMUTE_PARTICIPANT_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                   ,{<<"Event-Name">>, <<"command">>}
-                                   ,{<<"Application-Name">>, <<"unmute_participant">>}
-                                   ]).
--define(UNMUTE_PARTICIPANT_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                                  ]).
-
-%% Conference Set Volume In
--define(PARTICIPANT_VOLUME_IN_HEADERS, [<<"Application-Name">>, <<"Conference-ID">>
-                                       ,<<"Participant-ID">>, <<"Volume-In-Level">>
-                                       ]).
--define(OPTIONAL_PARTICIPANT_VOLUME_IN_HEADERS, []).
--define(PARTICIPANT_VOLUME_IN_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                      ,{<<"Event-Name">>, <<"command">>}
-                                      ,{<<"Application-Name">>, <<"participant_volume_in">>}
-                                      ]).
--define(PARTICIPANT_VOLUME_IN_TYPES, [{<<"Conference-ID">>, fun is_binary/1}
-                                     ]).
-
-%% Conference Set Volume Out
--define(PARTICIPANT_VOLUME_OUT_HEADERS, [<<"Application-Name">>
-                                        ,<<"Conference-ID">>
-                                        ,<<"Participant-ID">>
-                                        ,<<"Volume-Out-Level">>
-                                        ]).
--define(OPTIONAL_PARTICIPANT_VOLUME_OUT_HEADERS, []).
--define(PARTICIPANT_VOLUME_OUT_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                       ,{<<"Event-Name">>, <<"command">>}
-                                       ,{<<"Application-Name">>, <<"participant_volume_out">>}
-                                       ]).
--define(PARTICIPANT_VOLUME_OUT_TYPES, [{<<"Conference-ID">>, fun is_binary/1}]).
-
--define(DIAL_HEADERS, [<<"Endpoints">>
-                      ,<<"Conference-ID">>
-                      ,<<"Application-Name">>
-                      ]).
--define(OPTIONAL_DIAL_HEADERS, [<<"Account-ID">>
-                               ,<<"Caller-ID-Name">>
-                               ,<<"Caller-ID-Number">>
-                               ,<<"Custom-Channel-Vars">>
-                               ,<<"Custom-Application-Vars">>
-                               ,<<"Outbound-Call-ID">>
-                               ,<<"Participant-Flags">>
-                               ,<<"Profile-Name">>
-                               ,<<"Target-Call-ID">>
-                               ,<<"Timeout">>
-                               ]).
--define(DIAL_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                     ,{<<"Event-Name">>, <<"command">>}
-                     ,{<<"Application-Name">>, <<"dial">>}
-                     ]).
--define(DIAL_TYPES, [{<<"Caller-ID-Name">>, fun is_binary/1}
-                    ,{<<"Caller-ID-Number">>, fun is_binary/1}
-                    ,{<<"Endpoints">>, fun(Es) ->
-                                               kz_term:is_ne_list(Es)
-                                                   andalso kz_json:are_json_objects(Es)
-                                       end
-                     }
-                    ,{<<"Custom-Channel-Vars">>, fun kz_json:is_json_object/1}
-                    ,{<<"Custom-Application-Vars">>, fun kz_json:is_json_object/1}
-                    ,{<<"Timeout">>, fun is_integer/1}
-                    ]).
-
--define(DIAL_RESP_HEADERS, [<<"Endpoint-Responses">>]).
--define(OPTIONAL_DIAL_RESP_HEADERS, []).
--define(DIAL_RESP_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                          ,{<<"Event-Name">>, <<"command">>}
-                          ,{<<"Application-Name">>, <<"dial_resp">>}
-                          ]).
--define(DIAL_RESP_TYPES, [{<<"Endpoint-Responses">>
-                          ,fun(Es) ->
-                                   kz_term:is_ne_list(Es)
-                                       andalso kz_json:are_json_objects(Es)
-                           end
-                          }
-                         ]).
-
-%% Conference Participants Event
--define(PARTICIPANT_EVENT_HEADERS, [<<"Event">>
-                                   ,<<"Call-ID">>
-                                   ,<<"Focus">>
-                                   ,<<"Conference-ID">>
-                                   ,<<"Instance-ID">>
-                                   ,<<"Participant-ID">>
-                                   ,<<"Floor">>
-                                   ,<<"Hear">>
-                                   ,<<"Speak">>
-                                   ,<<"Talking">>
-                                   ,<<"Current-Energy">>
-                                   ,<<"Energy-Level">>
-                                   ,<<"Video">>
-                                   ,<<"Mute-Detect">>
-                                   ,<<"Caller-ID-Name">>
-                                   ,<<"Caller-ID-Number">>
-                                   ,<<"Channel-Presence-ID">>
-                                   ,<<"Custom-Channel-Vars">>
-                                   ]).
--define(OPTIONAL_PARTICIPANT_EVENT_HEADERS, []).
--define(PARTICIPANT_EVENT_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                  ,{<<"Event-Name">>, <<"participant_event">>}
-                                  ]).
--define(PARTICIPANT_EVENT_TYPES, []).
-
-%% Conference Event
--define(CONFERENCE_EVENT_KEY(Event, AccountId, ConferenceId, CallId)
-       ,list_to_binary([Event, "."
-                       ,AccountId, "."
-                       ,ConferenceId, "."
-                       ,kz_amqp_util:encode(CallId)
-                       ])
-       ).
--define(CONFERENCE_EVENT_HEADERS, [<<"Event">>
-                                  ,<<"Conference-ID">>
-                                  ,<<"Instance-ID">>
-                                  ]).
--define(OPTIONAL_CONFERENCE_EVENT_HEADERS, [<<"Call-ID">>
-                                           ,<<"Participant-ID">>
-                                           ,<<"Caller-ID-Name">>
-                                           ,<<"Caller-ID-Number">>
-                                           ,<<"Channel-Presence-ID">>
-                                           ,<<"Custom-Channel-Vars">>
-                                           ,<<"Conference-Channel-Vars">>
-                                           ]).
--define(CONFERENCE_EVENT_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                 ,{<<"Event-Name">>, <<"event">>}
-                                 ]).
--define(CONFERENCE_EVENT_TYPES, []).
-
-%% Conference Error
--define(CONFERENCE_ERROR_HEADERS, [<<"Error-Message">>, <<"Request">>, <<"Conference-ID">>]).
--define(OPTIONAL_CONFERENCE_ERROR_HEADERS, []).
--define(CONFERENCE_ERROR_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                 ,{<<"Event-Name">>, <<"error">>}
-                                 ]).
--define(CONFERENCE_ERROR_TYPES, []).
-
--define(CONFIG_REQ_HEADERS, [<<"Request">>, <<"Profile">>]).
--define(OPTIONAL_CONFIG_REQ_HEADERS, [<<"Call-ID">>
-                                     ,<<"Conference-ID">>
-                                     ,<<"Controls">>
-                                     ]).
--define(CONFIG_REQ_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                           ,{<<"Event-Name">>, <<"config_req">>}
-                           ]).
--define(CONFIG_REQ_TYPES, []).
-
--define(CONFIG_RESP_HEADERS, [[<<"Profiles">>, <<"Caller-Controls">>]]).
--define(OPTIONAL_CONFIG_RESP_HEADERS, [<<"Advertise">>, <<"Chat-Permissions">>]).
--define(CONFIG_RESP_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                            ,{<<"Event-Name">>, <<"config_resp">>}
-                            ]).
--define(CONFIG_RESP_TYPES, []).
-
--define(APPLICTION_MAP, [{<<"deaf_participant">>, ?DEAF_PARTICIPANT_VALUES, fun deaf_participant/1}
-                        ,{<<"participant_energy">>, ?PARTICIPANT_ENERGY_VALUES, fun participant_energy/1}
-                        ,{<<"kick">>, ?KICK_VALUES, fun kick/1}
-                        ,{<<"participants">>, ?PARTICIPANTS_REQ_VALUES, fun participants_req/1}
-                        ,{<<"lock">>, ?LOCK_VALUES, fun lock/1}
-                        ,{<<"mute_participant">>, ?MUTE_PARTICIPANT_VALUES, fun mute_participant/1}
-                        ,{<<"play">>, ?PLAY_VALUES, fun play/1}
-                        ,{<<"record">>, ?RECORD_VALUES, fun record/1}
-                        ,{<<"recordstop">>, ?RECORDSTOP_VALUES, fun recordstop/1}
-                        ,{<<"relate_participants">>, ?RELATE_PARTICIPANTS_VALUES, fun relate_participants/1}
-                        ,{<<"stop_play">>, ?STOP_PLAY_VALUES, fun stop_play/1}
-                        ,{<<"undeaf_participant">>, ?UNDEAF_PARTICIPANT_VALUES, fun undeaf_participant/1}
-                        ,{<<"unlock">>, ?UNLOCK_VALUES, fun unlock/1}
-                        ,{<<"unmute_participant">>, ?UNMUTE_PARTICIPANT_VALUES, fun unmute_participant/1}
-                        ,{<<"participant_volume_in">>, ?PARTICIPANT_VOLUME_IN_VALUES, fun participant_volume_in/1}
-                        ,{<<"participant_volume_out">>, ?PARTICIPANT_VOLUME_OUT_VALUES, fun participant_volume_out/1}
-                        ,{<<"dial">>, ?DIAL_VALUES, fun dial/1}
-                        ,{<<"dial_resp">>, ?DIAL_RESP_VALUES, fun dial_resp/1}
-                        ,{<<"tones">>, ?CONF_TONES_REQ_VALUES, fun tones/1}
-                        ,{<<"say">>, ?CONF_SAY_REQ_VALUES, fun say/1}
-                        ,{<<"tts">>, ?CONF_SAY_REQ_VALUES, fun tts/1}
-                        ,{<<"play_macro">>, ?CONF_PLAY_MACRO_REQ_VALUES, fun play_macro_req/1}
-                        ]).
-
--define(CONF_PLAY_MACRO_REQ_HEADERS, [<<"Application-Name">>
-                                     ,<<"Conference-ID">>
-                                     ,<<"Media-Macro">>
-                                     ]).
--define(OPTIONAL_CONF_PLAY_MACRO_REQ_HEADERS, []).
--define(CONF_PLAY_MACRO_REQ_VALUES, []).
--define(CONF_PLAY_MACRO_REQ_TYPES, [{<<"Conference-ID">>, fun is_binary/1}]).
 
 -define(MEMBER_UPDATE_EVENTS, [<<"stop-talking">>
                               ,<<"start-talking">>
@@ -592,9 +246,1156 @@
                            ,<<"del-member">>
                                 | ?MEMBER_UPDATE_EVENTS
                            ]).
+
 %%------------------------------------------------------------------------------
-%%
-%%
+%% @doc Get all API definitions of this module.
+%% @end
+%%------------------------------------------------------------------------------
+-spec api_definitions() -> kapi_definition:apis().
+api_definitions() ->
+    [event_definition()
+    ,search_req_definition()
+    ,search_resp_definition()
+    ,discovery_req_definition()
+    ,discovery_resp_definition()
+    ,add_participant_definition()
+    ,deaf_participant_definition()
+    ,participant_energy_definition()
+    ,kick_definition()
+    ,participants_req_definition()
+    ,participants_resp_definition()
+    ,lock_definition()
+    ,mute_participant_definition()
+    ,play_definition()
+    ,tones_definition()
+    ,say_definition()
+    ,tts_definition()
+    ,record_definition()
+    ,recordstop_definition()
+    ,relate_participants_definition()
+    ,set_definition()
+    ,stop_play_definition()
+    ,undeaf_participant_definition()
+    ,unlock_definition()
+    ,unmute_participant_definition()
+    ,participant_volume_in_definition()
+    ,participant_volume_out_definition()
+    ,participant_event_definition()
+    ,conference_error_definition()
+    ,config_req_definition()
+    ,config_resp_definition()
+    ,play_macro_req_definition()
+    ,dial_definition()
+    ,dial_resp_definition()
+    ].
+
+%%------------------------------------------------------------------------------
+%% @doc Get API definition of the given `Name'.
+%% @see api_definitions/0
+%% @end
+%%------------------------------------------------------------------------------
+-spec api_definition(kz_term:text()) -> kapi_definition:api().
+api_definition(Name) when not is_binary(Name) ->
+    api_definition(kz_term:to_binary(Name));
+api_definition(<<"event">>) ->
+    event_definition();
+api_definition(<<"search_req">>) ->
+    search_req_definition();
+api_definition(<<"search_resp">>) ->
+    search_resp_definition();
+api_definition(<<"discovery_req">>) ->
+    discovery_req_definition();
+api_definition(<<"discovery_resp">>) ->
+    discovery_resp_definition();
+api_definition(<<"add_participant">>) ->
+    add_participant_definition();
+api_definition(<<"deaf_participant">>) ->
+    deaf_participant_definition();
+api_definition(<<"participant_energy">>) ->
+    participant_energy_definition();
+api_definition(<<"kick">>) ->
+    kick_definition();
+api_definition(<<"participants_req">>) ->
+    participants_req_definition();
+api_definition(<<"participants_resp">>) ->
+    participants_resp_definition();
+api_definition(<<"lock">>) ->
+    lock_definition();
+api_definition(<<"mute_participant">>) ->
+    mute_participant_definition();
+api_definition(<<"play">>) ->
+    play_definition();
+api_definition(<<"tones">>) ->
+    tones_definition();
+api_definition(<<"say">>) ->
+    say_definition();
+api_definition(<<"tts">>) ->
+    tts_definition();
+api_definition(<<"record">>) ->
+    record_definition();
+api_definition(<<"recordstop">>) ->
+    recordstop_definition();
+api_definition(<<"relate_participants">>) ->
+    relate_participants_definition();
+api_definition(<<"set">>) ->
+    set_definition();
+api_definition(<<"stop_play">>) ->
+    stop_play_definition();
+api_definition(<<"undeaf_participant">>) ->
+    undeaf_participant_definition();
+api_definition(<<"unlock">>) ->
+    unlock_definition();
+api_definition(<<"unmute_participant">>) ->
+    unmute_participant_definition();
+api_definition(<<"participant_volume_in">>) ->
+    participant_volume_in_definition();
+api_definition(<<"participant_volume_out">>) ->
+    participant_volume_out_definition();
+api_definition(<<"participant_event">>) ->
+    participant_event_definition();
+api_definition(<<"conference_error">>) ->
+    conference_error_definition();
+api_definition(<<"config_req">>) ->
+    config_req_definition();
+api_definition(<<"config_resp">>) ->
+    config_resp_definition();
+api_definition(<<"play_macro_req">>) ->
+    play_macro_req_definition();
+api_definition(<<"dial">>) ->
+    dial_definition();
+api_definition(<<"dial_resp">>) ->
+    dial_resp_definition().
+
+-spec event_definition() -> kapi_definition:api().
+event_definition() ->
+    EventName = <<"event">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Event">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Event">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun event/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun event_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_event/1}
+              ,{fun kapi_definition:set_binding/2, fun event_key/1}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Conference-ID">>
+                                                            ,<<"Event">>
+                                                            ,<<"Instance-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Caller-ID-Name">>
+                                                            ,<<"Caller-ID-Number">>
+                                                            ,<<"Call-ID">>
+                                                            ,<<"Channel-Presence-ID">>
+                                                            ,<<"Conference-Channel-Vars">>
+                                                            ,<<"Custom-Channel-Vars">>
+                                                            ,<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec search_req_definition() -> kapi_definition:api().
+search_req_definition() ->
+    EventName = <<"search_req">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Search Request">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Search Request">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun search_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun search_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_search_req/1}
+              ,{fun kapi_definition:set_required_headers/2, [[<<"Conference-ID">>, <<"Account-ID">>]
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec search_resp_definition() -> kapi_definition:api().
+search_resp_definition() ->
+    EventName = <<"search_resp">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Search Response">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Search Response">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun search_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun search_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_search_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [[<<"Conferences">>
+                                                             ,<<"Conference-ID">>
+                                                             ]
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Answered">>
+                                                            ,<<"Dynamic">>
+                                                            ,<<"Locked">>
+                                                            ,<<"Participant-Count">>
+                                                            ,<<"Participants">>
+                                                            ,<<"Running">>
+                                                            ,<<"Run-Time">>
+                                                            ,<<"Start-Time">>
+                                                            ,<<"Switch-External-IP">>
+                                                            ,<<"Switch-Hostname">>
+                                                            ,<<"Switch-URL">>
+                                                            ,<<"UUID">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec discovery_req_definition() -> kapi_definition:api().
+discovery_req_definition() ->
+    EventName = <<"discovery_req">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Discovery Request">>}
+              ,{fun kapi_definition:set_description/2, <<"">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun discovery_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun discovery_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_discovery_req/1}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Call">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Doc">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Conference-Name">>
+                                                            ,<<"Moderator">>
+                                                            ,<<"Play-Entry-Tone">>
+                                                            ,<<"Play-Exit-Tone">>
+                                                            ,<<"Play-Welcome">>
+                                                            ,<<"Play-Welcome-Media">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Moderator">>, fun kz_term:is_boolean/1}
+                ,{<<"Play-Welcome">>, fun kz_term:is_boolean/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec discovery_resp_definition() -> kapi_definition:api().
+discovery_resp_definition() ->
+    EventName = <<"discovery_resp">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Discovery Response">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Discovery Response">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun discovery_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun discovery_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_discovery_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec add_participant_definition() -> kapi_definition:api().
+add_participant_definition() ->
+    EventName = <<"add_participant">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Add Participant">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Add Participant">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun add_participant/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun add_participant_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_add_participant/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Call-ID">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Control-Queue">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Account-ID">>
+                                                            ,<<"Answered">>
+                                                            ,<<"Authorizing-ID">>
+                                                            ,<<"Authorizing-Type">>
+                                                            ,<<"Bridge-ID">>
+                                                            ,<<"Call-Direction">>
+                                                            ,<<"Callee-ID-Name">>
+                                                            ,<<"Callee-ID-Number">>
+                                                            ,<<"Caller-ID-Name">>
+                                                            ,<<"Caller-ID-Number">>
+                                                            ,<<"Call-ID">>
+                                                            ,<<"Channel-Authorized">>
+                                                            ,<<"Channel-Call-State">>
+                                                            ,<<"Channel-Created-Time">>
+                                                            ,<<"Channel-Is-Loopback">>
+                                                            ,<<"Channel-Loopback-Bowout">>
+                                                            ,<<"Channel-Loopback-Bowout-Execute">>
+                                                            ,<<"Channel-Loopback-Leg">>
+                                                            ,<<"Channel-Loopback-Other-Leg-ID">>
+                                                            ,<<"Channel-Moving">>
+                                                            ,<<"Channel-Name">>
+                                                            ,<<"Channel-State">>
+                                                            ,<<"Custom-Application-Vars">>
+                                                            ,<<"Custom-Channel-Vars">>
+                                                            ,<<"Custom-SIP-Headers">>
+                                                            ,<<"Destination">>
+                                                            ,<<"Disposition">>
+                                                            ,<<"Ecallmgr-Node">>
+                                                            ,<<"From">>
+                                                            ,<<"From-Tag">>
+                                                            ,<<"Hangup-Cause">>
+                                                            ,<<"Hangup-Code">>
+                                                            ,<<"Is-Loopback">>
+                                                            ,<<"Is-On-Hold">>
+                                                            ,<<"Media-Node">>
+                                                            ,<<"Media-Server">>
+                                                            ,<<"Msg-ID">>
+                                                            ,<<"Node">>
+                                                            ,<<"Origination-Call-ID">>
+                                                            ,<<"Other-Leg-Caller-ID-Name">>
+                                                            ,<<"Other-Leg-Caller-ID-Number">>
+                                                            ,<<"Other-Leg-Call-ID">>
+                                                            ,<<"Other-Leg-Destination-Number">>
+                                                            ,<<"Other-Leg-Direction">>
+                                                            ,<<"Participant-Flags">>
+                                                            ,<<"Presence-ID">>
+                                                            ,<<"Profile-Name">>
+                                                            ,<<"Raw-Application-Data">>
+                                                            ,<<"Raw-Application-Name">>
+                                                            ,<<"Realm">>
+                                                            ,<<"Replaced-By">>
+                                                            ,<<"Request">>
+                                                            ,<<"Switch-Hostname">>
+                                                            ,<<"Switch-Nodename">>
+                                                            ,<<"Switch-URI">>
+                                                            ,<<"Switch-URL">>
+                                                            ,<<"Timestamp">>
+                                                            ,<<"To">>
+                                                            ,<<"To-Tag">>
+                                                            ,<<"Transfer-History">>
+                                                            ,<<"Username">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec deaf_participant_definition() -> kapi_definition:api().
+deaf_participant_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Deaf Participant">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Deaf Participant">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun deaf_participant/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun deaf_participant_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_deaf_participant/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"deaf_participant">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec participant_energy_definition() -> kapi_definition:api().
+participant_energy_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Participant Energy">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Participant Energy">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun participant_energy/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun participant_energy_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_participant_energy/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Energy-Level">>
+                                                            ,<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"participant_energy">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec kick_definition() -> kapi_definition:api().
+kick_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Kick">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Kick">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun kick/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun kick_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_kick/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"kick">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec participants_req_definition() -> kapi_definition:api().
+participants_req_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Participants Request">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Participants Request">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun participants_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun participants_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_participants_req/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"participants">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec participants_resp_definition() -> kapi_definition:api().
+participants_resp_definition() ->
+    EventName = <<"participants_resp">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Participants Response">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Participants Response">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun participants_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun participants_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_participants_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Participants">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec lock_definition() -> kapi_definition:api().
+lock_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Lock">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Lock">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun lock/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun lock_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_lock/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"lock">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec mute_participant_definition() -> kapi_definition:api().
+mute_participant_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Mute">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Mute">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun mute_participant/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun mute_participant_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_mute_participant/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"mute_participant">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec play_definition() -> kapi_definition:api().
+play_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Play">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Play">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun play/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun play_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_play/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Media-Name">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Call-ID">>
+                                                            ,<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"play">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ,{<<"Media-Name">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec tones_definition() -> kapi_definition:api().
+tones_definition() ->
+    TonesDef = kapi_dialplan:api_definition(<<"tones">>),
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, kapi_definition:name(TonesDef)}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Tones">>}
+              ,{fun kapi_definition:set_description/2, <<"Create a tone on the channel">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun tones/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun tones_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
+              ,{fun kapi_definition:set_required_headers/2
+               ,kapi_definition:required_headers(TonesDef)
+               }
+              ,{fun kapi_definition:set_optional_headers/2
+               ,kapi_definition:optional_headers(TonesDef)
+               }
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Event-Category">>, Category}
+                 | props:delete(<<"Event-Category">>, kapi_definition:values(TonesDef))
+                ]
+               }
+              ,{fun kapi_definition:set_types/2, kapi_definition:types(TonesDef)}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec say_definition() -> kapi_definition:api().
+say_definition() ->
+    TTSDef = kapi_dialplan:api_definition(<<"tts">>),
+    Category = <<"Conference">>,
+    Setters = [{fun kapi_definition:set_name/2, kapi_definition:name(TTSDef)}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference TTS">>}
+              ,{fun kapi_definition:set_description/2, <<"TTS - Text-to-speech">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun say/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun say_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
+              ,{fun kapi_definition:set_required_headers/2
+               ,kapi_definition:required_headers(TTSDef)
+               }
+              ,{fun kapi_definition:set_optional_headers/2
+               ,kapi_definition:optional_headers(TTSDef)
+               }
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Event-Category">>, Category}
+                ,{<<"Application-Name">>, [<<"say">>, <<"tts">>]}
+                 | props:delete_keys([<<"Event-Category">>
+                                     ,<<"Application-Name">>
+                                     ]
+                                    ,kapi_definition:values(tones_definition())
+                                    )
+                ]
+               }
+              ,{fun kapi_definition:set_types/2, kapi_definition:types(TTSDef)}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec tts_definition() -> kapi_definition:api().
+tts_definition() ->
+    Setters = [{fun kapi_definition:set_build_fun/2, fun tts/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun tts_v/1}
+              ],
+    kapi_definition:setters(Setters, say_definition()).
+
+-spec record_definition() -> kapi_definition:api().
+record_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Record">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Record">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun record/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun record_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_record/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Media-Name">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Call-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"record">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec recordstop_definition() -> kapi_definition:api().
+recordstop_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference RecordStop">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference RecordStop">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun recordstop/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun recordstop_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_recordstop/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Media-Name">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Call-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"recordstop">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec relate_participants_definition() -> kapi_definition:api().
+relate_participants_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Relate Participants">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Relate Participants">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun relate_participants/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun relate_participants_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_relate_participants/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Other-Participant">>
+                                                            ,<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Relationship">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"relate_participants">>}
+                ,{<<"Relationship">>, [<<"deaf">>, <<"mute">>, <<"clear">>]}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ,{<<"Participant-ID">> ,fun(ID) -> is_integer(ID)
+                                                       orelse is_binary(ID)
+                                        end
+                 }
+                ,{<<"Other-Participant">>, fun(ID) -> is_integer(ID)
+                                                          orelse is_binary(ID)
+                                           end
+                 }
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec set_definition() -> kapi_definition:api().
+set_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Set">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Set">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun set/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun set_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_set/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Parameter">>
+                                                            ,<<"Value">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"set">>}
+                ,{<<"Parameter">>, [<<"Max-Members">>
+                                   ,<<"Caller-ID-Name">>
+                                   ,<<"Caller-ID-Number">>
+                                   ]}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ,{<<"Value">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec stop_play_definition() -> kapi_definition:api().
+stop_play_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Stop Play">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Stop Play">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun stop_play/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun stop_play_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_stop_play/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Affects">>
+                                                            ,<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"stop_play">>}
+                ,{<<"Affects">>, [<<"current">>, <<"all">>]}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec undeaf_participant_definition() -> kapi_definition:api().
+undeaf_participant_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Undeaf">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Undeaf">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun undeaf_participant/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun undeaf_participant_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_undeaf_participant/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"undeaf_participant">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec unlock_definition() -> kapi_definition:api().
+unlock_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Unlock">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Unlock">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun unlock/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun unlock_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_unlock/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"unlock">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec unmute_participant_definition() -> kapi_definition:api().
+unmute_participant_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Unmute">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Unmute">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun unmute_participant/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun unmute_participant_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_unmute_participant/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Participant-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"unmute_participant">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec participant_volume_in_definition() -> kapi_definition:api().
+participant_volume_in_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Set Volume In">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Set Volume In">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun participant_volume_in/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun participant_volume_in_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_participant_volume_in/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Participant-ID">>
+                                                            ,<<"Volume-In-Level">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"participant_volume_in">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec participant_volume_out_definition() -> kapi_definition:api().
+participant_volume_out_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Set Volume Out">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Set Volume Out">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun participant_volume_out/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun participant_volume_out_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_participant_volume_out/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Participant-ID">>
+                                                            ,<<"Volume-Out-Level">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"participant_volume_out">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec participant_event_definition() -> kapi_definition:api().
+participant_event_definition() ->
+    EventName = <<"participant_event">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Participants Event">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Participants Event">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun participant_event/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun participant_event_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_participant_event/3}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Caller-ID-Name">>
+                                                            ,<<"Caller-ID-Number">>
+                                                            ,<<"Call-ID">>
+                                                            ,<<"Channel-Presence-ID">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Current-Energy">>
+                                                            ,<<"Custom-Channel-Vars">>
+                                                            ,<<"Energy-Level">>
+                                                            ,<<"Event">>
+                                                            ,<<"Floor">>
+                                                            ,<<"Focus">>
+                                                            ,<<"Hear">>
+                                                            ,<<"Instance-ID">>
+                                                            ,<<"Mute-Detect">>
+                                                            ,<<"Participant-ID">>
+                                                            ,<<"Speak">>
+                                                            ,<<"Talking">>
+                                                            ,<<"Video">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec conference_error_definition() -> kapi_definition:api().
+conference_error_definition() ->
+    EventName = <<"error">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Error">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Error">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun conference_error/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun conference_error_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_error/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Conference-ID">>
+                                                            ,<<"Error-Message">>
+                                                            ,<<"Request">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec config_req_definition() -> kapi_definition:api().
+config_req_definition() ->
+    EventName = <<"config_req">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Configuration Request">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Configuration Request">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun config_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun config_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_config_req/1}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Profile">>
+                                                            ,<<"Request">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Call-ID">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Controls">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec config_resp_definition() -> kapi_definition:api().
+config_resp_definition() ->
+    EventName = <<"config_resp">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Configuration Response">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Configuration Response">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun config_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun config_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_config_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [[<<"Profiles">>, <<"Caller-Controls">>]
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Advertise">>
+                                                            ,<<"Chat-Permissions">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec play_macro_req_definition() -> kapi_definition:api().
+play_macro_req_definition() ->
+    Setters = [{fun kapi_definition:set_friendly_name/2, <<"Play Macro Request">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Play Macro Request">>}
+              ,{fun kapi_definition:set_build_fun/2, fun play_macro_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun play_macro_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Media-Macro">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2, []}
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec dial_definition() -> kapi_definition:api().
+dial_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Dial Request">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Dial Request">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun dial/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun dial_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_dial/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ,<<"Endpoints">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Account-ID">>
+                                                            ,<<"Caller-ID-Name">>
+                                                            ,<<"Caller-ID-Number">>
+                                                            ,<<"Custom-Application-Vars">>
+                                                            ,<<"Custom-Channel-Vars">>
+                                                            ,<<"Outbound-Call-ID">>
+                                                            ,<<"Participant-Flags">>
+                                                            ,<<"Profile-Name">>
+                                                            ,<<"Target-Call-ID">>
+                                                            ,<<"Timeout">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"dial">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Caller-ID-Name">>, fun is_binary/1}
+                ,{<<"Caller-ID-Number">>, fun is_binary/1}
+                ,{<<"Endpoints">>, fun(Es) ->
+                                           kz_term:is_ne_list(Es)
+                                               andalso kz_json:are_json_objects(Es)
+                                   end
+                 }
+                ,{<<"Custom-Channel-Vars">>, fun kz_json:is_json_object/1}
+                ,{<<"Custom-Application-Vars">>, fun kz_json:is_json_object/1}
+                ,{<<"Timeout">>, fun is_integer/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec dial_resp_definition() -> kapi_definition:api().
+dial_resp_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Dial Response">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Dial Response">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun dial_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun dial_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_dial_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Endpoint-Responses">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"dial_resp">>}
+                 | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Endpoint-Responses">>
+                 ,fun(Es) ->
+                          kz_term:is_ne_list(Es)
+                              andalso kz_json:are_json_objects(Es)
+                  end
+                 }
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
 %%------------------------------------------------------------------------------
 -spec events() -> kz_term:ne_binaries().
 events() ->
@@ -604,47 +1405,32 @@ events() ->
 focus_queue_name(Focus) -> <<(kz_term:to_binary(Focus))/binary, "_conference">>.
 
 %%------------------------------------------------------------------------------
-%% @doc Create a tone on the channel.
+%% @doc TTS - Text To Speech.
 %% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--define(CONF_SAY_REQ_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                             ,{<<"Application-Name">>, [<<"say">>, <<"tts">>]}
-                              | props:delete_keys([<<"Event-Category">>
-                                                  ,<<"Application-Name">>
-                                                  ]
-                                                 ,?TONES_REQ_VALUES
-                                                 )
-                             ]).
--spec say(kz_term:api_terms()) -> api_formatter_return() .
-say(Prop) when is_list(Prop) ->
-    case say_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?TTS_REQ_HEADERS, ?OPTIONAL_TTS_REQ_HEADERS);
-        'false' -> {'error', "Prop failed validation for say_req"}
-    end;
-say(JObj) -> say(kz_json:to_proplist(JObj)).
-
--spec tts(kz_term:api_terms()) -> api_formatter_return().
-tts(API) -> say(API).
+-spec say(kz_term:api_terms()) -> kz_api:api_formatter_return() .
+say(Req) ->
+    kapi_definition:build_message(Req, say_definition()).
 
 -spec say_v(kz_term:api_terms()) -> boolean().
-say_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?TTS_REQ_HEADERS, ?CONF_SAY_REQ_VALUES, ?TTS_REQ_TYPES);
-say_v(JObj) -> say_v(kz_json:to_proplist(JObj)).
+say_v(Req) ->
+    kapi_definition:validate(Req, say_definition()).
+
+-spec tts(kz_term:api_terms()) -> kz_api:api_formatter_return().
+tts(API) ->
+    say(API).
 
 -spec tts_v(kz_term:api_terms()) -> boolean().
-tts_v(API) -> say_v(API).
+tts_v(API) ->
+    say_v(API).
 
 %%------------------------------------------------------------------------------
 %% @doc Create a tone on the channel.
 %% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
-
--define(CONF_TONES_REQ_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                                | props:delete(<<"Event-Category">>, ?TONES_REQ_VALUES)
-                               ]).
--spec tones(kz_term:api_terms()) -> api_formatter_return() .
+-spec tones(kz_term:api_terms()) -> kz_api:api_formatter_return().
 tones(Prop) when is_list(Prop) ->
     Tones = [begin
                  {'ok', TonesProp} = kapi_dialplan:tones_req_tone_headers(Tone),
@@ -654,535 +1440,809 @@ tones(Prop) when is_list(Prop) ->
                 kapi_dialplan:tones_req_tone_v(Tone)
             ],
     Prop1 = [ {<<"Tones">>, Tones} | props:delete(<<"Tones">>, Prop)],
-    case tones_v(Prop1) of
-        'true' -> kz_api:build_message(Prop1, ?TONES_REQ_HEADERS, ?OPTIONAL_TONES_REQ_HEADERS);
-        'false' -> {'error', "Prop failed validation for tones_req"}
-    end;
-tones(JObj) -> tones(kz_json:to_proplist(JObj)).
+    kapi_definition:build_message(Prop1, tones_definition());
+tones(JObj) ->
+    tones(kz_json:to_proplist(JObj)).
 
 -spec tones_v(kz_term:api_terms()) -> boolean().
-tones_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?TONES_REQ_HEADERS, ?CONF_TONES_REQ_VALUES, ?TONES_REQ_TYPES);
-tones_v(JObj) -> tones_v(kz_json:to_proplist(JObj)).
+tones_v(Req) ->
+    kapi_definition:validate(Req, tones_definition()).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Search Request.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec search_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-search_req(Prop) when is_list(Prop) ->
-    case search_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?SEARCH_REQ_HEADERS, ?OPTIONAL_SEARCH_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for search request"}
-    end;
-search_req(JObj) -> search_req(kz_json:to_proplist(JObj)).
+-spec search_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+search_req(Req) ->
+    kapi_definition:build_message(Req, search_req_definition()).
 
 -spec search_req_v(kz_term:api_terms()) -> boolean().
-search_req_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?SEARCH_REQ_HEADERS, ?SEARCH_REQ_VALUES, ?SEARCH_REQ_TYPES);
-search_req_v(JObj) -> search_req_v(kz_json:to_proplist(JObj)).
+search_req_v(Req) ->
+    kapi_definition:validate(Req, search_req_definition()).
+
+-spec publish_search_req(kz_term:api_terms()) -> 'ok'.
+publish_search_req(JObj) ->
+    publish_search_req(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_search_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_search_req(Req, ContentType) ->
+    Definition = search_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'discovery', 'undefined', [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Search Response.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec search_resp(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-search_resp(Prop) when is_list(Prop) ->
-    case search_resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?SEARCH_RESP_HEADERS, ?OPTIONAL_SEARCH_RESP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for search response"}
-    end;
-search_resp(JObj) -> search_resp(kz_json:to_proplist(JObj)).
+-spec search_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+search_resp(Req) ->
+    kapi_definition:build_message(Req, search_resp_definition()).
 
 -spec search_resp_v(kz_term:api_terms()) -> boolean().
-search_resp_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?SEARCH_RESP_HEADERS, ?SEARCH_RESP_VALUES, ?SEARCH_RESP_TYPES);
-search_resp_v(JObj) -> search_resp_v(kz_json:to_proplist(JObj)).
+search_resp_v(Req) ->
+    kapi_definition:validate(Req, search_resp_definition()).
+
+-spec publish_search_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_search_resp(Queue, Resp) ->
+    publish_search_resp(Queue, Resp, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_search_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_search_resp(Queue, Resp, ContentType) ->
+    Definition = search_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Resp
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Discovery Request.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec discovery_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-discovery_req(Prop) when is_list(Prop) ->
-    case discovery_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?DISCOVERY_REQ_HEADERS, ?OPTIONAL_DISCOVERY_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for discovery"}
-    end;
-discovery_req(JObj) -> discovery_req(kz_json:to_proplist(JObj)).
+-spec discovery_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+discovery_req(Req) ->
+    kapi_definition:build_message(Req, discovery_req_definition()).
 
 -spec discovery_req_v(kz_term:api_terms()) -> boolean().
-discovery_req_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?DISCOVERY_REQ_HEADERS, ?DISCOVERY_REQ_VALUES, ?DISCOVERY_REQ_TYPES);
-discovery_req_v(JObj) -> discovery_req_v(kz_json:to_proplist(JObj)).
+discovery_req_v(Req) ->
+    kapi_definition:validate(Req, discovery_req_definition()).
+
+-spec publish_discovery_req(kz_term:api_terms()) -> 'ok'.
+publish_discovery_req(JObj) ->
+    publish_discovery_req(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_discovery_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_discovery_req(Req, ContentType) ->
+    Definition = discovery_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'discovery', 'undefined', [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Discovery Response.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec discovery_resp(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-discovery_resp(Prop) when is_list(Prop) ->
-    case discovery_resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?DISCOVERY_RESP_HEADERS, ?OPTIONAL_DISCOVERY_RESP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for discovery resp"}
-    end;
-discovery_resp(JObj) -> discovery_resp(kz_json:to_proplist(JObj)).
+-spec discovery_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+discovery_resp(Req) ->
+    kapi_definition:build_message(Req, discovery_resp_definition()).
 
 -spec discovery_resp_v(kz_term:api_terms()) -> boolean().
-discovery_resp_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?DISCOVERY_RESP_HEADERS, ?DISCOVERY_RESP_VALUES, ?DISCOVERY_RESP_TYPES);
-discovery_resp_v(JObj) -> discovery_resp_v(kz_json:to_proplist(JObj)).
+discovery_resp_v(Req) ->
+    kapi_definition:validate(Req, discovery_resp_definition()).
+
+-spec publish_discovery_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_discovery_resp(Q, JObj) ->
+    publish_discovery_resp(Q, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_discovery_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_discovery_resp(Q, Req, ContentType) ->
+    Definition = discovery_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Q, Payload, ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Add Participant.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec add_participant(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-add_participant(Prop) when is_list(Prop) ->
-    case add_participant_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?ADD_PARTICIPANT_HEADERS, ?OPTIONAL_ADD_PARTICIPANT_HEADERS);
-        'false' -> {'error', "Proplist failed validation for add participant"}
-    end;
-add_participant(JObj) -> add_participant(kz_json:to_proplist(JObj)).
+-spec add_participant(kz_term:api_terms()) -> kz_api:api_formatter_return().
+add_participant(Req) ->
+    kapi_definition:build_message(Req, add_participant_definition()).
 
 -spec add_participant_v(kz_term:api_terms()) -> boolean().
-add_participant_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?ADD_PARTICIPANT_HEADERS, ?ADD_PARTICIPANT_VALUES, ?ADD_PARTICIPANT_TYPES);
-add_participant_v(JObj) -> add_participant_v(kz_json:to_proplist(JObj)).
+add_participant_v(Req) ->
+    kapi_definition:validate(Req, add_participant_definition()).
+
+-spec publish_add_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_add_participant(Zone, JObj) ->
+    publish_add_participant(Zone, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_add_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_add_participant(Zone, Req, ContentType) ->
+    Definition = add_participant_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', Zone, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Deaf Participant.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec deaf_participant(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-deaf_participant(Prop) when is_list(Prop) ->
-    case deaf_participant_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?DEAF_PARTICIPANT_HEADERS, ?OPTIONAL_DEAF_PARTICIPANT_HEADERS);
-        'false' -> {'error', "Proplist failed validation for deaf participant"}
-    end;
-deaf_participant(JObj) -> deaf_participant(kz_json:to_proplist(JObj)).
+-spec deaf_participant(kz_term:api_terms()) -> kz_api:api_formatter_return().
+deaf_participant(Req) ->
+    kapi_definition:build_message(Req, deaf_participant_definition()).
 
 -spec deaf_participant_v(kz_term:api_terms()) -> boolean().
-deaf_participant_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?DEAF_PARTICIPANT_HEADERS, ?DEAF_PARTICIPANT_VALUES, ?DEAF_PARTICIPANT_TYPES);
-deaf_participant_v(JObj) -> deaf_participant_v(kz_json:to_proplist(JObj)).
+deaf_participant_v(Req) ->
+    kapi_definition:validate(Req, deaf_participant_definition()).
+
+-spec publish_deaf_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_deaf_participant(ConferenceId, JObj) ->
+    publish_deaf_participant(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_deaf_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_deaf_participant(ConferenceId, Req, ContentType) ->
+    Definition = deaf_participant_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Participant Energy.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec participant_energy(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-participant_energy(Prop) when is_list(Prop) ->
-    case participant_energy_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?PARTICIPANT_ENERGY_HEADERS, ?OPTIONAL_PARTICIPANT_ENERGY_HEADERS);
-        'false' -> {'error', "Proplist failed validation for participant energy"}
-    end;
-participant_energy(JObj) -> participant_energy(kz_json:to_proplist(JObj)).
+-spec participant_energy(kz_term:api_terms()) -> kz_api:api_formatter_return().
+participant_energy(Req) ->
+    kapi_definition:build_message(Req, participant_energy_definition()).
 
 -spec participant_energy_v(kz_term:api_terms()) -> boolean().
-participant_energy_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?PARTICIPANT_ENERGY_HEADERS, ?PARTICIPANT_ENERGY_VALUES, ?PARTICIPANT_ENERGY_TYPES);
-participant_energy_v(JObj) -> participant_energy_v(kz_json:to_proplist(JObj)).
+participant_energy_v(Req) ->
+    kapi_definition:validate(Req, participant_energy_definition()).
+
+-spec publish_participant_energy(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_participant_energy(ConferenceId, JObj) ->
+    publish_participant_energy(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_participant_energy(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_participant_energy(ConferenceId, Req, ContentType) ->
+    Definition = participant_energy_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Kick.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec kick(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-kick(Prop) when is_list(Prop) ->
-    case kick_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?KICK_HEADERS, ?OPTIONAL_KICK_HEADERS);
-        'false' -> {'error', "Proplist failed validation for kick"}
-    end;
-kick(JObj) -> kick(kz_json:to_proplist(JObj)).
+-spec kick(kz_term:api_terms()) -> kz_api:api_formatter_return().
+kick(Req) ->
+    kapi_definition:build_message(Req, kick_definition()).
 
 -spec kick_v(kz_term:api_terms()) -> boolean().
-kick_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?KICK_HEADERS, ?KICK_VALUES, ?KICK_TYPES);
-kick_v(JObj) -> kick_v(kz_json:to_proplist(JObj)).
+kick_v(Req) ->
+    kapi_definition:validate(Req, kick_definition()).
+
+-spec publish_kick(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_kick(ConferenceId, JObj) ->
+    publish_kick(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_kick(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_kick(ConferenceId, Req, ContentType) ->
+    Definition = kick_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Participants Request.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec participants_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-participants_req(Prop) when is_list(Prop) ->
-    case participants_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?PARTICIPANTS_REQ_HEADERS, ?OPTIONAL_PARTICIPANTS_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for participants request"}
-    end;
-participants_req(JObj) -> participants_req(kz_json:to_proplist(JObj)).
+-spec participants_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+participants_req(Req) ->
+    kapi_definition:build_message(Req, participants_req_definition()).
 
 -spec participants_req_v(kz_term:api_terms()) -> boolean().
-participants_req_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?PARTICIPANTS_REQ_HEADERS, ?PARTICIPANTS_REQ_VALUES, ?PARTICIPANTS_REQ_TYPES);
-participants_req_v(JObj) -> participants_req_v(kz_json:to_proplist(JObj)).
+participants_req_v(Req) ->
+    kapi_definition:validate(Req, participants_req_definition()).
+
+-spec publish_participants_req(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_participants_req(ConferenceId, JObj) ->
+    publish_participants_req(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_participants_req(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_participants_req(ConferenceId, Req, ContentType) ->
+    Definition = participants_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Participants Response.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec participants_resp(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-participants_resp(Prop) when is_list(Prop) ->
-    case participants_resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?PARTICIPANTS_RESP_HEADERS, ?OPTIONAL_PARTICIPANTS_RESP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for participants response"}
-    end;
-participants_resp(JObj) -> participants_resp(kz_json:to_proplist(JObj)).
+-spec participants_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+participants_resp(Req) ->
+    kapi_definition:build_message(Req, participants_resp_definition()).
 
 -spec participants_resp_v(kz_term:api_terms()) -> boolean().
-participants_resp_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?PARTICIPANTS_RESP_HEADERS, ?PARTICIPANTS_RESP_VALUES, ?PARTICIPANTS_RESP_TYPES);
-participants_resp_v(JObj) -> participants_resp_v(kz_json:to_proplist(JObj)).
+participants_resp_v(Req) ->
+    kapi_definition:validate(Req, participants_resp_definition()).
+
+-spec publish_participants_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_participants_resp(Queue, Resp) ->
+    publish_participants_resp(Queue, Resp, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_participants_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_participants_resp(Queue, Resp, ContentType) ->
+    Definition = participants_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Resp
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Lock.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec lock(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-lock(Prop) when is_list(Prop) ->
-    case lock_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?LOCK_HEADERS, ?OPTIONAL_LOCK_HEADERS);
-        'false' -> {'error', "Proplist failed validation for lock"}
-    end;
-lock(JObj) -> lock(kz_json:to_proplist(JObj)).
+-spec lock(kz_term:api_terms()) -> kz_api:api_formatter_return().
+lock(Req) ->
+    kapi_definition:build_message(Req, lock_definition()).
 
 -spec lock_v(kz_term:api_terms()) -> boolean().
-lock_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?LOCK_HEADERS, ?LOCK_VALUES, ?LOCK_TYPES);
-lock_v(JObj) -> lock_v(kz_json:to_proplist(JObj)).
+lock_v(Req) ->
+    kapi_definition:validate(Req, lock_definition()).
+
+-spec publish_lock(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_lock(ConferenceId, JObj) ->
+    publish_lock(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_lock(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_lock(ConferenceId, Req, ContentType) ->
+    Definition = lock_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Mute.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec mute_participant(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-mute_participant(Prop) when is_list(Prop) ->
-    case mute_participant_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?MUTE_PARTICIPANT_HEADERS, ?OPTIONAL_MUTE_PARTICIPANT_HEADERS);
-        'false' -> {'error', "Proplist failed validation for mute participant"}
-    end;
-mute_participant(JObj) -> mute_participant(kz_json:to_proplist(JObj)).
+-spec mute_participant(kz_term:api_terms()) -> kz_api:api_formatter_return().
+mute_participant(Req) ->
+    kapi_definition:build_message(Req, mute_participant_definition()).
 
 -spec mute_participant_v(kz_term:api_terms()) -> boolean().
-mute_participant_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?MUTE_PARTICIPANT_HEADERS, ?MUTE_PARTICIPANT_VALUES, ?MUTE_PARTICIPANT_TYPES);
-mute_participant_v(JObj) -> mute_participant_v(kz_json:to_proplist(JObj)).
+mute_participant_v(Req) ->
+    kapi_definition:validate(Req, mute_participant_definition()).
+
+-spec publish_mute_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_mute_participant(ConferenceId, JObj) ->
+    publish_mute_participant(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_mute_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_mute_participant(ConferenceId, Req, ContentType) ->
+    Definition = mute_participant_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Play.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec play(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-play(Prop) when is_list(Prop) ->
-    case play_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?PLAY_HEADERS, ?OPTIONAL_PLAY_HEADERS);
-        'false' -> {'error', "Proplist failed validation for play"}
-    end;
-play(JObj) -> play(kz_json:to_proplist(JObj)).
+-spec play(kz_term:api_terms()) -> kz_api:api_formatter_return().
+play(Req) ->
+    kapi_definition:build_message(Req, play_definition()).
 
 -spec play_v(kz_term:api_terms()) -> boolean().
-play_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?PLAY_HEADERS, ?PLAY_VALUES, ?PLAY_TYPES);
-play_v(JObj) -> play_v(kz_json:to_proplist(JObj)).
+play_v(Req) ->
+    kapi_definition:validate(Req, play_definition()).
+
+-spec publish_play(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_play(ConferenceId, JObj) ->
+    publish_play(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_play(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_play(ConferenceId, Req, ContentType) ->
+    Definition = play_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Play Macro Request.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec play_macro_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-play_macro_req(Prop) when is_list(Prop) ->
-    case play_macro_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?CONF_PLAY_MACRO_REQ_HEADERS, ?OPTIONAL_CONF_PLAY_MACRO_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for play_macro_req"}
-    end;
-play_macro_req(JObj) -> play_macro_req(kz_json:to_proplist(JObj)).
+-spec play_macro_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+play_macro_req(Req) ->
+    kapi_definition:build_message(Req, play_macro_req_definition()).
 
 -spec play_macro_req_v(kz_term:api_terms()) -> boolean().
-play_macro_req_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?CONF_PLAY_MACRO_REQ_HEADERS, ?CONF_PLAY_MACRO_REQ_VALUES, ?CONF_PLAY_MACRO_REQ_TYPES);
-play_macro_req_v(JObj) -> play_macro_req_v(kz_json:to_proplist(JObj)).
+play_macro_req_v(Req) ->
+    kapi_definition:validate(Req, play_macro_req_definition()).
 
 %%------------------------------------------------------------------------------
 %% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec record(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-record(Prop) when is_list(Prop) ->
-    case record_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?RECORD_HEADERS, ?OPTIONAL_RECORD_HEADERS);
-        'false' -> {'error', "Proplist failed validation for record"}
-    end;
-record(JObj) -> record(kz_json:to_proplist(JObj)).
+-spec record(kz_term:api_terms()) -> kz_api:api_formatter_return().
+record(Req) ->
+    kapi_definition:build_message(Req, record_definition()).
 
 -spec record_v(kz_term:api_terms()) -> boolean().
-record_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?RECORD_HEADERS, ?RECORD_VALUES, ?RECORD_TYPES);
-record_v(JObj) -> record_v(kz_json:to_proplist(JObj)).
+record_v(Req) ->
+    kapi_definition:validate(Req, record_definition()).
+
+-spec publish_record(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_record(ConferenceId, JObj) ->
+    publish_record(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_record(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_record(ConferenceId, Req, ContentType) ->
+    Definition = record_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
 %% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec recordstop(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-recordstop(Prop) when is_list(Prop) ->
-    case recordstop_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?RECORDSTOP_HEADERS, ?OPTIONAL_RECORDSTOP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for recordstop"}
-    end;
-recordstop(JObj) -> recordstop(kz_json:to_proplist(JObj)).
+-spec recordstop(kz_term:api_terms()) -> kz_api:api_formatter_return().
+recordstop(Req) ->
+    kapi_definition:build_message(Req, recordstop_definition()).
 
 -spec recordstop_v(kz_term:api_terms()) -> boolean().
-recordstop_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?RECORDSTOP_HEADERS, ?RECORDSTOP_VALUES, ?RECORDSTOP_TYPES);
-recordstop_v(JObj) -> recordstop_v(kz_json:to_proplist(JObj)).
+recordstop_v(Req) ->
+    kapi_definition:validate(Req, recordstop_definition()).
+
+-spec publish_recordstop(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_recordstop(ConferenceId, JObj) ->
+    publish_recordstop(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_recordstop(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_recordstop(ConferenceId, Req, ContentType) ->
+    Definition = recordstop_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Relate Participants.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec relate_participants(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-relate_participants(Prop) when is_list(Prop) ->
-    case relate_participants_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?RELATE_PARTICIPANTS_HEADERS, ?OPTIONAL_RELATE_PARTICIPANTS_HEADERS);
-        'false' -> {'error', "Proplist failed validation for relate participants"}
-    end;
-relate_participants(JObj) -> relate_participants(kz_json:to_proplist(JObj)).
+-spec relate_participants(kz_term:api_terms()) -> kz_api:api_formatter_return().
+relate_participants(Req) ->
+    kapi_definition:build_message(Req, relate_participants_definition()).
 
 -spec relate_participants_v(kz_term:api_terms()) -> boolean().
-relate_participants_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?RELATE_PARTICIPANTS_HEADERS, ?RELATE_PARTICIPANTS_VALUES, ?RELATE_PARTICIPANTS_TYPES);
-relate_participants_v(JObj) -> relate_participants_v(kz_json:to_proplist(JObj)).
+relate_participants_v(Req) ->
+    kapi_definition:validate(Req, relate_participants_definition()).
+
+-spec publish_relate_participants(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_relate_participants(ConferenceId, JObj) ->
+    publish_relate_participants(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_relate_participants(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_relate_participants(ConferenceId, Req, ContentType) ->
+    Definition = relate_participants_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Set.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec set(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-set(Prop) when is_list(Prop) ->
-    case set_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?SET_HEADERS, ?OPTIONAL_SET_HEADERS);
-        'false' -> {'error', "Proplist failed validation for set"}
-    end;
-set(JObj) -> set(kz_json:to_proplist(JObj)).
+-spec set(kz_term:api_terms()) -> kz_api:api_formatter_return().
+set(Req) ->
+    kapi_definition:build_message(Req, set_definition()).
 
 -spec set_v(kz_term:api_terms()) -> boolean().
-set_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?SET_HEADERS, ?SET_VALUES, ?SET_TYPES);
-set_v(JObj) -> set_v(kz_json:to_proplist(JObj)).
+set_v(Req) ->
+    kapi_definition:validate(Req, set_definition()).
+
+-spec publish_set(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_set(ConferenceId, JObj) ->
+    publish_set(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_set(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_set(ConferenceId, Req, ContentType) ->
+    Definition = set_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Stop Play.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec stop_play(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-stop_play(Prop) when is_list(Prop) ->
-    case stop_play_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?STOP_PLAY_HEADERS, ?OPTIONAL_STOP_PLAY_HEADERS);
-        'false' -> {'error', "Proplist failed validation for stop play"}
-    end;
-stop_play(JObj) -> stop_play(kz_json:to_proplist(JObj)).
+-spec stop_play(kz_term:api_terms()) -> kz_api:api_formatter_return().
+stop_play(Req) ->
+    kapi_definition:build_message(Req, stop_play_definition()).
 
 -spec stop_play_v(kz_term:api_terms()) -> boolean().
-stop_play_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?STOP_PLAY_HEADERS, ?STOP_PLAY_VALUES, ?STOP_PLAY_TYPES);
-stop_play_v(JObj) -> stop_play_v(kz_json:to_proplist(JObj)).
+stop_play_v(Req) ->
+    kapi_definition:validate(Req, stop_play_definition()).
+
+-spec publish_stop_play(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_stop_play(ConferenceId, JObj) ->
+    publish_stop_play(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_stop_play(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_stop_play(ConferenceId, Req, ContentType) ->
+    Definition = stop_play_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Undeaf.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec undeaf_participant(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-undeaf_participant(Prop) when is_list(Prop) ->
-    case undeaf_participant_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?UNDEAF_PARTICIPANT_HEADERS, ?OPTIONAL_UNDEAF_PARTICIPANT_HEADERS);
-        'false' -> {'error', "Proplist failed validation for undeaf participant"}
-    end;
-undeaf_participant(JObj) -> undeaf_participant(kz_json:to_proplist(JObj)).
+-spec undeaf_participant(kz_term:api_terms()) -> kz_api:api_formatter_return().
+undeaf_participant(Req) ->
+    kapi_definition:build_message(Req, undeaf_participant_definition()).
 
 -spec undeaf_participant_v(kz_term:api_terms()) -> boolean().
-undeaf_participant_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?UNDEAF_PARTICIPANT_HEADERS, ?UNDEAF_PARTICIPANT_VALUES, ?UNDEAF_PARTICIPANT_TYPES);
-undeaf_participant_v(JObj) -> undeaf_participant_v(kz_json:to_proplist(JObj)).
+undeaf_participant_v(Req) ->
+    kapi_definition:validate(Req, undeaf_participant_definition()).
+
+-spec publish_undeaf_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_undeaf_participant(ConferenceId, JObj) ->
+    publish_undeaf_participant(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_undeaf_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_undeaf_participant(ConferenceId, Req, ContentType) ->
+    Definition = undeaf_participant_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Unlock.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec unlock(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-unlock(Prop) when is_list(Prop) ->
-    case unlock_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?UNLOCK_HEADERS, ?OPTIONAL_UNLOCK_HEADERS);
-        'false' -> {'error', "Proplist failed validation for unlock"}
-    end;
-unlock(JObj) -> unlock(kz_json:to_proplist(JObj)).
+-spec unlock(kz_term:api_terms()) -> kz_api:api_formatter_return().
+unlock(Req) ->
+    kapi_definition:build_message(Req, unlock_definition()).
 
 -spec unlock_v(kz_term:api_terms()) -> boolean().
-unlock_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?UNLOCK_HEADERS, ?UNLOCK_VALUES, ?UNLOCK_TYPES);
-unlock_v(JObj) -> unlock_v(kz_json:to_proplist(JObj)).
+unlock_v(Req) ->
+    kapi_definition:validate(Req, unlock_definition()).
+
+-spec publish_unlock(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_unlock(ConferenceId, JObj) ->
+    publish_unlock(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_unlock(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_unlock(ConferenceId, Req, ContentType) ->
+    Definition = unlock_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Unmute.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec unmute_participant(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-unmute_participant(Prop) when is_list(Prop) ->
-    case unmute_participant_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?UNMUTE_PARTICIPANT_HEADERS, ?OPTIONAL_UNMUTE_PARTICIPANT_HEADERS);
-        'false' -> {'error', "Proplist failed validation for unmute participant"}
-    end;
-unmute_participant(JObj) -> unmute_participant(kz_json:to_proplist(JObj)).
+-spec unmute_participant(kz_term:api_terms()) -> kz_api:api_formatter_return().
+unmute_participant(Req) ->
+    kapi_definition:build_message(Req, unmute_participant_definition()).
 
 -spec unmute_participant_v(kz_term:api_terms()) -> boolean().
-unmute_participant_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?UNMUTE_PARTICIPANT_HEADERS, ?UNMUTE_PARTICIPANT_VALUES, ?UNMUTE_PARTICIPANT_TYPES);
-unmute_participant_v(JObj) -> unmute_participant_v(kz_json:to_proplist(JObj)).
+unmute_participant_v(Req) ->
+    kapi_definition:validate(Req, unmute_participant_definition()).
+
+-spec publish_unmute_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_unmute_participant(ConferenceId, JObj) ->
+    publish_unmute_participant(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_unmute_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_unmute_participant(ConferenceId, Req, ContentType) ->
+    Definition = unmute_participant_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Set Volume In.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec participant_volume_in(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-participant_volume_in(Prop) when is_list(Prop) ->
-    case participant_volume_in_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?PARTICIPANT_VOLUME_IN_HEADERS, ?OPTIONAL_PARTICIPANT_VOLUME_IN_HEADERS);
-        'false' -> {'error', "Proplist failed validation for volume in"}
-    end;
-participant_volume_in(JObj) -> participant_volume_in(kz_json:to_proplist(JObj)).
+-spec participant_volume_in(kz_term:api_terms()) -> kz_api:api_formatter_return().
+participant_volume_in(Req) ->
+    kapi_definition:build_message(Req, participant_volume_in_definition()).
 
 -spec participant_volume_in_v(kz_term:api_terms()) -> boolean().
-participant_volume_in_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?PARTICIPANT_VOLUME_IN_HEADERS, ?PARTICIPANT_VOLUME_IN_VALUES, ?PARTICIPANT_VOLUME_IN_TYPES);
-participant_volume_in_v(JObj) -> participant_volume_in_v(kz_json:to_proplist(JObj)).
+participant_volume_in_v(Req) ->
+    kapi_definition:validate(Req, participant_volume_in_definition()).
+
+-spec publish_participant_volume_in(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_participant_volume_in(ConferenceId, JObj) ->
+    publish_participant_volume_in(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_participant_volume_in(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_participant_volume_in(ConferenceId, Req, ContentType) ->
+    Definition = participant_volume_in_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Set Volume Out.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec participant_volume_out(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-participant_volume_out(Prop) when is_list(Prop) ->
-    case participant_volume_out_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?PARTICIPANT_VOLUME_OUT_HEADERS, ?OPTIONAL_PARTICIPANT_VOLUME_OUT_HEADERS);
-        'false' -> {'error', "Proplist failed validation for volume out"}
-    end;
-participant_volume_out(JObj) -> participant_volume_out(kz_json:to_proplist(JObj)).
+-spec participant_volume_out(kz_term:api_terms()) -> kz_api:api_formatter_return().
+participant_volume_out(Req) ->
+    kapi_definition:build_message(Req, participant_volume_out_definition()).
 
 -spec participant_volume_out_v(kz_term:api_terms()) -> boolean().
-participant_volume_out_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?PARTICIPANT_VOLUME_OUT_HEADERS, ?PARTICIPANT_VOLUME_OUT_VALUES, ?PARTICIPANT_VOLUME_OUT_TYPES);
-participant_volume_out_v(JObj) -> participant_volume_out_v(kz_json:to_proplist(JObj)).
+participant_volume_out_v(Req) ->
+    kapi_definition:validate(Req, participant_volume_out_definition()).
+
+-spec publish_participant_volume_out(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_participant_volume_out(ConferenceId, JObj) ->
+    publish_participant_volume_out(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_participant_volume_out(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_participant_volume_out(ConferenceId, Req, ContentType) ->
+    Definition = participant_volume_out_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Participants Event.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec participant_event(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-participant_event(Prop) when is_list(Prop) ->
-    case participant_event_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?PARTICIPANT_EVENT_HEADERS, ?OPTIONAL_PARTICIPANT_EVENT_HEADERS);
-        'false' -> {'error', "Proplist failed validation for participant_event response"}
-    end;
-participant_event(JObj) -> participant_event(kz_json:to_proplist(JObj)).
+-spec participant_event(kz_term:api_terms()) -> kz_api:api_formatter_return().
+participant_event(Req) ->
+    kapi_definition:build_message(Req, participant_event_definition()).
 
 -spec participant_event_v(kz_term:api_terms()) -> boolean().
-participant_event_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?PARTICIPANT_EVENT_HEADERS, ?PARTICIPANT_EVENT_VALUES, ?PARTICIPANT_EVENT_TYPES);
-participant_event_v(JObj) -> participant_event_v(kz_json:to_proplist(JObj)).
+participant_event_v(Req) ->
+    kapi_definition:validate(Req, participant_event_definition()).
+
+-spec publish_participant_event(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_participant_event(ConferenceId, CallId, JObj) ->
+    publish_participant_event(ConferenceId, CallId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_participant_event(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_participant_event(ConferenceId, CallId, Event, ContentType) ->
+    Definition = participant_event_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Event
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'event', ConferenceId, kz_amqp_util:encode(CallId), [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Event.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec event(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-event(Prop) when is_list(Prop) ->
-    case event_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?CONFERENCE_EVENT_HEADERS, ?OPTIONAL_CONFERENCE_EVENT_HEADERS);
-        'false' -> {'error', "Proplist failed validation for conference event"}
-    end;
-event(JObj) -> event(kz_json:to_proplist(JObj)).
+-spec event(kz_term:api_terms()) -> kz_api:api_formatter_return().
+event(Req) ->
+    kapi_definition:build_message(Req, event_definition()).
 
 -spec event_v(kz_term:api_terms()) -> boolean().
-event_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?CONFERENCE_EVENT_HEADERS, ?CONFERENCE_EVENT_VALUES, ?CONFERENCE_EVENT_TYPES);
-event_v(JObj) -> event_v(kz_json:to_proplist(JObj)).
+event_v(Req) ->
+    kapi_definition:validate(Req, event_definition()).
+
+-spec publish_event(kz_term:api_terms()) -> 'ok'.
+publish_event(API) ->
+    publish_event(API, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_event(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_event(API, ContentType) ->
+    Definition = event_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload
+                                   ,'event'
+                                   ,(kapi_definition:binding(Definition))(API)
+                                   ,[]
+                                   ,ContentType
+                                   ).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Error.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec conference_error(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-conference_error(Prop) when is_list(Prop) ->
-    case conference_error_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?CONFERENCE_ERROR_HEADERS, ?OPTIONAL_CONFERENCE_ERROR_HEADERS);
-        'false' -> {'error', "Proplist failed validation for conference error"}
-    end;
-conference_error(JObj) -> conference_error(kz_json:to_proplist(JObj)).
+-spec conference_error(kz_term:api_terms()) -> kz_api:api_formatter_return().
+conference_error(Req) ->
+    kapi_definition:build_message(Req, conference_error_definition()).
 
 -spec conference_error_v(kz_term:api_terms()) -> boolean().
-conference_error_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?CONFERENCE_ERROR_HEADERS, ?CONFERENCE_ERROR_VALUES, ?CONFERENCE_ERROR_TYPES);
-conference_error_v(JObj) -> conference_error_v(kz_json:to_proplist(JObj)).
+conference_error_v(Req) ->
+    kapi_definition:validate(Req, conference_error_definition()).
+
+-spec publish_error(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_error(Queue, JObj) ->
+    publish_error(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_error(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_error(Queue, Req, ContentType) ->
+    Definition = conference_error_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Configuration Request.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec config_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-config_req(Prop) when is_list(Prop) ->
-    case config_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?CONFIG_REQ_HEADERS, ?OPTIONAL_CONFIG_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for config req"}
-    end;
-config_req(JObj) -> config_req(kz_json:to_proplist(JObj)).
+-spec config_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+config_req(Req) ->
+    kapi_definition:build_message(Req, config_req_definition()).
 
 -spec config_req_v(kz_term:api_terms()) -> boolean().
-config_req_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?CONFIG_REQ_HEADERS, ?CONFIG_REQ_VALUES, ?CONFIG_REQ_TYPES);
-config_req_v(JObj) -> config_req_v(kz_json:to_proplist(JObj)).
+config_req_v(Req) ->
+    kapi_definition:validate(Req, config_req_definition()).
+
+-spec publish_config_req(kz_term:api_terms()) -> 'ok'.
+publish_config_req(JObj) ->
+    publish_config_req(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_config_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_config_req(Req, ContentType) ->
+    Definition = config_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'config', profile(Req), [], ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @doc Conference Configuration Response.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec config_resp(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-config_resp(Prop) when is_list(Prop) ->
-    case config_resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?CONFIG_RESP_HEADERS, ?OPTIONAL_CONFIG_RESP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for config resp"}
-    end;
-config_resp(JObj) -> config_resp(kz_json:to_proplist(JObj)).
+-spec config_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+config_resp(Req) ->
+    kapi_definition:build_message(Req, config_resp_definition()).
 
 -spec config_resp_v(kz_term:api_terms()) -> boolean().
-config_resp_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?CONFIG_RESP_HEADERS, ?CONFIG_RESP_VALUES, ?CONFIG_RESP_TYPES);
-config_resp_v(JObj) -> config_resp_v(kz_json:to_proplist(JObj)).
+config_resp_v(Req) ->
+    kapi_definition:validate(Req, config_resp_definition()).
 
--spec dial(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-dial(Prop) when is_list(Prop) ->
-    case dial_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?DIAL_HEADERS, ?OPTIONAL_DIAL_HEADERS);
-        'false' -> {'error', "Proplist failed validation for dial"}
-    end;
-dial(JObj) -> dial(kz_json:to_proplist(JObj)).
+-spec publish_config_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_config_resp(Queue, JObj) ->
+    publish_config_resp(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_config_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_config_resp(Queue, Req, ContentType) ->
+    Definition = config_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Conference Dial Request.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec dial(kz_term:api_terms()) -> kz_api:api_formatter_return().
+dial(Req) ->
+    kapi_definition:build_message(Req, dial_definition()).
 
 -spec dial_v(kz_term:api_terms()) -> boolean().
-dial_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?DIAL_HEADERS, ?DIAL_VALUES, ?DIAL_TYPES);
-dial_v(JObj) -> dial_v(kz_json:to_proplist(JObj)).
+dial_v(Req) ->
+    kapi_definition:validate(Req, dial_definition()).
 
--spec dial_resp(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
-dial_resp(Prop) when is_list(Prop) ->
-    case dial_resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?DIAL_RESP_HEADERS, ?OPTIONAL_DIAL_RESP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for dial_resp"}
-    end;
-dial_resp(JObj) -> dial_resp(kz_json:to_proplist(JObj)).
+-spec publish_dial(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_dial(Zone, JObj) ->
+    publish_dial(Zone, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_dial(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_dial(Zone, Req, ContentType) ->
+    Definition = dial_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', Zone, [], ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Conference Dial Response.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec dial_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+dial_resp(Req) ->
+    kapi_definition:build_message(Req, dial_resp_definition()).
 
 -spec dial_resp_v(kz_term:api_terms()) -> boolean().
-dial_resp_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?DIAL_RESP_HEADERS, ?DIAL_RESP_VALUES, ?DIAL_RESP_TYPES);
-dial_resp_v(JObj) -> dial_resp_v(kz_json:to_proplist(JObj)).
+dial_resp_v(Req) ->
+    kapi_definition:validate(Req, dial_resp_definition()).
+
+-spec publish_dial_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_dial_resp(Queue, JObj) ->
+    publish_dial_resp(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_dial_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_dial_resp(Queue, Req, ContentType) ->
+    Definition = dial_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
 
 %%------------------------------------------------------------------------------
 %% @doc Bind a queue to the conference exchange.
@@ -1271,367 +2331,17 @@ unbind_from_q(_Q, [], _) -> 'ok'.
 declare_exchanges() ->
     kz_amqp_util:conference_exchange().
 
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_search_req(kz_term:api_terms()) -> 'ok'.
-publish_search_req(JObj) ->
-    publish_search_req(JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_search_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_search_req(Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?SEARCH_REQ_VALUES, fun search_req/1),
-    kz_amqp_util:conference_publish(Payload, 'discovery', 'undefined', [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_search_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_search_resp(Queue, Resp) ->
-    publish_search_resp(Queue, Resp, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_search_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_search_resp(Queue, Resp, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Resp, ?SEARCH_RESP_VALUES, fun search_resp/1),
-    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_discovery_req(kz_term:api_terms()) -> 'ok'.
-publish_discovery_req(JObj) ->
-    publish_discovery_req(JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_discovery_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_discovery_req(Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?DISCOVERY_REQ_VALUES, fun discovery_req/1),
-    kz_amqp_util:conference_publish(Payload, 'discovery', 'undefined', [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish the response to requestor.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_discovery_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_discovery_resp(Q, JObj) ->
-    publish_discovery_resp(Q, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_discovery_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_discovery_resp(Q, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?DISCOVERY_RESP_VALUES, fun discovery_resp/1),
-    kz_amqp_util:targeted_publish(Q, Payload, ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_add_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_add_participant(Zone, JObj) ->
-    publish_add_participant(Zone, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_add_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_add_participant(Zone, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?ADD_PARTICIPANT_VALUES, fun add_participant/1),
-    kz_amqp_util:conference_publish(Payload, 'command', Zone, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_deaf_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_deaf_participant(ConferenceId, JObj) ->
-    publish_deaf_participant(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_deaf_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_deaf_participant(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?DEAF_PARTICIPANT_VALUES, fun deaf_participant/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_participant_energy(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_participant_energy(ConferenceId, JObj) ->
-    publish_participant_energy(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_participant_energy(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_participant_energy(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?PARTICIPANT_ENERGY_VALUES, fun participant_energy/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_kick(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_kick(ConferenceId, JObj) ->
-    publish_kick(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_kick(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_kick(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?KICK_VALUES, fun kick/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_participants_req(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_participants_req(ConferenceId, JObj) ->
-    publish_participants_req(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_participants_req(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_participants_req(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?PARTICIPANTS_REQ_VALUES, fun participants_req/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_participants_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_participants_resp(Queue, Resp) ->
-    publish_participants_resp(Queue, Resp, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_participants_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_participants_resp(Queue, Resp, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Resp, ?PARTICIPANTS_RESP_VALUES, fun participants_resp/1),
-    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_lock(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_lock(ConferenceId, JObj) ->
-    publish_lock(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_lock(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_lock(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?LOCK_VALUES, fun lock/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_mute_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_mute_participant(ConferenceId, JObj) ->
-    publish_mute_participant(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_mute_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_mute_participant(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?MUTE_PARTICIPANT_VALUES, fun mute_participant/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_play(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_play(ConferenceId, JObj) ->
-    publish_play(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_play(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_play(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?PLAY_VALUES, fun play/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_record(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_record(ConferenceId, JObj) ->
-    publish_record(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_record(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_record(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?RECORD_VALUES, fun record/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_recordstop(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_recordstop(ConferenceId, JObj) ->
-    publish_recordstop(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_recordstop(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_recordstop(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?RECORDSTOP_VALUES, fun recordstop/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_relate_participants(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_relate_participants(ConferenceId, JObj) ->
-    publish_relate_participants(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_relate_participants(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_relate_participants(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?RELATE_PARTICIPANTS_VALUES, fun relate_participants/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_set(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_set(ConferenceId, JObj) ->
-    publish_set(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_set(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_set(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?SET_VALUES, fun set/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_stop_play(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_stop_play(ConferenceId, JObj) ->
-    publish_stop_play(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_stop_play(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_stop_play(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?STOP_PLAY_VALUES, fun stop_play/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_undeaf_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_undeaf_participant(ConferenceId, JObj) ->
-    publish_undeaf_participant(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_undeaf_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_undeaf_participant(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?UNDEAF_PARTICIPANT_VALUES, fun undeaf_participant/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_unlock(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_unlock(ConferenceId, JObj) ->
-    publish_unlock(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_unlock(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_unlock(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?UNLOCK_VALUES, fun unlock/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_unmute_participant(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_unmute_participant(ConferenceId, JObj) ->
-    publish_unmute_participant(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_unmute_participant(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_unmute_participant(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?UNMUTE_PARTICIPANT_VALUES, fun unmute_participant/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_participant_volume_in(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_participant_volume_in(ConferenceId, JObj) ->
-    publish_participant_volume_in(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_participant_volume_in(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_participant_volume_in(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?PARTICIPANT_VOLUME_IN_VALUES, fun participant_volume_in/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_participant_volume_out(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_participant_volume_out(ConferenceId, JObj) ->
-    publish_participant_volume_out(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_participant_volume_out(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_participant_volume_out(ConferenceId, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?PARTICIPANT_VOLUME_OUT_VALUES, fun participant_volume_out/1),
-    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_participant_event(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_participant_event(ConferenceId, CallId, JObj) ->
-    publish_participant_event(ConferenceId, CallId, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_participant_event(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_participant_event(ConferenceId, CallId, Event, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Event, ?PARTICIPANT_EVENT_VALUES, fun participant_event/1),
-    kz_amqp_util:conference_publish(Payload, 'event', ConferenceId, kz_amqp_util:encode(CallId), [], ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_event(kz_term:api_terms()) -> 'ok'.
-publish_event(API) ->
-    publish_event(API, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_event(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_event(API, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(API, ?CONFERENCE_EVENT_VALUES, fun event/1),
-    kz_amqp_util:conference_publish(Payload, 'event', event_key(API), [], ContentType).
-
 event_binding_key(ConferenceId)
   when is_binary(ConferenceId) ->
-    ?CONFERENCE_EVENT_KEY(<<"*">>, <<"*">>, ConferenceId, <<"*">>);
+    conference_event_key(<<"*">>, <<"*">>, ConferenceId, <<"*">>);
 event_binding_key({ConferenceId, CallId}) ->
-    ?CONFERENCE_EVENT_KEY(<<"*">>, <<"*">>, ConferenceId, CallId);
+    conference_event_key(<<"*">>, <<"*">>, ConferenceId, CallId);
 event_binding_key(Props) ->
     Event = props:get_value('event', Props, <<"*">>),
     AccountId = props:get_value('account_id', Props, <<"*">>),
     ConferenceId = props:get_value('conference_id', Props, <<"*">>),
     CallId = props:get_value('call_id', Props, <<"*">>),
-    ?CONFERENCE_EVENT_KEY(Event, AccountId, ConferenceId, CallId).
+    conference_event_key(Event, AccountId, ConferenceId, CallId).
 
 event_key(API)
   when is_list(API) ->
@@ -1645,21 +2355,15 @@ event_key(API) ->
                                          ),
     ConferenceId = kz_json:get_value(<<"Conference-ID">>, API),
     CallId = kz_json:get_value(<<"Call-ID">>, API, ConferenceId),
-    ?CONFERENCE_EVENT_KEY(Event, AccountId, ConferenceId, CallId).
+    conference_event_key(Event, AccountId, ConferenceId, CallId).
 
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_error(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_error(Queue, JObj) ->
-    publish_error(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_error(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_error(Queue, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?CONFERENCE_ERROR_VALUES, fun conference_error/1),
-    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
+-spec conference_event_key(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+conference_event_key(Event, AccountId, ConferenceId, CallId) ->
+    list_to_binary([Event, "."
+                   ,AccountId, "."
+                   ,ConferenceId, "."
+                   ,kz_amqp_util:encode(CallId)
+                   ]).
 
 %%------------------------------------------------------------------------------
 %% @doc Publish to the conference exchange.
@@ -1673,7 +2377,7 @@ publish_command(ConferenceId, JObj) ->
 -spec publish_command(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_command(ConferenceId, Req, ContentType) ->
     App = props:get_value(<<"Application-Name">>, Req),
-    case lists:keyfind(App, 1, ?APPLICTION_MAP) of
+    case lists:keyfind(App, 1, ?APPLICATION_MAP) of
         'false' -> throw({'invalid_conference_command', Req});
         {_, Values, Fun} ->
             {'ok', Payload} = kz_api:prepare_api_payload(Req, Values, Fun),
@@ -1692,7 +2396,7 @@ publish_targeted_command(Focus, JObj) ->
 -spec publish_targeted_command(atom(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_targeted_command(Focus, Req, ContentType) ->
     App = props:get_value(<<"Application-Name">>, Req),
-    case lists:keyfind(App, 1, ?APPLICTION_MAP) of
+    case lists:keyfind(App, 1, ?APPLICATION_MAP) of
         'false' -> throw({'invalid_conference_command', Req});
         {_, Values, Fun} ->
             {'ok', Payload} = kz_api:prepare_api_payload(Req, Values, Fun),
@@ -1700,57 +2404,10 @@ publish_targeted_command(Focus, Req, ContentType) ->
             kz_amqp_util:targeted_publish(Queue, Payload, ContentType)
     end.
 
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_config_req(kz_term:api_terms()) -> 'ok'.
-publish_config_req(JObj) ->
-    publish_config_req(JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_config_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_config_req(Req, ContentType) ->
-    Profile = profile(Req),
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?CONFIG_REQ_VALUES, fun config_req/1),
-    kz_amqp_util:conference_publish(Payload, 'config', Profile, [], ContentType).
-
 profile(Props) when is_list(Props) -> props:get_value(<<"Profile">>, Props);
 profile(JObj) -> kz_json:get_value(<<"Profile">>, JObj).
 
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_config_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_config_resp(Queue, JObj) ->
-    publish_config_resp(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_config_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_config_resp(Queue, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?CONFIG_RESP_VALUES, fun config_resp/1),
-    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
-
-%%------------------------------------------------------------------------------
-%% @doc Publish to the conference exchange.
-%% @end
-%%------------------------------------------------------------------------------
-
--spec publish_dial(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_dial(Zone, JObj) ->
-    publish_dial(Zone, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_dial(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_dial(Zone, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?DIAL_VALUES, fun dial/1),
-    kz_amqp_util:conference_publish(Payload, 'command', Zone, [], ContentType).
-
--spec publish_dial_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_dial_resp(Queue, JObj) ->
-    publish_dial_resp(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_dial_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_dial_resp(Queue, Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req, ?DIAL_RESP_VALUES, fun dial_resp/1),
-    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
+-spec appmap_tuple(kz_term:ne_binary(), kapi_definition:api()) ->
+          {kz_term:ne_binary(), kz_api:api_valid_values(), kapi_definition:build_fun()}.
+appmap_tuple(App, Definition) ->
+    {App, kapi_definition:values(Definition), kapi_definition:build_fun(Definition)}.
