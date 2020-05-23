@@ -448,6 +448,7 @@ search_resp_definition() ->
                                                             ,<<"Switch-Hostname">>
                                                             ,<<"Switch-URL">>
                                                             ,<<"UUID">>
+                                                            ,<<"Zone">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)

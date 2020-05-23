@@ -259,7 +259,7 @@ find_oldest_doc([First|Docs]) ->
 -spec get_all_accounts() -> kz_term:ne_binaries().
 get_all_accounts() -> get_all_accounts(?REPLICATE_ENCODING).
 
--spec get_all_accounts(kz_util:account_format()) -> kz_term:ne_binaries().
+-spec get_all_accounts(kzs_util:account_format()) -> kz_term:ne_binaries().
 get_all_accounts(Encoding) ->
     {'ok', Dbs} = kz_datamgr:db_list([{'startkey', <<"account/">>}
                                      ,{'endkey', <<"account/\ufff0">>}
@@ -272,7 +272,7 @@ get_all_accounts(Encoding) ->
 get_all_accounts_and_mods() ->
     get_all_accounts_and_mods(?REPLICATE_ENCODING).
 
--spec get_all_accounts_and_mods(kz_util:account_format()) -> kz_term:ne_binaries().
+-spec get_all_accounts_and_mods(kzs_util:account_format()) -> kz_term:ne_binaries().
 get_all_accounts_and_mods(Encoding) ->
     {'ok', Databases} = kz_datamgr:db_info(),
     [format_db(Db, Encoding)
@@ -282,7 +282,7 @@ get_all_accounts_and_mods(Encoding) ->
             orelse is_account_yod(Db)
     ].
 
--spec format_db(kz_term:ne_binary(), kz_util:account_format()) -> kz_term:ne_binary().
+-spec format_db(kz_term:ne_binary(), kzs_util:account_format()) -> kz_term:ne_binary().
 format_db(Db, Encoding) ->
     Fs = [{fun is_account_db/1, fun kzs_util:format_account_id/2}
          ,{fun is_account_mod/1, fun kzs_util:format_account_modb/2}
@@ -299,7 +299,7 @@ format_db(Db, Encoding, [{Predicate, Formatter}|Fs]) ->
 get_all_account_mods() ->
     get_all_account_mods(?REPLICATE_ENCODING).
 
--spec get_all_account_mods(kz_util:account_format()) -> kz_term:ne_binaries().
+-spec get_all_account_mods(kzs_util:account_format()) -> kz_term:ne_binaries().
 get_all_account_mods(Encoding) ->
     {'ok', Databases} = kz_datamgr:db_info(),
     [kzs_util:format_account_modb(Db, Encoding)
@@ -311,7 +311,7 @@ get_all_account_mods(Encoding) ->
 get_all_account_yods() ->
     get_all_account_yods(?REPLICATE_ENCODING).
 
--spec get_all_account_yods(kz_util:account_format()) -> kz_term:ne_binaries().
+-spec get_all_account_yods(kzs_util:account_format()) -> kz_term:ne_binaries().
 get_all_account_yods(Encoding) ->
     {'ok', Databases} = kz_datamgr:db_info(),
     [kzs_util:format_account_yodb(Db, Encoding)
@@ -323,7 +323,7 @@ get_all_account_yods(Encoding) ->
 get_account_mods(Account) ->
     get_account_mods(Account, ?REPLICATE_ENCODING).
 
--spec get_account_mods(kz_term:ne_binary(), kz_util:account_format()) -> kz_term:ne_binaries().
+-spec get_account_mods(kz_term:ne_binary(), kzs_util:account_format()) -> kz_term:ne_binaries().
 get_account_mods(Account, Encoding) ->
     AccountId = kzs_util:format_account_id(Account, Encoding),
     [MOD
@@ -336,7 +336,7 @@ get_account_mods(Account, Encoding) ->
 get_account_yods(Account) ->
     get_account_yods(Account, ?REPLICATE_ENCODING).
 
--spec get_account_yods(kz_term:ne_binary(), kz_util:account_format()) -> kz_term:ne_binaries().
+-spec get_account_yods(kz_term:ne_binary(), kzs_util:account_format()) -> kz_term:ne_binaries().
 get_account_yods(Account, Encoding) ->
     AccountId = kzs_util:format_account_id(Account, Encoding),
     [YOD
@@ -346,7 +346,7 @@ get_account_yods(Account, Encoding) ->
     ].
 
 
--spec is_matched_account_mod(kz_util:account_format(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
+-spec is_matched_account_mod(kzs_util:account_format(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
 is_matched_account_mod('unencoded'
                       ,?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, _, _)
                       ,?MATCH_ACCOUNT_UNENCODED(A, B, Rest)
@@ -365,7 +365,7 @@ is_matched_account_mod('raw'
 is_matched_account_mod(_, _, _) ->
     'false'.
 
--spec is_matched_account_yod(kz_util:account_format(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
+-spec is_matched_account_yod(kzs_util:account_format(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
 is_matched_account_yod('unencoded'
                       ,?MATCH_YODB_SUFFIX_UNENCODED(A, B, Rest, _)
                       ,?MATCH_ACCOUNT_UNENCODED(A, B, Rest)
