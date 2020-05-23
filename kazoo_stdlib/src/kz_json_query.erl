@@ -12,16 +12,16 @@
 
 -export([query/1
         ,eval/2
-		]).
+        ]).
 
 %% ====================================================================
 %% API functions
 %% ====================================================================
 
-%%--------------------------------------------------------------------
+%%------------------------------------------------------------------------------
 %% @doc
 %% @end
-%%--------------------------------------------------------------------
+%%------------------------------------------------------------------------------
 -spec query(map()) -> {ok | error, any()}.
 query(Query)
   when is_map(Query) ->
@@ -62,122 +62,122 @@ eval(JObj, {'cond', Operator, {key, Key}, {_Type, Value}}) ->
 %% Internal functions
 %% ====================================================================
 
-%%--------------------------------------------------------------------
+%%------------------------------------------------------------------------------
 %% @doc
 %% @end
-%%--------------------------------------------------------------------
+%%------------------------------------------------------------------------------
 query_exec([], #{error := Error}) -> {error, Error};
 query_exec([], #{output := Output}) -> {ok, Output};
 query_exec([], #{result := Results}) -> {ok, Results};
 query_exec([], #{}) -> {ok, []};
 query_exec([Fun | Funs], Query) ->
-	case Fun(Query) of
-		#{error := Error}  -> {error, Error};
-		Next when is_map(Next) -> query_exec(Funs, Next);
-		_Next -> {error, unknown}
-	end.
+    case Fun(Query) of
+        #{error := Error}  -> {error, Error};
+        Next when is_map(Next) -> query_exec(Funs, Next);
+        _Next -> {error, unknown}
+    end.
 
 lexer(#{query := Query} = Map) ->
-	case kz_json_query_lexer:string(kz_term:to_list(Query)) of
-		{ok, Tokens, _} -> Map#{lex => Tokens};
-		_ -> {error, <<"invalid query">>}
-	end;
+    case kz_json_query_lexer:string(kz_term:to_list(Query)) of
+        {ok, Tokens, _} -> Map#{lex => Tokens};
+        _ -> {error, <<"invalid query">>}
+    end;
 lexer(Map) -> Map.
 
 parser(#{lex := Tokens} = Map) ->
-	case kz_json_query_parser:parse(Tokens) of
-		{error, {_, kz_json_query_parser, Error}} -> {error, list_to_binary(Error)};
-		{ok, AST} -> Map#{ast => AST}
-	end;
+    case kz_json_query_parser:parse(Tokens) of
+        {error, {_, kz_json_query_parser, Error}} -> {error, list_to_binary(Error)};
+        {ok, AST} -> Map#{ast => AST}
+    end;
 parser(Map) -> Map#{ast => undefined}.
 
 collect(#{collection := _} = Map) -> Map;
 collect(#{collector := #{'fun' := Fun, params := Params}} = Map) ->
-	try erlang:apply(Fun, Params) of
-		{error, Error} -> Map#{error => Error};
-		{ok, Collection} -> Map#{collection => Collection}
-	catch
-		_Exc:_Err:_ST ->
-			Map#{error => _Err}
-	end;
+    try erlang:apply(Fun, Params) of
+        {error, Error} -> Map#{error => Error};
+        {ok, Collection} -> Map#{collection => Collection}
+    catch
+        _Exc:_Err:_ST ->
+            Map#{error => _Err}
+    end;
 collect(Map) ->
-	Map#{error => no_collection_or_collector}.
+    Map#{error => no_collection_or_collector}.
 
 filter(#{filter := #{'fun' := Fun, params := Params}
-		,collection := Collection
-		} = Map) ->
-	try erlang:apply(Fun, [Collection | Params]) of
-		{error, Error} -> Map#{error => Error};
-		{ok, Collection} -> Map#{collection => Collection}
-	catch
-		_Exc:_Err:_ST ->
-			Map#{error => _Err}
-	end;
+        ,collection := Collection
+        } = Map) ->
+    try erlang:apply(Fun, [Collection | Params]) of
+        {error, Error} -> Map#{error => Error};
+        {ok, Collection} -> Map#{collection => Collection}
+    catch
+        _Exc:_Err:_ST ->
+            Map#{error => _Err}
+    end;
 filter(#{filter := #{'fun' := Fun}
-		,collection := Collection
-		} = Map) ->
-	try erlang:apply(Fun, [Collection]) of
-		{error, Error} -> Map#{error => Error};
-		{ok, Collection} -> Map#{collection => Collection}
-	catch
-		_Exc:_Err:_ST ->
-			Map#{error => _Err}
-	end;
+        ,collection := Collection
+        } = Map) ->
+    try erlang:apply(Fun, [Collection]) of
+        {error, Error} -> Map#{error => Error};
+        {ok, Collection} -> Map#{collection => Collection}
+    catch
+        _Exc:_Err:_ST ->
+            Map#{error => _Err}
+    end;
 filter(Map) -> Map.
 
 transformer(#{transformer := #{'fun' := Fun, params := Params}
-		   ,collection := Collection
-		   } = Map) ->
-	try erlang:apply(Fun, [Collection | Params]) of
-		{error, Error} -> Map#{error => Error};
-		{ok, Collection} -> Map#{collection => Collection}
-	catch
-		_Exc:_Err:_ST ->
-			Map#{error => _Err}
-	end;
+             ,collection := Collection
+             } = Map) ->
+    try erlang:apply(Fun, [Collection | Params]) of
+        {error, Error} -> Map#{error => Error};
+        {ok, Collection} -> Map#{collection => Collection}
+    catch
+        _Exc:_Err:_ST ->
+            Map#{error => _Err}
+    end;
 transformer(#{transformer := #{'fun' := Fun}
-		     ,collection := Collection
-		     } = Map) ->
-	try erlang:apply(Fun, [Collection]) of
-		{error, Error} -> Map#{error => Error};
-		{ok, Collection} -> Map#{collection => Collection}
-	catch
-		_Exc:_Err:_ST ->
-			Map#{error => _Err}
-	end;
+             ,collection := Collection
+             } = Map) ->
+    try erlang:apply(Fun, [Collection]) of
+        {error, Error} -> Map#{error => Error};
+        {ok, Collection} -> Map#{collection => Collection}
+    catch
+        _Exc:_Err:_ST ->
+            Map#{error => _Err}
+    end;
 transformer(Map) -> Map.
 
 transform(#{transform := #{'fun' := Fun, params := Params}
-		   ,collection := Collection
-		   } = Map) ->
-	try
-		Map#{collection => [erlang:apply(Fun, [JObj | Params]) || JObj <- Collection]}
-	catch
-		_Exc:_Err:_ST ->
-			Map#{error => _Err}
-	end;
-transform(#{transform := #{'fun' := Fun}
-		   ,collection := Collection
-		   } = Map) ->
-	try
-		Map#{collection => [Fun(JObj) || JObj <- Collection]}
+           ,collection := Collection
+           } = Map) ->
+    try
+        Map#{collection => [erlang:apply(Fun, [JObj | Params]) || JObj <- Collection]}
     catch
-		_Exc:_Err:_ST ->
-			Map#{error => _Err}
-	end;
+        _Exc:_Err:_ST ->
+            Map#{error => _Err}
+    end;
+transform(#{transform := #{'fun' := Fun}
+           ,collection := Collection
+           } = Map) ->
+    try
+        Map#{collection => [Fun(JObj) || JObj <- Collection]}
+    catch
+        _Exc:_Err:_ST ->
+            Map#{error => _Err}
+    end;
 transform(Map) -> Map.
 
 scope(#{scope := []} = Map) -> Map;
 scope(#{scope := Scope
-	   ,collection := Collection
-	   } = Map) ->
-	Map#{collection => [Scoped || JObj <- Collection, (Scoped = kz_json:get_json_value(Scope, JObj)) =/= undefined]};
+       ,collection := Collection
+       } = Map) ->
+    Map#{collection => [Scoped || JObj <- Collection, (Scoped = kz_json:get_json_value(Scope, JObj)) =/= undefined]};
 scope(Map) -> Map.
 
 run(#{collection := Collection, ast := AST} = Map) ->
-	Map#{result => [JObj || JObj <- Collection, eval(JObj, AST)]};
+    Map#{result => [JObj || JObj <- Collection, eval(JObj, AST)]};
 run(Map) ->
-	Map#{result => []}.
+    Map#{result => []}.
 
 patch(#{patch := #{op := Op, path := Path} = Patch
        ,result := Collection
@@ -218,7 +218,7 @@ patch(#{patch := #{op := Op, path := Path} = Patch
                                end
                        end
                    end  || JObj <- Collection],
-         Map#{result => [Result || Result <- Results, Result =/= undefined]}
+        Map#{result => [Result || Result <- Results, Result =/= undefined]}
     catch
         _Exc:_Err:_ST ->
             Map#{error => _Err}
@@ -236,8 +236,8 @@ action(#{action := #{'fun' := Fun, params := Params}
             Map#{error => _Err}
     end;
 action(#{action := #{'fun' := Fun}
-       ,result := Collection
-       } = Map) ->
+        ,result := Collection
+        } = Map) ->
     try
         Map#{result => [Fun(JObj) || JObj <- Collection]}
     catch
@@ -267,20 +267,20 @@ output(#{output := #{'fun' := Fun}
 output(Map) -> Map.
 
 operator('equal', V1, V2) ->
-	V1 =:= V2;
+    V1 =:= V2;
 operator('not_equal', V1, V2) ->
-	V1 =/= V2;
+    V1 =/= V2;
 operator('contains', V1, V2) ->
-	binary:match(kz_term:to_binary(V1), kz_term:to_binary(V2)) =/= 'nomatch';
+    binary:match(kz_term:to_binary(V1), kz_term:to_binary(V2)) =/= 'nomatch';
 operator('starts_with', V1, V2) ->
-	V1 =/= V2;
+    V1 =/= V2;
 operator('ends_with', V1, V2) ->
-	V1 =/= V2;
+    V1 =/= V2;
 operator('greater_than', V1, V2) ->
-	V1 > V2;
+    V1 > V2;
 operator('greater_than_or_equal', V1, V2) ->
-	V1 >= V2;
+    V1 >= V2;
 operator('less_than', V1, V2) ->
-	V1 < V2;
+    V1 < V2;
 operator('less_than_or_equal', V1, V2) ->
-	V1 =< V2.
+    V1 =< V2.
