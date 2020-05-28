@@ -199,7 +199,9 @@ find_modules(Path) ->
         'true' ->
             AccFiles = fun (File, Acc) -> [File|Acc] end,
             Required = string:join(?REQUIRED_MODULES, "|"),
-            filelib:fold_files(Path, "(.+_maintenance|" ++ Required ++ ")\\.beam", 'true', AccFiles, [])
+            [F || F <- filelib:fold_files(Path, "(.+_maintenance|" ++ Required ++ ")\\.beam", 'true', AccFiles, []),
+                  "skel_maintenance" =/= filename:basename(F, ".beam")
+            ]
     end.
 
 usage() ->
