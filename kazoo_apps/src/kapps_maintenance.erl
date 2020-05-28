@@ -1366,7 +1366,7 @@ get_messages(Account) ->
         {'ok', ViewRes} ->
             lists:foldl(fun extract_messages/2, [], ViewRes);
         {'error', _E} ->
-            lager:error("could not load view ~p: ~p", [?VMBOX_VIEW, _E]),
+            lager:error("could not get vmboxes: ~p", [_E]),
             []
     end.
 
