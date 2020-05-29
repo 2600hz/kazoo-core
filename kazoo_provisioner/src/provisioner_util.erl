@@ -21,8 +21,10 @@
 -export([maybe_sync_sip_data/5]).
 -export([cleanse_mac_address/1]).
 
--export([sync_user/1, force_sync_user/2
-        ,sync_device/3, force_sync_device/2
+-export([sync_user/1, sync_user/2
+        ,force_sync_user/2, force_sync_user/3
+        ,sync_device/3, sync_device/4
+        ,force_sync_device/2, force_sync_device/3
         ]).
 
 -include("kazoo_provisioner.hrl").
@@ -39,7 +41,8 @@
           [{"host", kapps_config:get_string(?MOD_CONFIG_CAT, <<"provisioning_host">>)}
           ,{"referer", kapps_config:get_string(?MOD_CONFIG_CAT, <<"provisioning_referer">>)}
           ,{"user-agent", kz_term:to_list(erlang:node())}
-          ])).
+          ])
+       ).
 -define(JSON_HEADERS, [{"content-type", "application/json"} | ?BASE_HEADERS]).
 -define(FORM_HEADERS, [{"content-type", "application/x-www-form-urlencoded"} | ?BASE_HEADERS]).
 
@@ -246,6 +249,10 @@ maybe_sync_sip_data('force', 'user', AccountId, _OldDoc, NewDoc) ->
 
 -spec sync_device(kz_term:ne_binary(), kzd_devices:doc(), kzd_devices:doc()) -> 'ok'.
 sync_device(AccountId, OldDevice, NewDevice) ->
+    sync_device(AccountId, OldDevice, NewDevice, 'undefined').
+
+-spec sync_device(kz_term:ne_binary(), kzd_devices:doc(), kzd_devices:doc(), kz_term:api_boolean()) -> 'ok'.
+sync_device(AccountId, OldDevice, NewDevice, ShouldReboot) ->
     OldUsername = kzd_devices:sip_username(OldDevice),
     case kzd_devices:sip_username(NewDevice) =/= OldUsername
         orelse kzd_devices:sip_password(NewDevice) =/= kzd_devices:sip_password(OldDevice)
@@ -254,17 +261,25 @@ sync_device(AccountId, OldDevice, NewDevice) ->
             lager:debug("nothing has changed on device; no check-sync needed");
         'true' ->
             Realm = kzd_accounts:fetch_realm(AccountId),
-            send_check_sync(OldUsername, Realm, kz_log:get_callid())
+            send_check_sync(NewDevice, ShouldReboot, OldUsername, Realm, kz_log:get_callid())
     end.
 
 -spec force_sync_device(kz_term:ne_binary(), kzd_devices:doc()) -> 'ok'.
 force_sync_device(AccountId, NewDevice) ->
+    force_sync_device(AccountId, NewDevice, 'undefined').
+
+-spec force_sync_device(kz_term:ne_binary(), kzd_devices:doc(), kz_term:api_boolean()) -> 'ok'.
+force_sync_device(AccountId, NewDevice, ShouldReboot) ->
     Username = kzd_devices:sip_username(NewDevice),
     Realm = kzd_accounts:fetch_realm(AccountId),
-    send_check_sync(Username, Realm, kz_log:get_callid()).
+    send_check_sync(NewDevice, ShouldReboot, Username, Realm, kz_log:get_callid()).
 
 -spec sync_user(kz_term:ne_binary()) -> 'ok'.
 sync_user(AccountId) ->
+    sync_user(AccountId, 'undefined').
+
+-spec sync_user(kz_term:ne_binary(), kz_term:api_boolean()) -> 'ok'.
+sync_user(AccountId, ShouldReboot) ->
     Realm = kzd_accounts:fetch_realm(AccountId),
     Req = [{<<"Realm">>, Realm}
           ,{<<"Fields">>, [<<"Username">>]}
@@ -279,7 +294,7 @@ sync_user(AccountId) ->
         {'ok', JObj} ->
             lists:foreach(fun(J) ->
                                   Username = kz_json:get_ne_binary_value(<<"Username">>, J),
-                                  send_check_sync(Username, Realm, 'undefined')
+                                  send_check_sync('undefined', ShouldReboot, Username, Realm, 'undefined')
                           end
                          ,kz_json:get_list_value(<<"Fields">>, JObj, [])
                          )
@@ -300,6 +315,10 @@ user_devices(AccountId, UserId) ->
 
 -spec force_sync_user(kz_term:ne_binary(), kzd_users:doc()) -> 'ok'.
 force_sync_user(AccountId, NewUser) ->
+    force_sync_user(AccountId, NewUser, 'undefined').
+
+-spec force_sync_user(kz_term:ne_binary(), kzd_users:doc(), kz_term:api_boolean()) -> 'ok'.
+force_sync_user(AccountId, NewUser, ShouldReboot) ->
     case user_devices(AccountId, kz_doc:id(NewUser)) of
         {'error', _E} ->
             lager:debug("unable to sync user devices: ~p", [_E]);
@@ -307,24 +326,51 @@ force_sync_user(AccountId, NewUser) ->
             lager:debug("no user devices to sync");
         {'ok', DeviceDocs} ->
             Realm = kzd_accounts:fetch_realm(AccountId),
-            _ = [send_check_sync(kzd_devices:presence_id(DeviceDoc), Realm, kz_log:get_callid())
+            _ = [send_check_sync(DeviceDoc, ShouldReboot, kzd_devices:presence_id(DeviceDoc), Realm, kz_log:get_callid())
                  || DeviceDoc <- DeviceDocs
                 ],
             'ok'
     end.
 
--spec send_check_sync(kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()) -> 'ok'.
-send_check_sync('undefined', _Realm, _MsgId) ->
+-spec send_check_sync(kzd_devices:doc() | 'undefined', kz_term:api_boolean(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()) -> 'ok'.
+send_check_sync(_DeviceDoc, _ShouldReboot, 'undefined', _Realm, _MsgId) ->
     lager:warning("did not send check sync: username is undefined");
-send_check_sync(_Username, 'undefined', _MsgId) ->
+send_check_sync(_DeviceDoc, _ShouldReboot, _Username, 'undefined', _MsgId) ->
     lager:warning("did not send check sync: realm is undefined");
-send_check_sync(Username, Realm, MsgId) ->
-    lager:debug("sending check sync for ~s @ ~s", [Username, Realm]),
-    publish_check_sync(MsgId, [{<<"Event">>, <<"check-sync">>}
+send_check_sync(DeviceDoc, ShouldReboot, Username, Realm, MsgId) ->
+    CheckSyncEvent = check_sync_event(DeviceDoc, ShouldReboot),
+    lager:debug("sending ~s for ~s @ ~s", [CheckSyncEvent, Username, Realm]),
+    publish_check_sync(MsgId, [{<<"Event">>, CheckSyncEvent}
                               ,{<<"Realm">>, Realm}
                               ,{<<"Username">>, Username}
                                | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
                               ]).
+
+-spec check_sync_event(kzd_devices:doc() | 'undefined', kz_term:api_boolean()) -> kz_term:ne_binary().
+check_sync_event('undefined', ShouldReboot) ->
+    lager:debug("using system-configured check sync event"),
+    CheckSync = kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"check_sync_event">>, <<"check-sync">>),
+    should_reboot('undefined', CheckSync, ShouldReboot);
+check_sync_event(Device, ShouldReboot) ->
+    case kzd_devices:provision_check_sync_event(Device) of
+        'undefined' -> check_sync_event('undefined', ShouldReboot);
+        CheckSyncEvent -> should_reboot(Device, CheckSyncEvent, ShouldReboot)
+    end.
+
+-spec should_reboot(kzd_devices:doc() | 'undefined', kz_term:ne_binary(), kz_term:api_boolean()) -> kz_term:ne_binary().
+should_reboot('undefined', CheckSyncEvent, _ShouldReboot) ->
+    CheckSyncEvent;
+should_reboot(_DeviceDoc, CheckSyncEvent, 'undefined') ->
+    CheckSyncEvent;
+should_reboot(DeviceDoc, CheckSyncEvent, ShouldReboot) ->
+    case kz_term:is_true(ShouldReboot) of
+        'true' ->
+            Reboot = kzd_devices:provision_check_sync_reboot(DeviceDoc),
+            <<CheckSyncEvent/binary, ";", Reboot/binary>>;
+        'false' ->
+            Reload = kzd_devices:provision_check_sync_reload(DeviceDoc),
+            <<CheckSyncEvent/binary, ";", Reload/binary>>
+    end.
 
 -spec publish_check_sync(kz_term:api_binary(), kz_term:proplist()) -> 'ok'.
 publish_check_sync('undefined', Req) ->
