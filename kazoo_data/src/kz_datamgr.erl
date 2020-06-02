@@ -99,6 +99,7 @@
         ,register_view/2
         ,register_views/2
         ,register_views_from_folder/1, register_views_from_folder/2
+        ,view_definitions/2
         ]).
 
 -type update_option() :: {'update', kz_json:flat_proplist()} |
