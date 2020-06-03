@@ -1026,8 +1026,7 @@ signature_secret(Doc) ->
           {'validation_errors', kazoo_documents:doc_validation_errors()} |
           {'system_error', atom()}.
 validate(AccountId, UserId, ReqJObj) ->
-    ValidateFuns = [fun maybe_normalize_username/3
-                   ,fun maybe_validate_username_is_unique/3
+    ValidateFuns = [fun maybe_validate_username_is_unique/3
                    ,fun maybe_normalize_emergency_caller_id_number/3
                    ,fun maybe_validate_hotdesk_id_is_unique/3
 
@@ -1052,21 +1051,6 @@ do_validation(AccountId, UserId, ReqJObj, ValidateFuns) ->
                ,{ReqJObj, []}
                ,ValidateFuns
                ).
-
-%%------------------------------------------------------------------------------
-%% @doc If set, Normalize the user's username by converting it to lower case.
-%% @end
-%%------------------------------------------------------------------------------
--spec maybe_normalize_username(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
-maybe_normalize_username(_AccountId, _UserId, {Doc, Errors}) ->
-    case username(Doc) of
-        'undefined' -> {Doc, Errors};
-        Username ->
-            NormalizedUsername = kz_term:to_lower_binary(Username),
-            lager:debug("normalized username '~s' to '~s'", [Username, NormalizedUsername]),
-            {set_username(Doc, NormalizedUsername), Errors}
-    end.
 
 %%------------------------------------------------------------------------------
 %% @doc If set, Validate the user's username is unique within the account.
