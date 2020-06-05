@@ -168,7 +168,7 @@ profile_url(#{auth_provider := #{profile_url := ProfileURL} = Provider
         <<"url">> -> maybe_compose_profile_url(<<ProfileURL/binary, AccessToken/binary>>, Token)
     end.
 
--define(PROFILE_URL_REGEX, <<"\:([^\/]+)">>).
+-define(PROFILE_URL_REGEX, <<"\/\:([^\/]+)">>).
 -define(PROFILE_URL_REGEX_OPTIONS, [{'capture', 'all_but_first', 'binary'}, 'global']).
 -define(PROFILE_URL_REPLACE_OPTIONS, ['global', {'return', 'binary'}]).
 
