@@ -59,4 +59,7 @@
                        ]).
 
 -define(KZ_DATABASES_HRL, 'true').
+
+-define(KZ_VIEW_BY_TYPE_ID, <<"crossbar_listings/by_type_id">>).
+
 -endif.

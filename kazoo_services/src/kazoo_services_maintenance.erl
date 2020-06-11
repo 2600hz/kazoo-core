@@ -264,6 +264,7 @@ migrate_service_plans() ->
 migrate_service_plans(Account) ->
     AccountDb = kzs_util:format_account_db(Account),
     ViewOptions = ['include_docs'],
+    %% service_plans/crossbar_listing
     {'ok', JObjs} = kz_datamgr:get_results(AccountDb, <<"services/plans">>, ViewOptions),
     io:format("verifying ~p service plans have been migrated~n", [length(JObjs)]),
     migrate_service_plans(AccountDb, [kz_json:get_value(<<"doc">>, JObj) || JObj <- JObjs]).

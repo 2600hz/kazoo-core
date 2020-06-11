@@ -4,7 +4,7 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 -include_lib("couchbeam/include/couchbeam.hrl").
--include("kazoo_couch.hrl").
+-include_lib("kazoo_couch/include/kazoo_couch.hrl").
 
 -define(TIMEOUT, ?MILLISECONDS_IN_HOUR). %% check every hour
 

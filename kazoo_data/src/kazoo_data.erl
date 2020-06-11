@@ -18,4 +18,5 @@
              ,db_classification/0
              ,view_options/0, key_range/0
              ,docid/0, docids/0
+             ,ddoc/0
              ]).

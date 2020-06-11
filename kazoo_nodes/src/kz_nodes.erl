@@ -662,16 +662,16 @@ print_node_info({<<"pools">>, Info}) ->
 print_node_info(_Info) ->
     format("~n").
 
--spec print_amqp_info(kz_term:ne_binary(), term(), list()) -> list().
+-spec print_amqp_info(kz_term:ne_binary(), term(), iodata()) -> iodata().
 print_amqp_info(Broker, Info, Acc) ->
     ChannelCount = kz_json:get_integer_value(<<"channel_count">>, Info, 0),
     [io_lib:format("~s (~B)", [format_broker(Broker), ChannelCount]) | Acc].
 
--spec format_broker(kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec format_broker(kz_term:ne_binary()) -> string().
 format_broker(Broker) ->
     amqp_uri:remove_credentials(Broker).
 
--spec print_pool_info(kz_term:ne_binary(), term(), list()) -> list().
+-spec print_pool_info(kz_term:ne_binary(), term(), iodata()) -> iodata().
 print_pool_info(Pool, Info, Acc) ->
     [io_lib:format("~s : ~s", [Pool, Info]) | Acc].
 
@@ -913,7 +913,7 @@ handle_info({'heartbeat', Ref}
             lager:error("error creating node ~p : ~p", [_E, _N]),
             kz_log:log_stacktrace(ST),
             {'noreply', State#state{heartbeat_ref=Reference}, 'hibernate'}
-        end;
+    end;
 
 handle_info({'DOWN', Ref, 'process', Pid, _}
            ,#state{notify_new=NewSet
@@ -1327,7 +1327,7 @@ node_info() ->
            ],
     Info = kazoo_bindings:map(<<"kz_nodes.node.info">>, []),
     NodeInfo = [{<<"amqp">>, kz_json:from_list(AMQP)}
-                  | [{Key, Value} || {Key, Value} <- Info]
+                | [{Key, Value} || {Key, Value} <- Info]
                ],
     kz_json:from_list(NodeInfo).
 

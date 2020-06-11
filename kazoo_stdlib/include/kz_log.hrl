@@ -101,5 +101,40 @@
 -define(DEV_LOG(F, A), io:format('user', "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
 -define(DEV_LOG(F), ?DEV_LOG(F, [])).
 
+-define(MAYBE_LOG
+       ,fun(LFmt0, LArgs0) ->
+                LArgs1 = [case erlang:get('lager_prefix') of
+                              'undefined' -> <<>>;
+                              LP -> LP
+                          end | LArgs0],
+                LArgs2 = [?MODULE, ?LINE] ++ LArgs1,
+                LFmt1 = "~s " ++ LFmt0,
+                LFmt2 = "~s:~b " ++ LFmt1 ++ "\n",
+                case erlang:get('verbose_log') of
+                    'undefined' -> 'ok';
+                    'false' -> 'ok';
+                    'true' -> lager:debug(LFmt1,LArgs1);
+                    'user' ->
+                        io:format(user, LFmt2, LArgs2);
+                    'console' ->
+                        io:format(LFmt2, LArgs2);
+                    {LSink, LLevel} ->
+                        LMetadata = [{pid, self()} ,{node, node()}, {module, ?MODULE}
+                                    ,{function, ?FUNCTION_NAME}, {function_arity, ?FUNCTION_ARITY}
+                                    ,{file, ?FILE}, {line, ?LINE}
+                                     | lager:md()
+                                    ],
+                        lager:log(LSink, LLevel, LMetadata, LFmt1, LArgs1);
+                    LLevel ->
+                        LMetadata = [{pid, self()} ,{node, node()}, {module, ?MODULE}
+                                    ,{function, ?FUNCTION_NAME}, {function_arity, ?FUNCTION_ARITY}
+                                    ,{file, ?FILE}, {line, ?LINE}
+                                     | lager:md()
+                                    ],
+                        lager:log(LLevel, LMetadata, LFmt1, LArgs1)
+                end
+        end
+       ).
+
 -define(KZ_LOG_HRL, 'true').
 -endif.
