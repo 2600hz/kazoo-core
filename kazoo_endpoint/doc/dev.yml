@@ -1,0 +1,4 @@
+  - 'Building endpoints and managing attributes of those endpoints':
+    - 'core/kazoo_endpoint/doc/formatters.md'
+    - 'core/kazoo_endpoint/doc/maintenance.md'
+    - 'core/kazoo_endpoint/doc/privacy-cid.md'

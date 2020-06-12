@@ -1,0 +1,4 @@
+  - 'AMQP client helpers for interacting with a AMQP server':
+    - 'core/kazoo_amqp/doc/README.md'
+    - 'core/kazoo_amqp/doc/amqp_workers.md'
+    - 'core/kazoo_amqp/doc/maintenance.md'

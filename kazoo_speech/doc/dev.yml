@@ -1,0 +1,5 @@
+  - 'Kazoo Speech providers - TTS and ASR':
+    - 'core/kazoo_speech/doc/README.md'
+    - 'core/kazoo_speech/doc/google.md'
+    - 'core/kazoo_speech/doc/ispeech.md'
+    - 'core/kazoo_speech/doc/maintenance.md'

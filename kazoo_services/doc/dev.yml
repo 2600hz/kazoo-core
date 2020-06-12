@@ -1,0 +1,5 @@
+  - 'Kazoo Services provides billing and service limit support':
+    - 'core/kazoo_services/doc/README.md'
+    - 'core/kazoo_services/doc/bookkeepers.md'
+    - 'core/kazoo_services/doc/lifecycle.md'
+    - 'core/kazoo_services/doc/maintenance.md'

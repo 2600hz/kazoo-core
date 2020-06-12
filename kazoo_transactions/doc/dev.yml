@@ -1,0 +1,3 @@
+  - 'Abstract transactions to be sent to bookkeepers for processing':
+    - 'core/kazoo_transactions/doc/README.md'
+    - 'core/kazoo_transactions/doc/top_up.md'

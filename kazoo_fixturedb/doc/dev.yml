@@ -1,0 +1,4 @@
+  - 'A naive simple file-based CouchDB little bro':
+    - 'core/kazoo_fixturedb/doc/README.md'
+    - 'core/kazoo_fixturedb/doc/db-to-disk.md'
+    - 'core/kazoo_fixturedb/doc/kz_fixturedb_maintenance.md'

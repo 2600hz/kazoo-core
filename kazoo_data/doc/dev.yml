@@ -1,0 +1,3 @@
+  - 'Kazoo Data Access abstraction layer':
+    - 'core/kazoo_data/doc/loadtest.md'
+    - 'core/kazoo_data/doc/maintenance.md'
