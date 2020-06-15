@@ -1,4 +1,4 @@
-  - 'MODb - Utilities for an account's month-only database':
+  - 'MODb: Utilities for month-only databases':
     - 'core/kazoo_modb/doc/README.md'
     - 'core/kazoo_modb/doc/kazoo_modb_migrate_maintenance.md'
     - 'core/kazoo_modb/doc/maintenance.md'
