@@ -1,5 +1,5 @@
 CWD = $(shell pwd -P)
-ROOT = $(realpath $(CWD)/../..)
+ROOT ?= $(realpath $(CWD)/../..)
 PROJECT = kazoo_numbers
 
 # ISO3166-alpha2 to dialcode (ITU) module generator.

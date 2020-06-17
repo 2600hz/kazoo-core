@@ -1,5 +1,5 @@
 CWD = $(shell pwd -P)
-ROOT = $(realpath $(CWD)/../..)
+ROOT ?= $(realpath $(CWD)/../..)
 PROJECT = kazoo_stdlib
 
 LEX_SOURCES = $(wildcard src/*.[xy]rl)

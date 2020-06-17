@@ -1,5 +1,5 @@
 CWD = $(shell pwd -P)
-ROOT = $(realpath $(CWD)/../..)
+ROOT ?= $(realpath $(CWD)/../..)
 PROJECT = kazoo_data
 
 SOURCES = src/kz_data.erl $(wildcard src/*.erl)
