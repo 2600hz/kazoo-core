@@ -1,3 +1,5 @@
+CWD = $(shell pwd -P)
+ROOT ?= $(realpath $(CWD)/..)
 MS = $(sort $(wildcard */Makefile))
 MAKEDIRS ?= $(MS:/Makefile=)
 
