@@ -1,13 +1,13 @@
 ---
 name: kazoo
-base_branch:
+base_branch: 'origin/5.0'
 base_core:
 template: kazoo-core.spec.tmpl
 metapackage:
     -
       name: meta-kazoo-applications
       type: required
-      branch: master
+      branch: '5.0'
       package: kazoo-core
 package:
   centos7:
