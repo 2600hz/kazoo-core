@@ -2174,6 +2174,7 @@ refresh_system_views() ->
                 ,?KZ_PENDING_NOTIFY_DB
                 ,?KZ_RATES_DB
                 ,?KZ_TOKEN_DB
+                ,?KZ_IAM_DB
                 ],
     refresh_system_views(Databases).
 

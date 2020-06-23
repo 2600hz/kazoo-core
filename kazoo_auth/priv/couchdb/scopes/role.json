@@ -1,0 +1,11 @@
+{
+    "_id": "role",
+    "aud": [],
+    "claims": [
+        "priv_level"
+    ],
+    "module": "kz_scope_map_user",
+    "permissions": [],
+    "pvt_source": "kazoo",
+    "pvt_type": "scope"
+}

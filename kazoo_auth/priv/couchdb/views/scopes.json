@@ -1,0 +1,37 @@
+{
+    "_id": "_design/scopes",
+    "kazoo": {
+        "view_map": [
+            {
+                "database": "iam"
+            }
+        ]
+    },
+    "language": "javascript",
+    "views": {
+        "list_by_id": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'scope' || doc.pvt_deleted) return;",
+                "  emit(doc._id, {",
+                "    claims: doc.claims,",
+                "    module: doc.module,",
+                "    privileges: doc.privileges",
+                "  });",
+                "}"
+            ]
+        },
+        "list_by_source": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'scope' || doc.pvt_deleted) return;",
+                "  emit([doc.pvt_source, doc._id], {",
+                "    claims: doc.claims,",
+                "    module: doc.module,",
+                "    privileges: doc.privileges",
+                "  });",
+                "}"
+            ]
+        }
+    }
+}

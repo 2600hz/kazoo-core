@@ -1,0 +1,35 @@
+{
+    "_id": "profile",
+    "claims": [
+        [
+            "name",
+            "display_name"
+        ],
+        [
+            "family_name",
+            "last_name"
+        ],
+        [
+            "given_name",
+            "first_name"
+        ],
+        "middle_name",
+        [
+            "nickname",
+            "nicknames"
+        ],
+        "picture",
+        [
+            "updated_at",
+            "pvt_modified"
+        ],
+        [
+            "preferred_username",
+            "username"
+        ]
+    ],
+    "module": "kz_scope_map_user",
+    "privileges": [],
+    "pvt_source": "openid",
+    "pvt_type": "scope"
+}

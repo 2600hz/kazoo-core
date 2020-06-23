@@ -1,0 +1,8 @@
+{
+    "_id": "read_only",
+    "claims": [],
+    "module": "kz_scope_map_readonly",
+    "permissions": [],
+    "pvt_source": "kazoo",
+    "pvt_type": "scope"
+}

@@ -1,0 +1,17 @@
+{
+    "_id": "identity",
+    "claims": [
+        "account_id",
+        [
+            "as",
+            "pvt_accounts"
+        ],
+        "owner_id",
+        "method",
+        "mfa_resp"
+    ],
+    "module": null,
+    "permissions": [],
+    "pvt_source": "kazoo",
+    "pvt_type": "scope"
+}

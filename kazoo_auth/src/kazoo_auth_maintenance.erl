@@ -17,6 +17,7 @@
 
 -export([register_auth_app/4]).
 -export([register_common_providers/0]).
+-export([register_common_scopes/0]).
 -export([register_auth_app_key/2]).
 
 -export([refresh/0
@@ -67,17 +68,28 @@ register_auth_app_key(AppId, PemFile) ->
 
 -spec refresh() -> 'ok'.
 refresh() ->
-    case kz_datamgr:db_exists(?KZ_AUTH_DB) of
+    Databases = [?KZ_AUTH_DB
+                ,?KZ_IAM_DB
+                ],
+    refresh(Databases).
+
+-spec refresh(kz_term:ne_binaries()) -> 'ok'.
+refresh([]) -> 'ok';
+refresh([Db | Dbs]) ->
+    _ = refresh(Db),
+    refresh(Dbs);
+refresh(Db) when is_binary(Db) ->
+    case kz_datamgr:db_exists(Db) of
         'false' ->
-            init_db(kz_datamgr:db_create(?KZ_AUTH_DB));
-        'true' -> init_db('true')
+            init_db(Db, kz_datamgr:db_create(Db));
+        'true' -> init_db(Db, 'true')
     end.
 
--spec init_db(boolean()) -> 'ok'.
-init_db('false') ->
-    lager:error("error trying to create auth database");
-init_db('true') ->
-    _ = kapps_maintenance:refresh(?KZ_AUTH_DB),
+-spec init_db(kz_term:ne_binary(), boolean()) -> 'ok'.
+init_db(Db, 'false') ->
+    lager:error("error trying to create ~p database", [Db]);
+init_db(Db, 'true') ->
+    _ = kapps_maintenance:refresh(Db),
     'ok'.
 
 -spec register_views() -> 'ok'.
@@ -87,6 +99,10 @@ register_views() ->
 -spec register_common_providers() -> 'ok'.
 register_common_providers() ->
     kz_datamgr:revise_docs_from_folder(?KZ_AUTH_DB, 'kazoo_auth', "providers").
+
+-spec register_common_scopes() -> 'ok'.
+register_common_scopes() ->
+    kz_datamgr:revise_docs_from_folder(?KZ_IAM_DB, 'kazoo_auth', "scopes").
 
 -spec flush() -> 'ok'.
 flush() ->

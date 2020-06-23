@@ -77,6 +77,7 @@ db_classification(?KZ_MEDIA_DB) -> 'system';
 db_classification(?KZ_SCHEMA_DB) -> 'system';
 db_classification(?KZ_OAUTH_DB) -> 'system';
 db_classification(?KZ_AUTH_DB) -> 'system';
+db_classification(?KZ_IAM_DB) -> 'system';
 db_classification(?KZ_DATA_DB) -> 'system';
 db_classification(?KZ_TASKS_DB) -> 'system';
 db_classification(?KZ_PENDING_NOTIFY_DB) -> 'system';

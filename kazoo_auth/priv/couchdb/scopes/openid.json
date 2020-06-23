@@ -1,0 +1,16 @@
+{
+    "_id": "openid",
+    "claims": [
+        "sub",
+        "iss",
+        "aud",
+        "exp",
+        "iat",
+        "at_hash",
+        "scope"
+    ],
+    "module": null,
+    "privileges": [],
+    "pvt_source": "openid",
+    "pvt_type": "scope"
+}

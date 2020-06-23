@@ -1,0 +1,10 @@
+{
+    "_id": "email",
+    "claims": [
+        "email"
+    ],
+    "module": "kz_scope_map_user",
+    "privileges": [],
+    "pvt_source": "openid",
+    "pvt_type": "scope"
+}

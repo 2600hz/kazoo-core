@@ -26,6 +26,7 @@
 
 -define(KZ_PORT_REQUESTS_DB, <<"port_requests">>).
 
+-define(KZ_IAM_DB, <<"iam">>).
 -define(KZ_OAUTH_DB, <<"oauth">>).
 -define(KZ_AUTH_DB, <<"system_auth">>).
 -define(KZ_DATA_DB, <<"system_data">>).
@@ -38,6 +39,7 @@
                        ,?KZ_CONFIG_DB
                        ,?KZ_SCHEMA_DB
                        ,?KZ_AUTH_DB
+                       ,?KZ_IAM_DB
                        ,?KZ_MEDIA_DB
                        ,?KZ_SIP_DB
                        ,?KZ_ACCOUNTS_DB
