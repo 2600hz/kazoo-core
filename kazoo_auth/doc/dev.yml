@@ -2,3 +2,4 @@
     - 'core/kazoo_auth/doc/maintenance.md'
     - 'core/kazoo_auth/doc/multi_factor.md'
     - 'core/kazoo_auth/doc/oauth.md'
+    - 'core/kazoo_auth/doc/scopes.md'
