@@ -32,4 +32,4 @@ mod(Doc) ->
 %%------------------------------------------------------------------------------
 -spec privileges(doc()) -> kz_term:api_binaries().
 privileges(Doc) ->
-    kz_json:get_value(<<"privileges">>, Doc).
+    kz_json:get_value(<<"privileges">>, Doc, []).

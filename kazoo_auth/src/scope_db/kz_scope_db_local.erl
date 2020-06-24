@@ -15,9 +15,9 @@
 
 -export([scopes/0
         ,scope/1, has_scope/1
-        ,claims/1
-        ,mod/1
-        ,privileges/1
+        ,claims/1, has_claims/1
+        ,mod/1, has_mod/1
+        ,privileges/1, has_privileges/1
         ]).
 
 %%------------------------------------------------------------------------------
@@ -63,6 +63,14 @@ claims(Scope) ->
             kzd_scope:claims(Doc)
     end.
 
+-spec has_claims(kz_term:binary()) -> boolean().
+has_claims(Scope) ->
+    case scope(Scope) of
+        {'error', _} -> 'false';
+        Doc ->
+            kzd_scope:claims(Doc) =/= []
+    end. 
+
 %%------------------------------------------------------------------------------
 %% @doc Fetch mapping module for a Scope
 %% @end
@@ -75,6 +83,14 @@ mod(Scope) ->
             kzd_scope:mod(Doc)
     end.
 
+-spec has_mod(kz_term:binary()) -> boolean().
+has_mod(Scope) ->
+    case scope(Scope) of
+        {'error', _} -> 'false';
+        Doc ->
+            kzd_scope:mod(Doc) =/= 'undefined'
+    end.
+
 %%------------------------------------------------------------------------------
 %% @doc Fetch scope privileges
 %% @end
@@ -85,4 +101,12 @@ privileges(Scope) ->
         {'error', _}=Error -> Error;
         Doc ->
             kzd_scope:privileges(Doc)
+    end.
+
+-spec has_privileges(kz_term:binary()) -> boolean().
+has_privileges(Scope) ->
+    case scope(Scope) of
+        {'error', _} -> 'false';
+        Doc ->
+            kzd_scope:privileges(Doc) =/= []
     end.
