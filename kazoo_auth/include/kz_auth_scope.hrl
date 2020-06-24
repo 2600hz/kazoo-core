@@ -20,6 +20,7 @@
                           ]).
 
 -define(READ_ONLY, <<"_read_only">>).
+-define(AUTH_ONLY, <<"_auth_only">>).
 
 -define(OIDC_EMAIL, <<"email">>).
 -define(OIDC_OPENID, <<"openid">>).

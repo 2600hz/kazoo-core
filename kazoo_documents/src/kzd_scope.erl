@@ -22,7 +22,7 @@ claims(Doc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec mod(doc()) -> kz_term:api_binary() | 'undefined'.
+-spec mod(doc()) -> kz_term:api_binary().
 mod(Doc) ->
     kz_json:get_ne_binary_value(<<"module">>, Doc, 'undefined').
 
@@ -30,6 +30,6 @@ mod(Doc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec privileges(doc()) -> kz_term:binaries().
+-spec privileges(doc()) -> kz_term:api_binaries().
 privileges(Doc) ->
     kz_json:get_value(<<"privileges">>, Doc).

@@ -154,6 +154,18 @@ The `role` scope is a default scope attempts to extract the owner's role and add
 }
 ```
 
+##### auth_only
+The `auth_only` scope is an optional scope that will create a token that is authenticated but denied API resources.
+
+**Example:** JWT Claims
+```json
+{
+  ...
+  "_auth_only": true,
+  ...
+}
+```
+
 ##### read_only
 The `read_only` scope is an optional scope that will create a token that can only perform read operations against permitted resources.
 

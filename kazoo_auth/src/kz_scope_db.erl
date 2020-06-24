@@ -24,10 +24,15 @@
          ,privileges/1, has_privileges/1
          ]).
 
-                                                % behavior callbacks
 -callback scopes() -> {'ok', kz_json:objects()}  | scope_error().
+-callback scope(kz_term:ne_binary()) -> boolean().
 -callback has_scope(Scope :: kz_term:binary()) -> boolean().
 -callback claims(Scope :: kz_term:binary()) -> kz_json:object() | scope_error().
+-callback has_claims(kz_term:binary()) -> boolean().
+-callback mod(kz_term:binary()) -> kz_json:object() | scope_error().
+-callback has_mod(kz_term:binary()) -> boolean().
+-callback privileges(kz_term:binary()) -> kz_json:object() | scope_error().
+-callback has_privileges(kz_term:binary()) -> boolean().
 
 %%------------------------------------------------------------------------------
 %% @doc Fetch all scopes
@@ -83,7 +88,7 @@ mod(Scope) ->
 %%------------------------------------------------------------------------------
 -spec has_mod(kz_term:binary()) -> boolean().
 has_mod(Scope) ->
-    (?SCOPE_DB_MOD):mod(Scope) =/= 'undefined'.
+    (?SCOPE_DB_MOD):mod(Scope).
 
 %%------------------------------------------------------------------------------
 %% @doc Fetch scope privileges
