@@ -9,7 +9,6 @@
 %%%-----------------------------------------------------------------------------
 -ifndef(KZ_AUTH_SCOPE_HRL).
 
-                                                % Token Definitions
 -define(COMMA_SEP, <<",">>).
 -define(ENTITY_SEP, <<":">>).
 -define(RESOURCE_SEP, <<".">>).
@@ -22,7 +21,6 @@
 
 -define(READ_ONLY, <<"_read_only">>).
 
-                                                % Define OIDC Scopes
 -define(OIDC_EMAIL, <<"email">>).
 -define(OIDC_OPENID, <<"openid">>).
 -define(OIDC_PROFILE, <<"profile">>).
@@ -31,7 +29,6 @@
                      ,?OIDC_PROFILE
                      ]).
 
-                                                % Default Kazoo Scopes
 -define(SYS_ID, <<"identity">>).
 -define(SYS_RBAC, <<"role">>).
 -define(SYS_READ_ONLY, <<"read_only">>).
@@ -40,7 +37,6 @@
                     ,?SYS_READ_ONLY
                     ]).
 
-                                                % Minimum Viable Scopage
 -define(DEFAULT_SCOPES, [?OIDC_OPENID
                         ,?SYS_ID
                         ,?SYS_RBAC
