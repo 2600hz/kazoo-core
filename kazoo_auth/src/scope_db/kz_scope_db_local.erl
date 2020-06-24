@@ -69,7 +69,7 @@ has_claims(Scope) ->
         {'error', _} -> 'false';
         Doc ->
             kzd_scope:claims(Doc) =/= []
-    end. 
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Fetch mapping module for a Scope
