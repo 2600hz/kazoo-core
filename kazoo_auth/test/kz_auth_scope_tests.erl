@@ -1,3 +1,14 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2020, 2600Hz
+%%% @doc
+%%% @author Hesaam Farhang
+%%%
+%%% This Source Code Form is subject to the terms of the Mozilla Public
+%%% License, v. 2.0. If a copy of the MPL was not distributed with this
+%%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
+%%%
+%%% @end
+%%%-----------------------------------------------------------------------------
 -module(kz_auth_scope_tests).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -15,48 +26,46 @@
 -define(SCOPE_SINGLETON, #scope{role=?ROLE, scope=?OPENID}).
 -define(SCOPE_SINGLETON_LIST, [?SCOPE_SINGLETON]).
 -define(SCOPE_DEFAULT_LIST
-	   ,lists:usort([#scope{role=?DEF_ROLE, scope=?OPENID}
-	   				,#scope{role=?DEF_ROLE, scope=?PROFILE}
-	   				,#scope{role=?DEF_ROLE, scope=?EMAIL}
-	   				])
-	   ).
+       ,lists:usort([#scope{role=?DEF_ROLE, scope=?OPENID}
+                    ,#scope{role=?DEF_ROLE, scope=?PROFILE}
+                    ,#scope{role=?DEF_ROLE, scope=?EMAIL}
+                    ]).
 -define(SCOPE_LIST
-	   ,lists:usort([#scope{role=?ROLE, scope=?OPENID}
-	   				,#scope{role=?ROLE, scope=?PROFILE}
-	   				,#scope{role=?ROLE, scope=?EMAIL}
-	   				])
-	   ).
+       ,lists:usort([#scope{role=?ROLE, scope=?OPENID}
+                    ,#scope{role=?ROLE, scope=?PROFILE}
+                    ,#scope{role=?ROLE, scope=?EMAIL}
+                    ])).
 
 %% Test term casting to scope record
 parse_test_() ->
-	[{"Default instantiation test"
-	 ,?_assertEqual(?SCOPE_SIMPLE, kz_auth_scope:parse(?OPENID))
-	 }
-	,{"Scope with privilege test"
-	 ,?_assertEqual(?SCOPE_SINGLETON
-				 ,kz_auth_scope:parse(?OPENID, ?ROLE)
-				 )
-	 }	
-	].
+    [{"Default instantiation test"
+     ,?_assertEqual(?SCOPE_SIMPLE, kz_auth_scope:parse(?OPENID))
+     }
+    ,{"Scope with privilege test"
+     ,?_assertEqual(?SCOPE_SINGLETON
+                   ,kz_auth_scope:parse(?OPENID, ?ROLE)
+                   )
+     }
+    ].
 
 %% Test raw string to list of scopes
 parse_raw_test_() ->
-	[{"Raw string defaults parse test"	
-	 ,?_assertEqual([?SCOPE_DEFAULT]
-	 			   ,kz_auth_scope:parse_raw(?OPENID)
-	 			   )
-	 }
-	,{"Raw string singleton parse test"	
-	 ,?_assertEqual(?SCOPE_SINGLETON_LIST
-	 			   ,kz_auth_scope:parse_raw(?OPENID, ?ROLE)
-	 			   )
-	 }
-	,{"Raw string mutliple scopes parse test"
-	 ,?_assertEqual(?SCOPE_LIST
-	 			   ,lists:reverse(kz_auth_scope:parse_raw(?SCOPE_STR, ?ROLE)))
-	 }
-	,{"Raw string mutliple scope binaries and dedupe"
-	 ,?_assertEqual(?SCOPE_DEFAULT_LIST
-	 			   ,lists:reverse(kz_auth_scope:parse_raw([?SCOPE_STR, ?SCOPE_STR])))
-	 }	
-	].
+    [{"Raw string defaults parse test"
+     ,?_assertEqual([?SCOPE_DEFAULT]
+                   ,kz_auth_scope:parse_raw(?OPENID)
+                   )
+     }
+    ,{"Raw string singleton parse test"
+     ,?_assertEqual(?SCOPE_SINGLETON_LIST
+                   ,kz_auth_scope:parse_raw(?OPENID, ?ROLE)
+                   )
+     }
+    ,{"Raw string mutliple scopes parse test"
+     ,?_assertEqual(?SCOPE_LIST
+                   ,lists:reverse(kz_auth_scope:parse_raw(?SCOPE_STR, ?ROLE)))
+     }
+    ,{"Raw string mutliple scope binaries and dedupe"
+     ,?_assertEqual(?SCOPE_DEFAULT_LIST
+                   ,lists:reverse(kz_auth_scope:parse_raw([?SCOPE_STR, ?SCOPE_STR])))
+     }
+    ].

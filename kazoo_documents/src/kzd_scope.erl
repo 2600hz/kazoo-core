@@ -1,9 +1,9 @@
 -module(kzd_scope).
 
 -export([claims/1
-		,mod/1
-		,privileges/1
-		]).
+        ,mod/1
+        ,privileges/1
+        ]).
 
 -include("kz_documents.hrl").
 
@@ -15,8 +15,8 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec claims(doc()) -> kz_term:api_binaries().
-claims(Doc) ->	
-	kz_json:get_value(<<"claims">>, Doc, []).
+claims(Doc) ->
+    kz_json:get_value(<<"claims">>, Doc, []).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -24,7 +24,7 @@ claims(Doc) ->
 %%------------------------------------------------------------------------------
 -spec mod(doc()) -> kz_term:api_binary() | 'undefined'.
 mod(Doc) ->
-	kz_json:get_ne_binary_value(<<"module">>, Doc, 'undefined').
+    kz_json:get_ne_binary_value(<<"module">>, Doc, 'undefined').
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -32,5 +32,4 @@ mod(Doc) ->
 %%------------------------------------------------------------------------------
 -spec privileges(doc()) -> kz_term:binaries().
 privileges(Doc) ->
-	kz_json:get_value(<<"privileges">>, Doc).
-	
+    kz_json:get_value(<<"privileges">>, Doc).

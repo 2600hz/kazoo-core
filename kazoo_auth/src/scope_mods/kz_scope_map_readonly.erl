@@ -21,5 +21,5 @@
 %%------------------------------------------------------------------------------
 -spec map(kz_term:api_binaries(), kz_term:proplist()) -> kz_term:proplist().
 map(_Map, _Props) ->
-	[{?RO_CLAIM, 'true'}].
+    [{?RO_CLAIM, 'true'}].
 

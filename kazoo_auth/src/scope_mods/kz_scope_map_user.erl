@@ -19,12 +19,12 @@
 %%------------------------------------------------------------------------------
 -spec map(kz_term:api_binaries(), kz_term:proplist()) -> kz_term:proplist().
 map(Map, Props) ->
-	OwnerId = props:get_value(<<"owner_id">>, Props),
-	AccountId = props:get_value(<<"account_id">>, Props),
-	case kz_datamgr:open_cache_doc(AccountId, OwnerId) of
-		{'ok', Doc} -> map_user_to_props(Map, Doc);			
-		{'error', _}=Error -> Error		
-	end.
+    OwnerId = props:get_value(<<"owner_id">>, Props),
+    AccountId = props:get_value(<<"account_id">>, Props),
+    case kz_datamgr:open_cache_doc(AccountId, OwnerId) of
+        {'ok', Doc} -> map_user_to_props(Map, Doc);
+        {'error', _}=Error -> Error
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc map claims to user fields
@@ -32,12 +32,12 @@ map(Map, Props) ->
 %%------------------------------------------------------------------------------
 -spec map_user_to_props(kz_term:ne_binaries(), kz_doc:doc()) -> kz_term:proplist().
 map_user_to_props(Map, User) ->
-	Fun = fun(Key, Acc) -> 
-			Claim = map_user_to_claim(Key, User),
-			[Claim | Acc]
-			end,
-	Claims = lists:foldl(Fun, [], Map),
-	props:filter_undefined(Claims).
+    Fun = fun(Key, Acc) ->
+                  Claim = map_user_to_claim(Key, User),
+                  [Claim | Acc]
+          end,
+    Claims = lists:foldl(Fun, [], Map),
+    props:filter_undefined(Claims).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -45,7 +45,6 @@ map_user_to_props(Map, User) ->
 %%------------------------------------------------------------------------------
 -spec map_user_to_claim( kz_term:ne_binaries() | kz_term:ne_binary(), kz_doc:doc()) -> {kz_term:ne_binary(), any()}.
 map_user_to_claim([Key, Map], User) ->
-	{Key, kz_json:get_value(Map, User, 'undefined')};
+    {Key, kz_json:get_value(Map, User, 'undefined')};
 map_user_to_claim(Key, User) ->
-	{Key, kz_json:get_value(Key, User, 'undefined')}.
-	
+    {Key, kz_json:get_value(Key, User, 'undefined')}.
