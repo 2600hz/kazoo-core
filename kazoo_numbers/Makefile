@@ -29,7 +29,7 @@ ISO3166_SRC =  src/knm_iso3166_util.erl.src
 # https://en.wikipedia.org/wiki/List_of_country_calling_codes
 
 COMPILE_MOAR = $(ITU) $(ISO3166)
-SOURCES = $(ITU) $(ISO3166) $(wildcard src/*.erl) $(wildcard src/*/*.erl)
+SOURCES = $(wildcard src/knm_gen_*.erl) $(ITU) $(ISO3166) $(wildcard src/*.erl) $(wildcard src/*/*.erl)
 
 CLEAN_MOAR = clean-generated
 
