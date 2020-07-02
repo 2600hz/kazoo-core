@@ -3,7 +3,7 @@ ROOT ?= $(realpath $(CWD)/..)
 MS = $(sort $(wildcard */Makefile))
 MAKEDIRS ?= $(MS:/Makefile=)
 
-.PHONY: all deps compile compile-test compile-test-direct clean clean-test eunit test first $(MAKEDIRS)
+.PHONY: all deps compile compile-test compile-test-direct clean clean-test eunit test first
 
 all: compile
 
