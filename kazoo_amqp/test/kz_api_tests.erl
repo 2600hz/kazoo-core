@@ -34,6 +34,19 @@ has_any_test_() ->
     ,?_assertEqual('false', kz_api:has_any(Prop, [<<"k4">>]))
     ].
 
+get_event_type_test_() ->
+    EventCategory = {<<"Event-Category">>, <<"call">>},
+    EventName = {<<"Event-Name">>, <<"CHANNEL_CONNECTED">>},
+    [?_assertEqual({'undefined','undefined'}, kz_api:event_type([]))
+    ,?_assertEqual({'undefined','undefined'}, kz_api:event_type(kz_json:from_list([])))
+    ,?_assertEqual({<<"call">>,'undefined'}, kz_api:event_type([EventCategory]))
+    ,?_assertEqual({<<"call">>,'undefined'}, kz_api:event_type(kz_json:from_list([EventCategory])))
+    ,?_assertEqual({'undefined',<<"CHANNEL_CONNECTED">>}, kz_api:event_type([EventName]))
+    ,?_assertEqual({'undefined',<<"CHANNEL_CONNECTED">>}, kz_api:event_type(kz_json:from_list([EventName])))
+    ,?_assertEqual({<<"call">>,<<"CHANNEL_CONNECTED">>}, kz_api:event_type([EventCategory,EventName]))
+    ,?_assertEqual({<<"call">>,<<"CHANNEL_CONNECTED">>}, kz_api:event_type(kz_json:from_list([EventCategory,EventName])))
+    ].
+
 -ifdef(PERF).
 -define(Q, <<"pid://<0.1.0>/2bdace1ec243711cc5236e01d5849d18.2bdace1ec243711cc5236e01d5849d18.2bdace1ec243711cc5236e01d5849d18.2bdace1ec243711cc5236e01d5849d180">>).
 -define(REPEAT, 100000).

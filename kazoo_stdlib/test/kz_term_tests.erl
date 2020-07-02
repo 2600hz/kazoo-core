@@ -92,8 +92,34 @@ prop_to_binary() ->
 prop_iolist_t() ->
     ?FORALL(IO, iolist(), is_binary(kz_term:to_binary(IO))).
 
--endif.
+prop_pretty_print_bytes() ->
+    ?FORALL({T, G, M, K, B}
+           ,{range(0,3), range(0,1023), range(0,1023), range(0,1023), range(0,1023)}
+           ,begin
+                Bytes = (T * ?BYTES_T) + (G * ?BYTES_G) + (M * ?BYTES_M) + (K * ?BYTES_K) + B,
+                Expected = iolist_to_binary(
+                             lists:reverse(
+                               lists:foldl(fun({0, "B"}, "") ->
+                                                   ["B", <<"0">>];
+                                              ({0, _}, Acc) -> Acc;
+                                              ({N, Unit}, Acc) -> [Unit, kz_term:to_binary(N) | Acc]
+                                           end
+                                          ,[]
+                                          ,[{T, "T"}
+                                           ,{G, "G"}
+                                           ,{M, "M"}
+                                           ,{K, "K"}
+                                           ,{B, "B"}
+                                           ])
+                              )
+                            ),
+                Result = kz_term:pretty_print_bytes(Bytes),
+                ?WHENFAIL(io:format("~pT ~pG ~pM ~pK ~pB (~pb): ~p =:= ~p~n", [T, G, M, K, B, Bytes, Result, Expected])
+                         ,Result =:= Expected
+                         )
+            end).
 
+-endif.
 
 to_x_test_() ->
     TS = kz_time:now_s(),
@@ -369,6 +395,38 @@ to_pid_test_() ->
 iolist_join_test_() ->
     [?_assertEqual([], kz_term:iolist_join($,, []))
     ,?_assertEqual([$a,<<" || ">>,$b,<<" || ">>,$c], kz_term:iolist_join(<<" || ">>, [$a,$b,$c]))
+    ].
+
+-define(PP_TESTS, [{0, <<"0B">>, <<"0B">>}
+                  ,{1, <<"1B">>, <<"1B">>}
+                  ,{2, <<"2B">>, <<"2B">>}
+
+                  ,{?BYTES_K-1, <<"1023B">>, <<"1023B">>}
+                  ,{?BYTES_K, <<"1K">>, <<"1K">>}
+                  ,{?BYTES_K+1, <<"1K1B">>, <<"1K">>}
+
+                  ,{?BYTES_M-1, <<"1023K1023B">>, <<"1023K">>}
+                  ,{?BYTES_M, <<"1M">>, <<"1M">>}
+                  ,{?BYTES_M+1, <<"1M1B">>, <<"1M">>}
+
+                  ,{?BYTES_G-1, <<"1023M1023K1023B">>, <<"1023M">>}
+                  ,{?BYTES_G, <<"1G">>, <<"1G">>}
+                  ,{?BYTES_G+1, <<"1G1B">>, <<"1G">>}
+
+                  ,{?BYTES_T-1, <<"1023G1023M1023K1023B">>, <<"1023G">>}
+                  ,{?BYTES_T, <<"1T">>, <<"1T">>}
+                  ,{?BYTES_T+1, <<"1T1B">>, <<"1T">>}
+                  ]).
+
+pretty_print_bytes_test_() ->
+    Tests = ?PP_TESTS,
+    [?_assertEqual({Bytes, FullFormatted, TruncFormatted}
+                  ,{Bytes
+                   ,kz_term:pretty_print_bytes(Bytes, 'full')
+                   ,kz_term:pretty_print_bytes(Bytes, 'truncated')
+                   }
+                  )
+     || {Bytes, FullFormatted, TruncFormatted} <- Tests
     ].
 
 -ifdef(PERF).

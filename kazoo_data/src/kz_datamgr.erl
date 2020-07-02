@@ -1628,7 +1628,7 @@ maybe_register_view({<<"_design/", _Name/binary>>, _}, _App, {'error', _Reason}=
     lager:error("can not register the view ~s for app ~s: ~s", [_Name, _App, _Reason]),
     Error;
 maybe_register_view({<<"_design/", Name/binary>>, View}, App, {ClassId, ViewMaps}) ->
-    Version = kz_util:application_version(App),
+    Version = kz_application:application_version(App),
     AppName = kz_term:to_binary(App),
     DocId = <<ClassId/binary, "-", AppName/binary, "-", Name/binary>>,
 

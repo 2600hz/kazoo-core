@@ -20,3 +20,12 @@ log_test_() ->
              Stack
              end,
     [?_assertEqual('ok', kz_log:log_stacktrace(ST))].
+
+put_callid_test_() ->
+    ApiCallId = [{<<"Call-ID">>, <<"bla">>}],
+    [?_assertEqual(<<"bla">>, begin kz_log:put_callid(<<"bla">>), kz_log:get_callid() end)
+    ,?_assertEqual(bla, begin kz_log:put_callid(bla), kz_log:get_callid() end)
+    ,?_assertEqual(<<"bla">>, begin kz_log:put_callid(ApiCallId), kz_log:get_callid() end)
+    ,?_assertEqual(<<"bla">>, begin kz_log:put_callid(kz_json:from_list(ApiCallId)), kz_log:get_callid() end)
+    ,?_assert(is_integer(begin kz_process:set_startup(), kz_process:startup() end))
+    ].

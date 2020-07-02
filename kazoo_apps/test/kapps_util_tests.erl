@@ -24,3 +24,10 @@ test_get_master_account_id() ->
      ,?_assertEqual({'ok', ?FIXTURE_MASTER_ACCOUNT_ID}, kapps_util:get_master_account_id())
      }
     ].
+
+usages_test_() ->
+    [?_assertEqual('true', is_integer(kapps_util:bin_usage()))
+    ,?_assertEqual('true', is_integer(kapps_util:mem_usage()))
+    ,?_assertEqual('true', kz_term:is_ne_binary(kapps_util:node_name()))
+    ,?_assertEqual('true', kz_term:is_ne_binary(kapps_util:node_hostname()))
+    ].

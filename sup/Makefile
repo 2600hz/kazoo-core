@@ -2,7 +2,7 @@ CWD = $(shell pwd -P)
 ROOT ?= $(realpath $(CWD)/../..)
 PROJECT = sup
 
-ESCRIPT = sup
+ESCRIPT = $(CURDIR)/sup
 CLEAN_MOAR = clean-escript
 
 all: compile $(ESCRIPT)

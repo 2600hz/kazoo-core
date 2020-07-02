@@ -66,6 +66,13 @@
         ,epmd_disabled/0
         ]).
 
+-export([bin_usage/0
+        ,mem_usage/0
+        ,kazoo_version/0
+        ,node_name/0, node_hostname/0
+        ,write_pid/1
+        ]).
+
 -include("kazoo_apps.hrl").
 
 -define(REPLICATE_ENCODING, 'encoded').
@@ -718,3 +725,36 @@ epmd_enabled() ->
 -spec epmd_disabled() -> boolean().
 epmd_disabled() ->
     init:get_argument('start_epmd') =:= {'ok', [["false"]]}.
+
+-spec bin_usage() -> integer().
+bin_usage() ->
+    {'ok', {_, Usage, _}} = recon_lib:proc_attrs('binary_memory', self()),
+    Usage.
+
+-spec mem_usage() -> integer().
+mem_usage() ->
+    {'memory', Memory} = erlang:process_info(self(), 'memory'),
+    Memory.
+
+%%------------------------------------------------------------------------------
+%% @doc Fetch and cache the kazoo version from the VERSION file in kazoo's root folder/
+%% @end
+%%------------------------------------------------------------------------------
+-spec kazoo_version() -> kz_term:ne_binary().
+kazoo_version() ->
+    {_, _, Version} = kz_application:get_app('kazoo'),
+    kz_term:to_binary(Version).
+
+-spec node_name() -> binary().
+node_name() ->
+    [Name, _Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
+    Name.
+
+-spec node_hostname() -> binary().
+node_hostname() ->
+    [_Name, Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
+    Host.
+
+-spec write_pid(file:filename_all()) -> 'ok' | {'error', atom()}.
+write_pid(FileName) ->
+    file:write_file(FileName, io_lib:format("~s", [os:getpid()]), ['write', 'binary']).

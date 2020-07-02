@@ -766,7 +766,7 @@ init([]) ->
                                          ,{'node_type', 'all'}
                                          ]),
     lager:debug("monitoring nodes"),
-    Version = list_to_binary([kz_util:kazoo_version()
+    Version = list_to_binary([kapps_util:kazoo_version()
                              ," - "
                              ,kz_term:to_binary(erlang:system_info('otp_release'))
                              ]),

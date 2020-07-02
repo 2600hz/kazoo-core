@@ -293,7 +293,7 @@ trim_binary_media_length(#asr_req{binary_media=BinaryMedia
     lager:debug("trimming media to ~p (currently ~b) milliseconds", [TrimLengthMillisec, RecordingMilliseconds]),
     SrcFile = filename:join(?TMP_PATH, AttachmentId),
     TrimmedFile = filename:join(?TMP_PATH, <<"trimmed-", AttachmentId/binary>>),
-    kz_util:write_file(SrcFile, BinaryMedia),
+    kz_os:write_file(SrcFile, BinaryMedia),
     Command = generate_trim_media_command(?MEDIA_NORMALIZE_EXECUTABLE
                                          ,SrcFile
                                          ,TrimmedFile

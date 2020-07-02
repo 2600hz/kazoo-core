@@ -213,7 +213,7 @@ migrate(Pause) ->
 migrate(Pause, Databases) ->
     Accounts = [kzs_util:format_account_db(Db)
                 || Db <- Databases,
-                   kapps_util:is_account_db(Db)
+                   kzs_util:is_account_db(Db)
                ],
     io:format("~p updating dbs...~n", [self()]),
     _ = refresh(Databases, Pause),
@@ -317,7 +317,7 @@ migrate_modbs(Pause) when not is_integer(Pause) ->
 migrate_modbs(Pause) ->
     Databases = [Database
                  || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
+                        ,kzs_util:is_account_mod(Database)
                 ],
     _ = refresh(Databases, Pause),
     'no_return'.
@@ -336,7 +336,7 @@ migrate_yodbs(Pause) when not is_integer(Pause) ->
 migrate_yodbs(Pause) ->
     Databases = [Database
                  || Database <- get_databases()
-                        ,kapps_util:is_account_yod(Database)
+                        ,kzs_util:is_account_yod(Database)
                 ],
     _ = refresh(Databases, Pause),
     'no_return'.
@@ -357,7 +357,7 @@ parallel_migrate_modbs(Workers, Pause) when not is_integer(Pause) ->
 parallel_migrate_modbs(Workers,Pause) ->
     Databases = [Database
                  || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
+                        ,kzs_util:is_account_mod(Database)
                 ],
     SplitDatabases = split_parallel_migrate(Workers, Databases),
     _ = parallel_migrate(Pause, SplitDatabases, []),
@@ -379,7 +379,7 @@ migrate_modbs_ranged(Pause, Start) when not is_integer(Start) ->
 migrate_modbs_ranged(Pause, Start) ->
     Databases = [Database
                  || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
+                        ,kzs_util:is_account_mod(Database)
                         ,modb_in_range(Database, Start)
                 ],
     _ = refresh(Databases, Pause),
@@ -395,7 +395,7 @@ migrate_modbs_ranged(Pause, Start, End) when not is_integer(End) ->
 migrate_modbs_ranged(Pause, Start, End) ->
     Databases = [Database
                  || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
+                        ,kzs_util:is_account_mod(Database)
                         ,modb_in_range(Database, Start, End)
                 ],
     _ = refresh(Databases, Pause),
@@ -419,7 +419,7 @@ parallel_migrate_modbs_ranged(Workers, Pause, Start) when not is_integer(Start) 
 parallel_migrate_modbs_ranged(Workers, Pause, Start) ->
     Databases = [Database
                  || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
+                        ,kzs_util:is_account_mod(Database)
                         ,modb_in_range(Database, Start)
                 ],
     SplitDatabases = split_parallel_migrate(Workers, Databases),
@@ -438,7 +438,7 @@ parallel_migrate_modbs_ranged(Workers, Pause, Start, End) when not is_integer(En
 parallel_migrate_modbs_ranged(Workers, Pause, Start, End) ->
     Databases = [Database
                  || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
+                        ,kzs_util:is_account_mod(Database)
                         ,modb_in_range(Database, Start, End)
                 ],
     SplitDatabases = split_parallel_migrate(Workers, Databases),
@@ -560,7 +560,7 @@ refresh([Database|Databases], Pause, Total, Unexpected) ->
                 [io_lib:format("WARNING: Unable to refresh/migrate db ~s! ~s: {~p, ~p}"
                               ,[Database, Error, Reason, StackTrace]
                               )
-                 | Unexpected
+                | Unexpected
                 ]
         end,
     refresh(Databases, Pause, Total, NewUnexpected).
@@ -1725,7 +1725,7 @@ is_audio_content(_) -> 'false'.
 %%------------------------------------------------------------------------------
 -spec maybe_delete_db(kz_term:ne_binary()) -> 'ok'.
 maybe_delete_db(Database) ->
-    case kapps_config:get_is_true(?SYSCONFIG_COUCH, <<"allow_maintenance_db_delete">>, 'false') of
+    case kapps_config:get_is_true(<<"kazoo_couch">>, <<"allow_maintenance_db_delete">>, 'false') of
         'true' ->
             lager:warning("deleting database ~s", [Database]),
             kz_datamgr:db_delete(Database);
@@ -1747,24 +1747,24 @@ purge_doc_type(Type, Account)
        is_binary(Account) ->
     purge_doc_type(Type
                   ,Account
-                  ,kapps_config:get_integer(?SYSCONFIG_COUCH, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
+                  ,kapps_config:get_integer(<<"kazoo_couch">>, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
                   );
 purge_doc_type([], _Account) -> 'ok';
 purge_doc_type([Type|Types], Account) ->
     _ = purge_doc_type(Type, Account),
     purge_doc_type(Types
                   ,Account
-                  ,kapps_config:get_integer(?SYSCONFIG_COUCH, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
+                  ,kapps_config:get_integer(<<"kazoo_couch">>, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
                   );
 purge_doc_type(Type, Account) when not is_binary(Type) ->
     purge_doc_type(kz_term:to_binary(Type)
                   ,Account
-                  ,kapps_config:get_integer(?SYSCONFIG_COUCH, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
+                  ,kapps_config:get_integer(<<"kazoo_couch">>, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
                   );
 purge_doc_type(Type, Account) when not is_binary(Account) ->
     purge_doc_type(Type
                   ,kz_term:to_binary(Account)
-                  ,kapps_config:get_integer(?SYSCONFIG_COUCH, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
+                  ,kapps_config:get_integer(<<"kazoo_couch">>, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
                   ).
 
 -spec purge_doc_type(kz_term:ne_binaries() | kz_term:ne_binary(), kz_term:ne_binary(), integer()) ->
@@ -1793,7 +1793,7 @@ call_id_status(CallId) ->
 -spec call_id_status(kz_term:ne_binary(), boolean() | kz_term:ne_binary()) -> 'ok'.
 call_id_status(CallId, Verbose) ->
     Req = [{<<"Call-ID">>, kz_term:to_binary(CallId)}
-           | kz_api:default_headers(<<"shell">>, <<"0">>)
+          | kz_api:default_headers(<<"shell">>, <<"0">>)
           ],
     case kz_amqp_worker:call(Req
                             ,fun kapi_call:publish_channel_status_req/1
@@ -1826,7 +1826,7 @@ set_last_migrate_version(Version) ->
 
 -spec migrate_system() -> 'ok'.
 migrate_system() ->
-    migrate_system(last_migrate_version(), kz_util:kazoo_version()).
+    migrate_system(last_migrate_version(), kapps_util:kazoo_version()).
 
 -spec migrate_system(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 migrate_system(ThisVersion, ThisVersion) ->
@@ -2161,7 +2161,7 @@ register_system_dbs_views() ->
             ,kapps_util:get_view_json(?APP, <<"views/pending_notify.json">>)
             ,kapps_util:get_view_json(?APP, <<"views/rates.json">>)
             ,kapps_util:get_view_json(?APP, <<"views/token_auth.json">>)
-             | kapps_util:get_views_json('kazoo_ips', "views")
+            | kapps_util:get_views_json('kazoo_ips', "views")
             ],
     kz_datamgr:register_views(?APP, Views).
 

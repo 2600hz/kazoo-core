@@ -57,6 +57,10 @@
 
 -export([xnor/2]).
 
+-export([pretty_print_bytes/1, pretty_print_bytes/2]).
+
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
+
 -type text() :: string() | atom() | binary() | iolist().
 %% Denotes Erlang data type which can represent as.
 
@@ -628,3 +632,35 @@ xnor('false', 'false') -> 'true';
 xnor('false', 'true') -> 'false';
 xnor('true', 'false') -> 'false';
 xnor('true', 'true') -> 'true'.
+
+-spec pretty_print_bytes(non_neg_integer()) -> kz_term:ne_binary().
+pretty_print_bytes(Bytes) ->
+    pretty_print_bytes(Bytes, 'full').
+
+-spec pretty_print_bytes(non_neg_integer(), 'full' | 'truncated') -> kz_term:ne_binary().
+pretty_print_bytes(0, _) -> <<"0B">>;
+pretty_print_bytes(Bytes, Type) ->
+    iolist_to_binary(unitfy_bytes(Bytes, Type)).
+
+-spec unitfy_bytes(non_neg_integer(), 'full' | 'truncated') -> iolist().
+unitfy_bytes(0, _Type) -> "";
+unitfy_bytes(Bytes, _Type) when Bytes < ?BYTES_K  ->
+    [kz_term:to_binary(Bytes), "B"];
+unitfy_bytes(Bytes, Type) when Bytes < ?BYTES_M ->
+    K = Bytes div ?BYTES_K,
+    [kz_term:to_binary(K), "K", maybe_unitfy_bytes(Bytes rem ?BYTES_K, Type)];
+unitfy_bytes(Bytes, Type) when Bytes < ?BYTES_G ->
+    M = Bytes div ?BYTES_M,
+    [kz_term:to_binary(M), "M", maybe_unitfy_bytes(Bytes rem ?BYTES_M, Type)];
+unitfy_bytes(Bytes, Type) when Bytes < ?BYTES_T ->
+    G = Bytes div ?BYTES_G,
+    [kz_term:to_binary(G), "G", maybe_unitfy_bytes(Bytes rem ?BYTES_G, Type)];
+unitfy_bytes(Bytes, Type) ->
+    T = Bytes div ?BYTES_T,
+    [kz_term:to_binary(T), "T", maybe_unitfy_bytes(Bytes rem ?BYTES_T, Type)].
+
+-spec maybe_unitfy_bytes(non_neg_integer(), 'full' | 'truncated') -> iolist().
+maybe_unitfy_bytes(Bytes, 'full'=Type) ->
+    unitfy_bytes(Bytes, Type);
+maybe_unitfy_bytes(_Bytes, 'truncated') ->
+    <<>>.

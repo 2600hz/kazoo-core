@@ -19,6 +19,8 @@
         ,put_application/1
         ]).
 
+-export([set_startup/0, startup/0]).
+
 %%------------------------------------------------------------------------------
 %% @doc Gives `MaxTime' milliseconds to `Fun' of `Arguments' to apply.
 %% If time is elapsed, the sub-process is killed and returns `timeout'.
@@ -116,3 +118,11 @@ find_application() ->
 -spec put_application(atom()) -> atom().
 put_application(Application) ->
     put('application', Application).
+
+-spec set_startup() -> kz_time:api_seconds().
+set_startup() ->
+    put('$startup', kz_time:now_s()).
+
+-spec startup() -> kz_time:api_seconds().
+startup() ->
+    get('$startup').
