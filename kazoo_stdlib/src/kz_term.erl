@@ -633,11 +633,11 @@ xnor('false', 'true') -> 'false';
 xnor('true', 'false') -> 'false';
 xnor('true', 'true') -> 'true'.
 
--spec pretty_print_bytes(non_neg_integer()) -> kz_term:ne_binary().
+-spec pretty_print_bytes(non_neg_integer()) -> ne_binary().
 pretty_print_bytes(Bytes) ->
     pretty_print_bytes(Bytes, 'full').
 
--spec pretty_print_bytes(non_neg_integer(), 'full' | 'truncated') -> kz_term:ne_binary().
+-spec pretty_print_bytes(non_neg_integer(), 'full' | 'truncated') -> ne_binary().
 pretty_print_bytes(0, _) -> <<"0B">>;
 pretty_print_bytes(Bytes, Type) ->
     iolist_to_binary(unitfy_bytes(Bytes, Type)).
@@ -645,19 +645,19 @@ pretty_print_bytes(Bytes, Type) ->
 -spec unitfy_bytes(non_neg_integer(), 'full' | 'truncated') -> iolist().
 unitfy_bytes(0, _Type) -> "";
 unitfy_bytes(Bytes, _Type) when Bytes < ?BYTES_K  ->
-    [kz_term:to_binary(Bytes), "B"];
+    [to_binary(Bytes), "B"];
 unitfy_bytes(Bytes, Type) when Bytes < ?BYTES_M ->
     K = Bytes div ?BYTES_K,
-    [kz_term:to_binary(K), "K", maybe_unitfy_bytes(Bytes rem ?BYTES_K, Type)];
+    [to_binary(K), "K", maybe_unitfy_bytes(Bytes rem ?BYTES_K, Type)];
 unitfy_bytes(Bytes, Type) when Bytes < ?BYTES_G ->
     M = Bytes div ?BYTES_M,
-    [kz_term:to_binary(M), "M", maybe_unitfy_bytes(Bytes rem ?BYTES_M, Type)];
+    [to_binary(M), "M", maybe_unitfy_bytes(Bytes rem ?BYTES_M, Type)];
 unitfy_bytes(Bytes, Type) when Bytes < ?BYTES_T ->
     G = Bytes div ?BYTES_G,
-    [kz_term:to_binary(G), "G", maybe_unitfy_bytes(Bytes rem ?BYTES_G, Type)];
+    [to_binary(G), "G", maybe_unitfy_bytes(Bytes rem ?BYTES_G, Type)];
 unitfy_bytes(Bytes, Type) ->
     T = Bytes div ?BYTES_T,
-    [kz_term:to_binary(T), "T", maybe_unitfy_bytes(Bytes rem ?BYTES_T, Type)].
+    [to_binary(T), "T", maybe_unitfy_bytes(Bytes rem ?BYTES_T, Type)].
 
 -spec maybe_unitfy_bytes(non_neg_integer(), 'full' | 'truncated') -> iolist().
 maybe_unitfy_bytes(Bytes, 'full'=Type) ->
