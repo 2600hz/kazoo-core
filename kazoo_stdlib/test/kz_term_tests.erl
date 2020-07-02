@@ -14,6 +14,8 @@
 -endif.
 -include_lib("eunit/include/eunit.hrl").
 
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
+
 -ifdef(PROPER).
 
 proper_test_() ->
