@@ -7,7 +7,7 @@
   {applications, [ kernel
                  , stdlib
 
-                 
+
                  , kazoo_numbers
 
                  , lager

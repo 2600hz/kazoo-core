@@ -7,7 +7,7 @@
   {applications, [ kernel
                  , stdlib
 
-                 
+
                  , kazoo_amqp
                  , kazoo_data
                  , kazoo_web
