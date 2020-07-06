@@ -59,8 +59,8 @@ put_attachment(Params, DbName, DocId, AName, Contents, Options) ->
             {'ok', url_fields(DocUrlField, Url)};
         Resp ->
             Routines = [{fun kz_att_error:set_req_url/2, Url}
-                       | kz_att_error:put_routines(Params, DbName, DocId, AName,
-                                                   Contents, Options)
+                        | kz_att_error:put_routines(Params, DbName, DocId, AName,
+                                                    Contents, Options)
                        ],
             handle_ftp_error_response(Resp, Routines)
     end.
@@ -81,7 +81,7 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
                     Resp;
                 Resp ->
                     Routines = [{fun kz_att_error:set_req_url/2, Url}
-                               | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
+                                | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
                                ],
                     handle_ftp_error_response(Resp, Routines)
             end
