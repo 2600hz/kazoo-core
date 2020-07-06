@@ -742,7 +742,7 @@ mem_usage() ->
 %%------------------------------------------------------------------------------
 -spec kazoo_version() -> kz_term:ne_binary().
 kazoo_version() ->
-    {_, _, Version} = kz_application:get_app('kazoo'),
+    {_, _, Version} = kz_application:get_app('kazoo_apps'),
     kz_term:to_binary(Version).
 
 -spec node_name() -> binary().
