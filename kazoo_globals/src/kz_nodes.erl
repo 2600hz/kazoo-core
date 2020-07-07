@@ -11,7 +11,7 @@
 -module(kz_nodes).
 -behaviour(gen_listener).
 
--compile({no_auto_import,[nodes/0]}).
+-compile({'no_auto_import', [nodes/0]}).
 
 -export([start_link/0]).
 -export([is_up/1]).
@@ -47,7 +47,9 @@
 
 -export([with_role/1, with_role/2]).
 -export([print_role/1]).
--export([nodes/0]).
+-export([nodes/0
+        ,node_name/0, node_hostname/0
+        ]).
 
 -export([init/1
         ,handle_call/3
@@ -353,7 +355,7 @@ check_node_versions([_Node]) -> 'ok';
 check_node_versions([#kz_node{version=Version
                              ,node=Node
                              }
-                     | Nodes
+                    | Nodes
                     ]) ->
     [Name, _Host] = binary:split(kz_term:to_binary(Node), <<"@">>),
     check_node_versions(Nodes, {Name, Node, Version}).
@@ -363,7 +365,7 @@ check_node_versions([], _) -> 'ok';
 check_node_versions([#kz_node{version=Vsn
                              ,node=N
                              }
-                     | Nodes
+                    | Nodes
                     ]
                    ,{Name, Node, Version}=Current
                    ) ->
@@ -1073,7 +1075,7 @@ advertise_payload(#kz_node{expires=Expires
       ,{<<"Zone">>, kz_term:to_binary(Zone)}
       ,{<<"Globals">>, kz_json:from_list(Globals)}
       ,{<<"Node-Info">>, node_info()}
-       | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+      | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
       ]).
 
 -spec media_servers_to_json(kz_types:media_servers()) -> kz_json:object().
@@ -1492,3 +1494,14 @@ format(A) ->
 
 format(A, B) ->
     io:format(format_output(), A, B).
+
+
+-spec node_name() -> binary().
+node_name() ->
+    [Name, _Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
+    Name.
+
+-spec node_hostname() -> binary().
+node_hostname() ->
+    [_Name, Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
+    Host.

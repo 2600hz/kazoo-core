@@ -195,7 +195,7 @@ default_headers(ServerID, AppName, AppVsn) ->
 default_headers(EvtCat, EvtName, AppName, AppVsn) ->
     default_headers('undefined', EvtCat, EvtName, AppName, AppVsn).
 
--spec default_headers(kz_term:api_ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:proplist().
+-spec default_headers(kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:proplist().
 default_headers(ServerID, EvtCat, EvtName, AppName, AppVsn) ->
     props:filter_empty(
       [{?KEY_SERVER_ID, ServerID}

@@ -144,7 +144,7 @@ ftp_cmds([Fun|Funs]) ->
 
 -spec ftp_anonymous_user_pass() -> {string(), string()}.
 ftp_anonymous_user_pass() ->
-    Domain = kz_term:to_list(kapps_util:node_hostname()),
+    Domain = kz_term:to_list(kz_nodes:node_hostname()),
     {"anonymous", "kazoo@" ++ Domain}.
 
 url_fields('undefined', Url) ->

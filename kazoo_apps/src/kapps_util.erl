@@ -69,7 +69,6 @@
 -export([bin_usage/0
         ,mem_usage/0
         ,kazoo_version/0
-        ,node_name/0, node_hostname/0
         ,write_pid/1
         ]).
 
@@ -744,16 +743,6 @@ mem_usage() ->
 kazoo_version() ->
     {_, _, Version} = kz_application:get_app('kazoo_apps'),
     kz_term:to_binary(Version).
-
--spec node_name() -> binary().
-node_name() ->
-    [Name, _Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
-    Name.
-
--spec node_hostname() -> binary().
-node_hostname() ->
-    [_Name, Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
-    Host.
 
 -spec write_pid(file:filename_all()) -> 'ok' | {'error', atom()}.
 write_pid(FileName) ->
