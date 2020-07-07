@@ -17,13 +17,13 @@
 %% @doc map auth properties to claims
 %% @end
 %%------------------------------------------------------------------------------
--spec map(kz_term:api_binaries(), kz_term:proplist()) -> kz_term:proplist().
+-spec map(kz_term:api_binaries(), kz_term:proplist()) -> kz_term:api_proplist().
 map(Map, Props) ->
     OwnerId = props:get_value(<<"owner_id">>, Props),
     AccountId = props:get_value(<<"account_id">>, Props),
     case kz_datamgr:open_cache_doc(AccountId, OwnerId) of
         {'ok', Doc} -> map_user_to_props(Map, Doc);
-        {'error', _}=Error -> Error
+        {'error', _}=_Error -> map_user_to_props(Map, 'undefined')
     end.
 
 %%------------------------------------------------------------------------------

@@ -92,12 +92,16 @@ map_claims_to_props(Props, Scopes) ->
     end.
 
 -spec map_claims_to_props(kz_term:proplist(), scopes(), kz_doc:doc()) -> kz_term:proplist().
-map_claims_to_props(Props, Scopes, Doc) ->
+map_claims_to_props(Props, Scopes, _Doc) ->
     Fun = fun(#scope{scope=S}, Acc) ->
                   lager:debug("mapping scope ~p", [S]),
-                  Scope = [kz_json:get_value(<<"doc">>, JObj) || JObj <- Doc, kz_json:get_ne_binary_value(<<"id">>, JObj) =:= S],
-                  Claims = map_claims(Props, Scope),
-                  props:filter_undefined(Claims) ++ Acc
+                  case kz_scope_db:has_scope(S) of
+                    'true' ->
+                      Scope = kz_scope_db:scope(S),
+                      Claims = map_claims(Props, Scope),
+                      props:filter_undefined(Claims) ++ Acc;
+                    'false' -> Acc
+                  end
           end,
     lists:foldl(Fun, Props, Scopes).
 
@@ -106,9 +110,9 @@ map_claims_to_props(Props, Scopes, Doc) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec map_claims(kz_term:proplist(), kz_doc:docs()) -> kz_term:proplist().
-map_claims(_Props, []) ->
-    [];
-map_claims(Props, [JObj]) ->
+map_claims(Props, []) ->
+    Props;
+map_claims(Props, JObj) ->
     Module = kz_term:to_atom(kz_json:get_ne_binary_value(<<"module">>, JObj, 'undefined'), 'true'),
     lager:debug("claim mapping module configured ~p", [Module]),
     map_claims(Props, JObj, Module).

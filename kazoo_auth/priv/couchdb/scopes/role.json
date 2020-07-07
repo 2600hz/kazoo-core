@@ -1,6 +1,5 @@
 {
     "_id": "role",
-    "aud": [],
     "claims": [
         "priv_level"
     ],
