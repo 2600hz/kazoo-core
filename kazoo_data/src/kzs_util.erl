@@ -288,7 +288,7 @@ is_account_db(Db) ->
 
 -spec is_account_yod(kz_term:ne_binary()) -> boolean().
 is_account_yod(Db) ->
-    db_classification(Db) =:= 'yod'.
+    db_classification(Db) =:= 'yodb'.
 
 %% @equiv format_account_id(Account, raw)
 -spec format_account_id(kz_term:api_binary()) -> kz_term:api_binary().
