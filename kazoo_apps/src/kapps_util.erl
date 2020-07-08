@@ -28,10 +28,6 @@
         ,get_account_yods/1
         ,get_account_yods/2
         ]).
--export([is_account_db/1
-        ,is_account_mod/1
-        ,is_account_yod/1
-        ]).
 -export([get_account_by_realm/1
         ,get_ccvs_by_ip/1
         ,get_accounts_by_name/1
@@ -271,7 +267,8 @@ get_all_accounts(Encoding) ->
                                      ,{'endkey', <<"account/\ufff0">>}
                                      ]),
     [kzs_util:format_account_id(Db, Encoding)
-     || Db <- Dbs, is_account_db(Db)
+     || Db <- Dbs,
+        kzs_util:is_account_db(Db)
     ].
 
 -spec get_all_accounts_and_mods() -> kz_term:ne_binaries().
@@ -283,15 +280,15 @@ get_all_accounts_and_mods(Encoding) ->
     {'ok', Databases} = kz_datamgr:db_info(),
     [format_db(Db, Encoding)
      || Db <- Databases,
-        is_account_db(Db)
-            orelse is_account_mod(Db)
-            orelse is_account_yod(Db)
+        kzs_util:is_account_db(Db)
+            orelse kzs_util:is_account_mod(Db)
+            orelse kzs_util:is_account_yod(Db)
     ].
 
 -spec format_db(kz_term:ne_binary(), kzs_util:account_format()) -> kz_term:ne_binary().
 format_db(Db, Encoding) ->
-    Fs = [{fun is_account_db/1, fun kzs_util:format_account_id/2}
-         ,{fun is_account_mod/1, fun kzs_util:format_account_modb/2}
+    Fs = [{fun kzs_util:is_account_db/1, fun kzs_util:format_account_id/2}
+         ,{fun kzs_util:is_account_mod/1, fun kzs_util:format_account_modb/2}
          ],
     format_db(Db, Encoding, Fs).
 
@@ -310,7 +307,7 @@ get_all_account_mods(Encoding) ->
     {'ok', Databases} = kz_datamgr:db_info(),
     [kzs_util:format_account_modb(Db, Encoding)
      || Db <- Databases,
-        is_account_mod(Db)
+        kzs_util:is_account_mod(Db)
     ].
 
 -spec get_all_account_yods() -> kz_term:ne_binaries().
@@ -322,7 +319,7 @@ get_all_account_yods(Encoding) ->
     {'ok', Databases} = kz_datamgr:db_info(),
     [kzs_util:format_account_yodb(Db, Encoding)
      || Db <- Databases,
-        is_account_yod(Db)
+        kzs_util:is_account_yod(Db)
     ].
 
 -spec get_account_mods(kz_term:ne_binary()) -> kz_term:ne_binaries().
@@ -334,7 +331,7 @@ get_account_mods(Account, Encoding) ->
     AccountId = kzs_util:format_account_id(Account, Encoding),
     [MOD
      || MOD <- get_all_account_mods(Encoding),
-        is_account_mod(MOD),
+        kzs_util:is_account_mod(MOD),
         is_matched_account_mod(Encoding, MOD, AccountId)
     ].
 
@@ -347,7 +344,7 @@ get_account_yods(Account, Encoding) ->
     AccountId = kzs_util:format_account_id(Account, Encoding),
     [YOD
      || YOD <- get_all_account_yods(Encoding),
-        is_account_yod(YOD),
+        kzs_util:is_account_yod(YOD),
         is_matched_account_yod(Encoding, YOD, AccountId)
     ].
 
@@ -389,20 +386,6 @@ is_matched_account_yod('raw'
     'true';
 is_matched_account_yod(_, _, _) ->
     'false'.
-
--spec is_account_mod(kz_term:ne_binary()) -> boolean().
-is_account_mod(Db) ->
-    kz_datamgr:db_classification(Db) =:= 'modb'.
-
--spec is_account_db(kz_term:ne_binary()) -> boolean().
-is_account_db(Db) ->
-    kz_datamgr:db_classification(Db) =:= 'account'.
-
--spec is_account_yod(kz_term:ne_binary()) -> boolean().
-is_account_yod(Db) ->
-    kz_datamgr:db_classification(Db) =:= 'yodb'.
-
-
 
 -type getby_return() :: {'ok', kz_term:ne_binary()} |
                         {'multiples', kz_term:ne_binaries()} |
