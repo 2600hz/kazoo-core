@@ -906,7 +906,7 @@ update_not_found(Database, Id, Options, 'true') ->
 
     JObj = kz_json:set_values(CreateProps, kz_json:new()),
     Updated = kz_json:set_values([{kz_doc:path_id(), Id}
-                                 | props:get_value('update', Options)
+                                  | props:get_value('update', Options)
                                  ]
                                  ++ props:get_value('extra_update', Options, [])
                                 ,JObj
@@ -1074,7 +1074,7 @@ attachment_url(DbName, DocId, AttachmentId, Options) ->
     case kzs_doc:open_doc(Plan, Database, DocId, props:delete('plan_override', Options)) of
         {'ok', JObj} ->
             NewOptions = [{'rev', kz_doc:revision(JObj)}
-                         | maybe_add_doc_type(kz_doc:type(JObj), Options)
+                          | maybe_add_doc_type(kz_doc:type(JObj), Options)
                          ],
             Handler = kz_doc:attachment_property(JObj, AttachmentId, <<"handler">>),
             kzs_attachments:attachment_url(Plan, Database, DocId, AttachmentId, Handler, NewOptions);
@@ -1628,7 +1628,7 @@ maybe_register_view({<<"_design/", _Name/binary>>, _}, _App, {'error', _Reason}=
     lager:error("can not register the view ~s for app ~s: ~s", [_Name, _App, _Reason]),
     Error;
 maybe_register_view({<<"_design/", Name/binary>>, View}, App, {ClassId, ViewMaps}) ->
-    Version = kz_util:application_version(App),
+    Version = kz_application:application_version(App),
     AppName = kz_term:to_binary(App),
     DocId = <<ClassId/binary, "-", AppName/binary, "-", Name/binary>>,
 

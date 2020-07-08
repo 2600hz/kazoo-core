@@ -18,6 +18,18 @@
 -export([put_attachment/6]).
 -export([fetch_attachment/4]).
 
+%% cribbed from ftp.erl
+-type shortage_reason()  :: 'etnospc' | 'epnospc'.
+-type restriction_reason() :: 'epath' | 'efnamena' | 'elogin' | 'enotbinary'.
+-type common_reason() ::  'econn' | 'eclosed' | term().
+-type file_write_error_reason() :: term(). % See file:write for more info
+
+-type ftp_error() :: shortage_reason() |
+                     restriction_reason() |
+                     common_reason() |
+                     file_write_error_reason() |
+                     'euser'.
+
 %%%=============================================================================
 %%% gen_attachment behaviour callbacks (API)
 %%%=============================================================================
@@ -84,7 +96,8 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec send_request(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', binary(), binary() | atom() | term()}.
+          'ok' |
+          {'error', ftp_error() | binary()}.
 send_request(Url, Contents) ->
     case http_uri:parse(kz_term:to_list(Url)) of
         {'ok',{'ftp', UserPass, Host, Port, FullPath,_Query}} ->
@@ -93,7 +106,7 @@ send_request(Url, Contents) ->
     end.
 
 -spec send_request(string(), integer(), string(), string(), binary()) ->
-          'ok' | {'error', binary() | atom() | term()}.
+          'ok' | {'error', ftp_error()}.
 send_request(Host, Port, UserPass, FullPath, Contents) ->
     {User, Pass} = case string:tokens(UserPass, ":") of
                        [U, P] -> {U, P};
@@ -110,12 +123,9 @@ send_request(Host, Port, UserPass, FullPath, Contents) ->
                            ,fun() -> ftp:cd(Pid, Dir) end
                            ,fun() -> ftp:send_bin(Pid, Contents, File) end
                            ],
-                Res = ftp_cmds(Routines),
+                Resp = ftp_cmds(Routines),
                 catch(ftp:close(Pid)),
-                case Res of
-                    'ok' -> 'ok';
-                    Resp -> Resp
-                end;
+                Resp;
             Resp -> Resp
         end
     catch
@@ -124,7 +134,7 @@ send_request(Host, Port, UserPass, FullPath, Contents) ->
             {'error', Err}
     end.
 
--spec ftp_cmds(list()) -> 'ok' | {'error', any()}.
+-spec ftp_cmds(list()) -> 'ok' | {'error', ftp_error()}.
 ftp_cmds([]) -> 'ok';
 ftp_cmds([Fun|Funs]) ->
     case Fun() of
@@ -134,7 +144,7 @@ ftp_cmds([Fun|Funs]) ->
 
 -spec ftp_anonymous_user_pass() -> {string(), string()}.
 ftp_anonymous_user_pass() ->
-    Domain = kz_term:to_list(kz_util:node_hostname()),
+    Domain = kz_term:to_list(kz_nodes:node_hostname()),
     {"anonymous", "kazoo@" ++ Domain}.
 
 url_fields('undefined', Url) ->

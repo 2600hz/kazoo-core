@@ -30,7 +30,11 @@
         ,to_database/1
         ]).
 
--export([is_account_id/1]).
+-export([is_account_id/1
+        ,is_account_db/1
+        ,is_account_mod/1
+        ,is_account_yod/1
+        ]).
 
 -include_lib("kazoo_numbers/include/knm_phone_number.hrl").
 -include_lib("kazoo_documents/include/kzd_ratedeck.hrl").
@@ -46,7 +50,8 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec db_classification(kz_term:text()) -> db_classification().
+-spec db_classification(kz_term:text() | 'undefined') -> db_classification().
+db_classification('undefined') -> 'undefined';
 db_classification(Db) when not is_binary(Db) ->
     db_classification(kz_term:to_binary(Db));
 db_classification(<<"_users">>) -> 'external';
@@ -269,9 +274,21 @@ get_view_json(Path) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_account_id(kz_term:api_binary()) -> boolean().
-is_account_id(?MATCH_ACCOUNT_RAW(_)) -> 'true';
-is_account_id(_) -> 'false'.
+-spec is_account_id(kz_term:ne_binary()) -> boolean().
+is_account_id(Id) ->
+    db_classification(Id) =:= 'account'.
+
+-spec is_account_mod(kz_term:ne_binary()) -> boolean().
+is_account_mod(Db) ->
+    db_classification(Db) =:= 'modb'.
+
+-spec is_account_db(kz_term:ne_binary()) -> boolean().
+is_account_db(Db) ->
+    db_classification(Db) =:= 'account'.
+
+-spec is_account_yod(kz_term:ne_binary()) -> boolean().
+is_account_yod(Db) ->
+    db_classification(Db) =:= 'yodb'.
 
 %% @equiv format_account_id(Account, raw)
 -spec format_account_id(kz_term:api_binary()) -> kz_term:api_binary().

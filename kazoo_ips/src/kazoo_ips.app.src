@@ -8,7 +8,7 @@
                  , stdlib
                  , crypto
 
-                 , kazoo
+
                  , kazoo_data
                  , kazoo_services
 

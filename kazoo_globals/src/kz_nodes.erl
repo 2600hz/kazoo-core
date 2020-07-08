@@ -11,7 +11,7 @@
 -module(kz_nodes).
 -behaviour(gen_listener).
 
--compile({no_auto_import,[nodes/0]}).
+-compile({'no_auto_import', [nodes/0]}).
 
 -export([start_link/0]).
 -export([is_up/1]).
@@ -47,7 +47,9 @@
 
 -export([with_role/1, with_role/2]).
 -export([print_role/1]).
--export([nodes/0]).
+-export([nodes/0
+        ,node_name/0, node_hostname/0
+        ]).
 
 -export([init/1
         ,handle_call/3
@@ -766,7 +768,7 @@ init([]) ->
                                          ,{'node_type', 'all'}
                                          ]),
     lager:debug("monitoring nodes"),
-    Version = list_to_binary([kz_util:kazoo_version()
+    Version = list_to_binary([kapps_util:kazoo_version()
                              ," - "
                              ,kz_term:to_binary(erlang:system_info('otp_release'))
                              ]),
@@ -1492,3 +1494,14 @@ format(A) ->
 
 format(A, B) ->
     io:format(format_output(), A, B).
+
+
+-spec node_name() -> binary().
+node_name() ->
+    [Name, _Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
+    Name.
+
+-spec node_hostname() -> binary().
+node_hostname() ->
+    [_Name, Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
+    Host.

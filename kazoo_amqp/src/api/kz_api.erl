@@ -36,6 +36,7 @@
         ,msg_reply_id/1
         ,event_category/1
         ,event_name/1
+        ,event_type/1
         ,app_name/1
         ,app_version/1
         ,node/1
@@ -105,6 +106,10 @@ event_name(Props) when is_list(Props) ->
     props:get_value(?KEY_EVENT_NAME, Props);
 event_name(JObj) ->
     kz_json:get_value(?KEY_EVENT_NAME, JObj).
+
+-spec event_type(kz_term:api_terms()) -> {kz_term:api_binary(), kz_term:api_binary()}.
+event_type(API) ->
+    {event_category(API), event_name(API)}.
 
 -spec app_name(kz_json:object()) -> kz_term:api_binary().
 app_name(JObj) ->
@@ -190,7 +195,7 @@ default_headers(ServerID, AppName, AppVsn) ->
 default_headers(EvtCat, EvtName, AppName, AppVsn) ->
     default_headers('undefined', EvtCat, EvtName, AppName, AppVsn).
 
--spec default_headers(kz_term:api_ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:proplist().
+-spec default_headers(kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:proplist().
 default_headers(ServerID, EvtCat, EvtName, AppName, AppVsn) ->
     props:filter_empty(
       [{?KEY_SERVER_ID, ServerID}

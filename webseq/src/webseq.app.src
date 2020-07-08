@@ -7,7 +7,7 @@
                   , stdlib
                   , crypto
 
-                  , kazoo
+
                   , kazoo_data
 
                   , gproc

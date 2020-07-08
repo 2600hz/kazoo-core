@@ -213,7 +213,7 @@ migrate(Pause) ->
 migrate(Pause, Databases) ->
     Accounts = [kzs_util:format_account_db(Db)
                 || Db <- Databases,
-                   kapps_util:is_account_db(Db)
+                   kzs_util:is_account_db(Db)
                ],
     io:format("~p updating dbs...~n", [self()]),
     _ = refresh(Databases, Pause),
@@ -316,8 +316,8 @@ migrate_modbs(Pause) when not is_integer(Pause) ->
     migrate_modbs(kz_term:to_integer(Pause));
 migrate_modbs(Pause) ->
     Databases = [Database
-                 || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
+                 || Database <- get_databases(),
+                    kzs_util:is_account_mod(Database)
                 ],
     _ = refresh(Databases, Pause),
     'no_return'.
@@ -335,8 +335,8 @@ migrate_yodbs(Pause) when not is_integer(Pause) ->
     migrate_yodbs(kz_term:to_integer(Pause));
 migrate_yodbs(Pause) ->
     Databases = [Database
-                 || Database <- get_databases()
-                        ,kapps_util:is_account_yod(Database)
+                 || Database <- get_databases(),
+                    kzs_util:is_account_yod(Database)
                 ],
     _ = refresh(Databases, Pause),
     'no_return'.
@@ -356,8 +356,8 @@ parallel_migrate_modbs(Workers, Pause) when not is_integer(Pause) ->
     parallel_migrate_modbs(Workers, kz_term:to_integer(Pause));
 parallel_migrate_modbs(Workers,Pause) ->
     Databases = [Database
-                 || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
+                 || Database <- get_databases(),
+                    kzs_util:is_account_mod(Database)
                 ],
     SplitDatabases = split_parallel_migrate(Workers, Databases),
     _ = parallel_migrate(Pause, SplitDatabases, []),
@@ -378,9 +378,9 @@ migrate_modbs_ranged(Pause, Start) when not is_integer(Start) ->
     migrate_modbs_ranged(Pause, kz_term:to_integer(Start));
 migrate_modbs_ranged(Pause, Start) ->
     Databases = [Database
-                 || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
-                        ,modb_in_range(Database, Start)
+                 || Database <- get_databases(),
+                    kzs_util:is_account_mod(Database),
+                    modb_in_range(Database, Start)
                 ],
     _ = refresh(Databases, Pause),
     'no_return'.
@@ -394,9 +394,9 @@ migrate_modbs_ranged(Pause, Start, End) when not is_integer(End) ->
     migrate_modbs_ranged(Pause, Start, kz_term:to_integer(End));
 migrate_modbs_ranged(Pause, Start, End) ->
     Databases = [Database
-                 || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
-                        ,modb_in_range(Database, Start, End)
+                 || Database <- get_databases(),
+                    kzs_util:is_account_mod(Database),
+                    modb_in_range(Database, Start, End)
                 ],
     _ = refresh(Databases, Pause),
     'no_return'.
@@ -418,9 +418,9 @@ parallel_migrate_modbs_ranged(Workers, Pause, Start) when not is_integer(Start) 
     parallel_migrate_modbs_ranged(Workers, Pause, kz_term:to_integer(Start));
 parallel_migrate_modbs_ranged(Workers, Pause, Start) ->
     Databases = [Database
-                 || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
-                        ,modb_in_range(Database, Start)
+                 || Database <- get_databases(),
+                    kzs_util:is_account_mod(Database),
+                    modb_in_range(Database, Start)
                 ],
     SplitDatabases = split_parallel_migrate(Workers, Databases),
     _ = parallel_migrate(Pause, SplitDatabases, []),
@@ -437,9 +437,9 @@ parallel_migrate_modbs_ranged(Workers, Pause, Start, End) when not is_integer(En
     parallel_migrate_modbs_ranged(Workers, Pause, Start, kz_term:to_integer(End));
 parallel_migrate_modbs_ranged(Workers, Pause, Start, End) ->
     Databases = [Database
-                 || Database <- get_databases()
-                        ,kapps_util:is_account_mod(Database)
-                        ,modb_in_range(Database, Start, End)
+                 || Database <- get_databases(),
+                    kzs_util:is_account_mod(Database),
+                    modb_in_range(Database, Start, End)
                 ],
     SplitDatabases = split_parallel_migrate(Workers, Databases),
     _ = parallel_migrate(Pause, SplitDatabases, []),
@@ -560,7 +560,7 @@ refresh([Database|Databases], Pause, Total, Unexpected) ->
                 [io_lib:format("WARNING: Unable to refresh/migrate db ~s! ~s: {~p, ~p}"
                               ,[Database, Error, Reason, StackTrace]
                               )
-                 | Unexpected
+                | Unexpected
                 ]
         end,
     refresh(Databases, Pause, Total, NewUnexpected).
@@ -1725,7 +1725,7 @@ is_audio_content(_) -> 'false'.
 %%------------------------------------------------------------------------------
 -spec maybe_delete_db(kz_term:ne_binary()) -> 'ok'.
 maybe_delete_db(Database) ->
-    case kapps_config:get_is_true(?SYSCONFIG_COUCH, <<"allow_maintenance_db_delete">>, 'false') of
+    case kapps_config:get_is_true(<<"kazoo_couch">>, <<"allow_maintenance_db_delete">>, 'false') of
         'true' ->
             lager:warning("deleting database ~s", [Database]),
             kz_datamgr:db_delete(Database);
@@ -1747,24 +1747,24 @@ purge_doc_type(Type, Account)
        is_binary(Account) ->
     purge_doc_type(Type
                   ,Account
-                  ,kapps_config:get_integer(?SYSCONFIG_COUCH, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
+                  ,kapps_config:get_integer(<<"kazoo_couch">>, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
                   );
 purge_doc_type([], _Account) -> 'ok';
 purge_doc_type([Type|Types], Account) ->
     _ = purge_doc_type(Type, Account),
     purge_doc_type(Types
                   ,Account
-                  ,kapps_config:get_integer(?SYSCONFIG_COUCH, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
+                  ,kapps_config:get_integer(<<"kazoo_couch">>, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
                   );
 purge_doc_type(Type, Account) when not is_binary(Type) ->
     purge_doc_type(kz_term:to_binary(Type)
                   ,Account
-                  ,kapps_config:get_integer(?SYSCONFIG_COUCH, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
+                  ,kapps_config:get_integer(<<"kazoo_couch">>, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
                   );
 purge_doc_type(Type, Account) when not is_binary(Account) ->
     purge_doc_type(Type
                   ,kz_term:to_binary(Account)
-                  ,kapps_config:get_integer(?SYSCONFIG_COUCH, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
+                  ,kapps_config:get_integer(<<"kazoo_couch">>, <<"default_chunk_size">>, ?MILLISECONDS_IN_SECOND)
                   ).
 
 -spec purge_doc_type(kz_term:ne_binaries() | kz_term:ne_binary(), kz_term:ne_binary(), integer()) ->
@@ -1793,7 +1793,7 @@ call_id_status(CallId) ->
 -spec call_id_status(kz_term:ne_binary(), boolean() | kz_term:ne_binary()) -> 'ok'.
 call_id_status(CallId, Verbose) ->
     Req = [{<<"Call-ID">>, kz_term:to_binary(CallId)}
-           | kz_api:default_headers(<<"shell">>, <<"0">>)
+          | kz_api:default_headers(<<"shell">>, <<"0">>)
           ],
     case kz_amqp_worker:call(Req
                             ,fun kapi_call:publish_channel_status_req/1
@@ -1826,7 +1826,7 @@ set_last_migrate_version(Version) ->
 
 -spec migrate_system() -> 'ok'.
 migrate_system() ->
-    migrate_system(last_migrate_version(), kz_util:kazoo_version()).
+    migrate_system(last_migrate_version(), kapps_util:kazoo_version()).
 
 -spec migrate_system(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 migrate_system(ThisVersion, ThisVersion) ->
@@ -1848,158 +1848,7 @@ migrate_system(PreviousVersion, ThisVersion) ->
     end.
 
 -spec migrate_system_version_routines(kz_term:ne_binary(), kz_term:ne_binary()) -> [fun()].
-migrate_system_version_routines(<<"3.22">>, _) ->
-    [fun migrate_and_cleanup_system_config/0
-    ,fun handle_module_rename/0
-    ];
 migrate_system_version_routines(_, _) -> [].
-
--spec handle_module_rename() -> boolean().
-handle_module_rename() ->
-    {'ok', JObjs} = kz_datamgr:all_docs(?KZ_CONFIG_DB, ['include_docs']),
-    Results = [handle_module_rename_doc(kz_json:get_value(<<"doc">>, JObj)) || JObj <- JObjs],
-    lists:all(fun kz_term:is_true/1, Results).
-
--spec handle_module_rename_doc(kz_json:object()) -> boolean().
-handle_module_rename_doc(JObj) ->
-    Bin = kz_json:encode(JObj),
-    WHBin = binary:replace(Bin, <<"wh_">>, <<"kz_">>, ['global']),
-    WNMBin = binary:replace(WHBin, <<"wnm_">>, <<"knm_">>, ['global']),
-    case WNMBin of
-        Bin -> 'true';
-        Replaced ->
-            lager:notice("found wh_ / wnm_ pattern in ~s, replacing.", [kz_doc:id(JObj)]),
-            case kz_datamgr:ensure_saved(?KZ_CONFIG_DB, kz_json:decode(Replaced)) of
-                {'ok', _NewDoc} -> 'true';
-                {'error', _Error} -> 'false'
-            end
-    end.
-
--spec migrate_and_cleanup_system_config() -> 'true'.
-migrate_and_cleanup_system_config() ->
-    cleanup_invalid_notify_docs(),
-    delete_system_media_references(),
-    accounts_config_deprecate_timezone_for_default_timezone(),
-    'true'.
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec cleanup_invalid_notify_docs() -> 'ok'.
-cleanup_invalid_notify_docs() ->
-    _ = kz_datamgr:db_archive(<<"system_config">>),
-    case kz_datamgr:all_docs(?KZ_CONFIG_DB, ['include_docs']) of
-        {'ok', JObjs} -> cleanup_invalid_notify_docs(JObjs);
-        {'error', _R} ->
-            lager:warning("unable to fetch all system config docs: ~p", [_R])
-    end.
-
--spec cleanup_invalid_notify_docs(kz_json:objects()) -> 'ok'.
-cleanup_invalid_notify_docs([]) -> 'ok';
-cleanup_invalid_notify_docs([JObj|JObjs]) ->
-    Id = kz_json:get_value(<<"id">>, JObj),
-    Doc = kz_json:get_value(<<"doc">>, JObj),
-    _ = maybe_remove_invalid_notify_doc(kz_doc:type(Doc), Id, Doc),
-    cleanup_invalid_notify_docs(JObjs).
-
--spec maybe_remove_invalid_notify_doc(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
-maybe_remove_invalid_notify_doc(<<"notification">>, <<"notification", _/binary>>, _) -> 'ok';
-maybe_remove_invalid_notify_doc(<<"notification">>, _, JObj) ->
-    _ = kz_datamgr:del_doc(?KZ_CONFIG_DB, JObj),
-    'ok';
-maybe_remove_invalid_notify_doc(_Type, _Id, _Doc) -> 'ok'.
-
-
--spec delete_system_media_references() -> 'ok'.
-delete_system_media_references() ->
-    DocId = <<"call_response">>,
-    case kz_datamgr:open_doc(?KZ_CONFIG_DB, DocId) of
-        {'ok', CallResponsesDoc} ->
-            delete_system_media_references(DocId, CallResponsesDoc);
-        {'error', 'not_found'} -> 'ok'
-    end.
-
--spec delete_system_media_references(kz_term:ne_binary(), kz_json:object()) -> 'ok'.
-delete_system_media_references(DocId, CallResponsesDoc) ->
-    TheKey = <<"default">>,
-    Default = kz_json:get_value(TheKey, CallResponsesDoc),
-
-    case kz_json:map(fun remove_system_media_refs/2, Default) of
-        Default -> 'ok';
-        NewDefault ->
-            io:format("updating ~s with stripped system_media references~n", [DocId]),
-            NewCallResponsesDoc = kz_json:set_value(TheKey, NewDefault, CallResponsesDoc),
-            _Resp = kz_datamgr:save_doc(?KZ_CONFIG_DB, NewCallResponsesDoc),
-            'ok'
-    end.
-
--spec remove_system_media_refs(kz_json:path(), kz_json:objects()) ->
-          {kz_json:path(), kz_json:json_term()}.
-remove_system_media_refs(HangupCause, Config) ->
-    case kz_json:is_json_object(Config) of
-        'false' -> {HangupCause, Config};
-        'true' ->
-            {HangupCause
-            ,kz_json:foldl(fun remove_system_media_ref/3, kz_json:new(), Config)
-            }
-    end.
-
--spec remove_system_media_ref(kz_json:path(), kz_json:json_term(), kz_json:object()) ->
-          kz_json:object().
-remove_system_media_ref(Key, <<"/system_media/", Value/binary>>, Acc) -> kz_json:set_value(Key, Value, Acc);
-remove_system_media_ref(Key, Value, Acc) -> kz_json:set_value(Key, Value, Acc).
-
-%%------------------------------------------------------------------------------
-%% @doc Remove system_config/accounts timezone key and use only
-%% default_timezone
-%% @end
-%%------------------------------------------------------------------------------
-
--spec accounts_config_deprecate_timezone_for_default_timezone() -> 'ok'.
-accounts_config_deprecate_timezone_for_default_timezone() ->
-    case kz_datamgr:open_cache_doc(?KZ_CONFIG_DB, <<"accounts">>) of
-        {'ok', AccountsConfig} ->
-            accounts_config_deprecate_timezone_for_default_timezone(AccountsConfig);
-        {'error', E} ->
-            lager:warning("unable to fetch system_config/accounts: ~p", [E])
-    end.
-
--spec accounts_config_deprecate_timezone_for_default_timezone(kz_json:object()) -> 'ok'.
-accounts_config_deprecate_timezone_for_default_timezone(AccountsConfig) ->
-    PublicFields = kz_doc:public_fields(AccountsConfig),
-    case kz_json:get_keys(PublicFields) of
-        [] -> 'ok';
-        Keys ->
-            MigratedConfig = deprecate_timezone_for_default_timezone(Keys, AccountsConfig),
-            {'ok', _} = kz_datamgr:save_doc(?KZ_CONFIG_DB, MigratedConfig),
-            'ok'
-    end.
-
--spec deprecate_timezone_for_default_timezone(kz_json:keys(), kz_json:object()) ->
-          kz_json:object().
-deprecate_timezone_for_default_timezone(Nodes, AccountsConfig) ->
-    lists:foldl(fun deprecate_timezone_for_node/2, AccountsConfig, Nodes).
-
--spec deprecate_timezone_for_node(kz_json:key(), kz_json:object()) ->
-          kz_json:object().
-deprecate_timezone_for_node(Node, AccountsConfig) ->
-    Timezone = kz_json:get_value([Node, <<"timezone">>], AccountsConfig),
-    DefaultTimezone = kz_json:get_value([Node, <<"default_timezone">>], AccountsConfig),
-    deprecate_timezone_for_node(Node, AccountsConfig, Timezone, DefaultTimezone).
-
--spec deprecate_timezone_for_node(kz_json:key(), kz_json:object(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
-          kz_json:object().
-deprecate_timezone_for_node(_Node, AccountsConfig, 'undefined', _Default) ->
-    AccountsConfig;
-deprecate_timezone_for_node(Node, AccountsConfig, Timezone, 'undefined') ->
-    io:format("setting default timezone to ~s for node ~s~n", [Timezone, Node]),
-    kz_json:set_value([Node, <<"default_timezone">>]
-                     ,Timezone
-                     ,kz_json:delete_key([Node, <<"timezone">>], AccountsConfig)
-                     );
-deprecate_timezone_for_node(Node, AccountsConfig, _Timezone, _Default) ->
-    kz_json:delete_key([Node, <<"timezone">>], AccountsConfig).
 
 check_system_schemas() ->
     _ = rpc:call(node()
@@ -2161,7 +2010,7 @@ register_system_dbs_views() ->
             ,kapps_util:get_view_json(?APP, <<"views/pending_notify.json">>)
             ,kapps_util:get_view_json(?APP, <<"views/rates.json">>)
             ,kapps_util:get_view_json(?APP, <<"views/token_auth.json">>)
-             | kapps_util:get_views_json('kazoo_ips', "views")
+            | kapps_util:get_views_json('kazoo_ips', "views")
             ],
     kz_datamgr:register_views(?APP, Views).
 

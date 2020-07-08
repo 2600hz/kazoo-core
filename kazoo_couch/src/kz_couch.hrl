@@ -3,7 +3,6 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
--include_lib("kazoo/include/kz_system_config.hrl").
 -include_lib("couchbeam/include/couchbeam.hrl").
 -include("kazoo_couch.hrl").
 
@@ -16,7 +15,7 @@
 
 -define(RETRY_504(F), kz_couch_util:retry504s(fun() -> F end)).
 
--define(CONFIG_CAT, ?SYSCONFIG_COUCH).
+-define(CONFIG_CAT, <<"kazoo_couch">>).
 
 -type couchbeam_errors() :: 'not_found' | 'conflict' | 'failed' |
                             'precondition_failed' | 'db_not_reachable' |
