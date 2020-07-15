@@ -246,48 +246,40 @@ handle_call_event(JObj, Props) ->
 
     handle_call_event(JObj, AccountId, HookEvent, CallId, props:get_is_true('rr', Props)).
 
--spec handle_call_event(kz_json:object(), kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), boolean()) ->
+-spec handle_call_event(kz_call_event:doc(), kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), boolean()) ->
           'ok'.
-handle_call_event(JObj, 'undefined', <<"CHANNEL_CREATE">>, CallId, RR) ->
-    lager:debug("event 'channel_create' had no account id"),
-    case lookup_account_id(JObj) of
+handle_call_event(CallEvent, 'undefined', HookEvent, CallId, RR)
+  when HookEvent =:= <<"CHANNEL_CREATE">>
+       orelse HookEvent =:= <<"CHANNEL_DESTROY">>
+       ->
+    lager:debug("event '~s' had no account id", [HookEvent]),
+    case lookup_account_id(CallEvent) of
         {'error', _R} ->
-            lager:debug("failed to determine account id for 'channel_create'", []);
+            lager:debug("failed to determine account id for '~s'", [HookEvent]);
         {'ok', AccountId} ->
-            lager:debug("determined account id for 'channel_create' is ~s", [AccountId]),
-            J = kz_json:set_value([<<"Custom-Channel-Vars">>
-                                  ,<<"Account-ID">>
-                                  ], AccountId, JObj),
-            handle_call_event(J, AccountId, <<"CHANNEL_CREATE">>, CallId, RR)
+            lager:debug("determined account id for '~s' is ~s", [HookEvent, AccountId]),
+            Evt = kz_json:set_value([<<"Custom-Channel-Vars">>, <<"Account-ID">>]
+                                   ,AccountId
+                                   ,CallEvent
+                                   ),
+            handle_call_event(Evt, AccountId, HookEvent, CallId, RR)
     end;
-handle_call_event(JObj, 'undefined', <<"CHANNEL_DESTROY">>, CallId, RR) ->
-    lager:debug("event 'channel_destroy' had no account id"),
-    case lookup_account_id(JObj) of
-        {'error', _R} ->
-            lager:debug("failed to determine account id for 'channel_destroy'", []);
-        {'ok', AccountId} ->
-            lager:debug("determined account id for 'channel_destroy' is ~s", [AccountId]),
-            J = kz_json:set_value([<<"Custom-Channel-Vars">>
-                                  ,<<"Account-ID">>
-                                  ], AccountId, JObj),
-            handle_call_event(J, AccountId, <<"CHANNEL_DESTROY">>, CallId, RR)
-    end;
-handle_call_event(JObj, AccountId, HookEvent, _CallId, 'false') ->
-    Evt = ?HOOK_EVT(AccountId, HookEvent, JObj),
+handle_call_event(CallEvent, AccountId, HookEvent, _CallId, 'false') ->
+    Evt = ?HOOK_EVT(AccountId, HookEvent, CallEvent),
     gproc:send(?HOOK_REG, Evt),
     gproc:send(?HOOK_REG(AccountId), Evt),
     gproc:send(?HOOK_REG(AccountId, HookEvent), Evt);
-handle_call_event(JObj, AccountId, HookEvent, _CallId, 'true') ->
-    Evt = ?HOOK_EVT(AccountId, HookEvent, JObj),
+handle_call_event(CallEvent, AccountId, HookEvent, _CallId, 'true') ->
+    Evt = ?HOOK_EVT(AccountId, HookEvent, CallEvent),
     gproc:send(?HOOK_REG_RR, Evt),
     gproc:send(?HOOK_REG_RR(AccountId), Evt),
     gproc:send(?HOOK_REG_RR(AccountId, HookEvent), Evt).
 
--spec lookup_account_id(kz_json:object()) -> {'ok', kz_term:ne_binary()} | {'error', any()}.
-lookup_account_id(JObj) ->
-    case kz_call_event:account_id(JObj) of
+-spec lookup_account_id(kz_call_event:doc()) -> {'ok', kz_term:ne_binary()} | {'error', any()}.
+lookup_account_id(CallEvent) ->
+    case kz_call_event:account_id(CallEvent) of
         'undefined' ->
-            Number = get_inbound_destination(JObj),
+            Number = get_inbound_destination(CallEvent),
             case kz_cache:peek_local(?HOOKS_CACHE_NAME, cache_key_number(Number)) of
                 {'ok', _AccountId}=Ok -> Ok;
                 {'error', 'not_found'} -> fetch_account_id(Number)
@@ -308,9 +300,9 @@ fetch_account_id(Number) ->
 -spec cache_key_number(kz_term:ne_binary()) -> {'kz_hooks', kz_term:ne_binary()}.
 cache_key_number(Number) -> {'kz_hooks', Number}.
 
--spec get_inbound_destination(kz_json:object()) -> kz_term:api_binary().
-get_inbound_destination(JObj) ->
-    {Number, _} = kapps_util:get_destination(JObj, <<"stepswitch">>, <<"inbound_user_field">>),
+-spec get_inbound_destination(kz_call_event:doc()) -> kz_term:api_binary().
+get_inbound_destination(CallEvent) ->
+    {Number, _} = kapps_util:get_destination(CallEvent, <<"stepswitch">>, <<"inbound_user_field">>),
     case kapps_config:get_is_true(<<"stepswitch">>, <<"assume_inbound_e164">>, 'false') of
         'true' -> assume_e164(Number);
         'false' -> knm_converters:normalize(Number)
