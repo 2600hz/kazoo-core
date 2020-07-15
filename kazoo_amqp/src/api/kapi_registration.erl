@@ -58,6 +58,10 @@
         ]).
 -endif.
 
+-export_type([query_req/0]).
+
+-type query_req() :: kz_json:object().
+
 %%------------------------------------------------------------------------------
 %% @doc Get all API definitions of this module.
 %% @end

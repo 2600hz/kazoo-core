@@ -48,7 +48,13 @@
 
 -type token_req() :: kz_term:api_terms().
 
--export_type([token_req/0]).
+-type req() :: kz_term:api_terms().
+-type resp() :: kz_term:api_terms().
+
+-export_type([token_req/0
+             ,req/0
+             ,resp/0
+             ]).
 
 -define(KEY_AUTHN_REQ, <<"authn.req">>). %% corresponds to the authn_req/1 api call
 -define(KEY_AUTHN_TOKEN_REQ, <<"authn.token_req">>). %% corresponds to the authn_token_req/1 api call
@@ -299,19 +305,19 @@ error_definition() ->
 %% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+-spec req(req()) -> kz_api:api_formatter_return().
 req(Req) ->
     kapi_definition:build_message(Req, req_definition()).
 
--spec req_v(kz_term:api_terms()) -> boolean().
+-spec req_v(req()) -> boolean().
 req_v(Req) ->
     kapi_definition:validate(Req, req_definition()).
 
--spec publish_req(kz_term:api_terms()) -> 'ok'.
+-spec publish_req(req()) -> 'ok'.
 publish_req(JObj) ->
     publish_req(JObj, ?DEFAULT_CONTENT_TYPE).
 
--spec publish_req(kz_term:api_terms(), binary()) -> 'ok'.
+-spec publish_req(req(), binary()) -> 'ok'.
 publish_req(Req, ContentType) ->
     Definition = req_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(Req
