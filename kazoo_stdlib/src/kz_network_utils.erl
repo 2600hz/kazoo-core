@@ -122,7 +122,7 @@ is_ip(Address) ->
 
 -spec is_cidr(kz_term:text()) -> boolean().
 is_cidr(Address) ->
-    is_cidr(Address, false).
+    is_cidr(Address, 'false').
 
 -spec is_cidr(kz_term:text(), boolean()) -> boolean().
 is_cidr(Address, Adjust) ->
