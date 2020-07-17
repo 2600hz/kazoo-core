@@ -58,9 +58,12 @@
         ]).
 -endif.
 
--export_type([query_req/0]).
+-export_type([query_req/0
+             ,success/0
+             ]).
 
 -type query_req() :: kz_json:object().
+-type success() :: kz_term:api_terms().
 
 %%------------------------------------------------------------------------------
 %% @doc Get all API definitions of this module.
