@@ -80,11 +80,11 @@ urldecode(URL, 'legacy') ->
     urldecode_plus(kz_term:to_binary(URL)).
 
 urldecode_percent20(Binary) when is_binary(Binary) ->
-    kz_term:to_binary(http_uri:decode(kz_term:to_list(Binary)));
+    kz_term:to_binary(kz_http_uri:decode(kz_term:to_list(Binary)));
 urldecode_percent20(String) when is_list(String) ->
-    http_uri:decode(String);
+    kz_http_uri:decode(String);
 urldecode_percent20(Atom) when is_atom(Atom) ->
-    kz_term:to_atom(http_uri:decode(kz_term:to_list(Atom)), 'true').
+    kz_term:to_atom(kz_http_uri:decode(kz_term:to_list(Atom)), 'true').
 
 -spec urlencode(kz_term:text()) -> kz_term:text().
 urlencode(URL) -> urlencode(URL, 'rfc').
@@ -97,11 +97,11 @@ urlencode(URL, 'legacy') ->
 
 -spec urlencode_percent20(kz_term:text()) -> kz_term:text().
 urlencode_percent20(Binary) when is_binary(Binary) ->
-    kz_term:to_binary(http_uri:encode(kz_term:to_list(Binary)));
+    kz_term:to_binary(kz_http_uri:encode(kz_term:to_list(Binary)));
 urlencode_percent20(String) when is_list(String) ->
-    http_uri:encode(String);
+    kz_http_uri:encode(String);
 urlencode_percent20(Atom) when is_atom(Atom) ->
-    kz_term:to_atom(http_uri:encode(kz_term:to_list(Atom)), 'true');
+    kz_term:to_atom(kz_http_uri:encode(kz_term:to_list(Atom)), 'true');
 urlencode_percent20(Any) ->
     urlencode_percent20(kz_term:to_binary(Any)).
 

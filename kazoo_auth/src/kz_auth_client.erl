@@ -327,7 +327,7 @@ request(Verb, URL, Body, #{token := #{authorization := Authorization}}) ->
     Options = [{'headers_as_is', 'true'}
               ,{'ssl', [{'versions', ['tlsv1.2']}]}
               ],
-    {'ok', {_,_, Host, _, _, _}} = http_uri:parse(URL),
+    #{host := Host} = uri_string:parse(URL),
     Headers = [{"host", Host}
               ,{"Content-Type", "application/json"}
               ,{"Authorization", kz_term:to_list(Authorization)}

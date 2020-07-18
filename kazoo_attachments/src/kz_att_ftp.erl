@@ -99,24 +99,21 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
           'ok' |
           {'error', ftp_error() | binary()}.
 send_request(Url, Contents) ->
-    case http_uri:parse(kz_term:to_list(Url)) of
-        {'ok',{'ftp', UserPass, Host, Port, FullPath,_Query}} ->
-            send_request(Host, Port, UserPass, FullPath, Contents);
+    case http_string:parse(kz_term:to_list(Url)) of
+		#{scheme := "ftp"
+		 ,path := FullPath
+		 } = URI ->
+			send_request(ftp_connect(URI), ftp_user(URI), FullPath, Contents);
         _ -> {'error', <<"error parsing url: ", Url/binary>>}
     end.
 
--spec send_request(string(), integer(), string(), string(), binary()) ->
+-spec send_request(ftp_connect_info(), ftp_user_info(), string(), binary()) ->
           'ok' | {'error', ftp_error()}.
-send_request(Host, Port, UserPass, FullPath, Contents) ->
-    {User, Pass} = case string:tokens(UserPass, ":") of
-                       [U, P] -> {U, P};
-                       _ -> ftp_anonymous_user_pass()
-                   end,
+send_request(HostPort, {User, Pass}, FullPath, Contents) ->
     Dir = filename:dirname(FullPath),
     File = filename:basename(FullPath),
     try
-        Options = [{'port', Port}],
-        case ftp:open(Host, Options) of
+        case ftp:open(HostPort) of
             {'ok', Pid} ->
                 Routines = [fun() -> ftp:user(Pid, User, Pass) end
                            ,fun() -> ftp:type(Pid, 'binary') end
@@ -130,9 +127,30 @@ send_request(Host, Port, UserPass, FullPath, Contents) ->
         end
     catch
         _Exc:Err ->
-            lager:debug("error ~p / ~p sending file ~s to ~s", [_Exc, Err, FullPath, Host]),
+            lager:debug("error ~p / ~p sending file ~s to ~p", [_Exc, Err, FullPath, HostPort]),
             {'error', Err}
     end.
+
+-type ftp_user_info() :: {string(), string()}.
+
+-type ftp_connect_info() :: [{host, string()} | {port, pos_integer()}].
+
+-spec ftp_connect(map()) -> ftp_connect_info().
+ftp_connect(#{host := Host, port := Port}) ->
+	[{host, Host}
+	,{port, Port}
+	];
+ftp_connect(#{host := Host}) ->
+	[{host, Host}].
+
+-spec ftp_user(map()) -> ftp_user_info().
+ftp_user(#{userinfo := UserPass}) ->
+	case string:tokens(UserPass, ":") of
+		[U, P] -> {U, P};
+		_ -> ftp_anonymous_user_pass()
+	end;
+ftp_user(#{}) ->
+	ftp_anonymous_user_pass().
 
 -spec ftp_cmds(list()) -> 'ok' | {'error', ftp_error()}.
 ftp_cmds([]) -> 'ok';
