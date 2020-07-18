@@ -99,7 +99,7 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
           'ok' |
           {'error', ftp_error() | binary()}.
 send_request(Url, Contents) ->
-    case http_string:parse(kz_term:to_list(Url)) of
+    case uri_string:parse(kz_term:to_list(Url)) of
 		#{scheme := "ftp"
 		 ,path := FullPath
 		 } = URI ->
