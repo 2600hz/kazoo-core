@@ -260,7 +260,7 @@ next_worker(Pool) ->
 next_worker(_Pool, 'undefined') ->
     lager:warning("pool ~s not available yet for application ~s"
                  ,[_Pool
-                  ,kapps_util:get_application()
+                  ,kz_process:get_application()
                   ]
                  ),
     {'error', 'poolboy_fault'};
@@ -270,7 +270,7 @@ next_worker(Pool, Pid) when is_pid(Pid) ->
             {'error', 'pool_full'};
         Worker ->
             lager:debug("application ~s checked out worker ~p from pool ~s"
-                       ,[kapps_util:get_application()
+                       ,[kz_process:get_application()
                         ,Worker
                         ,Pool
                         ]
@@ -293,7 +293,7 @@ checkout_worker(Pool) ->
             {'error', 'pool_full'};
         Worker ->
             lager:debug("application ~s checked out worker ~p from pool ~s"
-                       ,[kapps_util:get_application()
+                       ,[kz_process:get_application()
                         ,Worker
                         ,Pool
                         ]
