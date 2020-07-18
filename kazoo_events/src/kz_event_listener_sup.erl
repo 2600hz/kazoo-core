@@ -54,7 +54,7 @@ init([]) ->
     {'ok', {SupFlags, ?CHILDREN}}.
 
 init_workers(Pid) ->
-    Workers = kz_apps_config:get_integer(?APP, <<"event_listeners">>, 5),
+    Workers = kz_app_config:get_integer(?APP, <<"event_listeners">>, 5),
     _ = kz_process:spawn(fun() -> [begin
                                        _ = supervisor:start_child(Pid, []),
                                        timer:sleep(500)
