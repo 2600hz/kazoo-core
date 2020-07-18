@@ -10,6 +10,8 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_couch_attachments).
 
+%% Ignore This
+
 %% Attachment-related
 -export([fetch_attachment/4
         ,stream_attachment/5
