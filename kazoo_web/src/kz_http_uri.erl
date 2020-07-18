@@ -18,7 +18,7 @@
 
 -spec encode(uri()) -> hex_uri().
 encode(URI) when is_list(URI) ->
-    Reserved = reserved(), 
+    Reserved = reserved(),
     lists:append([uri_encode(Char, Reserved) || Char <- URI]);
 encode(URI) when is_binary(URI) ->
     Reserved = reserved(),
@@ -66,6 +66,9 @@ uri_encode_binary(Char, Reserved) ->
             <<Char>>
     end.
 
-hex2dec(X) when (X>=$0) andalso (X=<$9) -> X-$0;
-hex2dec(X) when (X>=$A) andalso (X=<$F) -> X-$A+10;
-hex2dec(X) when (X>=$a) andalso (X=<$f) -> X-$a+10.
+hex2dec(X) when (X>=$0)
+  andalso (X=<$9) -> X-$0;
+hex2dec(X) when (X>=$A)
+  andalso (X=<$F) -> X-$A+10;
+hex2dec(X) when (X>=$a)
+  andalso (X=<$f) -> X-$a+10.
