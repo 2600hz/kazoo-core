@@ -14,13 +14,10 @@
 -export([init/1]).
 
 -include("kazoo_events.hrl").
--include("kz_hooks.hrl").
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?WORKER('kz_hooks_listener')
-                  ,?SUPER('kz_event_listener_sup')
-                  ,?CACHE(?HOOKS_CACHE_NAME)
+-define(CHILDREN, [?SUPER('kz_event_listener_sup')
                   ]).
 
 %%==============================================================================
