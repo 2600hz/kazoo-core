@@ -12,6 +12,7 @@
 -export([calling_app_version/0]).
 -export([calling_process/0]).
 -export([get_app/1]).
+-export([hotload/1]).
 
 -export([application_version/1]).
 
@@ -96,3 +97,16 @@ application_version(Application) ->
         {'ok', Vsn} -> kz_term:to_binary(Vsn);
         'undefined' -> <<"unknown">>
     end.
+
+-spec hotload(kz_term:text() | atom()) -> 'ok'.
+hotload(App) when is_atom(App) ->
+    case application:get_key(App, 'modules') of
+        {'ok', Modules} ->
+            io:format("found ~b modules to reload for ~s~n", [length(Modules), App]),
+            lists:foreach(fun kz_module:hotload/1, Modules),
+            io:format("app ~s modules reloaded~n", [App]);
+        'undefined' ->
+            io:format("app ~s not found (is it running? typo?)~n", [App])
+    end;
+hotload(App) ->
+    hotload(kz_term:to_atom(App, 'true')).
