@@ -22,11 +22,9 @@
 
         ,bind/3, unbind/3
         ]).
--export([lookup_account_id/1]).
 -export([handle_call_event/2]).
 
--include("kazoo_events.hrl").
--include("kz_hooks.hrl").
+-include("kazoo_hooks.hrl").
 
 -define(HOOK_REG, {'p', 'l', 'kz_hook'}).
 -define(HOOK_REG(AccountId), {'p', 'l', {'kz_hook', AccountId}}).
@@ -248,30 +246,6 @@ handle_call_event(JObj, Props) ->
 
 -spec handle_call_event(kz_json:object(), kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), boolean()) ->
           'ok'.
-handle_call_event(JObj, 'undefined', <<"CHANNEL_CREATE">>, CallId, RR) ->
-    lager:debug("event 'channel_create' had no account id"),
-    case lookup_account_id(JObj) of
-        {'error', _R} ->
-            lager:debug("failed to determine account id for 'channel_create'", []);
-        {'ok', AccountId} ->
-            lager:debug("determined account id for 'channel_create' is ~s", [AccountId]),
-            J = kz_json:set_value([<<"Custom-Channel-Vars">>
-                                  ,<<"Account-ID">>
-                                  ], AccountId, JObj),
-            handle_call_event(J, AccountId, <<"CHANNEL_CREATE">>, CallId, RR)
-    end;
-handle_call_event(JObj, 'undefined', <<"CHANNEL_DESTROY">>, CallId, RR) ->
-    lager:debug("event 'channel_destroy' had no account id"),
-    case lookup_account_id(JObj) of
-        {'error', _R} ->
-            lager:debug("failed to determine account id for 'channel_destroy'", []);
-        {'ok', AccountId} ->
-            lager:debug("determined account id for 'channel_destroy' is ~s", [AccountId]),
-            J = kz_json:set_value([<<"Custom-Channel-Vars">>
-                                  ,<<"Account-ID">>
-                                  ], AccountId, JObj),
-            handle_call_event(J, AccountId, <<"CHANNEL_DESTROY">>, CallId, RR)
-    end;
 handle_call_event(JObj, AccountId, HookEvent, _CallId, 'false') ->
     Evt = ?HOOK_EVT(AccountId, HookEvent, JObj),
     gproc:send(?HOOK_REG, Evt),
@@ -282,40 +256,3 @@ handle_call_event(JObj, AccountId, HookEvent, _CallId, 'true') ->
     gproc:send(?HOOK_REG_RR, Evt),
     gproc:send(?HOOK_REG_RR(AccountId), Evt),
     gproc:send(?HOOK_REG_RR(AccountId, HookEvent), Evt).
-
--spec lookup_account_id(kz_json:object()) -> {'ok', kz_term:ne_binary()} | {'error', any()}.
-lookup_account_id(JObj) ->
-    case kz_call_event:account_id(JObj) of
-        'undefined' ->
-            Number = get_inbound_destination(JObj),
-            case kz_cache:peek_local(?HOOKS_CACHE_NAME, cache_key_number(Number)) of
-                {'ok', _AccountId}=Ok -> Ok;
-                {'error', 'not_found'} -> fetch_account_id(Number)
-            end;
-        Id -> {'ok', Id}
-    end.
-
--spec fetch_account_id(kz_term:ne_binary()) -> {'ok', kz_term:ne_binary()} | {'error', any()}.
-fetch_account_id(Number) ->
-    case knm_numbers:lookup_account(Number) of
-        {'ok', AccountId, _} ->
-            CacheProps = [{'origin', {'db', knm_converters:to_db(Number), Number}}],
-            kz_cache:store_local(?HOOKS_CACHE_NAME, cache_key_number(Number), AccountId, CacheProps),
-            {'ok', AccountId};
-        {'error', _}=Error -> Error
-    end.
-
--spec cache_key_number(kz_term:ne_binary()) -> {'kz_hooks', kz_term:ne_binary()}.
-cache_key_number(Number) -> {'kz_hooks', Number}.
-
--spec get_inbound_destination(kz_json:object()) -> kz_term:api_binary().
-get_inbound_destination(JObj) ->
-    {Number, _} = kapps_util:get_destination(JObj, <<"stepswitch">>, <<"inbound_user_field">>),
-    case kapps_config:get_is_true(<<"stepswitch">>, <<"assume_inbound_e164">>, 'false') of
-        'true' -> assume_e164(Number);
-        'false' -> knm_converters:normalize(Number)
-    end.
-
--spec assume_e164(kz_term:ne_binary()) -> kz_term:ne_binary().
-assume_e164(<<$+, _/binary>> = Number) -> Number;
-assume_e164(Number) -> <<$+, Number/binary>>.

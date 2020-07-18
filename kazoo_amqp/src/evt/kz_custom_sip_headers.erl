@@ -15,8 +15,6 @@
         ,outbound_header/2, outbound_header/3
         ]).
 
--include("kz_documents.hrl").
-
 -define(IN, <<"in">>).
 -define(OUT, <<"out">>).
 

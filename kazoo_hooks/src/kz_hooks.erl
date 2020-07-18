@@ -21,7 +21,7 @@
         ,bind_call_id/1, unbind_call_id/1
         ]).
 
--include("kazoo_events.hrl").
+-include("kazoo_hooks.hrl").
 
 -spec register() -> 'true'.
 register() -> kz_hooks_util:register().
