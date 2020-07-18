@@ -1,6 +1,6 @@
 {application,kazoo_events,
-             [{applications,[gproc,kazoo_amqp,kazoo_documents,kazoo_stdlib,
-                             kernel,lager,stdlib]},
+             [{applications,[gproc,kazoo_amqp,kazoo_stdlib,kernel,lager,
+                             stdlib]},
               {description,"Kazoo shared events for Applications"},
               {id,"9fd3b140-8727-11e0-9d78-0800200c9a66"},
               {vsn,"5.0.0"},
