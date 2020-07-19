@@ -20,7 +20,6 @@
 %% @doc Implement the application start behaviour.
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_StartType, _StartArgs) ->
-    _ = kazoo_bindings:bind(<<"kz_nodes.globals">>, 'kz_globals', 'stats'),
     kazoo_globals_sup:start_link().
 
 %% @doc Implement the application stop behaviour.

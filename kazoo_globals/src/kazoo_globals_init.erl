@@ -20,6 +20,7 @@ start_link() ->
 
 wait_for_globals('true') ->
     lager:info("kazoo globals is ready"),
+    _ = kazoo_bindings:bind(<<"kz_nodes.globals">>, 'kz_globals', 'stats'),
     'ignore';
 wait_for_globals('false') ->
     timer:sleep(?MILLISECONDS_IN_SECOND),
