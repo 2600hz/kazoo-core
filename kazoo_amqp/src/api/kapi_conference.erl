@@ -1399,8 +1399,7 @@ dial_resp_definition() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec events() -> kz_term:ne_binaries().
-events() ->
-    kapps_config:get_ne_binaries(?APP_NAME, <<"publish_conference_event">>, ?CONFERENCE_EVENTS).
+events() -> ?CONFERENCE_EVENTS.
 
 -spec focus_queue_name(atom()) -> kz_term:ne_binary().
 focus_queue_name(Focus) -> <<(kz_term:to_binary(Focus))/binary, "_conference">>.
