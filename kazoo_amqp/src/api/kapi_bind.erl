@@ -88,4 +88,4 @@ exchange_options(Props) ->
     props:get_value(options, Props, []).
 
 bindings(Props) ->
-    props:get_value(bindings, Props).
+    props:get_value(bindings, Props, []).
