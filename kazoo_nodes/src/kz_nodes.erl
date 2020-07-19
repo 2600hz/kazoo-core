@@ -70,8 +70,7 @@
 
 -export_type([request_acc/0]).
 
--include_lib("kazoo_stdlib/include/kz_types.hrl").
--include_lib("kazoo_stdlib/include/kz_log.hrl").
+-include("kazoo_nodes.hrl").
 
 -define(SERVER, ?MODULE).
 
@@ -89,11 +88,6 @@
 -define(HEARTBEAT, 5 * ?MILLISECONDS_IN_SECOND + rand:uniform(10 * ?MILLISECONDS_IN_SECOND)).
 -define(EXPIRE_PERIOD, 1 * ?MILLISECONDS_IN_SECOND).
 -define(FUDGE_FACTOR, 1.25).
--define(APP_NAME, <<"kz_nodes">>).
--define(APP_VERSION, <<"4.0.0">>).
-
-%% kz_nodes lives in this app
--define(APP_NAME_ATOM, 'kazoo_globals').
 
 -define(MEDIA_SERVERS_HEADER, "Media Servers : ").
 -define(MEDIA_SERVERS_LINE, "                ").
@@ -768,7 +762,7 @@ init([]) ->
                                          ,{'node_type', 'all'}
                                          ]),
     lager:debug("monitoring nodes"),
-    Version = list_to_binary([kapps_util:kazoo_version()
+    Version = list_to_binary([version()
                              ," - "
                              ,kz_term:to_binary(erlang:system_info('otp_release'))
                              ]),
@@ -971,7 +965,7 @@ create_node(Heartbeat, #state{zone=Zone
                            ,version=Version
                            ,zone=Zone
                            ,md5=MD5
-                           ,globals=kz_globals:stats()
+                           ,globals=globals()
                            ,node_info=node_info()
                            }).
 
@@ -982,7 +976,7 @@ normalize_amqp_uri(URI) ->
 
 -spec add_kapps_data(kz_types:kz_node()) -> kz_types:kz_node().
 add_kapps_data(Node) ->
-    lists:foldl(fun kapp_data/2, Node, kapps_controller:list_apps()).
+    lists:foldl(fun kapp_data/2, Node, apps()).
 
 -spec request(request_acc()) -> request_acc().
 request(Acc) ->
@@ -1293,9 +1287,14 @@ maybe_add_zone(#kz_node{zone=Zone, broker=B}, #state{zones=Zones}=State) ->
 
 -spec node_info() -> kz_json:object().
 node_info() ->
-    kz_json:from_list(pool_states()
-                      ++ amqp_status()
-                     ).
+    AMQP = [{<<"connections">>, kz_json:from_list(amqp_status())}
+           ,{<<"pools">>, kz_json:from_list(pool_states())}
+           ],
+    Info = kazoo_bindings:map(<<"kz_nodes.node.info">>, []),
+    NodeInfo = [{<<"amqp">>, kz_json:from_list(AMQP)}
+                  | [{Key, Value} || {Key, Value} <- Info]
+               ],
+    kz_json:from_list(NodeInfo).
 
 -spec amqp_status() -> [{kz_term:ne_binary(), kz_json:object()}].
 amqp_status() ->
@@ -1351,10 +1350,10 @@ pool_state(Name, State, Workers, Overflow, Monitors) ->
 
 -spec node_encoded() -> kz_term:ne_binary().
 node_encoded() ->
-    case application:get_env(?APP_NAME_ATOM, 'node_encoded') of
+    case application:get_env(?APP, 'node_encoded') of
         'undefined' ->
             Encoded = kz_base64url:encode(crypto:hash('md5', kz_term:to_binary(node()))),
-            application:set_env(?APP_NAME_ATOM, 'node_encoded', Encoded),
+            application:set_env(?APP, 'node_encoded', Encoded),
             Encoded;
         {'ok', Encoded} -> Encoded
     end.
@@ -1505,3 +1504,16 @@ node_name() ->
 node_hostname() ->
     [_Name, Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
     Host.
+
+-spec version() -> kz_term:ne_binary().
+version() ->
+    {_, _, Version} = kz_application:get_app(?APP),
+    kz_term:to_binary(Version).
+
+
+-spec apps() -> kz_term:atoms().
+apps() ->
+    [App || {App, _, _} <- kz_application:running_apps()].
+
+globals() ->
+    kazoo_bindings:map(<<"kz_nodes.globals">>, []).
