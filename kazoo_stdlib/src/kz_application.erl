@@ -13,6 +13,7 @@
 -export([calling_process/0]).
 -export([get_app/1]).
 -export([hotload/1]).
+-export([running_apps/0, is_kapp/1]).
 
 -export([application_version/1]).
 
@@ -110,3 +111,14 @@ hotload(App) when is_atom(App) ->
     end;
 hotload(App) ->
     hotload(kz_term:to_atom(App, 'true')).
+
+-spec is_kapp(atom()) -> boolean().
+is_kapp(App) ->
+    {'ok', 'true'} =:= application:get_env(App, 'is_kazoo_app').
+
+-spec running_apps() -> [{atom(), string(), _}].
+running_apps() ->
+    [AppData
+     || {App, _Desc, _Vsn}=AppData <- application:which_applications(),
+        is_kapp(App)
+    ].
