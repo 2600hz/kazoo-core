@@ -88,11 +88,3 @@ unbind(AccountId, EventName) ->
 -spec unbind(kz_term:ne_binary(), kz_term:ne_binary(), bind_fun()) -> kazoo_bindings:unbind_result().
 unbind(AccountId, EventName, BindFun) ->
     kz_hooks_util:unbind(AccountId, EventName, BindFun).
-
--spec bind_call_id(kz_term:ne_binary()) -> 'ok'.
-bind_call_id(CallId) ->
-    gproc:reg({'p', 'l', {'call_event', CallId}}).
-
--spec unbind_call_id(kz_term:ne_binary()) -> 'ok'.
-unbind_call_id(CallId) ->
-    gproc:unreg({'p', 'l', {'call_event', CallId}}).
