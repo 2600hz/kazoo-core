@@ -17,8 +17,6 @@
 
         ,bind/0, bind/1, bind/2, bind/3
         ,unbind/0, unbind/1, unbind/2, unbind/3
-
-        ,bind_call_id/1, unbind_call_id/1
         ]).
 
 -include("kazoo_hooks.hrl").
