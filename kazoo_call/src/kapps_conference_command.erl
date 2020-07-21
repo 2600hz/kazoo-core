@@ -34,9 +34,30 @@
 -export([send_command/2]).
 -export([play_macro/2]).
 
--spec search(kapps_conference:conference()) ->
+-spec search(kapps_conference:conference() | binary()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
+search(ConferenceId)
+  when is_binary(ConferenceId)->
+    {AppName, AppVersion} = kz_application:calling_app_version(),
+    Req = [{<<"Conference-ID">>, ConferenceId}
+           | kz_api:default_headers(AppName, AppVersion)
+          ],
+    lager:debug("searching for conference ~s", [ConferenceId]),
+    ReqResp = kz_amqp_worker:call_collect(Req
+                                         ,fun kapi_conference:publish_search_req/1
+                                         ,{'ecallmgr', 'true'}
+                                         ),
+    case ReqResp of
+        {'error', _R}=E ->
+            lager:info("received error while searching for ~s: ~-800p", [ConferenceId, _R]),
+            E;
+        {_, JObjs} ->
+            case lists:filter(fun search_reply_filter/1, JObjs) of
+                [] -> {'error', 'not_found'};
+                [JObj | _] -> {ok, JObj}
+            end
+    end;
 search(Conference) ->
     AppName = kapps_conference:application_name(Conference),
     AppVersion = kapps_conference:application_version(Conference),
@@ -61,6 +82,11 @@ search(ConferenceId, AppName, AppVersion) ->
             E;
         {_, JObjs} -> conference_search_filter(JObjs, ConferenceId)
     end.
+
+search_reply_filter(JObj) ->
+    kz_api:event_category(JObj) =:= <<"conference">>
+        andalso kz_api:event_name(JObj) =:= <<"search_resp">>.
+
 
 -spec conference_search_filter(kz_json:objects(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
