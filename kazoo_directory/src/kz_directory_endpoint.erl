@@ -325,11 +325,13 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
            ,{<<"External-Caller-ID-Name">>, CEDName}
            ,{<<"Account-ID">>, AccountId}
            ,{<<"Endpoint-ID">>, EndpointId}
+           ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
            ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
            ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
            ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
            ],
-    Profile = [{<<"Domain-Name">>, AccountId}
+    Profile = [{<<"Endpoint-Type">>, <<"device">>}
+              ,{<<"Domain-Name">>, AccountId}
               ,{<<"User-ID">>, EndpointId}
               ,{<<"Account-ID">>, AccountId}
               ,{<<"Custom-Channel-Vars">>, CCVs}
