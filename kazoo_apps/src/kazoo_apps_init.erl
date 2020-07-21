@@ -28,6 +28,7 @@ start_link() ->
 init() ->
     kz_log:put_callid(?MODULE),
     set_cookie(),
+    set_config(),
     start_distribution(),
     set_loglevel().
 
@@ -140,3 +141,7 @@ is_system_clock_on_utc() ->
 -spec start_distribution() -> 'ok'.
 start_distribution() ->
     amqp_dist:add_brokers(kz_amqp_connections:uris()).
+
+-spec set_config() -> 'ok'.
+set_config() ->
+    persistent_term:set(kz_config, fun kapps_config:get/2).
