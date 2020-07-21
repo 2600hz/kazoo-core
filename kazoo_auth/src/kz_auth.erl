@@ -106,14 +106,6 @@ verify_claims(#{claims := Claims}) ->
     {'ok', Claims}.
 
 -spec validate_claims(map(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
-validate_claims(#{payload := #{<<"account_id">> := AccountId} = Payload}, Options) ->
-    case props:get_value(<<"account_id">>, Options, AccountId) of
-        AccountId ->
-            Claims = kz_json:from_map(Payload),
-            {'ok', Claims};
-        _OtherAccountId ->
-            {'error', {401, <<"account header mismatch">>}}
-    end;
 validate_claims(#{user_map := #{<<"pvt_account_id">> := AccountId
                                ,<<"pvt_owner_id">> := OwnerId
                                }
@@ -161,6 +153,14 @@ validate_claims(#{user_map := #{<<"pvt_accounts">> := Accounts}, payload := Payl
                 'false' -> {'error', {401, <<"account header mismatch">>}}
             end;
         _OtherAccountId -> {'error', {403, <<"no associated account_id">>}}
+    end;
+validate_claims(#{payload := #{<<"account_id">> := AccountId} = Payload}, Options) ->
+    case props:get_value(<<"account_id">>, Options, AccountId) of
+        AccountId ->
+            Claims = kz_json:from_map(Payload),
+            {'ok', Claims};
+        _OtherAccountId ->
+            {'error', {401, <<"account header mismatch">>}}
     end;
 
 validate_claims(#{}, _Options) -> {'error', {403, <<"no associated account_id">>}}.
