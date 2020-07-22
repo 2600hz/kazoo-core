@@ -68,9 +68,6 @@ fax_test_() ->
 setup() ->
     LinkPid = kzd_test_fixtures:setup(),
     {'ok', SupPid} = kz_openoffice_server_sup:start_link(),
-    lager:set_loglevel('lager_console_backend', 'none'),
-    lager:set_loglevel('lager_file_backend', 'none'),
-    lager:set_loglevel('lager_syslog_backend', 'none'),
     {LinkPid, SupPid}.
 
 cleanup({LinkPid, SupPid}) ->
