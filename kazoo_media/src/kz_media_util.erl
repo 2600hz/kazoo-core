@@ -509,7 +509,7 @@ get_prompt(PromptId, Lang, AccountId, 'true') ->
             maybe_prompt_path(PromptId
                              ,Lang
                              ,AccountId
-                             ,lookup_prompt(kz_util:format_account_db(AccountId), PromptId)
+                             ,lookup_prompt(kzs_util:format_account_db(AccountId), PromptId)
                              )
     end;
 get_prompt(PromptId, Lang, _AccountId, 'false') ->
