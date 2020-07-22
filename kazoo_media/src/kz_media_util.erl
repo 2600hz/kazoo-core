@@ -522,9 +522,10 @@ get_prompt(PromptId, Lang, _AccountId, 'false') ->
             kz_binary:join([<<"prompt:/">>, ?KZ_MEDIA_DB, PromptId, Lang], <<"/">>)
     end.
 
--spec maybe_prompt_path(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), {'ok', kz_json:object()} | {'error', 'not_found'}) ->
+-spec maybe_prompt_path(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), {'ok', kz_json:object()} | kz_datamgr:data_error()) ->
           kz_term:api_ne_binary().
-maybe_prompt_path(PromptId, Lang, AccountId, {'error', 'not_found'}) ->
+maybe_prompt_path(PromptId, Lang, AccountId, {'error', _}=Err) ->
+    lager:debug("building default prompt path. Error looking up for prompt ~s: ~p", [PromptId, Err]),
     kz_binary:join([<<"prompt:/">>, AccountId, PromptId, Lang], <<"/">>);
 maybe_prompt_path(PromptId, _Lang, AccountId, {'ok', _}) ->
     prompt_path(AccountId, PromptId).
@@ -622,7 +623,7 @@ get_account_prompt(Name, Lang, AccountId, OriginalLang) ->
 
 -spec lookup_prompt(kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
-          {'error', 'not_found'}.
+          kz_datamgr:data_error().
 lookup_prompt(Db, Id) ->
     case kz_datamgr:open_cache_doc(Db, Id) of
         {'ok', Doc} ->
