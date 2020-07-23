@@ -187,7 +187,7 @@ unbind_q(Q, Props) ->
 unbind_q(Q, _Props, 'undefined') ->
     kz_amqp_util:unbind_q_from_exchange(Q, <<"cdr.report.*.*">>, ?CDR_EXCHANGE);
 unbind_q(Q, Props, ['report'|Restrict]) ->
-    kz_amqp_util:unbind_q_from_exchange(Q, <<"cdr.report.*.*">>, ?CDR_EXCHANGE),
+    _ = kz_amqp_util:unbind_q_from_exchange(Q, <<"cdr.report.*.*">>, ?CDR_EXCHANGE),
     unbind_q(Q, Props, Restrict);
 unbind_q(Q, Props, [_|Restrict]) ->
     unbind_q(Q, Props, Restrict);

@@ -139,7 +139,7 @@ delete_remove_from_accounts({AccountJObj, Errors}=Acc) ->
 -spec create(kz_term:ne_binary(), kz_json:object()) -> kzd_accounts:doc() | 'undefined'.
 create(AccountId, ReqJObj) ->
     AccountDb = kzs_util:format_account_db(AccountId),
-    case kapps_util:is_account_db(AccountDb)
+    case kzs_util:is_account_db(AccountDb)
         andalso kz_datamgr:db_create(AccountDb)
     of
         'false' ->

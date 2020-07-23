@@ -144,29 +144,12 @@ console_level(Level) ->
     kz_log:change_console_log_level(kz_term:to_atom(Level)).
 
 -spec hotload(kz_term:text() | atom()) -> 'ok' | 'no_return'.
-hotload(Module) when is_atom(Module) ->
-    _ = code:soft_purge(Module),
-    case code:load_file(Module) of
-        {'module', _} -> 'ok';
-        {'error' , Reason} ->
-            io:format("ERROR: unable to hotload ~s: ~s~n", [Module, Reason]),
-            'no_return'
-    end;
 hotload(Module) ->
-    hotload(kz_term:to_atom(Module, 'true')).
+	kz_module:hotload(Module).
 
 -spec hotload_app(kz_term:text() | atom()) -> 'ok'.
-hotload_app(App) when is_atom(App) ->
-    case application:get_key(App, 'modules') of
-        {'ok', Modules} ->
-            io:format("found ~b modules to reload for ~s~n", [length(Modules), App]),
-            lists:foreach(fun hotload/1, Modules),
-            io:format("app ~s modules reloaded~n", [App]);
-        'undefined' ->
-            io:format("app ~s not found (is it running? typo?)~n", [App])
-    end;
 hotload_app(App) ->
-    hotload_app(kz_term:to_atom(App, 'true')).
+	kz_application:hotload(App).
 
 -spec gc_all() -> 'ok'.
 gc_all() ->
@@ -222,13 +205,13 @@ table_size(T) ->
 -spec print_table({string(), integer()}) -> 'ok'.
 print_table({Name, Mem}) ->
     io:format("  ~-25s: ~6s~n", [Name
-                                ,kz_util:pretty_print_bytes(Mem, 'truncated')
+                                ,kz_term:pretty_print_bytes(Mem, 'truncated')
                                 ]).
 
 -spec log_table({string(), integer()}, file:name_all()) -> 'ok'.
 log_table({Name, Mem}, Filename) ->
     Bytes = io_lib:format("  ~-25s: ~6s~n", [Name
-                                            ,kz_util:pretty_print_bytes(Mem, 'truncated')]),
+                                            ,kz_term:pretty_print_bytes(Mem, 'truncated')]),
     'ok' = file:write_file(Filename, Bytes, ['append']).
 
 -spec mem_info() -> 'ok'.
@@ -239,11 +222,11 @@ mem_info() ->
 
 -spec print_memory_type({erlang:memory_type(), integer()}) -> 'ok'.
 print_memory_type({Type, Size}) ->
-    io:format("  ~-15s : ~6s~n", [Type, kz_util:pretty_print_bytes(Size, 'truncated')]).
+    io:format("  ~-15s : ~6s~n", [Type, kz_term:pretty_print_bytes(Size, 'truncated')]).
 
 -spec log_memory_type({erlang:memory_type(), integer()}, file:name_all()) -> 'ok'.
 log_memory_type({Type, Size}, Filename) ->
-    Bytes = io_lib:format("  ~-15s : ~6s~n", [Type, kz_util:pretty_print_bytes(Size, 'truncated')]),
+    Bytes = io_lib:format("  ~-15s : ~6s~n", [Type, kz_term:pretty_print_bytes(Size, 'truncated')]),
     'ok' = file:write_file(Filename, Bytes, ['append']).
 
 -spec table_name(ets:tab()) -> string().

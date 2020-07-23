@@ -12,6 +12,7 @@
 -export([is_exported/3]).
 -export([ensure_loaded/1]).
 -export([application_integrations/1]).
+-export([hotload/1]).
 
 -type integration() :: {kz_term:ne_binary() | module(), module(), atom()} |
                        {kz_term:ne_binary() | module(), module(), atom(), boolean()} |
@@ -89,3 +90,15 @@ load_integration({Q, M, F}) ->
 load_integration(H) when is_atom(H) ->
     Loaded = code:ensure_loaded(H),
     lager:debug("application integration loading ~p, result: ~p", [H, Loaded]).
+
+-spec hotload(kz_term:text() | atom()) -> 'ok' | 'no_return'.
+hotload(Module) when is_atom(Module) ->
+    _ = code:soft_purge(Module),
+    case code:load_file(Module) of
+        {'module', _} -> 'ok';
+        {'error' , Reason} ->
+            io:format("ERROR: unable to hotload ~s: ~s~n", [Module, Reason]),
+            'no_return'
+    end;
+hotload(Module) ->
+    hotload(kz_term:to_atom(Module, 'true')).

@@ -17,11 +17,9 @@
 
         ,bind/0, bind/1, bind/2, bind/3
         ,unbind/0, unbind/1, unbind/2, unbind/3
-
-        ,bind_call_id/1, unbind_call_id/1
         ]).
 
--include("kazoo_events.hrl").
+-include("kazoo_hooks.hrl").
 
 -spec register() -> 'true'.
 register() -> kz_hooks_util:register().
@@ -90,11 +88,3 @@ unbind(AccountId, EventName) ->
 -spec unbind(kz_term:ne_binary(), kz_term:ne_binary(), bind_fun()) -> kazoo_bindings:unbind_result().
 unbind(AccountId, EventName, BindFun) ->
     kz_hooks_util:unbind(AccountId, EventName, BindFun).
-
--spec bind_call_id(kz_term:ne_binary()) -> 'ok'.
-bind_call_id(CallId) ->
-    gproc:reg({'p', 'l', {'call_event', CallId}}).
-
--spec unbind_call_id(kz_term:ne_binary()) -> 'ok'.
-unbind_call_id(CallId) ->
-    gproc:unreg({'p', 'l', {'call_event', CallId}}).

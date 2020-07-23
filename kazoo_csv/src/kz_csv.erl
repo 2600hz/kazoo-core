@@ -246,7 +246,7 @@ json_to_iolist(Records, Fields)
                  ,Records
                  ),
     {'ok', IOData} = file:read_file(Tmp),
-    kz_util:delete_file(Tmp),
+    kz_os:delete_file(Tmp),
     IOData.
 
 -spec write_header_to_file(file_return()) -> file_return().
@@ -270,7 +270,7 @@ write_header_to_file({File, CellOrdering}, HeaderMap) ->
     {'ok', _} = kz_os:cmd(<<"cat ", File/binary, " >> ", HeaderFile/binary>>),
     {'ok', _} = file:copy(HeaderFile, File),
 
-    kz_util:delete_file(HeaderFile),
+    kz_os:delete_file(HeaderFile),
 
     {File, CellOrdering}.
 

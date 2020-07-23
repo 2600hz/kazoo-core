@@ -10,7 +10,8 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(kz_hooks_listener).
+-module(kz_hooks_shared_listener).
+
 -behaviour(gen_listener).
 
 -export([start_link/0]).
@@ -23,8 +24,7 @@
         ,code_change/3
         ]).
 
--include("kazoo_events.hrl").
--include("kz_hooks.hrl").
+-include("kazoo_hooks.hrl").
 
 -define(SERVER, ?MODULE).
 
@@ -33,21 +33,20 @@
                     ,<<"CHANNEL_ANSWER">>
                     ,<<"CHANNEL_DESTROY">>
                     ,<<"CHANNEL_BRIDGE">>
-                    ,<<"CHANNEL_UNBRIDGE">>
-                    ,<<"CHANNEL_DISCONNECTED">>
-                    ,<<"CHANNEL_CONNECTED">>
                     ]).
 -define(CALL_BINDING(Events), {'call', [{'restrict_to', Events}
                                        ,'federate'
                                        ]}).
 -define(BINDINGS, []).
 -define(RESPONDERS, [{{'kz_hooks_util', 'handle_call_event'}
-                     ,[{<<"call_event">>, <<"*">>}]
+                     ,[{<<"call_event">>, <<"*">>}
+                      ,{<<"dialplan">>, <<"route_req">>}
+                      ]
                      }
                     ]).
--define(QUEUE_NAME, <<>>).
--define(QUEUE_OPTIONS, []).
--define(CONSUME_OPTIONS, []).
+-define(QUEUE_NAME, <<"hooks_shared_listener">>).
+-define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
+-define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
 
 -record(state, {call_events = [] :: kz_term:ne_binaries()}).
 -type state() :: #state{}.
@@ -85,7 +84,6 @@ start_link() ->
 init([]) ->
     kz_log:put_callid(?MODULE),
     lager:debug("started ~s", [?MODULE]),
-    kapi_call:declare_exchanges(),
     {'ok', #state{}}.
 
 %%------------------------------------------------------------------------------
@@ -123,7 +121,7 @@ handle_cast({'maybe_remove_binding', 'all'}, #state{call_events=Events}=State) -
         Es ->
             lager:debug("removing bindings for ~p", [Es]),
             gen_listener:rm_binding(self(), ?CALL_BINDING(Es)),
-            {'noreply', State#state{call_events=Events -- Es}}
+            {'noreply', State#state{call_events=[]}}
     end;
 handle_cast({'maybe_remove_binding', Event}, #state{call_events=Events}=State) ->
     case lists:member(Event, Events) of
@@ -156,7 +154,7 @@ handle_info(_Info, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_json:object(), kz_term:proplist()) -> gen_listener:handle_event_return().
 handle_event(_JObj, _State) ->
-    {'reply', [{'rr', 'false'}]}.
+    {'reply', [{'rr', 'true'}]}.
 
 %%------------------------------------------------------------------------------
 %% @doc This function is called by a `gen_server' when it is about to

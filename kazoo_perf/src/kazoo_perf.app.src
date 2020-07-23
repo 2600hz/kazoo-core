@@ -9,7 +9,7 @@
                  , crypto
                  , inets
 
-                 , kazoo
+
                  , kazoo_amqp
                  , kazoo_data
 

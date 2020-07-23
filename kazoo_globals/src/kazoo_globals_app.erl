@@ -13,12 +13,7 @@
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
--export([start/2, stop/1]).
--export([start/0]).
-
--spec start() -> {'ok', kz_term:atoms()}.
-start() ->
-    {'ok', _Apps} = application:ensure_all_started('kazoo_globals').
+-export([start/2, prep_stop/1, stop/1]).
 
 %% Application callbacks
 
@@ -30,4 +25,9 @@ start(_StartType, _StartArgs) ->
 %% @doc Implement the application stop behaviour.
 -spec stop(any()) -> any().
 stop(_State) ->
+    'ok'.
+
+-spec prep_stop(any()) -> 'ok'.
+prep_stop(_State) ->
+    _ = kazoo_bindings:flush_mod('kz_globals'),
     'ok'.

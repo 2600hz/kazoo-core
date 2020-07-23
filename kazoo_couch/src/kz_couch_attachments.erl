@@ -129,9 +129,10 @@ do_put_attachment(#db{}=Db, DocId, AttName, Contents, Options0) ->
 -spec do_del_attachment(couchbeam_db(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object()} |
           couchbeam_error().
-do_del_attachment(#db{}=Db, DocId, AName, Options) ->
-    Doc = kz_term:to_binary(http_uri:encode(kz_term:to_list(DocId))),
-    ?RETRY_504(couchbeam:delete_attachment(Db, Doc, AName, Options)).
+do_del_attachment(#db{}=Db, DocId, AttName, Options) ->
+	Id = kz_http_util:urlencode(DocId),
+	AName = kz_http_util:urlencode(AttName),
+    ?RETRY_504(couchbeam:delete_attachment(Db, Id, AName, Options)).
 
 -spec maybe_add_revision(kz_term:proplist()) -> binary().
 maybe_add_revision(Options) ->

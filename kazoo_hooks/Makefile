@@ -1,6 +1,6 @@
 CWD = $(shell pwd -P)
 ROOT ?= $(realpath $(CWD)/../..)
-PROJECT = kazoo
+PROJECT = kazoo_hooks
 
 all: compile
 

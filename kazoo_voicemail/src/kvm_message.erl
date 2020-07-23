@@ -792,11 +792,11 @@ prepend_forward_message(Call, ForwardId, Metadata, _SrcBoxId, Props) ->
     case kz_media_util:join_media_files([TmpPath, TonePath, OrigPath], [{sample_rate, OrigSampleRate}]) of
         {'ok', FileContents} ->
             JoinFilename = <<(kz_binary:rand_hex(16))/binary, ".mp3">>,
-            _ = [kz_util:delete_file(F) || F <- [TmpPath, OrigPath, TonePath]],
+            _ = [kz_os:delete_file(F) || F <- [TmpPath, OrigPath, TonePath]],
             %%TODO: update forwarded doc with length and media_filename
             try_put_fwd_attachment(AccountId, ForwardId, JoinFilename, FileContents, 3);
         {'error', _} ->
-            _ = [kz_util:delete_file(F) || F <- [TmpPath, OrigPath, TonePath]],
+            _ = [kz_os:delete_file(F) || F <- [TmpPath, OrigPath, TonePath]],
             lager:warning("failed to join forward message media files"),
             {'error', 'join_failed'}
 
@@ -834,7 +834,7 @@ write_attachment_to_file(AccountId, MessageId, [AttachmentId]) ->
     Db = kvm_util:get_db(AccountId, MessageId),
     {'ok', AttachmentBin} = kz_datamgr:fetch_attachment(Db, MessageId, AttachmentId),
     FilePath = kz_binary:join([<<"/tmp/_">>, AttachmentId], <<>>),
-    kz_util:write_file(FilePath, AttachmentBin, ['write', 'binary']),
+    kz_os:write_file(FilePath, AttachmentBin, ['write', 'binary']),
     lager:debug("saved attachment ~s from ~s in ~s", [AttachmentId, MessageId, FilePath]),
     {'ok', FilePath}.
 

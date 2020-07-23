@@ -22,7 +22,7 @@
 %%------------------------------------------------------------------------------
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_Type, _Args) ->
-    _ = kz_util:set_startup(),
+    _ = kz_process:set_startup(),
     _ = kz_nodes_bindings:bind('kazoo_telemetry'),
     kazoo_telemetry_sup:start_link().
 

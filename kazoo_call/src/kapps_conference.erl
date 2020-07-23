@@ -55,6 +55,7 @@
 -export([call/1, set_call/2]).
 -export([entry_tone/1, moderator_entry_tone/1]).
 -export([exit_tone/1, moderator_exit_tone/1]).
+-export([extra_settings/1]).
 
 -export([kvs_append/3
         ,kvs_append_list/3
@@ -971,3 +972,8 @@ get_tone(Thing) ->
                        'false' -> 'true'
                    end
     end.
+
+-spec extra_settings(conference()) -> kz_term:api_object().
+extra_settings(#kapps_conference{conference_doc=undefined}) -> undefined;
+extra_settings(#kapps_conference{conference_doc=Doc}) ->
+    kz_json:get_ne_json_value(<<"extra-settings">>, Doc).

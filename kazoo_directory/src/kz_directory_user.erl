@@ -53,10 +53,12 @@ presence_id(Endpoint, CCVs) ->
 
 -spec owner_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 owner_id(Endpoint, CCVs) ->
-    case kz_json:get_ne_binary_value(<<"owner_id">>, Endpoint) of
-        'undefined' -> CCVs;
-        OwnerId -> kz_json:set_value(<<"Owner-ID">>, OwnerId, CCVs)
-    end.
+    kz_json:set_values([{<<"Authorizing-ID">>, kz_doc:id(Endpoint)}
+                       ,{<<"Authorizing-Type">>, kz_doc:type(Endpoint)}
+                       ,{<<"Owner-ID">>, kz_doc:id(Endpoint)}
+                       ]
+                       ,CCVs
+                      ).
 
 -spec hold_music(kz_json:object(), kz_json:object()) -> kz_json:object().
 hold_music(Endpoint, CCVs) ->
@@ -105,9 +107,9 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
            ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
            ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
            ],
-    Profile = [{<<"Domain-Name">>, AccountId}
+    Profile = [{<<"Endpoint-Type">>, <<"user">>}
+              ,{<<"Domain-Name">>, AccountId}
               ,{<<"User-ID">>, EndpointId}
-              ,{<<"Endpoint-Type">>, <<"user">>}
               ,{<<"Members">>, owned_by_query(EndpointId, AccountId)}
               ,{<<"Custom-Channel-Vars">>, CCVs}
               ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}

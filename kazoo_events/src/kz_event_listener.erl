@@ -29,7 +29,20 @@
 -define(SERVER, ?MODULE).
 
 -define(RESPONDERS, []).
--define(BINDINGS, [{'bind', [{'exchange', ?KZ_CALL_EVENTS_EXCHANGE}
+-define(BINDINGS, [{'bind', [{'exchange', [{name, ?KZ_CALL_EVENTS_EXCHANGE}
+                                          ,{type, <<"x-consistent-hash">>}
+                                          ,{options, [{auto_delete, true}
+                                                     ,{arguments, [{<<"hash-header">>, longstr, <<"call-id">>}]}
+                                                     ]
+                                           }
+                                          ,{'bindings', [{call, [{source, ?EXCHANGE_CALLEVT}
+                                                                ,{routing, <<"call.#">>}
+                                                                ]
+                                                         }
+                                                        ]
+                                           }
+                                          ]
+                             }
                             ,{'routing', <<"20">>}
                             ]
                    }

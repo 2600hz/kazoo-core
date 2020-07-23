@@ -212,10 +212,7 @@ find(Prefix, Quantity, Options, VitelityOptions) ->
 -ifdef(TEST).
 query_vitelity(Prefix, Quantity, QOptions) ->
     URI = knm_vitelity_util:build_uri(QOptions),
-    {'ok'
-    ,{'http', [], _Host, _Port, _Path, [$? | QueryString]}
-    } = http_uri:parse(kz_term:to_list(URI)),
-    Options = cow_qs:parse_qs(kz_term:to_binary(QueryString)),
+	Options = uri_string:dissect_query(maps:get(query, uri_string:parse(URI),<<>>)),
     XML =
         case props:get_value(<<"cmd">>, Options) of
             ?PREFIX_SEARCH_CMD -> ?PREFIX_SEARCH_RESP;

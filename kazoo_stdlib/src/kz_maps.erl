@@ -120,10 +120,10 @@ exec_fold(Fun, Map)
     Fun(Map);
 exec_fold({Fun, Arg}, Map)
   when is_function(Fun, 2) ->
-    Fun(Arg, Map);
+    Fun(Map, Arg);
 exec_fold({Fun, Arg1, Arg2}, Map)
   when is_function(Fun, 3) ->
-    Fun(Arg1, Arg2, Map).
+    Fun(Map, Arg1, Arg2).
 
 %%==============================================================================
 %% Internal functions

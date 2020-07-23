@@ -183,7 +183,6 @@
 -export([collect_digits/2, collect_digits/3
         ,collect_digits/4, collect_digits/5
         ,collect_digits/6, collect_digits/7
-        ,collect_digits/8
         ]).
 -export([send_command/2]).
 
@@ -2541,19 +2540,6 @@ collect_digits(MaxDigits, Timeout, Interdigit, NoopId, Terminators, FlushOnDigit
                                          ,flush_on_digit=FlushOnDigit
                                          }).
 
--spec collect_digits(integer(), integer(), integer(), kz_term:api_binary(), list(), boolean(), integer(), kapps_call:call()) ->
-          collect_digits_return().
-collect_digits(MaxDigits, Timeout, Interdigit, NoopId, Terminators, FlushOnDigit, AfterTimeout, Call) ->
-    do_collect_digits(#wcc_collect_digits{max_digits=kz_term:to_integer(MaxDigits)
-                                         ,timeout=kz_term:to_integer(Timeout)
-                                         ,interdigit=kz_term:to_integer(Interdigit)
-                                         ,noop_id=NoopId
-                                         ,terminators=Terminators
-                                         ,call=Call
-                                         ,flush_on_digit=FlushOnDigit
-                                         ,after_timeout=kz_term:to_integer(AfterTimeout)
-                                         }).
-
 -spec do_collect_digits(wcc_collect_digits()) -> collect_digits_return().
 do_collect_digits(#wcc_collect_digits{max_digits=MaxDigits
                                      ,timeout=Timeout
@@ -2850,7 +2836,7 @@ wait_for_dtmf(Timeout) ->
     Start = kz_time:start_time(),
     case receive_event(Timeout) of
         {'ok', JObj} ->
-            case kz_util:get_event_type(JObj) of
+            case kz_api:event_type(JObj) of
                 {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
                     lager:debug("channel was destroyed while waiting for DTMF"),
                     {'error', 'channel_hungup'};
@@ -2979,7 +2965,7 @@ wait_for_noop(Call, NoopId) ->
 wait_for_channel_unbridge() ->
     case receive_event(?MILLISECONDS_IN_MINUTE) of
         {'ok', JObj} ->
-            case kz_util:get_event_type(JObj) of
+            case kz_api:event_type(JObj) of
                 {<<"call_event">>, <<"CHANNEL_UNBRIDGE">>} -> {'ok', JObj};
                 {<<"call_event">>, <<"CHANNEL_DESTROY">>} -> {'ok', JObj};
                 {<<"call_event">>, <<"CHANNEL_DISCONNECTED">>} -> {'ok', JObj};
@@ -2997,7 +2983,7 @@ wait_for_channel_unbridge() ->
 wait_for_channel_bridge() ->
     case receive_event('infinity') of
         {'ok', JObj}=Ok ->
-            case kz_util:get_event_type(JObj) of
+            case kz_api:event_type(JObj) of
                 {<<"call_event">>, <<"CHANNEL_BRIDGE">>} -> Ok;
                 {<<"call_event">>, <<"CHANNEL_DESTROY">>} -> Ok;
                 _ -> wait_for_channel_bridge()
@@ -3022,7 +3008,7 @@ wait_for_hangup(Timeout) ->
     Start = kz_time:start_time(),
     case receive_event(Timeout) of
         {'ok', JObj} ->
-            case kz_util:get_event_type(JObj) of
+            case kz_api:event_type(JObj) of
                 {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
                     {'ok', 'channel_hungup'};
                 _Evt ->
@@ -3050,7 +3036,7 @@ wait_for_unbridge(Timeout) ->
     case receive_event(Timeout) of
         {'error', 'timeout'}=E -> E;
         {'ok', JObj} ->
-            case kz_util:get_event_type(JObj) of
+            case kz_api:event_type(JObj) of
                 {<<"call_event">>, <<"LEG_DESTROYED">>} -> {'ok', 'leg_hungup'};
                 _ -> wait_for_unbridge(kz_time:decr_timeout(Timeout, Start))
             end
@@ -3118,7 +3104,7 @@ wait_for_fax(Timeout) ->
 %%------------------------------------------------------------------------------
 -spec get_event_type(kz_json:object()) -> {kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()}.
 get_event_type(JObj) ->
-    {C, N} = kz_util:get_event_type(JObj),
+    {C, N} = kz_api:event_type(JObj),
     {C, N, get_app(C, JObj)}.
 
 -spec get_app(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_binary().
@@ -3390,13 +3376,13 @@ maybe_call_store_fun(URL) -> URL.
 
 -spec store_file(kz_term:ne_binary(), store_fun(), kapps_call:call()) -> 'ok' | {'error', any()}.
 store_file(Filename, URLFun, Call) ->
-    App = kz_util:calling_app(),
+    App = kz_application:calling_app(),
     store_file(Filename, URLFun, storage_retries(App), storage_timeout(App), Call).
 
 -spec store_file(kz_term:ne_binary(), store_fun(), pos_integer(), kapps_call:call()) ->
           'ok' | {'error', any()}.
 store_file(Filename, URLFun, Tries, Call) ->
-    App = kz_util:calling_app(),
+    App = kz_application:calling_app(),
     store_file(Filename, URLFun, Tries, storage_timeout(App), Call).
 
 -spec store_file(kz_term:ne_binary(), store_fun(), pos_integer(), timeout(), kapps_call:call()) ->
@@ -3409,7 +3395,7 @@ store_file(Filename, URLFun, Tries, Timeout, Call) ->
                                );
               ErrorMsg -> ErrorMsg
           end,
-    {AppName, AppVersion} = kz_util:calling_app_version(),
+    {AppName, AppVersion} = kz_application:calling_app_version(),
     API = fun() -> [{<<"Command">>, <<"send_http">>}
                    ,{<<"Args">>, kz_json:from_list(store_file_args(Filename, URLFun))}
                    ,{<<"FreeSWITCH-Node">>, kapps_call:switch_nodename(Call)}

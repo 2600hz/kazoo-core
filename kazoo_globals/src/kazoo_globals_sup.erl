@@ -31,7 +31,6 @@
                   ,?WORKER_ARGS('kazoo_etsmgr_srv', ?ETSMGR_ARGS)
                   ,?SUPER('kz_global_proxies_sup')
                   ,?WORKER('kazoo_globals_init')
-                  ,?WORKER('kz_nodes')
                   ]).
 
 %%==============================================================================
@@ -59,7 +58,7 @@ start_link() ->
 %%------------------------------------------------------------------------------
 -spec init(any()) -> kz_types:sup_init_ret().
 init([]) ->
-    _ = kz_util:set_startup(),
+    _ = kz_process:set_startup(),
     RestartStrategy = 'one_for_one',
     MaxRestarts = 25,
     MaxSecondsBetweenRestarts = 1,
