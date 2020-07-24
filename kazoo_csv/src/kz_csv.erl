@@ -18,7 +18,6 @@
         ,associator/3
         ,verify_mapped_row/2
         ,row_to_iolist/1, mapped_row_to_iolist/2
-        ,json_to_iolist/1, json_to_iolist/2
 
         ,jobjs_to_file/1, jobjs_to_file/2
         ,write_header_to_file/1, write_header_to_file/2
@@ -223,31 +222,6 @@ row_to_iolist(Cells=[_|_]) ->
 -spec mapped_row_to_iolist(row(), mapped_row()) -> iodata().
 mapped_row_to_iolist(HeaderRow, Map) ->
     row_to_iolist([maps:get(Header, Map, ?ZILCH) || Header <- HeaderRow]).
-
-%%------------------------------------------------------------------------------
-%% @doc Converts JSON-represented CSV data to binary.
-%% We assume fields for first record are defined in all other records.
-%% @end
-%%------------------------------------------------------------------------------
--spec json_to_iolist(nonempty_list(kz_json:object())) -> iodata().
-json_to_iolist(Records) ->
-    json_to_iolist(Records, kz_json:get_keys(hd(Records))).
-
--spec json_to_iolist(nonempty_list(kz_json:object()), header()) -> iodata().
-json_to_iolist(Records, Fields)
-  when is_list(Records),
-       is_list(Fields) ->
-    Tmp = <<"/tmp/json_", (kz_binary:rand_hex(11))/binary, ".csv">>,
-    'ok' = file:write_file(Tmp, row_to_iolist(Fields)),
-    lists:foreach(fun (Record) ->
-                          Row = [kz_json:get_ne_binary_value(Field, Record, ?ZILCH) || Field <- Fields],
-                          _ = file:write_file(Tmp, [row_to_iolist(Row)], ['append'])
-                  end
-                 ,Records
-                 ),
-    {'ok', IOData} = file:read_file(Tmp),
-    kz_os:delete_file(Tmp),
-    IOData.
 
 -spec write_header_to_file(file_return()) -> file_return().
 write_header_to_file({'undefined', _}=CSVAcc) -> CSVAcc;

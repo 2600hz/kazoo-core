@@ -241,24 +241,6 @@ mapped_row_data() ->
                                  }}
     ].
 
-json_to_iolist_test_() ->
-    Records1 = [kz_json:from_list([{<<"A">>, <<"a1">>}])
-               ,kz_json:from_list([{<<"A">>, <<"42">>}])
-               ],
-    Records2 = [kz_json:from_list([{<<"field1">>,?ZILCH}, {<<"field deux">>,<<"QUUX">>}])
-               ,kz_json:from_list([{<<"field deux">>, ?ZILCH}])
-               ,kz_json:from_list([{<<"field1">>, <<"r'bla.+\\n'">>}])
-               ],
-    Records3 = [kz_json:from_list([{<<"account_id">>,<<"account0000000000000000000000002">>}, {<<"e164">>,<<"+14157215234">>}, {<<"cnam.outbound">>,<<"me">>}])
-               ,kz_json:from_list([{<<"account_id">>,<<>>}, {<<"e164">>,<<"+14157215235">>}, {<<"cnam.outbound">>,<<>>}])
-               ],
-    [?_assertEqual(<<"\"A\"\n\"a1\"\n\"42\"\n">>, kz_csv:json_to_iolist(Records1))
-    ,?_assertEqual(<<"\"field1\",\"field deux\"\n,\"QUUX\"\n,\n\"r'bla.+\\n'\",\n">>
-                  ,kz_csv:json_to_iolist(Records2, [<<"field1">>,<<"field deux">>])
-                  )
-    ,?_assertEqual(<<"\"account_id\",\"e164\",\"cnam.outbound\"\n\"account0000000000000000000000002\",\"+14157215234\",\"me\"\n,\"+14157215235\",\n">>, kz_csv:json_to_iolist(Records3))
-    ].
-
 parse_test_() ->
     MixedJSONBin = <<"a,\"b\",\"\"\"c\"\"\",\"{\"\"data\"\": { \"\"id\"\": \"\"xxxxxxxxx\"\", \"\"int\"\": 20 \"\"bool\"\": false }, \"\"children\"\": {}}\"\n">>,
     MixedJSONResp = [<<"a">>
