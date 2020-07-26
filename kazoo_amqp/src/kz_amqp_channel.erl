@@ -225,7 +225,7 @@ basic_publish(#kz_amqp_assignment{channel=Channel
     assert_valid_amqp_method(BasicPub),
     _ = basic_publish(Assignment, BasicPub, AmqpMsg, channel_publish_method()),
     MsgId = extract_msg_id(AmqpMsg#'amqp_msg'.payload),
-    lager:debug("published(~s ~s) to ~s(~s) exchange (routing key ~s) via ~p"
+    amqp:debug("published(~s ~s) to ~s(~s) exchange (routing key ~s) via ~p"
                ,[MsgId, kz_term:pretty_print_bytes(iolist_size(AmqpMsg#'amqp_msg'.payload), 'truncated')
                 ,_Exchange, _Broker
                 ,_RK
@@ -238,7 +238,7 @@ basic_publish({'error', 'no_channel'}
                               }
              ,AmqpMsg
              ) ->
-    lager:debug("dropping payload to ~s exchange (routing key ~s): ~s"
+    amqp:debug("dropping payload to ~s exchange (routing key ~s): ~s"
                ,[_Exchange, _RK, AmqpMsg#'amqp_msg'.payload]
                );
 basic_publish(Channel
@@ -249,7 +249,7 @@ basic_publish(Channel
              ) when is_pid(Channel) ->
     assert_valid_amqp_method(BasicPub),
     _ = basic_publish(Channel, BasicPub, AmqpMsg, channel_publish_method()),
-    lager:debug("published to ~s(direct ~s) exchange (routing key ~s) via ~p"
+    amqp:debug("published to ~s(direct ~s) exchange (routing key ~s) via ~p"
                ,[_Exchange, kz_term:pretty_print_bytes(iolist_size(AmqpMsg#'amqp_msg'.payload), 'truncated')
                 ,_RK, Channel
                 ]
@@ -259,7 +259,7 @@ basic_publish(_, #'basic.publish'{exchange=_Exchange
                                  }
              ,AmqpMsg
              ) ->
-    lager:debug("dropping payload to ~s exchange (routing key ~s): ~s"
+    amqp:debug("dropping payload to ~s exchange (routing key ~s): ~s"
                ,[_Exchange, _RK, AmqpMsg#'amqp_msg'.payload]
                ).
 

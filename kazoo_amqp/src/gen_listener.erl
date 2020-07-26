@@ -1622,5 +1622,5 @@ maybe_gc(Heap, Max) when Heap > Max ->
     erlang:garbage_collect(self()),
     [{'total_heap_size', NewHeapWords}] = process_info(self(), ['total_heap_size']),
     NewHeap = kz_term:words_to_bytes(NewHeapWords),
-    lager:debug("new heap size ~p (delta ~p)", [NewHeap, Heap-NewHeap]);
+    amqp:debug("new heap size ~p (delta ~p)", [NewHeap, Heap-NewHeap]);
 maybe_gc(_Heap, _Max) -> 'ok'.
