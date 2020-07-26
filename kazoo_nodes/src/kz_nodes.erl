@@ -493,7 +493,7 @@ maybe_print_modules(Modules) ->
     format(?HEADER_COL ++ ": ", [<<"Modules">>]),
     L = kz_json:get_list_value(<<"loaded">>, Modules),
     Mods = lists:sort([N || <<"mod_", N/binary>> <- L]),
-    simple_list(Mods, 0).
+    simple_list(Mods, 7).
 
 -spec maybe_print_kapps(kz_term:proplist()) -> 'ok'.
 maybe_print_kapps(Whapps) ->
@@ -593,7 +593,7 @@ print_dispatcher({Group, Data})->
                   end
                  ,Sets
                  ),
-    simple_list(M, 0).
+    simple_list(M).
 
 -spec print_presence({kz_term:ne_binary(), kz_json:object()}) -> 'ok'.
 print_presence({Group, Data}) ->
@@ -642,26 +642,38 @@ print_media_server({Name, JObj}, Format) ->
 -spec maybe_print_node_info(kz_term:api_object() | kz_json:json_proplist()) -> 'ok'.
 maybe_print_node_info('undefined') -> 'ok';
 maybe_print_node_info([]) -> 'ok';
-maybe_print_node_info([First | Rest]) ->
-    format(?HEADER_COL ++ ": ", [<<"Node Info">>]),
-    print_node_info(First),
-    lists:foreach(fun print_each_node_info/1, Rest);
+maybe_print_node_info([_|_] = NodeInfo) ->
+    lists:foreach(fun print_node_info/1, NodeInfo);
 maybe_print_node_info(NodeInfo) ->
     maybe_print_node_info(kz_json:to_proplist(NodeInfo)).
 
--spec print_each_node_info({kz_term:ne_binary(), kz_term:ne_binary() | integer()}) -> 'ok'.
-print_each_node_info(KV) ->
-    format(?HEADER_COL "  ", [<<>>]),
-    print_node_info(KV).
+-spec print_node_info({kz_term:ne_binary(), term()}) -> 'ok'.
+print_node_info({<<"telemetry">>, Info}) ->
+    Leader = kz_json:get_ne_binary_value(<<"leader">>, Info),
+    format(?HEADER_COL ++ ": Leader is ~s~n", [<<"Telemetry">>, Leader]);
+print_node_info({<<"amqp">>, Info}) ->
+    kz_json:foreach(fun print_node_info/1, Info);
+print_node_info({<<"connections">>, Info}) ->
+    format(?HEADER_COL ++ ": ", [<<"AMQP Channels">>]),
+    simple_list(kz_json:foldr(fun print_amqp_info/3, [], Info), 2);
+print_node_info({<<"pools">>, Info}) ->
+    format(?HEADER_COL ++ ": ", [<<"AMQP Pools">>]),
+    simple_list(kz_json:foldr(fun print_pool_info/3, [], Info), 2);
+print_node_info(_Info) ->
+    format("~n").
 
--spec print_node_info({kz_term:ne_binary(), kz_term:ne_binary() | integer()}) -> 'ok'.
-print_node_info({<<"kazoo_telemetry">>, _}) -> 'ok';
-print_node_info({K, ?NE_BINARY = V}) ->
-    print_simple_row_str([K, V]);
-print_node_info({K, V}) when is_integer(V) ->
-    print_simple_row([K, V]);
-print_node_info({K, JObj}) ->
-    format("~s: ~s~n", [K, kz_json:encode(JObj)]).
+-spec print_amqp_info(kz_term:ne_binary(), term(), list()) -> list().
+print_amqp_info(Broker, Info, Acc) ->
+    ChannelCount = kz_json:get_integer_value(<<"channel_count">>, Info, 0),
+    [io_lib:format("~s (~B)", [format_broker(Broker), ChannelCount]) | Acc].
+
+-spec format_broker(kz_term:ne_binary()) -> kz_term:ne_binary().
+format_broker(Broker) ->
+    amqp_uri:remove_credentials(Broker).
+
+-spec print_pool_info(kz_term:ne_binary(), term(), list()) -> list().
+print_pool_info(Pool, Info, Acc) ->
+    [io_lib:format("~s : ~s", [Pool, Info]) | Acc].
 
 -spec status_list(kz_types:kapps_info(), 0..4) -> 'ok'.
 status_list([], _) -> format("~n", []);
@@ -684,16 +696,19 @@ status_list([{Whapp, #whapp_info{startup=Started,roles=Roles}}|Whapps], _Column)
     status_list(Whapps, 4).
 
 -spec simple_list(kz_term:ne_binaries()) -> 'ok'.
-simple_list(List) -> simple_list(List, 0).
+simple_list(List) -> simple_list(List, 4).
 
--spec simple_list(kz_term:ne_binaries(), 0..5) -> 'ok'.
-simple_list([], _) -> format("~n", []);
-simple_list(List, Column) when Column > 4 ->
+-spec simple_list(kz_term:ne_binaries(), integer()) -> 'ok'.
+simple_list(List, Size) -> simple_list(List, Size, 0).
+
+-spec simple_list(kz_term:ne_binaries(), Size :: integer(), integer()) -> 'ok'.
+simple_list([], _, _) -> format("~n", []);
+simple_list(List, Size, Column) when Column >= Size ->
     format("~n" ++ ?HEADER_COL ++ "  ", [""]),
-    simple_list(List, 0);
-simple_list([Item|Items], Column) ->
+    simple_list(List, Size, 0);
+simple_list([Item|Items], Size, Column) ->
     format("~s ", [Item]),
-    simple_list(Items, Column + 1).
+    simple_list(Items, Size, Column + 1).
 
 -spec flush() -> 'ok'.
 flush() ->
@@ -744,6 +759,7 @@ build_advertised_node(JObj, State) ->
     end.
 
 -spec update_advertised_node(kz_types:kz_node(), nodes_state()) -> pid() | 'true'.
+update_advertised_node(_Node, #state{has_ets=false}) -> true;
 update_advertised_node(Node, #state{has_ets=true}=State) ->
     case ets:insert_new(?TAB_NAME, Node) of
         'true' -> kz_process:spawn(fun notify_new/2, [Node, State]);
@@ -938,6 +954,8 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_json:object(), nodes_state()) -> gen_listener:handle_event_return().
+handle_event(_JObj, #state{has_ets=false}) ->
+    'ignore';
 handle_event(_JObj, #state{node=Node}) ->
     {'reply', [{'node', kz_term:to_binary(Node)}]}.
 
