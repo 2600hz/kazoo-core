@@ -131,7 +131,7 @@ handle_event(JObj, Props, #state{parent={Parent, _Ref}
                                 ,self_binary=Self
                                 ,zone=Zone
                                 }) ->
-    lager:debug("relaying federated ~s event (~p) ~s from ~s to ~p with consumer pid ~p",
+    amqp:debug("relaying federated ~s event (~p) ~s from ~s to ~p with consumer pid ~p",
                 [kz_api:event_category(JObj), kz_api:msg_id(JObj), kz_api:event_name(JObj), Zone, Parent, Self]
                ),
     RemoteServerId = list_to_binary(["consumer://"
