@@ -14,19 +14,25 @@
 -export([gen_private_key/0, gen_private_key/1]).
 -export([get_public_key/2]).
 -export([get_private_key_from_file/1]).
--export([from_pem/1, to_pem/1]).
+-export([from_pem/1, to_pem/1, to_pem/2]).
 -export([lookup/1, store/2, clear/0, clear/1]).
 -export([from_token/1]).
 
 -export([private_key/1, public_key/1]).
 
--export([new_private_key/1, new_private_key/2]).
+-export([new_private_key/1, new_private_key/2, new_private_key/3]).
 
 -export([reset_kazoo_private_key/0, reset_private_key/1]).
+
+-export([search/1]).
 
 -include("kazoo_auth.hrl").
 
 -type rsa_key() :: public_key:rsa_private_key() | public_key:rsa_public_key().
+-type to_pem_option() :: 'none' | 'export'.
+-type keyid() :: kz_term:ne_binary().
+-type search_result_row() :: {keyid(), rsa_key()}.
+-type search_result() :: {ok, [search_result_row()]} | {error, any()}.
 
 %%==============================================================================
 %% API functions
@@ -67,7 +73,18 @@ from_pem(PemContents) ->
 
 -spec to_pem(public_key:rsa_public_key() | public_key:rsa_private_key()) -> any().
 to_pem(RSA) ->
-    public_key:pem_encode([public_key:pem_entry_encode(element(1, RSA), RSA)]).
+    to_pem(RSA, 'none').
+
+-spec to_pem(public_key:rsa_public_key() | public_key:rsa_private_key(), to_pem_option()) -> any().
+to_pem(RSA, 'none') ->
+    public_key:pem_encode([public_key:pem_entry_encode(element(1, RSA), RSA)]);
+to_pem(RSA, 'export') ->
+    public_key:pem_encode([public_key:pem_entry_encode(export_asn_type(element(1, RSA)), RSA)]).
+
+-spec export_asn_type(public_key:asn1_type()) -> public_key:asn1_type().
+export_asn_type('RSAPublicKey') -> 'SubjectPublicKeyInfo';
+export_asn_type('RSAPrivateKey') -> 'PrivateKeyInfo';
+export_asn_type(ASN) -> ASN.
 
 -spec lookup(any()) -> {'ok', any()} | {'error', 'not_found'}.
 lookup(KeyId) ->
@@ -335,8 +352,13 @@ new_private_key(KeyId) ->
 
 -spec new_private_key(kz_term:ne_binary(), public_key:rsa_private_key()) -> {'ok', public_key:rsa_private_key()} | {'error', any()}.
 new_private_key(KeyId, Key) ->
+    new_private_key(KeyId, Key, []).
+
+-spec new_private_key(kz_term:ne_binary(), public_key:rsa_private_key(), kz_term:proplist()) -> {'ok', public_key:rsa_private_key()} | {'error', any()}.
+new_private_key(KeyId, Key, Metadata) ->
     Doc = [{<<"pvt_type">>, <<"system_key">>}
           ,{<<"_id">>, KeyId}
+           | Metadata
           ],
     JObj = kz_doc:update_pvt_parameters(kz_json:from_list(Doc), ?KZ_AUTH_DB),
 
@@ -405,3 +427,21 @@ reset_private_key(<<KeyId/binary>>) ->
             lager:error("failed to delete private key ~s: ~p", [KeyId, _Reason]),
             Error
     end.
+
+-define(QUERY_VIEW, <<"maintenance/listing_by_type">>).
+
+-spec data_output(kz_json:object()) -> search_result_row().
+data_output(JObj) ->
+    KeyId = kz_doc:id(JObj),
+    {ok, Key} = private_key(KeyId),
+    {KeyId, Key}.
+
+-spec search(kz_term:ne_binary()) -> search_result().
+search(Query) ->
+    Q = #{query => Query
+         ,collector => #{'fun' => fun kz_datamgr:get_result_docs/3
+                        ,params => [?KZ_AUTH_DB, ?QUERY_VIEW, [<<"system_key">>]]
+                        }
+         ,output => #{'fun' => fun data_output/1}
+        },
+    kz_json_query:query(Q).

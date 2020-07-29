@@ -30,6 +30,7 @@
                   ,?CACHE_ARGS(?TOKENS_CACHE, ?CACHE_PROPS)
                   ,?CACHE_ARGS(?PROFILE_CACHE, ?CACHE_PROPS)
                   ,?WORKER('kz_auth_init')
+                  ,?WORKER('kz_auth_listener')
                   ]).
 
 %%==============================================================================
