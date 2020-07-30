@@ -30,9 +30,9 @@
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
--spec cidr(doc()) -> cidr() | undefined.
+-spec cidr(doc()) -> cidr() | 'undefined'.
 cidr(Doc) ->
-    cidr(Doc, undefined).
+    cidr(Doc, 'undefined').
 
 -spec cidr(doc(), Default) -> cidr() | Default.
 cidr(Doc, Default) ->
