@@ -240,7 +240,7 @@ profile(EndpointId, AccountId) ->
 
 -spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
-    case kz_endpoint:get(EndpointId, AccountId) of
+    case kz_endpoint:get(EndpointId, AccountId, Options) of
         {'ok', Endpoint} -> maybe_generate_profile(EndpointId, AccountId, Endpoint, Options);
         Error -> Error
     end.
@@ -340,6 +340,7 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
               ,{<<"Codecs">>, get_codecs(Endpoint)}
               ,{<<"CallForward">> , maybe_build_call_forward(EndpointId, AccountId, Endpoint)}
               ,{<<"Expires">>, 360}
+              ,{<<"SIP-Invite-Route-URI">>, kzd_devices:sip_route(Endpoint)}
               ],
     {'ok', kz_json:from_list(Profile)}.
 

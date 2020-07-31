@@ -100,6 +100,8 @@ collect(#{collector := #{'fun' := Fun, params := Params}} = Map) ->
         _Exc:_Err:_ST ->
             Map#{error => _Err}
     end;
+collect(#{collector := #{'fun' := _Fun} = Collector} = Map) ->
+    collect(Map#{collector => Collector#{params => []}});
 collect(Map) ->
     Map#{error => no_collection_or_collector}.
 
