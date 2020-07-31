@@ -12,7 +12,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_endpoint_v4).
 
--export([get/1, get/2]).
+-export([get/1, get/2, get/3]).
 -export([flush_account/1
         ,flush_account_local/1
         ,flush/2
@@ -123,6 +123,10 @@ get(EndpointId, AccountDb) when is_binary(AccountDb) ->
     end;
 get(EndpointId, Call) ->
     get(EndpointId, kapps_call:account_db(Call)).
+
+-spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call(), kz_term:proplist()) -> std_return().
+get(EndpointId, Call, _Options) ->
+    get(EndpointId, Call).
 
 -spec maybe_fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |

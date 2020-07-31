@@ -12,7 +12,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_endpoint_v5).
 
--export([get/1, get/2]).
+-export([get/1, get/2, get/3]).
 -export([flush_account/1
         ,flush_account_local/1
         ,flush/2
@@ -126,17 +126,40 @@ get(EndpointId, AccountDb) when is_binary(AccountDb) ->
 get(EndpointId, Call) ->
     get(EndpointId, kapps_call:account_db(Call)).
 
+-spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call(), kz_term:proplist()) -> std_return().
+get(EndpointId, ?MATCH_ACCOUNT_RAW(AccountId), Options) ->
+    get(EndpointId, kzs_util:format_account_db(AccountId), Options);
+get(EndpointId, AccountDb, Options) when is_binary(AccountDb) ->
+    case kz_cache:peek_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
+        {'ok', _Endpoint}=Ok ->
+            lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
+            Ok;
+        {'error', 'not_found'} ->
+            maybe_fetch_endpoint(EndpointId, AccountDb, Options)
+    end;
+get(EndpointId, Call, Options) ->
+    get(EndpointId, kapps_call:account_db(Call), Options).
+
 -spec maybe_fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 maybe_fetch_endpoint(EndpointId, AccountDb) ->
+    maybe_fetch_endpoint(EndpointId, AccountDb, []).
+
+-spec maybe_fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+maybe_fetch_endpoint(EndpointId, AccountDb, Options) ->
+    AltJObj = props:get_value(endpoint, Options),
     case kzd_devices:fetch(AccountDb, EndpointId) of
         {'ok', JObj} ->
             lager:debug("fetched endpoint ~s: ~s", [EndpointId, kz_doc:revision(JObj)]),
             check_endpoint_type(JObj, EndpointId, AccountDb);
-        {'error', _R}=E ->
+        {'error', _R}=E when AltJObj =:= undefined ->
             lager:info("unable to fetch endpoint ~s: ~p", [EndpointId, _R]),
-            E
+            E;
+        {'error', _} ->
+            check_endpoint_type(AltJObj, EndpointId, AccountDb)
     end.
 
 -spec check_endpoint_type(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) ->

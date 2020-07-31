@@ -240,7 +240,7 @@ profile(EndpointId, AccountId) ->
 
 -spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
-    case kz_endpoint:get(EndpointId, AccountId) of
+    case kz_endpoint:get(EndpointId, AccountId, Options) of
         {'ok', Endpoint} -> maybe_generate_profile(EndpointId, AccountId, Endpoint, Options);
         Error -> Error
     end.
