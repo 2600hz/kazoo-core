@@ -12,13 +12,13 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_endpoint).
 
--export([get/1, get/2]).
+-export([get/1, get/2, get/3]).
 -export([flush_account/1
         ,flush_account_local/1
         ,flush/2
         ,flush_local/2
         ]).
--export([build/2, build/3]).
+-export([build/2, build/3, build/4]).
 -export([create_call_fwd_endpoint/3
         ,create_sip_endpoint/3
         ,maybe_start_metaflow/2
@@ -49,7 +49,10 @@
 get(Call) -> ?MOD:get(Call).
 
 -spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call()) -> std_return().
-get(EndpointId, _Call) -> ?MOD:get(EndpointId, _Call).
+get(EndpointId, Call) -> ?MOD:get(EndpointId, Call).
+
+-spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call(), kz_term:proplist()) -> std_return().
+get(EndpointId, Call, Options) -> ?MOD:get(EndpointId, Call, Options).
 
 -ifdef(TEST).
 attributes_keys() -> ?MOD:attributes_keys().
@@ -99,6 +102,15 @@ build(EndpointId, Call) -> ?MOD:build(EndpointId, Call).
           {'ok', kz_json:objects()} |
           {'error', build_errors()}.
 build(EndpointId, Properties, Call) -> ?MOD:build(EndpointId, Properties, Call).
+
+-spec build(kz_term:api_ne_binary() | kz_json:object(), kz_term:api_object(), kapps_call:call(), kz_term:proplist()) ->
+          {'ok', kz_json:objects()} |
+          {'error', build_errors()}.
+build(EndpointId, Properties, Call, Options) ->
+    case ?MOD:get(EndpointId, Call, Options) of
+        {'ok', Endpoint} -> build(Endpoint, Properties, Call);
+        {'error', _}=E -> E
+    end.
 
 -spec maybe_start_metaflow(kapps_call:call(), kz_json:object()) -> 'ok'.
 maybe_start_metaflow(Call, Endpoint) -> ?MOD:maybe_start_metaflow(Call, Endpoint).
