@@ -340,6 +340,7 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
               ,{<<"Codecs">>, get_codecs(Endpoint)}
               ,{<<"CallForward">> , maybe_build_call_forward(EndpointId, AccountId, Endpoint)}
               ,{<<"Expires">>, 360}
+              ,{<<"SIP-Invite-Route-URI">>, kzd_devices:sip_route(Endpoint)}
               ],
     {'ok', kz_json:from_list(Profile)}.
 
