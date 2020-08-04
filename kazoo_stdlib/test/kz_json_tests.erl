@@ -280,7 +280,6 @@ prop_merge_right_recursive() ->
                                    ,[LeftJObj, RightJObj, MergedJObj]
                                    )
                          ,are_all_properties_found(MergedJObj, RightJObj)
-                          andalso are_all_keys_found(MergedJObj, LeftJObj)
                          )
             end
            ).
