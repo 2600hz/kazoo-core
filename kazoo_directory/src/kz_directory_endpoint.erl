@@ -45,4 +45,4 @@ profile(EndpointId, AccountId, Options, <<"group">>) ->
 profile(EndpointId, AccountId, Options, <<"sys_info">>) ->
     kz_directory_trunkstore:profile(EndpointId, AccountId, Options);
 profile(_EndpointId, _AccountId, _Options, _Type) ->
-    {error, not_found}.
+    {'error', 'not_found'}.
