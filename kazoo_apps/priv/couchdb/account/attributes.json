@@ -94,7 +94,8 @@
                 "    for (owner_id in doc.hotdesk.users) {",
                 "      emit([owner_id, doc.pvt_type], doc._id);",
                 "    };",
-                "  } else if (doc.owner_id) {",
+                "  }",
+                "  if (doc.owner_id) {",
                 "    emit([doc.owner_id, doc.pvt_type], doc._id);",
                 "  }",
                 "}"

@@ -57,7 +57,7 @@ owner_id(Endpoint, CCVs) ->
                        ,{<<"Authorizing-Type">>, kz_doc:type(Endpoint)}
                        ,{<<"Owner-ID">>, kz_doc:id(Endpoint)}
                        ]
-                       ,CCVs
+                      ,CCVs
                       ).
 
 -spec hold_music(kz_json:object(), kz_json:object()) -> kz_json:object().
