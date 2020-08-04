@@ -280,7 +280,7 @@ prop_merge_right_recursive() ->
                                    ,[LeftJObj, RightJObj, MergedJObj]
                                    )
                          ,are_all_properties_found(MergedJObj, RightJObj)
-                          andalso are_all_keys_found(MergedJObj, LeftJObj)
+                          andalso are_all_keys_found(MergedJObj, kz_json:delete_keys(kz_json:get_keys(RightJObj), LeftJObj))
                          )
             end
            ).
