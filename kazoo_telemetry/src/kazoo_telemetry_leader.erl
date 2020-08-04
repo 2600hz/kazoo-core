@@ -150,21 +150,19 @@ handle_cast('leader_change', #state{leader=OldLeader}=State) ->
             {'noreply', NewState};
         'true' ->
             lager:debug("elected telemetry leader starting responders"),
-            _Pids = lists:foldl(fun responder_start_fold/2, [], State#state.responders),
+            _ = lists:foreach(fun responder_start_fold/1, State#state.responders),
             {'noreply', NewState}
     end;
 handle_cast(_Msg, State) ->
     {'noreply', State}.
 
--spec responder_start_fold(kz_term:ne_binary(), kz_term:proplist()) -> kz_term:proplist().
-responder_start_fold(App, Acc) ->
+-spec responder_start_fold(kz_term:ne_binary()) -> 'ok'.
+responder_start_fold(App) ->
   case (kz_term:to_atom(App)):start_link() of
-    {'ok', Pid} -> 
-      [{App, Pid} | Acc];
     {'error', _R} ->
       lager:debug("issue starting telemetry responder: ~p", [_R]),
-      Acc;
-    _ -> Acc
+      'ok';
+    _ -> 'ok'
   end.
 
 %%------------------------------------------------------------------------------
