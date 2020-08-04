@@ -150,11 +150,22 @@ handle_cast('leader_change', #state{leader=OldLeader}=State) ->
             {'noreply', NewState};
         'true' ->
             lager:debug("elected telemetry leader starting responders"),
-            _Pids = lists:foldl(fun(App, Acc) -> {'ok', Pid} = (kz_term:to_atom(App)):start_link(), [{App, Pid} | Acc] end,[], State#state.responders),
+            _Pids = lists:foldl(fun responder_start_fold/2, [], State#state.responders),
             {'noreply', NewState}
     end;
 handle_cast(_Msg, State) ->
     {'noreply', State}.
+
+-spec responder_start_fold(kz_term:ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+responder_start_fold(App, Acc) ->
+  case (kz_term:to_atom(App)):start_link() of
+    {'ok', Pid} -> 
+      [{App, Pid} | Acc];
+    {'error', _R} ->
+      lager:debug("issue starting telemetry responder: ~p", [_R]),
+      Acc;
+    _ -> Acc
+  end.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling all non call/cast messages
