@@ -18,8 +18,7 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch(kz_services:services() | kz_term:api_ne_binary()) -> kzd_limits:doc().
-fetch('undefined') -> 'undefined';
+-spec fetch(kz_services:services() | kz_term:ne_binary()) -> kzd_limits:doc().
 fetch(<<AccountId/binary>>) ->
     fetch(kz_services:fetch(AccountId));
 fetch(Services) ->
