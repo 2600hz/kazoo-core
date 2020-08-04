@@ -621,7 +621,7 @@ rm_aggregate_device(Db, Device) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_destination(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {kz_term:ne_binary(), kz_term:ne_binary()}.
+          {kz_term:api_binary(), kz_term:api_binary()}.
 get_destination(JObj, Cat, Key) ->
     case kapps_config:get(Cat, Key, <<"Request">>) of
         <<"To">> ->
@@ -631,7 +631,7 @@ get_destination(JObj, Cat, Key) ->
     end.
 
 -spec get_destination(kz_json:object(), kz_term:ne_binaries()) ->
-          {kz_term:ne_binary(), kz_term:ne_binary()}.
+          {kz_term:api_binary(), kz_term:api_binary()}.
 get_destination(JObj, [Key|Keys]) ->
     case maybe_split(Key, JObj) of
         [User,Realm] -> {User,Realm};
@@ -648,7 +648,7 @@ get_destination(JObj, []) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_origination(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {kz_term:ne_binary(), kz_term:ne_binary()}.
+          {kz_term:api_binary(), kz_term:api_binary()}.
 get_origination(JObj, Cat, Key) ->
     case kapps_config:get(Cat, Key, <<"From">>) of
         <<"From">> ->
@@ -658,7 +658,7 @@ get_origination(JObj, Cat, Key) ->
     end.
 
 -spec get_origination(kz_json:object(), kz_term:ne_binaries()) ->
-          {kz_term:ne_binary(), kz_term:ne_binary()}.
+          {kz_term:api_binary(), kz_term:api_binary()}.
 get_origination(JObj, [Key|Keys]) ->
     case maybe_split(Key, JObj) of
         [User,Realm] ->
@@ -669,10 +669,11 @@ get_origination(JObj, [Key|Keys]) ->
 get_origination(_JObj, []) ->
     {'undefined', 'undefined'}.
 
+-spec maybe_split(kz_json:get_key(), kz_json:object()) -> kz_term:api_binaries().
 maybe_split(Key, JObj) ->
     case kz_json:get_ne_binary_value(Key, JObj) of
-        undefined -> undefined;
-        <<"nouser@",_/binary>> -> undefined;
+        'undefined' -> 'undefined';
+        <<"nouser@",_/binary>> -> 'undefined';
         Bin -> binary:split(Bin, <<"@">>)
     end.
 
