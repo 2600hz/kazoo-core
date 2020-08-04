@@ -205,12 +205,16 @@ node_apps_rollup_name(App, Acc) ->
 %%------------------------------------------------------------------------------
 -spec node_apps_rollup_runtime(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 node_apps_rollup_runtime(App, Acc) ->
-    Name = kz_json:get_value(<<"name">>, App),
-    Startup = kz_json:get_value(<<"startup">>, App),
-    Elapsed = kz_time:elapsed_s(Startup),
-    Key = <<(?RT_STATS_KEY)/binary,"apps.",(format_wg_id([Name]))/binary,".uptime">>,
-    Val = kz_json:get_value(Key, Acc, []),
-    kz_json:set_value(Key, [Elapsed | Val], Acc).
+    case kz_json:get_integer_value(<<"startup">>, App) of
+        undefined -> Acc;
+        Startup ->
+            Name = kz_json:get_value(<<"name">>, App),
+            Startup = kz_json:get_value(<<"startup">>, App),
+            Elapsed = kz_time:elapsed_s(Startup),
+            Key = <<(?RT_STATS_KEY)/binary,"apps.",(format_wg_id([Name]))/binary,".uptime">>,
+            Val = kz_json:get_value(Key, Acc, []),
+            kz_json:set_value(Key, [Elapsed | Val], Acc)
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
