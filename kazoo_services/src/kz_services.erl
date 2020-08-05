@@ -912,7 +912,7 @@ create(AccountId) ->
           kz_term:api_object().
 create(_AccountId, {'error', 'not_found'}) ->
     lager:info("failed to find account database for ~s", [_AccountId]),
-    'undefined';
+    throw({'error', 'not_found'});
 create(AccountId, {'ok', AccountJObj}) ->
     ResellerId = kz_services_reseller:find_id(AccountId),
     BaseJObj = kz_doc:update_pvt_parameters(kz_json:new()
