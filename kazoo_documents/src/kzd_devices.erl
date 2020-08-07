@@ -77,6 +77,7 @@
 -export([sip_proxy/1, sip_proxy/2, set_sip_proxy/2]).
 -export([sip_realm/1, sip_realm/2, set_sip_realm/2]).
 -export([sip_route/1, sip_route/2, set_sip_route/2]).
+-export([sip_route_uri/1, sip_route_uri/2, set_sip_route_uri/2]).
 -export([sip_static_invite/1, sip_static_invite/2, set_sip_static_invite/2]).
 -export([sip_static_route/1, sip_static_route/2, set_sip_static_route/2]).
 -export([sip_transport/1, sip_transport/2, set_sip_transport/2]).
@@ -978,6 +979,18 @@ sip_route(Doc, Default) ->
 -spec set_sip_route(doc(), binary()) -> doc().
 set_sip_route(Doc, SipRoute) ->
     kz_json:set_value([<<"sip">>, <<"route">>], SipRoute, Doc).
+
+-spec sip_route_uri(doc()) -> kz_term:api_binary().
+sip_route_uri(Doc) ->
+    sip_route_uri(Doc, 'undefined').
+
+-spec sip_route_uri(doc(), Default) -> binary() | Default.
+sip_route_uri(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"sip">>, <<"route_uri">>], Doc, Default).
+
+-spec set_sip_route_uri(doc(), binary()) -> doc().
+set_sip_route_uri(Doc, SipRoute) ->
+    kz_json:set_value([<<"sip">>, <<"route_uri">>], SipRoute, Doc).
 
 -spec sip_static_invite(doc()) -> kz_term:api_binary().
 sip_static_invite(Doc) ->
