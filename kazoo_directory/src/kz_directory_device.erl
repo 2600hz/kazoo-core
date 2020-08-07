@@ -36,7 +36,6 @@ convert_endpoint_type(<<"softphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"cellphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"landline">>) -> <<"sip">>;
 convert_endpoint_type(<<"fax">>) -> <<"sip">>;
-convert_endpoint_type(<<"skype">>) -> <<"skype">>;
 convert_endpoint_type(<<"mobile">>) -> <<"mobile">>;
 convert_endpoint_type(_Else) -> 'undefined'.
 
@@ -54,7 +53,6 @@ guess_endpoint_type(Endpoint) ->
     guess_endpoint_type(Endpoint
                        ,[<<"mobile">>
                         ,<<"sip">>
-                        ,<<"skype">>
                         ]
                        ).
 
