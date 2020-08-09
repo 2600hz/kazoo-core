@@ -17,6 +17,70 @@
 
 -include("kazoo_directory.hrl").
 
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+profile(EndpointId, AccountId) ->
+    profile(EndpointId, AccountId, []).
+
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+profile(EndpointId, AccountId, Options) ->
+    case kz_endpoint:get(EndpointId, AccountId, Options) of
+        {'ok', Endpoint} -> maybe_generate_profile(EndpointId, AccountId, Endpoint, Options);
+        Error -> Error
+    end.
+
+-spec maybe_generate_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+maybe_generate_profile(EndpointId, AccountId, Endpoint, Options) ->
+    case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
+        <<"device">> ->
+            case get_device_module(Endpoint) of
+                undefined -> {'error', 'not_device'};
+                Module -> generate_profile(EndpointId, AccountId, Endpoint, Options, Module)
+            end;
+        _ -> {'error', 'not_device'}
+    end.
+
+-spec generate_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
+generate_profile(EndpointId, AccountId, Endpoint, _Options, Module) ->
+    CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Module),
+    SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Module),
+
+    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
+    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
+
+    CPVs = [{<<"Internal-Caller-ID-Number">>, CIDNumber}
+           ,{<<"Internal-Caller-ID-Name">>, CIDName}
+           ,{<<"External-Caller-ID-Number">>, CEDNumber}
+           ,{<<"External-Caller-ID-Name">>, CEDName}
+           ,{<<"Account-ID">>, AccountId}
+           ,{<<"Endpoint-ID">>, EndpointId}
+           ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
+           ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
+           ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
+           ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
+           ],
+    Profile = [{<<"Endpoint-Type">>, <<"device">>}
+              ,{<<"Domain-Name">>, AccountId}
+              ,{<<"User-ID">>, EndpointId}
+              ,{<<"Account-ID">>, AccountId}
+              ,{<<"Custom-Channel-Vars">>, CCVs}
+              ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
+              ,{<<"Custom-SIP-Headers">>, SIPHeaders}
+              ,{<<"Codecs">>, Module:codecs(Endpoint)}
+              ,{<<"SIP-Invite-Route-URI">>, Module:sip_route(Endpoint)}
+              ,{<<"SIP-Proxy-Route-URI">>, Module:sip_route_uri(Endpoint)}
+              ,{<<"SIP-Interface">>, Module:sip_interface(Endpoint)}
+              ,{<<"CallForward">> , maybe_build_call_forward(EndpointId, AccountId, Endpoint)}
+              ,{<<"Expires">>, 360}
+              ],
+    {'ok', kz_json:from_list(Profile)}.
+
+-spec get_device_module(kz_json:object()) -> atom().
+get_device_module(Endpoint) ->
+    case get_endpoint_type(Endpoint) of
+        <<"unknown">> -> undefined;
+        Type -> kz_term:to_atom(<<"kz_directory_device_", Type/binary>>, true)
+    end.
+
 -spec get_endpoint_type(kz_json:object()) -> kz_term:ne_binary().
 get_endpoint_type(Endpoint) ->
     Type = kz_json:get_first_defined([<<"endpoint_type">>
@@ -36,7 +100,6 @@ convert_endpoint_type(<<"softphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"cellphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"landline">>) -> <<"sip">>;
 convert_endpoint_type(<<"fax">>) -> <<"sip">>;
-convert_endpoint_type(<<"skype">>) -> <<"skype">>;
 convert_endpoint_type(<<"mobile">>) -> <<"mobile">>;
 convert_endpoint_type(_Else) -> 'undefined'.
 
@@ -54,7 +117,6 @@ guess_endpoint_type(Endpoint) ->
     guess_endpoint_type(Endpoint
                        ,[<<"mobile">>
                         ,<<"sip">>
-                        ,<<"skype">>
                         ]
                        ).
 
@@ -106,38 +168,9 @@ hold_music(Endpoint, CCVs) ->
             kz_json:set_value(<<"Hold-Media">>, MOH, CCVs)
     end.
 
--spec set_invite_uri(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
-set_invite_uri(URI, CCVs) ->
-    kz_json:set_values([{<<"SIP-Invite-To-URI">>, URI}
-                       ,{<<"SIP-Invite-Request-URI">>, URI}
-                       ], CCVs).
-
--spec set_invite_uri(kz_term:api_ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
-set_invite_uri('undefined', _Realm, CCVs) -> CCVs;
-set_invite_uri(URIUser, Realm, CCVs) ->
-    URI = <<"sip:", URIUser/binary, "@", Realm/binary>>,
-    set_invite_uri(URI, CCVs).
-
--type invite_uri_fun() :: fun((kz_term:ne_binary()) -> kz_term:ne_binary()).
-
--spec set_invite_uri(invite_uri_fun(), kz_term:api_ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
-set_invite_uri(_Fun, 'undefined', RuntimeContextField, Realm, CCVs) ->
-    set_invite_uri(<<"${kz_ctx_request_", RuntimeContextField/binary, "}">>, Realm, CCVs);
-set_invite_uri(Fun, URIUser, _RuntimeContextField, Realm, CCVs) ->
-    set_invite_uri(Fun(URIUser), Realm, CCVs).
-
--spec invite_uri(kz_json:object(), kz_json:object()) -> kz_json:object().
-invite_uri(Endpoint, CCVs) ->
-    Realm = get_realm(Endpoint),
-    case kzd_devices:sip_invite_format(Endpoint) of
-        <<"route">> -> set_invite_uri(kzd_devices:sip_route(Endpoint), CCVs);
-        <<"e164">> -> set_invite_uri(fun knm_converters:normalize/1, kzd_devices:sip_number(Endpoint), <<"e164">>, Realm, CCVs);
-        <<"1npan">> -> set_invite_uri(fun knm_converters:to_1npan/1, kzd_devices:sip_number(Endpoint), <<"1npan">>, Realm, CCVs);
-        <<"npan">> -> set_invite_uri(fun knm_converters:to_npan/1, kzd_devices:sip_number(Endpoint), <<"npan">>, Realm, CCVs);
-        <<"strip_plus">> -> set_invite_uri(fun knm_converters:to_strip_plus/1, kzd_devices:sip_number(Endpoint), <<"strip_plus">>, Realm, CCVs);
-        <<"contact">> -> set_invite_uri(kzd_devices:sip_username(Endpoint), Realm, CCVs);
-        <<"username">> -> set_invite_uri(kzd_devices:sip_username(Endpoint), Realm, CCVs)
-    end.
+-spec invite_uri(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+invite_uri(Module, Endpoint, CCVs) ->
+    Module:invite_uri(Endpoint, CCVs).
 
 -spec rtcp_mux(kz_json:object(), kz_json:object()) -> kz_json:object().
 rtcp_mux(Endpoint, CCVs) ->
@@ -178,16 +211,16 @@ progress_timeout(Endpoint, CCVs) ->
         _Else -> CCVs
     end.
 
--spec ignore_early_media(kz_json:object(), kz_json:object()) -> kz_json:object().
-ignore_early_media(Endpoint, CCVs) ->
-    case kz_json:is_true([<<"media">>, <<"ignore_early_media">>], Endpoint) of
+-spec ignore_early_media(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+ignore_early_media(Mod, Endpoint, CCVs) ->
+    case Mod:ignore_early_media(Endpoint) of
         'true' -> kz_json:set_value(<<"Ignore-Early-Media">>, 'true', CCVs);
         'false' -> CCVs
     end.
 
--spec bypass_media(kz_json:object(), kz_json:object()) -> kz_json:object().
-bypass_media(Endpoint, CCVs) ->
-    case kz_json:is_true([<<"media">>, <<"bypass_media">>], Endpoint) of
+-spec bypass_media(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+bypass_media(Mod, Endpoint, CCVs) ->
+    case Mod:bypass_media(Endpoint) of
         'true' -> kz_json:set_value(<<"Bypass-Media">>, 'true', CCVs);
         'false' -> CCVs
     end.
@@ -225,28 +258,8 @@ add_alert_info(Endpoint, CCVs) ->
                 ],
     kz_json:set_values(AlertInfo, CCVs).
 
--spec get_codecs(kz_json:object()) -> 'undefined' | kz_term:ne_binaries().
-get_codecs(JObj) ->
-    case kz_json:get_list_value([<<"media">>, <<"audio">>, <<"codecs">>], JObj, [])
-        ++ kz_json:get_list_value([<<"media">>, <<"video">>, <<"codecs">>], JObj, [])
-    of
-        [] -> 'undefined';
-        Codecs -> Codecs
-    end.
-
--spec profile(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
-profile(EndpointId, AccountId) ->
-    profile(EndpointId, AccountId, []).
-
--spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
-profile(EndpointId, AccountId, Options) ->
-    case kz_endpoint:get(EndpointId, AccountId, Options) of
-        {'ok', Endpoint} -> maybe_generate_profile(EndpointId, AccountId, Endpoint, Options);
-        Error -> Error
-    end.
-
--spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
-generate_ccvs(_EndpointId, AccountId, Endpoint) ->
+-spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), module()) -> kz_json:object().
+generate_ccvs(_EndpointId, AccountId, Endpoint, Module) ->
     Realm = kzd_devices:sip_realm(Endpoint, kz_json:get_ne_binary_value(<<"realm">>, Endpoint)),
     Props = [{<<"Account-ID">>, AccountId}
             ,{<<"Reseller-ID">>, kz_services_reseller:get_id(AccountId)}
@@ -266,19 +279,19 @@ generate_ccvs(_EndpointId, AccountId, Endpoint) ->
               ,{fun presence_id/2, Endpoint}
               ,{fun add_alert_info/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
-              ,{fun invite_uri/2, Endpoint}
+              ,{fun invite_uri/3, Module, Endpoint}
               ,{fun call_waiting/2, Endpoint}
               ,{fun progress_timeout/2, Endpoint}
-              ,{fun ignore_early_media/2, Endpoint}
-              ,{fun bypass_media/2, Endpoint}
+              ,{fun ignore_early_media/3, Module, Endpoint}
+              ,{fun bypass_media/3, Module, Endpoint}
               ,{fun ignore_completed_elsewhere/2, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
--spec generate_sip_headers(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
-generate_sip_headers(_EndpointId, _AccountId, Endpoint) ->
+-spec generate_sip_headers(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), module()) -> kz_json:object().
+generate_sip_headers(_EndpointId, _AccountId, Endpoint, Module) ->
     HeaderFuns = [{fun add_sip_headers/2, Endpoint}
-                 ,{fun maybe_add_aor/2, Endpoint}
+                 ,{fun maybe_add_aor/3, Module, Endpoint}
                  ],
     kz_json:exec(HeaderFuns, kz_json:new()).
 
@@ -289,61 +302,20 @@ add_sip_headers(Endpoint, Headers) ->
         CustomHeaders -> kz_json:merge_jobjs(CustomHeaders, Headers)
     end.
 
--spec maybe_add_aor(kz_json:object(), kz_json:object()) -> kz_json:object().
-maybe_add_aor(Endpoint, Headers) ->
+-spec maybe_add_aor(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+maybe_add_aor(Module, Endpoint, Headers) ->
     Username = kzd_devices:sip_username(Endpoint),
-    maybe_add_aor(Username, Endpoint, Headers).
+    maybe_add_aor(Module, Username, Endpoint, Headers).
 
--spec maybe_add_aor(kz_term:api_binary(), kz_json:object(), kz_json:object()) -> kz_json:object().
-maybe_add_aor('undefined', _Endpoint, Headers) -> Headers;
-maybe_add_aor(Username, Endpoint, Headers) ->
+-spec maybe_add_aor(module(), kz_term:api_binary(), kz_json:object(), kz_json:object()) -> kz_json:object().
+maybe_add_aor(_Mod, 'undefined', _Endpoint, Headers) -> Headers;
+maybe_add_aor(Mod, Username, Endpoint, Headers) ->
     Realm = kzd_devices:sip_realm(Endpoint,  kz_json:get_ne_binary_value(<<"realm">>, Endpoint)),
-    Format = kzd_devices:sip_invite_format(Endpoint),
+    Format = Mod:invite_format(Endpoint),
     AOR = [{<<"X-KAZOO-AOR">>, <<"sip:", Username/binary, "@", Realm/binary>>}
           ,{<<"X-KAZOO-INVITE-FORMAT">>, Format}
           ],
     kz_json:set_values(AOR, Headers).
-
--spec maybe_generate_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-maybe_generate_profile(EndpointId, AccountId, Endpoint, Options) ->
-    case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
-        <<"device">> -> generate_profile(EndpointId, AccountId, Endpoint, Options);
-        _ -> {'error', 'not_device'}
-    end.
-
--spec generate_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
-    CCVs = generate_ccvs(EndpointId, AccountId, Endpoint),
-    SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint),
-
-    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
-    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
-
-    CPVs = [{<<"Internal-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Internal-Caller-ID-Name">>, CIDName}
-           ,{<<"External-Caller-ID-Number">>, CEDNumber}
-           ,{<<"External-Caller-ID-Name">>, CEDName}
-           ,{<<"Account-ID">>, AccountId}
-           ,{<<"Endpoint-ID">>, EndpointId}
-           ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
-           ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
-           ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
-           ],
-    Profile = [{<<"Endpoint-Type">>, <<"device">>}
-              ,{<<"Domain-Name">>, AccountId}
-              ,{<<"User-ID">>, EndpointId}
-              ,{<<"Account-ID">>, AccountId}
-              ,{<<"Custom-Channel-Vars">>, CCVs}
-              ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
-              ,{<<"Custom-SIP-Headers">>, SIPHeaders}
-              ,{<<"Codecs">>, get_codecs(Endpoint)}
-              ,{<<"CallForward">> , maybe_build_call_forward(EndpointId, AccountId, Endpoint)}
-              ,{<<"Expires">>, 360}
-              ,{<<"SIP-Invite-Route-URI">>, kzd_devices:sip_route(Endpoint)}
-              ],
-    {'ok', kz_json:from_list(Profile)}.
-
 
 -spec is_call_forward_enabled(kz_json:object()) -> boolean().
 is_call_forward_enabled(Endpoint) ->
