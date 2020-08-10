@@ -1714,9 +1714,15 @@ maybe_set_account_id({Endpoint, Call, CallFwd, CCVs}) ->
 -spec maybe_set_call_forward(ccv_acc()) -> ccv_acc().
 maybe_set_call_forward({_Endpoint, _Call, 'undefined', _CCVs}=Acc) ->
     Acc;
-maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}) ->
+maybe_set_call_forward({_Endpoint, _Call, CallFwd, _CCVs} = Acc) ->
+    Number = kz_json:get_ne_binary_value(<<"number">>, CallFwd),
+    maybe_set_call_forward(Acc, Number).
+
+-spec maybe_set_call_forward(ccv_acc(), kz_term:api_ne_binary()) -> ccv_acc().
+maybe_set_call_forward(Acc, undefined) -> Acc;
+maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
     LoopBackUri = list_to_binary(["sip:"
-                                 ,kz_json:get_value(<<"number">>, CallFwd)
+                                 ,Number
                                  ,"@"
                                  ,kapps_call:account_realm(Call)
                                  ]),
