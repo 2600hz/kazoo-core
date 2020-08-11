@@ -1252,7 +1252,7 @@ generate_diff_obj(CurrentServicesJObj, ProposedServicesJObj) ->
     Key = <<"quantities">>,
     PQ = kz_json:get_json_value(Key, ProposedServicesJObj),
     CQ = kz_json:get_json_value(Key, CurrentServicesJObj),
-    Diffs = kz_json:diff(CQ, PQ),
+    Diffs = kz_json:diff(PQ, CQ),
     Keys = kz_json:get_keys(kz_json:flatten(Diffs)),
     calculate_diffs({Keys, CQ, PQ}, []).
 
