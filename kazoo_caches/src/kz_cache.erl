@@ -42,7 +42,8 @@
                         {'new_node_flush', boolean()} |
                         {'expire_node_flush', boolean()} |
                         {'new_channel_flush', boolean()} |
-                        {'channel_reconnect_flush', boolean()}.
+                        {'channel_reconnect_flush', boolean()} |
+                        {'flush_callback', flush_callback_fun()}.
 -type start_options() :: [start_option()].
 
 -export_type([store_options/0

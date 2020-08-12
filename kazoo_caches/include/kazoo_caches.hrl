@@ -1,6 +1,7 @@
 -ifndef(KAZOO_CACHES_HRL).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-type flush_callback_fun() :: fun((atom()) -> any()).
 -type callback_msg() :: 'flush' | 'erase' | 'expire' | 'timeout' | 'store'.
 -type callback_fun() :: fun((any(), any(), callback_msg()) -> any()).
 -type callback_funs() :: [callback_fun()].
