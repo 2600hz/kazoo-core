@@ -115,7 +115,7 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
               ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
               ,{<<"Custom-SIP-Headers">>, SIPHeaders}
               ,{<<"CallForward">> , maybe_build_call_forward(EndpointId, AccountId, Endpoint)}
-              ,{<<"Expires">>, 360}
+              ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
               ],
     {'ok', kz_json:from_list(Profile)}.
 

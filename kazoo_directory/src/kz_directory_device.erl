@@ -70,7 +70,7 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options, Module) ->
               ,{<<"SIP-Proxy-Route-URI">>, Module:sip_route_uri(Endpoint)}
               ,{<<"SIP-Interface">>, Module:sip_interface(Endpoint)}
               ,{<<"CallForward">> , maybe_build_call_forward(EndpointId, AccountId, Endpoint)}
-              ,{<<"Expires">>, 360}
+              ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
               ],
     {'ok', kz_json:from_list(Profile)}.
 
