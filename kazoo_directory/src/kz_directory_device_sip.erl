@@ -24,6 +24,8 @@
 
 -include("kazoo_directory.hrl").
 
+-define(DEFAULT_AUDIO_CODECS, [<<"PCMU">>]).
+
 -spec authorizing_type(kz_json:object()) -> binary().
 authorizing_type(Endpoint) ->
     kz_doc:type(Endpoint).
@@ -85,20 +87,17 @@ sip_route_uri(Endpoint) ->
 sip_interface(Endpoint) ->
     kzd_devices:sip_custom_sip_interface(Endpoint).
 
--spec codecs(kz_json:object()) -> 'undefined' | kz_term:ne_binaries().
+-spec codecs(kz_json:object()) -> kz_term:ne_binaries().
 codecs(JObj) ->
-    case audio_codecs(JObj) ++ video_codecs(JObj) of
-        [] -> 'undefined';
-        Codecs -> Codecs
-    end.
+    audio_codecs(JObj) ++ video_codecs(JObj).
 
--spec audio_codecs(kz_json:object()) -> 'undefined' | kz_term:ne_binaries().
+-spec audio_codecs(kz_json:object()) -> kz_term:ne_binaries().
 audio_codecs(JObj) ->
-    kz_json:get_list_value([<<"media">>, <<"audio">>, <<"codecs">>], JObj, []).
+    kz_json:get_ne_binaries([<<"media">>, <<"audio">>, <<"codecs">>], JObj, ?DEFAULT_AUDIO_CODECS).
 
--spec video_codecs(kz_json:object()) -> 'undefined' | kz_term:ne_binaries().
+-spec video_codecs(kz_json:object()) -> kz_term:ne_binaries().
 video_codecs(JObj) ->
-    kz_json:get_list_value([<<"media">>, <<"video">>, <<"codecs">>], JObj, []).
+    kz_json:get_ne_binaries([<<"media">>, <<"video">>, <<"codecs">>], JObj, []).
 
 -spec get_realm(kz_json:object()) -> kz_term:ne_binary().
 get_realm(Endpoint) ->
