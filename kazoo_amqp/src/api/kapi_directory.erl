@@ -170,6 +170,16 @@ bind_to_q(Q, ['cache_clear'|T], Props) ->
                                           ,?DIRECTORY_EXCHANGE
                                           ),
     bind_to_q(Q, T, Props);
+bind_to_q(Q, ['cache'|T], Props) ->
+    'ok' = kz_amqp_util:bind_q_to_exchange(Q
+                                          ,kapi_definition:binding(cache_flush_definition())
+                                          ,?DIRECTORY_EXCHANGE
+                                          ),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Q
+                                          ,kapi_definition:binding(cache_clear_definition())
+                                          ,?DIRECTORY_EXCHANGE
+                                          ),
+    bind_to_q(Q, T, Props);
 bind_to_q(_Q, [], _Props) -> 'ok'.
 
 -spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
@@ -185,6 +195,16 @@ unbind_q_from(Q, ['cache_flush'|T], Props) ->
                                               ),
     unbind_q_from(Q, T, Props);
 unbind_q_from(Q, ['cache_clear'|T], Props) ->
+    'ok' = kz_amqp_util:unbind_q_from_exchange(Q
+                                              ,kapi_definition:binding(cache_clear_definition())
+                                              ,?DIRECTORY_EXCHANGE
+                                              ),
+    unbind_q_from(Q, T, Props);
+unbind_q_from(Q, ['cache'|T], Props) ->
+    'ok' = kz_amqp_util:unbind_q_from_exchange(Q
+                                              ,kapi_definition:binding(cache_flush_definition())
+                                              ,?DIRECTORY_EXCHANGE
+                                              ),
     'ok' = kz_amqp_util:unbind_q_from_exchange(Q
                                               ,kapi_definition:binding(cache_clear_definition())
                                               ,?DIRECTORY_EXCHANGE
