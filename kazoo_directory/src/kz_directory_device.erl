@@ -24,23 +24,91 @@ profile(EndpointId, AccountId) ->
 -spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
     case kz_endpoint:get(EndpointId, AccountId, Options) of
-        {'ok', Endpoint} -> maybe_generate_profile(EndpointId, AccountId, Endpoint, Options);
+        {'ok', Endpoint} -> profile(EndpointId, AccountId, Endpoint, Options);
         Error -> Error
     end.
 
--spec maybe_generate_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-maybe_generate_profile(EndpointId, AccountId, Endpoint, Options) ->
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+profile(EndpointId, AccountId, Endpoint, Options) ->
     case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
         <<"device">> ->
             case get_device_module(Endpoint) of
                 undefined -> {'error', 'not_device'};
-                Module -> generate_profile(EndpointId, AccountId, Endpoint, Options, Module)
+                Module -> profile(EndpointId, AccountId, Endpoint, Options, Module)
             end;
         _ -> {'error', 'not_device'}
     end.
 
--spec generate_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
-generate_profile(EndpointId, AccountId, Endpoint, _Options, Module) ->
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
+profile(EndpointId, AccountId, Endpoint, Options, Module) ->
+    case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
+        {ok, Profile} -> {ok, Profile};
+        {error, not_found} -> build_and_cache(EndpointId, AccountId, Endpoint, Options, Module)
+    end.
+
+-spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
+build_and_cache(EndpointId, AccountId, Endpoint, Options, Module) ->
+    {ok, Profile} = build(EndpointId, AccountId, Endpoint, Options, Module),
+    Origins = cache_origin(EndpointId, AccountId, Endpoint),
+    cache(EndpointId, AccountId, Profile, Origins).
+
+-spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), list()) -> {'ok', kz_json:object()}.
+cache(EndpointId, AccountId, Profile, Origins) ->
+    CacheProps = [{'origin', Origins}
+                 ,{'callback', fun cache_callback/3}
+                 ],
+    kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, Profile, CacheProps),
+    {ok, Profile}.
+
+-spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> ok.
+cache_callback({EndpointId, AccountId}, CachedValue, 'erase') ->
+    lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
+    timer:sleep(kz_term:to_integer(?MILLISECONDS_IN_SECOND * 0.15)),
+    case kz_endpoint:get(EndpointId, AccountId) of
+        {'ok', Endpoint} ->
+            Module = get_device_module(Endpoint),
+            {ok, NewProfile} = build(EndpointId, AccountId, Endpoint, [], Module),
+            maybe_notify(EndpointId, AccountId, kz_json:are_equal(NewProfile, CachedValue)),
+            Origins = cache_origin(EndpointId, AccountId, Endpoint),
+            cache(EndpointId, AccountId, NewProfile, Origins);
+        _Error -> notify(EndpointId, AccountId)
+    end;
+cache_callback(_, _, _) -> ok.
+
+maybe_notify(EndpointId, AccountId, true) ->
+    lager:debug("directory cache erased key hasn't changed (~s / ~s)", [EndpointId, AccountId]);
+maybe_notify(EndpointId, AccountId, false) -> notify(EndpointId, AccountId).
+
+notify(EndpointId, AccountId) ->
+    kz_directory_cache:clear(EndpointId),
+    lager:debug("directory cache erased key changed (~s / ~s)", [EndpointId, AccountId]).
+
+-spec cache_origin(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> list().
+cache_origin(EndpointId, AccountId, JObj) ->
+    AccountDb = kzs_util:format_account_db(AccountId),
+    Routines = [fun(P) -> [{'db', AccountDb, EndpointId} | P] end
+               ,fun(P) -> [{'db', AccountDb, AccountId} | P] end
+               ,fun(P) -> maybe_cached_owner_id(P, JObj, AccountDb) end
+               ,fun(P) -> maybe_cached_hotdesk_ids(P, JObj, AccountDb) end
+               ],
+    lists:foldl(fun(F, P) -> F(P) end, [], Routines).
+
+-spec maybe_cached_owner_id(kz_term:proplist(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
+maybe_cached_owner_id(Props, JObj, AccountDb) ->
+    case kz_json:get_ne_binary_value(<<"owner_id">>, JObj) of
+        'undefined' -> Props;
+        OwnerId -> [{'db', AccountDb, OwnerId}|Props]
+    end.
+
+-spec maybe_cached_hotdesk_ids(kz_term:proplist(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
+maybe_cached_hotdesk_ids(Props, JObj, AccountDb) ->
+    case kz_json:get_keys([<<"hotdesk">>, <<"users">>], JObj) of
+        [] -> Props;
+        OwnerIds -> lists:foldl(fun(Id, P) -> [{'db', AccountDb, Id}|P] end, Props, OwnerIds)
+    end.
+
+-spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
+build(EndpointId, AccountId, Endpoint, _Options, Module) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Module),
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Module),
 

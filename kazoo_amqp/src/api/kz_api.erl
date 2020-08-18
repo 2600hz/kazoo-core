@@ -23,6 +23,7 @@
 
 %% API
 -export([default_headers_v/1
+        ,default_headers/0
         ,default_headers/2
         ,default_headers/3
         ,default_headers/4
@@ -178,6 +179,11 @@ reply_to(JObj) ->
 %% All fields are required general headers.
 %% @end
 %%------------------------------------------------------------------------------
+
+-spec default_headers() -> kz_term:proplist().
+default_headers() ->
+    {AppName, AppVsn} = kz_application:calling_app_version(),
+    default_headers('undefined', AppName, AppVsn).
 
 -spec default_headers(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:proplist().
 default_headers(AppName, AppVsn) ->
