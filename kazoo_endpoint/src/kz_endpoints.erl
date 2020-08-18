@@ -23,21 +23,16 @@
 by_owner_id(OwnerId, Data, Call) ->
     by_owner_id(OwnerId, Data, Call, ?MODNAME).
 
-by_owner_id(OwnerId, Data, Call, 'kz_endpoint_v4') ->
+by_owner_id(OwnerId, Data, Call, Mod) ->
     lists:foldr(fun(EndpointId, Acc) ->
-                        case kz_endpoint_v4:build(EndpointId, Data, Call) of
+                        case Mod:build(EndpointId, Data, Call) of
                             {'ok', Endpoint} -> Endpoint ++ Acc;
                             {'error', _E} -> Acc
                         end
                 end
                ,[]
                ,kz_attributes:owned_by(OwnerId, <<"device">>, Call)
-               );
-by_owner_id(OwnerId, Data, Call, 'kz_endpoint_v5') ->
-    case kz_endpoint_v5:build(OwnerId, Data, Call) of
-        {'ok', Endpoint} -> Endpoint;
-        {'error', _E} -> []
-    end.
+               ).
 
 -spec ignore_early_media(kz_json:objects()) -> kz_term:api_binary().
 ignore_early_media(Endpoints) ->

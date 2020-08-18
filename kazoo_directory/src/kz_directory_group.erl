@@ -48,6 +48,6 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
               ,{<<"Domain-Name">>, AccountId}
               ,{<<"User-ID">>, EndpointId}
               ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
-              ,{<<"Expires">>, 360}
+              ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
               ],
     {'ok', kz_json:from_list(Profile)}.
