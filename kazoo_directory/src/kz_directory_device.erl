@@ -80,7 +80,7 @@ maybe_notify(EndpointId, AccountId, true) ->
 maybe_notify(EndpointId, AccountId, false) -> notify(EndpointId, AccountId).
 
 notify(EndpointId, AccountId) ->
-    kz_directory_cache:clear(EndpointId),
+    kz_directory_cache:clear(<<EndpointId/binary, "@", AccountId/binary>>),
     lager:debug("directory cache erased key changed (~s / ~s)", [EndpointId, AccountId]).
 
 -spec cache_origin(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> list().
