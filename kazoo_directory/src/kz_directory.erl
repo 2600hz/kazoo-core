@@ -23,7 +23,8 @@ lookup(EndpointId, AccountId) ->
 
 -spec lookup(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 lookup(EndpointId, AccountId, Options) ->
-    Routines = [fun kz_directory_endpoint:profile/3
+    Routines = [fun cached/3
+               ,fun kz_directory_endpoint:profile/3
                ,fun kz_directory_resource:profile/3
                ],
     lookup(Routines, EndpointId, AccountId, Options).
@@ -39,3 +40,7 @@ lookup([Fun | Routines], EndpointId, AccountId, Options) ->
         _Ex:_Err:_ST ->
             lookup(Routines, EndpointId, AccountId, Options)
     end.
+
+-spec cached(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {ok, kz_json:object()} | {error, not_found}.
+cached(EndpointId, AccountId, _Options) ->
+    kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}).
