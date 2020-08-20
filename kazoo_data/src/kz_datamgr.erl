@@ -1547,8 +1547,7 @@ max_bulk_read() ->
 -spec max_bulk_read(view_options()) -> pos_integer().
 max_bulk_read(ViewOptions) ->
     AskedFor = props:get_integer_value('max_bulk_read', ViewOptions, max_bulk_read()),
-    UpperBound = min(AskedFor, max_bulk_read()),
-    max(UpperBound, 1).
+    kz_math:clamp(max_bulk_read(), 1, AskedFor).
 
 -spec db_classification(database_name()) -> db_classification().
 db_classification(DBName) -> kzs_util:db_classification(DBName).
