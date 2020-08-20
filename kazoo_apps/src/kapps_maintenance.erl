@@ -463,7 +463,7 @@ modb_in_range(Database, StartDate, EndDate) ->
 -spec modb_before_start(integer(), integer(), integer()) -> boolean().
 modb_before_start(StartDate, MODbYear, MODbMonth) ->
     {StartYear, StartMonth} =
-        case kz_term:floor(math:log10(StartDate)) + 1 of
+        case kz_math:floor(math:log10(StartDate)) + 1 of
             4 -> {StartDate, 1};
             6 -> {kz_term:to_integer(StartDate/100)
                  ,StartDate rem 100
@@ -475,7 +475,7 @@ modb_before_start(StartDate, MODbYear, MODbMonth) ->
 -spec modb_after_end(integer(), integer(), integer()) -> boolean().
 modb_after_end(EndDate, MODbYear, MODbMonth) ->
     {EndYear, EndMonth} =
-        case kz_term:floor(math:log10(EndDate)) + 1 of
+        case kz_math:floor(math:log10(EndDate)) + 1 of
             4 -> {EndDate, 12};
             6 -> {kz_term:to_integer(EndDate/100)
                  ,EndDate rem 100
@@ -560,7 +560,7 @@ refresh([Database|Databases], Pause, Total, Unexpected) ->
                 [io_lib:format("WARNING: Unable to refresh/migrate db ~s! ~s: {~p, ~p}"
                               ,[Database, Error, Reason, StackTrace]
                               )
-                | Unexpected
+                 | Unexpected
                 ]
         end,
     refresh(Databases, Pause, Total, NewUnexpected).
@@ -1793,7 +1793,7 @@ call_id_status(CallId) ->
 -spec call_id_status(kz_term:ne_binary(), boolean() | kz_term:ne_binary()) -> 'ok'.
 call_id_status(CallId, Verbose) ->
     Req = [{<<"Call-ID">>, kz_term:to_binary(CallId)}
-          | kz_api:default_headers(<<"shell">>, <<"0">>)
+           | kz_api:default_headers(<<"shell">>, <<"0">>)
           ],
     case kz_amqp_worker:call(Req
                             ,fun kapi_call:publish_channel_status_req/1
@@ -2010,7 +2010,7 @@ register_system_dbs_views() ->
             ,kapps_util:get_view_json(?APP, <<"views/pending_notify.json">>)
             ,kapps_util:get_view_json(?APP, <<"views/rates.json">>)
             ,kapps_util:get_view_json(?APP, <<"views/token_auth.json">>)
-            | kapps_util:get_views_json('kazoo_ips', "views")
+             | kapps_util:get_views_json('kazoo_ips', "views")
             ],
     kz_datamgr:register_views(?APP, Views).
 

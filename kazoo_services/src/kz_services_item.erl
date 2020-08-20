@@ -551,7 +551,7 @@ calculate_billable_quantity(_Services, Item) ->
 
 -spec handle_step(non_neg_integer(), non_neg_integer()) -> non_neg_integer().
 handle_step(Quantity, Step) ->
-    kz_term:ceiling(Quantity / Step) * Step.
+    kz_math:ceiling(Quantity / Step) * Step.
 
 %%------------------------------------------------------------------------------
 %% @doc

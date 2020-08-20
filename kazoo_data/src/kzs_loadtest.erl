@@ -150,4 +150,4 @@ print_percentile(Indexes, [_Kth | ElapsedMs], Index) ->
     print_percentile(Indexes, ElapsedMs, Index+1).
 
 index(Percentile, Len) ->
-    kz_term:ceiling(Len * (Percentile / 100)).
+    kz_math:ceiling(Len * (Percentile / 100)).
