@@ -77,7 +77,6 @@ trim_test_() ->
 check_trim(Upper, Lower, {N, T}) ->
     ?_assertEqual(T, kz_math:clamp(Upper, Lower, N)).
 
-
 -ifdef(PERF).
 -define(REPEAT, 1000000).
 -define(UPPERBOUND, 100).

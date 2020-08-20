@@ -56,6 +56,7 @@ xnor('true', 'true') -> 'true'.
 
 %%------------------------------------------------------------------------------
 %% @doc Clamp the value of a number between an upper- and lower-bound (inclusive)
+%% @end
 %%------------------------------------------------------------------------------
 -spec clamp(Upperbound::number(), Lowerbound::number(), Number::number()) ->
           number().
