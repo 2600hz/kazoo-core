@@ -346,7 +346,7 @@ is_mdn_for_mdn_run(#knm_phone_number{auth_by = ?KNM_DEFAULT_AUTH_BY}, _) ->
     'true';
 is_mdn_for_mdn_run(PN, IsMDNRun) ->
     IsMDN = ?CARRIER_MDN =:= module_name(PN),
-    kz_term:xnor(IsMDNRun, IsMDN).
+    kz_math:xnor(IsMDNRun, IsMDN).
 
 -spec take_not_to_save(knm_pipe:collection()) -> {knm_pipe:collection(), records()}.
 take_not_to_save(T0=#{'todo' := PNs, 'options' := Options}) ->

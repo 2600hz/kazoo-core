@@ -51,11 +51,7 @@
         ,always_true/1, always_false/1
         ]).
 
--export([a1hash/3, floor/1, ceiling/1]).
-
 -export([iolist_join/2]).
-
--export([xnor/2]).
 
 -export([pretty_print_bytes/1, pretty_print_bytes/2]).
 
@@ -563,30 +559,6 @@ is_lower_char(C) when is_integer(C), 16#E0 =< C, C =< 16#F6 -> 'true';
 is_lower_char(C) when is_integer(C), 16#F8 =< C, C =< 16#FE -> 'true';
 is_lower_char(_)  -> 'false'.
 
--spec a1hash(ne_binary(), ne_binary(), ne_binary()) -> nonempty_string().
-a1hash(User, Realm, Password) ->
-    to_hex(erlang:md5(list_to_binary([User,":",Realm,":",Password]))).
-
-%% found via trapexit
--spec floor(integer() | float()) -> integer().
-floor(X) when X < 0 ->
-    T = trunc(X),
-    case X - T == 0 of
-        'true' -> T;
-        'false' -> T - 1
-    end;
-floor(X) -> trunc(X).
-
-%% found via trapexit
--spec ceiling(integer() | float()) -> integer().
-ceiling(X) when X < 0 -> trunc(X);
-ceiling(X) ->
-    T = trunc(X),
-    case X - T == 0 of
-        'true' -> T;
-        'false' -> T + 1
-    end.
-
 -spec to_hex_char(pos_integer()) -> pos_integer().
 to_hex_char(N) when N < 10 -> $0 + N;
 to_hex_char(N) when N < 16 -> $a - 10 + N.
@@ -622,16 +594,6 @@ iolist_join(Sep, [H|T]) ->
 iolist_join_prepend(_, []) -> [];
 iolist_join_prepend(Sep, [H|T]) ->
     [Sep, H | iolist_join_prepend(Sep, T)].
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec xnor(boolean(), boolean()) -> boolean().
-xnor('false', 'false') -> 'true';
-xnor('false', 'true') -> 'false';
-xnor('true', 'false') -> 'false';
-xnor('true', 'true') -> 'true'.
 
 -spec pretty_print_bytes(non_neg_integer()) -> ne_binary().
 pretty_print_bytes(Bytes) ->

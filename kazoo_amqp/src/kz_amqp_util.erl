@@ -158,10 +158,6 @@
 -export([encode/1]).
 -export([split_routing_key/1]).
 
--ifdef(TEST).
--export([trim/3]).
--endif.
-
 -define(KEY_SAFE(C), ((C >= $a
                        andalso C =< $z
                       )
@@ -876,15 +872,10 @@ max_priority(Args, Acc) ->
     Acc1 = props:delete(<<"x-max-priority">>, Acc),
     case Property of
         Val when is_integer(Val) ->
-            AMQPValue = trim(0, 255, Val),
+            AMQPValue = kz_math:clamp(255, 0, Val),
             [{<<"x-max-priority">>, 'byte', AMQPValue}|Acc1];
         _Else -> Acc1
     end.
-
--spec trim(integer(), integer(), integer()) -> integer().
-trim(Min, _  , Val) when Val < Min -> Min;
-trim(_  , Max, Val) when Val > Max -> Max;
-trim(_  , _  , Val)                -> Val.
 
 -spec max_length(kz_term:proplist(), amqp_properties()) -> amqp_properties().
 max_length(Args, Acc) ->
