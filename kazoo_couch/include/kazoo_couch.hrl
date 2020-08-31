@@ -6,5 +6,7 @@
 %% How many docs we can fetch in one request
 -define(COUCH_MAX_BULK_READ, 2000).
 
+-define(APP, 'kazoo_couch').
+
 -define(KAZOO_COUCH_HRL, 'true').
 -endif.

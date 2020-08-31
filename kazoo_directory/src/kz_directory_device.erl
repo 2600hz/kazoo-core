@@ -121,6 +121,7 @@ build(EndpointId, AccountId, Endpoint, _Options, Module) ->
            ,{<<"External-Caller-ID-Name">>, CEDName}
            ,{<<"Account-ID">>, AccountId}
            ,{<<"Endpoint-ID">>, EndpointId}
+           ,{<<"Endpoint-Type">>, <<"device">>}
            ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
            ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
            ,{<<"Endpoint-Caller-ID-Name">>, CIDName}

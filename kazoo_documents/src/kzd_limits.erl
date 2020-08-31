@@ -566,10 +566,7 @@ get_default_limit_integer(Key, Default) ->
 
 -spec enforce_integer_limit(integer(), integer()) -> integer().
 enforce_integer_limit(Private, Public) ->
-    case Private > Public of
-        'true' -> Public;
-        'false' -> Private
-    end.
+    kz_math:clamp(Private, Public, Public).
 
 %%------------------------------------------------------------------------------
 %% @doc

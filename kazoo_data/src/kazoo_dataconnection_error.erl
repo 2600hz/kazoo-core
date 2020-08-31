@@ -58,6 +58,7 @@
 -export([design_info/3
         ,all_design_docs/3
         ,get_results/4
+        ,find/5
         ,get_results_count/4
         ,all_docs/3
         ]).
@@ -185,6 +186,10 @@ all_design_docs(_Server, _DBName, _Options) ->
 
 -spec get_results(kz_data:connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> error().
 get_results(_Server, _DbName, _DesignDoc, _ViewOptions) ->
+    {'error', 'resource_not_available'}.
+
+-spec find(kz_data:connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_view:selector(), kz_view:options()) -> error().
+find(_Server, _DbName, _DesignDoc, _Selector, _Options) ->
     {'error', 'resource_not_available'}.
 
 -spec get_results_count(kz_data:connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> error().

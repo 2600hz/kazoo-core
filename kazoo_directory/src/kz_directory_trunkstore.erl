@@ -62,6 +62,7 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
 
     CPVs = [{<<"Account-ID">>, AccountId}
            ,{<<"Endpoint-ID">>, EndpointId}
+           ,{<<"Endpoint-Type">>, <<"sys_info">>}
            ],
     Profile = [{<<"Endpoint-Type">>, <<"sys_info">>}
               ,{<<"Domain-Name">>, AccountId}

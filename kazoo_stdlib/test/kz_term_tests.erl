@@ -252,20 +252,6 @@ to_boolean_test_() ->
                   )
     ].
 
-float_bounds_test_() ->
-    [?_assertEqual(1, kz_term:floor(1.0))
-    ,?_assertEqual(1, kz_term:floor(1.2))
-    ,?_assertEqual(1, kz_term:floor(1.5))
-    ,?_assertEqual(1, kz_term:floor(1.7))
-    ,?_assertEqual(-1, kz_term:floor(-1))
-    ,?_assertEqual(-2, kz_term:floor(-1.5))
-    ,?_assertEqual(1, kz_term:ceiling(1.0))
-    ,?_assertEqual(2, kz_term:ceiling(1.2))
-    ,?_assertEqual(2, kz_term:ceiling(1.5))
-    ,?_assertEqual(2, kz_term:ceiling(1.7))
-    ,?_assertEqual(-1, kz_term:ceiling(-1))
-    ].
-
 error_to_binary_test_() ->
     [?_assertEqual(<<"oops">>, kz_term:error_to_binary({'error', 'oops'}))
     ,?_assertEqual(<<"oops">>, kz_term:error_to_binary('oops'))

@@ -154,8 +154,8 @@ calculate_call(R, RI, RM, Sur, Secs) ->
         'true' ->
             {RM, trunc(Sur + ((RM / 60) * R))};
         'false' ->
-            {kz_term:ceiling( Secs / RI ) * RI
-            ,trunc(Sur + ((RM / 60) * R) + (kz_term:ceiling((Secs - RM) / RI) * ((RI / 60) * R)))
+            {kz_math:ceiling( Secs / RI ) * RI
+            ,trunc(Sur + ((RM / 60) * R) + (kz_math:ceiling((Secs - RM) / RI) * ((RI / 60) * R)))
             }
     end.
 

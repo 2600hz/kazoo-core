@@ -148,7 +148,7 @@ clean_binary_test_() ->
 
 binary_hashes_test_() ->
     [?_assertEqual(<<"d41d8cd98f00b204e9800998ecf8427e">>, kz_binary:md5(<<>>))
-    ,?_assertEqual("44add22b6f3179b751eafd68ee370f7d", kz_term:a1hash(<<"u">>, <<"r">>, <<"p">>))
+    ,?_assertEqual("44add22b6f3179b751eafd68ee370f7d", kz_math:a1hash(<<"u">>, <<"r">>, <<"p">>))
     ].
 
 binary_reverse_test_() ->

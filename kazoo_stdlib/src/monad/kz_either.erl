@@ -17,6 +17,7 @@
         ,left/1, from_left/1
         ,pipe/2
         ,right/1, from_right/1
+        ,state/3
         ,unless/2
         ]).
 
@@ -125,10 +126,23 @@ catar({'error', _}=Left, _RFn) -> Left.
 %% @doc Chain monadic function to apply to `Either'.
 %%
 %% You might use it
-%% like `pipe({ok, 5}, [Increment, Increment, Increment])'.
+%% like `pipe({ok, 5}, [fun funny_1/1, fun funny_2/1, fun funny_3/1])'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec pipe(either(L, R), [fun((R) -> X)]) -> either(L, X).
 pipe({'error', _}=Left, _) -> Left;
 pipe({'ok', _}=Right, []) -> Right;
 pipe({'ok', Val}, [Fun|Funs]) -> pipe(Fun(Val), Funs).
+
+%%------------------------------------------------------------------------------
+%% @doc Chain monadic function to apply to `Either' with passing a non-changable
+%% State to each functions.
+%%
+%% You might use it
+%% like `state({ok, 5}, State, [fun funny_1/2, fun funny_2/2, fun funny_3/2])'.
+%% @end
+%%------------------------------------------------------------------------------
+-spec state(Either :: either(L, R), State :: any(), Functions :: [fun((R) -> X)]) -> either(L, X).
+state({'error', _}=Left, _, _) -> Left;
+state({'ok', _}=Right, _, []) -> Right;
+state({'ok', Val}, State, [Fun|Funs]) -> state(Fun(Val, State), State, Funs).

@@ -463,7 +463,7 @@ modb_in_range(Database, StartDate, EndDate) ->
 -spec modb_before_start(integer(), integer(), integer()) -> boolean().
 modb_before_start(StartDate, MODbYear, MODbMonth) ->
     {StartYear, StartMonth} =
-        case kz_term:floor(math:log10(StartDate)) + 1 of
+        case kz_math:floor(math:log10(StartDate)) + 1 of
             4 -> {StartDate, 1};
             6 -> {kz_term:to_integer(StartDate/100)
                  ,StartDate rem 100
@@ -475,7 +475,7 @@ modb_before_start(StartDate, MODbYear, MODbMonth) ->
 -spec modb_after_end(integer(), integer(), integer()) -> boolean().
 modb_after_end(EndDate, MODbYear, MODbMonth) ->
     {EndYear, EndMonth} =
-        case kz_term:floor(math:log10(EndDate)) + 1 of
+        case kz_math:floor(math:log10(EndDate)) + 1 of
             4 -> {EndDate, 12};
             6 -> {kz_term:to_integer(EndDate/100)
                  ,EndDate rem 100
@@ -560,7 +560,7 @@ refresh([Database|Databases], Pause, Total, Unexpected) ->
                 [io_lib:format("WARNING: Unable to refresh/migrate db ~s! ~s: {~p, ~p}"
                               ,[Database, Error, Reason, StackTrace]
                               )
-                | Unexpected
+                 | Unexpected
                 ]
         end,
     refresh(Databases, Pause, Total, NewUnexpected).
@@ -1793,7 +1793,7 @@ call_id_status(CallId) ->
 -spec call_id_status(kz_term:ne_binary(), boolean() | kz_term:ne_binary()) -> 'ok'.
 call_id_status(CallId, Verbose) ->
     Req = [{<<"Call-ID">>, kz_term:to_binary(CallId)}
-          | kz_api:default_headers(<<"shell">>, <<"0">>)
+           | kz_api:default_headers(<<"shell">>, <<"0">>)
           ],
     case kz_amqp_worker:call(Req
                             ,fun kapi_call:publish_channel_status_req/1
@@ -1820,10 +1820,6 @@ show_status(CallId, 'true', Resp) ->
 last_migrate_version() ->
     kapps_config:get_ne_binary(<<?MODULE_STRING>>, <<"migrate_current_version">>, <<"3.22">>).
 
--spec set_last_migrate_version(kz_term:ne_binary()) -> {'ok', kz_json:object()}.
-set_last_migrate_version(Version) ->
-    kapps_config:set(<<?MODULE_STRING>>, <<"migrate_current_version">>, Version).
-
 -spec migrate_system() -> 'ok'.
 migrate_system() ->
     migrate_system(last_migrate_version(), kapps_util:kazoo_version()).
@@ -1832,23 +1828,32 @@ migrate_system() ->
 migrate_system(ThisVersion, ThisVersion) ->
     lager:notice("system config version is ~s", [ThisVersion]);
 migrate_system(PreviousVersion, ThisVersion) ->
-    Routines = migrate_system_version_routines(PreviousVersion, ThisVersion),
-    Result = lists:foldl(
-               fun(Fun, Acc) when is_function(Fun, 2) ->
-                       [Fun(PreviousVersion, ThisVersion) | Acc];
-                  (Fun, Acc) when is_function(Fun, 1) ->
-                       [Fun(ThisVersion) | Acc];
-                  (Fun, Acc) when is_function(Fun) ->
-                       [Fun() | Acc]
-               end, [], Routines),
-    case lists:all(fun kz_term:is_true/1, Result) of
-        'true' -> _ = set_last_migrate_version(ThisVersion),
-                  'ok';
-        'false' -> 'ok'
-    end.
+    migrate_system(PreviousVersion, ThisVersion
+                  ,migrate_system_version_routines(PreviousVersion, ThisVersion)
+                  ).
+
+-spec set_last_migrate_version(kz_term:ne_binary()) -> {'ok', kz_json:object()}.
+set_last_migrate_version(ThisVersion) ->
+    {'ok', _} = kapps_config:set_default(<<?MODULE_STRING>>
+                                        ,<<"migrate_current_version">>
+                                        ,ThisVersion
+                                        ).
+
+migrate_system(PreviousVersion, ThisVersion, Routines) ->
+    lists:foreach(
+      fun(Fun) when is_function(Fun, 2) ->
+              Fun(PreviousVersion, ThisVersion);
+         (Fun) when is_function(Fun, 1) ->
+              Fun(ThisVersion);
+         (Fun) when is_function(Fun) ->
+              Fun()
+      end
+     ,Routines
+     ).
 
 -spec migrate_system_version_routines(kz_term:ne_binary(), kz_term:ne_binary()) -> [fun()].
-migrate_system_version_routines(_, _) -> [].
+migrate_system_version_routines(_, _) ->
+    [fun set_last_migrate_version/1].
 
 check_system_schemas() ->
     _ = rpc:call(node()
@@ -2010,7 +2015,7 @@ register_system_dbs_views() ->
             ,kapps_util:get_view_json(?APP, <<"views/pending_notify.json">>)
             ,kapps_util:get_view_json(?APP, <<"views/rates.json">>)
             ,kapps_util:get_view_json(?APP, <<"views/token_auth.json">>)
-            | kapps_util:get_views_json('kazoo_ips', "views")
+             | kapps_util:get_views_json('kazoo_ips', "views")
             ],
     kz_datamgr:register_views(?APP, Views).
 
