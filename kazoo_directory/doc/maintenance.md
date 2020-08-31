@@ -3,4 +3,3 @@
 | Function | Arguments | Description |
 | -------- | --------- | ----------- |
 | `flush/0` |  | |
-
