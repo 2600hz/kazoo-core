@@ -40,6 +40,7 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
            ,{<<"External-Caller-ID-Name">>, CEDName}
            ,{<<"Account-ID">>, AccountId}
            ,{<<"Endpoint-ID">>, EndpointId}
+           ,{<<"Endpoint-Type">>, <<"group">>}
            ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
            ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
            ],
