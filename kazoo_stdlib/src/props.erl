@@ -63,7 +63,7 @@ set_value(K, Props) ->
 set_value([K], V, Props) ->
     [{K, V} | [KV || KV <- Props, not do_keys_match(KV, K)]];
 set_value([K|Ks], V, Props) ->
-    SubProps = get_value(Ks, Props, []),
+    SubProps = get_value(K, Props, []),
     [{K, set_value(Ks, V, SubProps)} | [KV || KV <- Props, not do_keys_match(KV, K)]];
 set_value(K, V, Props) ->
     [{K, V} | [KV || KV <- Props, not do_keys_match(KV, K)]].
