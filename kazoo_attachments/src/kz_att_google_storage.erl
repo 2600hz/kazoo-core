@@ -75,7 +75,7 @@ do_put_attachment({'ok', #{'token' := #{'authorization' := Authorization}}}
                    ]};
         {'error', Url, Resp} ->
             Routines = [{fun kz_att_error:set_req_url/2, Url}
-                        | kz_att_error:put_routines(Settings, DbName, DocId, AName, Contents, Options)
+                       | kz_att_error:put_routines(Settings, DbName, DocId, AName, Contents, Options)
                        ],
             handle_http_error_response(Resp, Routines)
     end;
@@ -117,7 +117,7 @@ do_fetch_attachment({'ok', #{'token' := #{'authorization' := Authorization}}}
             {'ok', ResponseBody};
         Resp ->
             Routines = [{fun kz_att_error:set_req_url/2, ContentId}
-                        | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
+                       | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
                        ],
             handle_http_error_response(Resp, Routines)
     end;
@@ -206,7 +206,7 @@ handle_http_error_response({'ok', RespCode, RespHeaders, RespBody} = _E, Routine
     NewRoutines = [{fun kz_att_error:set_resp_code/2, RespCode}
                   ,{fun kz_att_error:set_resp_headers/2, RespHeaders}
                   ,{fun kz_att_error:set_resp_body/2, RespBody}
-                   | Routines
+                  | Routines
                   ],
     lager:error("google storage error: ~p (code: ~p)", [_E, RespCode]),
     kz_att_error:new(Reason, NewRoutines);

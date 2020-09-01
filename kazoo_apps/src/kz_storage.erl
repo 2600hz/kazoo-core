@@ -61,7 +61,7 @@ store_file(Filename, Url, Tries, Timeout, #{media_server := Node}=Map) ->
     API = fun() -> [{<<"Command">>, <<"send_http">>}
                    ,{<<"Args">>, kz_json:from_list(store_file_args(Filename, Url))}
                    ,{<<"FreeSWITCH-Node">>, Node}
-                    | kz_api:default_headers(AppName, AppVersion)
+                   | kz_api:default_headers(AppName, AppVersion)
                    ]
           end,
     do_store_file(Tries, Timeout, API, Msg, Map).

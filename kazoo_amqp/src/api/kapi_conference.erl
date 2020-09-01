@@ -244,7 +244,7 @@
                            ,<<"unlock">>
                            ,<<"add-member">>
                            ,<<"del-member">>
-                                | ?MEMBER_UPDATE_EVENTS
+                           | ?MEMBER_UPDATE_EVENTS
                            ]).
 
 %%------------------------------------------------------------------------------
@@ -617,7 +617,7 @@ deaf_participant_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"deaf_participant">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -646,7 +646,7 @@ participant_energy_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"participant_energy">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -674,7 +674,7 @@ kick_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"kick">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -701,7 +701,7 @@ participants_req_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"participants">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -752,7 +752,7 @@ lock_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"lock">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -780,7 +780,7 @@ mute_participant_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"mute_participant">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -810,7 +810,7 @@ play_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"play">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -840,7 +840,7 @@ tones_definition() ->
                }
               ,{fun kapi_definition:set_values/2
                ,[{<<"Event-Category">>, Category}
-                 | props:delete(<<"Event-Category">>, kapi_definition:values(TonesDef))
+                | props:delete(<<"Event-Category">>, kapi_definition:values(TonesDef))
                 ]
                }
               ,{fun kapi_definition:set_types/2, kapi_definition:types(TonesDef)}
@@ -867,11 +867,11 @@ say_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Event-Category">>, Category}
                 ,{<<"Application-Name">>, [<<"say">>, <<"tts">>]}
-                 | props:delete_keys([<<"Event-Category">>
-                                     ,<<"Application-Name">>
-                                     ]
-                                    ,kapi_definition:values(tones_definition())
-                                    )
+                | props:delete_keys([<<"Event-Category">>
+                                    ,<<"Application-Name">>
+                                    ]
+                                   ,kapi_definition:values(tones_definition())
+                                   )
                 ]
                }
               ,{fun kapi_definition:set_types/2, kapi_definition:types(TTSDef)}
@@ -904,7 +904,7 @@ record_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"record">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -933,7 +933,7 @@ recordstop_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"recordstop">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -964,7 +964,7 @@ relate_participants_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"relate_participants">>}
                 ,{<<"Relationship">>, [<<"deaf">>, <<"mute">>, <<"clear">>]}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1005,7 +1005,7 @@ set_definition() ->
                                    ,<<"Caller-ID-Name">>
                                    ,<<"Caller-ID-Number">>
                                    ]}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1036,7 +1036,7 @@ stop_play_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"stop_play">>}
                 ,{<<"Affects">>, [<<"current">>, <<"all">>]}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1064,7 +1064,7 @@ undeaf_participant_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"undeaf_participant">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1091,7 +1091,7 @@ unlock_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"unlock">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1119,7 +1119,7 @@ unmute_participant_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"unmute_participant">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1148,7 +1148,7 @@ participant_volume_in_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"participant_volume_in">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1177,7 +1177,7 @@ participant_volume_out_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"participant_volume_out">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1344,7 +1344,7 @@ dial_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"dial">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1379,7 +1379,7 @@ dial_resp_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"dial_resp">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2

@@ -130,8 +130,8 @@ do_put_attachment(#db{}=Db, DocId, AttName, Contents, Options0) ->
           {'ok', kz_json:object()} |
           couchbeam_error().
 do_del_attachment(#db{}=Db, DocId, AttName, Options) ->
-	Id = kz_http_util:urlencode(DocId),
-	AName = kz_http_util:urlencode(AttName),
+    Id = kz_http_util:urlencode(DocId),
+    AName = kz_http_util:urlencode(AttName),
     ?RETRY_504(couchbeam:delete_attachment(Db, Id, AName, Options)).
 
 -spec maybe_add_revision(kz_term:proplist()) -> binary().

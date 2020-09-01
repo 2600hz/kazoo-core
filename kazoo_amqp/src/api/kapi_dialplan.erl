@@ -493,7 +493,7 @@ bridge_definition() ->
                 ,{<<"SIP-Transport">>, [<<"udp">>, <<"tcp">>, <<"tls">>]}
                 ,{<<"Enable-T38-Gateway">>, [<<"self">>, <<"peer">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -619,7 +619,7 @@ unbridge_definition() ->
                ,[{<<"Application-Name">>, <<"unbridge">>}
                 ,{<<"Leg">>, [<<"A">>, <<"B">>, <<"Both">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -654,7 +654,7 @@ page_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"page">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -691,7 +691,7 @@ store_definition() ->
                ,[{<<"Application-Name">>, <<"store">>}
                 ,{<<"Media-Transfer-Method">>, [<<"stream">>, <<"put">>, <<"post">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -751,7 +751,7 @@ store_http_resp_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"store">>}
                 ,{<<"Media-Transfer-Method">>, [<<"put">>, <<"post">>]}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -791,7 +791,7 @@ noop_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"noop">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -821,7 +821,7 @@ fetch_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"fetch">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -852,7 +852,7 @@ respond_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"respond">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -885,7 +885,7 @@ redirect_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"redirect">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -916,7 +916,7 @@ progress_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"progress">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -943,7 +943,7 @@ ring_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"ring">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -973,7 +973,7 @@ receive_fax_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"receive_fax">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1004,7 +1004,7 @@ store_fax_definition() ->
                ,[{<<"Application-Name">>, <<"store_fax">>}
                 ,{<<"Media-Transfer-Method">>, <<"put">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1036,7 +1036,7 @@ execute_extension_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"execute_extension">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1065,7 +1065,7 @@ break_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"break">>}
                 ,{<<"Insert-At">>, <<"now">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1101,7 +1101,7 @@ play_definition() ->
                ,[{<<"Application-Name">>, <<"play">>}
                 ,{<<"Leg">>, [<<"A">>, <<"B">>, <<"Both">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1132,7 +1132,7 @@ playstop_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"playstop">>}
                 ,{<<"Insert-At">>, <<"now">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1160,7 +1160,7 @@ playseek_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"playseek">>}
                 ,{<<"Insert-At">>, <<"now">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1200,7 +1200,7 @@ tts_definition() ->
                ,[{<<"Application-Name">>, <<"tts">>}
                 ,{<<"Voice">>, [<<"male">>, <<"female">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1236,7 +1236,7 @@ record_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"record">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1283,7 +1283,7 @@ record_call_definition() ->
                ,[{<<"Application-Name">>, <<"record_call">>}
                 ,{<<"Record-Action">>, [<<"start">>, <<"stop">>, <<"mask">>, <<"unmask">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1312,7 +1312,7 @@ answer_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"answer">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1338,7 +1338,7 @@ echo_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"echo">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1366,7 +1366,7 @@ privacy_definition() ->
                ,[{<<"Application-Name">>, <<"privacy">>}
                 ,{<<"Privacy-Mode">>, [<<"full">>, <<"name">>, <<"number">>, <<"none">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1393,7 +1393,7 @@ hold_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"hold">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1422,7 +1422,7 @@ soft_hold_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"soft_hold">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1450,7 +1450,7 @@ park_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"park">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1484,7 +1484,7 @@ play_and_collect_digits_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"play_and_collect_digits">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1522,7 +1522,7 @@ call_pickup_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"call_pickup">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1564,7 +1564,7 @@ connect_leg_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"connect_leg">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1603,7 +1603,7 @@ eavesdrop_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"eavesdrop">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1635,7 +1635,7 @@ hangup_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"hangup">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1692,7 +1692,7 @@ say_definition() ->
                 ,{<<"Method">>, [<<"none">>, <<"pronounced">>, <<"iterated">>, <<"counted">>]}
                 ,{<<"Gender">>, [<<"masculine">>, <<"feminine">>, <<"neuter">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1719,7 +1719,7 @@ sleep_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"sleep">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -1752,7 +1752,7 @@ tone_detect_definition() ->
                ,[{<<"Application-Name">>, <<"tone_detect">>}
                 ,{<<"Sniff-Direction">>, [<<"read">>, <<"write">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1786,7 +1786,7 @@ set_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"set">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1819,7 +1819,7 @@ set_terminators_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"set_terminators">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1850,7 +1850,7 @@ send_dtmf_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"send_dtmf">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1880,7 +1880,7 @@ recv_dtmf_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"recv_dtmf">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1913,7 +1913,7 @@ tones_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"tones">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -1972,7 +1972,7 @@ conference_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"conference">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -2061,7 +2061,7 @@ fax_detection_definition() ->
                 ,{<<"Direction">>, [<<"inbound">>, <<"outbound">>]}
                 ,{<<"Action">>, [<<"start">>, <<"stop">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -2093,7 +2093,7 @@ store_vm_definition() ->
                ,[{<<"Application-Name">>, <<"store_vm">>}
                 ,{<<"Media-Transfer-Method">>, [<<"stream">>, <<"put">>, <<"post">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -2126,7 +2126,7 @@ audio_level_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"audio_level">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -2162,7 +2162,7 @@ transfer_definition() ->
                 ,{<<"Transfer-Type">>, [<<"blind">>, <<"attended">>]}
                 ,{<<"Transfer-Leg">>, [<<"bleg">>, <<"both">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -2192,7 +2192,7 @@ media_macro_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"media_macro">>}
                 ,{<<"Insert-At">>, <<"now">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -2223,7 +2223,7 @@ play_macro_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"play_macro">>}
                 ,{<<"Insert-At">>, <<"now">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -2261,7 +2261,7 @@ sound_touch_definition() ->
                ,[{<<"Application-Name">>, <<"sound_touch">>}
                 ,{<<"Action">>, [<<"start">>, <<"stop">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -2293,7 +2293,7 @@ hold_control_definition() ->
                ,[{<<"Application-Name">>, <<"hold_control">>}
                 ,{<<"Action">>, [<<"hold">>, <<"unhold">>, <<"toggle">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2, []}
@@ -2320,7 +2320,7 @@ event_actions_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"event_actions">>}
                 ,{<<"Insert-At">>, <<"now">>}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -2351,7 +2351,7 @@ queue_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"queue">>}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -2374,14 +2374,14 @@ error_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Channel-Call-State">>
                                                             ,<<"Channel-State">>
                                                             ,<<"Dialplan-Error">>
-                                                                 | ?ERROR_RESP_HEADERS
+                                                            | ?ERROR_RESP_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Custom-Channel-Vars">>
-                                                                 | ?OPTIONAL_ERROR_RESP_HEADERS
+                                                            | ?OPTIONAL_ERROR_RESP_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Event-Name">>, EventName}
-                 | ?ERROR_RESP_VALUES
+                | ?ERROR_RESP_VALUES
                 ]
                }
               ,{fun kapi_definition:set_types/2, ?ERROR_RESP_TYPES}
@@ -3423,7 +3423,7 @@ detect_speech_definition() ->
                ,[{<<"Application-Name">>, <<"detect_speech">>}
                 ,{<<"Action">>, [<<"start">>, <<"stop">>]}
                 ,?INSERT_AT_TUPLE
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2

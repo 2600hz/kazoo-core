@@ -94,7 +94,7 @@ get_binary(App, Key, Default) ->
     case get(App, Key) of
         'undefined' -> Default;
         {'ok', Value} when is_binary(Value) -> Value;
-		_NonBinary -> Default
+        _NonBinary -> Default
     end.
 
 -spec get_ne_binary(app(), app_key()) -> kz_term:api_ne_binary().
@@ -106,10 +106,10 @@ get_ne_binary(App, Key, Default) ->
     case get(App, Key) of
         'undefined' -> Default;
         {'ok', Value} ->
-			case kz_term:is_ne_binary(Value) of
-				true -> Value;
-				false -> Default
-			end
+            case kz_term:is_ne_binary(Value) of
+                true -> Value;
+                false -> Default
+            end
     end.
 
 -spec get_ne_binaries(app(), app_key()) -> kz_term:api_ne_binaries().
@@ -121,10 +121,10 @@ get_ne_binaries(App, Key, Default) ->
     case get(App, Key) of
         'undefined' -> Default;
         {'ok', Value} ->
-			case kz_term:is_ne_binaries(Value) of
-				true -> Value;
-				false -> Default
-			end
+            case kz_term:is_ne_binaries(Value) of
+                true -> Value;
+                false -> Default
+            end
     end.
 
 -spec get_json(app(), app_key()) -> kz_term:api_object().
@@ -179,7 +179,7 @@ is_true(App, Key) ->
 
 -spec is_true(app(), app_key(), Default) -> boolean() | Default.
 is_true(App, Key, Default) ->
-	get_is_true(App, Key, Default).
+    get_is_true(App, Key, Default).
 
 -spec get_is_false(app(), app_key()) -> boolean().
 get_is_false(App, Key) ->
@@ -198,21 +198,21 @@ is_false(App, Key) ->
 
 -spec is_false(app(), app_key(), Default) -> boolean() | Default.
 is_false(App, Key, Default) ->
-	get_is_false(App, Key, Default).
+    get_is_false(App, Key, Default).
 
 -spec get(atom(), app_key()) -> 'undefined' | {'ok', any()}.
 get(App, <<_/binary>>=Key) ->
-	get(App, binary:split(Key, <<".">>, [global]));
+    get(App, binary:split(Key, <<".">>, [global]));
 get(App, Keys) ->
-	case kz_term:is_ne_binaries(Keys) of
-		true ->	fetch_value(App, Keys);
-		false -> undefined
-	end.
+    case kz_term:is_ne_binaries(Keys) of
+        true -> fetch_value(App, Keys);
+        false -> undefined
+    end.
 
 -spec as_integer(any(), Default, fun((integer()) -> boolean())) -> integer() | Default.
 as_integer(Value, Default, VFun)
   when is_integer(Value) ->
-	case VFun(Value) of
+    case VFun(Value) of
         'true' -> Value;
         'false' -> Default
     end;
@@ -245,27 +245,27 @@ as_boolean(_Value, Default) -> Default.
 
 -spec fetch_value(atom(), app_key()) -> undefined | {ok, term()}.
 fetch_value(App, Key) ->
-	Default = persistent_term:get(kz_config, fun get_env/2),
-	Fun = persistent_term:get({kz_config, App}, Default),
-	fetch_value(App, Key, Fun).
+    Default = persistent_term:get(kz_config, fun get_env/2),
+    Fun = persistent_term:get({kz_config, App}, Default),
+    fetch_value(App, Key, Fun).
 
 fetch_value(App, Key, Fun) ->
-	case Fun(App, Key) of
-		undefined -> undefined;
-		{ok, Value} -> {ok, Value};
-		Value -> {ok, Value}
-	end.
+    case Fun(App, Key) of
+        undefined -> undefined;
+        {ok, Value} -> {ok, Value};
+        Value -> {ok, Value}
+    end.
 
 get_env(App, [Key | Keys]) ->
-	case application:get_env(App, kz_term:to_atom(Key, 'true')) of
-		undefined -> undefined;
-		{ok, Value} -> get_value(Value, Keys)
-	end.
+    case application:get_env(App, kz_term:to_atom(Key, 'true')) of
+        undefined -> undefined;
+        {ok, Value} -> get_value(Value, Keys)
+    end.
 
 get_value(Value, []) -> {ok, Value};
 get_value([{_, _} | _] = Value, [Key | Keys]) ->
-	case props:get_value(Key, Value) of
-		undefined -> undefined;
-		V -> get_value(V, Keys)
-	end;
+    case props:get_value(Key, Value) of
+        undefined -> undefined;
+        V -> get_value(V, Keys)
+    end;
 get_value(_NotList, _) -> undefined.

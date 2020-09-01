@@ -106,8 +106,8 @@ keys(JObj, {'path', {key, Key}, Cond}, {KCurrent, Keys}) ->
 keys(JObj, {'path', {path, _, _} = Step, {key, _} = Key}, {KCurrent, Keys}) ->
     {_, NewKeys} = keys(JObj, Step, {KCurrent, []}),
     PKeys1 = [PKey || {_, PKeys} <- [keys(JObj, Key, {NewKey, []}) || NewKey <- NewKeys],
-                     PKey <- PKeys
-            ],
+                      PKey <- PKeys
+             ],
     {KCurrent,  Keys ++ PKeys1};
 keys(JObj, {'cond', _, _} = Cond, {KCurrent, Keys} = Acc) ->
     case kz_json_query:eval(JObj, Cond) of

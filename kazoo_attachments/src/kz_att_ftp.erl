@@ -59,8 +59,8 @@ put_attachment(Params, DbName, DocId, AName, Contents, Options) ->
             {'ok', url_fields(DocUrlField, Url)};
         Resp ->
             Routines = [{fun kz_att_error:set_req_url/2, Url}
-                        | kz_att_error:put_routines(Params, DbName, DocId, AName,
-                                                    Contents, Options)
+                       | kz_att_error:put_routines(Params, DbName, DocId, AName,
+                                                   Contents, Options)
                        ],
             handle_ftp_error_response(Resp, Routines)
     end.
@@ -81,7 +81,7 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
                     Resp;
                 Resp ->
                     Routines = [{fun kz_att_error:set_req_url/2, Url}
-                                | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
+                               | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
                                ],
                     handle_ftp_error_response(Resp, Routines)
             end
@@ -100,10 +100,10 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
           {'error', ftp_error() | binary()}.
 send_request(Url, Contents) ->
     case uri_string:parse(kz_term:to_list(Url)) of
-		#{scheme := "ftp"
-		 ,path := FullPath
-		 } = URI ->
-			send_request(ftp_connect(URI), ftp_user(URI), FullPath, Contents);
+        #{scheme := "ftp"
+         ,path := FullPath
+         } = URI ->
+            send_request(ftp_connect(URI), ftp_user(URI), FullPath, Contents);
         _ -> {'error', <<"error parsing url: ", Url/binary>>}
     end.
 
@@ -137,20 +137,20 @@ send_request(HostPort, {User, Pass}, FullPath, Contents) ->
 
 -spec ftp_connect(map()) -> ftp_connect_info().
 ftp_connect(#{host := Host, port := Port}) ->
-	[{host, Host}
-	,{port, Port}
-	];
+    [{host, Host}
+    ,{port, Port}
+    ];
 ftp_connect(#{host := Host}) ->
-	[{host, Host}].
+    [{host, Host}].
 
 -spec ftp_user(map()) -> ftp_user_info().
 ftp_user(#{userinfo := UserPass}) ->
-	case string:tokens(UserPass, ":") of
-		[U, P] -> {U, P};
-		_ -> ftp_anonymous_user_pass()
-	end;
+    case string:tokens(UserPass, ":") of
+        [U, P] -> {U, P};
+        _ -> ftp_anonymous_user_pass()
+    end;
 ftp_user(#{}) ->
-	ftp_anonymous_user_pass().
+    ftp_anonymous_user_pass().
 
 -spec ftp_cmds(list()) -> 'ok' | {'error', ftp_error()}.
 ftp_cmds([]) -> 'ok';

@@ -343,7 +343,7 @@ send_check_sync(DeviceDoc, ShouldReboot, Username, Realm, MsgId) ->
     publish_check_sync(MsgId, [{<<"Event">>, CheckSyncEvent}
                               ,{<<"Realm">>, Realm}
                               ,{<<"Username">>, Username}
-                               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+                              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
                               ]).
 
 -spec check_sync_event(kzd_devices:doc() | 'undefined', kz_term:api_boolean()) -> kz_term:ne_binary().

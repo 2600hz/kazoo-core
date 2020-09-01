@@ -145,11 +145,11 @@ console_level(Level) ->
 
 -spec hotload(kz_term:text() | atom()) -> 'ok' | 'no_return'.
 hotload(Module) ->
-	kz_module:hotload(Module).
+    kz_module:hotload(Module).
 
 -spec hotload_app(kz_term:text() | atom()) -> 'ok'.
 hotload_app(App) ->
-	kz_application:hotload(App).
+    kz_application:hotload(App).
 
 -spec gc_all() -> 'ok'.
 gc_all() ->

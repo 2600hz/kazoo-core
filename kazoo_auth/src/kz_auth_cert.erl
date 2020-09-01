@@ -85,7 +85,7 @@ create(Subject, SubjectPublicKey, Days, Issuer, IssuerPrivateKey, Extensions) ->
     Ext = encode_extensions(
             [authority_key_identifier(IssuerPrivateKey)
             ,subject_key_identifier(SubjectPublicKey)
-             | Extensions
+            | Extensions
             ]),
     TBSCertificate = #'TBSCertificate'
         { version = v3
@@ -338,11 +338,11 @@ hexencode(<<Hi:4, Lo:4, Rest/binary>>, Acc) ->
 
 
 serial() ->
-   serial(3).
+    serial(3).
 
 serial(Size) ->
-   <<I:Size/unsigned-integer-unit:8>> = crypto:strong_rand_bytes(Size),
-   I.
+    <<I:Size/unsigned-integer-unit:8>> = crypto:strong_rand_bytes(Size),
+    I.
 
 ca_extensions() ->
     [key_usage([keyCertSign, cRLSign])
