@@ -20,7 +20,7 @@
         ,rename_file/2
         ,delete_file/1
         ,delete_dir/1
-        ,make_dir/1
+        ,make_dir/1, make_dir/2
         ]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -283,7 +283,17 @@ del_all_files([Dir | T], EmptyDirs) ->
 
 -spec make_dir(file:filename_all()) -> 'ok'.
 make_dir(Filename) ->
+    make_dir(Filename, 'false').
+
+-spec make_dir(file:filename_all(), Recursive::boolean()) -> 'ok'.
+make_dir(Filename, 'false') ->
     case file:make_dir(Filename) of
+        'ok' -> 'ok';
+        {'error', _}=_E ->
+            lager:error("creating directory ~s failed : ~p", [Filename, _E])
+    end;
+make_dir(Filename, 'true') ->
+    case filelib:ensure_dir(Filename) of
         'ok' -> 'ok';
         {'error', _}=_E ->
             lager:error("creating directory ~s failed : ~p", [Filename, _E])
