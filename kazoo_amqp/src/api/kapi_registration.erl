@@ -182,7 +182,7 @@ query_req_definition() ->
                ,[{<<"Fields">>, fun(Fields) when is_list(Fields) ->
                                         SuccessDef = success_definition(),
                                         Allowed = [<<"Bridge-RURI">>
-                                                       | kapi_definition:optional_headers(SuccessDef)
+                                                  | kapi_definition:optional_headers(SuccessDef)
                                                    ++ kapi_definition:required_headers(SuccessDef)
                                                   ],
                                         lists:all(fun(<<Field/binary>>) -> lists:member(Field, Allowed);
