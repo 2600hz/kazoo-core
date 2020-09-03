@@ -12,7 +12,7 @@
 -export([timed_out/2
         ,expire_objects/2
         ,erased/2, erased_mitigation/2
-        ,flushed/3
+        ,flushed/4
         ,stored/3
         ]).
 
@@ -20,25 +20,25 @@
 
 -include("kz_caches.hrl").
 
--spec flushed(atom(), atom(), atom()) -> 'ok'.
-flushed(Name, PointerName, MonitorName) ->
-    _ = [flush_table(T) || T <- [Name, PointerName, MonitorName]],
+-spec flushed(atom(), atom(), atom(), kz_cache:start_options()) -> 'ok'.
+flushed(Name, PointerName, MonitorName, Options) ->
+    _ = [flush_table(T, Options) || T <- [Name, PointerName, MonitorName]],
     'ok'.
 
--spec flush_table(atom()) -> 'ok'.
-flush_table(T) ->
-    flush_table(T, is_running(T)).
+-spec flush_table(atom(), kz_cache:start_options()) -> 'ok'.
+flush_table(T, Options) ->
+    flush_table(T, Options, is_running(T)).
 
--spec flush_table(atom(), boolean()) -> 'ok'.
-flush_table(_T, 'false') ->
+-spec flush_table(atom(), kz_cache:start_options(), boolean()) -> 'ok'.
+flush_table(_T, _Options, 'false') ->
     lager:info("cache ~s is not running", [_T]);
-flush_table(T, 'true') ->
-    exec_flush_callbacks(T),
+flush_table(T, Options, 'true') ->
+    exec_flush_callbacks(T, props:get_value('flush_callback', Options)),
     ets:delete_all_objects(T),
     kz_cache_processes:unmonitor_all(T).
 
--spec exec_flush_callbacks(atom()) -> 'ok'.
-exec_flush_callbacks(Name) ->
+-spec exec_flush_callbacks(atom(), 'undefined' | flush_callback_fun()) -> 'ok'.
+exec_flush_callbacks(Name, 'undefined') ->
     MatchSpec =
         [{#cache_obj{key = '$1'
                     ,value = '$2'
@@ -48,8 +48,12 @@ exec_flush_callbacks(Name) ->
          ,[{'=/=', '$3', 'undefined'}]
          ,[{{'$3', '$1', '$2'}}]
          }],
-
-    exec_callbacks(Name, MatchSpec, 'flush').
+    exec_callbacks(Name, MatchSpec, 'flush');
+exec_flush_callbacks(Name, Fun) ->
+    try Fun(Name) of
+        _ -> 'ok'
+    catch _:_ -> 'ok'
+    end.
 
 -spec erased(atom(), any()) -> 'ok'.
 erased(Name, Key) ->

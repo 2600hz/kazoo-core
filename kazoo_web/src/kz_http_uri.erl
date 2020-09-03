@@ -47,15 +47,15 @@ do_decode_binary(<<>>) ->
 
 reserved() ->
     sets:from_list([$;, $:, $@, $&, $=, $+, $,, $/, $?,
-            $#, $[, $], $<, $>, $\", ${, $}, $|, %"
-			       $\\, $', $^, $%, $ ]).
+                    $#, $[, $], $<, $>, $\", ${, $}, $|, %"
+                    $\\, $', $^, $%, $ ]).
 
 uri_encode(Char, Reserved) ->
     case sets:is_element(Char, Reserved) of
-	true ->
-	    [ $% | http_util:integer_to_hexlist(Char)];
-	false ->
-	    [Char]
+        true ->
+            [ $% | http_util:integer_to_hexlist(Char)];
+        false ->
+            [Char]
     end.
 
 uri_encode_binary(Char, Reserved) ->
@@ -67,8 +67,8 @@ uri_encode_binary(Char, Reserved) ->
     end.
 
 hex2dec(X) when (X>=$0)
-  andalso (X=<$9) -> X-$0;
+                andalso (X=<$9) -> X-$0;
 hex2dec(X) when (X>=$A)
-  andalso (X=<$F) -> X-$A+10;
+                andalso (X=<$F) -> X-$A+10;
 hex2dec(X) when (X>=$a)
-  andalso (X=<$f) -> X-$a+10.
+                andalso (X=<$f) -> X-$a+10.

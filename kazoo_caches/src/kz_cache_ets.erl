@@ -16,7 +16,7 @@
 %% @doc API functions
 %% @end
 %%------------------------------------------------------------------------------
--export([start_link/1
+-export([start_link/2
         ,pointer_tab/1
         ,monitor_tab/1
 
@@ -54,9 +54,9 @@
 
 -type state() :: atom().
 
--spec start_link(atom()) -> kz_types:startlink_ret().
-start_link(Name) ->
-    gen_server:start_link({'local', Name}, ?MODULE, [Name], []).
+-spec start_link(atom(), kz_cache:start_options()) -> kz_types:startlink_ret().
+start_link(Name, Options) ->
+    gen_server:start_link({'local', Name}, ?MODULE, [Name, Options], []).
 
 -spec pointer_tab(atom()) -> atom().
 pointer_tab(Name) ->
@@ -65,6 +65,14 @@ pointer_tab(Name) ->
 -spec monitor_tab(atom()) -> atom().
 monitor_tab(Name) ->
     to_tab(Name, "_monitors").
+
+-spec store_options(atom(), kz_cache:start_options()) -> ok.
+store_options(Name, Options) ->
+    persistent_term:put(to_tab(Name, "_options"), Options).
+
+-spec fetch_options(atom()) -> kz_cache:start_options().
+fetch_options(Name) ->
+    persistent_term:get(to_tab(Name, "_options"), []).
 
 -spec to_tab(atom(), string()) -> atom().
 to_tab(Name, Suffix) ->
@@ -112,7 +120,7 @@ erase(Srv, Key) ->
 
 -spec flush(atom()) -> 'ok'.
 flush(Name) ->
-    kz_cache_callbacks:flushed(Name, pointer_tab(Name), monitor_tab(Name)).
+    kz_cache_callbacks:flushed(Name, pointer_tab(Name), monitor_tab(Name), fetch_options(Name)).
 
 -spec cache_obj(any(), any(), kz_cache:store_options()) -> cache_obj().
 cache_obj(K, V, Props) ->
@@ -231,8 +239,8 @@ mitigate_stampede(Srv, Key, Options) ->
 expire_objects(Name) ->
     kz_cache_callbacks:expire_objects(Name, [pointer_tab(Name), monitor_tab(Name)]).
 
--spec init(kz_terms:atoms()) -> {'ok', state()}.
-init([Name]) ->
+-spec init([atom() | kz_cache:start_options()]) -> {'ok', state()}.
+init([Name, Options]) ->
     process_flag('trap_exit', 'true'),
     _Name = ets:new(Name
                    ,['set', 'public', 'named_table', {'keypos', #cache_obj.key}]
@@ -243,6 +251,7 @@ init([Name]) ->
     _MonitorName = ets:new(monitor_tab(Name)
                           ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key}]
                           ),
+    store_options(Name, Options),
     {'ok', Name}.
 
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).

@@ -84,6 +84,7 @@
         ,design_info/2
         ,design_compact/2
         ,maybe_adapt_multilines/1
+        ,maybe_create_view/4
         ]).
 
 -export([get_uuid/0, get_uuid/1
@@ -906,7 +907,7 @@ update_not_found(Database, Id, Options, 'true') ->
 
     JObj = kz_json:set_values(CreateProps, kz_json:new()),
     Updated = kz_json:set_values([{kz_doc:path_id(), Id}
-                                  | props:get_value('update', Options)
+                                 | props:get_value('update', Options)
                                  ]
                                  ++ props:get_value('extra_update', Options, [])
                                 ,JObj
@@ -1074,7 +1075,7 @@ attachment_url(DbName, DocId, AttachmentId, Options) ->
     case kzs_doc:open_doc(Plan, Database, DocId, props:delete('plan_override', Options)) of
         {'ok', JObj} ->
             NewOptions = [{'rev', kz_doc:revision(JObj)}
-                          | maybe_add_doc_type(kz_doc:type(JObj), Options)
+                         | maybe_add_doc_type(kz_doc:type(JObj), Options)
                          ],
             Handler = kz_doc:attachment_property(JObj, AttachmentId, <<"handler">>),
             kzs_attachments:attachment_url(Plan, Database, DocId, AttachmentId, Handler, NewOptions);
@@ -1180,7 +1181,13 @@ get_results(DbName, DesignDoc, Options) ->
     Opts = maybe_add_doc_type_from_view(DesignDoc, Options),
     Plan = kzs_plan:plan(Database, Opts),
     case kzs_view:get_results(Plan, Database, DesignDoc, Options) of
-        {'error', 'not_found'} -> maybe_create_view(Plan, Database, DesignDoc, Options);
+        {'error', 'not_found'} ->
+            case maybe_create_view(Plan, Database, DesignDoc, Options) of
+                {'ok', _} ->
+                    kzs_view:get_results(Plan, Database, DesignDoc, Options);
+                {'error', _}=Error ->
+                    Error
+            end;
         Other -> Other
     end.
 
@@ -1251,28 +1258,30 @@ registration_keys(Database, DesignDoc, Classification) ->
 -spec maybe_create_view(map(), database_name(), 'all_docs' | kz_term:ne_binary(), view_options()) ->
           get_results_return().
 maybe_create_view(Plan, Database, DesignDoc, Options) ->
-    maybe_create_view(Plan, Database, DesignDoc, Options, kzs_db:db_exists(Plan, Database)).
+    case should_create_view(Options)
+        andalso kzs_db:db_exists(Plan, Database)
+        andalso get_registered_view(Plan, Database, DesignDoc)
+    of
+        'false' ->
+            {'error', 'not_found'};
+        'not_registered' ->
+            {'error', 'not_found'};
+        ViewJObj ->
+            create_registered_view(Plan, Database, DesignDoc, Options, ViewJObj)
+    end.
 
--spec maybe_create_view(map(), database_name(), 'all_docs' | kz_term:ne_binary(), view_options(), boolean()) ->
-          get_results_return().
-maybe_create_view(_Plan, _Database, _DesignDoc, _Options, 'false') ->
-    {'error', 'not_found'};
-maybe_create_view(Plan, Database, DesignDoc, Options, 'true') ->
-    maybe_create_registered_view(Plan, Database, DesignDoc, Options
-                                ,get_registered_view(Plan, Database, DesignDoc)
-                                ).
+-spec should_create_view(view_options()) -> boolean().
+should_create_view(Options) ->
+    not props:is_true('no_create_view', Options, 'false').
 
--spec maybe_create_registered_view(map(), database_name(), 'all_docs' | kz_term:ne_binary(), view_options(), kz_json:object() | 'not_registered') ->
+-spec create_registered_view(map(), database_name(), 'all_docs' | kz_term:ne_binary(), view_options(), kz_json:object()) ->
           get_results_return().
-maybe_create_registered_view(_Plan, _Database, _DesignDoc, _Options, 'not_registered') ->
-    {'error', 'not_found'};
-maybe_create_registered_view(Plan, Database, DesignDoc, Options, ViewJObj) ->
+create_registered_view(Plan, Database, DesignDoc, _Options, ViewJObj) ->
     ViewDoc = kz_json:get_json_value(<<"view_definition">>, ViewJObj),
     case kzs_doc:save_doc(Plan, Database, ViewDoc, []) of
-        {'ok', _ViewDoc} -> kzs_view:get_results(Plan, Database, DesignDoc, Options);
+        {'ok', _}=OK -> OK;
         {'error', 'conflict'} ->
-            _ = maybe_update_view(Plan, Database, DesignDoc, ViewDoc),
-            kzs_view:get_results(Plan, Database, DesignDoc, Options);
+            maybe_update_view(Plan, Database, DesignDoc, ViewDoc);
         {'error', _Err} ->
             lager:error("error saving registered view ~s to database ~s : ~p", [DesignDoc, Database, _Err]),
             {'error', 'not_found'}
@@ -1547,8 +1556,7 @@ max_bulk_read() ->
 -spec max_bulk_read(view_options()) -> pos_integer().
 max_bulk_read(ViewOptions) ->
     AskedFor = props:get_integer_value('max_bulk_read', ViewOptions, max_bulk_read()),
-    UpperBound = min(AskedFor, max_bulk_read()),
-    max(UpperBound, 1).
+    kz_math:clamp(max_bulk_read(), 1, AskedFor).
 
 -spec db_classification(database_name()) -> db_classification().
 db_classification(DBName) -> kzs_util:db_classification(DBName).
@@ -1586,6 +1594,8 @@ init_dbs(Server) ->
     Fun = fun(DB, Acc) -> [init_db(Server, DB) | Acc] end,
     Result = lists:foldl(Fun, [], ?KZ_SYSTEM_DBS),
     revise_docs_from_folder(?KZ_DATA_DB, ?APP, <<"views">>),
+    ?DEV_LOG("hwllo i'm here"),
+    _ = register_views_from_folder('kazoo_couch'),
     _ = enable_change_notice(),
     lists:any(fun kz_term:is_true/1, Result).
 

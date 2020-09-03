@@ -24,9 +24,97 @@ profile(EndpointId, AccountId) ->
 -spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
     case kz_endpoint:get(EndpointId, AccountId) of
-        {'ok', Endpoint} -> maybe_generate_profile(EndpointId, AccountId, Endpoint, Options);
+        {'ok', Endpoint} -> profile(EndpointId, AccountId, Endpoint, Options);
         Error -> Error
     end.
+
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+profile(EndpointId, AccountId, Endpoint, Options) ->
+    case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
+        <<"user">> ->
+            case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
+                {ok, Profile} -> {ok, Profile};
+                {error, not_found} -> build_and_cache(EndpointId, AccountId, Endpoint, Options)
+            end;
+        _ -> {'error', 'not_user'}
+    end.
+
+-spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+build_and_cache(EndpointId, AccountId, Endpoint, Options) ->
+    {ok, Profile} = build(EndpointId, AccountId, Endpoint, Options),
+    cache(EndpointId, AccountId, Profile).
+
+-spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> {'ok', kz_json:object()}.
+cache(EndpointId, AccountId, Profile) ->
+    Origins = cache_origin(EndpointId, AccountId, Profile),
+    CacheProps = [{'origin', Origins}
+                 ,{'callback', fun cache_callback/3}
+                 ],
+    kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, Profile, CacheProps),
+    {ok, Profile}.
+
+-spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> ok.
+cache_callback({EndpointId, AccountId}, CachedValue, 'erase') ->
+    lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
+    timer:sleep(kz_term:to_integer(?MILLISECONDS_IN_SECOND * 0.15)),
+    case kz_endpoint:get(EndpointId, AccountId) of
+        {'ok', Endpoint} ->
+            {ok, NewProfile} = build(EndpointId, AccountId, Endpoint, []),
+            maybe_notify(EndpointId, AccountId, kz_json:are_equal(NewProfile, CachedValue)),
+            cache(EndpointId, AccountId, NewProfile);
+        _Error -> notify(EndpointId, AccountId)
+    end;
+cache_callback(_, _, _) -> ok.
+
+maybe_notify(EndpointId, AccountId, true) ->
+    lager:debug("directory cache erased key hasn't changed (~s / ~s)", [EndpointId, AccountId]);
+maybe_notify(EndpointId, AccountId, false) -> notify(EndpointId, AccountId).
+
+notify(EndpointId, AccountId) ->
+    kz_directory_cache:clear(<<EndpointId/binary, "@", AccountId/binary>>),
+    lager:debug("directory cache erased key changed (~s / ~s)", [EndpointId, AccountId]).
+
+-spec cache_origin(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> list().
+cache_origin(EndpointId, AccountId, Profile) ->
+    Members = kz_json:get_ne_binaries(<<"Members">>, Profile),
+    AccountDb = kzs_util:format_account_db(AccountId),
+    Routines = [fun(P) -> [{'db', AccountDb, EndpointId} | P] end
+               ,fun(P) -> [{'db', AccountDb, AccountId} | P] end
+               ,fun(P) -> lists:foldl(fun(M, A) -> [{'db', AccountDb, M} | A] end, P, Members) end
+               ],
+    lists:foldl(fun(F, P) -> F(P) end, [], Routines).
+
+-spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+build(EndpointId, AccountId, Endpoint, _Options) ->
+    CCVs = generate_ccvs(EndpointId, AccountId, Endpoint),
+    SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint),
+
+    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
+    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
+    Endpoints = owned_by_query(EndpointId, AccountId),
+
+    CPVs = [{<<"Internal-Caller-ID-Number">>, CIDNumber}
+           ,{<<"Internal-Caller-ID-Name">>, CIDName}
+           ,{<<"External-Caller-ID-Number">>, CEDNumber}
+           ,{<<"External-Caller-ID-Name">>, CEDName}
+           ,{<<"Account-ID">>, AccountId}
+           ,{<<"Endpoint-ID">>, EndpointId}
+           ,{<<"Endpoint-Type">>, <<"user">>}
+           ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
+           ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
+           ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
+           ],
+    Profile = [{<<"Endpoint-Type">>, <<"user">>}
+              ,{<<"Domain-Name">>, AccountId}
+              ,{<<"User-ID">>, EndpointId}
+              ,{<<"Members">>, Endpoints}
+              ,{<<"Custom-Channel-Vars">>, CCVs}
+              ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
+              ,{<<"Custom-SIP-Headers">>, SIPHeaders}
+              ,{<<"CallForward">> , maybe_build_call_forward(EndpointId, AccountId, Endpoint)}
+              ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
+              ],
+    {'ok', kz_json:from_list(Profile)}.
 
 -spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 generate_ccvs(_EndpointId, AccountId, Endpoint) ->
@@ -82,52 +170,12 @@ add_sip_headers(Endpoint, Headers) ->
         CustomHeaders -> kz_json:merge_jobjs(CustomHeaders, Headers)
     end.
 
--spec maybe_generate_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-maybe_generate_profile(EndpointId, AccountId, Endpoint, Options) ->
-    case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
-        <<"user">> -> generate_profile(EndpointId, AccountId, Endpoint, Options);
-        _ -> {'error', 'not_user'}
-    end.
-
--spec generate_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
-    CCVs = generate_ccvs(EndpointId, AccountId, Endpoint),
-    SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint),
-
-    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
-    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
-
-    CPVs = [{<<"Internal-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Internal-Caller-ID-Name">>, CIDName}
-           ,{<<"External-Caller-ID-Number">>, CEDNumber}
-           ,{<<"External-Caller-ID-Name">>, CEDName}
-           ,{<<"Account-ID">>, AccountId}
-           ,{<<"Endpoint-ID">>, EndpointId}
-           ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
-           ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
-           ],
-    Profile = [{<<"Endpoint-Type">>, <<"user">>}
-              ,{<<"Domain-Name">>, AccountId}
-              ,{<<"User-ID">>, EndpointId}
-              ,{<<"Members">>, owned_by_query(EndpointId, AccountId)}
-              ,{<<"Custom-Channel-Vars">>, CCVs}
-              ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
-              ,{<<"Custom-SIP-Headers">>, SIPHeaders}
-              ,{<<"CallForward">> , maybe_build_call_forward(EndpointId, AccountId, Endpoint)}
-              ,{<<"Expires">>, 360}
-              ],
-    {'ok', kz_json:from_list(Profile)}.
-
-
-
-
 -spec owned_by_query(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:api_binaries().
 owned_by_query(OwnerId, AccountId) ->
     ViewOptions = [{'key', [OwnerId, <<"device">>]}],
     AccountDb = kzs_util:format_account_db(AccountId),
-    case kz_datamgr:get_results(AccountDb, <<"attributes/owned">>, ViewOptions) of
-        {'ok', JObjs} -> [kz_doc:id(JObj) || JObj <- JObjs];
+    case kz_datamgr:get_result_ids(AccountDb, <<"attributes/owned">>, ViewOptions) of
+        {'ok', Ids} -> Ids;
         {'error', _R} -> []
     end.
 

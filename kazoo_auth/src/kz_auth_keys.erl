@@ -358,7 +358,7 @@ new_private_key(KeyId, Key) ->
 new_private_key(KeyId, Key, Metadata) ->
     Doc = [{<<"pvt_type">>, <<"system_key">>}
           ,{<<"_id">>, KeyId}
-           | Metadata
+          | Metadata
           ],
     JObj = kz_doc:update_pvt_parameters(kz_json:from_list(Doc), ?KZ_AUTH_DB),
 
@@ -443,5 +443,5 @@ search(Query) ->
                         ,params => [?KZ_AUTH_DB, ?QUERY_VIEW, [<<"system_key">>]]
                         }
          ,output => #{'fun' => fun data_output/1}
-        },
+         },
     kz_json_query:query(Q).

@@ -74,7 +74,7 @@ handle_query(JObj, _Props) ->
     Reply = [{<<"Keys">>, kz_json:from_list(fetch_keys())}
             ,{<<"Issuer">>, fetch_node_key(Node, IssuerRequested)}
             ,{<<"Msg-ID">>, kz_api:msg_reply_id(JObj)}
-             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
             ],
     kapi_keys:publish_reply(kz_api:server_id(JObj), props:filter_undefined(Reply)).
 

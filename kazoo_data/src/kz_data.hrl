@@ -68,31 +68,34 @@
 
 -type stale() :: 'ok' | 'update_after'.
 
--type key_range() :: integer() | binary() | [integer() | binary() | kz_json:object()].
+-type key_range() :: 'null' | atom() | binary() | number() | string() | ['null' | atom() | binary() | number() | string() | kz_json:object()].
 
 -type transform_fun() :: fun((kz_json:object(), kz_json:object()) -> kz_json:object()).
 
--type view_option() :: 'conflicts' |
-                       'descending' |
+-type couch_view_options() :: 'conflicts' |
+                              'descending' |
+                              'group' |
+                              'include_docs' |
+                              'inclusive_end' |
+                              'reduce' |
+                              {'end_docid', binary()} |
+                              {'endkey', key_range()} |
+                              {'group_level', 'exact' | integer()} |
+                              {'key', binary()} |
+                              {'keys', [binary()]} |
+                              {'limit', integer()} |
+                              {'list', binary()} |
+                              {'reduce', boolean()} |
+                              {'skip', integer()} |
+                              {'stale', stale()} |
+                              {'start_docid', binary()} |
+                              {'startkey', key_range()}.
+
+-type view_option() :: couch_view_options() |
                        'first_when_multiple' |
-                       'group' |
-                       'include_docs' |
-                       'inclusive_end' |
                        'override_existing_document' |
-                       'reduce' |
-                       {'end_docid', binary()} |
-                       {'endkey', key_range()} |
-                       {'group_level', 'exact' | integer()} |
-                       {'key', binary()} |
-                       {'keys', [binary()]} |
-                       {'limit', integer()} |
-                       {'list', binary()} |
+                       {'no_create_view', boolean()} |
                        {'max_bulk_read', pos_integer()} |
-                       {'reduce', boolean()} |
-                       {'skip', integer()} |
-                       {'stale', stale()} |
-                       {'start_docid', binary()} |
-                       {'startkey', key_range()} |
                        {'transform',transform_fun()}.
 
 -type view_options() :: [view_option()].
@@ -124,7 +127,7 @@
                             {'ensure_other_dbs', boolean()}.
 -type db_delete_options() :: [db_delete_option()].
 
--type ddoc() :: kz_term:ne_binary() | 'all_docs' | 'design_docs'.
+-type ddoc() :: kz_term:ne_binary() | 'all_docs'.
 
 -type docid() :: kz_term:ne_binary() | {kz_term:ne_binary(), kz_term:ne_binary()}.
 -type docids() :: [docid()].
@@ -159,6 +162,8 @@
                         ]).
 
 -define(DELETE_KEYS, [<<"_rev">>, <<"id">>, <<"_attachments">>, <<"pvt_attachments">>]).
+
+-define(EMPTY_SELECTOR, []).
 
 -define(KZ_DATA_HRL, 'true').
 -endif.

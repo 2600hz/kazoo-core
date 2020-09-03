@@ -67,6 +67,10 @@
         ,all_docs/3
         ]).
 
+%% Kazoo-View related
+-export([find/5
+        ]).
+
 -include("kz_couch.hrl").
 
 -export_type([couch_version/0]).
@@ -284,6 +288,11 @@ all_design_docs(#server{}=Server, ?NE_BINARY = DBName, Options) ->
           couchbeam_error().
 get_results(Server, DbName, DesignDoc, ViewOptions) ->
     kz_couch_view:get_results(Server, DbName, DesignDoc, ViewOptions).
+
+-spec find(kz_data:connection(), kz_term:ne_binary(), 'all_docs' | kz_term:ne_binary(), kz_view:selector(), kz_view:options()) ->
+          kz_either:either(any(), kz_view_cursor:cursor()).
+find(Server, Database, DesignDoc, Selector, ViewOptions) ->
+    kz_couch_view:find(Server, Database, DesignDoc, Selector, ViewOptions).
 
 -spec get_results_count(kz_data:connection(), 'all_docs' | kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) ->
           {'ok', kz_term:api_integer()} |

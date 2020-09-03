@@ -72,3 +72,6 @@
 -callback get_results(connection(), kz_term:ne_binary(), kz_term:ne_binary(), options()) -> any().
 -callback get_results_count(connection(), kz_term:ne_binary(), kz_term:ne_binary(), options()) -> any().
 -callback all_docs(connection(), kz_term:ne_binary(), options()) -> any().
+
+%% View-Cursor
+-callback find(connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_view:selector(), kz_view:options()) -> kz_either:either(any(), kz_view_cursor:cursor()).

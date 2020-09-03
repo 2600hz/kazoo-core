@@ -551,7 +551,7 @@ calculate_billable_quantity(_Services, Item) ->
 
 -spec handle_step(non_neg_integer(), non_neg_integer()) -> non_neg_integer().
 handle_step(Quantity, Step) ->
-    kz_term:ceiling(Quantity / Step) * Step.
+    kz_math:ceiling(Quantity / Step) * Step.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -643,15 +643,15 @@ maybe_set_discounts(Item, ItemPlan) ->
                ).
 
 -spec maybe_set_discounts_fold(kzd_item_plan:doc()) ->
-                                      fun((discount_routine(), item()) ->
-                                                 item()).
+          fun((discount_routine(), item()) ->
+                     item()).
 maybe_set_discounts_fold(ItemPlan) ->
     fun(Routine, Item) ->
             Routine(Item, ItemPlan)
     end.
 
 -spec maybe_set_single_discount(item(), kzd_item_plan:doc()) ->
-                                       item().
+          item().
 maybe_set_single_discount(Item, ItemPlan) ->
     DiscountPlan = kzd_item_plan:single_discount(ItemPlan),
     case should_set_discount(Item, DiscountPlan) of

@@ -62,13 +62,14 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
 
     CPVs = [{<<"Account-ID">>, AccountId}
            ,{<<"Endpoint-ID">>, EndpointId}
+           ,{<<"Endpoint-Type">>, <<"sys_info">>}
            ],
     Profile = [{<<"Endpoint-Type">>, <<"sys_info">>}
               ,{<<"Domain-Name">>, AccountId}
               ,{<<"User-ID">>, EndpointId}
               ,{<<"Custom-Channel-Vars">>, CCVs}
               ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
-              ,{<<"Expires">>, 360}
+              ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
               ],
     {'ok', kz_json:from_list(Profile)}.
 

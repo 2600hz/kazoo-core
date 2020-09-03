@@ -6,7 +6,7 @@ TEST_EBINS = $(ROOT)/applications/crossbar/ebin
 SRC_FILES := $(sort $(wildcard src/*.erl.src))
 ERL_FILES := $(SRC_FILES:.erl.src=.erl)
 
-SOURCES := $(sort $(wildcard src/*.erl) $(ERL_FILES))
+SOURCES := $(sort $(wildcard src/*.erl) $(wildcard src/**/*.erl) $(ERL_FILES))
 COMPILE_MOAR = $(ERL_FILES)
 
 all: compile

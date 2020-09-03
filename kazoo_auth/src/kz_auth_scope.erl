@@ -40,7 +40,7 @@ has_scopes(JWToken, Scopes, Option)
 has_scopes(Token, ScopeList, Option) ->
     Scopes = scopes(Token),
     Fun = fun(Scope) ->
-             lists:member(Scope, Scopes)
+                  lists:member(Scope, Scopes)
           end,
     lists:Option(Fun, ScopeList).
 

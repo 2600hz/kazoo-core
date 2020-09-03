@@ -31,7 +31,7 @@
 
         ,call_custom/4, call_custom/5
 
-        ,cast/2, cast/3
+        ,cast/1, cast/2, cast/3
 
         ,relay_to/2, stop_relay/2
 
@@ -154,7 +154,7 @@ start_link(Args) ->
                             ,{'queue_name', maybe_queuename(Args)}
                             ,{'queue_options', ?QUEUE_OPTIONS}
                             ,{'consume_options', ?CONSUME_OPTIONS}
-                             | maybe_broker(Args)
+                            | maybe_broker(Args)
                              ++ maybe_exchanges(Args)
                              ++ maybe_server_confirms(Args)
                             ]
@@ -451,6 +451,10 @@ call_collect(Req, PubFun, UntilFun, Timeout, Acc, Worker) ->
 -type cast_return() :: 'ok' |
                        {'error', any()} |
                        {'returned', kz_json:object(), kz_json:object()}.
+
+-spec cast(publish_fun()) -> cast_return().
+cast(PubFun) ->
+    cast([], PubFun, worker_pool()).
 
 -spec cast(kz_term:api_terms(), publish_fun()) -> cast_return().
 cast(Req, PubFun) ->
@@ -1040,6 +1044,29 @@ maybe_set_msg_id(Props) ->
     end.
 
 -spec publish_api(fun(), kz_term:api_terms()) -> 'ok' | {'error', any()}.
+publish_api(PublishFun, _ReqProps)
+  when is_function(PublishFun, 0) ->
+    lager:warning("FUNCTION ARITY 0"),
+    try PublishFun() of
+        'ok' -> 'ok';
+        {'error', _E}=Err -> Err;
+        Other ->
+            lager:error("publisher fun returned ~p instead of 'ok'", [Other]),
+            {'error', Other}
+    catch
+        ?STACKTRACE('error', 'badarg', ST)
+        lager:error("badarg error when publishing:"),
+        kz_log:log_stacktrace(ST),
+        {'error', 'badarg'};
+        ?STACKTRACE('error', 'function_clause', ST)
+        lager:error("function clause error when publishing:"),
+        kz_log:log_stacktrace(ST),
+        lager:error("pub fun: ~p", [PublishFun]),
+        {'error', 'function_clause'};
+        _E:R ->
+            lager:error("error when publishing: ~s:~p", [_E, R]),
+            {'error', R}
+    end;
 publish_api(PublishFun, ReqProps) ->
     try PublishFun(ReqProps) of
         'ok' -> 'ok';

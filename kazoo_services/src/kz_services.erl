@@ -651,7 +651,7 @@ add_audit_log_changes_type(Services, AuditLog) ->
                               ).
 
 -spec add_audit_log_changes_type(services(), kz_json:object(), kz_term:api_ne_binary()) ->
-                                        kz_json:object().
+          kz_json:object().
 add_audit_log_changes_type(Services, AuditLog, 'undefined') ->
     lists:foldl(fun maybe_set_change_type/2
                ,AuditLog
@@ -869,7 +869,7 @@ fetch(Account=?NE_BINARY, Options) ->
     handle_fetched_doc(AccountId, Options, OpenDocFun(?KZ_SERVICES_DB, AccountId)).
 
 -spec handle_fetched_doc(kz_term:ne_binary(), fetch_options(), {'ok', kz_json:object()} | {'error', 'not_found'}) ->
-                                services().
+          services().
 handle_fetched_doc(_AccountId, Options, {'ok', ServicesJObj}) ->
     Setters = [{fun set_services_jobj/2, ServicesJObj}
               ,{fun set_current_services_jobj/2, ServicesJObj}
@@ -909,7 +909,7 @@ create(AccountId) ->
     create(AccountId, kzd_accounts:fetch(AccountId)).
 
 -spec create(kz_term:ne_binary(), {'error', 'not_found'} | {'ok', kzd_accounts:doc()}) ->
-                    kz_term:api_object().
+          kz_term:api_object().
 create(_AccountId, {'error', 'not_found'}) ->
     lager:info("failed to find account database for ~s", [_AccountId]),
     'undefined';
@@ -1013,7 +1013,7 @@ cascade_commits_fetch_options(FetchOptions) ->
         'true' ->
             ['hydrate_cascade_quantities'
             ,'hydrate_account_quantities'
-             | FetchOptions
+            | FetchOptions
             ]
     end.
 
@@ -1198,8 +1198,8 @@ maybe_audit_reseller(Services, CurrentServicesJObj, ProposedServicesJObj)  ->
     case has_quantity_changes(CurrentServicesJObj, ProposedServicesJObj) of
         'false' -> 'ok';
         'true' ->
-          audit_reseller(Services, CurrentServicesJObj, ProposedServicesJObj)
-   end.
+            audit_reseller(Services, CurrentServicesJObj, ProposedServicesJObj)
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -1212,8 +1212,8 @@ audit_reseller(Services, CurrentServicesJObj, ProposedServicesJObj) ->
     ResellerId = kz_services_reseller:get_id(AccountId),
 
     case kz_services_reseller:is_reseller(AccountId)
-         andalso MasterAccountId =/= AccountId of
-        % don't cascade audit to Master Acct
+        andalso MasterAccountId =/= AccountId of
+                                                % don't cascade audit to Master Acct
         'false' -> 'ok';
         'true' ->
             lager:debug("creating account ~s reseller audit for ~s", [AccountId, ResellerId]),
@@ -1261,7 +1261,7 @@ generate_diff_obj(CurrentServicesJObj, ProposedServicesJObj) ->
 %% quantities
 %% @end
 %%------------------------------------------------------------------------------
--spec calculate_diffs({kz_json:keys(), kz_json:object(), kz_json:object()}, kz_json:object()) -> kz_json:objects().
+-spec calculate_diffs({kz_json:keys(), kz_json:object(), kz_json:object()}, kz_json:objects()) -> kz_json:objects().
 calculate_diffs({[], _, _}, Acc) -> Acc;
 calculate_diffs({[Key | Keys], CQ, PQ}, Acc) ->
     Proposed = kz_json:get_integer_value(Key, PQ, 0),

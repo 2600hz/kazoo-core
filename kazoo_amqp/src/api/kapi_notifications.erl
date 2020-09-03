@@ -285,7 +285,7 @@ notify_update_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Status">>]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Failure-Message">>
                                                             ,<<"Metadata">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, [{<<"Status">>, [<<"completed">>
                                                                   ,<<"disabled">>
@@ -294,7 +294,7 @@ notify_update_definition() ->
                                                                   ,<<"pending">>
                                                                   ]
                                                    }
-                                                   | ?NOTIFY_VALUES(EventName)
+                                                  | ?NOTIFY_VALUES(EventName)
                                                   ]}
               ,{fun kapi_definition:set_types/2, []}
               ],
@@ -387,7 +387,7 @@ bill_reminder_definition() ->
                                                             ,<<"Timestamp">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Payment-Token">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, [{<<"Account-ID">>, fun kz_term:is_ne_binary/1}
@@ -450,7 +450,7 @@ new_account_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, [<<"Account-API-Key">>
                                                             ,<<"Account-Name">>
                                                             ,<<"Account-Realm">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -496,7 +496,7 @@ service_added_definition() ->
                                     ,<<"ID">>
                                     ,<<"Purchase-Order">>
                                     ,<<"Tax-Amount">>
-                                         | ?DEFAULT_OPTIONAL_HEADERS
+                                    | ?DEFAULT_OPTIONAL_HEADERS
                                     ]).
 
 %%-----------------------------------------------------------------------------%% Top-up
@@ -603,7 +603,7 @@ inbound_fax_definition() ->
                                                             ,<<"Fax-Timestamp">>
                                                             ,<<"FaxBox-ID">>
                                                             ,<<"Owner-ID">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -647,7 +647,7 @@ inbound_fax_error_definition() ->
                                                             ,<<"Fax-Timestamp">>
                                                             ,<<"FaxBox-ID">>
                                                             ,<<"Owner-ID">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -686,7 +686,7 @@ outbound_fax_definition() ->
                                                             ,<<"Fax-Notifications">>
                                                             ,<<"Fax-Timestamp">>
                                                             ,<<"FaxBox-ID">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -725,7 +725,7 @@ outbound_fax_error_definition() ->
                                                             ,<<"Fax-Notifications">>
                                                             ,<<"Fax-Timestamp">>
                                                             ,<<"FaxBox-ID">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -766,7 +766,7 @@ outbound_smtp_fax_error_definition() ->
                                                             ,<<"Number">>
                                                             ,<<"Owner-ID">>
                                                             ,<<"Original-Number">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, [{<<"Errors">>, ErrorsFun}]}
@@ -804,7 +804,7 @@ cnam_request_definition() ->
                                                             ,<<"Local-Number">>
                                                             ,<<"Number-State">>
                                                             ,<<"Request">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -818,7 +818,7 @@ cnam_request_definition() ->
                                ,<<"Port">>
                                ,<<"Reason">>
                                ,<<"Version">> %% for stupid notify app (port_request)
-                                    | ?DEFAULT_OPTIONAL_HEADERS
+                               | ?DEFAULT_OPTIONAL_HEADERS
                                ]).
 %%------------------------------------------------------------------------------
 %% @doc Get Port Cancel Notification API definition.
@@ -1075,7 +1075,7 @@ denied_emergency_bridge_definition() ->
                                                             ,<<"Emergency-Caller-ID-Number">>
                                                             ,<<"Outbound-Caller-ID-Name">>
                                                             ,<<"Outbound-Caller-ID-Number">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1121,7 +1121,7 @@ emergency_bridge_definition() ->
                                                             ,<<"User-First-Name">>
                                                             ,<<"User-Last-Name">>
                                                             ,<<"User-Email">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1174,7 +1174,7 @@ deregister_definition() ->
                                                             ,<<"To-Host">>
                                                             ,<<"To-User">>
                                                             ,<<"User-Agent">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1242,7 +1242,7 @@ missed_call_definition() ->
                                                             ,<<"To">>
                                                             ,<<"To-Realm">>
                                                             ,<<"To-User">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1288,7 +1288,7 @@ register_definition() ->
                                                             ,<<"To-Host">>
                                                             ,<<"To-User">>
                                                             ,<<"User-Agent">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1328,7 +1328,7 @@ system_alert_definition() ->
                                                             ,<<"Pid">>
                                                             ,<<"Request-ID">>
                                                             ,<<"Section">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1364,7 +1364,7 @@ customer_update_definition() ->
                                                             ,<<"Recipient-ID">>
                                                             ,<<"Template-ID">>
                                                             ,<<"User-Type">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1394,7 +1394,7 @@ new_user_definition() ->
                                                             ,<<"User-ID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Password">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1429,7 +1429,7 @@ password_recovery_definition() ->
                                                             ,<<"Last-Name">>
                                                             ,<<"Timezone">>
                                                             ,<<"User-ID">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1485,7 +1485,7 @@ voicemail_full_definition() ->
                                         ,<<"Caller-ID-Number">>
                                         ,<<"Voicemail-Length">>
                                         ,<<"Voicemail-Transcription">>
-                                             | ?DEFAULT_OPTIONAL_HEADERS
+                                        | ?DEFAULT_OPTIONAL_HEADERS
                                         ]).
 -define(VOICEMAIL_DELETED_HEADERS, [<<"Account-ID">>
                                    ,<<"From-Realm">>
@@ -1502,7 +1502,7 @@ voicemail_full_definition() ->
                                             ,<<"Caller-ID-Number">>
                                             ,<<"Voicemail-Length">>
                                             ,<<"Voicemail-Transcription">>
-                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                            | ?DEFAULT_OPTIONAL_HEADERS
                                             ]).
 %%------------------------------------------------------------------------------
 %% @doc Get Voicemail New Notification API definition.
@@ -1609,7 +1609,7 @@ webhook_definition() ->
                                                             ,<<"Hook">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Timestamp">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
@@ -1684,7 +1684,7 @@ cf_notification_definition() ->
                                                             ,<<"Timestamp">>
                                                             ,<<"Comments">>
                                                             ,<<"Notification-Media">>
-                                                                 | ?DEFAULT_OPTIONAL_HEADERS
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
