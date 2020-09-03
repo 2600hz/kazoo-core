@@ -30,7 +30,7 @@ unbind() ->
 bind() ->
     RK = kz_binary:join([<<"kapi.conf">>, kz_term:to_binary(?CACHE_NAME), <<"*.device.*.*">>], <<".">>),
     lager:debug("binding for device created"),
-    kazoo_bindings:bind(RK, ?MODULE, handle_cache).
+    kazoo_bindings:bind(RK, ?MODULE, 'handle_cache').
 
 -spec handle_cache(kz_json:object()) -> 'ok'.
 handle_cache(JObj) ->
@@ -38,22 +38,22 @@ handle_cache(JObj) ->
     Id = kapi_conf:get_id(JObj),
     handle_cache(Db, Id, kzs_util:is_account_db(Db)).
 
--spec handle_cache(kz_term:ne_binary(), kz_term:ne_binary(), boolean()) -> ok.
-handle_cache(_Db, _Id, false) -> ok;
-handle_cache(Db, Id, true) ->
+-spec handle_cache(kz_term:ne_binary(), kz_term:ne_binary(), boolean()) -> 'ok'.
+handle_cache(_Db, _Id, 'false') -> 'ok';
+handle_cache(Db, Id, 'true') ->
     case kz_datamgr:open_doc(Db, Id) of
-        {ok, JObj} -> handle_change(Db, Id, JObj);
-        _Else -> ok
+        {'ok', JObj} -> handle_change(Db, Id, JObj);
+        _Else -> 'ok'
     end.
 
--spec handle_change(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> ok.
+-spec handle_change(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
 handle_change(Db, Id, JObj) ->
     AccountId = kzs_util:format_account_id(Db),
     lager:info("handling change for device ~s/~s", [AccountId, Id]),
     Ids = owner_ids(JObj),
     Cached = cached_ids(Db, Id),
     _ = [kz_cache:erase_local(?CACHE_NAME, {CachedId, AccountId}) || CachedId <- Ids -- Cached],
-    ok.
+    'ok'.
 
 -spec cached_ids(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binaries().
 cached_ids(Db, Id) ->
@@ -73,14 +73,14 @@ match_doc_changed_keys(Db, Id) ->
      }
     ].
 
--spec flushed(atom()) -> ok.
+-spec flushed(atom()) -> 'ok'.
 flushed(?CACHE_NAME) ->
     Req = kz_api:default_headers(?APP_NAME, ?APP_VERSION),
     _ = kz_amqp_worker:cast(Req, fun kapi_directory:publish_cache_flush/1),
     lager:info("directory cache was flushed");
-flushed(_Name) -> ok.
+flushed(_Name) -> 'ok'.
 
--spec clear(kz_term:ne_binary() | kz_term:ne_binaries()) -> ok.
+-spec clear(kz_term:ne_binary() | kz_term:ne_binaries()) -> 'ok'.
 clear([]) ->
     lager:warning("invalid argument : empty EndpointIds");
 clear(EndpointId)
@@ -88,8 +88,8 @@ clear(EndpointId)
     clear([EndpointId]);
 clear(EndpointIds) ->
     case kz_term:is_ne_binaries(EndpointIds) of
-        false -> lager:warning("invalid argument ~p", [EndpointIds]);
-        true ->
+        'false' -> lager:warning("invalid argument ~p", [EndpointIds]);
+        'true' ->
             Req = [{<<"Keys">>, EndpointIds} | kz_api:default_headers(?APP_NAME, ?APP_VERSION)],
             kz_amqp_worker:cast(Req, fun kapi_directory:publish_cache_clear/1)
     end.

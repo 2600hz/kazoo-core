@@ -17,11 +17,15 @@
 
 -include("kazoo_directory.hrl").
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 profile(EndpointId, AccountId) ->
     profile(EndpointId, AccountId, []).
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
     case kz_datamgr:open_cache_doc(AccountId, EndpointId) of
         {'ok', Endpoint} -> profile(EndpointId, AccountId, Options, kz_doc:type(Endpoint));
@@ -29,13 +33,15 @@ profile(EndpointId, AccountId, Options) ->
     end.
 
 maybe_from_options(EndpointId, AccountId, Options) ->
-    Endpoint = props:get_value(endpoint, Options),
+    Endpoint = props:get_value('endpoint', Options),
     case kz_json:is_valid_json_object(Endpoint) of
-        true -> profile(EndpointId, AccountId, Options, kz_doc:type(Endpoint));
-        false -> {error, not_found}
+        'true' -> profile(EndpointId, AccountId, Options, kz_doc:type(Endpoint));
+        'false' -> {'error', 'not_found'}
     end.
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:api_ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:api_ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 profile(EndpointId, AccountId, Options, <<"device">>) ->
     kz_directory_device:profile(EndpointId, AccountId, Options);
 profile(EndpointId, AccountId, Options, <<"user">>) ->
@@ -45,4 +51,4 @@ profile(EndpointId, AccountId, Options, <<"group">>) ->
 profile(EndpointId, AccountId, Options, <<"sys_info">>) ->
     kz_directory_trunkstore:profile(EndpointId, AccountId, Options);
 profile(_EndpointId, _AccountId, _Options, _Type) ->
-    {error, not_found}.
+    {'error', 'not_found'}.

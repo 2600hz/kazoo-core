@@ -179,12 +179,17 @@ query_req_definition() ->
                ,kapi_definition:event_type_headers(Category, EventName)
                }
               ,{fun kapi_definition:set_types/2
-               ,[{<<"Fields">>, fun(Fs) when is_list(Fs) ->
+               ,[{<<"Fields">>, fun(Fields) when is_list(Fields) ->
                                         SuccessDef = success_definition(),
-                                        Allowed = kapi_definition:optional_headers(SuccessDef) ++
-                                            kapi_definition:required_headers(SuccessDef) ++
-                                            [<<"Bridge-RURI">>],
-                                        lists:all(fun(F) -> lists:member(F, Allowed) end, Fs);
+                                        Allowed = [<<"Bridge-RURI">>
+                                                  | kapi_definition:optional_headers(SuccessDef)
+                                                   ++ kapi_definition:required_headers(SuccessDef)
+                                                  ],
+                                        lists:all(fun(<<Field/binary>>) -> lists:member(Field, Allowed);
+                                                     ([<<Field/binary>> | _]) -> lists:member(Field, Allowed)
+                                                  end
+                                                 ,Fields
+                                                 );
                                    (_) -> 'false'
                                 end}
                 ,{<<"Count-Only">>, fun(N) -> kz_term:to_boolean(N) end}

@@ -17,11 +17,15 @@
 
 -include("kazoo_directory.hrl").
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 profile(EndpointId, AccountId) ->
     profile(EndpointId, AccountId, []).
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
     case kz_endpoint:get(EndpointId, AccountId, Options) of
         {'ok', Endpoint} -> profile(EndpointId, AccountId, Endpoint, Options);
@@ -33,22 +37,24 @@ profile(EndpointId, AccountId, Endpoint, Options) ->
     case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
         <<"device">> ->
             case get_device_module(Endpoint) of
-                undefined -> {'error', 'not_device'};
+                'undefined' -> {'error', 'not_device'};
                 Module -> profile(EndpointId, AccountId, Endpoint, Options, Module)
             end;
-        _ -> {'error', 'not_device'}
+        _Type ->
+            lager:debug("endpoint type ~s", [_Type]),
+            {'error', 'not_device'}
     end.
 
 -spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
 profile(EndpointId, AccountId, Endpoint, Options, Module) ->
     case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
-        {ok, Profile} -> {ok, Profile};
-        {error, not_found} -> build_and_cache(EndpointId, AccountId, Endpoint, Options, Module)
+        {'ok', Profile} -> {'ok', Profile};
+        {'error', 'not_found'} -> build_and_cache(EndpointId, AccountId, Endpoint, Options, Module)
     end.
 
 -spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
 build_and_cache(EndpointId, AccountId, Endpoint, Options, Module) ->
-    {ok, Profile} = build(EndpointId, AccountId, Endpoint, Options, Module),
+    {'ok', Profile} = build(EndpointId, AccountId, Endpoint, Options, Module),
     Origins = cache_origin(EndpointId, AccountId, Endpoint),
     cache(EndpointId, AccountId, Profile, Origins).
 
@@ -58,26 +64,26 @@ cache(EndpointId, AccountId, Profile, Origins) ->
                  ,{'callback', fun cache_callback/3}
                  ],
     kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, Profile, CacheProps),
-    {ok, Profile}.
+    {'ok', Profile}.
 
--spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> ok.
+-spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> 'ok'.
 cache_callback({EndpointId, AccountId}, CachedValue, 'erase') ->
     lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
     timer:sleep(kz_term:to_integer(?MILLISECONDS_IN_SECOND * 0.15)),
     case kz_endpoint:get(EndpointId, AccountId) of
         {'ok', Endpoint} ->
             Module = get_device_module(Endpoint),
-            {ok, NewProfile} = build(EndpointId, AccountId, Endpoint, [], Module),
+            {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, [], Module),
             maybe_notify(EndpointId, AccountId, kz_json:are_equal(NewProfile, CachedValue)),
             Origins = cache_origin(EndpointId, AccountId, Endpoint),
             cache(EndpointId, AccountId, NewProfile, Origins);
         _Error -> notify(EndpointId, AccountId)
     end;
-cache_callback(_, _, _) -> ok.
+cache_callback(_, _, _) -> 'ok'.
 
-maybe_notify(EndpointId, AccountId, true) ->
+maybe_notify(EndpointId, AccountId, 'true') ->
     lager:debug("directory cache erased key hasn't changed (~s / ~s)", [EndpointId, AccountId]);
-maybe_notify(EndpointId, AccountId, false) -> notify(EndpointId, AccountId).
+maybe_notify(EndpointId, AccountId, 'false') -> notify(EndpointId, AccountId).
 
 notify(EndpointId, AccountId) ->
     kz_directory_cache:clear(<<EndpointId/binary, "@", AccountId/binary>>),
@@ -146,8 +152,8 @@ build(EndpointId, AccountId, Endpoint, _Options, Module) ->
 -spec get_device_module(kz_json:object()) -> atom().
 get_device_module(Endpoint) ->
     case get_endpoint_type(Endpoint) of
-        <<"unknown">> -> undefined;
-        Type -> kz_term:to_atom(<<"kz_directory_device_", Type/binary>>, true)
+        <<"unknown">> -> 'undefined';
+        Type -> kz_term:to_atom(<<"kz_directory_device_", Type/binary>>, 'true')
     end.
 
 -spec get_endpoint_type(kz_json:object()) -> kz_term:ne_binary().
@@ -170,7 +176,9 @@ convert_endpoint_type(<<"cellphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"landline">>) -> <<"sip">>;
 convert_endpoint_type(<<"fax">>) -> <<"sip">>;
 convert_endpoint_type(<<"mobile">>) -> <<"mobile">>;
-convert_endpoint_type(_Else) -> 'undefined'.
+convert_endpoint_type(_Else) ->
+    lager:info("failed to convert endpoint type ~s", [_Else]),
+    'undefined'.
 
 -spec maybe_guess_endpoint_type(kz_json:object()) -> kz_term:ne_binary().
 maybe_guess_endpoint_type(Endpoint) ->
@@ -183,11 +191,7 @@ maybe_guess_endpoint_type(Endpoint) ->
 
 -spec guess_endpoint_type(kz_json:object()) -> kz_term:ne_binary().
 guess_endpoint_type(Endpoint) ->
-    guess_endpoint_type(Endpoint
-                       ,[<<"mobile">>
-                        ,<<"sip">>
-                        ]
-                       ).
+    guess_endpoint_type(Endpoint, [<<"mobile">>, <<"sip">>]).
 
 -spec guess_endpoint_type(kz_json:object(), kz_term:ne_binaries()) -> kz_term:ne_binary().
 guess_endpoint_type(Endpoint, [Type|Types]) ->
