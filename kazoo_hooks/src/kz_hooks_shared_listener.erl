@@ -183,7 +183,7 @@ maybe_add_binding('all', Events) ->
         [] -> Events;
         Es ->
             lager:debug("adding bindings for ~p", [Es]),
-            gen_listener:add_binding(self(), ?CALL_BINDING(Es)),
+            gen_listener:b_add_binding(?MODULE, ?CALL_BINDING(Es)),
             Es ++ Events
     end;
 maybe_add_binding(Event, Events) ->
@@ -191,6 +191,6 @@ maybe_add_binding(Event, Events) ->
         'true' -> Events;
         'false' ->
             lager:debug("adding bindings for ~s", [Event]),
-            gen_listener:add_binding(self(), ?CALL_BINDING([Event])),
+            gen_listener:b_add_binding(?MODULE, ?CALL_BINDING([Event])),
             [Event | Events]
     end.
