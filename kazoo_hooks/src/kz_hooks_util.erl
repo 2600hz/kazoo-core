@@ -172,7 +172,7 @@ maybe_add_binding_to_listener(ServerName) ->
 
 -spec maybe_add_binding_to_listener(atom(), kz_term:ne_binary() | 'all') -> 'ok'.
 maybe_add_binding_to_listener(ServerName, EventName) ->
-    gen_listener:cast(ServerName, {'maybe_add_binding', EventName}).
+    ServerName:maybe_add_binding(EventName).
 
 -spec maybe_remove_hook(tuple()) -> 'true'.
 maybe_remove_hook(Hook) ->
