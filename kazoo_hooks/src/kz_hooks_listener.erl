@@ -13,7 +13,9 @@
 -module(kz_hooks_listener).
 -behaviour(gen_listener).
 
--export([start_link/0]).
+-export([start_link/0
+        ,maybe_add_binding/1
+        ]).
 -export([init/1
         ,handle_call/3
         ,handle_cast/2
@@ -24,8 +26,6 @@
         ]).
 
 -include("kazoo_hooks.hrl").
-
--define(SERVER, ?MODULE).
 
 %% Three main call events
 -define(ALL_EVENTS, [<<"CHANNEL_CREATE">>
@@ -61,7 +61,7 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link({'local', ?SERVER}
+    gen_listener:start_link({'local', ?MODULE}
                            ,?MODULE
                            ,[{'bindings', ?BINDINGS}
                             ,{'responders', ?RESPONDERS}
@@ -71,6 +71,11 @@ start_link() ->
                             ]
                            ,[]
                            ).
+
+-spec maybe_add_binding('all' | kz_term:ne_binary()) -> 'ok'.
+maybe_add_binding(EventName) ->
+    Events = gen_listener:call(?MODULE, 'current_events'),
+    maybe_add_binding(EventName, Events).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -92,6 +97,8 @@ init([]) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
+handle_call('current_events', _From, #state{call_events=Events}=State) ->
+    {'reply', Events, State};
 handle_call(_Request, _From, State) ->
     {'reply', {'error', 'not_implemented'}, State}.
 
@@ -100,22 +107,9 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'maybe_add_binding', 'all'}, #state{call_events=Events}=State) ->
-    case [E || E <- ?ALL_EVENTS, not lists:member(E, Events)] of
-        [] -> {'noreply', State};
-        Es ->
-            lager:debug("adding bindings for ~p", [Es]),
-            gen_listener:add_binding(self(), ?CALL_BINDING(Es)),
-            {'noreply', State#state{call_events=Es ++ Events}}
-    end;
 handle_cast({'maybe_add_binding', Event}, #state{call_events=Events}=State) ->
-    case lists:member(Event, Events) of
-        'true' -> {'noreply', State};
-        'false' ->
-            lager:debug("adding bindings for ~s", [Event]),
-            gen_listener:add_binding(self(), ?CALL_BINDING([Event])),
-            {'noreply', State#state{call_events=[Event | Events]}}
-    end;
+    NewEvents = maybe_add_binding(Events, Event),
+    {'noreply', State#state{call_events=NewEvents}};
 handle_cast({'maybe_remove_binding', 'all'}, #state{call_events=Events}=State) ->
     case [E || E <- ?ALL_EVENTS, lists:member(E, Events)] of
         [] -> {'noreply', State};
@@ -180,3 +174,24 @@ code_change(_OldVsn, State, _Extra) ->
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+maybe_add_binding('all', Events) ->
+    case [E || E <- ?ALL_EVENTS, not lists:member(E, Events)] of
+        [] -> Events;
+        Es ->
+            lager:debug("adding bindings for ~p", [Es]),
+            gen_listener:b_add_binding(?MODULE, ?CALL_BINDING(Es)),
+            Es ++ Events
+    end;
+maybe_add_binding(Event, Events) ->
+    case lists:member(Event, Events) of
+        'true' -> Events;
+        'false' ->
+            lager:debug("adding bindings for ~s", [Event]),
+            gen_listener:b_add_binding(?MODULE, ?CALL_BINDING([Event])),
+            [Event | Events]
+    end.
