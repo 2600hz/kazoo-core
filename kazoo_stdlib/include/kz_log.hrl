@@ -122,14 +122,14 @@
                         LMetadata = [{pid, self()} ,{node, node()}, {module, ?MODULE}
                                     ,{function, ?FUNCTION_NAME}, {function_arity, ?FUNCTION_ARITY}
                                     ,{file, ?FILE}, {line, ?LINE}
-                                     | lager:md()
+                                    | lager:md()
                                     ],
                         lager:log(LSink, LLevel, LMetadata, LFmt1, LArgs1);
                     LLevel ->
                         LMetadata = [{pid, self()} ,{node, node()}, {module, ?MODULE}
                                     ,{function, ?FUNCTION_NAME}, {function_arity, ?FUNCTION_ARITY}
                                     ,{file, ?FILE}, {line, ?LINE}
-                                     | lager:md()
+                                    | lager:md()
                                     ],
                         lager:log(LLevel, LMetadata, LFmt1, LArgs1)
                 end

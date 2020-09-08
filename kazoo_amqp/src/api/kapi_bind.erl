@@ -63,7 +63,7 @@ bind_kapi(KAPI, Exchange, Props) ->
     bind_cmd(Exchange, Source, props:get_ne_binary_value(routing, Props)),
     Fun = fun(RK) -> bind_cmd(Exchange, Source, RK) end,
     lists:foreach(Fun, props:get_value(routings, Props, [])).
-    
+
 -spec bind_cmd(binary(), binary(), kz_term:api_binary()) -> 'ok'.
 bind_cmd(_Exchange, _Source, undefined) -> ok;
 bind_cmd(Exchange, Source, Routing) ->

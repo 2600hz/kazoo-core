@@ -227,7 +227,7 @@ resp_definition() ->
                                      ,<<"a1-hash">>, <<"error">>
                                      ,<<"gsm">>, <<"nonce">>, <<"a3a8">>
                                      ]}
-                 | kapi_definition:event_type_headers(Category, EventName)
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
@@ -253,7 +253,7 @@ token_resp_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun token_resp/1}
               ,{fun kapi_definition:set_validate_fun/2, fun token_resp_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_token_resp/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Token-Data">>]}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Token-Info">>]}
               ,{fun kapi_definition:set_optional_headers/2
                ,[<<"Access-Group">>
                 ,<<"Auth-Nonce">>

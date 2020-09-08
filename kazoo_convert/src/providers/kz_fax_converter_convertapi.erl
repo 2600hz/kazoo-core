@@ -62,13 +62,13 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec convert(kz_term:ne_binary(), kz_term:ne_binary(), binary()|{'file', kz_term:ne_binary()}, map() | kz_term:proplist()) ->
-                     gen_kz_converter:converted().
+          gen_kz_converter:converted().
 convert(From, To, Content, Opts) when not is_map(Opts) ->
     Options = maps:from_list(
                 [{<<"from_format">>, From}
                 ,{<<"to_format">>, To}
                 ,{<<"job_id">>, props:get_value(<<"job_id">>, Opts, kz_binary:rand_hex(12))}
-                 | props:delete_keys([<<"job_id">>], Opts)
+                | props:delete_keys([<<"job_id">>], Opts)
                 ]),
     convert(From, To, Content, Options);
 convert(Format, Format, Content, Options) ->
@@ -118,7 +118,7 @@ read_metadata(Filename) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_convert_using_openoffice(kz_term:ne_binary(), kz_term:ne_binary(), binary()|{'file', kz_term:ne_binary()}, map()) ->
-                                            gen_kz_converter:converted().
+          gen_kz_converter:converted().
 maybe_convert_using_openoffice(From, To, Content, #{<<"try_openoffice">> := <<"newer">>}=Options) ->
     maybe_convert_via_convertapi(From, To, Content, Options);
 maybe_convert_using_openoffice(From, To, Content, #{<<"try_openoffice">> := <<"for_msoffice_files_also">>}=Options) ->
@@ -157,7 +157,7 @@ maybe_convert_using_openoffice(From, To, Content, Options) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_convert_via_convertapi(kz_term:ne_binary(), kz_term:ne_binary(), binary()|{'file', kz_term:ne_binary()}, map()) ->
-                                          gen_kz_converter:converted().
+          gen_kz_converter:converted().
 maybe_convert_via_convertapi(From, To, Content, Options) ->
     case ?CONVERTAPI_SECRET of
         'undefined' ->
@@ -172,7 +172,7 @@ maybe_convert_via_convertapi(From, To, Content, Options) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec convert_via_convertapi(kz_term:ne_binary(), kz_term:ne_binary(), binary()|{'file', kz_term:ne_binary()}, map(), kz_term:ne_binary()) ->
-                                    gen_kz_converter:converted().
+          gen_kz_converter:converted().
 convert_via_convertapi(From
                       ,To
                       ,Content
@@ -221,7 +221,7 @@ run_convert([], ToFormat, Content, Options, _Secret) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec format_response(kz_term:ne_binary(), kz_term:ne_binary(), map()) ->
-                             gen_kz_converter:converted().
+          gen_kz_converter:converted().
 format_response(Format, Content, Options) ->
     kz_fax_converter:convert(Format, Format, Content, Options). %% Let parse and apply options by kz_fax_converter
 
@@ -294,8 +294,8 @@ pdf_to_tiff(Content, Options, _Secret) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec read_file({'file', kz_term:ne_binary()}|kz_term:ne_binary(), map()) ->
-                       {'ok', kz_term:ne_binary()}|
-                       {'error', kz_term:ne_binary()}.
+          {'ok', kz_term:ne_binary()}|
+          {'error', kz_term:ne_binary()}.
 read_file({'file', UserPath}, #{<<"tmp_dir">> := TmpDir}) ->
     case filename:pathtype(UserPath) of
         'absolute' ->

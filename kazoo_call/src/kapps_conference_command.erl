@@ -41,7 +41,7 @@ search(ConferenceId)
   when is_binary(ConferenceId)->
     {AppName, AppVersion} = kz_application:calling_app_version(),
     Req = [{<<"Conference-ID">>, ConferenceId}
-           | kz_api:default_headers(AppName, AppVersion)
+          | kz_api:default_headers(AppName, AppVersion)
           ],
     lager:debug("searching for conference ~s", [ConferenceId]),
     ReqResp = kz_amqp_worker:call_collect(Req

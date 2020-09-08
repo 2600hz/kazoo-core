@@ -24,8 +24,6 @@
 
 -include("kazoo_directory.hrl").
 
--define(DEFAULT_AUDIO_CODECS, [<<"PCMU">>]).
-
 -spec authorizing_type(kz_json:object()) -> binary().
 authorizing_type(Endpoint) ->
     kz_doc:type(Endpoint).
@@ -93,7 +91,7 @@ codecs(JObj) ->
 
 -spec audio_codecs(kz_json:object()) -> kz_term:ne_binaries().
 audio_codecs(JObj) ->
-    kz_json:get_ne_binaries([<<"media">>, <<"audio">>, <<"codecs">>], JObj, ?DEFAULT_AUDIO_CODECS).
+    kz_json:get_ne_binaries([<<"media">>, <<"audio">>, <<"codecs">>], JObj, []).
 
 -spec video_codecs(kz_json:object()) -> kz_term:ne_binaries().
 video_codecs(JObj) ->

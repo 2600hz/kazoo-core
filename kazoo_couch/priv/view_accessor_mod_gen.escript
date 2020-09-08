@@ -445,7 +445,7 @@ find_findy(FunName, KzViewFun, Comment, _Metadata, Fields) ->
                         ["    Selector = range_selector(", SelectorN, Undefined, ", ", SelectorN, Undefined, "),\n"]
                 end
                ,"    kz_view:", KzViewFun, "(Database, ?VIEW_NAME, Selector, ", SetOptions,").\n"
-                | Acc
+               | Acc
                ]
        end
       ,[]

@@ -83,7 +83,7 @@ do_put_attachment({'error', _}, Settings, DbName, DocId, AName, Contents, Option
                                 ) -> gen_attachment:put_response().
 handle_put_attachment_resp({'error', Url, Resp}, Routines) ->
     NewRoutines = [{fun kz_att_error:set_req_url/2, Url}
-                   | Routines
+                  | Routines
                   ],
     handle_http_error_response(Resp, NewRoutines).
 
@@ -120,7 +120,7 @@ do_fetch_attachment({'ok', #{'token' := #{'authorization' := Authorization}}}
             {'ok', ResponseBody};
         Resp ->
             Routines = [{fun kz_att_error:set_req_url/2, ?DRV_FETCH_URL}
-                        | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
+                       | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
                        ],
             handle_http_error_response(Resp, Routines)
     end;
@@ -165,7 +165,7 @@ dropbox_post(Url, Headers, Body) ->
                     {'ok'
                     ,ContentId
                     ,[{<<"body">>, BodyJObj}
-                      | kz_att_util:headers_as_binaries(ResponseHeaders)
+                     | kz_att_util:headers_as_binaries(ResponseHeaders)
                      ]
                     }
             end;
@@ -180,7 +180,7 @@ handle_http_error_response({'ok', RespCode, RespHeaders, RespBody} = _E, Routine
     NewRoutines = [{fun kz_att_error:set_resp_code/2, RespCode}
                   ,{fun kz_att_error:set_resp_headers/2, RespHeaders}
                   ,{fun kz_att_error:set_resp_body/2, RespBody}
-                   | Routines
+                  | Routines
                   ],
     lager:error("dropbox error: ~p (code: ~p)", [_E, RespCode]),
     kz_att_error:new(Reason, NewRoutines);

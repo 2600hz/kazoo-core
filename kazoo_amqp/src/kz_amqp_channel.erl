@@ -226,12 +226,12 @@ basic_publish(#kz_amqp_assignment{channel=Channel
     _ = basic_publish(Assignment, BasicPub, AmqpMsg, channel_publish_method()),
     MsgId = extract_msg_id(AmqpMsg#'amqp_msg'.payload),
     amqp:debug("published(~s ~s) to ~s(~s) exchange (routing key ~s) via ~p"
-               ,[MsgId, kz_term:pretty_print_bytes(iolist_size(AmqpMsg#'amqp_msg'.payload), 'truncated')
-                ,_Exchange, _Broker
-                ,_RK
-                ,Channel
-                ]
-               );
+              ,[MsgId, kz_term:pretty_print_bytes(iolist_size(AmqpMsg#'amqp_msg'.payload), 'truncated')
+               ,_Exchange, _Broker
+               ,_RK
+               ,Channel
+               ]
+              );
 basic_publish({'error', 'no_channel'}
              ,#'basic.publish'{exchange=_Exchange
                               ,routing_key=_RK
@@ -239,8 +239,8 @@ basic_publish({'error', 'no_channel'}
              ,AmqpMsg
              ) ->
     amqp:debug("dropping payload to ~s exchange (routing key ~s): ~s"
-               ,[_Exchange, _RK, AmqpMsg#'amqp_msg'.payload]
-               );
+              ,[_Exchange, _RK, AmqpMsg#'amqp_msg'.payload]
+              );
 basic_publish(Channel
              ,#'basic.publish'{exchange=_Exchange
                               ,routing_key=_RK
@@ -250,18 +250,18 @@ basic_publish(Channel
     assert_valid_amqp_method(BasicPub),
     _ = basic_publish(Channel, BasicPub, AmqpMsg, channel_publish_method()),
     amqp:debug("published to ~s(direct ~s) exchange (routing key ~s) via ~p"
-               ,[_Exchange, kz_term:pretty_print_bytes(iolist_size(AmqpMsg#'amqp_msg'.payload), 'truncated')
-                ,_RK, Channel
-                ]
-               );
+              ,[_Exchange, kz_term:pretty_print_bytes(iolist_size(AmqpMsg#'amqp_msg'.payload), 'truncated')
+               ,_RK, Channel
+               ]
+              );
 basic_publish(_, #'basic.publish'{exchange=_Exchange
                                  ,routing_key=_RK
                                  }
              ,AmqpMsg
              ) ->
     amqp:debug("dropping payload to ~s exchange (routing key ~s): ~s"
-               ,[_Exchange, _RK, AmqpMsg#'amqp_msg'.payload]
-               ).
+              ,[_Exchange, _RK, AmqpMsg#'amqp_msg'.payload]
+              ).
 
 -spec basic_publish(kz_amqp_assignment() | pid(), basic_publish(), amqp_msg(), atom()) -> 'ok'.
 basic_publish(#kz_amqp_assignment{channel=Channel}

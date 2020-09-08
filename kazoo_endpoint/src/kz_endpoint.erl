@@ -48,7 +48,7 @@
 -spec get(kapps_call:call()) -> std_return().
 get(Call) -> ?MOD:get(Call).
 
--spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call()) -> std_return().
+-spec get(kz_term:api_binary() | kz_json:object(), kz_term:ne_binary() | kapps_call:call()) -> std_return().
 get(EndpointId, Call) -> ?MOD:get(EndpointId, Call).
 
 -spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call(), kz_term:proplist()) -> std_return().
@@ -124,7 +124,8 @@ maybe_start_metaflow(Call, Endpoint) -> ?MOD:maybe_start_metaflow(Call, Endpoint
 
 -spec create_sip_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
-create_sip_endpoint(Endpoint, Properties, Call) -> ?MOD:create_sip_endpoint(Endpoint, Properties, Call).
+create_sip_endpoint(Endpoint, Properties, Call) ->
+    ?MOD:create_sip_endpoint(Endpoint, Properties, Call).
 
 %%------------------------------------------------------------------------------
 %% @doc Creates the Kazoo API endpoint for a bridge call command when
