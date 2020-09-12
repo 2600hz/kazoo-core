@@ -14,6 +14,7 @@
         ,urlencode/1, urlencode/2
         ,uri/2, resolve_uri/2
         ,parse_query_string/1
+        ,parse_query_arrays/1, parse_query_arrays/2
         ,urlsplit/1
         ,urlunsplit/1
         ,location_host/1, location_port/1, location_username/1, location_password/1
@@ -27,6 +28,8 @@
         ,client_ip_blacklist/0, set_client_ip_blacklist/1
         ,client_host_blacklist/0, set_client_host_blacklist/1
         ]).
+
+-export([merge_objects/2]).
 
 -ifdef(TEST).
 -export([resolve_uri_path/2]).
@@ -229,6 +232,247 @@ parse_query_string('key', <<C, R/binary>>, KeyAcc, ValAcc, RetAcc) ->
 
 parse_query_string('val', <<C, R/binary>>, KeyAcc, ValAcc, RetAcc) ->
     parse_query_string('val', R, KeyAcc, <<ValAcc/binary, C>>, RetAcc).
+
+%%------------------------------------------------------------------------------
+%% @doc Noramlize already parsed query string and create nested objects when
+%% the name of sub-keys are surrounded by square brackets.
+%%
+%% The intended input is `cow_qs:parse_qs/1` output.
+%%
+%% Implemntation is based on `qs' NPM package.
+%% https://github.com/ljharb/qs
+%%
+%% Some QS examples (don't forget to call `cow_qs:parse/1' first):
+%%
+%% ```
+%% foo[bar]=baz --> { foo { bar: 'baz' } }
+%% a%5Bb%5D=c --> { a: { b: 'c' } }
+%% foo[bar][baz]=foobarbaz --> { foo: { bar: { baz: 'foobarbaz' } } }
+%% a[b][c][d][e][f][g][h][i]=j    (limited to 5 children deep by default)
+%%              --> { a: { b: { c: { d: { e: { f: '[g][h][i]': 'j' } } } } } }
+%%
+%% a[1]=b&a[15]=c   --> { a: ['b', 'c'] }
+%% a=b,c --> { a: ['b', 'c'] } (when comma_array set to true)
+%% '''
+%% @end
+%%------------------------------------------------------------------------------
+-spec parse_query_arrays(QueryString :: kz_term:proplist()) -> kz_term:proplist().
+parse_query_arrays(QS) ->
+    parse_query_arrays(QS, #{}).
+
+-define(DEFAULT_ARRAY_OPTIONS, #{array_limits => 25
+                                ,comma_array => 'true'
+                                ,depth => 5
+                                 %% ,allow_dots => 'false' %% a.b.c => a[b][c]
+                                }).
+
+-spec parse_query_arrays(QueryString :: kz_term:proplist(), Options :: map()) -> kz_term:proplist().
+parse_query_arrays(QS, Opts) when is_list(QS) ->
+    Options = maps:merge(?DEFAULT_ARRAY_OPTIONS, Opts),
+    lists:foldl(fun({K, V}, Acc) -> parse_query_array(K, V, Acc, Options) end, kz_json:new(), QS);
+parse_query_arrays(QsJObj, _Options) ->
+    parse_query_arrays(kz_json:to_proplist(QsJObj)).
+
+parse_query_array(Key, Value, Acc, Options) ->
+    %% re:replace(<<"sd.ff.sdsd.er34">>, <<"\\.([^.[]+)">>, <<"[\\1]">>,  [global, {return, binary}])
+    %% <<"sd[ff][sdsd][er34]">>
+    ParentName = case re:run(Key, <<"\\[[^[\\]]*]">>) of
+                     'nomatch' -> Key;
+                     {'match', [{BracketStart, _}]} -> binary:part(Key, 0, BracketStart)
+                 end,
+    Children = case re:run(Key, <<"\\[[^[\\]]*]">>, ['global', {'capture', 'all', 'binary'}]) of
+                   'nomatch' -> [];
+                   {'match', Ks} -> [K || [K] <- Ks]
+               end,
+    NewJObj = parse_query_object([ParentName | Children], Value, Options),
+    %% ?DEV_LOG("merging ~s~nA ~p~nB ~p~n", [ParentName, Acc, NewJObj]),
+    merge_objects(Acc, NewJObj).
+
+
+-define(IS_JSON(Term), (is_tuple(Term)
+                        andalso tuple_size(Term) =:= 1
+                        andalso is_list(element(1, Term))
+                       )
+       ).
+
+-define(IS_OBJECT(Term), (is_list(Term)
+                          orelse ?IS_JSON(Term)
+                         )
+       ).
+
+-define(DEFAULT_EMPTY, '$empty').
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+parse_query_object(Ks, Value, Options) ->
+    lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
+               ,maybe_comma_to_array(Value, Options)
+               ,lists:reverse(allow_nested_depth(Ks, Options))
+               ).
+
+parse_query_object1(<<"[]">>, Value, _Options) ->
+    list_append([], Value);
+parse_query_object1(Key, Value, Options) ->
+    CleanKey = remove_brackets(Key),
+    IsJsonNum = is_json_array_index(Key, Options, CleanKey),
+    case CleanKey of
+        _ when IsJsonNum ->
+            Size = kz_term:to_integer(CleanKey),
+            lists:append(empty_array(Size), [Value]);
+        _ ->
+            kz_json:from_list([{CleanKey, Value}])
+    end.
+
+empty_array(Size) ->
+    lists:foldl(fun(_, Acc) -> [?DEFAULT_EMPTY | Acc] end, [], lists:seq(1, Size)).
+
+%%------------------------------------------------------------------------------
+%% @doc Merge two possibly nested JSON object (JObj) while keeps order, also
+%% merges list.
+%%
+%% Lifted from
+%% https://github.com/ljharb/qs/blob/47e5f8b391d5925cd007ad2265a5134a82f9e74c/lib/utils.js#L34-L100
+%% @end
+%%------------------------------------------------------------------------------
+-spec merge_objects(kz_json:json_term() | '$empty', kz_json:json_term() | '$empty') ->
+          kz_json:json_term().
+merge_objects(OldValue, 'undefined') ->
+    OldValue;
+
+merge_objects(OldValue, NewValue)
+  when is_list(OldValue)
+       andalso not ?IS_OBJECT(NewValue) ->
+    list_append(OldValue, NewValue);
+merge_objects(OldValue, NewValue)
+  when ?IS_JSON(OldValue)
+       andalso not ?IS_OBJECT(NewValue) ->
+    kz_json:set_value(NewValue, 'true', OldValue);
+merge_objects(OldValue, NewValue)
+  when not ?IS_OBJECT(NewValue) ->
+    [OldValue, NewValue];
+
+merge_objects(OldValue, NewValue)
+  when not is_list(OldValue) %% true, null, undefined
+       andalso not ?IS_JSON(OldValue) ->
+    list_append([OldValue], NewValue);
+
+merge_objects(OldValue, NewValue)
+  when is_list(OldValue)
+       andalso is_list(NewValue) ->
+    array:to_list(
+      array:foldl(fun merge_array/3
+                 ,array:from_list(OldValue, ?DEFAULT_EMPTY)
+                 ,array:from_list(NewValue, ?DEFAULT_EMPTY)
+                 )
+     );
+
+merge_objects(OldValue, NewValue)
+  when is_list(OldValue) ->
+    merge_objects(array_to_object(OldValue), NewValue);
+merge_objects(A, B) ->
+    kz_json:foldl(fun merge_object/3, A, B).
+
+-spec array_to_object(list()) -> kz_json:object().
+array_to_object(List) ->
+    {_, JObj} =
+        lists:foldl(fun(Item, {Index, J}) ->
+                            {0 + 1, kz_json:set_value(kz_term:to_binary(Index), Item, J)}
+                    end
+                   ,{0, kz_json:new()}
+                   ,List
+                   ),
+    JObj.
+
+-spec merge_array(array:array_indx(), kz_json:json_term(), array:array()) ->
+          array:array().
+merge_array(_Index, ?DEFAULT_EMPTY, Acc) ->
+    %% js vm is skiping empty head items during reduce
+    %% doing same to avoid pushing the empty to the end of Acc (case clause 2 of inner case below)
+    %% { foo: [ { a: 'a', b: 'b' }, { a: 'aa' } ] } = A
+    %% { foo: [ <1 empty item>, { b: 'bb' } ] } = B <- this will starts at index 1 ({b: 'bb'})
+    Acc;
+merge_array(Index, Item, Acc) ->
+    case array:get(Index, Acc) of
+        ?DEFAULT_EMPTY ->
+            %% ?DEV_LOG("target[i] = item"),
+            array:set(Index, Item, Acc);
+        OldItem ->
+            case ?IS_OBJECT(OldItem)
+                andalso ?IS_OBJECT(Item)
+            of
+                'true' ->
+                    %% ?DEV_LOG("items object"),
+                    array:set(Index, merge_objects(OldItem, Item), Acc);
+                'false' ->
+                    %% ?DEV_LOG("targetItem array and item object"),
+                    array:set(array:size(Acc), Item, Acc)
+            end
+    end.
+
+-spec merge_object(kz_json:key(), kz_json:json_term(), kz_json:object()) ->
+          kz_json:object().
+merge_object(Key, Value, JObjA) ->
+    case kz_json:get_value(Key, JObjA) of
+        'undefined' ->
+            kz_json:set_value(Key, Value, JObjA);
+        ValueA ->
+            kz_json:set_value(Key, merge_objects(ValueA, Value), JObjA)
+    end.
+
+-spec list_append(list(), list() | any()) -> list().
+list_append(ListA, ListB)
+  when is_list(ListA)
+       andalso is_list(ListB) ->
+    lists:append(ListA, ListB);
+list_append(List, NonList)
+  when is_list(List)
+       andalso not is_list(NonList) ->
+    lists:append(List, [NonList]).
+
+-spec remove_brackets(binary()) -> binary().
+remove_brackets(<<"[", Rest/binary>>) ->
+    case binary:last(Rest) of
+        $] -> binary:part(Rest, 0, byte_size(Rest) - 1);
+        _ -> Rest
+    end;
+remove_brackets(Val) ->
+    Val.
+
+-spec is_json_array_index(binary(), Options::map(), binary()) -> boolean().
+is_json_array_index(Key, #{array_limits := Limits}, CleanKey) ->
+    try kz_term:to_integer(CleanKey) of
+        Integer ->
+            Key =/= CleanKey
+                andalso kz_term:to_binary(Integer) =:= CleanKey %% 1 =/= "01"
+                andalso Integer >= 0
+                andalso Integer =< Limits
+    catch
+        'error':'badarg' -> 'false'
+    end.
+
+-spec allow_nested_depth([binary()], Options::map()) -> [binary()].
+allow_nested_depth(Keys, #{depth := Depth}) ->
+    try lists:split(Depth, Keys) of
+        {Allowed, _} -> Allowed
+    catch
+        'error':'badarg' ->
+            Keys
+    end;
+allow_nested_depth(Keys, _) ->
+    Keys.
+
+-spec maybe_comma_to_array(term(), Options::map()) -> term().
+maybe_comma_to_array(Value, #{comma_array := 'true'})
+  when is_binary(Value) ->
+    case binary:match(Value, <<",">>) of
+        'nomatch' -> Value;
+        {_, _} -> binary:split(Value, <<",">>, ['global'])
+    end;
+maybe_comma_to_array(Value, _) ->
+    Value.
+
 
 %%------------------------------------------------------------------------------
 %% @doc Splits a URL
