@@ -566,7 +566,9 @@ is_json_array_index(Key, #{array_limits := Limits}, CleanKey) ->
     end.
 
 -spec allow_nested_depth([binary()], Options::map()) -> {[binary()], [binary()]}.
-allow_nested_depth(Keys, #{depth := Depth}) ->
+allow_nested_depth(Keys, #{depth := Depth})
+  when is_integer(Depth)
+       andalso Depth >= 0 ->
     try lists:split(Depth, Keys)
     catch
         'error':'badarg' ->
