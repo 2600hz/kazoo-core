@@ -261,7 +261,7 @@ parse_query_arrays(QS) ->
     parse_query_arrays(QS, #{}).
 
 -define(DEFAULT_ARRAY_OPTIONS, #{array_limits => 25
-                                ,comma_array => 'true'
+                                ,comma_array => 'false'
                                 ,depth => 5
                                  %% ,allow_dots => 'false' %% a.b.c => a[b][c]
                                 }).
@@ -269,9 +269,37 @@ parse_query_arrays(QS) ->
 -spec parse_query_arrays(QueryString :: kz_term:proplist(), Options :: map()) -> kz_term:proplist().
 parse_query_arrays(QS, Opts) when is_list(QS) ->
     Options = maps:merge(?DEFAULT_ARRAY_OPTIONS, Opts),
-    lists:foldl(fun({K, V}, Acc) -> parse_query_array(K, V, Acc, Options) end, kz_json:new(), QS);
+    json_compact(
+      lists:foldl(fun({K, V}, Acc) -> parse_query_array(K, V, Acc, Options) end
+                 ,kz_json:new()
+                  %% ,primarily_merge(QS, Options)
+                 ,QS
+                 )
+     );
 parse_query_arrays(QsJObj, _Options) ->
     parse_query_arrays(kz_json:to_proplist(QsJObj)).
+
+
+%% This is primarily for handling cases when the key is explicit and we are expanding
+%% comma separated string to array.
+%% FIXME: someone please fix this code
+%% primarily_merge([], _) ->
+%%     [];
+%% primarily_merge([{K, V} | T], Options) ->
+%%     case props:get_value(K, T) of
+%%         'undefined' ->
+%%             [{K, V} | primarily_merge(T, Options)];
+%%         _ ->
+%%             {OtherVs, NewT} = take_element(K, T, [], [], Options),
+%%             [{K, [maybe_comma_to_array(V, Options) | OtherVs]} | primarily_merge(NewT, Options)]
+%%     end.
+%%
+%% take_element(_, [], ElmAcc, QSAcc, _) ->
+%%     {lists:reverse(ElmAcc), lists:reverse(QSAcc)};
+%% take_element(Key, [{Key, Val}|QS], ElmAcc, QSAcc, Options) ->
+%%     take_element(Key, QS, [maybe_comma_to_array(Val, Options) | ElmAcc], QSAcc, Options);
+%% take_element(Key, [Elm|QS], ElmAcc, QSAcc, Options) ->
+%%     take_element(Key, QS, ElmAcc, [Elm|QSAcc], Options).
 
 parse_query_array(Key, Value, Acc, Options) ->
     %% re:replace(<<"sd.ff.sdsd.er34">>, <<"\\.([^.[]+)">>, <<"[\\1]">>,  [global, {return, binary}])
@@ -284,10 +312,29 @@ parse_query_array(Key, Value, Acc, Options) ->
                    'nomatch' -> [];
                    {'match', Ks} -> [K || [K] <- Ks]
                end,
-    NewJObj = parse_query_object([ParentName | Children], Value, Options),
-    %% ?DEV_LOG("merging ~s~nA ~p~nB ~p~n", [ParentName, Acc, NewJObj]),
-    merge_objects(Acc, NewJObj).
+    %% NewValue = explicit_array_item(Key, maybe_comma_to_array(Value, Options)),
+    NewValue = maybe_comma_to_array(Value, Options),
+    NewJObj = parse_query_object([ParentName | Children], NewValue, Options),
 
+    M = merge_objects(Acc, NewJObj),
+    %% ?DEV_LOG("merging ~s~nA ~p~nB ~p~nMerged ~p~n", [ParentName, Acc, NewJObj, M]),
+    M.
+
+%% if value is list and key is explicit array `[]' then treat the whole value
+%% as a single array item.
+%% FIXME: someone please fix this code
+%% explicit_array_item(Key, Value) when is_list(Value) ->
+%%     case kz_binary:reverse(Key) of
+%%         <<"][", _/binary>> ->
+%%             ?DEV_LOG("~nKey ~p~nVal ~p~n", [Key, Value]),
+%%             [Value];
+%%         _ ->
+%%             ?DEV_LOG("~nKey ~p~nValue ~p~n", [Key, Value]),
+%%             Value
+%%     end;
+%% explicit_array_item(_K, Value) ->
+%%     ?DEV_LOG("_K ~p~nValue ~p~n", [_K, Value]),
+%%     Value.
 
 -define(IS_JSON(Term), (is_tuple(Term)
                         andalso tuple_size(Term) =:= 1
@@ -308,7 +355,7 @@ parse_query_array(Key, Value, Acc, Options) ->
 %%------------------------------------------------------------------------------
 parse_query_object(Ks, Value, Options) ->
     lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
-               ,maybe_comma_to_array(Value, Options)
+               ,Value
                ,lists:reverse(allow_nested_depth(Ks, Options))
                ).
 
@@ -317,11 +364,11 @@ parse_query_object1(<<"[]">>, Value, _Options) ->
 parse_query_object1(Key, Value, Options) ->
     CleanKey = remove_brackets(Key),
     IsJsonNum = is_json_array_index(Key, Options, CleanKey),
-    case CleanKey of
-        _ when IsJsonNum ->
+    case IsJsonNum of
+        'true' ->
             Size = kz_term:to_integer(CleanKey),
             lists:append(empty_array(Size), [Value]);
-        _ ->
+        'false' ->
             kz_json:from_list([{CleanKey, Value}])
     end.
 
@@ -431,7 +478,30 @@ list_append(List, NonList)
        andalso not is_list(NonList) ->
     lists:append(List, [NonList]).
 
+%%------------------------------------------------------------------------------
+%% @doc Compact JSON array.
+%% @end
+%%------------------------------------------------------------------------------
+-spec json_compact(kz_json:object()) -> kz_term:proplist().
+json_compact(JObj) ->
+    json_compact(kz_json:to_proplist(JObj), []).
+
+json_compact([], Acc) ->
+    lists:reverse(Acc);
+json_compact([?DEFAULT_EMPTY|T], Acc) ->
+    json_compact(T, Acc);
+json_compact([{K, V}|T], Acc) when is_list(V) ->
+    json_compact(T, [{K, json_compact(V, [])}|Acc]);
+json_compact([H|T], Acc) ->
+    json_compact(T, [H|Acc]).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec remove_brackets(binary()) -> binary().
+remove_brackets(<<"[">> = Bin) ->
+    Bin;
 remove_brackets(<<"[", Rest/binary>>) ->
     case binary:last(Rest) of
         $] -> binary:part(Rest, 0, byte_size(Rest) - 1);
