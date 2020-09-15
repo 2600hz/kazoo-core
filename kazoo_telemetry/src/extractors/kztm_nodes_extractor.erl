@@ -132,6 +132,6 @@ maybe_extract_kamailio_metadata(#kz_node{roles=Roles}, Acc) ->
     case props:get_value(<<"Registrar">>, Roles) of
         'undefined' -> Acc;
         Registrar ->
-            Registrations = kz_json:get_integer_value(<<"Registrations">>, Registrar, 0),            
+            Registrations = kz_json:get_integer_value(<<"Registrations">>, Registrar, 0),
             kz_json:set_value(<<"registrations">>, Registrations, Acc)
     end.
