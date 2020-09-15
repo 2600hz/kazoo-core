@@ -282,7 +282,7 @@ parse_query_arrays(QsJObj, _Options) ->
 
 %% This is primarily for handling cases when the key is explicit and we are expanding
 %% comma separated string to array.
-%% FIXME: someone please fix this code
+%% FIXME: (array explicit) someone please fix this code
 %% primarily_merge([], _) ->
 %%     [];
 %% primarily_merge([{K, V} | T], Options) ->
@@ -322,7 +322,7 @@ parse_query_array(Key, Value, Acc, Options) ->
 
 %% if value is list and key is explicit array `[]' then treat the whole value
 %% as a single array item.
-%% FIXME: someone please fix this code
+%% FIXME: (array explicit) someone please fix this code
 %% explicit_array_item(Key, Value) when is_list(Value) ->
 %%     case kz_binary:reverse(Key) of
 %%         <<"][", _/binary>> ->
@@ -353,16 +353,33 @@ parse_query_array(Key, Value, Acc, Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
-parse_query_object(Ks, Value, Options) ->
-    lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
-               ,Value
-               ,lists:reverse(allow_nested_depth(Ks, Options))
-               ).
+parse_query_object([Parent | Rest]=Ks, Value, Options) ->
+    case allow_nested_depth(Rest, Options) of
+        {[], _} ->
+            %% ?DEV_LOG("~n[], NotAllowedKs~n~p", [[kz_binary:join([<<"[">>, Ks, <<"]">>], <<>>)]]),
+            lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
+                       ,Value
+                       ,[kz_binary:join([<<"[">>, Ks, <<"]">>], <<>>)]
+                       );
+        {_AllowedKs, []} ->
+            %% ?DEV_LOG("~nAllowd, []~n~p", [lists:reverse(Ks)]),
+            lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
+                       ,Value
+                       ,lists:reverse(Ks)
+                       );
+        {AllowedKs, NotAllowedKs} ->
+            %% ?DEV_LOG("~nAlowedKs, Not~n~p", [[kz_binary:join([<<"[">>, NotAllowedKs, <<"]">>], <<>>) | lists:reverse([Parent | AllowedKs])]]),
+            lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
+                       ,Value
+                       ,[kz_binary:join([<<"[">>, NotAllowedKs, <<"]">>], <<>>) | lists:reverse([Parent | AllowedKs])]
+                       )
+    end.
 
 parse_query_object1(<<"[]">>, Value, _Options) ->
     list_append([], Value);
 parse_query_object1(Key, Value, Options) ->
     CleanKey = remove_brackets(Key),
+    %% ?DEV_LOG("~nKey ~p CleanKey ~p~n", [Key, CleanKey]),
     IsJsonNum = is_json_array_index(Key, Options, CleanKey),
     case IsJsonNum of
         'true' ->
@@ -418,14 +435,18 @@ merge_objects(OldValue, NewValue)
 merge_objects(OldValue, NewValue)
   when is_list(OldValue) ->
     merge_objects(array_to_object(OldValue), NewValue);
+merge_objects(A, B) when is_list(B) ->
+    merge_objects(A, array_to_object(B));
 merge_objects(A, B) ->
     kz_json:foldl(fun merge_object/3, A, B).
 
 -spec array_to_object(list()) -> kz_json:object().
 array_to_object(List) ->
     {_, JObj} =
-        lists:foldl(fun(Item, {Index, J}) ->
-                            {0 + 1, kz_json:set_value(kz_term:to_binary(Index), Item, J)}
+        lists:foldl(fun(?DEFAULT_EMPTY, {Index, J}) ->
+                            {Index + 1, J};
+                       (Item, {Index, J}) ->
+                            {Index + 1, kz_json:set_value(kz_term:to_binary(Index), Item, J)}
                     end
                    ,{0, kz_json:new()}
                    ,List
@@ -492,10 +513,30 @@ json_compact([?DEFAULT_EMPTY|T], Acc) ->
     json_compact(T, Acc);
 json_compact([{K, V}|T], Acc) when is_list(V) ->
     json_compact(T, [{K, json_compact(V, [])}|Acc]);
+%% json_compact([{K, V}|T], Acc) ->
+%%     case kz_json:is_json_object(V) of
+%%         'true' ->
+%%             NewValue = kz_json:from_list(
+%%                          [{K, kz_json:foldl(fun compact_jobj/3, kz_json:new(), V)}]
+%%                         ),
+%%             json_compact(T, [NewValue|Acc]);
+%%         'false' ->
+%%             json_compact(T, [{K, V}|Acc])
+%%     end;
 json_compact([H|T], Acc) when is_list(H) ->
     json_compact(T, [json_compact(H, []) | Acc]);
 json_compact([H|T], Acc) ->
-    json_compact(T, [H|Acc]).
+    case kz_json:is_json_object(H) of
+        'true' ->
+            json_compact(T, [kz_json:foldl(fun compact_jobj/3, kz_json:new(), H)|Acc]);
+        'false' ->
+            json_compact(T, [H|Acc])
+    end.
+
+compact_jobj(K, V, Acc) when is_list(V) ->
+    kz_json:set_value(K, json_compact(V, []), Acc);
+compact_jobj(K, V, Acc) ->
+    kz_json:set_value(K, V, Acc).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -504,10 +545,10 @@ json_compact([H|T], Acc) ->
 -spec remove_brackets(binary()) -> binary().
 remove_brackets(<<"[">> = Bin) ->
     Bin;
-remove_brackets(<<"[", Rest/binary>>) ->
+remove_brackets(<<"[", Rest/binary>> = Bin) ->
     case binary:last(Rest) of
         $] -> binary:part(Rest, 0, byte_size(Rest) - 1);
-        _ -> Rest
+        _ -> Bin
     end;
 remove_brackets(Val) ->
     Val.
@@ -524,16 +565,15 @@ is_json_array_index(Key, #{array_limits := Limits}, CleanKey) ->
         'error':'badarg' -> 'false'
     end.
 
--spec allow_nested_depth([binary()], Options::map()) -> [binary()].
+-spec allow_nested_depth([binary()], Options::map()) -> {[binary()], [binary()]}.
 allow_nested_depth(Keys, #{depth := Depth}) ->
-    try lists:split(Depth, Keys) of
-        {Allowed, _} -> Allowed
+    try lists:split(Depth, Keys)
     catch
         'error':'badarg' ->
-            Keys
+            {Keys, []}
     end;
 allow_nested_depth(Keys, _) ->
-    Keys.
+    {Keys, []}.
 
 -spec maybe_comma_to_array(term(), Options::map()) -> term().
 maybe_comma_to_array(Value, #{comma_array := 'true'})
