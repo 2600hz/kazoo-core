@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.fax.query_status",
+    "description": "AMQP API for fax.query_status",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "fax"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "query_status"
+            ]
+        },
+        "Job-ID": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Job-ID"
+    ],
+    "type": "object"
+}

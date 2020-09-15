@@ -1,0 +1,30 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.presence.flush",
+    "description": "AMQP API for presence.flush",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "presence"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "flush"
+            ]
+        },
+        "Event-Package": {
+            "type": "string"
+        },
+        "Type": {
+            "type": "string"
+        },
+        "User": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Type"
+    ],
+    "type": "object"
+}

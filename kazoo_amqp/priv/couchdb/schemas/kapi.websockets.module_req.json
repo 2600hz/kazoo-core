@@ -1,0 +1,35 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.websockets.module_req",
+    "description": "AMQP API for websockets.module_req",
+    "properties": {
+        "Action": {
+            "enum": [
+                "start",
+                "stop"
+            ],
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "websockets"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "module_req"
+            ]
+        },
+        "Module": {
+            "type": "string"
+        },
+        "Persist": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Action",
+        "Module"
+    ],
+    "type": "object"
+}

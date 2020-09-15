@@ -1,0 +1,61 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.conf.doc_update",
+    "description": "AMQP API for conf.doc_update",
+    "properties": {
+        "Account-ID": {
+            "type": "string"
+        },
+        "Database": {
+            "type": "string"
+        },
+        "Date-Created": {
+            "type": "string"
+        },
+        "Date-Modified": {
+            "type": "string"
+        },
+        "Doc": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "configuration"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "db_created",
+                "db_deleted",
+                "db_edited",
+                "db_views_updated",
+                "doc_created",
+                "doc_deleted",
+                "doc_edited"
+            ]
+        },
+        "ID": {
+            "type": "string"
+        },
+        "Is-Soft-Deleted": {
+            "type": "string"
+        },
+        "Origin-Cache": {
+            "type": "string"
+        },
+        "Rev": {
+            "type": "string"
+        },
+        "Type": {
+            "type": "string"
+        },
+        "Version": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Database",
+        "ID"
+    ],
+    "type": "object"
+}

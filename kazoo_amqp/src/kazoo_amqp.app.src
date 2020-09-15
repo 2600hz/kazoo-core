@@ -7,4 +7,5 @@
               {registered,[kz_amqp_connections,kz_amqp_assignments,
                            kz_amqp_sup,kz_amqp_connection_sup,
                            kz_amqp_bootstrap]},
-              {mod,{kazoo_amqp_app,[]}}]}.
+              {mod,{kazoo_amqp_app,[]}},
+              {env, [{schemas_to_priv,true}]}]}.

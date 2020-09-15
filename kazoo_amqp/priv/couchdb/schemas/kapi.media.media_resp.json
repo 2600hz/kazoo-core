@@ -1,0 +1,28 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.media.media_resp",
+    "description": "AMQP API for media.media_resp",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "media"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "media_resp"
+            ]
+        },
+        "Media-Name": {
+            "type": "string"
+        },
+        "Stream-URL": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Media-Name",
+        "Stream-URL"
+    ],
+    "type": "object"
+}

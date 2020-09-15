@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.media.media_error",
+    "description": "AMQP API for media.media_error",
+    "properties": {
+        "Error-Code": {
+            "enum": [
+                "no_data",
+                "not_found",
+                "other"
+            ],
+            "type": "string"
+        },
+        "Error-Msg": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "media"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "media_error"
+            ]
+        },
+        "Media-Name": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Error-Code",
+        "Media-Name"
+    ],
+    "type": "object"
+}

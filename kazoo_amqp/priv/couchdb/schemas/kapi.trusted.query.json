@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.trusted.query",
+    "description": "AMQP API for trusted.query",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "trusted"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "query"
+            ]
+        },
+        "Server-ID": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Server-ID"
+    ],
+    "type": "object"
+}

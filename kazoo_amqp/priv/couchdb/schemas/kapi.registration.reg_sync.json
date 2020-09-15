@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.registration.reg_sync",
+    "description": "AMQP API for registration.reg_sync",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "directory"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "reg_sync"
+            ]
+        }
+    },
+    "type": "object"
+}
