@@ -1281,7 +1281,9 @@ create_registered_view(Plan, Database, DesignDoc, _Options, ViewJObj) ->
     case kzs_doc:save_doc(Plan, Database, ViewDoc, []) of
         {'ok', _}=OK -> OK;
         {'error', 'conflict'} ->
-            maybe_update_view(Plan, Database, DesignDoc, ViewDoc);
+            lager:info("conflict saving to ~s / ~s", [Database, kz_doc:id(ViewDoc)]),
+            _ = maybe_update_view(Plan, Database, DesignDoc, ViewDoc),
+            kzs_doc:open_doc(Plan, Database, ViewDoc, []);
         {'error', _Err} ->
             lager:error("error saving registered view ~s to database ~s : ~p", [DesignDoc, Database, _Err]),
             {'error', 'not_found'}
@@ -1292,12 +1294,14 @@ maybe_update_view(Plan, Database, DesignDoc, ViewDoc) ->
     case binary:split(DesignDoc, <<$/>>) of
         [_, View] ->
             case kz_json:get_value([<<"views">>, View], ViewDoc) of
-                'undefined' -> 'ok';
+                'undefined' ->
+                    lager:debug("no view ~s in view doc", [DesignDoc]);
                 _View ->
                     CurrentDoc = kzs_doc:open_doc(Plan, Database, kz_doc:id(ViewDoc), []),
                     maybe_update_view(Plan, Database, DesignDoc, ViewDoc, CurrentDoc)
             end;
-        _Else -> 'ok'
+        _Else ->
+            lager:info("failed to split ~s", [DesignDoc])
     end.
 
 -spec maybe_update_view(map(), database_name(), kz_term:ne_binary(), kz_json:object(), {'ok', kz_json:object()}|data_error()) -> 'ok'.
@@ -1311,7 +1315,7 @@ maybe_update_view(Plan, Database, DesignDoc, ViewDoc, {'ok', CurrentDoc}) ->
                 {'error', _Err} ->
                     lager:error("error updating design doc ~s to database ~s : ~p", [DesignDoc, Database, _Err])
             end;
-        'true' -> 'ok'
+        'true' -> lager:debug("view docs are equivalent")
     end;
 maybe_update_view(_Plan, _Database, _DesignDoc, _ViewDoc, _Error) -> 'ok'.
 

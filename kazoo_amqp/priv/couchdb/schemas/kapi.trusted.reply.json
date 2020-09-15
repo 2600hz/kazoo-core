@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.trusted.reply",
+    "description": "AMQP API for trusted.reply",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "trusted"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "reply"
+            ]
+        },
+        "Trusted": {
+            "type": "object"
+        }
+    },
+    "required": [
+        "Trusted"
+    ],
+    "type": "object"
+}

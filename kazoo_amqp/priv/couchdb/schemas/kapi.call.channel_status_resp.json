@@ -1,0 +1,66 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.call.channel_status_resp",
+    "description": "AMQP API for call.channel_status_resp",
+    "properties": {
+        "Call-ID": {
+            "type": "string"
+        },
+        "Custom-Application-Vars": {
+            "type": "object"
+        },
+        "Custom-Channel-Vars": {
+            "type": "object"
+        },
+        "Error-Msg": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "call_event"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "channel_status_resp"
+            ]
+        },
+        "From-Tag": {
+            "type": "string"
+        },
+        "Other-Leg-Call-ID": {
+            "type": "string"
+        },
+        "Realm": {
+            "type": "string"
+        },
+        "Status": {
+            "enum": [
+                "active",
+                "terminated",
+                "tmpdown"
+            ],
+            "type": "string"
+        },
+        "Switch-Hostname": {
+            "type": "string"
+        },
+        "Switch-Nodename": {
+            "type": "string"
+        },
+        "Switch-URL": {
+            "type": "string"
+        },
+        "To-Tag": {
+            "type": "string"
+        },
+        "Username": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Call-ID",
+        "Status"
+    ],
+    "type": "object"
+}

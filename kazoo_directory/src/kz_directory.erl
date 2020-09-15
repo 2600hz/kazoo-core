@@ -17,11 +17,15 @@
 
 -include("kazoo_directory.hrl").
 
--spec lookup(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec lookup(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 lookup(EndpointId, AccountId) ->
     lookup(EndpointId, AccountId, []).
 
--spec lookup(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec lookup(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 lookup(EndpointId, AccountId, Options) ->
     Routines = [fun cached/3
                ,fun kz_directory_endpoint:profile/3
@@ -29,7 +33,9 @@ lookup(EndpointId, AccountId, Options) ->
                ],
     lookup(Routines, EndpointId, AccountId, Options).
 
--spec lookup([fun()], kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec lookup([fun()], kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 lookup([], _EndpointId, _AccountId, _Options) ->
     {'error', 'not_found'};
 lookup([Fun | Routines], EndpointId, AccountId, Options) ->
@@ -41,6 +47,8 @@ lookup([Fun | Routines], EndpointId, AccountId, Options) ->
             lookup(Routines, EndpointId, AccountId, Options)
     end.
 
--spec cached(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {ok, kz_json:object()} | {error, not_found}.
+-spec cached(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', 'not_found'}.
 cached(EndpointId, AccountId, _Options) ->
     kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}).

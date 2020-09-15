@@ -1,0 +1,35 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.sysconf.get_resp",
+    "description": "AMQP API for sysconf.get_resp",
+    "properties": {
+        "Category": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "sysconf"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "get_resp"
+            ]
+        },
+        "Key": {
+            "type": "string"
+        },
+        "Node": {
+            "type": "string"
+        },
+        "Value": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Category",
+        "Key",
+        "Value"
+    ],
+    "type": "object"
+}

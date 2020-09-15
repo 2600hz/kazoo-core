@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.keys.reload",
+    "description": "AMQP API for keys.reload",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "jwt.keys"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "reload"
+            ]
+        }
+    },
+    "type": "object"
+}

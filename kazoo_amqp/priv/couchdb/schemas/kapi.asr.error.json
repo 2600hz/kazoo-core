@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.asr.error",
+    "description": "AMQP API for asr.error",
+    "properties": {
+        "Error-Code": {
+            "type": "string"
+        },
+        "Error-Msg": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "asr"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "error"
+            ]
+        }
+    },
+    "type": "object"
+}

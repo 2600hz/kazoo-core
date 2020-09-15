@@ -6,7 +6,7 @@
 -include_lib("kazoo_numbers/include/knm_phone_number.hrl").
 -include_lib("kazoo_caches/include/kazoo_caches.hrl").
 
--define(APP, kazoo_directory).
+-define(APP, 'kazoo_directory').
 -define(APP_NAME, <<"kazoo_directory">>).
 -define(APP_VERSION, kz_application:application_version(?APP)).
 

@@ -1,0 +1,34 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.conference.config_resp",
+    "description": "AMQP API for conference.config_resp",
+    "properties": {
+        "Advertise": {
+            "type": "string"
+        },
+        "Caller-Controls": {
+            "type": "string"
+        },
+        "Chat-Permissions": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "conference"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "config_resp"
+            ]
+        },
+        "Profiles": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Caller-Controls",
+        "Profiles"
+    ],
+    "type": "object"
+}

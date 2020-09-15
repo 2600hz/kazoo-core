@@ -862,7 +862,7 @@ fetch(Account) ->
 -spec fetch(kz_term:api_ne_binary(), fetch_options()) -> services().
 fetch('undefined', Options) ->
     handle_fetch_options(empty(), Options);
-fetch(Account=?NE_BINARY, Options) ->
+fetch(<<Account/binary>>, Options) ->
     AccountId = kzs_util:format_account_id(Account),
     OpenDocFun = choose_open_doc_fun(Options, AccountId),
 

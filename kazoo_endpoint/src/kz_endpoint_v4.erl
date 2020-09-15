@@ -108,12 +108,12 @@
 -spec get(kapps_call:call()) -> std_return().
 get(Call) -> get(kapps_call:authorizing_id(Call), Call).
 
--spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call()) -> std_return().
+-spec get(kz_term:api_binary() | kz_json:object(), kz_term:ne_binary() | kapps_call:call()) -> std_return().
 get('undefined', _Call) ->
     {'error', 'invalid_endpoint_id'};
-get(EndpointId, ?MATCH_ACCOUNT_RAW(AccountId)) ->
+get(<<EndpointId/binary>>, ?MATCH_ACCOUNT_RAW(AccountId)) ->
     get(EndpointId, kzs_util:format_account_db(AccountId));
-get(EndpointId, AccountDb) when is_binary(AccountDb) ->
+get(<<EndpointId/binary>>, AccountDb) when is_binary(AccountDb) ->
     case kz_cache:peek_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
         {'ok', _Endpoint}=Ok ->
             lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
@@ -121,8 +121,11 @@ get(EndpointId, AccountDb) when is_binary(AccountDb) ->
         {'error', 'not_found'} ->
             maybe_fetch_endpoint(EndpointId, AccountDb)
     end;
-get(EndpointId, Call) ->
-    get(EndpointId, kapps_call:account_db(Call)).
+get(<<EndpointId/binary>>, Call) ->
+    get(EndpointId, kapps_call:account_db(Call));
+get(Endpoint, Call) ->
+    lager:info("checking endpoint ~s", [kz_doc:id(Endpoint)]),
+    check_endpoint_type(Endpoint, kz_doc:id(Endpoint), kapps_call:account_db(Call)).
 
 -spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call(), kz_term:proplist()) -> std_return().
 get(EndpointId, Call, _Options) ->
