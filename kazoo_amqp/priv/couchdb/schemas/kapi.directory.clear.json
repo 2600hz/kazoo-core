@@ -1,0 +1,27 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.directory.clear",
+    "description": "AMQP API for directory.clear",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "cache"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "clear"
+            ]
+        },
+        "Keys": {
+            "items": {
+                "type": "string"
+            },
+            "type": "string"
+        }
+    },
+    "required": [
+        "Keys"
+    ],
+    "type": "object"
+}

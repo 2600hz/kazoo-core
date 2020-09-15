@@ -1,0 +1,32 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.callflow.action.result",
+    "description": "AMQP API for callflow.action.result",
+    "properties": {
+        "Call-ID": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "callflow"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "action.result"
+            ]
+        },
+        "Msg-ID": {
+            "type": "string"
+        },
+        "Result": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Call-ID",
+        "Msg-ID",
+        "Result"
+    ],
+    "type": "object"
+}

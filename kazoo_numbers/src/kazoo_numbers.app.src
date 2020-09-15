@@ -7,4 +7,5 @@
               {vsn,"4.0.0"},
               {modules,[]},
               {registered,[kazoo_numbers_sup]},
+              {env,[{schemas_to_priv,true}]},
               {mod,{kazoo_numbers_app,[]}}]}.

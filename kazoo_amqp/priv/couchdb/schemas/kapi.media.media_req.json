@@ -1,0 +1,69 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.media.media_req",
+    "description": "AMQP API for media.media_req",
+    "properties": {
+        "Account-ID": {
+            "type": "string"
+        },
+        "Call-ID": {
+            "type": "string"
+        },
+        "Engine": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "media"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "media_req"
+            ]
+        },
+        "Format": {
+            "enum": [
+                "mp3",
+                "wav"
+            ],
+            "type": "string"
+        },
+        "Language": {
+            "type": "string"
+        },
+        "Media-Name": {
+            "type": "string"
+        },
+        "Protocol": {
+            "enum": [
+                "http",
+                "https",
+                "shout",
+                "vlc"
+            ],
+            "type": "string"
+        },
+        "Stream-Type": {
+            "enum": [
+                "extant",
+                "new"
+            ],
+            "type": "string"
+        },
+        "Text": {
+            "type": "string"
+        },
+        "Voice": {
+            "enum": [
+                "female",
+                "male"
+            ],
+            "type": "string"
+        }
+    },
+    "required": [
+        "Media-Name"
+    ],
+    "type": "object"
+}

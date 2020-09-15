@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.asr.resp",
+    "description": "AMQP API for asr.resp",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "asr"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "resp"
+            ]
+        },
+        "Response-Text": {
+            "type": "string"
+        }
+    },
+    "type": "object"
+}

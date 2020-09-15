@@ -1,0 +1,27 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.registration.reg_flush",
+    "description": "AMQP API for registration.reg_flush",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "directory"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "reg_flush"
+            ]
+        },
+        "Realm": {
+            "type": "string"
+        },
+        "Username": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Realm"
+    ],
+    "type": "object"
+}
