@@ -492,6 +492,8 @@ json_compact([?DEFAULT_EMPTY|T], Acc) ->
     json_compact(T, Acc);
 json_compact([{K, V}|T], Acc) when is_list(V) ->
     json_compact(T, [{K, json_compact(V, [])}|Acc]);
+json_compact([H|T], Acc) when is_list(H) ->
+    json_compact(T, [json_compact(H, []) | Acc]);
 json_compact([H|T], Acc) ->
     json_compact(T, [H|Acc]).
 
