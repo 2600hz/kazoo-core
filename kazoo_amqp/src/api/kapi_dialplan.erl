@@ -95,6 +95,9 @@
 -export([echo/1
         ,echo_v/1
         ]).
+-export([deflect/1
+        ,deflect_v/1
+        ]).
 -export([privacy/1
         ,privacy_v/1
         ]).
@@ -262,6 +265,7 @@ api_definitions() ->
     ,record_call_definition()
     ,answer_definition()
     ,echo_definition()
+    ,deflect_definition()
     ,privacy_definition()
     ,hold_definition()
     ,soft_hold_definition()
@@ -355,6 +359,8 @@ api_definition(<<"answer">>) ->
     answer_definition();
 api_definition(<<"echo">>) ->
     echo_definition();
+api_definition(<<"deflect">>) ->
+    deflect_definition();
 api_definition(<<"privacy">>) ->
     privacy_definition();
 api_definition(<<"hold">>) ->
@@ -1337,6 +1343,32 @@ echo_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"echo">>}
+                ,?INSERT_AT_TUPLE
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec deflect_definition() -> kapi_definition:api().
+deflect_definition() ->
+    EventName = <<"command">>,
+    Category = <<"call">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Deflect">>}
+              ,{fun kapi_definition:set_description/2, <<"Deflect a session">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun deflect/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun deflect_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Call-ID">>
+                                                            ,<<"Target-URI">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Insert-At">>]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"deflect">>}
                 ,?INSERT_AT_TUPLE
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
@@ -2787,6 +2819,19 @@ echo(Req) ->
 -spec echo_v(kz_term:api_terms()) -> boolean().
 echo_v(Req) ->
     kapi_definition:validate(Req, echo_definition()).
+
+%%------------------------------------------------------------------------------
+%% @doc Deflect a session
+%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec deflect(kz_term:api_terms()) -> kz_api:api_formatter_return().
+deflect(Req) ->
+    kapi_definition:build_message(Req, deflect_definition()).
+
+-spec deflect_v(kz_term:api_terms()) -> boolean().
+deflect_v(Req) ->
+    kapi_definition:validate(Req, deflect_definition()).
 
 %%------------------------------------------------------------------------------
 %% @doc Privacy.
