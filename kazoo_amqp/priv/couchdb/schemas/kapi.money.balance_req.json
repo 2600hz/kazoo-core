@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.money.balance_req",
+    "description": "AMQP API for money.balance_req",
+    "properties": {
+        "Account-ID": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "transaction"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "balance_req"
+            ]
+        }
+    },
+    "required": [
+        "Account-ID"
+    ],
+    "type": "object"
+}

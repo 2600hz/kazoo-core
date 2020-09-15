@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.call.query_user_channels_req",
+    "description": "AMQP API for call.query_user_channels_req",
+    "properties": {
+        "Active-Only": {
+            "type": "string"
+        },
+        "Authorizing-IDs": {
+            "items": {
+                "type": "string"
+            },
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "call_event"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "query_user_channels_req"
+            ]
+        },
+        "Realm": {
+            "type": "string"
+        },
+        "Username": {
+            "type": "string"
+        },
+        "Usernames": {
+            "items": {
+                "type": "string"
+            },
+            "type": "array"
+        }
+    },
+    "type": "object"
+}

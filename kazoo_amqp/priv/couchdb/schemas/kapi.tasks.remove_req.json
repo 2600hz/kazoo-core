@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.tasks.remove_req",
+    "description": "AMQP API for tasks.remove_req",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "tasks"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "remove_req"
+            ]
+        },
+        "Task-ID": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Task-ID"
+    ],
+    "type": "object"
+}

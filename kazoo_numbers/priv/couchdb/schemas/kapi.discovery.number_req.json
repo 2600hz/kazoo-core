@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.discovery.number_req",
+    "description": "AMQP API for discovery.number_req",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "discovery"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "number"
+            ]
+        },
+        "Number": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Number"
+    ],
+    "type": "object"
+}

@@ -1,0 +1,31 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.switch.command",
+    "description": "AMQP API for switch.command",
+    "properties": {
+        "Args": {
+            "type": "string"
+        },
+        "Command": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "switch_event"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "command"
+            ]
+        },
+        "FreeSWITCH-Node": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Args",
+        "Command"
+    ],
+    "type": "object"
+}

@@ -1,0 +1,27 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.globals.reply",
+    "description": "AMQP API for globals.reply",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "globals"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "reply"
+            ]
+        },
+        "Name": {
+            "type": "string"
+        },
+        "Reply": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Reply"
+    ],
+    "type": "object"
+}

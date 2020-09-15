@@ -1,0 +1,67 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.metaflow.bind",
+    "description": "AMQP API for metaflow.bind",
+    "properties": {
+        "Binding-Digit": {
+            "enum": [
+                "#",
+                "*",
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9"
+            ],
+            "type": "string"
+        },
+        "Call": {
+            "type": "object"
+        },
+        "Call-ID": {
+            "type": "string"
+        },
+        "Digit-Timeout": {
+            "type": "string"
+        },
+        "Endpoint-ID": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "metaflow"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "bind"
+            ]
+        },
+        "Listen-On": {
+            "enum": [
+                "aleg",
+                "bleg",
+                "both",
+                "peer",
+                "self"
+            ],
+            "type": "string"
+        },
+        "Numbers": {
+            "type": "string"
+        },
+        "Patterns": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Call",
+        "Call-ID"
+    ],
+    "type": "object"
+}

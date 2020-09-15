@@ -1,0 +1,52 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.resource.eavesdrop_req",
+    "description": "AMQP API for resource.eavesdrop_req",
+    "properties": {
+        "Account-ID": {
+            "type": "string"
+        },
+        "Application-Name": {
+            "type": "string"
+        },
+        "Eavesdrop-Call-ID": {
+            "type": "string"
+        },
+        "Eavesdrop-Group-ID": {
+            "type": "string"
+        },
+        "Eavesdrop-Mode": {
+            "enum": [
+                "full",
+                "listen",
+                "whisper"
+            ],
+            "type": "string"
+        },
+        "Endpoint-ID": {
+            "type": "string"
+        },
+        "Endpoints": {
+            "items": {
+                "$ref": "kapi.dialplan.bridge_endpoint",
+                "type": "object"
+            },
+            "type": "array"
+        },
+        "Event-Category": {
+            "enum": [
+                "resource"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "eavesdrop_req"
+            ]
+        }
+    },
+    "required": [
+        "Account-ID",
+        "Endpoint-ID"
+    ],
+    "type": "object"
+}
