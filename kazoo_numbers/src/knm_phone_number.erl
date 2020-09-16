@@ -220,7 +220,7 @@ fetch(<<Num/binary>>, Options) ->
     case do_fetch(NumberDb, NormalizedNum, Options) of
         {'ok', JObj} -> handle_fetch(JObj, Options);
         {'error', 'not_found'}=Error ->
-            ?LOG_DEBUG("number is not exists ~s/~s", [NumberDb, NormalizedNum]),
+            ?LOG_DEBUG("number does not exist in ~s/~s", [NumberDb, NormalizedNum]),
             Error;
         {'error', _R}=Error -> Error
     end.
