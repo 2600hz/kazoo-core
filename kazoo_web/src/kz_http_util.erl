@@ -234,12 +234,12 @@ parse_query_string('val', <<C, R/binary>>, KeyAcc, ValAcc, RetAcc) ->
     parse_query_string('val', R, KeyAcc, <<ValAcc/binary, C>>, RetAcc).
 
 %%------------------------------------------------------------------------------
-%% @doc Noramlize already parsed query string and create nested objects when
+%% @doc Normalize already parsed query string and create nested objects when
 %% the name of sub-keys are surrounded by square brackets.
 %%
 %% The intended input is `cow_qs:parse_qs/1` output.
 %%
-%% Implemntation is based on `qs' NPM package.
+%% Implementation is based on `qs' NPM package.
 %% https://github.com/ljharb/qs
 %%
 %% Some QS examples (don't forget to call `cow_qs:parse/1' first):
@@ -316,9 +316,7 @@ parse_query_array(Key, Value, Acc, Options) ->
     NewValue = maybe_comma_to_array(Value, Options),
     NewJObj = parse_query_object([ParentName | Children], NewValue, Options),
 
-    M = merge_objects(Acc, NewJObj),
-    %% ?DEV_LOG("merging ~s~nA ~p~nB ~p~nMerged ~p~n", [ParentName, Acc, NewJObj, M]),
-    M.
+    merge_objects(Acc, NewJObj).
 
 %% if value is list and key is explicit array `[]' then treat the whole value
 %% as a single array item.
@@ -326,14 +324,11 @@ parse_query_array(Key, Value, Acc, Options) ->
 %% explicit_array_item(Key, Value) when is_list(Value) ->
 %%     case kz_binary:reverse(Key) of
 %%         <<"][", _/binary>> ->
-%%             ?DEV_LOG("~nKey ~p~nVal ~p~n", [Key, Value]),
 %%             [Value];
 %%         _ ->
-%%             ?DEV_LOG("~nKey ~p~nValue ~p~n", [Key, Value]),
 %%             Value
 %%     end;
 %% explicit_array_item(_K, Value) ->
-%%     ?DEV_LOG("_K ~p~nValue ~p~n", [_K, Value]),
 %%     Value.
 
 -define(IS_JSON(Term), (is_tuple(Term)
@@ -356,19 +351,16 @@ parse_query_array(Key, Value, Acc, Options) ->
 parse_query_object([Parent | Rest]=Ks, Value, Options) ->
     case allow_nested_depth(Rest, Options) of
         {[], _} ->
-            %% ?DEV_LOG("~n[], NotAllowedKs~n~p", [[kz_binary:join([<<"[">>, Ks, <<"]">>], <<>>)]]),
             lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
                        ,Value
                        ,[kz_binary:join([<<"[">>, Ks, <<"]">>], <<>>)]
                        );
         {_AllowedKs, []} ->
-            %% ?DEV_LOG("~nAllowd, []~n~p", [lists:reverse(Ks)]),
             lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
                        ,Value
                        ,lists:reverse(Ks)
                        );
         {AllowedKs, NotAllowedKs} ->
-            %% ?DEV_LOG("~nAlowedKs, Not~n~p", [[kz_binary:join([<<"[">>, NotAllowedKs, <<"]">>], <<>>) | lists:reverse([Parent | AllowedKs])]]),
             lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
                        ,Value
                        ,[kz_binary:join([<<"[">>, NotAllowedKs, <<"]">>], <<>>) | lists:reverse([Parent | AllowedKs])]
@@ -379,7 +371,6 @@ parse_query_object1(<<"[]">>, Value, _Options) ->
     list_append([], Value);
 parse_query_object1(Key, Value, Options) ->
     CleanKey = remove_brackets(Key),
-    %% ?DEV_LOG("~nKey ~p CleanKey ~p~n", [Key, CleanKey]),
     IsJsonNum = is_json_array_index(Key, Options, CleanKey),
     case IsJsonNum of
         'true' ->
@@ -456,7 +447,7 @@ array_to_object(List) ->
 -spec merge_array(array:array_indx(), kz_json:json_term(), array:array()) ->
           array:array().
 merge_array(_Index, ?DEFAULT_EMPTY, Acc) ->
-    %% js vm is skiping empty head items during reduce
+    %% js vm is skipping empty head items during reduce
     %% doing same to avoid pushing the empty to the end of Acc (case clause 2 of inner case below)
     %% { foo: [ { a: 'a', b: 'b' }, { a: 'aa' } ] } = A
     %% { foo: [ <1 empty item>, { b: 'bb' } ] } = B <- this will starts at index 1 ({b: 'bb'})
@@ -464,17 +455,14 @@ merge_array(_Index, ?DEFAULT_EMPTY, Acc) ->
 merge_array(Index, Item, Acc) ->
     case array:get(Index, Acc) of
         ?DEFAULT_EMPTY ->
-            %% ?DEV_LOG("target[i] = item"),
             array:set(Index, Item, Acc);
         OldItem ->
             case ?IS_OBJECT(OldItem)
                 andalso ?IS_OBJECT(Item)
             of
                 'true' ->
-                    %% ?DEV_LOG("items object"),
                     array:set(Index, merge_objects(OldItem, Item), Acc);
                 'false' ->
-                    %% ?DEV_LOG("targetItem array and item object"),
                     array:set(array:size(Acc), Item, Acc)
             end
     end.
@@ -558,7 +546,7 @@ is_json_array_index(Key, #{array_limits := Limits}, CleanKey) ->
     try kz_term:to_integer(CleanKey) of
         Integer ->
             Key =/= CleanKey
-                andalso kz_term:to_binary(Integer) =:= CleanKey %% 1 =/= "01"
+                andalso kz_term:to_binary(Integer) =:= CleanKey %% e.g. 1 =/= "01"
                 andalso Integer >= 0
                 andalso Integer =< Limits
     catch
