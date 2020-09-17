@@ -262,81 +262,87 @@ parse_query_arrays(QS) ->
 -define(DEFAULT_ARRAY_OPTIONS, #{array_limits => 25
                                 ,comma_array => 'false'
                                 ,depth => 5
-                                 %% ,allow_dots => 'false' %% a.b.c => a[b][c]
                                 }).
 
--spec parse_query_arrays(QueryString :: kz_term:proplist(), Options :: map()) -> kz_term:proplist().
+-spec parse_query_arrays(QueryString :: kz_term:proplist() | kz_json:object(), Options :: map()) -> kz_term:proplist().
 parse_query_arrays(QS, Opts) when is_list(QS) ->
     Options = maps:merge(?DEFAULT_ARRAY_OPTIONS, Opts),
     Parsed = lists:foldl(fun({K, V}, Acc) -> parse_query_array(K, V, Acc, Options) end
                         ,kz_json:new()
-                         %% ,primarily_merge(QS, Options)
-                        ,QS
+                        ,primarily_merge(QS, Options)
                         ),
     kz_json:to_proplist(kz_json:compact_arrays(Parsed, #{default_empty => ?DEFAULT_EMPTY}));
 parse_query_arrays(QsJObj, _Options) ->
-    parse_query_arrays(kz_json:to_proplist(QsJObj)).
+    parse_query_arrays(kz_json:recursive_to_proplist(QsJObj)).
 
 
 %% This is primarily for handling cases when the key is explicit and we are expanding
 %% comma separated string to array.
-%% FIXME: (array explicit) someone please fix this code
-%% primarily_merge([], _) ->
-%%     [];
-%% primarily_merge([{K, V} | T], Options) ->
-%%     case props:get_value(K, T) of
-%%         'undefined' ->
-%%             [{K, V} | primarily_merge(T, Options)];
-%%         _ ->
-%%             {OtherVs, NewT} = take_element(K, T, [], [], Options),
-%%             [{K, [maybe_comma_to_array(V, Options) | OtherVs]} | primarily_merge(NewT, Options)]
-%%     end.
-%%
-%% take_element(_, [], ElmAcc, QSAcc, _) ->
-%%     {lists:reverse(ElmAcc), lists:reverse(QSAcc)};
-%% take_element(Key, [{Key, Val}|QS], ElmAcc, QSAcc, Options) ->
-%%     take_element(Key, QS, [maybe_comma_to_array(Val, Options) | ElmAcc], QSAcc, Options);
-%% take_element(Key, [Elm|QS], ElmAcc, QSAcc, Options) ->
-%%     take_element(Key, QS, ElmAcc, [Elm|QSAcc], Options).
+primarily_merge([], _) ->
+    [];
+primarily_merge([{K, V} | T], Options) ->
+    NewV = explicit_array_item(K, V),
+    case props:get_value(K, T) of
+        'undefined' ->
+            [{K, NewV} | primarily_merge(T, Options)];
+        _ ->
+            {OtherVs, NewT} = take_element(K, T, [], [], Options),
+            [{K, combine(NewV, OtherVs)} | primarily_merge(NewT, Options)]
+    end.
 
-parse_query_array(Key, Value, Acc, Options) ->
-    %% regex to convert dot notation to array:
-    %% re:replace(<<"sd.ff.sdsd.er34">>, <<"\\.([^.[]+)">>, <<"[\\1]">>,  [global, {return, binary}])
-    %% result: <<"sd[ff][sdsd][er34]">>
-    ParentName = case re:run(Key, <<"\\[[^[\\]]*]">>) of
-                     'nomatch' -> Key;
-                     {'match', [{BracketStart, _}]} -> binary:part(Key, 0, BracketStart)
-                 end,
-    Children = case re:run(Key, <<"\\[[^[\\]]*]">>, ['global', {'capture', 'all', 'binary'}]) of
-                   'nomatch' -> [];
-                   {'match', Ks} -> [K || [K] <- Ks]
-               end,
-    %% NewValue = explicit_array_item(Key, maybe_comma_to_array(Value, Options)),
-    NewValue = maybe_comma_to_array(Value, Options),
-    NewJObj = parse_query_object([ParentName | Children], NewValue, Options),
-
-    kz_json:qsjs_merge(Acc, NewJObj, #{default_empty => ?DEFAULT_EMPTY}).
+take_element(_, [], ElmAcc, QSAcc, _) ->
+    {lists:reverse(ElmAcc), lists:reverse(QSAcc)};
+take_element(Key, [{Key, Val}|QS], ElmAcc, QSAcc, Options) ->
+    take_element(Key, QS, [Val | ElmAcc], QSAcc, Options);
+take_element(Key, [Elm|QS], ElmAcc, QSAcc, Options) ->
+    take_element(Key, QS, ElmAcc, [Elm|QSAcc], Options).
 
 %% if value is list and key is explicit array `[]' then treat the whole value
 %% as a single array item.
-%% FIXME: (array explicit) someone please fix this code
-%% explicit_array_item(Key, Value) when is_list(Value) ->
-%%     case kz_binary:reverse(Key) of
-%%         <<"][", _/binary>> ->
-%%             [Value];
-%%         _ ->
-%%             Value
-%%     end;
-%% explicit_array_item(_K, Value) ->
-%%     Value.
+explicit_array_item(Key, Value) when is_list(Value) ->
+    case lists:reverse(get_all_brackets(Key)) of
+        [<<"[]">>|_] -> [Value];
+        _ -> Value
+    end;
+explicit_array_item(_K, Value) ->
+    Value.
+
+parse_query_array(Key, Value, Acc, Options) ->
+    ParentName = get_array_name(Key),
+    Children = get_all_brackets(Key),
+
+    NewValue = maybe_comma_to_array(Value, Options),
+    NewJObj = parse_query_object(ParentName, Children, NewValue, Options),
+
+    kz_json:qsjs_merge(Acc, NewJObj, #{default_empty => ?DEFAULT_EMPTY}).
+
+get_array_name(Key) ->
+    case re:run(Key, <<"\\[[^[\\]]*]">>) of
+        'nomatch' -> Key;
+        {'match', [{BracketStart, _}]} ->
+            binary:part(Key, 0, BracketStart)
+    end.
+
+get_all_brackets(Key) ->
+    case re:run(Key, <<"\\[[^[\\]]*]">>, ['global', {'capture', 'all', 'binary'}]) of
+        'nomatch' -> [];
+        {'match', Brackets} -> [K || [K] <- Brackets]
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+parse_query_object(<<>>, Children, Value, Options) ->
+    parse_query_object(Children, Value, Options);
+parse_query_object(ParentName, Children, Value, Options) ->
+    parse_query_object([ParentName | Children], Value, Options).
+
 parse_query_object([Parent | Rest]=Ks, Value, Options) ->
     case allow_nested_depth(Rest, Options) of
-        {[], _} ->
+        {[], _} when Rest =/= [] ->
+            %% if max depth is reached just wrap whatever is left
+            %% to treat them as the inner most value.
             lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
                        ,Value
                        ,[kz_binary:join([<<"[">>, Ks, <<"]">>], <<>>)]
@@ -347,6 +353,7 @@ parse_query_object([Parent | Rest]=Ks, Value, Options) ->
                        ,lists:reverse(Ks)
                        );
         {AllowedKs, NotAllowedKs} ->
+            %% wrap whatever is left to treat them as the inner most value.
             lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
                        ,Value
                        ,[kz_binary:join([<<"[">>, NotAllowedKs, <<"]">>], <<>>) | lists:reverse([Parent | AllowedKs])]
@@ -354,7 +361,7 @@ parse_query_object([Parent | Rest]=Ks, Value, Options) ->
     end.
 
 parse_query_object1(<<"[]">>, Value, _Options) ->
-    list_append([], Value);
+    combine([], Value);
 parse_query_object1(Key, Value, Options) ->
     CleanKey = remove_brackets(Key),
     IsJsonNum = is_json_array_index(Key, Options, CleanKey),
@@ -369,15 +376,21 @@ parse_query_object1(Key, Value, Options) ->
 empty_array(Size) ->
     lists:foldl(fun(_, Acc) -> [?DEFAULT_EMPTY | Acc] end, [], lists:seq(1, Size)).
 
--spec list_append(list(), list() | any()) -> list().
-list_append(ListA, ListB)
+-spec combine(list(), list() | any()) -> list().
+combine(ListA, ListB)
   when is_list(ListA)
        andalso is_list(ListB) ->
     lists:append(ListA, ListB);
-list_append(List, NonList)
+combine(List, NonList)
   when is_list(List)
        andalso not is_list(NonList) ->
-    lists:append(List, [NonList]).
+    lists:append(List, [NonList]);
+combine(NonList, ListB)
+  when not is_list(NonList)
+       andalso is_list(ListB) ->
+    [NonList | ListB];
+combine(NonListA, NonListB) ->
+    [NonListA, NonListB].
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -425,6 +438,8 @@ maybe_comma_to_array(Value, #{comma_array := 'true'})
         'nomatch' -> Value;
         {_, _} -> binary:split(Value, <<",">>, ['global'])
     end;
+maybe_comma_to_array(Value, Options) when is_list(Value) ->
+    [maybe_comma_to_array(V, Options) || V <- Value];
 maybe_comma_to_array(Value, _) ->
     Value.
 
