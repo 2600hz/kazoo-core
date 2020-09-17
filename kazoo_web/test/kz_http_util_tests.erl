@@ -263,32 +263,32 @@ mix_and_match() ->
                    ,parse_arrays(<<"filter%5B0%5D%5B%5D=int1&filter%5B0%5D%5B%5D=%3D&filter%5B0%5D%5B%5D=77&filter%5B%5D=and&filter%5B2%5D%5B%5D=int2&filter%5B2%5D%5B%5D=%3D&filter%5B2%5D%5B%5D=8">>)
                    )
      }
-     ,{"some test for when there is no parent key name"
-      ,[?_assertEqual(p_from_l([{<<"0">>, <<>>}, {<<"a">>, <<"b">>}]), parse_arrays(<<"[]=&a=b">>))
-       ,?_assertEqual(p_from_l([{<<"foo">>, <<"bar">>}]), parse_arrays(<<"[foo]=bar">>))
-       ]
-      }
+    ,{"some test for when there is no parent key name"
+     ,[?_assertEqual(p_from_l([{<<"0">>, <<>>}, {<<"a">>, <<"b">>}]), parse_arrays(<<"[]=&a=b">>))
+      ,?_assertEqual(p_from_l([{<<"foo">>, <<"bar">>}]), parse_arrays(<<"[foo]=bar">>))
+      ]
+     }
     ,{"simple comma separated array"
      ,[?_assertEqual(p_from_l([{<<"a">>, <<"b,c">>}]), parse_arrays(<<"a=b,c">>))
       ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a=b,c">>, #{comma_array => 'true'}))
       ,?_assertEqual(p_from_l([{<<"a">>, [{<<"z">>, [<<"b">>, <<"c">>]}]}]), parse_arrays(<<"a[z]=b,c">>, #{comma_array => 'true'}))
       ]
      }
-     ,{"explicit array and comma separated array"
-      ,[?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], [<<"4">>, <<"5">>, <<"6">>]]}])
-                     ,parse_arrays(<<"a[]=1,2,3&a[]=4,5,6">>, #{comma_array => 'true'})
-                     )
-       ,?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], <<>>]}])
-                     ,parse_arrays(<<"a[]=1,2,3&a[]=">>, #{comma_array => 'true'})
-                     )
-       ,?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], [<<>>, <<>>]]}])
-                     ,parse_arrays(<<"a[]=1,2,3&a[]=,">>, #{comma_array => 'true'})
-                     )
-       ,?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], <<"a">>]}])
-                     ,parse_arrays(<<"a[]=1,2,3&a[]=a">>, #{comma_array => 'true'})
-                     )
-       ]
-      }
+    ,{"explicit array and comma separated array"
+     ,[?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], [<<"4">>, <<"5">>, <<"6">>]]}])
+                    ,parse_arrays(<<"a[]=1,2,3&a[]=4,5,6">>, #{comma_array => 'true'})
+                    )
+      ,?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], <<>>]}])
+                    ,parse_arrays(<<"a[]=1,2,3&a[]=">>, #{comma_array => 'true'})
+                    )
+      ,?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], [<<>>, <<>>]]}])
+                    ,parse_arrays(<<"a[]=1,2,3&a[]=,">>, #{comma_array => 'true'})
+                    )
+      ,?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], <<"a">>]}])
+                    ,parse_arrays(<<"a[]=1,2,3&a[]=a">>, #{comma_array => 'true'})
+                    )
+      ]
+     }
     ,{"can handle un-closed opening brackets"
      ,[?_assertEqual(p_from_l([{<<"[">>, <<"b">>}]), parse_arrays(<<"[=b">>))
       ,?_assertEqual(p_from_l([{<<"[[">>, <<"b">>}]), parse_arrays(<<"[[=b">>))
