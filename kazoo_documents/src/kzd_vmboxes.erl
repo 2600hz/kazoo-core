@@ -11,6 +11,7 @@
 
 -export([new/0]).
 -export([type/0]).
+-export([after_forward_action/1, after_forward_action/2, set_after_forward_action/2]).
 -export([announcement_only/1, announcement_only/2, set_announcement_only/2]).
 -export([check_if_owner/1, check_if_owner/2, set_check_if_owner/2]).
 -export([delete_after_notify/1, delete_after_notify/2, set_delete_after_notify/2]).
@@ -40,6 +41,7 @@
 -export([skip_instructions/1, skip_instructions/2, set_skip_instructions/2]).
 -export([timezone/1, timezone/2, set_timezone/2]).
 -export([transcribe/1, transcribe/2, set_transcribe/2]).
+-export([vm_message_forward_type/1, vm_message_forward_type/2, set_vm_message_forward_type/2]).
 
 
 -include("kz_documents.hrl").
@@ -58,12 +60,41 @@
                                        )
        ).
 
+-define(ACCOUNT_AFTER_FORWARD_ACTION(AccountId)
+       ,kapps_account_config:get_global(AccountId
+                                       ,<<"voicemail">>
+                                       ,<<"after_forward_action">>
+                                       ,<<"save">>
+                                       )
+       ).
+
+-define(ACCOUNT_VM_MESSAGE_FORWARD_TYPE(AccountId)
+       ,kapps_account_config:get_global(AccountId
+                                       ,<<"voicemail">>
+                                       ,<<"vm_message_forward_type">>
+                                       ,<<"only_forward">>
+                                       )
+       ).
+
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
 -spec type() -> kz_term:ne_binary().
 type() -> ?PVT_TYPE.
+
+-spec after_forward_action(doc()) -> binary().
+after_forward_action(Doc) ->
+    AccountId = kz_doc:account_id(Doc),
+    after_forward_action(Doc, ?ACCOUNT_AFTER_FORWARD_ACTION(AccountId)).
+
+-spec after_forward_action(doc(), Default) -> kz_term:ne_binary() | Default.
+after_forward_action(Doc, Default) ->
+    kz_json:get_ne_binary_value(<<"after_forward_action">>, Doc, Default).
+
+-spec set_after_forward_action(doc(), binary()) -> doc().
+set_after_forward_action(Doc, ForwardType) ->
+    kz_json:set_value(<<"after_forward_action">>, ForwardType, Doc).
 
 -spec announcement_only(doc()) -> boolean().
 announcement_only(Doc) ->
@@ -427,6 +458,19 @@ transcribe(Doc, Default) ->
 set_transcribe(Doc, Transcribe) ->
     kz_json:set_value([<<"transcribe">>], Transcribe, Doc).
 
+-spec vm_message_forward_type(doc()) -> binary().
+vm_message_forward_type(Doc) ->
+    AccountId = kz_doc:account_id(Doc),
+    vm_message_forward_type(Doc, ?ACCOUNT_VM_MESSAGE_FORWARD_TYPE(AccountId)).
+
+-spec vm_message_forward_type(doc(), Default) -> binary() | Default.
+vm_message_forward_type(Doc, Default) ->
+    kz_json:get_binary_value([<<"vm_message_forward_type">>], Doc, Default).
+
+-spec set_vm_message_forward_type(doc(), binary()) -> doc().
+set_vm_message_forward_type(Doc, VmMessageForwardType) ->
+    kz_json:set_value([<<"vm_message_forward_type">>], VmMessageForwardType, Doc).
+
 %%------------------------------------------------------------------------------
 %% @doc Returns the legacy notification email address or a specified default as
 %% a list.
@@ -462,4 +506,3 @@ owner_timezone(Doc, Default, OwnerId) ->
         {'ok', OwnerJObj} -> kzd_users:timezone(OwnerJObj, Default);
         {'error', _} -> kzd_accounts:timezone(kz_doc:account_id(Doc), Default)
     end.
-
