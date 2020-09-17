@@ -607,7 +607,7 @@ merge_recursive(?JSON_WRAPPER(_)=JObj1, Value, Pred, Keys, Options) when is_func
 %% You can use `default_empty' option to change this value.
 %%
 %% For compacting empty cells, that is, removing empty cells
-%% use {@link compact_arrays/1,2}.
+%% use {@link compact_arrays/1}.
 %%
 %% Example:
 %%
@@ -761,7 +761,7 @@ compact_arrays(JObj, Options) ->
 
 -spec js_compact_arrays(JObj::object(), Options::map()) -> Result::object().
 js_compact_arrays(JObj, Options) ->
-    kz_json:from_list(
+    from_list(
       js_compact_arrays(to_proplist(JObj), [], Options)
      ).
 
