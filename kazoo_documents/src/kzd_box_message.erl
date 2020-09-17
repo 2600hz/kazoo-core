@@ -309,8 +309,10 @@ metadata(JObj) ->
 
 -spec metadata(doc(), Default) -> doc() | Default.
 metadata(JObj, Default) ->
-    Metadata = kz_json:get_json_value(?KEY_METADATA, JObj, Default),
-    maybe_add_transcription(Metadata, JObj).
+    case kz_json:get_json_value(?KEY_METADATA, JObj, Default) of
+        'undefined' -> Default;
+        Metadata -> maybe_add_transcription(Metadata, JObj)
+    end.
 
 -spec maybe_add_transcription(doc() | Default, doc()) -> doc() | Default.
 maybe_add_transcription(Metadata, JObj) ->
@@ -376,8 +378,8 @@ count_folder(Messages, Folder) ->
 %%------------------------------------------------------------------------------
 -spec change_message_name(doc(), doc()) -> doc().
 change_message_name(NBoxJ, MsgJObj) ->
-    BoxNum = kzd_voicemail_box:mailbox_number(NBoxJ),
-    Timezone = kzd_voicemail_box:timezone(NBoxJ),
+    BoxNum = kzd_vmboxes:mailbox(NBoxJ),
+    Timezone = kzd_vmboxes:timezone(NBoxJ),
     UtcSeconds = utc_seconds(MsgJObj),
 
     NewName = create_message_name(BoxNum, Timezone, UtcSeconds),
@@ -390,7 +392,7 @@ change_message_name(NBoxJ, MsgJObj) ->
 -spec change_to_sip_field(kz_term:ne_binary(), doc(), doc()) -> doc().
 change_to_sip_field(AccountId, NBoxJ, MsgJObj) ->
     Realm = kzd_accounts:fetch_realm(AccountId),
-    BoxNum = kzd_voicemail_box:mailbox_number(NBoxJ),
+    BoxNum = kzd_vmboxes:mailbox(NBoxJ),
     Metadata = metadata(MsgJObj),
     To = <<BoxNum/binary, "@", Realm/binary>>,
     set_metadata(set_to_sip(To, Metadata), MsgJObj).

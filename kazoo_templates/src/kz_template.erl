@@ -29,6 +29,8 @@
 -type template_result() :: {'ok', iolist() | atom()} |
                            {'error', any()}.
 
+-type compile_result() :: ok_ret() | err_ret().
+
 %% copied from erlydtl.erl
 -type position() :: non_neg_integer().
 -type location() :: 'none' | position() | {Line::position(), Column::position()}.
@@ -42,6 +44,8 @@
                       }.
 -type errors() :: list(error_info()).
 -type warnings() :: list(error_info()).
+-type ok_ret() :: {'ok', Module::atom()} | {'ok', Module::atom(), warnings()}.
+-type err_ret() :: 'error' | {'error', errors(), warnings()}.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -133,7 +137,7 @@ render_template(Module, TemplateData, RenderOpts) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_compile_result(template(), atom(), template_result()) ->
+-spec handle_compile_result(template(), atom(), compile_result()) ->
           template_result().
 handle_compile_result(_Template, Module, {'ok', Module} = OK) ->
     lager:debug("built renderer for ~p", [Module]),
