@@ -29,8 +29,6 @@
         ,client_host_blacklist/0, set_client_host_blacklist/1
         ]).
 
--export([merge_objects/2]).
-
 -ifdef(TEST).
 -export([resolve_uri_path/2]).
 -endif.
@@ -260,6 +258,7 @@ parse_query_string('val', <<C, R/binary>>, KeyAcc, ValAcc, RetAcc) ->
 parse_query_arrays(QS) ->
     parse_query_arrays(QS, #{}).
 
+-define(DEFAULT_EMPTY, '$empty').
 -define(DEFAULT_ARRAY_OPTIONS, #{array_limits => 25
                                 ,comma_array => 'false'
                                 ,depth => 5
@@ -269,13 +268,12 @@ parse_query_arrays(QS) ->
 -spec parse_query_arrays(QueryString :: kz_term:proplist(), Options :: map()) -> kz_term:proplist().
 parse_query_arrays(QS, Opts) when is_list(QS) ->
     Options = maps:merge(?DEFAULT_ARRAY_OPTIONS, Opts),
-    json_compact(
-      lists:foldl(fun({K, V}, Acc) -> parse_query_array(K, V, Acc, Options) end
-                 ,kz_json:new()
-                  %% ,primarily_merge(QS, Options)
-                 ,QS
-                 )
-     );
+    Parsed = lists:foldl(fun({K, V}, Acc) -> parse_query_array(K, V, Acc, Options) end
+                        ,kz_json:new()
+                         %% ,primarily_merge(QS, Options)
+                        ,QS
+                        ),
+    kz_json:to_proplist(kz_json:compact_arrays(Parsed, #{default_empty => ?DEFAULT_EMPTY}));
 parse_query_arrays(QsJObj, _Options) ->
     parse_query_arrays(kz_json:to_proplist(QsJObj)).
 
@@ -302,8 +300,9 @@ parse_query_arrays(QsJObj, _Options) ->
 %%     take_element(Key, QS, ElmAcc, [Elm|QSAcc], Options).
 
 parse_query_array(Key, Value, Acc, Options) ->
+    %% regex to convert dot notation to array:
     %% re:replace(<<"sd.ff.sdsd.er34">>, <<"\\.([^.[]+)">>, <<"[\\1]">>,  [global, {return, binary}])
-    %% <<"sd[ff][sdsd][er34]">>
+    %% result: <<"sd[ff][sdsd][er34]">>
     ParentName = case re:run(Key, <<"\\[[^[\\]]*]">>) of
                      'nomatch' -> Key;
                      {'match', [{BracketStart, _}]} -> binary:part(Key, 0, BracketStart)
@@ -316,7 +315,7 @@ parse_query_array(Key, Value, Acc, Options) ->
     NewValue = maybe_comma_to_array(Value, Options),
     NewJObj = parse_query_object([ParentName | Children], NewValue, Options),
 
-    merge_objects(Acc, NewJObj).
+    kz_json:qsjs_merge(Acc, NewJObj, #{default_empty => ?DEFAULT_EMPTY}).
 
 %% if value is list and key is explicit array `[]' then treat the whole value
 %% as a single array item.
@@ -330,19 +329,6 @@ parse_query_array(Key, Value, Acc, Options) ->
 %%     end;
 %% explicit_array_item(_K, Value) ->
 %%     Value.
-
--define(IS_JSON(Term), (is_tuple(Term)
-                        andalso tuple_size(Term) =:= 1
-                        andalso is_list(element(1, Term))
-                       )
-       ).
-
--define(IS_OBJECT(Term), (is_list(Term)
-                          orelse ?IS_JSON(Term)
-                         )
-       ).
-
--define(DEFAULT_EMPTY, '$empty').
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -383,100 +369,6 @@ parse_query_object1(Key, Value, Options) ->
 empty_array(Size) ->
     lists:foldl(fun(_, Acc) -> [?DEFAULT_EMPTY | Acc] end, [], lists:seq(1, Size)).
 
-%%------------------------------------------------------------------------------
-%% @doc Merge two possibly nested JSON object (JObj) while keeps order, also
-%% merges list.
-%%
-%% Lifted from
-%% https://github.com/ljharb/qs/blob/47e5f8b391d5925cd007ad2265a5134a82f9e74c/lib/utils.js#L34-L100
-%% @end
-%%------------------------------------------------------------------------------
--spec merge_objects(kz_json:json_term() | '$empty', kz_json:json_term() | '$empty') ->
-          kz_json:json_term().
-merge_objects(OldValue, 'undefined') ->
-    OldValue;
-
-merge_objects(OldValue, NewValue)
-  when is_list(OldValue)
-       andalso not ?IS_OBJECT(NewValue) ->
-    list_append(OldValue, NewValue);
-merge_objects(OldValue, NewValue)
-  when ?IS_JSON(OldValue)
-       andalso not ?IS_OBJECT(NewValue) ->
-    kz_json:set_value(NewValue, 'true', OldValue);
-merge_objects(OldValue, NewValue)
-  when not ?IS_OBJECT(NewValue) ->
-    [OldValue, NewValue];
-
-merge_objects(OldValue, NewValue)
-  when not is_list(OldValue) %% true, null, undefined
-       andalso not ?IS_JSON(OldValue) ->
-    list_append([OldValue], NewValue);
-
-merge_objects(OldValue, NewValue)
-  when is_list(OldValue)
-       andalso is_list(NewValue) ->
-    array:to_list(
-      array:foldl(fun merge_array/3
-                 ,array:from_list(OldValue, ?DEFAULT_EMPTY)
-                 ,array:from_list(NewValue, ?DEFAULT_EMPTY)
-                 )
-     );
-
-merge_objects(OldValue, NewValue)
-  when is_list(OldValue) ->
-    merge_objects(array_to_object(OldValue), NewValue);
-merge_objects(A, B) when is_list(B) ->
-    merge_objects(A, array_to_object(B));
-merge_objects(A, B) ->
-    kz_json:foldl(fun merge_object/3, A, B).
-
--spec array_to_object(list()) -> kz_json:object().
-array_to_object(List) ->
-    {_, JObj} =
-        lists:foldl(fun(?DEFAULT_EMPTY, {Index, J}) ->
-                            {Index + 1, J};
-                       (Item, {Index, J}) ->
-                            {Index + 1, kz_json:set_value(kz_term:to_binary(Index), Item, J)}
-                    end
-                   ,{0, kz_json:new()}
-                   ,List
-                   ),
-    JObj.
-
--spec merge_array(array:array_indx(), kz_json:json_term(), array:array()) ->
-          array:array().
-merge_array(_Index, ?DEFAULT_EMPTY, Acc) ->
-    %% js vm is skipping empty head items during reduce
-    %% doing same to avoid pushing the empty to the end of Acc (case clause 2 of inner case below)
-    %% { foo: [ { a: 'a', b: 'b' }, { a: 'aa' } ] } = A
-    %% { foo: [ <1 empty item>, { b: 'bb' } ] } = B <- this will starts at index 1 ({b: 'bb'})
-    Acc;
-merge_array(Index, Item, Acc) ->
-    case array:get(Index, Acc) of
-        ?DEFAULT_EMPTY ->
-            array:set(Index, Item, Acc);
-        OldItem ->
-            case ?IS_OBJECT(OldItem)
-                andalso ?IS_OBJECT(Item)
-            of
-                'true' ->
-                    array:set(Index, merge_objects(OldItem, Item), Acc);
-                'false' ->
-                    array:set(array:size(Acc), Item, Acc)
-            end
-    end.
-
--spec merge_object(kz_json:key(), kz_json:json_term(), kz_json:object()) ->
-          kz_json:object().
-merge_object(Key, Value, JObjA) ->
-    case kz_json:get_value(Key, JObjA) of
-        'undefined' ->
-            kz_json:set_value(Key, Value, JObjA);
-        ValueA ->
-            kz_json:set_value(Key, merge_objects(ValueA, Value), JObjA)
-    end.
-
 -spec list_append(list(), list() | any()) -> list().
 list_append(ListA, ListB)
   when is_list(ListA)
@@ -486,45 +378,6 @@ list_append(List, NonList)
   when is_list(List)
        andalso not is_list(NonList) ->
     lists:append(List, [NonList]).
-
-%%------------------------------------------------------------------------------
-%% @doc Compact JSON array.
-%% @end
-%%------------------------------------------------------------------------------
--spec json_compact(kz_json:object()) -> kz_term:proplist().
-json_compact(JObj) ->
-    json_compact(kz_json:to_proplist(JObj), []).
-
-json_compact([], Acc) ->
-    lists:reverse(Acc);
-json_compact([?DEFAULT_EMPTY|T], Acc) ->
-    json_compact(T, Acc);
-json_compact([{K, V}|T], Acc) when is_list(V) ->
-    json_compact(T, [{K, json_compact(V, [])}|Acc]);
-%% json_compact([{K, V}|T], Acc) ->
-%%     case kz_json:is_json_object(V) of
-%%         'true' ->
-%%             NewValue = kz_json:from_list(
-%%                          [{K, kz_json:foldl(fun compact_jobj/3, kz_json:new(), V)}]
-%%                         ),
-%%             json_compact(T, [NewValue|Acc]);
-%%         'false' ->
-%%             json_compact(T, [{K, V}|Acc])
-%%     end;
-json_compact([H|T], Acc) when is_list(H) ->
-    json_compact(T, [json_compact(H, []) | Acc]);
-json_compact([H|T], Acc) ->
-    case kz_json:is_json_object(H) of
-        'true' ->
-            json_compact(T, [kz_json:foldl(fun compact_jobj/3, kz_json:new(), H)|Acc]);
-        'false' ->
-            json_compact(T, [H|Acc])
-    end.
-
-compact_jobj(K, V, Acc) when is_list(V) ->
-    kz_json:set_value(K, json_compact(V, []), Acc);
-compact_jobj(K, V, Acc) ->
-    kz_json:set_value(K, V, Acc).
 
 %%------------------------------------------------------------------------------
 %% @doc
