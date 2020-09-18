@@ -313,7 +313,7 @@ metadata(JObj, Default) ->
     maybe_add_transcription(Metadata, JObj).
 
 -spec maybe_add_transcription(doc() | Default, doc()) -> doc() | Default.
-maybe_add_transcription('undefined', _JObj) -> 
+maybe_add_transcription('undefined', _JObj) ->
     'undefined';
 maybe_add_transcription(Metadata, JObj) ->
     case kz_json:get_json_value(?KEY_TRANSCRIPTION, JObj) of
