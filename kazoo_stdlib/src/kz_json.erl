@@ -64,6 +64,7 @@
         ,take_value/2, take_value/3
         ]).
 -export([get_keys/1, get_keys/2]).
+-export([get_fields/2, get_fields/3]).
 
 -export([set_value_options/0
         ,set_value/3, set_value/4
@@ -1354,6 +1355,15 @@ take_value(Key, JObj, Default) ->
         'undefined' -> 'false';
         Value -> {'value', Value, delete_key(Key, JObj)}
     end.
+
+-spec get_fields(paths(), object()) -> object().
+get_fields(Key, JObj) ->
+    get_fields(Key, JObj, new()).
+
+-spec get_fields(paths(), object(), object()) -> object().
+get_fields([], _, Acc) -> Acc;
+get_fields([K|Ks], JObj, Acc) ->
+    get_fields(Ks, JObj, set_value(K, get_value(K, JObj), Acc)).
 
 -spec get_value(get_key(), object() | objects()) -> json_term() | 'undefined'.
 get_value(Key, JObj) ->

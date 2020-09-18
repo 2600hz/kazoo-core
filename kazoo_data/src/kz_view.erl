@@ -16,6 +16,7 @@
 -export([find_batch/2, find_batch/3, find_batch/4]).
 
 -export([apply_filtermap/2]).
+-export([apply_fields_fun/2]).
 
 %% deprecated, use {@link kz_term:high_unicode_value/0)}
 -export([high_unicode_value/0]).
@@ -33,6 +34,9 @@
                     {'databases', kz_term:ne_binaries()} |
                     {'direction', direction()} |
                     {'doc_type', kz_term:ne_binary()} |
+                    {'field_key', kz_term:ne_binary()} |
+                    {'fields', kz_json:paths()} |
+                    {'fields_fun', fields_fun()} |
                     {'filtermap', filtermap_fun() | result_key()} |
                     {'first_when_multiple', boolean()} |
                     {'memory_limit', 'false' | pos_integer()} |
@@ -76,6 +80,8 @@
                          fun((kz_view_cursor:cursor(), kz_json:object(), kz_json:objects()) -> filtermap_ret()) |
                          {fun((any(), kz_json:object(), kz_json:objects()) -> filtermap_ret()), any()}.
 
+-type fields_fun() :: fun((kz_json:object()) -> kz_json:object()).
+
 -type error() :: kazoo_data:db_errors().
 
 -export_type([bookmark/0
@@ -83,6 +89,7 @@
              ,error/0
              ,limit/0
              ,options/0
+             ,fields_fun/0
              ,filtermap_fun/0
              ,result_value/0
              ,result/0
@@ -244,6 +251,7 @@ build_options(Database, DesignDoc, Options) ->
              ,{'direction', direction(Options)}
              ,{'doc_type', maybe_doc_type_from_view(DesignDoc, Options)}
              ,{'filtermap', filtermap(Options)}
+             ,{'fields_fun', fields_fun(Options)}
              ]),
     props:set_values(Prop, Options).
 
@@ -260,6 +268,20 @@ direction(Options) ->
         {'ascending', _, _} -> 'ascending'
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc Check filtermap option.
+%%
+%% Filtermap calls a Fun on a list of result JObjs. Fun must return either
+%% a Boolean or a tuple {true, Value} or a Tuple {error, any} or the whole Acc.
+%% The filtermap returns the list of result for which Fun returns a new value,
+%% where a value of true is synonymous with {true, Elem}.
+%%
+%% If result_key is passed instead, a filtermap Fun will be created. Result key
+%% contains the a JSON path to fetch the result.
+%%
+%% @see apply_filtermap/2
+%% @end
+%%------------------------------------------------------------------------------
 -spec filtermap(options()) -> 'undefined' | filtermap_fun().
 filtermap(Options) ->
     case props:get_first_defined(['filtermap', 'result_key'], Options) of
@@ -271,6 +293,88 @@ filtermap(Options) ->
         Fun when is_function(Fun, 3) -> Fun;
         {Fun, _FirstArg}=FunArg when is_function(Fun, 3) -> FunArg
     end.
+
+%%------------------------------------------------------------------------------
+%% @doc Use the provided fields_fun or create one if fields option is specified.
+%%
+%% Fieldsfuns calls a function on a list of JObjs. Fun must return a JObj.
+%%
+%% This Fun will be called after filtermap is applied. The purpose of this Fun is
+%% to return only requested fields of the JObjs.
+%%
+%% When fields_fun is undefined but fields (and maybe field_key) is specified,
+%% a default fields_fun will be created.
+%%
+%% fields option is a list with elements of value:
+%% * JObj path
+%% * a tuple {Path, false} specifies the exclusion of a field
+%% * a tuple {Path, true} specifies the inclusion of a field
+%% * a tuple {Path, Fun}, Fun is a function Fun(Path, PathValue)
+%%     and must return a tuple {NewKeyName, New Value}.
+%% @end
+%%------------------------------------------------------------------------------
+-spec fields_fun(options()) -> 'undefined' | fields_fun().
+fields_fun(Options) ->
+    case props:get_value('fields_fun', Options) of
+        'undefined' ->
+            FieldKey = props:get_value('field_key', Options),
+            Fields = props:get_value('fields', Options),
+            build_fields_fun(Fields, FieldKey);
+        FieldsFun when is_function(FieldsFun, 1) ->
+            FieldsFun
+    end.
+
+build_fields_fun('undefined', _) ->
+    'undefined';
+build_fields_fun(Fields, <<FieldKey/binary>>) ->
+    KeyFun = fun(JObj) ->
+                     kz_doc:set_id(kz_json:get_json_value(FieldKey, JObj, kz_json:new())
+                                  ,kz_doc:id(JObj)
+                                  )
+             end,
+    build_fields_fun(Fields, KeyFun);
+build_fields_fun(Fields, FieldKeyFun) when not is_function(FieldKeyFun, 1) ->
+    build_fields_fun(Fields, fun kz_term:identity/1);
+build_fields_fun(Fields, FieldKeyFun) when is_function(FieldKeyFun, 1) ->
+    FieldsFunArg = #{'remove' => [F || {F, 'false'} <- Fields]
+                    ,'update' => [Projection || Projection={_, ProjectionFun} <- Fields,
+                                                is_function(ProjectionFun, 2)
+                                 ]
+                    ,'fields' => get_fields_paths(Fields, [])
+                    },
+    fun(JObj) ->
+            default_fields_fun(FieldsFunArg, FieldKeyFun(JObj))
+    end.
+
+default_fields_fun(#{'remove' := ToRemove
+                    ,'update' := ToUpdate
+                    ,'fields' := Fields
+                    }, JObj0) ->
+    JObj = kz_doc:set_id(JObj0, kz_doc:id(JObj0)),
+    lists:foldl(fun({Key, Fun}, Acc) ->
+                        Val = kz_json:get_value(Key, Acc),
+                        case Fun(Key, Val) of
+                            {Key, NewVal} ->
+                                kz_json:set_value(Key, NewVal, Acc);
+                            {NewKey, NewVal} ->
+                                kz_json:set_value(NewKey, NewVal, kz_json:delete_key(Key, Acc))
+                        end
+                end
+               ,kz_json:get_fields(Fields, kz_json:delete_keys(ToRemove, JObj))
+               ,ToUpdate
+               ).
+
+get_fields_paths([], Acc) ->
+    case props:get_value(<<"_id">>, Acc) of
+        'undefined' -> [<<"_id">> | lists:reverse(Acc)];
+        _ -> lists:reverse(Acc)
+    end;
+get_fields_paths([{_, 'false'}|Fs], Acc) ->
+    get_fields_paths(Fs, Acc);
+get_fields_paths([{F, _}|Fs], Acc) ->
+    get_fields_paths(Fs, [F|Acc]);
+get_fields_paths([F|Fs], Acc) ->
+    get_fields_paths(Fs, [F|Acc]).
 
 %%------------------------------------------------------------------------------
 %% @doc Apply filter/mapper function if provided while keep maintaining
@@ -328,6 +432,15 @@ apply_filtermap_fold(Filtered, JObj, Acc) ->
         {'error', _} = Error -> Error;
         NewAcc -> NewAcc
     end.
+
+-spec apply_fields_fun(CursorOrFieldsFun :: kz_view_cursor:cursor() | fields_fun(), JObjOrJObjs :: kz_json:objects()) ->
+          kz_json:objects().
+apply_fields_fun(FieldsFun, JObjs) when is_function(FieldsFun, 1) ->
+    [FieldsFun(JObj) || JObj <- JObjs];
+apply_fields_fun(#{'fields_fun' := FieldsFun}, JObjs) when is_function(FieldsFun, 1) ->
+    apply_fields_fun(FieldsFun, JObjs);
+apply_fields_fun(_, JObjs) ->
+    JObjs.
 
 %%------------------------------------------------------------------------------
 %% @doc

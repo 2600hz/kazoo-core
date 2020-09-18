@@ -62,6 +62,7 @@
                    ,databases := kz_term:ne_binaries()
                    ,direction := kz_view:direction()
                    ,driver_params := any()
+                   ,fields_fun := kz_view:fields_fun()
                    ,filtermap := kz_view:filtermap_fun()
                    ,is_exhausted := boolean()
                    ,other_options := kz_term:proplist()
@@ -319,6 +320,9 @@ new(CursorMod, Databases, DriverParams, Options) ->
                   ,'bookmark'
                   ,'databases'
                   ,'direction'
+                  ,'field_key'
+                  ,'fields'
+                  ,'fields_fun'
                   ,'filtermap'
                   ,'limit'
                   ,'reductions_max'
@@ -333,6 +337,7 @@ new(CursorMod, Databases, DriverParams, Options) ->
      ,databases => Databases
      ,direction => props:get_value('direction', Options, 'ascending')
      ,driver_params => DriverParams
+     ,fields_fun => props:get_value('fields_fun', Options)
      ,filtermap => props:get_value('filtermap', Options)
      ,is_exhausted => 'false'
      ,other_options => props:delete_keys(CursorOnly, Options)
@@ -474,7 +479,22 @@ get_more_fold(#{is_exhausted := 'true'}=Cursor, Rows) ->
 get_more_fold(#{cursor_module := Mod, batch_size := BatchSize}=Cursor, Rows) ->
     case Mod:next_batch(Cursor, BatchSize) of
         {'ok', {NewCursor, Result}} ->
-            get_more_fold(NewCursor, Rows ++ Result);
+            case apply_fields_fun(NewCursor, Result) of
+                {'ok', UpdatedResult} ->
+                    get_more_fold(NewCursor, Rows ++ UpdatedResult);
+                {'error', _}=Error ->
+                    Error
+            end;
         {'error', _}=Error ->
             Error
+    end.
+
+-spec apply_fields_fun(cursor(), kz_view:result_value()) -> kz_either:either('exception', kz_view:result_value()).
+apply_fields_fun(Cursor, JObjs) ->
+    try kz_view:apply_fields_fun(Cursor, JObjs) of
+        UpdatedJObjs -> {'ok', UpdatedJObjs}
+    catch
+        _E:_T:ST ->
+            kz_log:log_stacktrace(ST, "exception during applying fields_fun: ~p:~p", [_E, _T]),
+            {'error', 'exception'}
     end.
