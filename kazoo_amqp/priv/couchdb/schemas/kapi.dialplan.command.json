@@ -574,6 +574,9 @@
         "Target-Call-ID": {
             "type": "string"
         },
+        "Target-URI": {
+            "type": "string"
+        },
         "Tempo": {
             "type": "string"
         },
