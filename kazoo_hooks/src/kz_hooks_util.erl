@@ -176,10 +176,25 @@ maybe_add_binding_to_listener(ServerName, EventName) ->
 
 -spec maybe_remove_hook(tuple()) -> 'true'.
 maybe_remove_hook(Hook) ->
-    case gproc:lookup_pids(Hook) of
-        [] -> 'true';
-        _Pids -> unhook_it(Hook)
+    case hooks_remain(Hook) of
+        'true' -> 'true';
+        'false' -> unhook_it(Hook)
     end.
+
+hooks_remain(?HOOK_REG=Hook) ->
+    [] =/= gproc:lookup_pids(Hook);
+hooks_remain(?HOOK_REG(_AccountId)) ->
+    hooks_remain(?HOOK_REG);
+hooks_remain(?HOOK_REG(_AccountId, CallEvent)) ->
+    [] =/= gproc:lookup_pids(?HOOK_REG('_', CallEvent))
+        orelse hooks_remain(?HOOK_REG);
+hooks_remain(?HOOK_REG_RR=Hook) ->
+    [] =/= gproc:lookup_pids(Hook);
+hooks_remain(?HOOK_REG_RR(_AccountId)) ->
+    hooks_remain(?HOOK_REG_RR);
+hooks_remain(?HOOK_REG_RR(_AccountId, CallEvent)) ->
+    [] =/= gproc:lookup_pids(?HOOK_REG_RR('_', CallEvent))
+        orelse hooks_remain(?HOOK_REG_RR).
 
 -spec unhook_it(tuple()) -> 'true'.
 unhook_it(Hook) ->
@@ -206,7 +221,7 @@ maybe_remove_binding_to_listener(ServerName) ->
 
 -spec maybe_remove_binding_to_listener(atom(), kz_term:ne_binary() | 'all') -> 'ok'.
 maybe_remove_binding_to_listener(ServerName, EventName) ->
-    gen_listener:cast(ServerName, {'maybe_remove_binding', EventName}).
+    ServerName:maybe_remove_binding(EventName).
 
 -spec bind(kz_term:ne_binary(), kz_term:ne_binary(), bind_fun()) -> kazoo_bindings:bind_result().
 bind(AccountId, EventName, {M, F, Args}) ->

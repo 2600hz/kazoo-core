@@ -31,7 +31,7 @@
 
         ,call_id/1, call_id/2
         ,account_id/1
-        ,server_id/1
+        ,server_id/1, server_id/2
         ,queue_id/1
         ,msg_id/1, msg_id/2
         ,msg_reply_id/1
@@ -88,9 +88,13 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec server_id(kz_json:object()) -> kz_term:api_binary().
+-spec server_id(kz_json:object()) -> kz_term:api_ne_binary().
 server_id(JObj) ->
-    kz_json:get_ne_binary_value(?KEY_SERVER_ID, JObj).
+    server_id(JObj, 'undefined').
+
+-spec server_id(kz_json:object(), Default) -> kz_term:ne_binary() | Default.
+server_id(JObj, Default) ->
+    kz_json:get_ne_binary_value(?KEY_SERVER_ID, JObj, Default).
 
 -spec queue_id(kz_json:object()) -> kz_term:api_binary().
 queue_id(JObj) ->
