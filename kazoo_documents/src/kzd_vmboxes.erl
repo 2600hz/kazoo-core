@@ -440,7 +440,7 @@ legacy_notify_email_address(Doc, Default) ->
         _ -> []
     end.
 
-%------------------------------------------------------------------------------
+%%------------------------------------------------------------------------------
 %% @doc Returns the timezone for the owner of a vmbox, or the timezone inherited
 %% from its account, or a specified default.
 %% @end
