@@ -11,6 +11,7 @@
 
 -export([new/0]).
 -export([type/0]).
+-export([after_forward_action/1, after_forward_action/2, set_after_forward_action/2]).
 -export([announcement_only/1, announcement_only/2, set_announcement_only/2]).
 -export([check_if_owner/1, check_if_owner/2, set_check_if_owner/2]).
 -export([delete_after_notify/1, delete_after_notify/2, set_delete_after_notify/2]).
@@ -59,6 +60,14 @@
                                        )
        ).
 
+-define(ACCOUNT_AFTER_FORWARD_ACTION(AccountId)
+       ,kapps_account_config:get_global(AccountId
+                                       ,<<"voicemail">>
+                                       ,<<"after_forward_action">>
+                                       ,<<"save">>
+                                       )
+       ).
+
 -define(ACCOUNT_VM_MESSAGE_FORWARD_TYPE(AccountId)
        ,kapps_account_config:get_global(AccountId
                                        ,<<"voicemail">>
@@ -74,9 +83,22 @@ new() ->
 -spec type() -> kz_term:ne_binary().
 type() -> ?PVT_TYPE.
 
+-spec after_forward_action(doc()) -> kz_term:ne_binary().
+after_forward_action(Doc) ->
+    AccountId = kz_doc:account_id(Doc),
+    after_forward_action(Doc, ?ACCOUNT_AFTER_FORWARD_ACTION(AccountId)).
+
+-spec after_forward_action(doc(), Default) -> kz_term:ne_binary() | Default.
+after_forward_action(Doc, Default) ->
+    kz_json:get_ne_binary_value(<<"after_forward_action">>, Doc, Default).
+
+-spec set_after_forward_action(doc(), kz_term:ne_binary() | 'null') -> doc().
+set_after_forward_action(Doc, ForwardType) ->
+    kz_json:set_value(<<"after_forward_action">>, ForwardType, Doc).
+
 -spec announcement_only(doc()) -> boolean().
 announcement_only(Doc) ->
-    announcement_only(Doc, false).
+    announcement_only(Doc, 'false').
 
 -spec announcement_only(doc(), Default) -> boolean() | Default.
 announcement_only(Doc, Default) ->
@@ -88,7 +110,7 @@ set_announcement_only(Doc, AnnouncementOnly) ->
 
 -spec check_if_owner(doc()) -> boolean().
 check_if_owner(Doc) ->
-    check_if_owner(Doc, true).
+    check_if_owner(Doc, 'true').
 
 -spec check_if_owner(doc(), Default) -> boolean() | Default.
 check_if_owner(Doc, Default) ->
@@ -100,7 +122,7 @@ set_check_if_owner(Doc, CheckIfOwner) ->
 
 -spec delete_after_notify(doc()) -> boolean().
 delete_after_notify(Doc) ->
-    delete_after_notify(Doc, false).
+    delete_after_notify(Doc, 'false').
 
 -spec delete_after_notify(doc(), Default) -> boolean() | Default.
 delete_after_notify(Doc, Default) ->
@@ -124,7 +146,7 @@ set_flags(Doc, Flags) ->
 
 -spec is_setup(doc()) -> boolean().
 is_setup(Doc) ->
-    is_setup(Doc, false).
+    is_setup(Doc, 'false').
 
 -spec is_setup(doc(), Default) -> boolean() | Default.
 is_setup(Doc, Default) ->
@@ -136,7 +158,7 @@ set_is_setup(Doc, IsSetup) ->
 
 -spec is_voicemail_ff_rw_enabled(doc()) -> boolean().
 is_voicemail_ff_rw_enabled(Doc) ->
-    is_voicemail_ff_rw_enabled(Doc, false).
+    is_voicemail_ff_rw_enabled(Doc, 'false').
 
 -spec is_voicemail_ff_rw_enabled(doc(), Default) -> boolean() | Default.
 is_voicemail_ff_rw_enabled(Doc, Default) ->
@@ -209,7 +231,7 @@ set_name(Doc, Name) ->
 
 -spec not_configurable(doc()) -> boolean().
 not_configurable(Doc) ->
-    not_configurable(Doc, false).
+    not_configurable(Doc, 'false').
 
 -spec not_configurable(doc(), Default) -> boolean() | Default.
 not_configurable(Doc, Default) ->
@@ -260,7 +282,7 @@ set_notify_email_addresses(Doc, NotifyEmailAddresses) ->
 
 -spec oldest_message_first(doc()) -> boolean().
 oldest_message_first(Doc) ->
-    oldest_message_first(Doc, false).
+    oldest_message_first(Doc, 'false').
 
 -spec oldest_message_first(doc(), Default) -> boolean() | Default.
 oldest_message_first(Doc, Default) ->
@@ -308,7 +330,7 @@ set_pin(Doc, Pin) ->
 
 -spec require_pin(doc()) -> boolean().
 require_pin(Doc) ->
-    require_pin(Doc, false).
+    require_pin(Doc, 'false').
 
 -spec require_pin(doc(), Default) -> boolean() | Default.
 require_pin(Doc, Default) ->
@@ -320,7 +342,7 @@ set_require_pin(Doc, RequirePin) ->
 
 -spec save_after_notify(doc()) -> boolean().
 save_after_notify(Doc) ->
-    save_after_notify(Doc, false).
+    save_after_notify(Doc, 'false').
 
 -spec save_after_notify(doc(), Default) -> boolean() | Default.
 save_after_notify(Doc, Default) ->
@@ -344,7 +366,7 @@ set_seek_duration_ms(Doc, SeekDurationMs) ->
 
 -spec include_message_on_notify(doc()) -> boolean().
 include_message_on_notify(Doc) ->
-    include_message_on_notify(Doc, true).
+    include_message_on_notify(Doc, 'true').
 
 -spec include_message_on_notify(doc(), Default) -> boolean() | Default.
 include_message_on_notify(Doc, Default) ->
@@ -362,7 +384,7 @@ set_include_message_on_notify(Doc, ShouldIncludeAttachment) ->
 
 -spec include_transcription_on_notify(doc()) -> boolean().
 include_transcription_on_notify(Doc) ->
-    include_transcription_on_notify(Doc, true).
+    include_transcription_on_notify(Doc, 'true').
 
 -spec include_transcription_on_notify(doc(), Default) -> boolean() | Default.
 include_transcription_on_notify(Doc, Default) ->
@@ -374,7 +396,7 @@ set_include_transcription_on_notify(Doc, ShouldIncludeAttachment) ->
 
 -spec skip_envelope(doc()) -> boolean().
 skip_envelope(Doc) ->
-    skip_envelope(Doc, false).
+    skip_envelope(Doc, 'false').
 
 -spec skip_envelope(doc(), Default) -> boolean() | Default.
 skip_envelope(Doc, Default) ->
@@ -386,7 +408,7 @@ set_skip_envelope(Doc, SkipEnvelope) ->
 
 -spec skip_greeting(doc()) -> boolean().
 skip_greeting(Doc) ->
-    skip_greeting(Doc, false).
+    skip_greeting(Doc, 'false').
 
 -spec skip_greeting(doc(), Default) -> boolean() | Default.
 skip_greeting(Doc, Default) ->
@@ -398,7 +420,7 @@ set_skip_greeting(Doc, SkipGreeting) ->
 
 -spec skip_instructions(doc()) -> boolean().
 skip_instructions(Doc) ->
-    skip_instructions(Doc, false).
+    skip_instructions(Doc, 'false').
 
 -spec skip_instructions(doc(), Default) -> boolean() | Default.
 skip_instructions(Doc, Default) ->

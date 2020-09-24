@@ -29,6 +29,7 @@ Kazoo Data Manager would fetch the actual media attachment from account DB if th
 
 Key | Description | Type | Default | Required
 --- | ----------- | ---- | ------- | --------
+`voicemail.after_forward_action` | Action to perform after forwarding a voicemail message | `string('prompt' | 'save')` | `save` | `false` | 
 `voicemail.delete_after_notify` | Move the voicemail to delete folder after the notification has been sent | `boolean()` | `false` | `false`
 `voicemail.extension` | Default media file format for voicemail audio file | `string()` | `mp3` | `false`
 `voicemail.force_require_pin` | If true, ignore the setting on the voicemail box and require all users to enter a pin | `boolean()` | `false` | `false`

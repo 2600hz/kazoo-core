@@ -6,6 +6,7 @@
 -module(kzd_vmboxes).
 
 -export([new/0]).
+-export([after_forward_action/1, after_forward_action/2, set_after_forward_action/2]).
 -export([announcement_only/1, announcement_only/2, set_announcement_only/2]).
 -export([check_if_owner/1, check_if_owner/2, set_check_if_owner/2]).
 -export([delete_after_notify/1, delete_after_notify/2, set_delete_after_notify/2]).
@@ -48,6 +49,18 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec after_forward_action(doc()) -> binary().
+after_forward_action(Doc) ->
+    after_forward_action(Doc, <<"save">>).
+
+-spec after_forward_action(doc(), Default) -> binary() | Default.
+after_forward_action(Doc, Default) ->
+    kz_json:get_binary_value([<<"after_forward_action">>], Doc, Default).
+
+-spec set_after_forward_action(doc(), binary()) -> doc().
+set_after_forward_action(Doc, AfterForwardAction) ->
+    kz_json:set_value([<<"after_forward_action">>], AfterForwardAction, Doc).
 
 -spec announcement_only(doc()) -> boolean().
 announcement_only(Doc) ->
