@@ -23,6 +23,7 @@
 
 -include("kz_voicemail.hrl").
 
+-export_type([db_ret/0]).
 -export_type([vm_folder/0]).
 
 -type new_msg_ret() :: {'ok', kapps_call:call()} | {'error', kapps_call:call(), kz_term:text()}.
