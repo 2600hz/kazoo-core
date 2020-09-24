@@ -27,6 +27,7 @@
 -export([operator_number/1, operator_number/2, set_operator_number/2]).
 -export([owner_id/1, owner_id/2, set_owner_id/2]).
 -export([pin/1, pin/2, set_pin/2]).
+-export([play_envelope_action/1, play_envelope_action/2, set_play_envelope_action/2]).
 -export([require_pin/1, require_pin/2, set_require_pin/2]).
 -export([save_after_notify/1, save_after_notify/2, set_save_after_notify/2]).
 -export([seek_duration_ms/1, seek_duration_ms/2, set_seek_duration_ms/2]).
@@ -300,6 +301,18 @@ pin(Doc, Default) ->
 -spec set_pin(doc(), kz_term:ne_binary()) -> doc().
 set_pin(Doc, Pin) ->
     kz_json:set_value([<<"pin">>], Pin, Doc).
+
+-spec play_envelope_action(doc()) -> binary().
+play_envelope_action(Doc) ->
+    play_envelope_action(Doc, <<"play_after">>).
+
+-spec play_envelope_action(doc(), Default) -> binary() | Default.
+play_envelope_action(Doc, Default) ->
+    kz_json:get_binary_value([<<"play_envelope_action">>], Doc, Default).
+
+-spec set_play_envelope_action(doc(), binary()) -> doc().
+set_play_envelope_action(Doc, PlayEnvelopeAction) ->
+    kz_json:set_value([<<"play_envelope_action">>], PlayEnvelopeAction, Doc).
 
 -spec require_pin(doc()) -> boolean().
 require_pin(Doc) ->
