@@ -40,6 +40,7 @@
 -export([skip_instructions/1, skip_instructions/2, set_skip_instructions/2]).
 -export([timezone/1, timezone/2, set_timezone/2]).
 -export([transcribe/1, transcribe/2, set_transcribe/2]).
+-export([vm_message_forward_type/1, vm_message_forward_type/2, set_vm_message_forward_type/2]).
 
 
 -include("kz_documents.hrl").
@@ -55,6 +56,14 @@
                                        ,<<"callflow">>
                                        ,[<<"voicemail">>, <<"extension">>]
                                        ,<<"mp3">>
+                                       )
+       ).
+
+-define(ACCOUNT_VM_MESSAGE_FORWARD_TYPE(AccountId)
+       ,kapps_account_config:get_global(AccountId
+                                       ,<<"voicemail">>
+                                       ,<<"vm_message_forward_type">>
+                                       ,<<"only_forward">>
                                        )
        ).
 
@@ -426,6 +435,19 @@ transcribe(Doc, Default) ->
 -spec set_transcribe(doc(), boolean()) -> doc().
 set_transcribe(Doc, Transcribe) ->
     kz_json:set_value([<<"transcribe">>], Transcribe, Doc).
+
+-spec vm_message_forward_type(doc()) -> binary().
+vm_message_forward_type(Doc) ->
+    AccountId = kz_doc:account_id(Doc),
+    vm_message_forward_type(Doc, ?ACCOUNT_VM_MESSAGE_FORWARD_TYPE(AccountId)).
+
+-spec vm_message_forward_type(doc(), Default) -> binary() | Default.
+vm_message_forward_type(Doc, Default) ->
+    kz_json:get_binary_value([<<"vm_message_forward_type">>], Doc, Default).
+
+-spec set_vm_message_forward_type(doc(), binary()) -> doc().
+set_vm_message_forward_type(Doc, VmMessageForwardType) ->
+    kz_json:set_value([<<"vm_message_forward_type">>], VmMessageForwardType, Doc).
 
 %%------------------------------------------------------------------------------
 %% @doc Returns the legacy notification email address or a specified default as
