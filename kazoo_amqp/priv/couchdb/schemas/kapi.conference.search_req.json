@@ -1,0 +1,28 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.conference.search_req",
+    "description": "AMQP API for conference.search_req",
+    "properties": {
+        "Account-ID": {
+            "type": "string"
+        },
+        "Conference-ID": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "conference"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "search_req"
+            ]
+        }
+    },
+    "required": [
+        "Account-ID",
+        "Conference-ID"
+    ],
+    "type": "object"
+}

@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.directory.flush",
+    "description": "AMQP API for directory.flush",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "cache"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "flush"
+            ]
+        }
+    },
+    "type": "object"
+}

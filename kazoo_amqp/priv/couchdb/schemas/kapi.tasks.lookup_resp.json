@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.tasks.lookup_resp",
+    "description": "AMQP API for tasks.lookup_resp",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "tasks"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "lookup_resp"
+            ]
+        },
+        "Help": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Help"
+    ],
+    "type": "object"
+}

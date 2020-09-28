@@ -76,7 +76,7 @@ notify(EndpointId, AccountId) ->
 
 -spec cache_origin(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> list().
 cache_origin(EndpointId, AccountId, Profile) ->
-    Members = kz_json:get_ne_binaries(<<"Members">>, Profile),
+    Members = kz_json:get_ne_binaries(<<"Members">>, Profile, []),
     AccountDb = kzs_util:format_account_db(AccountId),
     Routines = [fun(P) -> [{'db', AccountDb, EndpointId} | P] end
                ,fun(P) -> [{'db', AccountDb, AccountId} | P] end

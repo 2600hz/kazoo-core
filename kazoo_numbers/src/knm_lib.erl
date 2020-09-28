@@ -95,7 +95,7 @@ ensure_account_can_create(_, _NotAnAccountId) ->
 -spec ensure_numbers_are_not_porting(kz_term:ne_binaries(), knm_pipe:collection()) ->
           knm_pipe:collection().
 ensure_numbers_are_not_porting(Nums, Collection) ->
-    lager:debug("ensuring ~b numbers are not belong to any port request", [length(Nums)]),
+    log_ensuring_numbers_are_not_porting(Nums),
     case knm_options:ported_in(knm_pipe:options(Collection)) of
         'true' ->
             handle_are_porting(Collection, Nums, {'ok', {[], Nums}});
@@ -103,11 +103,16 @@ ensure_numbers_are_not_porting(Nums, Collection) ->
             handle_are_porting(Collection, Nums, knm_port_request:are_porting(Nums))
     end.
 
+log_ensuring_numbers_are_not_porting([_]) ->
+    lager:debug("ensuring 1 number is not in a port request");
+log_ensuring_numbers_are_not_porting(Ns) ->
+    lager:debug("ensuring ~b numbers are not in any port requests", [length(Ns)]).
+
 -type are_porting() :: kz_either:either(kazoo_data:data_error() | 'number_is_porting', {kz_term:ne_binaries(), kz_term:ne_binaries()}).
 -spec handle_are_porting(knm_pipe:collection(), kz_term:ne_binaries(), are_porting()) ->
           knm_pipe:collection().
 handle_are_porting(Collection, Nums, {'error', _DbError}) ->
-    lager:debug("~b number(s) are portin: ~p", [length(Nums), _DbError]),
+    lager:debug("~b number(s) are porting: ~p", [length(Nums), _DbError]),
     FailedAcc = knm_pipe:failed(Collection),
     PortInErrors = maps:from_list([{Num, knm_errors:to_json('number_is_porting', Num)} || Num <- Nums]),
     knm_pipe:set_failed(Collection, maps:merge(FailedAcc, PortInErrors));
@@ -125,7 +130,7 @@ handle_are_porting(Collection, _, {'ok', {PortIn, NotPortIn}}) ->
 -spec ensure_can_load_to_create(knm_pipe:collection()) -> knm_pipe:collection().
 ensure_can_load_to_create(T) ->
     PNs = knm_pipe:todo(T),
-    lager:debug("ensuring existing ~b numbers are in valid state to create"
+    lager:debug("ensuring existing ~b numbers are in a valid state to create"
                ,[length(PNs)]
                ),
     lists:foldl(fun ensure_load_create_state/2, knm_pipe:set_todo(T, []), PNs).
@@ -148,7 +153,7 @@ ensure_load_create_state(PN, Collection) ->
             knm_pipe:add_success(Collection, Updated);
         'false' ->
             Num = knm_phone_number:number(PN),
-            lager:error("number '~s' is in wrong state '~s' for creating", [Num, State]),
+            lager:error("number '~s' is in state '~s', invalid for creating", [Num, State]),
             knm_pipe:set_failed(Collection, Num, knm_errors:to_json('number_exists', Num))
     end.
 

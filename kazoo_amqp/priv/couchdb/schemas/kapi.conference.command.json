@@ -1,0 +1,214 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.conference.command",
+    "description": "AMQP API for conference.command",
+    "properties": {
+        "Account-ID": {
+            "type": "string"
+        },
+        "Affects": {
+            "enum": [
+                "all",
+                "current"
+            ],
+            "type": "string"
+        },
+        "Application-Name": {
+            "enum": [
+                "deaf_participant",
+                "dial",
+                "dial_resp",
+                "kick",
+                "lock",
+                "mute_participant",
+                "participant_energy",
+                "participant_volume_in",
+                "participant_volume_out",
+                "participants",
+                "play",
+                "record",
+                "recordstop",
+                "relate_participants",
+                "say",
+                "set",
+                "stop_play",
+                "tones",
+                "tts",
+                "undeaf_participant",
+                "unlock",
+                "unmute_participant"
+            ],
+            "type": "string"
+        },
+        "Call-ID": {
+            "type": "string"
+        },
+        "Caller-ID-Name": {
+            "type": "string"
+        },
+        "Caller-ID-Number": {
+            "type": "string"
+        },
+        "Conference-ID": {
+            "type": "string"
+        },
+        "Custom-Application-Vars": {
+            "type": "object"
+        },
+        "Custom-Channel-Vars": {
+            "type": "object"
+        },
+        "Endless-Playback": {
+            "type": "string"
+        },
+        "Endpoint-Responses": {
+            "type": "string"
+        },
+        "Endpoints": {
+            "items": {
+                "$ref": "kapi.dialplan.bridge_endpoint",
+                "type": "object"
+            },
+            "type": "string"
+        },
+        "Energy-Level": {
+            "type": "string"
+        },
+        "Engine": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "Conference",
+                "conference"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "command"
+            ]
+        },
+        "Group-ID": {
+            "type": "string"
+        },
+        "Insert-At": {
+            "enum": [
+                "flush",
+                "head",
+                "now",
+                "tail"
+            ],
+            "type": "string"
+        },
+        "Language": {
+            "type": "string"
+        },
+        "Leg": {
+            "type": "string"
+        },
+        "Loop-Count": {
+            "minimum": 1,
+            "type": "string"
+        },
+        "Media-Name": {
+            "type": "string"
+        },
+        "Other-Participant": {
+            "type": "string"
+        },
+        "Outbound-Call-ID": {
+            "type": "string"
+        },
+        "Parameter": {
+            "enum": [
+                "Caller-ID-Name",
+                "Caller-ID-Number",
+                "Max-Members"
+            ],
+            "type": "string"
+        },
+        "Participant-Flags": {
+            "type": "string"
+        },
+        "Participant-ID": {
+            "type": "string"
+        },
+        "Profile-Name": {
+            "type": "string"
+        },
+        "Relationship": {
+            "enum": [
+                "clear",
+                "deaf",
+                "mute"
+            ],
+            "type": "string"
+        },
+        "Target-Call-ID": {
+            "type": "string"
+        },
+        "Terminators": {
+            "items": {
+                "enum": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                    "6",
+                    "7",
+                    "8",
+                    "9",
+                    "*",
+                    "0",
+                    "#"
+                ],
+                "type": "string"
+            },
+            "type": "string"
+        },
+        "Text": {
+            "type": "string"
+        },
+        "Timeout": {
+            "type": "string"
+        },
+        "Tones": {
+            "items": {
+                "$ref": "kapi.dialplan.tones_req_tone_headers",
+                "type": "string"
+            },
+            "type": "array"
+        },
+        "Value": {
+            "type": "string"
+        },
+        "Voice": {
+            "type": "string"
+        },
+        "Volume-In-Level": {
+            "type": "string"
+        },
+        "Volume-Out-Level": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Application-Name",
+        "Call-ID",
+        "Conference-ID",
+        "Endpoint-Responses",
+        "Endpoints",
+        "Energy-Level",
+        "Media-Name",
+        "Other-Participant",
+        "Parameter",
+        "Participant-ID",
+        "Text",
+        "Tones",
+        "Value",
+        "Volume-In-Level",
+        "Volume-Out-Level"
+    ],
+    "type": "object"
+}
