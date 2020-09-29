@@ -1,0 +1,7 @@
+{
+    "_id": "crossbar",
+    "pvt_type": "scope",
+    "scopes": [
+        "read_only"
+    ]
+}
