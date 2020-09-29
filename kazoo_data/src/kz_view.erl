@@ -17,6 +17,7 @@
 
 -export([apply_filtermap/2]).
 -export([apply_fields_fun/2]).
+-export([build_fields_fun/2]).
 
 %% deprecated, use {@link kz_term:high_unicode_value/0)}
 -export([high_unicode_value/0]).
@@ -34,8 +35,8 @@
                     {'databases', kz_term:ne_binaries()} |
                     {'direction', direction()} |
                     {'doc_type', kz_term:ne_binary()} |
-                    {'field_key', kz_term:ne_binary()} |
-                    {'fields', kz_json:paths()} |
+                    {'field_key', kz_term:ne_binary() | 'filtermap'} |
+                    {'fields', fields()} |
                     {'fields_fun', fields_fun()} |
                     {'filtermap', filtermap_fun() | result_key()} |
                     {'first_when_multiple', boolean()} |
@@ -80,6 +81,7 @@
                          fun((kz_view_cursor:cursor(), kz_json:object(), kz_json:objects()) -> filtermap_ret()) |
                          {fun((any(), kz_json:object(), kz_json:objects()) -> filtermap_ret()), any()}.
 
+-type fields() :: [kz_json:path() | {kz_json:path(), boolean()}].
 -type fields_fun() :: fun((kz_json:object()) -> kz_json:object()).
 
 -type error() :: kazoo_data:db_errors().
@@ -89,6 +91,7 @@
              ,error/0
              ,limit/0
              ,options/0
+             ,fields/0
              ,fields_fun/0
              ,filtermap_fun/0
              ,result_value/0
@@ -324,8 +327,16 @@ fields_fun(Options) ->
             FieldsFun
     end.
 
+-spec build_fields_fun(Fields :: fields() | 'undefined', FieldKeyOrFun :: kz_term:api_ne_binary() | 'filtermap' | fun((kz_json:object()) -> kz_json:object())) ->
+          'undefined' | fields_fun().
 build_fields_fun('undefined', _) ->
     'undefined';
+build_fields_fun([], _) ->
+    'undefined';
+build_fields_fun(Fields, 'undefined') ->
+    build_fields_fun(Fields, fun kz_term:identity/1);
+build_fields_fun(Fields, 'filtermap') ->
+    build_fields_fun(Fields, fun kz_term:identity/1);
 build_fields_fun(Fields, <<FieldKey/binary>>) ->
     KeyFun = fun(JObj) ->
                      kz_doc:set_id(kz_json:get_json_value(FieldKey, JObj, kz_json:new())
@@ -333,24 +344,22 @@ build_fields_fun(Fields, <<FieldKey/binary>>) ->
                                   )
              end,
     build_fields_fun(Fields, KeyFun);
-build_fields_fun(Fields, FieldKeyFun) when not is_function(FieldKeyFun, 1) ->
-    build_fields_fun(Fields, fun kz_term:identity/1);
 build_fields_fun(Fields, FieldKeyFun) when is_function(FieldKeyFun, 1) ->
-    FieldsFunArg = #{'remove' => [F || {F, 'false'} <- Fields]
-                    ,'update' => [Projection || Projection={_, ProjectionFun} <- Fields,
-                                                is_function(ProjectionFun, 2)
-                                 ]
-                    ,'fields' => get_fields_paths(Fields, [])
-                    },
+    FieldsFunArg = build_fields_arg(Fields),
     fun(JObj) ->
             default_fields_fun(FieldsFunArg, FieldKeyFun(JObj))
     end.
 
-default_fields_fun(#{'remove' := ToRemove
-                    ,'update' := ToUpdate
-                    ,'fields' := Fields
-                    }, JObj0) ->
-    JObj = kz_doc:set_id(JObj0, kz_doc:id(JObj0)),
+default_fields_fun(#{'no_fields' := 'true', 'remove' := ToRemove}=Arg, JObj0) ->
+    JObj = kz_json:delete_keys(ToRemove, kz_doc:set_id(JObj0, kz_doc:id(JObj0))),
+    fields_fun_get(Arg, JObj, JObj);
+default_fields_fun(#{'remove' := ToRemove}=Arg, JObj0) ->
+    JObj = kz_json:delete_keys(ToRemove, kz_doc:set_id(JObj0, kz_doc:id(JObj0))),
+    fields_fun_get(Arg, JObj, kz_json:new()).
+
+fields_fun_get(#{'update' := ToUpdate
+                ,'fields' := Fields
+                }, JObj, Default) ->
     lists:foldl(fun({Key, Fun}, Acc) ->
                         Val = kz_json:get_value(Key, Acc),
                         case Fun(Key, Val) of
@@ -360,21 +369,41 @@ default_fields_fun(#{'remove' := ToRemove
                                 kz_json:set_value(NewKey, NewVal, kz_json:delete_key(Key, Acc))
                         end
                 end
-               ,kz_json:get_fields(Fields, kz_json:delete_keys(ToRemove, JObj))
+               ,kz_json:get_fields(Fields, JObj, Default)
                ,ToUpdate
                ).
 
-get_fields_paths([], Acc) ->
-    case props:get_value(<<"_id">>, Acc) of
-        'undefined' -> [<<"_id">> | lists:reverse(Acc)];
-        _ -> lists:reverse(Acc)
+build_fields_arg(Fields) ->
+    Acc = #{'remove' => [], 'update' => []
+           ,'fields' => [], 'no_fields' => 'false'
+           },
+    #{'update' := ToUpdate
+     ,'fields' := NewFields
+     } = Arg = build_fields_arg(Fields, Acc),
+    {UFields, _} = lists:unzip(ToUpdate),
+    Arg#{'fields' => lists:usort(NewFields ++ UFields)}.
+
+build_fields_arg([], #{'fields' := []}=Acc) ->
+    Acc#{'fields' => [<<"_id">>]
+        ,'no_fields' => 'true'
+        };
+build_fields_arg([], #{'fields' := [<<"_id">>]}=Acc) ->
+    Acc#{'no_fields' => 'true'};
+build_fields_arg([], #{'fields' := Fields}=Acc) ->
+    case props:get_value(<<"_id">>, Fields) of
+        'undefined' ->
+            Acc#{'fields' => [<<"_id">> | Fields]};
+        _ ->
+            Acc#{'fields' => Fields}
     end;
-get_fields_paths([{_, 'false'}|Fs], Acc) ->
-    get_fields_paths(Fs, Acc);
-get_fields_paths([{F, _}|Fs], Acc) ->
-    get_fields_paths(Fs, [F|Acc]);
-get_fields_paths([F|Fs], Acc) ->
-    get_fields_paths(Fs, [F|Acc]).
+build_fields_arg([{F, 'false'}|Fs], #{'remove' := ToRemove}=Acc) ->
+    build_fields_arg(Fs, Acc#{'remove' => [F | ToRemove]});
+build_fields_arg([{F, ProjectionFun}|Fs], #{'update' := ToUpdate}=Acc) when is_function(ProjectionFun, 2) ->
+    build_fields_arg(Fs, Acc#{'update' => [{F, ProjectionFun} | ToUpdate]});
+build_fields_arg([{F, 'true'}|Fs], #{'fields' := Fields}=Acc) ->
+    build_fields_arg(Fs, Acc#{'fields' => [F | Fields]});
+build_fields_arg([F|Fs], #{'fields' := Fields}=Acc) ->
+    build_fields_arg(Fs, Acc#{'fields' => [F | Fields]}).
 
 %%------------------------------------------------------------------------------
 %% @doc Apply filter/mapper function if provided while keep maintaining

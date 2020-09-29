@@ -261,17 +261,23 @@ parse_query_arrays(QS) ->
 -define(DEFAULT_EMPTY, '$empty').
 -define(DEFAULT_ARRAY_OPTIONS, #{array_limits => 25
                                 ,comma_array => 'false'
+                                ,compact_arrays => 'true'
                                 ,depth => 5
                                 }).
 
 -spec parse_query_arrays(QueryString :: kz_term:proplist() | kz_json:object(), Options :: map()) -> kz_term:proplist().
 parse_query_arrays(QS, Opts) when is_list(QS) ->
-    Options = maps:merge(?DEFAULT_ARRAY_OPTIONS, Opts),
+    #{'compact_arrays' := ShouldCompact} = Options = maps:merge(?DEFAULT_ARRAY_OPTIONS, Opts),
     Parsed = lists:foldl(fun({K, V}, Acc) -> parse_query_array(K, V, Acc, Options) end
                         ,kz_json:new()
                         ,primarily_merge(QS, Options)
                         ),
-    kz_json:to_proplist(kz_json:compact_arrays(Parsed, #{default_empty => ?DEFAULT_EMPTY}));
+    case ShouldCompact of
+        'true' ->
+            kz_json:to_proplist(kz_json:compact_arrays(Parsed, #{default_empty => ?DEFAULT_EMPTY}));
+        'false' ->
+            kz_json:to_proplist(Parsed)
+    end;
 parse_query_arrays(QsJObj, _Options) ->
     parse_query_arrays(kz_json:recursive_to_proplist(QsJObj)).
 

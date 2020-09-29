@@ -330,7 +330,7 @@ new(CursorMod, Databases, DriverParams, Options) ->
                   ,'no_batch'
                   ,'user_params'
                   ],
-    #{batch_size => props:get_first_defined(['batch_size', 'limit'], Options, 'infinity')
+    #{batch_size => props:get_value('batch_size', Options, 'infinity')
      ,bookmark => 'undefined'
      ,cursor_module => CursorMod
      ,cursor_size => 0
@@ -341,7 +341,7 @@ new(CursorMod, Databases, DriverParams, Options) ->
      ,filtermap => props:get_value('filtermap', Options)
      ,is_exhausted => 'false'
      ,other_options => props:delete_keys(CursorOnly, Options)
-     ,page_size => props:get_value('page_size', Options, 'infinity')
+     ,page_size => props:get_first_defined(['page_size', 'limit'], Options, 'infinity')
      ,reductions_max => props:get_value('reductions_max', Options, 'infinity')
      ,reductions => 0
      ,memory_limit => props:get_value('memory_limit', Options, 'false')
@@ -436,7 +436,17 @@ get_more(#{no_batch := 'true'
           ,cursor_module := Mod
           }=Cursor, 'infinity') ->
     ?MAYBE_LOG("performing non-batch infinity query", []),
-    Mod:next_batch(Cursor, 'infinity');
+    case Mod:next_batch(Cursor, 'infinity') of
+        {'ok', {NewCursor, Result}} ->
+            case apply_fields_fun(NewCursor, Result) of
+                {'ok', UpdatedResult} ->
+                    {'ok', {NewCursor, UpdatedResult}};
+                {'error', _}=Error ->
+                    Error
+            end;
+        {'error', _}=Error ->
+            Error
+    end;
 get_more(#{no_batch := 'false'
           ,batch_size := BatchSize
           }=Cursor, 'infinity') ->
@@ -457,7 +467,17 @@ get_more(Cursor, Limit) ->
                       ),
             {'error', <<"got more rows than page size">>};
         PageLimit ->
-            Mod:next_batch(Cursor, PageLimit)
+            case Mod:next_batch(Cursor, PageLimit) of
+                {'ok', {NewCursor, Result}} ->
+                    case apply_fields_fun(NewCursor, Result) of
+                        {'ok', UpdatedResult} ->
+                            {'ok', {NewCursor, UpdatedResult}};
+                        {'error', _}=Error ->
+                            Error
+                    end;
+                {'error', _}=Error ->
+                    Error
+            end
     end.
 
 %% explicitly disabled pagination

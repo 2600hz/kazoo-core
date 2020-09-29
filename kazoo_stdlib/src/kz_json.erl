@@ -765,17 +765,28 @@ js_compact_arrays(JObj, Options) ->
 
 js_compact_arrays([], Acc, _Options) ->
     lists:reverse(Acc);
-js_compact_arrays([DefaultEmpty|T], Acc, #{default_empty := DefaultEmpty}=Options) ->
-    js_compact_arrays(T, Acc, Options);
 js_compact_arrays([{K, V}|T], Acc, Options) when is_list(V) ->
     js_compact_arrays(T, [{K, js_compact_arrays(V, [], Options)} | Acc], Options);
+js_compact_arrays([{Key, Val}|T], Acc, Options) ->
+    case is_json_object(Val) of
+        'true' ->
+            NewVal = foldl(fun(K, V, FoldAcc) -> compact_json(K, V, FoldAcc, Options) end, new(), Val),
+            js_compact_arrays(T, [{Key, NewVal}|Acc], Options);
+        'false' ->
+            js_compact_arrays(T, [{Key, Val} | Acc], Options)
+    end;
+js_compact_arrays([DefaultEmpty|T], Acc, #{default_empty := DefaultEmpty}=Options) ->
+    js_compact_arrays(T, Acc, Options);
 js_compact_arrays([H|T], Acc, Options) when is_list(H) ->
     js_compact_arrays(T, [js_compact_arrays(H, [], Options) | Acc], Options);
-js_compact_arrays([?JSON_WRAPPER(_) = H|T], Acc, Options) ->
-    NewH = foldl(fun(K, V, FoldAcc) -> compact_json(K, V, FoldAcc, Options) end, new(), H),
-    js_compact_arrays(T, [NewH|Acc], Options);
 js_compact_arrays([H|T], Acc, Options) ->
-    js_compact_arrays(T, [H|Acc], Options).
+    case is_json_object(H) of
+        'true' ->
+            NewH = foldl(fun(K, V, FoldAcc) -> compact_json(K, V, FoldAcc, Options) end, new(), H),
+            js_compact_arrays(T, [NewH|Acc], Options);
+        'false' ->
+            js_compact_arrays(T, [H|Acc], Options)
+    end.
 
 compact_json(K, V, Acc, Options) when is_list(V) ->
     set_value(K, js_compact_arrays(V, [], Options), Acc);

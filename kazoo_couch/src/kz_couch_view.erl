@@ -48,7 +48,13 @@
                        ,'start_key_doc_id'
                        ]).
 
--define(COUCH_VIEW_OPTIONS
+-define(ALL_COUCH_VIEW_OPTIONS
+       ,['limit'
+        | ?COUCH_ONLY_OPTIONS
+        ]
+       ).
+
+-define(COUCH_ONLY_OPTIONS
        ,['conflicts'
         ,'descending'
         ,'group'
@@ -57,7 +63,6 @@
         ,'attachments'
         ,'att_encoding_info'
         ,'inclusive_end'
-        ,'limit'
         ,'reduce'
         ,'skip'
         ,'sorted'
@@ -239,10 +244,7 @@ find(#server{}=Conn, Database, DesignDoc, Selector, Options) ->
             {'ok', []};
         {'ok', {#{view_options := _ViewOptions}=Params, Databases}} ->
             ?MAYBE_LOG("view_options: ~1000p", [_ViewOptions]),
-            CouchOnly = ?COUCH_VIEW_OPTIONS -- ['limit'
-                                               ,'direction'
-                                               ],
-            NewOptions = props:delete_keys(CouchOnly, Options),
+            NewOptions = props:delete_keys(?COUCH_ONLY_OPTIONS, Options),
             LoadParams = Params#{server => Conn},
             {'ok', kz_view_cursor:new(?MODULE, Databases, LoadParams, NewOptions)};
         {'error', _}=Error ->
@@ -628,8 +630,8 @@ cleanse_options(Options) ->
            is_couch_options(KV)
     ].
 
-is_couch_options({K, _}) -> lists:member(K, ?COUCH_VIEW_OPTIONS);
-is_couch_options(K) -> lists:member(K, ?COUCH_VIEW_OPTIONS).
+is_couch_options({K, _}) -> lists:member(K, ?ALL_COUCH_VIEW_OPTIONS);
+is_couch_options(K) -> lists:member(K, ?ALL_COUCH_VIEW_OPTIONS).
 
 %% }}} build_load_params
 
