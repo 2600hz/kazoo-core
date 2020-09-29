@@ -11,4 +11,5 @@
 | `register_auth_app/4` | `(AccountId,OAuthId,Secret,Provider)` | |
 | `register_auth_app_key/2` | `(AppId,PemFile)` | |
 | `register_common_providers/0` |  | |
+| `register_common_scopes/0` |  | |
 | `register_views/0` |  | |

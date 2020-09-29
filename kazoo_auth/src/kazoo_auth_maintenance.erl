@@ -17,6 +17,7 @@
 
 -export([register_auth_app/4]).
 -export([register_common_providers/0]).
+-export([register_common_scopes/0]).
 -export([register_auth_app_key/2]).
 
 -export([refresh/0
@@ -87,6 +88,10 @@ register_views() ->
 -spec register_common_providers() -> 'ok'.
 register_common_providers() ->
     kz_datamgr:revise_docs_from_folder(?KZ_AUTH_DB, 'kazoo_auth', "providers").
+
+-spec register_common_scopes() -> 'ok'.
+register_common_scopes() ->
+    kz_datamgr:revise_docs_from_folder(?KZ_AUTH_DB, 'kazoo_auth', "scopes").
 
 -spec flush() -> 'ok'.
 flush() ->
