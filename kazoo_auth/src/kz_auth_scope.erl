@@ -191,7 +191,7 @@ resolve_scopes(#{scopes := Scopes}=Token) ->
 %% @end
 %%------------------------------------------------------------------------------
 maybe_merge_scopes(Available, Requested)
-  when is_list(Available) 
+  when is_list(Available)
        andalso is_list(Requested) ->
     Merged = sets:intersection(sets:from_list(Available)
                               ,sets:from_list(Requested)
