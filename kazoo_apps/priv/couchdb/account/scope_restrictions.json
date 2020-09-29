@@ -13,12 +13,10 @@
             "map": [
                 "function(doc) {",
                 "  if (doc.pvt_type !== 'scope_restriction' || doc.pvt_deleted) return;",
-                "  doc.scopes.forEach(function(scope) {",
-                "    if (!Array.isArray(scope)) {",
-                "      emit(scope.split(':'), null)",
-                "    } else {",
-                "      emit(scope, null)",
-                "    }",
+                "  emit(doc._id, {",
+                "    _id: doc._id,",
+                "    scopes: doc.scopes,",
+                "    token_restrictions: doc.token_restrictions",
                 "  });",
                 "}"
             ]
