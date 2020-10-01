@@ -1045,6 +1045,7 @@ validate(AccountId, UserId, ReqJObj) ->
 
                    ,fun maybe_set_identity_secret/3
                    ,fun maybe_rehash_creds/3
+                   ,fun validate_call_forward/3
                    ],
     try do_validation(AccountId, UserId, ReqJObj, ValidateFuns) of
         {UserDoc, []} -> {'true', UserDoc};
@@ -1405,4 +1406,25 @@ rehash_creds(Username, Password, {Doc, Errors}) ->
         'true' ->
             lager:debug("resetting identity secret"),
             {kz_auth_identity:reset_doc_secret(kz_json:delete_key(<<"password">>, UpdatedDoc)), Errors}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Verify that if call forward is enabled, the call forward number is non-
+%% empty.
+%% @end
+%%------------------------------------------------------------------------------
+-spec validate_call_forward(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+validate_call_forward(_AccountId, _UserId, {Doc, Errors}) ->
+    CallForwardNumber = call_forward_number(Doc),
+    case call_forward_enabled(Doc)
+        andalso not kz_term:is_ne_binary(CallForwardNumber)
+    of
+        'true' ->
+            Msg = kz_json:from_list(
+                    [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
+                    ,{<<"cause">>, CallForwardNumber}
+                    ]),
+            {Doc, [{[<<"call_forward.number">>], <<"required">>, Msg} | Errors]};
+        'false' -> {Doc, Errors}
     end.
