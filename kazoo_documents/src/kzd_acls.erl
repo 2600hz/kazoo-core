@@ -57,7 +57,7 @@ network_list_name(Doc) ->
 
 -spec network_list_name(doc(), Default) -> binary() | Default.
 network_list_name(Doc, Default) ->
-    kz_json:get_binary_value([<<"network_list_name">>], Doc, Default).
+    kz_json:get_first_defined([<<"network-list-name">>, <<"network_list_name">>], Doc, Default).
 
 -spec set_network_list_name(doc(), binary()) -> doc().
 set_network_list_name(Doc, NetworkListName) ->
