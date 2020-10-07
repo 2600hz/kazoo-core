@@ -14,7 +14,6 @@
 -export([multi_factor_configuration_id/1, multi_factor_configuration_id/2, set_multi_factor_configuration_id/2]).
 -export([multi_factor_enabled/1, multi_factor_enabled/2, set_multi_factor_enabled/2]).
 -export([multi_factor_include_subaccounts/1, multi_factor_include_subaccounts/2, set_multi_factor_include_subaccounts/2]).
--export([scopes/1, scopes/2, set_scopes/2]).
 -export([token_auth_expiry_s/1, token_auth_expiry_s/2, set_token_auth_expiry_s/2]).
 
 
@@ -124,18 +123,6 @@ multi_factor_include_subaccounts(Doc, Default) ->
 -spec set_multi_factor_include_subaccounts(doc(), boolean()) -> doc().
 set_multi_factor_include_subaccounts(Doc, MultiFactorIncludeSubaccounts) ->
     kz_json:set_value([<<"multi_factor">>, <<"include_subaccounts">>], MultiFactorIncludeSubaccounts, Doc).
-
--spec scopes(doc()) -> kz_term:ne_binaries().
-scopes(Doc) ->
-    scopes(Doc, []).
-
--spec scopes(doc(), Default) -> kz_term:ne_binaries() | Default.
-scopes(Doc, Default) ->
-    kz_json:get_list_value([<<"scopes">>], Doc, Default).
-
--spec set_scopes(doc(), kz_term:ne_binaries()) -> doc().
-set_scopes(Doc, Scopes) ->
-    kz_json:set_value([<<"scopes">>], Scopes, Doc).
 
 -spec token_auth_expiry_s(doc()) -> kz_term:api_integer().
 token_auth_expiry_s(Doc) ->

@@ -57,7 +57,6 @@
 -export([ringtones/1, ringtones/2, set_ringtones/2]).
 -export([ringtones_external/1, ringtones_external/2, set_ringtones_external/2]).
 -export([ringtones_internal/1, ringtones_internal/2, set_ringtones_internal/2]).
--export([scope_restrictions/1, scope_restrictions/2, set_scope_restrictions/2]).
 -export([timezone/1, timezone/2, set_timezone/2]).
 -export([username/1, username/2, set_username/2]).
 -export([verified/1, verified/2, set_verified/2]).
@@ -669,18 +668,6 @@ ringtones_internal(Doc, Default) ->
 -spec set_ringtones_internal(doc(), binary()) -> doc().
 set_ringtones_internal(Doc, RingtonesInternal) ->
     kz_json:set_value([<<"ringtones">>, <<"internal">>], RingtonesInternal, Doc).
-
--spec scope_restrictions(doc()) -> kz_term:api_ne_binaries().
-scope_restrictions(Doc) ->
-    scope_restrictions(Doc, 'undefined').
-
--spec scope_restrictions(doc(), Default) -> kz_term:ne_binaries() | Default.
-scope_restrictions(Doc, Default) ->
-    kz_json:get_list_value([<<"scope_restrictions">>], Doc, Default).
-
--spec set_scope_restrictions(doc(), kz_term:ne_binaries()) -> doc().
-set_scope_restrictions(Doc, ScopeRestrictions) ->
-    kz_json:set_value([<<"scope_restrictions">>], ScopeRestrictions, Doc).
 
 -spec timezone(doc()) -> kz_term:api_binary().
 timezone(Doc) ->
