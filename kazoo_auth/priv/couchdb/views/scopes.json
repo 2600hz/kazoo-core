@@ -1,0 +1,36 @@
+{
+    "_id": "_design/scopes",
+    "kazoo": {
+        "view_map": [
+            {
+                "database": "system_auth"
+            }
+        ]
+    },
+    "language": "javascript",
+    "views": {
+        "crossbar_listing": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type !== 'scope' || doc.pvt_deleted) return;",
+                "  emit(doc._id, doc.scopes);",
+                "}"
+            ]
+        },
+        "list_by_scope_id": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type !== 'scope' || doc.pvt_deleted) return;",
+                "  emit([doc._id], null);",
+                "  if (doc.scopes.length > 0) {",
+                "    for (var i in doc.scopes) {",
+                "      emit([doc._id, doc.scopes[i]], {",
+                "        _id: doc.scopes[i]",
+                "      });",
+                "    }",
+                "  }",
+                "}"
+            ]
+        }
+    }
+}

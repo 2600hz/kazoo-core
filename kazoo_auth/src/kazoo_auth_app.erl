@@ -24,6 +24,7 @@ start(_Type, _Args) ->
     kapps_maintenance:bind_and_register_views('kazoo_auth', 'kazoo_auth_maintenance', 'register_views'),
     _ = kazoo_auth_maintenance:refresh(),
     _ = kazoo_auth_maintenance:register_common_providers(),
+    _ = kazoo_auth_maintenance:register_common_scopes(),
     _ = kazoo_auth_maintenance:ensure_secret(),
     kazoo_auth_sup:start_link().
 
