@@ -1283,7 +1283,7 @@ create_registered_view(Plan, Database, DesignDoc, _Options, ViewJObj) ->
         {'error', 'conflict'} ->
             lager:info("conflict saving to ~s / ~s", [Database, kz_doc:id(ViewDoc)]),
             _ = maybe_update_view(Plan, Database, DesignDoc, ViewDoc),
-            kzs_doc:open_doc(Plan, Database, ViewDoc, []);
+            kzs_doc:open_doc(Plan, Database, kz_doc:id(ViewDoc), []);
         {'error', _Err} ->
             lager:error("error saving registered view ~s to database ~s : ~p", [DesignDoc, Database, _Err]),
             {'error', 'not_found'}
