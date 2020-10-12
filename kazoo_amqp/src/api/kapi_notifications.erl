@@ -1166,6 +1166,7 @@ deregister_definition() ->
                                                             ,<<"From-User">>
                                                             ,<<"Network-IP">>
                                                             ,<<"Network-Port">>
+                                                            ,<<"Owner-ID">>
                                                             ,<<"Presence-Hosts">>
                                                             ,<<"Profile-Name">>
                                                             ,<<"RPid">>
