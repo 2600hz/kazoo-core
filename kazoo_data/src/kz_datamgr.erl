@@ -110,13 +110,13 @@
                          {'ensure_saved', boolean()}.
 -type update_options() :: [update_option()].
 
--export_type([view_option/0, view_options/0
-             ,view_listing/0, views_listing/0
-             ,data_error/0, data_errors/0
+-export_type([data_error/0, data_errors/0
              ,db_classification/0
-             ,update_option/0, update_options/0
              ,get_results_return/0
              ,paginated_results/0
+             ,update_option/0, update_options/0
+             ,view_listing/0, views_listing/0
+             ,view_option/0, view_options/0
              ]).
 
 -deprecated({'ensure_saved', '_', 'eventually'}).
@@ -1423,8 +1423,7 @@ get_result_docs(DbName, DesignDoc, Keys) ->
                              data_error().
 
 -spec paginate_results(database_name(), 'all_docs' | kz_term:ne_binary(), paginate_options()) ->
-          {'ok', kz_json:objects(), kz_json:api_json_term()} |
-          data_error().
+          paginated_results().
 paginate_results(DbName, DesignDoc, Options) ->
     {PageSize, ViewOptions} = props:take_value('page_size', Options, 50),
     GetResultsOptions = props:set_value('limit', PageSize+1, ViewOptions),
@@ -1434,8 +1433,7 @@ paginate_results(DbName, DesignDoc, Options) ->
     end.
 
 -spec paginate_results(pos_integer(), kz_json:objects()) ->
-          {'ok', kz_json:objects(), kz_json:api_json_term()} |
-          data_error().
+          paginated_results().
 paginate_results(_PageSize, []) -> {'ok', [], 'undefined'};
 paginate_results(PageSize, Results) ->
     try lists:split(PageSize, Results) of

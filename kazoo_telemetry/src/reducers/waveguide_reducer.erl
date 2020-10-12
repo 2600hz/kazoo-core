@@ -260,7 +260,7 @@ calculate_aggregates(_Nodes, Acc) ->
     Stats = kz_json:foldl(fun calculate_aggregate/3, kz_json:new(), Acc),
     kz_json:merge(Stats, Acc).
 
--spec calculate_aggregate(kz_term:binary(), kz_term:binaries() | any(), kz_json:object()) -> kz_json:object().
+-spec calculate_aggregate(binary(), kz_term:binaries() | any(), kz_json:object()) -> kz_json:object().
 calculate_aggregate(K, V, Acc)
   when is_list(V)
        andalso length(V) > 0 ->
@@ -295,7 +295,7 @@ dedupe_media_servers([Node | Nodes], Acc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec node_freeswitch_summary_foldl(kz_term:api_binaries(), kz_term:non_neg_integer() | kz_term:binary(), kz_json:object()) -> kz_json:object().
+-spec node_freeswitch_summary_foldl(kz_term:api_binaries(), non_neg_integer() | binary(), kz_json:object()) -> kz_json:object().
 node_freeswitch_summary_foldl(_K, V, Acc) ->
     Values = kz_json:flatten(V),
     kz_json:foldl(fun rollup_freeswitch_jobj/3, Acc, Values).
@@ -347,7 +347,7 @@ rollup_db_cluster_jobjs(Cluster, Acc) ->
 %% @doc normalize stats to flat waveguide scalar K/V pairs
 %% @end
 %%------------------------------------------------------------------------------
--spec normalize_db_cluster_stats(kz_term:binary(), kz_term:binary() | kz_term:binaries() | non_neg_integer(), kz_json:object()) -> kz_json:object().
+-spec normalize_db_cluster_stats(binary(), binary() | kz_term:binaries() | non_neg_integer(), kz_json:object()) -> kz_json:object().
 normalize_db_cluster_stats(K, V, Acc) when is_list(V) ->
     normalize_db_cluster_stats(K, length(V), Acc);
 normalize_db_cluster_stats([Tag, Stat], V, Acc) when is_binary(V) ->
@@ -381,7 +381,7 @@ normalize_service_items(Obj, Acc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec normalize_services_items_foldl(kz_term:binary(), kz_term:ne_binary() | kz_term:binaries() | non_neg_integer(), kz_json:object()) -> kz_json:object().
+-spec normalize_services_items_foldl(binary(), kz_term:ne_binary() | kz_term:binaries() | non_neg_integer(), kz_json:object()) -> kz_json:object().
 normalize_services_items_foldl(K, V, Acc) ->
     [Category | Rest] = K,
     kz_json:set_value(<<(?SERVICES_KEY)/binary,Category/binary,".",(format_wg_id(Rest))/binary,".count">>, V, Acc).
@@ -422,7 +422,7 @@ normalize_summaries_foldl(Key, Value, Acc) ->
 %% @doc format a period seperated key from a flattened list
 %% @end
 %%------------------------------------------------------------------------------
--spec format_wg_id(kz_term:binary() | kz_term:binaries()) -> kz_term:binary().
+-spec format_wg_id(binary() | kz_term:binaries()) -> binary().
 format_wg_id(A) when is_binary(A) ->
     Temp = binary:split(A, <<".">>, ['global']),
     kz_binary:join(Temp, <<"_">>);

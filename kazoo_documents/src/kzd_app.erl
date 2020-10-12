@@ -185,7 +185,7 @@ price(Doc, Default) ->
 set_price(Doc, Price) ->
     kz_json:set_value([<<"price">>], Price, Doc).
 
--spec is_published(doc()) -> kz_term:boolean().
+-spec is_published(doc()) -> boolean().
 is_published(Doc) ->
     is_published(Doc, 'true').
 

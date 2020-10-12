@@ -413,7 +413,7 @@ parse_row([H|T], CellAcc, RowAcc, State) when State =:= 'normal'; State =:= 'esc
 %% cell with double quotes should be `<<>>'
 %% @end
 %%------------------------------------------------------------------------------
--spec cell_acc_to_cell(list(), 'normal' | 'was_escaped') -> kz_term:binary() | 'undefined'.
+-spec cell_acc_to_cell(list(), 'normal' | 'was_escaped') -> binary() | 'undefined'.
 cell_acc_to_cell([], 'normal') -> ?ZILCH;
 cell_acc_to_cell([], 'was_escaped') -> <<>>;
 cell_acc_to_cell(CellAcc, State) when State =:= 'normal'; State =:= 'was_escaped' ->
@@ -467,7 +467,7 @@ cell_to_binary(Cell) ->
 %% If `?ZILCH' is supplied then `?ZILCH' is returned.
 %% @end
 %%------------------------------------------------------------------------------
--spec try_to_binary(any(), Default) -> kz_term:binary() | Default.
+-spec try_to_binary(any(), Default) -> binary() | Default.
 try_to_binary(?ZILCH, _) -> ?ZILCH;
 try_to_binary(Value, Default) ->
     try kz_term:to_binary(Value)

@@ -131,21 +131,37 @@
 %% %% @headerfile "kazoo_stdlib/include/kazoo_json.hrl"
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 
--export_type([json_proplist/0
-             ,object/0, objects/0
+-export_type([encode_options/0
              ,flat_object/0, flat_objects/0
              ,flat_proplist/0
-             ,path/0, paths/0
-             ,key/0, keys/0
              ,get_key/0
+             ,json_array/0
+             ,json_proplist/0
+             ,json_string/0
              ,json_term/0, api_json_term/0, json_terms/0
-             ,encode_options/0
+             ,key/0, keys/0
+             ,object/0, objects/0
+             ,path/0, paths/0
              ]).
 
 -type get_key() :: key() | path().
 
 -define(ENCODE_OPTIONS, ['error_on_undefined']).
 -define(DECODE_OPTIONS, ['utf8_invalid_char_as_is']).
+
+%% JIFFY decode options + {default, any()}
+-type decode_option() :: 'utf8_invalid_char_as_is' |
+                         'return_maps' |
+                         'use_nil' |
+                         'return_trailer' |
+                         'dedupe_keys' |
+                         'copy_strings' |
+                         'utf8_invalid_char_as_is' |
+                         {'null_term', any()} |
+                         {'bytes_per_iter', non_neg_integer()} |
+                         {'bytes_per_red', non_neg_integer()} |
+                         {'default', api_json_term()}.
+-type decode_options() :: [decode_option()].
 
 -spec new() -> object().
 new() -> ?JSON_WRAPPER([]).
@@ -165,7 +181,7 @@ unsafe_decode(Thing) when is_list(Thing);
                           is_binary(Thing) ->
     unsafe_decode(Thing, []).
 
--spec unsafe_decode(iolist() | kz_term:ne_binary(), list()) -> json_term().
+-spec unsafe_decode(iolist() | kz_term:ne_binary(), decode_options()) -> json_term().
 unsafe_decode(JSON, Options) ->
     try jiffy:decode(JSON, lists:merge(?DECODE_OPTIONS, Options))
     catch
@@ -186,13 +202,13 @@ decode(Thing) when is_list(Thing)
                    orelse is_binary(Thing) ->
     decode(Thing, []).
 
--spec decode(iolist() | kz_term:ne_binary(), list()) -> json_term().
+-spec decode(iolist() | kz_term:ne_binary(), decode_options()) -> json_term().
 decode(JSON, Options) ->
     try unsafe_decode(JSON, Options)
     catch
         _:{'invalid_json', {'error', {_Loc, _Msg}}, _JSON} ->
             lager:error_unsafe("decode error ~s near char # ~b => ~s", [_Msg, _Loc, binary:part(JSON, _Loc, 25)]),
-            new()
+            props:get_value('default', Options, new())
     end.
 
 try_converting(JSON) ->

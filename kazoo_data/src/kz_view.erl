@@ -84,7 +84,7 @@
 -type fields() :: [kz_json:path() | {kz_json:path(), boolean()}].
 -type fields_fun() :: fun((kz_json:object()) -> kz_json:object()).
 
--type error() :: kazoo_data:db_errors().
+-type error() :: kazoo_data:data_errors().
 
 -export_type([bookmark/0
              ,direction/0

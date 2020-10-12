@@ -53,17 +53,19 @@ db_to_disk(Database, FilterFun) ->
 db_to_disk_persist(Database, FilterFun) ->
     db_to_disk_persist(Database, FilterFun, get_page(Database, 'undefined')).
 
--spec get_page(kz_term:ne_binary(), kz_json:api_json_term()) -> kazoo:paginate_results().
+-spec get_page(kz_term:ne_binary(), kz_json:api_json_term()) ->
+          kz_datamgr:paginated_results().
 get_page(Database, 'undefined') ->
     query(Database, []);
 get_page(Database, StartKey) ->
     query(Database, [{'startkey', StartKey}]).
 
--spec query(kz_term:ne_binary(), kazoo_data:view_options()) -> kazoo:paginate_results().
+-spec query(kz_term:ne_binary(), kazoo_data:view_options()) ->
+          kz_datamgr:paginated_results().
 query(Database, Options) ->
     kz_datamgr:paginate_results(Database, 'all_docs', ['include_docs' | Options]).
 
--spec db_to_disk_persist(kz_term:ne_binary(), filter_fun(), kz_datamgr:paginate_results()) ->
+-spec db_to_disk_persist(kz_term:ne_binary(), filter_fun(), kz_datamgr:paginated_results()) ->
           'ok' | kz_datamgr:data_error().
 db_to_disk_persist(Database, FilterFun, {'ok', ViewResults, 'undefined'}) ->
     _ = filter_and_persist(Database, FilterFun, ViewResults),
