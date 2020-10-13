@@ -64,6 +64,9 @@
         "Network-Port": {
             "type": "string"
         },
+        "Owner-ID": {
+            "type": "string"
+        },
         "Presence-Hosts": {
             "type": "string"
         },
