@@ -36,7 +36,7 @@
                           ,{<<"kazoo_apps">>, [{<<"cookie">>, <<"change_me">>}]}
                           ]).
 
--type section() :: kz_term:ne_binary().
+-type section() :: kz_term:ne_binary() | atom().
 
 -define(KAZOO_CONFIG_HRL, 'true').
 -endif.

@@ -17,8 +17,7 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?WORKER('kz_hooks_listener')
-                  ]).
+-define(CHILDREN, [?WORKER('kz_hooks_listener')]).
 
 %%==============================================================================
 %% API functions

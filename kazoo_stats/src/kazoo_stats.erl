@@ -57,8 +57,8 @@
 start_link() -> start_link(?SEND_INTERVAL).
 
 -spec start_link(pos_integer()) -> kz_types:startlink_ret().
-start_link(Send_stats) ->
-    gen_server:start_link({'local', ?SERVER}, ?MODULE, [Send_stats], []).
+start_link(SendStats) ->
+    gen_server:start_link({'local', ?SERVER}, ?MODULE, [SendStats], []).
 
 -spec stop() -> 'ok'.
 stop() ->
@@ -92,9 +92,9 @@ send_absolute(Item, Value) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec init(list()) -> {'ok', state()}.
-init([Send_stats]) ->
-    erlang:send_after(Send_stats, self(), {'send_stats', Send_stats}),
-    {'ok', #state{send_stats=Send_stats}}.
+init([SendStats]) ->
+    erlang:send_after(SendStats, self(), {'send_stats', SendStats}),
+    {'ok', #state{send_stats=SendStats}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -129,8 +129,8 @@ handle_cast(_,State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'send_stats', SendStats}=Info,State) ->
-    send_stats(State#state.variables, State#state.sip),
+handle_info({'send_stats', SendStats}=Info, #state{variables=Vars, sip=SIP}=State) ->
+    send_stats(Vars, SIP),
     erlang:send_after(SendStats, self(), Info),
     {'noreply', State};
 handle_info(_Info, State) ->
@@ -238,7 +238,7 @@ send(RawPayload) ->
 %%%   lager:debug("trying to convert to json ~n~p",[RawPayload]),
     Payload = kz_json:encode(recursive_from_proplist(RawPayload)),
 %%%   lager:debug("sending to stats_master ~p",[Payload]),
-    kz_amqp_util:targeted_publish(<<"statistics">>,Payload).
+    'ok' = kz_amqp_worker:cast(fun() -> kz_amqp_util:targeted_publish(<<"statistics">>, Payload) end).
 
 %% Prepares nested proplists to convert to JSON
 -spec recursive_from_proplist(any()) -> kz_json:object().

@@ -62,6 +62,7 @@
                    ,databases := kz_term:ne_binaries()
                    ,direction := kz_view:direction()
                    ,driver_params := any()
+                   ,fields_fun := kz_view:fields_fun()
                    ,filtermap := kz_view:filtermap_fun()
                    ,is_exhausted := boolean()
                    ,other_options := kz_term:proplist()
@@ -319,6 +320,9 @@ new(CursorMod, Databases, DriverParams, Options) ->
                   ,'bookmark'
                   ,'databases'
                   ,'direction'
+                  ,'field_key'
+                  ,'fields'
+                  ,'fields_fun'
                   ,'filtermap'
                   ,'limit'
                   ,'reductions_max'
@@ -326,17 +330,18 @@ new(CursorMod, Databases, DriverParams, Options) ->
                   ,'no_batch'
                   ,'user_params'
                   ],
-    #{batch_size => props:get_first_defined(['batch_size', 'limit'], Options, 'infinity')
+    #{batch_size => props:get_value('batch_size', Options, 'infinity')
      ,bookmark => 'undefined'
      ,cursor_module => CursorMod
      ,cursor_size => 0
      ,databases => Databases
      ,direction => props:get_value('direction', Options, 'ascending')
      ,driver_params => DriverParams
+     ,fields_fun => props:get_value('fields_fun', Options)
      ,filtermap => props:get_value('filtermap', Options)
      ,is_exhausted => 'false'
      ,other_options => props:delete_keys(CursorOnly, Options)
-     ,page_size => props:get_value('page_size', Options, 'infinity')
+     ,page_size => props:get_first_defined(['page_size', 'limit'], Options, 'infinity')
      ,reductions_max => props:get_value('reductions_max', Options, 'infinity')
      ,reductions => 0
      ,memory_limit => props:get_value('memory_limit', Options, 'false')
@@ -431,7 +436,17 @@ get_more(#{no_batch := 'true'
           ,cursor_module := Mod
           }=Cursor, 'infinity') ->
     ?MAYBE_LOG("performing non-batch infinity query", []),
-    Mod:next_batch(Cursor, 'infinity');
+    case Mod:next_batch(Cursor, 'infinity') of
+        {'ok', {NewCursor, Result}} ->
+            case apply_fields_fun(NewCursor, Result) of
+                {'ok', UpdatedResult} ->
+                    {'ok', {NewCursor, UpdatedResult}};
+                {'error', _}=Error ->
+                    Error
+            end;
+        {'error', _}=Error ->
+            Error
+    end;
 get_more(#{no_batch := 'false'
           ,batch_size := BatchSize
           }=Cursor, 'infinity') ->
@@ -452,7 +467,17 @@ get_more(Cursor, Limit) ->
                       ),
             {'error', <<"got more rows than page size">>};
         PageLimit ->
-            Mod:next_batch(Cursor, PageLimit)
+            case Mod:next_batch(Cursor, PageLimit) of
+                {'ok', {NewCursor, Result}} ->
+                    case apply_fields_fun(NewCursor, Result) of
+                        {'ok', UpdatedResult} ->
+                            {'ok', {NewCursor, UpdatedResult}};
+                        {'error', _}=Error ->
+                            Error
+                    end;
+                {'error', _}=Error ->
+                    Error
+            end
     end.
 
 %% explicitly disabled pagination
@@ -474,7 +499,22 @@ get_more_fold(#{is_exhausted := 'true'}=Cursor, Rows) ->
 get_more_fold(#{cursor_module := Mod, batch_size := BatchSize}=Cursor, Rows) ->
     case Mod:next_batch(Cursor, BatchSize) of
         {'ok', {NewCursor, Result}} ->
-            get_more_fold(NewCursor, Rows ++ Result);
+            case apply_fields_fun(NewCursor, Result) of
+                {'ok', UpdatedResult} ->
+                    get_more_fold(NewCursor, Rows ++ UpdatedResult);
+                {'error', _}=Error ->
+                    Error
+            end;
         {'error', _}=Error ->
             Error
+    end.
+
+-spec apply_fields_fun(cursor(), kz_view:result_value()) -> kz_either:either('exception', kz_view:result_value()).
+apply_fields_fun(Cursor, JObjs) ->
+    try kz_view:apply_fields_fun(Cursor, JObjs) of
+        UpdatedJObjs -> {'ok', UpdatedJObjs}
+    catch
+        _E:_T:ST ->
+            kz_log:log_stacktrace(ST, "exception during applying fields_fun: ~p:~p", [_E, _T]),
+            {'error', 'exception'}
     end.

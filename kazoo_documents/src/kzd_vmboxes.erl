@@ -10,6 +10,7 @@
 -module(kzd_vmboxes).
 
 -export([new/0]).
+-export([type/0]).
 -export([announcement_only/1, announcement_only/2, set_announcement_only/2]).
 -export([check_if_owner/1, check_if_owner/2, set_check_if_owner/2]).
 -export([delete_after_notify/1, delete_after_notify/2, set_delete_after_notify/2]).
@@ -46,11 +47,23 @@
 -type doc() :: kz_json:object().
 -export_type([doc/0]).
 
+-define(PVT_TYPE, <<"vmbox">>).
 -define(SCHEMA, <<"vmboxes">>).
+
+-define(ACCOUNT_VM_EXTENSION(AccountId)
+       ,kapps_account_config:get_global(AccountId
+                                       ,<<"callflow">>
+                                       ,[<<"voicemail">>, <<"extension">>]
+                                       ,<<"mp3">>
+                                       )
+       ).
 
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec type() -> kz_term:ne_binary().
+type() -> ?PVT_TYPE.
 
 -spec announcement_only(doc()) -> boolean().
 announcement_only(Doc) ->
@@ -162,7 +175,8 @@ set_media_unavailable(Doc, MediaUnavailable) ->
 
 -spec media_extension(doc()) -> binary().
 media_extension(Doc) ->
-    media_extension(Doc, <<"mp3">>).
+    AccountId = kz_doc:account_id(Doc),
+    media_extension(Doc, ?ACCOUNT_VM_EXTENSION(AccountId)).
 
 -spec media_extension(doc(), Default) -> binary() | Default.
 media_extension(Doc, Default) ->
@@ -226,7 +240,10 @@ notify_email_addresses(Doc) ->
 
 -spec notify_email_addresses(doc(), Default) -> kz_term:ne_binaries() | Default.
 notify_email_addresses(Doc, Default) ->
-    kz_json:get_list_value([<<"notify_email_addresses">>], Doc, Default).
+    case kz_json:get_list_value([<<"notify_email_addresses">>], Doc) of
+        'undefined' -> legacy_notify_email_address(Doc, Default);
+        Emails -> Emails
+    end.
 
 -spec set_notify_email_addresses(doc(), kz_term:ne_binaries()) -> doc().
 set_notify_email_addresses(Doc, NotifyEmailAddresses) ->
@@ -388,7 +405,11 @@ timezone(Doc) ->
 
 -spec timezone(doc(), Default) -> kz_term:ne_binary() | Default.
 timezone(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"timezone">>], Doc, Default).
+    case kz_json:get_ne_binary_value([<<"timezone">>], Doc) of
+        'undefined' -> owner_timezone(Doc, Default);
+        <<"inherit">> -> owner_timezone(Doc, Default);  %% UI-1808
+        TZ -> TZ
+    end.
 
 -spec set_timezone(doc(), kz_term:ne_binary()) -> doc().
 set_timezone(Doc, Timezone) ->
@@ -405,3 +426,40 @@ transcribe(Doc, Default) ->
 -spec set_transcribe(doc(), boolean()) -> doc().
 set_transcribe(Doc, Transcribe) ->
     kz_json:set_value([<<"transcribe">>], Transcribe, Doc).
+
+%%------------------------------------------------------------------------------
+%% @doc Returns the legacy notification email address or a specified default as
+%% a list.
+%% @end
+%%------------------------------------------------------------------------------
+-spec legacy_notify_email_address(doc(), Default) -> kz_term:ne_binaries() | Default.
+legacy_notify_email_address(Doc, Default) ->
+    case kz_json:get_value([<<"notify_email_address">>], Doc, Default) of
+        Email when is_binary(Email) -> [Email];
+        Emails when is_list(Emails) -> Emails;
+        _ -> []
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Returns the timezone for the owner of a vmbox, or the timezone inherited
+%% from its account, or a specified default.
+%% @end
+%%------------------------------------------------------------------------------
+-spec owner_timezone(doc(), Default) -> kz_term:ne_binary() | Default.
+owner_timezone(Doc, Default) ->
+    owner_timezone(Doc, Default, owner_id(Doc)).
+
+%%------------------------------------------------------------------------------
+%% @doc Returns the timezone for the owner of a vmbox, or the timezone inherited
+%% from its account, or a specified default.
+%% @end
+%%------------------------------------------------------------------------------
+-spec owner_timezone(doc(), Default, kz_term:api_ne_binary()) -> kz_term:ne_binary() | Default.
+owner_timezone(Doc, Default, 'undefined') ->
+    kzd_accounts:timezone(kz_doc:account_id(Doc), Default);
+owner_timezone(Doc, Default, OwnerId) ->
+    case kzd_users:fetch(kz_doc:account_db(Doc), OwnerId) of
+        {'ok', OwnerJObj} -> kzd_users:timezone(OwnerJObj, Default);
+        {'error', _} -> kzd_accounts:timezone(kz_doc:account_id(Doc), Default)
+    end.
+

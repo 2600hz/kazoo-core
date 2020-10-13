@@ -68,7 +68,7 @@
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
 
--type publish_fun() :: fun((kz_term:api_terms()) -> any()).
+-type publish_fun() :: fun((kz_term:api_terms()) -> any()) | fun(() -> 'ok').
 -type validate_fun() :: fun((kz_term:api_terms()) -> boolean()).
 
 -type collect_until_acc() :: any().
@@ -1043,10 +1043,9 @@ maybe_set_msg_id(Props) ->
             Props
     end.
 
--spec publish_api(fun(), kz_term:api_terms()) -> 'ok' | {'error', any()}.
+-spec publish_api(publish_fun(), kz_term:api_terms()) -> 'ok' | {'error', any()}.
 publish_api(PublishFun, _ReqProps)
   when is_function(PublishFun, 0) ->
-    lager:warning("FUNCTION ARITY 0"),
     try PublishFun() of
         'ok' -> 'ok';
         {'error', _E}=Err -> Err;
@@ -1054,15 +1053,15 @@ publish_api(PublishFun, _ReqProps)
             lager:error("publisher fun returned ~p instead of 'ok'", [Other]),
             {'error', Other}
     catch
-        ?STACKTRACE('error', 'badarg', ST)
-        lager:error("badarg error when publishing:"),
-        kz_log:log_stacktrace(ST),
-        {'error', 'badarg'};
-        ?STACKTRACE('error', 'function_clause', ST)
-        lager:error("function clause error when publishing:"),
-        kz_log:log_stacktrace(ST),
-        lager:error("pub fun: ~p", [PublishFun]),
-        {'error', 'function_clause'};
+        'error':'badarg':ST ->
+            lager:error("badarg error when publishing:"),
+            kz_log:log_stacktrace(ST),
+            {'error', 'badarg'};
+        'error':'function_clause':ST ->
+            lager:error("function clause error when publishing:"),
+            kz_log:log_stacktrace(ST),
+            lager:error("pub fun: ~p", [PublishFun]),
+            {'error', 'function_clause'};
         _E:R ->
             lager:error("error when publishing: ~s:~p", [_E, R]),
             {'error', R}
