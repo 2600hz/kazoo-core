@@ -173,6 +173,11 @@
         ,publish_customer_update/1
         ,publish_customer_update/2
         ]).
+-export([desktop_app_welcome/1
+        ,desktop_app_welcome_v/1
+        ,publish_desktop_app_welcome/1
+        ,publish_desktop_app_welcome/2
+        ]).
 -export([new_user/1
         ,new_user_v/1
         ,publish_new_user/1
@@ -1373,6 +1378,37 @@ customer_update_definition() ->
     kapi_definition:setters(Setters).
 
 %%------------------------------------------------------------------------------
+%% @doc Get Desktop App Welcome Notification API definition.
+%% @end
+%%------------------------------------------------------------------------------
+-spec desktop_app_welcome_definition() -> kapi_definition:api().
+desktop_app_welcome_definition() ->
+    EventName = <<"desktop_app_welcome">>,
+    Category = <<"user">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Customer Update">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"This event is triggered when the desktop app is enabled for a user">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun desktop_app_welcome/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun desktop_app_welcome_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_desktop_app_welcome/1}
+              ,{fun kapi_definition:set_binding/2, ?BINDING_STRING(Category, <<"desktop_app_welcome">>)}
+              ,{fun kapi_definition:set_restrict_to/2, 'desktop_app_welcome'}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
+                                                            ,<<"User-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Desktop-App-Name">>
+                                                            ,<<"Webphone-Enabled">>
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
+                                                            ]}
+              ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+%%------------------------------------------------------------------------------
 %% @doc Get New User Notification API definition.
 %% @end
 %%------------------------------------------------------------------------------
@@ -1769,6 +1805,7 @@ api_definitions() ->
     ,register_definition()
     ,system_alert_definition()
     ,customer_update_definition()
+    ,desktop_app_welcome_definition()
     ,new_user_definition()
     ,password_recovery_definition()
     ,voicemail_full_definition()
@@ -1850,6 +1887,8 @@ api_definition(<<"system_alert">>) ->
     system_alert_definition();
 api_definition(<<"customer_update">>) ->
     customer_update_definition();
+api_definition(<<"desktop_app_welcome">>) ->
+    desktop_app_welcome_definition();
 api_definition(<<"new_user">>) ->
     new_user_definition();
 api_definition(<<"password_recovery">>) ->
@@ -2853,6 +2892,31 @@ publish_customer_update(JObj) ->
 -spec publish_customer_update(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_customer_update(API, ContentType) ->
     Definition = customer_update_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Takes proplist, creates JSON string and publish it on AMQP.
+%% @end
+%%------------------------------------------------------------------------------
+-spec desktop_app_welcome(kz_term:api_terms()) -> api_formatter_return().
+desktop_app_welcome(Prop) ->
+    kapi_definition:build_message(Prop, desktop_app_welcome_definition()).
+
+-spec desktop_app_welcome_v(kz_term:api_terms()) -> boolean().
+desktop_app_welcome_v(Prop) ->
+    kapi_definition:validate(Prop, desktop_app_welcome_definition()).
+
+-spec publish_desktop_app_welcome(kz_term:api_terms()) -> 'ok'.
+publish_desktop_app_welcome(JObj) ->
+    publish_desktop_app_welcome(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_desktop_app_welcome(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_desktop_app_welcome(API, ContentType) ->
+    Definition = desktop_app_welcome_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(API
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
