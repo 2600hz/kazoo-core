@@ -1854,6 +1854,8 @@ api_definition(<<"new_user">>) ->
     new_user_definition();
 api_definition(<<"password_recovery">>) ->
     password_recovery_definition();
+api_definition(<<"voicemail_deleted">>) ->
+    voicemail_deleted_definition();
 api_definition(<<"voicemail_full">>) ->
     voicemail_full_definition();
 api_definition(<<"voicemail_new">>) ->
