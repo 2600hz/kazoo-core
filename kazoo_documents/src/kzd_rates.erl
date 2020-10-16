@@ -394,7 +394,7 @@ set_default_route(Rate, Prefix) ->
 
 -spec default_routes(doc() | integer() | kz_term:ne_binary()) -> kz_term:ne_binaries().
 default_routes(<<Prefix/binary>>) ->
-    [<<"^\\+?", Prefix/binary, ".+\$">>];
+    [<<"^\\+", Prefix/binary, "(\\d*)$">>];
 default_routes(Prefix) when is_integer(Prefix) ->
     default_routes(kz_term:to_binary(Prefix));
 default_routes(Rate) ->
