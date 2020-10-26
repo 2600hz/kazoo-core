@@ -303,6 +303,8 @@ from_json(JObj) ->
     Fs = [fun set_type/1
          ,fun ensure_id/1
          ,fun maybe_fix_direction/1
+         ,fun set_pvt_rate_cost/1
+         ,fun clean_internal_surcharge/1
          ],
     lists:foldl(fun(F, R) -> F(R) end, Rate, Fs).
 
@@ -342,6 +344,27 @@ type(Doc) -> kz_doc:type(Doc, type()).
 
 -spec set_type(doc()) -> doc().
 set_type(Doc) -> kz_doc:set_type(Doc, type()).
+
+-spec set_pvt_rate_cost (doc()) -> doc().
+set_pvt_rate_cost(Rate) ->
+    case kz_json:get_value(<<"internal_rate_cost">>, Rate) of
+        'undefined' -> Rate;
+        Value->
+            kz_json:set_values([{<<"pvt_rate_cost">>, Value}
+                               ,{<<"internal_rate_cost">>, 'null'}
+                               ]
+                              ,Rate
+                              )
+    end.
+
+-spec clean_internal_surcharge (doc()) -> doc().
+clean_internal_surcharge(Rate) ->
+    case kz_json:get_float_value(<<"internal_surcharge">>, Rate) of
+        'undefined' -> Rate;
+        Value->
+            NewRate = set_private_surcharge(Rate,Value),
+            kz_json:set_value(<<"internal_surcharge">>, 'null', NewRate)
+    end.
 
 -spec rate_suffix(doc()) -> kz_term:ne_binary().
 rate_suffix(Rate) ->
@@ -394,7 +417,7 @@ set_default_route(Rate, Prefix) ->
 
 -spec default_routes(doc() | integer() | kz_term:ne_binary()) -> kz_term:ne_binaries().
 default_routes(<<Prefix/binary>>) ->
-    [<<"^\\+", Prefix/binary, "(\\d*)$">>];
+    [<<"^\\+", Prefix/binary, "(\\d*)\$">>];
 default_routes(Prefix) when is_integer(Prefix) ->
     default_routes(kz_term:to_binary(Prefix));
 default_routes(Rate) ->
