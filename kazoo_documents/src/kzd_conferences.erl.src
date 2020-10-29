@@ -6,6 +6,7 @@
 -module(kzd_conferences).
 
 -export([new/0]).
+-export([allow_shareable_link/1, allow_shareable_link/2, set_allow_shareable_link/2]).
 -export([bridge_password/1, bridge_password/2, set_bridge_password/2]).
 -export([bridge_username/1, bridge_username/2, set_bridge_username/2]).
 -export([caller_controls/1, caller_controls/2, set_caller_controls/2]).
@@ -51,6 +52,18 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec allow_shareable_link(doc()) -> boolean().
+allow_shareable_link(Doc) ->
+    allow_shareable_link(Doc, false).
+
+-spec allow_shareable_link(doc(), Default) -> boolean() | Default.
+allow_shareable_link(Doc, Default) ->
+    kz_json:get_boolean_value([<<"allow_shareable_link">>], Doc, Default).
+
+-spec set_allow_shareable_link(doc(), boolean()) -> doc().
+set_allow_shareable_link(Doc, AllowShareableLink) ->
+    kz_json:set_value([<<"allow_shareable_link">>], AllowShareableLink, Doc).
 
 -spec bridge_password(doc()) -> kz_term:api_binary().
 bridge_password(Doc) ->

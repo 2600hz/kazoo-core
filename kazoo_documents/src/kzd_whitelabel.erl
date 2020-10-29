@@ -11,6 +11,7 @@
 
 -export([new/0]).
 -export([company_name/1, company_name/2, set_company_name/2]).
+-export([conference_public_domain/1, conference_public_domain/2, set_conference_public_domain/2]).
 -export([domain/1, domain/2, set_domain/2]).
 -export([fake_api_url/1, fake_api_url/2, set_fake_api_url/2]).
 -export([hide_credits/1, hide_credits/2, set_hide_credits/2]).
@@ -57,6 +58,18 @@ company_name(Doc, Default) ->
 -spec set_company_name(doc(), binary()) -> doc().
 set_company_name(Doc, CompanyName) ->
     kz_json:set_value([<<"company_name">>], CompanyName, Doc).
+
+-spec conference_public_domain(doc()) -> kz_term:api_binary().
+conference_public_domain(Doc) ->
+    conference_public_domain(Doc, 'undefined').
+
+-spec conference_public_domain(doc(), Default) -> binary() | Default.
+conference_public_domain(Doc, Default) ->
+    kz_json:get_binary_value([<<"conference_public_domain">>], Doc, Default).
+
+-spec set_conference_public_domain(doc(), binary()) -> doc().
+set_conference_public_domain(Doc, ConferencePublicDomain) ->
+    kz_json:set_value([<<"conference_public_domain">>], ConferencePublicDomain, Doc).
 
 -spec domain(doc()) -> kz_term:api_binary().
 domain(Doc) ->
