@@ -183,7 +183,8 @@ unsafe_decode(Thing) when is_list(Thing);
 
 -spec unsafe_decode(iolist() | kz_term:ne_binary(), decode_options()) -> json_term().
 unsafe_decode(JSON, Options) ->
-    try jiffy:decode(JSON, lists:merge(?DECODE_OPTIONS, Options))
+    JIFFY = lists:merge(?DECODE_OPTIONS, props:delete('default', Options)),
+    try jiffy:decode(JSON, JIFFY)
     catch
         'throw':{'error',{_Loc, 'invalid_string'}}=Error ->
             lager:debug("invalid string(near char ~p) in input, checking for unicode", [_Loc]),

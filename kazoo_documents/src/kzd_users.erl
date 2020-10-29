@@ -1272,7 +1272,8 @@ maybe_rehash_creds(AccountId, UserId, {Doc, []}=ValidateAcc) ->
     case
         {Username =:= CurrentUsername
         ,kz_term:is_empty(Username)
-        ,kz_term:is_empty(Password)}
+        ,kz_term:is_empty(Password)
+        }
     of
         {'false', 'false', 'false'} ->
             lager:debug("requested different username (new: ~s current: ~s) with a password"
