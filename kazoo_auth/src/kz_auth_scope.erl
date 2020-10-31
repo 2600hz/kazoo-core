@@ -25,7 +25,7 @@
 -define(SCOPE_SEP, <<" ">>).
 -define(SCOPES_KEY, <<"scopes">>).
 -define(SCOPES_CAT, <<"system_auth">>).
--define(SCOPES_LIST, <<"scopes/list_by_scope_id">>).
+-define(SCOPES_LIST, <<"scopes/crossbar_listing">>).
 
 -type jwt() :: map().
 -type token() :: jwt() | kz_term:ne_binary() | 'undefined'.
@@ -126,9 +126,9 @@ maybe_flatten_scopes(Scopes) ->
 %% @end
 %%------------------------------------------------------------------------------
 flatten_scopes_fold(JObj, Acc) ->
-    ScopeId = kz_json:get_list_value([<<"key">>], JObj, []),
+    ScopeId = kz_json:get_ne_binary_value([<<"key">>], JObj),
     Doc = kz_json:get_json_value([<<"doc">>], JObj, []),
-    maybe_explode_scopes(ScopeId, Doc, [ScopeId | Acc]).
+    maybe_explode_scopes(ScopeId, Doc, Acc).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -138,7 +138,7 @@ maybe_explode_scopes(_ScopeId, 'null', Acc) -> Acc;
 maybe_explode_scopes(_ScopeId, [], Acc) ->  Acc;
 maybe_explode_scopes(ScopeId, Doc, Acc) ->
     Scopes = kz_json:get_list_value([?SCOPES_KEY], Doc, []),
-    lists:map(fun(S) -> lists:append(ScopeId, [S]) end, Scopes) ++ Acc.
+    [{ScopeId, Scopes} | Acc].
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -153,6 +153,7 @@ scopes(Token) ->
     Routines = [fun init_scopes/1
                ,fun from_claim/1
                ,fun resolve_scopes/1
+               ,fun explode_scopes/1
                ],
     #{scopes := Scopes} = kz_maps:exec(Routines, Token),
     Scopes.
@@ -177,26 +178,42 @@ from_claim(#{scopes := Scopes
 from_claim(Token) -> Token.
 
 %%------------------------------------------------------------------------------
-%% @doc Extracts scope claim from token
+%% @doc Explode Token Scopes
+%% Transforms "a:b" into ["a", "a:b"]
+%% @end
+%%------------------------------------------------------------------------------
+-spec explode_scopes(jwt()) -> jwt().
+explode_scopes(#{scopes := Scopes} = Token) ->
+    NewScopes = lists:foldl(fun explode_scopes_fold/2, [], Scopes),
+    Token#{scopes => NewScopes}.
+
+explode_scopes_fold(Scope, Acc) ->
+    Acc ++ lists:foldl(fun explode_scope_fold/2, [], to_list(Scope, ?SCOPE_DELIM)).
+
+explode_scope_fold(Scope, Acc) ->
+    Acc ++ [kz_binary:join(Acc ++ [Scope], <<":">>)].
+
+%%------------------------------------------------------------------------------
+%% @doc Resolves superset scopes
 %% @end
 %%------------------------------------------------------------------------------
 -spec resolve_scopes(jwt()) -> kz_term:ne_binaries().
 resolve_scopes(#{scopes := Scopes}=Token) ->
     Available = available_scopes(),
-    NewScopes = maybe_merge_scopes(Available, to_list(Scopes)),
-    Token#{scopes => NewScopes}.
+    Resolved = resolve_scopes(Scopes, Available),
+    Token#{scopes => lists:usort(Scopes ++ Resolved)}.
+
+-spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist()) -> kz_term:ne_binaries().
+resolve_scopes(Scopes, Available) ->
+    {NewScopes, _} = lists:mapfoldl(fun resolve_scopes_fold/2, Available, Scopes),
+    lists:flatten(NewScopes).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
-maybe_merge_scopes(Available, Requested)
-  when is_list(Available)
-       andalso is_list(Requested) ->
-    Merged = sets:intersection(sets:from_list(Available)
-                              ,sets:from_list(Requested)
-                              ),
-    sets:to_list(Merged).
+resolve_scopes_fold(Scope, Available) ->
+    {props:get_value(Scope, Available, []), Available}.
 
 %%------------------------------------------------------------------------------
 %% @doc Extract scope binary into list of subscopes
@@ -206,7 +223,7 @@ maybe_merge_scopes(Available, Requested)
 to_list(ScopeBin)
   when is_binary(ScopeBin) ->
     Scopes = to_list(ScopeBin, ?SCOPE_SEP),
-    to_list(Scopes);
+    lists:flatten(to_list(Scopes));
 to_list(ScopeList) ->
     Fun = fun(S) ->
                   to_list(S, ?SCOPE_DELIM)
