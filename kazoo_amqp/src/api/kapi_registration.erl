@@ -38,6 +38,19 @@
         ,publish_flush/1
         ,publish_flush/2
         ]).
+-export([search_req/1
+        ,search_req_v/1
+        ,publish_search_req/1
+        ]).
+-export([search_partial_resp/1
+        ,search_partial_resp_v/1
+        ,publish_search_partial_resp/2
+        ,publish_search_partial_resp/3
+        ]).
+-export([search_resp/1
+        ,search_resp_v/1
+        ,publish_search_resp/2
+        ]).
 -export([sync/1
         ,sync_v/1
         ,publish_sync/1
@@ -76,6 +89,9 @@ api_definitions() ->
     ,query_resp_definition()
     ,query_err_definition()
     ,flush_definition()
+    ,search_partial_resp_definition()
+    ,search_req_definition()
+    ,search_resp_definition()
     ,sync_definition()
     ].
 
@@ -97,6 +113,12 @@ api_definition(<<"query_err">>) ->
     query_err_definition();
 api_definition(<<"flush">>) ->
     flush_definition();
+api_definition(<<"search_partial_resp">>) ->
+    search_partial_resp_definition();
+api_definition(<<"search_req">>) ->
+    search_req_definition();
+api_definition(<<"search_resp">>) ->
+    search_resp_definition();
 api_definition(<<"sync">>) ->
     sync_definition().
 
@@ -257,6 +279,78 @@ flush_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Realm">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Username">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec search_partial_resp_definition() -> kapi_definition:api().
+search_partial_resp_definition() ->
+    EventName = <<"search_partial_resp">>,
+    Category = <<"registration">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Registration Search Partial Response">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Registration partial response for active registrations">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun search_partial_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun search_partial_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_search_partial_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, []}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Registrations">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec search_req_definition() -> kapi_definition:api().
+search_req_definition() ->
+    EventName = <<"search_req">>,
+    Category = <<"registration">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Registration Search Request">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Search request for active registrations">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun search_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun search_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_search_req/1}
+              ,{fun kapi_definition:set_binding/2, fun search_req_routing_key/1}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Realm">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Search-Type">>
+                                                            ,<<"Username">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec search_resp_definition() -> kapi_definition:api().
+search_resp_definition() ->
+    EventName = <<"search_resp">>,
+    Category = <<"registration">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Registration Search Response">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Search response for active registrations">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun search_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun search_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_search_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, []}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Registrations">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
@@ -426,6 +520,84 @@ publish_flush(API, ContentType) ->
                                   ).
 
 %%------------------------------------------------------------------------------
+%% @doc Search partial response for active registrations.
+%% @end
+%%------------------------------------------------------------------------------
+-spec search_partial_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+search_partial_resp(Req) ->
+    kapi_definition:build_message(Req, search_partial_resp_definition()).
+
+-spec search_partial_resp_v(kz_term:api_terms()) -> boolean().
+search_partial_resp_v(Req) ->
+    kapi_definition:validate(Req, search_partial_resp_definition()).
+
+-spec publish_search_partial_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_search_partial_resp(Queue, JObj) ->
+    publish_search_partial_resp(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_search_partial_resp(kz_term:ne_binary(), kz_term:api_terms(), binary()) -> 'ok'.
+publish_search_partial_resp(Queue, Resp, ContentType) ->
+    Definition = search_partial_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Resp
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Search request for active registrations.
+%% @end
+%%------------------------------------------------------------------------------
+-spec search_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+search_req(Req) ->
+    kapi_definition:build_message(Req, search_req_definition()).
+
+-spec search_req_v(kz_term:api_terms()) -> boolean().
+search_req_v(Req) ->
+    kapi_definition:validate(Req, search_req_definition()).
+
+-spec publish_search_req(kz_term:api_terms()) -> 'ok'.
+publish_search_req(JObj) ->
+    publish_search_req(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_search_req(kz_term:api_terms(), binary()) -> 'ok'.
+publish_search_req(Req, ContentType) ->
+    Definition = search_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:registrar_publish((kapi_definition:binding(Definition))(Req)
+                                  ,Payload
+                                  ,ContentType
+                                  ).
+
+%%------------------------------------------------------------------------------
+%% @doc Search response for active registrations.
+%% @end
+%%------------------------------------------------------------------------------
+-spec search_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+search_resp(Req) ->
+    kapi_definition:build_message(Req, search_resp_definition()).
+
+-spec search_resp_v(kz_term:api_terms()) -> boolean().
+search_resp_v(Req) ->
+    kapi_definition:validate(Req, search_resp_definition()).
+
+-spec publish_search_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_search_resp(Queue, JObj) ->
+    publish_search_resp(Queue, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_search_resp(kz_term:ne_binary(), kz_term:api_terms(), binary()) -> 'ok'.
+publish_search_resp(Queue, Resp, ContentType) ->
+    Definition = search_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Resp
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
+
+%%------------------------------------------------------------------------------
 %% @doc Registration Sync
 %% Takes proplist, creates JSON string or error.
 %% @end
@@ -475,6 +647,9 @@ bind_q(Q, ['reg_flush'|T], Props) ->
     Realm = props:get_value('realm', Props, <<"*">>),
     _ = kz_amqp_util:bind_q_to_registrar(Q, (kapi_definition:binding(flush_definition()))(Realm)),
     bind_q(Q, T, Props);
+bind_q(Q, ['search_req'|T], Props) ->
+    _ = kz_amqp_util:bind_q_to_registrar(Q, (kapi_definition:binding(search_req_definition()))(Props)),
+    bind_q(Q, T, Props);
 bind_q(Q, [_|T], Props) -> bind_q(Q, T, Props);
 bind_q(_, [], _) -> 'ok'.
 
@@ -496,6 +671,9 @@ unbind_q(Q, ['reg_flush'|T], Props) ->
     _ = kz_amqp_util:unbind_q_from_registrar(Q
                                             ,(kapi_definition:binding(flush_definition()))(Realm)
                                             ),
+    unbind_q(Q, T, Props);
+unbind_q(Q, ['search_req'|T], Props) ->
+    'ok' = kz_amqp_util:unbind_q_from_registrar(Q, (kapi_definition:binding(search_req_definition()))(Props)),
     unbind_q(Q, T, Props);
 unbind_q(Q, [_|T], Props) -> unbind_q(Q, T, Props);
 unbind_q(_, [], _) -> 'ok'.
@@ -548,6 +726,15 @@ get_query_routing(Realm, User) ->
                    ,kz_amqp_util:encode(Realm)
                    ,".", kz_amqp_util:encode(User)
                    ]).
+
+-spec search_req_routing_key(kz_term:api_terms()) -> kz_term:ne_binary().
+search_req_routing_key(Prop) when is_list(Prop) ->
+    search_req_routing_key1(props:get_value(<<"Realm">>, Prop));
+search_req_routing_key(JObj) ->
+    search_req_routing_key1(kz_json:get_value(<<"Realm">>, JObj)).
+
+search_req_routing_key1(Realm) ->
+    list_to_binary([<<"registration.search_req.">>, kz_amqp_util:encode(Realm)]).
 
 %%------------------------------------------------------------------------------
 %% @doc Allow Queues to be bound for specific realms, and even users within those realms.

@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.registration.search_resp",
+    "description": "AMQP API for registration.search_resp",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "registration"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "search_resp"
+            ]
+        },
+        "Registrations": {
+            "type": "string"
+        }
+    },
+    "type": "object"
+}
