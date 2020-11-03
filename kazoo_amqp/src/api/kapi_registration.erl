@@ -791,15 +791,31 @@ search_realm_regs(AccountRealm, SearchType, Username) ->
             ,{<<"Username">>, Username}
             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
             ]),
+    NodeCounts = kz_nodes:node_role_count(<<"Registrar">>, 'true'),
+    lager:debug("requesting registration ~s from ~B servers", [SearchType, NodeCounts]),
     case kz_amqp_worker:call_collect(Req
                                     ,fun publish_search_req/1
-                                    ,fun search_resp_v/1
+                                    ,{fun collect_results/2, {0, NodeCounts}}
                                     )
     of
         {'error', _R}=Err -> Err;
         {'ok', Registrations} -> process_responses(Registrations);
         {'timeout', Registrations} -> process_responses(Registrations)
     end.
+
+-type collect_params() :: {integer(), integer()}.
+-type collect_result() :: 'true' | {'false', collect_params()}.
+
+-spec collect_results(kz_json:objects(), collect_params()) -> collect_result().
+collect_results([Response | _], {Count, Max}) ->
+    case Count + search_resp_value(kz_api:event_name(Response)) of
+        Max -> 'true';
+        V -> {'false', {V, Max}}
+    end.
+
+-spec search_resp_value(kz_term:ne_binary()) -> 0..1.
+search_resp_value(<<"search_resp">>) -> 1;
+search_resp_value(_) -> 0.
 
 -spec process_responses(kz_json:objects()) ->
           kz_term:ne_binaries() | kz_term:objects().
