@@ -62,6 +62,8 @@
 
 -export([success_keys/0]).
 
+-export([search_realm_regs/1, search_realm_regs/2, search_realm_regs/3]).
+
 -include("kz_amqp_util.hrl").
 
 -ifdef(TEST).
@@ -325,12 +327,17 @@ search_req_definition() ->
               ,{fun kapi_definition:set_publish_fun/2, fun publish_search_req/1}
               ,{fun kapi_definition:set_binding/2, fun search_req_routing_key/1}
               ,{fun kapi_definition:set_required_headers/2, [<<"Realm">>
+                                                            ,<<"Search-Type">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Search-Type">>
-                                                            ,<<"Username">>
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Username">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
-               ,kapi_definition:event_type_headers(Category, EventName)
+               ,[{<<"Search-Type">>, [<<"detail">>
+                                     ,<<"summary">>
+                                     ]
+                 }
+                |kapi_definition:event_type_headers(Category, EventName)
+                ]
                }
               ,{fun kapi_definition:set_types/2, []}
               ],
@@ -760,3 +767,51 @@ get_flush_routing(Prop) when is_list(Prop) ->
     get_flush_routing(props:get_value(<<"Realm">>, Prop));
 get_flush_routing(JObj) ->
     get_flush_routing(kz_json:get_value(<<"Realm">>, JObj)).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec search_realm_regs(Realm::kz_term:ne_binary()) ->
+          kz_term:ne_binaries() | kz_term:objects().
+search_realm_regs(AccountRealm) ->
+    search_realm_regs(AccountRealm, <<"summary">>).
+
+-spec search_realm_regs(Realm::kz_term:ne_binary(), SearchType::kz_term:ne_binary()) ->
+          kz_term:ne_binaries() | kz_term:objects().
+search_realm_regs(AccountRealm, SearchType) ->
+    search_realm_regs(AccountRealm, SearchType, 'undefined').
+
+-spec search_realm_regs(Realm::kz_term:ne_binary(), SearchType::kz_term:ne_binary(), Username::kz_term:api_ne_binary()) ->
+          kz_term:ne_binaries() | kz_term:objects().
+search_realm_regs(AccountRealm, SearchType, Username) ->
+    Req = props:filter_undefined(
+            [{<<"Realm">>, AccountRealm}
+            ,{<<"Search-Type">>, SearchType}
+            ,{<<"Username">>, Username}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+            ]),
+    case kz_amqp_worker:call_collect(Req
+                                    ,fun publish_search_req/1
+                                    ,fun search_resp_v/1
+                                    )
+    of
+        {'error', _R}=Err -> Err;
+        {'ok', Registrations} -> process_responses(Registrations);
+        {'timeout', Registrations} -> process_responses(Registrations)
+    end.
+
+-spec process_responses(kz_json:objects()) ->
+          kz_term:ne_binaries() | kz_term:objects().
+process_responses(JObjs) ->
+    lists:usort(
+      lists:foldl(fun(JObj, Acc) ->
+                          case kz_json:get_list_value(<<"Registrations">>, JObj) of
+                              'undefined' -> Acc;
+                              Registrations -> Registrations ++ Acc
+                          end
+                  end
+                 ,[]
+                 ,JObjs
+                 )
+     ).

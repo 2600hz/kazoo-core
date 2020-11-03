@@ -17,6 +17,10 @@
             "type": "string"
         },
         "Search-Type": {
+            "enum": [
+                "detail",
+                "summary"
+            ],
             "type": "string"
         },
         "Username": {
@@ -24,7 +28,8 @@
         }
     },
     "required": [
-        "Realm"
+        "Realm",
+        "Search-Type"
     ],
     "type": "object"
 }
