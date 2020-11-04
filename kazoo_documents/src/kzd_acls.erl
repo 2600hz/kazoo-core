@@ -27,15 +27,18 @@
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
--spec cidr(doc()) -> kz_term:api_binary().
+-spec cidr(doc()) -> binary() | [binary()] | undefined.
 cidr(Doc) ->
-    cidr(Doc, 'undefined').
+    cidr(Doc, undefined).
 
--spec cidr(doc(), Default) -> binary() | Default.
+-spec cidr(doc(), Default) -> binary() | [binary()] | Default.
 cidr(Doc, Default) ->
-    kz_json:get_binary_value([<<"cidr">>], Doc, Default).
+    case kz_json:get_binary_value([<<"cidr">>], Doc, Default) of
+        Default -> kz_json:get_list_value([<<"cidr">>], Doc, Default);
+        Value -> Value
+    end.
 
--spec set_cidr(doc(), binary()) -> doc().
+-spec set_cidr(doc(), binary() | [binary()]) -> doc().
 set_cidr(Doc, Cidr) ->
     kz_json:set_value([<<"cidr">>], Cidr, Doc).
 
