@@ -21,24 +21,27 @@
 -type doc() :: kz_json:object().
 -export_type([doc/0]).
 
+-type cidr() :: kz_term:ne_binary() | kz_term:ne_binaries().
+-export_type([cidr/0]).
+
 -define(SCHEMA, <<"acls">>).
 
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
--spec cidr(doc()) -> binary() | [binary()] | undefined.
+-spec cidr(doc()) -> cidr() | undefined.
 cidr(Doc) ->
     cidr(Doc, undefined).
 
--spec cidr(doc(), Default) -> binary() | [binary()] | Default.
+-spec cidr(doc(), Default) -> cidr() | Default.
 cidr(Doc, Default) ->
-    case kz_json:get_binary_value([<<"cidr">>], Doc, Default) of
-        Default -> kz_json:get_list_value([<<"cidr">>], Doc, Default);
+    case kz_json:get_ne_binaries(<<"cidr">>, Doc, Default) of
+        Default -> kz_json:get_ne_binary_value(<<"cidr">>, Doc, Default);
         Value -> Value
     end.
 
--spec set_cidr(doc(), binary() | [binary()]) -> doc().
+-spec set_cidr(doc(), cidr()) -> doc().
 set_cidr(Doc, Cidr) ->
     kz_json:set_value([<<"cidr">>], Cidr, Doc).
 
