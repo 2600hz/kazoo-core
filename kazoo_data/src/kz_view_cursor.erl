@@ -92,7 +92,7 @@
              ,user_fold_ret/0
              ]).
 
--callback bookmark(Cursor::cursor()) -> kz_view:any().
+-callback bookmark(Cursor::cursor()) -> any().
 -callback count(Cursor::cursor()) -> kz_either:either(kz_view:error(), non_neg_integer()).
 -callback next_batch(Cursor::cursor(), Limit::kz_view:limit()) -> result().
 
@@ -237,7 +237,7 @@ foreach_batch(Fun, #{'batch_size' := BatchSize}=Cursor) ->
 is_exhausted(Cursor) -> get_is_exhausted(Cursor).
 
 %% maybe use record?
--spec is_cursor(Cursor::cursor() | kz_view:boolean()) -> boolean().
+-spec is_cursor(Cursor::cursor() | boolean()) -> boolean().
 is_cursor(#{bookmark := _}) -> 'true';
 is_cursor(_) -> 'false'.
 
@@ -358,9 +358,9 @@ get_batch_size(#{batch_size := Value}) -> Value.
 -spec set_batch_size(Cursor::cursor(), BatchSize::kz_view:limit()) -> Cursor::cursor().
 set_batch_size(Cursor, Value) -> Cursor#{batch_size => Value}.
 
--spec get_bookmark(Cursor::cursor()) -> Bookmark::kz_view:boolean().
+-spec get_bookmark(Cursor::cursor()) -> Bookmark::kz_view:bookmark().
 get_bookmark(#{cursor_module := Mod}=Cursor) -> Mod:bookmark(Cursor).
--spec set_bookmark(Cursor::cursor(), Bookmark::kz_view:boolean()) -> Cursor::cursor().
+-spec set_bookmark(Cursor::cursor(), Bookmark::kz_view:bookmark()) -> Cursor::cursor().
 set_bookmark(Cursor, Bookmark) -> Cursor#{bookmark => Bookmark}.
 
 -spec get_databases(Cursor::cursor()) -> kz_term:ne_binaries().

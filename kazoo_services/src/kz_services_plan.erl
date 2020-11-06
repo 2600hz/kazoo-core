@@ -345,7 +345,8 @@ create(VendorId, PlanId, PJObj) ->
               ],
     setters(Setters).
 
--spec maybe_ensure_bookkeeper_vendor(kzd_service_plan:doc(), kz_term:ne_binary()) -> kzd_service_plan:plan().
+-spec maybe_ensure_bookkeeper_vendor(kzd_service_plan:doc(), kz_term:ne_binary()) ->
+          kzd_service_plan:doc().
 maybe_ensure_bookkeeper_vendor(PlanJObj, VendorId) ->
     case kz_term:is_not_empty(kzd_service_plan:bookkeeper(PlanJObj))
         andalso kz_term:is_empty(kzd_service_plan:bookkeeper_vendor_id(PlanJObj))

@@ -67,7 +67,7 @@ start_link() ->
 %%------------------------------------------------------------------------------
 -spec handle_query(kz_json:object(), kz_term:proplist()) -> 'ok'.
 handle_query(JObj, _Props) ->
-    true = kapi_keys:query_v(JObj),
+    'true' = kapi_keys:query_v(JObj),
     Node = kz_api:node(JObj),
     IssuerRequested = kapi_keys:request_issuer(JObj),
     lager:info("received jwt.keys query from ~s : ~s", [Node, IssuerRequested]),
@@ -132,8 +132,8 @@ handle_event(_JObj, _State) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec terminate(any(), any()) -> 'ok'.
-terminate(_Reason, _) ->
+-spec terminate(any(), state()) -> 'ok'.
+terminate(_Reason, _State) ->
     lager:debug("kazoo auth shared queue server ~p termination", [_Reason]).
 
 %%------------------------------------------------------------------------------
@@ -157,31 +157,32 @@ fetch_keys() ->
     PublicKey = kz_auth_keys:public_key(KeyId),
     [{KeyId, kz_auth_keys:to_pem(PublicKey, 'export')}].
 
-fetch_node_key(_Node, false) -> undefined;
-fetch_node_key(Node, true) ->
+fetch_node_key(_Node, 'false') -> 'undefined';
+fetch_node_key(Node, 'true') ->
     Query = list_to_binary(["metadata.node eq \"", Node, "\""]),
     case kz_auth_keys:search(Query) of
-        {ok, []} ->
+        {'ok', []} ->
             create_node_key(Node);
-        {ok, [{KeyId, PrivateKey}]} ->
+        {'ok', [{KeyId, PrivateKey}]} ->
             node_key(Node, KeyId, PrivateKey);
-        {ok, [{KeyId, PrivateKey} | _]} ->
+        {'ok', [{KeyId, PrivateKey} | _]} ->
             lager:warning("node ~s has multiple issuer keys, returning first"),
             node_key(Node, KeyId, PrivateKey);
-        {error, _Error} ->
+        {'error', _Error} ->
             lager:warning("error querying jwt keys => ~p", [_Error]),
-            undefined
+            'undefined'
     end.
 
 create_node_key(Node) ->
     KeyData = [{<<"node">>, Node}],
     Metadata = [{<<"metadata">>, kz_json:from_list(KeyData)}],
     KeyId = kz_binary:rand_hex(16),
-    {ok, PrivateKey} = kz_auth_keys:gen_private_key(),
-    {ok, PrivateKey} = kz_auth_keys:new_private_key(KeyId, PrivateKey, Metadata),
+    {'ok', PrivateKey} = kz_auth_keys:gen_private_key(),
+    {'ok', PrivateKey} = kz_auth_keys:new_private_key(KeyId, PrivateKey, Metadata),
     node_key(Node, KeyId, PrivateKey).
 
--spec node_key(kz_term:ne_binary(), kz_term:ne_binary(), kz_auth_keys:rsa_key()) -> kz_json:object().
+-spec node_key(kz_term:ne_binary(), kz_term:ne_binary(), public_key:private_key()) ->
+          kz_json:object().
 node_key(Node, KeyId, PrivateKey) ->
     PublicKey = kz_auth_keys:get_public_key_from_private_key(PrivateKey),
     PEM = [{<<"id">>, KeyId}

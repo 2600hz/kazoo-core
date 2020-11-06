@@ -549,7 +549,7 @@ is_inter_account(#kapps_im{}=Im) ->
 inter_account_id(#kapps_im{}=Im) ->
     custom_var(<<"Inception-Account-ID">>, Im).
 
--spec to_payload(im()) -> kz_types:api_terms().
+-spec to_payload(im()) -> kz_term:api_terms().
 to_payload(IM) ->
     [{<<"Message-ID">>, message_id(IM)}
     ,{<<"Body">>, body(IM)}

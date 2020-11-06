@@ -133,7 +133,7 @@ create_proposed_invoices(Services) ->
 create_invoices(Services, Plans) ->
     kz_services_plans:foldl(create_invoices_foldl(Services), empty(), Plans).
 
--spec create_invoices_foldl(kz_services:services()) -> kz_services_plans:foldl_fun().
+-spec create_invoices_foldl(kz_services:services()) -> kz_services_plans:fold_fun().
 create_invoices_foldl(Services) ->
     fun(BookkeeperHash, PlansList, Invoices) ->
             Plan = kz_services_plans:merge(PlansList),

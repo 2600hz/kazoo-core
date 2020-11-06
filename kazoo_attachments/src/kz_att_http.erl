@@ -118,7 +118,7 @@ fields(_Settings) -> kz_att_util:default_format_url_fields().
                     ,gen_attachment:db_name()
                     ,gen_attachment:doc_id()
                     ,gen_attachment:att_name()
-                    ) -> gen_attachment:fetch_response().
+                    ) -> binary().
 attachment_url(HandlerProps, DbName, DocId, AName) ->
     BaseUrlParam = kz_json:get_ne_binary_value(<<"url">>, HandlerProps),
     HProps = handler_props_map(HandlerProps),
@@ -154,6 +154,7 @@ handler_props_map(HandlerProps) ->
         _ -> #{}
     end.
 
+-spec join_url_and_querystring(kz_term:ne_binary() | kz_http_util:split_url(), iodata()) -> binary().
 join_url_and_querystring(<<URL/binary>>, QS) ->
     join_url_and_querystring(kz_http_util:urlsplit(URL), QS);
 join_url_and_querystring({Scheme, Location, Path, <<>>, Frag}, QS) ->
@@ -265,7 +266,7 @@ fetch_attachment(Url, Redirects, Debug) ->
         Resp -> {'error', Url, Resp}
     end.
 
--spec handle_http_error_response(kz_http:req(), kz_att_error:update_routines()) -> kz_att_error:error().
+-spec handle_http_error_response(kz_http:ret(), kz_att_error:update_routines()) -> kz_att_error:error().
 handle_http_error_response({'ok', RespCode, RespHeaders, RespBody} = _E, Routines) ->
     Reason = kz_http_util:http_code_to_status_line(RespCode),
     NewRoutines = [{fun kz_att_error:set_resp_code/2, RespCode}

@@ -773,17 +773,17 @@ get_flush_routing(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec search_realm_regs(Realm::kz_term:ne_binary()) ->
-          kz_term:ne_binaries() | kz_term:objects().
+          kz_term:ne_binaries() | kz_json:objects().
 search_realm_regs(AccountRealm) ->
     search_realm_regs(AccountRealm, <<"summary">>).
 
 -spec search_realm_regs(Realm::kz_term:ne_binary(), SearchType::kz_term:ne_binary()) ->
-          kz_term:ne_binaries() | kz_term:objects().
+          kz_term:ne_binaries() | kz_json:objects().
 search_realm_regs(AccountRealm, SearchType) ->
     search_realm_regs(AccountRealm, SearchType, 'undefined').
 
 -spec search_realm_regs(Realm::kz_term:ne_binary(), SearchType::kz_term:ne_binary(), Username::kz_term:api_ne_binary()) ->
-          kz_term:ne_binaries() | kz_term:objects().
+          kz_term:ne_binaries() | kz_json:objects().
 search_realm_regs(AccountRealm, SearchType, Username) ->
     Req = props:filter_undefined(
             [{<<"Realm">>, AccountRealm}
@@ -818,7 +818,7 @@ search_resp_value(<<"search_resp">>) -> 1;
 search_resp_value(_) -> 0.
 
 -spec process_responses(kz_json:objects()) ->
-          kz_term:ne_binaries() | kz_term:objects().
+          kz_term:ne_binaries() | kz_json:objects().
 process_responses(JObjs) ->
     lists:usort(
       lists:foldl(fun(JObj, Acc) ->

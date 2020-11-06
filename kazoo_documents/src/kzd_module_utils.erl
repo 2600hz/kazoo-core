@@ -83,10 +83,10 @@ pass_hashes(Username, Password) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec validate_schema(kz_term:ne_binary() | kzd_schema:doc()
-                     ,doc_validation_acc()
-                     ,doc_validation_after_fun()
+                     ,kazoo_documents:doc_validation_acc()
+                     ,kazoo_documents:doc_validation_after_fun()
                      ) ->
-          doc_validation_acc().
+          kazoo_documents:doc_validation_acc().
 validate_schema(<<Schema/binary>>, {Doc, ValidationErrors}, OnSuccess) ->
     lager:debug("validating payload against schema ~s", [Schema]),
     SchemaRequired = ?SHOULD_ENSURE_SCHEMA_IS_VALID,
@@ -126,8 +126,8 @@ validate_schema(SchemaJObj, {Doc, ValidationErrors}, OnSuccess) ->
 %% @doc Validate a doc against a defined schema.
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_schema_passed(doc_validation_acc(), doc_validation_after_fun()) ->
-          doc_validation_acc().
+-spec validate_schema_passed(kazoo_documents:doc_validation_acc(), kazoo_documents:doc_validation_after_fun()) ->
+          kazoo_documents:doc_validation_acc().
 validate_schema_passed(ValidateAcc, OnSuccess) ->
     case is_function(OnSuccess, 1) of
         'true' -> OnSuccess(ValidateAcc);
@@ -138,8 +138,12 @@ validate_schema_passed(ValidateAcc, OnSuccess) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_fix_js_types(doc_validation_acc(), [jesse_error:error_reason()], kzd_schema:doc()
-                        ,doc_validation_after_fun()) -> doc_validation_acc().
+-spec maybe_fix_js_types(kazoo_documents:doc_validation_acc()
+                        ,[jesse_error:error_reason()]
+                        ,kzd_schema:doc()
+                        ,kazoo_documents:doc_validation_after_fun()
+                        ) ->
+          kazoo_documents:doc_validation_acc().
 maybe_fix_js_types({Doc, ValidationErrors}, SchemaErrors, SchemaJObj, OnSuccess) ->
     case kz_json_schema:fix_js_types(Doc, SchemaErrors) of
         'false' -> validate_schema_failed({Doc, ValidationErrors}, SchemaErrors);
@@ -151,7 +155,8 @@ maybe_fix_js_types({Doc, ValidationErrors}, SchemaErrors, SchemaJObj, OnSuccess)
 %% @doc Add schema errors to doc validation errors.
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_schema_failed(doc_validation_acc(), [jesse_error:error_reason()]) -> doc_validation_acc().
+-spec validate_schema_failed(kazoo_documents:doc_validation_acc(), [jesse_error:error_reason()]) ->
+          kazoo_documents:doc_validation_acc().
 validate_schema_failed({Doc, ValidationErrors}, SchemaErrors) ->
     {Doc
     ,[schema_error_to_doc_validation_error(Error) || Error <- SchemaErrors] ++ ValidationErrors
@@ -161,7 +166,8 @@ validate_schema_failed({Doc, ValidationErrors}, SchemaErrors) ->
 %% @doc Format a schema error into a doc validation error.
 %% @end
 %%------------------------------------------------------------------------------
--spec schema_error_to_doc_validation_error(jesse_error:error_reason()) -> doc_validation_error().
+-spec schema_error_to_doc_validation_error(jesse_error:error_reason()) ->
+          kazoo_documents:doc_validation_error().
 schema_error_to_doc_validation_error(Error) ->
     {_ErrorCode, _ErrorMessage, ErrorJObj} = kz_json_schema:error_to_jobj(Error),
     [Key] = kz_json:get_keys(ErrorJObj),

@@ -194,7 +194,8 @@ validate_flow(Doc) ->
                                 ,flow(Doc)
                                 ,[{'schema_loader_fun', fun schema_test_load/1}
                                  ,{'allowed_errors', 'infinity'}
-                                 ]) of
+                                 ])
+    of
         {'ok', JObj} -> {'ok', set_flow(Doc, JObj)};
         {'error', Errors} -> {'error', Errors}
     end.
@@ -309,7 +310,7 @@ fetch(Account, <<CallflowId/binary>>) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec validate(kz_term:ne_binary(), kz_term:api_ne_binary(), doc()) ->
-          doc_validation_return().
+          kazoo_documents:doc_validation_return().
 validate(<<AccountId/binary>>, CallflowId, ReqJObj) ->
     ValidateFuns = [fun validate_either_numbers_or_patterns_is_set/3
                    ,fun maybe_validate_numbers/3
@@ -324,8 +325,8 @@ validate(<<AccountId/binary>>, CallflowId, ReqJObj) ->
         'throw':SystemError -> SystemError
     end.
 
--spec do_validation(kz_term:ne_binary(), kz_term:api_ne_binary(), doc(), [doc_validation_fun()]) ->
-          doc_validation_acc().
+-spec do_validation(kz_term:ne_binary(), kz_term:api_ne_binary(), doc(), [kazoo_documents:doc_validation_fun()]) ->
+          kazoo_documents:doc_validation_acc().
 do_validation(AccountId, CallflowId, ReqJObj, ValidateFuns) ->
     lists:foldl(fun(F, Acc) -> F(AccountId, CallflowId, Acc) end
                ,{ReqJObj, []}
@@ -337,8 +338,8 @@ do_validation(AccountId, CallflowId, ReqJObj, ValidateFuns) ->
 %% is set and has at least one list element.
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_either_numbers_or_patterns_is_set(kz_term:ne_binary(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec validate_either_numbers_or_patterns_is_set(kz_term:ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 validate_either_numbers_or_patterns_is_set(_AccountId, _CallflowId, {Doc, Errors}=ValidateAcc) ->
     case {numbers(Doc, []), patterns(Doc, [])} of
         {[], []} ->
@@ -358,8 +359,8 @@ validate_either_numbers_or_patterns_is_set(_AccountId, _CallflowId, {Doc, Errors
 %% number validation steps.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_validate_numbers(kz_term:ne_binary(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec maybe_validate_numbers(kz_term:ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 maybe_validate_numbers(AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
     case kz_json:get_value(?KEY_NUMBERS, Doc, 'undefined') of
         'undefined' ->
@@ -382,8 +383,8 @@ maybe_validate_numbers(AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
 %% @doc Run all number validation functions on the list field `numbers'.
 %% @end
 %%------------------------------------------------------------------------------
--spec do_further_number_validation(kz_term:ne_binary(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec do_further_number_validation(kz_term:ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 do_further_number_validation(AccountId, CallflowId, {_Doc, _Errors}=ValidateAcc) ->
     NumValidateFuns = [fun normalize_numbers/3
                       ,fun(AID, CID, Acc) ->
@@ -400,8 +401,8 @@ do_further_number_validation(AccountId, CallflowId, {_Doc, _Errors}=ValidateAcc)
 %% @doc Normalize the numbers in the `numbers' list.
 %% @end
 %%------------------------------------------------------------------------------
--spec normalize_numbers(kz_term:ne_binary(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec normalize_numbers(kz_term:ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 normalize_numbers(AccountId, _CallflowId, {Doc, Errors}) ->
     lager:debug("normalizing callflow's numbers"),
     Normalized = knm_converters:normalize(numbers(Doc, []), AccountId),
@@ -411,8 +412,8 @@ normalize_numbers(AccountId, _CallflowId, {Doc, Errors}) ->
 %% @doc Validate that all numbers set are owned by the account.
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_number_ownership(kz_term:ne_binary(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec validate_number_ownership(kz_term:ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 validate_number_ownership(AccountId, _CallflowId, {Doc, _Errors}=ValidateAcc) ->
     Numbers = numbers(Doc, []),
     lager:debug("validating number ownership for numbers ~p", [Numbers]),
@@ -433,8 +434,8 @@ validate_number_ownership(AccountId, _CallflowId, {Doc, _Errors}=ValidateAcc) ->
 %% pattern validation steps.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_validate_patterns(kz_term:ne_binary(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec maybe_validate_patterns(kz_term:ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 maybe_validate_patterns(AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
     case kz_json:get_value(?KEY_PATTERNS, Doc, 'undefined') of
         'undefined' ->
@@ -457,8 +458,8 @@ maybe_validate_patterns(AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
 %% @doc Run all pattern validation functions on the list field `patterns'.
 %% @end
 %%------------------------------------------------------------------------------
--spec do_further_pattern_validation(kz_term:ne_binary(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec do_further_pattern_validation(kz_term:ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 do_further_pattern_validation(AccountId, CallflowId, {_Doc, _Errors}=ValidateAcc) ->
     ValidateFuns = [fun(AID, CID, Acc) ->
                             maybe_validate_attribute_list_is_unique_within_account_callflows(?KEY_PATTERNS, AID, CID, Acc)
@@ -483,9 +484,9 @@ do_further_pattern_validation(AccountId, CallflowId, {_Doc, _Errors}=ValidateAcc
         kz_json:get_key()
        ,kz_term:ne_binary()
        ,kz_term:api_ne_binary()
-       ,doc_validation_acc()
+       ,kazoo_documents:doc_validation_acc()
        ) ->
-          doc_validation_acc().
+          kazoo_documents:doc_validation_acc().
 maybe_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
     NewValue = kz_json:get_list_value(Key, Doc, 'undefined'),
     CurrentValue = case fetch(AccountId, CallflowId) of
@@ -525,8 +526,8 @@ maybe_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId,
         kz_json:get_key()
        ,kz_term:ne_binary()
        ,kz_term:api_ne_binary()
-       ,doc_validation_acc()
-       ) -> doc_validation_acc().
+       ,kazoo_documents:doc_validation_acc()
+       ) -> kazoo_documents:doc_validation_acc().
 do_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
     AccountDb = kzs_util:format_account_db(AccountId),
     Options = [{'keys', kz_json:get_list_value(Key, Doc, [])}],
@@ -556,8 +557,8 @@ get_view_by(?KEY_PATTERNS) -> ?LIST_BY_PATTERN.
 %% conflict errors to the `doc_validation_acc()'
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_attribute_conflicts(kz_json:get_key(), kz_json:objects(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec validate_attribute_conflicts(kz_json:get_key(), kz_json:objects(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 validate_attribute_conflicts(Key, CallflowViews, 'undefined', ValidateAcc) ->
     add_attribute_conflict_errors(Key, CallflowViews, ValidateAcc);
 validate_attribute_conflicts(Key, CallflowViews, CallflowId, ValidateAcc) ->
@@ -581,7 +582,8 @@ filter_callflow_list(CallflowId, Callflows) ->
 %% `doc_validation_acc()'.
 %% @end
 %%------------------------------------------------------------------------------
--spec add_attribute_conflict_errors(kz_json:get_key(), docs(), doc_validation_acc()) -> doc_validation_acc().
+-spec add_attribute_conflict_errors(kz_json:get_key(), docs(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 add_attribute_conflict_errors(_Key, [], ValidateAcc) -> ValidateAcc;
 add_attribute_conflict_errors(Key, [CallflowView | CallflowViews], ValidateAcc) ->
     UpdatedValidateAcc = add_attribute_conflict_error(Key, CallflowView, ValidateAcc),
@@ -592,8 +594,8 @@ add_attribute_conflict_errors(Key, [CallflowView | CallflowViews], ValidateAcc) 
 %% `doc_validation_acc()'.
 %% @end
 %%------------------------------------------------------------------------------
--spec add_attribute_conflict_error(kz_json:get_key(), doc(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec add_attribute_conflict_error(kz_json:get_key(), doc(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 add_attribute_conflict_error(Key, CallflowView, {Doc, Errors}) ->
     Id = kz_doc:id(CallflowView),
     Name = kz_json:get_ne_binary_value([<<"value">>, <<"name">>], CallflowView, <<>>),
@@ -610,8 +612,8 @@ add_attribute_conflict_error(Key, CallflowView, {Doc, Errors}) ->
 %% On Success merge the private fields from the current user doc into Doc.
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_schema(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec validate_schema(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 validate_schema(AccountId, CallflowId, {_Doc, _Errors}=ValidateAcc) ->
     lager:debug("checking callflow doc against schema"),
     OnSuccess = fun(ValAcc) -> on_successful_schema_validation(AccountId, CallflowId, ValAcc) end,
@@ -623,8 +625,8 @@ validate_schema(AccountId, CallflowId, {_Doc, _Errors}=ValidateAcc) ->
 %% fields into `Doc'.
 %% @end
 %%------------------------------------------------------------------------------
--spec on_successful_schema_validation(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc_validation_acc()) ->
-          doc_validation_acc().
+-spec on_successful_schema_validation(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
 on_successful_schema_validation(_AccountId, 'undefined', {Doc, Errors}) ->
     lager:debug("new callflow doc passed schema validation"),
     {kz_doc:set_type(Doc, type()), Errors};

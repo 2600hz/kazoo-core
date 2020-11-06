@@ -402,7 +402,8 @@ publish_voicemail_deleted(BoxId, Msg, Reason) ->
 %% generate and asr request to transcribe voicemail recording
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_transcribe(kapps_call:call(), kz_term:ne_binary(), boolean()) -> 'undefined' | kazoo_speech:asr_resp().
+-spec maybe_transcribe(kapps_call:call(), kz_term:ne_binary(), boolean()) ->
+          asr_request:asr_resp().
 maybe_transcribe(_, _,'false') -> 'undefined';
 maybe_transcribe(Call, MediaId, 'true') ->
     Req = asr_request:from_voicemail(Call, MediaId),

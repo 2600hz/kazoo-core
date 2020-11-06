@@ -28,11 +28,11 @@
 
 -include("kazoo_auth.hrl").
 
--type rsa_key() :: public_key:rsa_private_key() | public_key:rsa_public_key().
+-type rsa_key() :: public_key:private_key() | public_key:public_key().
 -type to_pem_option() :: 'none' | 'export'.
 -type keyid() :: kz_term:ne_binary().
 -type search_result_row() :: {keyid(), rsa_key()}.
--type search_result() :: {ok, [search_result_row()]} | {error, any()}.
+-type search_result() :: {'ok', [search_result_row()]} | {'error', any()}.
 
 %%==============================================================================
 %% API functions
@@ -42,7 +42,7 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_public_key_from_cert(file:filename_all()) -> public_key:rsa_public_key().
+-spec get_public_key_from_cert(file:filename_all()) -> public_key:public_key().
 get_public_key_from_cert(PathToCert) ->
     {'ok', PemBin} = file:read_file(PathToCert),
     PemEntries = public_key:pem_decode(PemBin),
@@ -52,15 +52,15 @@ get_public_key_from_cert(PathToCert) ->
     PublicKey = Decoded#'OTPCertificate'.tbsCertificate#'OTPTBSCertificate'.subjectPublicKeyInfo#'OTPSubjectPublicKeyInfo'.subjectPublicKey,
     PublicKey.
 
--spec get_public_key_from_private_key(public_key:rsa_private_key()) -> public_key:rsa_public_key().
+-spec get_public_key_from_private_key(public_key:private_key()) -> public_key:public_key().
 get_public_key_from_private_key(#'RSAPrivateKey'{modulus=Mod, publicExponent=Exp}) ->
     #'RSAPublicKey'{modulus=Mod, publicExponent = Exp}.
 
--spec get_public_key(any(), any()) -> public_key:rsa_public_key().
+-spec get_public_key(any(), any()) -> public_key:public_key().
 get_public_key(Mod, Exp) ->
     #'RSAPublicKey'{modulus=Mod, publicExponent = Exp}.
 
--spec get_private_key_from_file(file:filename_all()) -> public_key:rsa_private_key().
+-spec get_private_key_from_file(file:filename_all()) -> public_key:private_key().
 get_private_key_from_file(Path) ->
     {'ok', PemBin} = file:read_file(Path),
     [PemEntry | _] = public_key:pem_decode(PemBin),
@@ -71,11 +71,11 @@ from_pem(PemContents) ->
     [PemEntry] = public_key:pem_decode(PemContents),
     public_key:pem_entry_decode(PemEntry).
 
--spec to_pem(public_key:rsa_public_key() | public_key:rsa_private_key()) -> any().
+-spec to_pem(public_key:public_key() | public_key:private_key()) -> any().
 to_pem(RSA) ->
     to_pem(RSA, 'none').
 
--spec to_pem(public_key:rsa_public_key() | public_key:rsa_private_key(), to_pem_option()) -> any().
+-spec to_pem(public_key:public_key() | public_key:private_key(), to_pem_option()) -> any().
 to_pem(RSA, 'none') ->
     public_key:pem_encode([public_key:pem_entry_encode(element(1, RSA), RSA)]);
 to_pem(RSA, 'export') ->
@@ -308,19 +308,23 @@ extract_key(#{}=Token) ->
     lager:debug("public key not obtained : ~p", [Token]),
     Token.
 
--spec public_key(kz_term:ne_binary()) -> public_key:rsa_public_key().
+-spec public_key(kz_term:ne_binary()) -> public_key:public_key().
 public_key(KeyId) ->
     {'ok', Key} = private_key(KeyId),
     get_public_key_from_private_key(Key).
 
--spec private_key(kz_term:ne_binary()) -> {'ok', public_key:rsa_private_key()} | {'error', any()}.
+-spec private_key(kz_term:ne_binary()) ->
+          {'ok', public_key:private_key()} |
+          {'error', any()}.
 private_key(KeyId) ->
     case lookup({'private', KeyId}) of
         {'error', 'not_found'} -> load_private_key(KeyId);
         Found -> Found
     end.
 
--spec load_private_key(kz_term:ne_binary()) -> {'ok', public_key:rsa_private_key()} | {'error', any()}.
+-spec load_private_key(kz_term:ne_binary()) ->
+          {'ok', public_key:private_key()} |
+          {'error', any()}.
 load_private_key(KeyId) ->
     case kz_datamgr:open_cache_doc(?KZ_AUTH_DB, KeyId) of
         {'ok', JObj} ->
@@ -331,7 +335,9 @@ load_private_key(KeyId) ->
             new_private_key(KeyId)
     end.
 
--spec load_private_key_attachment(kz_json:object()) -> {'ok', public_key:rsa_private_key()} | {'error', any()}.
+-spec load_private_key_attachment(kz_json:object()) ->
+          {'ok', public_key:private_key()} |
+          {'error', any()}.
 load_private_key_attachment(JObj) ->
     KeyId = kz_doc:id(JObj),
     case kz_datamgr:fetch_attachment(?KZ_AUTH_DB, KeyId, ?SYSTEM_KEY_ATTACHMENT_NAME) of
@@ -345,16 +351,22 @@ load_private_key_attachment(JObj) ->
             save_private_key(JObj, Key)
     end.
 
--spec new_private_key(kz_term:ne_binary()) -> {'ok', public_key:rsa_private_key()} | {'error', any()}.
+-spec new_private_key(kz_term:ne_binary()) ->
+          {'ok', public_key:private_key()} |
+          {'error', any()}.
 new_private_key(KeyId) ->
     {'ok', Key} = gen_private_key(),
     new_private_key(KeyId, Key).
 
--spec new_private_key(kz_term:ne_binary(), public_key:rsa_private_key()) -> {'ok', public_key:rsa_private_key()} | {'error', any()}.
+-spec new_private_key(kz_term:ne_binary(), public_key:private_key()) ->
+          {'ok', public_key:private_key()} |
+          {'error', any()}.
 new_private_key(KeyId, Key) ->
     new_private_key(KeyId, Key, []).
 
--spec new_private_key(kz_term:ne_binary(), public_key:rsa_private_key(), kz_term:proplist()) -> {'ok', public_key:rsa_private_key()} | {'error', any()}.
+-spec new_private_key(kz_term:ne_binary(), public_key:private_key(), kz_term:proplist()) ->
+          {'ok', public_key:private_key()} |
+          {'error', any()}.
 new_private_key(KeyId, Key, Metadata) ->
     Doc = [{<<"pvt_type">>, <<"system_key">>}
           ,{<<"_id">>, KeyId}
@@ -374,7 +386,8 @@ new_private_key(KeyId, Key, Metadata) ->
             Err
     end.
 
--spec save_private_key(kz_json:object(), public_key:rsa_private_key()) -> {'ok', public_key:rsa_private_key()}.
+-spec save_private_key(kz_json:object(), public_key:private_key()) ->
+          {'ok', public_key:private_key()}.
 save_private_key(JObj, Key) ->
     KeyId = kz_doc:id(JObj),
     Options = [{'doc_type', <<"system_key">>}
@@ -393,11 +406,11 @@ save_private_key(JObj, Key) ->
             Err
     end.
 
--spec gen_private_key() -> {'ok', public_key:rsa_private_key()}.
+-spec gen_private_key() -> {'ok', public_key:private_key()}.
 gen_private_key() ->
     gen_private_key(?RSA_KEY_SIZE).
 
--spec gen_private_key(integer()) -> {'ok', public_key:rsa_private_key()}.
+-spec gen_private_key(integer()) -> {'ok', public_key:private_key()}.
 gen_private_key(Size) ->
     Key = public_key:generate_key({'rsa', Size, Size + 1}),
     {'ok', Key}.

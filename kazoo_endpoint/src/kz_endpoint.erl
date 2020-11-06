@@ -36,10 +36,15 @@
 
 -include("kazoo_endpoint.hrl").
 
--type std_return() :: {'ok', kz_json:object()} |
+-type endpoint() :: kz_json:object().
+-type endpoints() :: [endpoint()].
+-type std_return() :: {'ok', endpoint()} |
                       {'error', 'invalid_endpoint_id'} |
                       kz_datamgr:data_error().
--export_type([std_return/0]).
+-export_type([std_return/0
+             ,endpoint/0
+             ,endpoints/0
+             ]).
 
 %%------------------------------------------------------------------------------
 %% @doc Fetches a endpoint definition from the database or cache

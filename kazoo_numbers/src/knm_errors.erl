@@ -127,7 +127,7 @@ multiple_choice(PN, Update) ->
 assign_failure(PN, E) ->
     throw({'error', 'assign_failure', PN, E}).
 
--spec database_error(kz_data:data_errors(), knm_phone_number:record()) -> no_return().
+-spec database_error(kz_datamgr:data_error(), knm_phone_number:record()) -> no_return().
 database_error(E, PN) ->
     throw({'error', 'database_error', PN, E}).
 

@@ -1327,7 +1327,7 @@ node_info() ->
            ],
     Info = kazoo_bindings:map(<<"kz_nodes.node.info">>, []),
     NodeInfo = [{<<"amqp">>, kz_json:from_list(AMQP)}
-               | [{Key, Value} || {Key, Value} <- Info]
+               | [{Key, Value} || {Key, Value} <- Info] % only use 2-tuples from Info
                ],
     kz_json:from_list(NodeInfo).
 

@@ -96,7 +96,7 @@ app_metadata({AppName, {'whapp_info', StartTs, _}}, Acc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_extract_freeswitch_metadata(kz_types:node(), kz_json:objects()) -> kz_json:objects().
+-spec maybe_extract_freeswitch_metadata(kz_types:kz_node(), kz_json:objects()) -> kz_json:objects().
 maybe_extract_freeswitch_metadata(#kz_node{media_servers=[]}, Acc) -> Acc;
 maybe_extract_freeswitch_metadata(#kz_node{media_servers=Servers}, Acc) ->
     MediaServers = media_servers(Servers),

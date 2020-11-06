@@ -701,7 +701,10 @@ array_to_object(List, #{default_empty := DefaultEmpty}) ->
                    ),
     JObj.
 
--spec merge_array(array:array_indx(), json_term(), array:array(), map()) ->
+%% from array.erl
+-type array_indx() :: non_neg_integer().
+
+-spec merge_array(array_indx(), json_term(), array:array(), map()) ->
           array:array().
 merge_array(_Index, DefaultEmpty, Acc, #{default_empty := DefaultEmpty}) ->
     %% js vm is skipping empty head items during reduce

@@ -134,7 +134,7 @@ load_doc_from_file(Db, FilePath) ->
             {'error', Reason}
     end.
 
--spec set_cache_strategy(kz_types:text()) -> 'ok'.
+-spec set_cache_strategy(kz_term:text()) -> 'ok'.
 set_cache_strategy(?NE_BINARY = StrategyBin) ->
     set_cache_strategy(kz_term:to_atom(StrategyBin));
 set_cache_strategy(Strategy) when is_atom(Strategy) ->

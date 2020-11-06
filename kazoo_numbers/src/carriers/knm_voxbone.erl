@@ -62,7 +62,7 @@ find_numbers(Number, Quantity, Options) ->
     Country = knm_iso3166_util:country(proplists:get_value('country', Options)),
     find_numbers(Number, Quantity, Options, Country).
 
--spec find_numbers(kz_term:ne_binary(), kz_term:api_pos_integer(), knm_search:options(), knm_iso3166_util:country()) ->
+-spec find_numbers(kz_term:ne_binary(), kz_term:api_pos_integer(), knm_search:options(), map()) ->
           {'ok', knm_search:results()}.
 find_numbers(_Number, _Quantity, Options, #{a3 := A3}=_Country) ->
     Qty = lists:min([Q || {'quantity', Q} <- Options]),
@@ -158,7 +158,7 @@ create_cart(Options) ->
 %% Verify order can be fulfilled and initialize cart
 %% @end
 %%------------------------------------------------------------------------------
--spec search(kz_term:api_pos_integer(), kz_search:options(), kz_term:proplist()) ->
+-spec search(kz_term:api_pos_integer(), knm_search:options(), kz_term:proplist()) ->
           {'ok', knm_search:results()}.
 search(Quantity, Options, SearchOptions) ->
     Balance = account_balance(),
