@@ -131,7 +131,8 @@ maybe_update_e911(PN, 'false') ->
             lager:debug("information has been changed: ~s", [kz_json:encode(E911)]),
             case update_e911(PN, E911) of
                 {'ok', Data} ->
-                    knm_providers:activate_feature(PN, {?FEATURE_E911, Data});
+                    %% kz_json:merge/2 invoked to update "non address" fields like `notification_contact_emails`
+                    knm_providers:activate_feature(PN, {?FEATURE_E911, kz_json:merge(E911, Data)});
                 {'error', E} ->
                     lager:error("information update failed: ~p", [E]),
                     knm_errors:unspecified(E, PN)
