@@ -79,12 +79,24 @@
 
 -type payload() :: any().
 -type fold_results() :: payload().
--type map_results() :: list().
+
+%% From https://erlang.org/doc/reference_manual/typespec.html
+
+%% Because lists are commonly used, they have shorthand type
+%% notations. The types list(T) and nonempty_list(T) have the
+%% shorthands [T] and [T,...], respectively. The only difference
+%% between the two shorthands is that [T] can be an empty list but
+%% [T,...] cannot.
+
+%% Notice that the shorthand for list(), that is, the list of elements
+%% of unknown type, is [_] (or [any()]), not []. The notation []
+%% specifies the singleton type for the empty list.
+-type map_results() :: list(any()).
 
 -type matches_fun() :: fun((kz_term:ne_binaries(), kz_term:ne_binaries()) -> boolean()).
 -type candidates_fun() :: fun((kz_term:ne_binary()) -> kz_bindings()).
 
--type responder_fun() :: atom() | fun().
+-type responder_fun() :: atom() | fun((payload()) -> payload()).
 
 -record(kz_responder, {module :: module()
                       ,function :: responder_fun()
@@ -102,25 +114,31 @@
 -type kz_binding() :: #kz_binding{}.
 -type kz_bindings() :: [kz_binding()].
 
--type kz_rt_options() :: kz_term:proplist().
--type kz_rt_option() :: 'candidates' | 'matches'.
+-type kz_rt_option() :: {'candidates', candidates_fun()} |
+                        {'matches', matches_fun()}.
+-type kz_rt_options() :: [kz_rt_option()].
 
 -record(state, {bindings = [] :: kz_bindings()
                ,has_ets = false :: boolean()
                }).
 -type state() :: #state{}.
 
--export_type([kz_responder/0
-             ,kz_responders/0
+-type filter_fun() :: fun((kz_term:ne_binary(), module(), responder_fun(), payload()) -> boolean()).
+
+-export_type([bind_result/0
+             ,candidates_fun/0
+             ,filter_fun/0
+             ,fold_results/0
              ,kz_binding/0
              ,kz_bindings/0
-             ,candidates_fun/0
-             ,matches_fun/0
-             ,payload/0
-             ,map_results/0
-             ,fold_results/0
+             ,kz_responder/0
+             ,kz_responders/0
              ,kz_rt_option/0
              ,kz_rt_options/0
+             ,map_results/0
+             ,matches_fun/0
+             ,payload/0
+             ,unbind_result/0
              ]).
 
 %%%=============================================================================
@@ -136,19 +154,19 @@
 %%------------------------------------------------------------------------------
 
 -spec map(kz_term:ne_binary(), payload()) -> map_results().
-map(Routing, Payload) ->
+map(<<Routing/binary>>, Payload) ->
     map_processor(Routing, Payload, rt_options()).
 
 -spec map(kz_term:ne_binary(), payload(), kz_rt_options()) -> map_results().
-map(Routing, Payload, Options) ->
+map(<<Routing/binary>>, Payload, Options) ->
     map_processor(Routing, Payload, rt_options(Options)).
 
 -spec pmap(kz_term:ne_binary(), payload()) -> map_results().
-pmap(Routing, Payload) ->
+pmap(<<Routing/binary>>, Payload) ->
     pmap_processor(Routing, Payload, rt_options()).
 
 -spec pmap(kz_term:ne_binary(), payload(), kz_rt_options()) -> map_results().
-pmap(Routing, Payload, Options) ->
+pmap(<<Routing/binary>>, Payload, Options) ->
     pmap_processor(Routing, Payload, rt_options(Options)).
 
 -spec get_binding_candidates(kz_term:ne_binary()) -> [kz_bindings()].
@@ -368,7 +386,6 @@ flush(Binding) -> gen_server:cast(?SERVER, {'flush', Binding}).
 -spec flush_mod(module()) -> 'ok'.
 flush_mod(Module) -> gen_server:cast(?SERVER, {'flush_mod', Module}).
 
--type filter_fun() :: fun((kz_term:ne_binary(), module(), responder_fun(), payload()) -> boolean()).
 -spec filter(filter_fun()) -> 'ok'.
 filter(Predicate) when is_function(Predicate, 4) ->
     gen_server:cast(?SERVER, {'filter', Predicate}).
@@ -387,7 +404,7 @@ modules_loaded_fold(#kz_binding{binding_responders=Responders}, Acc) ->
 -spec table_id() -> ?MODULE.
 table_id() -> ?MODULE.
 
--spec table_options() -> list().
+-spec table_options() -> kz_term:proplist().
 table_options() ->
     ['set', 'named_table', 'protected', {'keypos', #kz_binding.binding}].
 
@@ -668,17 +685,17 @@ fold_bind_results([#kz_responder{module=M
         Pay1 ->
             fold_bind_results(Responders, [Pay1|Tokens], Route, RespondersLen, ReRunResponders)
     catch
-        ?STACKTRACE('error', 'function_clause', ST)
-        log_function_clause(M, F, length(Payload), ST),
-        fold_bind_results(Responders, Payload, Route, RespondersLen, ReRunResponders);
-        ?STACKTRACE('error', 'undef', ST)
-        log_undefined(M, F, length(Payload), ST),
-        fold_bind_results(Responders, Payload, Route, RespondersLen, ReRunResponders);
-        ?STACKTRACE(_T, _E, ST)
-        lager:error("excepted: ~s: ~p", [_T, _E]),
-        kz_log:log_stacktrace(ST),
-        fold_bind_results(Responders, Payload, Route, RespondersLen, ReRunResponders)
-        end;
+        'error':'function_clause':ST ->
+            log_function_clause(M, F, length(Payload), ST),
+            fold_bind_results(Responders, Payload, Route, RespondersLen, ReRunResponders);
+        'error':'undef':ST ->
+            log_undefined(M, F, length(Payload), ST),
+            fold_bind_results(Responders, Payload, Route, RespondersLen, ReRunResponders);
+        _T:_E:ST ->
+            lager:error("excepted: ~s: ~p", [_T, _E]),
+            kz_log:log_stacktrace(ST),
+            fold_bind_results(Responders, Payload, Route, RespondersLen, ReRunResponders)
+    end;
 fold_bind_results([#kz_responder{}=_R | Responders]
                  ,Payload
                  ,Route
@@ -699,7 +716,7 @@ fold_bind_results([], Payload, Route, RespondersLen, ReRunResponders) ->
             Payload
     end.
 
--spec log_undefined(module(), responder_fun(), non_neg_integer(), list()) -> 'ok'.
+-spec log_undefined(module(), responder_fun(), non_neg_integer(), kz_log:stacktrace()) -> 'ok'.
 log_undefined(M, F, Length, [{M, F, _Args,_}|_]) ->
     ?LOG_DEBUG("undefined function ~s:~s/~b", [M, F, Length]);
 log_undefined(M, F, Length, [{RealM, RealF, RealArgs,_}|_]) ->
@@ -709,6 +726,7 @@ log_undefined(M, F, Length, ST) ->
     ?LOG_DEBUG("undefined function ~s:~s/~b", [M, F, Length]),
     kz_log:log_stacktrace(ST).
 
+-spec log_function_clause(module(), responder_fun(), non_neg_integer(), kz_log:stacktrace()) -> 'ok'.
 log_function_clause(M, F, Length, [{M, F, _Args, _}|_]) ->
     ?LOG_INFO("unable to find function clause for ~s:~s/~b", [M, F, Length]);
 log_function_clause(M, F, Length, [{RealM, RealF, RealArgs, Where}|_ST]) ->
@@ -726,9 +744,9 @@ log_function_clause(M, F, Lenth, ST) ->
     kz_log:log_stacktrace(ST).
 
 -spec map_processor(kz_term:ne_binary(), payload(), kz_rt_options()) -> map_results().
-map_processor(Routing, Payload, Options) when not is_list(Payload) ->
+map_processor(<<Routing/binary>>, Payload, Options) when not is_list(Payload) ->
     map_processor(Routing, [Payload], Options);
-map_processor(Routing, Payload, Options) ->
+map_processor(<<Routing/binary>>, Payload, Options) ->
     RoutingParts = routing_parts(Routing),
     lists:foldl(fun(Binding, Acc) ->
                         map_processor_fold(Binding, Acc, Payload, Routing, RoutingParts, Options)
@@ -738,9 +756,9 @@ map_processor(Routing, Payload, Options) ->
                ).
 
 -spec pmap_processor(kz_term:ne_binary(), payload(), kz_rt_options()) -> map_results().
-pmap_processor(Routing, Payload, Options) when not is_list(Payload) ->
+pmap_processor(<<Routing/binary>>, Payload, Options) when not is_list(Payload) ->
     pmap_processor(Routing, [Payload], Options);
-pmap_processor(Routing, Payload, Options) ->
+pmap_processor(<<Routing/binary>>, Payload, Options) ->
     RoutingParts = routing_parts(Routing),
     lists:foldl(fun(Binding, Acc) ->
                         pmap_processor_fold(Binding, Acc, Payload, Routing, RoutingParts, Options)
@@ -839,21 +857,21 @@ apply_map_responder(#kz_responder{module=M
     Payload = maybe_merge_payload(ResponderPayload, MapPayload),
     try apply_map_responder(M, F, Payload)
     catch
-        ?STACKTRACE('error', 'function_clause', ST)
-        maybe_log_function_clause(M, F, Payload, ST),
-        {'EXIT', {'function_clause', ST}};
-        ?STACKTRACE('error', 'undef', ST)
-        maybe_log_undefined(M, F, Payload, ST),
-        {'EXIT', {'undef', ST}};
-        ?STACKTRACE('error', Exp, ST)
-        lager:error("exception: error:~p", [Exp]),
-        kz_log:log_stacktrace(ST),
-        {'EXIT', {Exp, ST}};
-        ?STACKTRACE(_Type, Exp, ST)
-        lager:error("exception: ~s:~p", [_Type, Exp]),
-        kz_log:log_stacktrace(ST),
-        {'EXIT', Exp}
-        end.
+        'error':'function_clause':ST ->
+            maybe_log_function_clause(M, F, Payload, ST),
+            {'EXIT', {'function_clause', ST}};
+        'error':'undef':ST ->
+            maybe_log_undefined(M, F, Payload, ST),
+            {'EXIT', {'undef', ST}};
+        'error':Exp:ST ->
+            lager:error("exception: error:~p", [Exp]),
+            kz_log:log_stacktrace(ST),
+            {'EXIT', {Exp, ST}};
+        _Type:Exp:ST ->
+            lager:error("exception: ~s:~p", [_Type, Exp]),
+            kz_log:log_stacktrace(ST),
+            {'EXIT', Exp}
+    end.
 
 log_apply(Format, Args) ->
     Silent = erlang:get('kazoo_bindings_silent_apply'),
@@ -949,7 +967,7 @@ bindings(Routing, Opts) ->
              ).
 
 -spec routing_parts(kz_term:ne_binary()) -> kz_term:ne_binaries().
-routing_parts(<<"#">>) -> <<"#">>;
+routing_parts(<<"#">>) -> [<<"#">>];
 routing_parts(Routing) ->
     lists:reverse(binary:split(Routing, <<".">>, ['global'])).
 

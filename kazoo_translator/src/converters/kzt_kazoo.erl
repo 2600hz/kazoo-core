@@ -19,7 +19,7 @@
 
 -spec exec(kapps_call:call(), kz_json:object()) ->
           usurp_return() |
-          {'error', [jesse_error:error_return()]}.
+          {'error', kapps_call:call(), kz_json_schema:validation_errors()}.
 exec(Call, FlowJObj) ->
     case kzd_callflows:validate_flow(
            kzd_callflows:set_flow(kzd_callflows:new(), FlowJObj)

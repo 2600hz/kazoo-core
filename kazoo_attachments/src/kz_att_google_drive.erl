@@ -168,7 +168,9 @@ create_folder(Name, Parent, Authorization) ->
         Else -> Else
     end.
 
--spec resolve_id(binary(), binary(), binary()) -> {ok, binary()} | {error, not_found}.
+-spec resolve_id(binary(), binary(), binary()) ->
+          {'ok', binary()} |
+          {'error', 'not_found'}.
 resolve_id(Name, Parent, Authorization) ->
     Params = ["\"", Parent, "\" in parents"
              ," and name = \"", Name, "\""
@@ -228,9 +230,9 @@ gdrive_default_fields() ->
 gdrive_format_url(Map, AttInfo) ->
     kz_att_util:format_url(Map, AttInfo, gdrive_default_fields()).
 
--spec gdrive_post(binary(), kz_term:proplist(), binary()) ->
-          {'ok', kz_term:ne_binary(), kz_term:proplist()} |
-          {'error', kz_term:ne_binary(), kz_http:ret() | atom()}.
+-spec gdrive_post(URL, kz_http:headers(), iodata()) ->
+          {'ok', kz_term:ne_binary(), kz_http:headers()} |
+          {'error', URL, kz_http:ret() | atom()}.
 gdrive_post(Url, Headers, Body) ->
     case kz_http:post(Url, Headers, Body) of
         {'ok', 200, ResponseHeaders, ResponseBody} ->
@@ -243,18 +245,17 @@ gdrive_post(Url, Headers, Body) ->
     end.
 
 -spec send_attachment(binary(), kz_term:binaries(), binary(), binary(), binary(), kz_term:proplist(), binary()) ->
-          {'ok', kz_term:ne_binary(), kz_term:proplist()} |
+          gen_attachment:put_response() |
           {'error', kz_term:ne_binary(), kz_http:ret() | atom()}.
 send_attachment(Authorization, Folder, TokenDocId, AName, CT, Options, Contents) ->
     JObj = kz_json:from_list(
-             props:filter_empty(
-               [{<<"mimeType">>, CT}
-               ,{<<"name">>, AName}
-               ,{<<"parents">>, Folder}
-               ,{<<"description">>, props:get_value('description', Options)}
-               ,{<<"appProperties">>, kz_json:from_list(props:get_value('metadata', Options, [])) }
-               ,{<<"properties">>, kz_json:from_list(props:get_value('metadata', Options, [])) }
-               ])),
+             [{<<"mimeType">>, CT}
+             ,{<<"name">>, AName}
+             ,{<<"parents">>, Folder}
+             ,{<<"description">>, props:get_value('description', Options)}
+             ,{<<"appProperties">>, kz_json:from_list(props:get_value('metadata', Options, [])) }
+             ,{<<"properties">>, kz_json:from_list(props:get_value('metadata', Options, [])) }
+             ]),
 
     JsonPart = {kz_json:encode(JObj)
                ,[{<<"Content-Type">>, <<"application/json">>}]
@@ -284,7 +285,7 @@ send_attachment(Authorization, Folder, TokenDocId, AName, CT, Options, Contents)
     end.
 
 %% GoogleDrive REST API errors reference: https://developers.google.com/drive/v3/web/handle-errors
--spec handle_http_error_response(kz_http:req(), kz_att_error:update_routines()) -> kz_att_error:error().
+-spec handle_http_error_response(kz_http:ret(), kz_att_error:update_routines()) -> kz_att_error:error().
 handle_http_error_response({'ok', RespCode, RespHeaders, RespBody} = _E, Routines) ->
     Reason = get_reason(RespCode, RespBody),
     NewRoutines = [{fun kz_att_error:set_resp_code/2, RespCode}

@@ -200,7 +200,7 @@ send_attachment(Authorization, Bucket, AName, CT, Options, Contents) ->
     end.
 
 %% Google Storage REST API errors reference: https://cloud.google.com/storage/docs/json_api/v1/status-codes#error-response-format
--spec handle_http_error_response(kz_http:req(), kz_att_error:update_routines()) -> kz_att_error:error().
+-spec handle_http_error_response(kz_http:ret(), kz_att_error:update_routines()) -> kz_att_error:error().
 handle_http_error_response({'ok', RespCode, RespHeaders, RespBody} = _E, Routines) ->
     Reason = get_reason(RespCode, RespBody),
     NewRoutines = [{fun kz_att_error:set_resp_code/2, RespCode}

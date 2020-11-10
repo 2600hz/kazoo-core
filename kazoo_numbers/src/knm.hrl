@@ -68,6 +68,8 @@
        ,kapps_config:get_is_true(?KNM_CONFIG_CAT, <<"local_feature_override">>, 'false')
        ).
 
+-define(PRETTY_PRINT_FORMAT_NANP, <<"SS(###) ###-####">>).
+
 -ifdef(TEST).
 -include_lib("kazoo_numbers/test/knm_test.hrl").
 -endif.

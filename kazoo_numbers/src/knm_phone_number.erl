@@ -1751,14 +1751,14 @@ database_error(NumOrNums, E, T) ->
 
 -spec delete_docs(kz_term:ne_binary(), kz_term:ne_binaries()) ->
           {'ok', kz_json:objects()} |
-          {'error', kz_data:data_errors()}.
+          kz_datamgr:data_error().
 delete_docs(Db, Ids) ->
     %% Note: deleting nonexistent docs returns ok.
     kz_datamgr:del_docs(Db, Ids).
 
 -spec save_docs(kz_term:ne_binary(), kz_json:objects()) ->
           {'ok', kz_json:objects()} |
-          {'error', kz_data:data_errors()}.
+          kz_datamgr:data_error().
 save_docs(Db, Docs) ->
     kz_datamgr:save_docs(Db, prepare_docs(Db, Docs, [])).
 

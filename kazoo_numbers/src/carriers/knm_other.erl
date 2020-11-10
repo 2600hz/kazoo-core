@@ -233,7 +233,7 @@ get_numbers(Url, Prefix, Quantity, Options) ->
     Results = query_for_numbers(Uri),
     handle_number_query_results(Results, Options).
 
--spec query_for_numbers(kz_term:ne_binary()) -> kz_http:http_ret().
+-spec query_for_numbers(kz_term:ne_binary()) -> kz_http:ret().
 -ifdef(TEST).
 query_for_numbers(<<?NUMBER_PHONEBOOK_URL_L, _/binary>>=URI) ->
     lager:debug("number pb url ~s resp: ~s", [URI, kz_json:encode(?NUMBERS_RESPONSE)]),
@@ -244,7 +244,7 @@ query_for_numbers(Uri) ->
     kz_http:get(binary:bin_to_list(Uri)).
 -endif.
 
--spec handle_number_query_results(kz_http:http_ret(), knm_search:options()) ->
+-spec handle_number_query_results(kz_http:ret(), knm_search:options()) ->
           {'ok', list()} |
           {'error', 'not_available'}.
 handle_number_query_results({'error', _Reason}, _Options) ->

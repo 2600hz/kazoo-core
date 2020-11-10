@@ -42,31 +42,33 @@
 -type asr_resp() :: kz_http:req_id() |
                     {'ok', kz_json:object()} | %% {'ok', JObj}
                     {'error', provider_error()} |
-                    {'error',  'asr_provider_failure', kz_json:object()}.
+                    {'error',  'asr_provider_failure', kz_json:object() | iodata()}.
 
 -type asr_billing_method() :: 'asr_flat_rate'.
 
 -record(asr_req, {'account_authorized' = 'false' :: boolean()
-                 ,'account_db' :: kz_term:binary()
-                 ,'account_id' :: kz_term:binary()
-                 ,'account_modb' :: kz_term:binary()
+                 ,'account_db' :: kz_term:api_binary()
+                 ,'account_id' :: kz_term:api_binary()
+                 ,'account_modb' :: kz_term:api_binary()
                  ,'amount' = 0 :: non_neg_integer()
-                 ,'attachment_id' :: kz_term:binary()
-                 ,'asr_provider' :: kz_term:binary()
+                 ,'attachment_id' :: kz_term:api_binary()
+                 ,'asr_provider' :: kz_term:api_binary()
                  ,'billing_method' = 'asr_flat_rate' :: asr_billing_method()
                  ,'billing_seconds' = 0 :: non_neg_integer()
-                 ,'binary_media' = 'undefined' :: kz_term:api_binary()
-                 ,'call_id'  :: kz_term:binary()
-                 ,'content_type' :: kz_term:binary()
-                 ,'description' :: kz_term:binary()
-                 ,'error' = 'undefined' :: 'undefined' | {'error', provider_error()} | {'error',  'asr_provider_failure', kz_json:object()}
+                 ,'binary_media' :: kz_term:api_binary()
+                 ,'call_id' :: kz_term:api_binary()
+                 ,'content_type' :: kz_term:api_binary()
+                 ,'description' :: kz_term:api_binary()
+                 ,'error' :: 'undefined' |
+                             {'error', provider_error()} |
+                             {'error',  'asr_provider_failure', kz_term:ne_binary()}
                  ,'impact_reseller' = 'true' :: boolean()
-                 ,'media_id' :: kz_term:binary()
+                 ,'media_id' :: kz_term:api_binary()
                  ,'recording_milliseconds' = 0 :: non_neg_integer()
-                 ,'reseller_id' = 'undefined' ::  'undefined' | kz_term:ne_binary()
+                 ,'reseller_id' :: kz_term:api_ne_binary()
                  ,'reseller_authorized' = 'false' :: boolean()
-                 ,'services' = 'undefined' :: 'undefined' | kz_services:services()
-                 ,'transcription' = 'undefined' :: 'undefined' | asr_resp()
+                 ,'services' :: 'undefined' | kz_services:services()
+                 ,'transcription' :: 'undefined' | asr_resp()
                  ,'timestamp' = 0 :: non_neg_integer()
                  ,'validated' = 'false' :: boolean()
                  }).

@@ -9,4 +9,4 @@
 %%%-----------------------------------------------------------------------------
 -module(gen_reducer).
 
--callback reduce() -> kz_term:json_object().
+-callback reduce() -> kz_json:objects().

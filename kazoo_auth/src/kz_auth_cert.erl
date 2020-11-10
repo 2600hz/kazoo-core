@@ -39,8 +39,8 @@
 
 -define(DEFAULT_CERTIFICATE_DURATION, 1095).
 
--type priv_key() :: public_key:rsa_private_key().
--type pub_key() :: public_key:rsa_public_key().
+-type priv_key() :: public_key:private_key().
+-type pub_key() :: public_key:public_key().
 -type cert() :: #'Certificate'{}.
 -type attributeType() :: #'AttributeTypeAndValue'{}.
 -type attributeTypeList() :: [attributeType()].

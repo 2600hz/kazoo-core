@@ -63,7 +63,7 @@ send_mwi_update(Account, BoxId) ->
               ],
     kz_amqp_worker:cast(Command, fun kapi_presence:publish_mwi_update/1).
 
--spec extended_presence_id(kz_term:ne_binary(), kz_object:object()) -> kz_term:api_binary().
+-spec extended_presence_id(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_binary().
 extended_presence_id(AccountId, BoxJObj) ->
     BoxNumber = kzd_vmboxes:mailbox(BoxJObj),
     case ?VM_NUMBER(AccountId) of

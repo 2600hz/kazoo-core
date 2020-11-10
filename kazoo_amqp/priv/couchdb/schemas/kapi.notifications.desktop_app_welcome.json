@@ -1,0 +1,67 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.notifications.desktop_app_welcome",
+    "description": "AMQP API for notifications.desktop_app_welcome",
+    "properties": {
+        "Account-DB": {
+            "type": "string"
+        },
+        "Account-ID": {
+            "type": "string"
+        },
+        "Attachment-URL": {
+            "type": "string"
+        },
+        "Bcc": {
+            "type": "string"
+        },
+        "Cc": {
+            "type": "string"
+        },
+        "Desktop-App-Name": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "notification"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "desktop_app_welcome"
+            ]
+        },
+        "From": {
+            "type": "string"
+        },
+        "HTML": {
+            "type": "string"
+        },
+        "Preview": {
+            "type": "boolean"
+        },
+        "Reply-To": {
+            "type": "string"
+        },
+        "Subject": {
+            "type": "string"
+        },
+        "Text": {
+            "type": "string"
+        },
+        "To": {
+            "type": "string"
+        },
+        "User-ID": {
+            "type": "string"
+        },
+        "Webphone-Enabled": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Account-ID",
+        "User-ID"
+    ],
+    "type": "object"
+}

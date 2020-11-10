@@ -223,7 +223,7 @@ onedrive_put(Url, Headers, Body) ->
     end.
 
 %% OneDrive REST API errors reference: https://docs.microsoft.com/en-us/onedrive/developer/rest-api/concepts/errors
--spec handle_http_error_response(kz_http:req(), kz_att_error:update_routines()) -> kz_att_error:error().
+-spec handle_http_error_response(kz_http:ret(), kz_att_error:update_routines()) -> kz_att_error:error().
 handle_http_error_response({'ok', RespCode, RespHeaders, RespBody} = _E, Routines) ->
     Reason = get_reason(RespCode, RespBody),
     NewRoutines = [{fun kz_att_error:set_resp_code/2, RespCode}

@@ -135,7 +135,7 @@ pipe({'ok', _}=Right, []) -> Right;
 pipe({'ok', Val}, [Fun|Funs]) -> pipe(Fun(Val), Funs).
 
 %%------------------------------------------------------------------------------
-%% @doc Chain monadic function to apply to `Either' with passing a non-changable
+%% @doc Chain monadic function to apply to `Either' with passing a non-changeable
 %% State to each functions.
 %%
 %% You might use it

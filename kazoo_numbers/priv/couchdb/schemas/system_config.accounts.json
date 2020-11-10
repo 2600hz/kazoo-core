@@ -1,0 +1,11 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "system_config.accounts",
+    "description": "Schema for accounts system_config",
+    "properties": {
+        "master_account_id": {
+            "description": "accounts master account id"
+        }
+    },
+    "type": "object"
+}

@@ -32,7 +32,7 @@
 -include("kazoo_sip.hrl").
 
 -type uri() :: nklib:uri().
--type uris() :: nklib_parse_uri:uris().
+-type uris() :: [uri()].
 -export_type([uri/0, uris/0]).
 
 -type scheme() :: 'sip' | 'sips'.
@@ -44,7 +44,7 @@
 -type sip_uri() :: #sip_uri{}.
 -export_type([sip_uri/0]).
 
--spec uris(binary() | string() | uri()) -> [uri()] | 'error'.
+-spec uris(binary() | string() | uri()) -> uris() | 'error'.
 uris(Uri) -> nklib_parse_uri:uris(Uri).
 
 -spec ruri(uri()) -> binary().

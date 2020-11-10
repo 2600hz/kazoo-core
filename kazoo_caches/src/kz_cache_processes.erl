@@ -56,7 +56,7 @@ unmonitor_all(Name) ->
 processes_name(Name) ->
     kz_term:to_atom(atom_to_list(Name) ++ "_processes", 'true').
 
--spec init(kz_terms:atoms()) -> {'ok', state()}.
+-spec init(kz_term:atoms()) -> {'ok', state()}.
 init([Name]) ->
     kz_log:put_callid(processes_name(Name)),
     {'ok', {Name, []}}.

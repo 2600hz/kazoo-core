@@ -19,7 +19,7 @@
 -include("kazoo_endpoint.hrl").
 
 -spec by_owner_id(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
-          kz_json:objects().
+          kz_endpoint:endpoints().
 by_owner_id(OwnerId, Data, Call) ->
     by_owner_id(OwnerId, Data, Call, ?MODNAME).
 
@@ -34,12 +34,17 @@ by_owner_id(OwnerId, Data, Call, Mod) ->
                ,kz_attributes:owned_by(OwnerId, <<"device">>, Call)
                ).
 
--spec ignore_early_media(kz_json:objects()) -> kz_term:api_binary().
+-spec ignore_early_media(kz_endpoint:endpoints()) -> kz_term:api_binary().
 ignore_early_media(Endpoints) ->
-    case lists:any(fun(Endpoint) ->
-                           kz_json:is_true(<<"Ignore-Early-Media">>, Endpoint)
-                   end, Endpoints)
-    of
+    case any_ignoring_early_media(Endpoints) of
         'true' -> <<"true">>;
         'false' -> 'undefined'
     end.
+
+-spec any_ignoring_early_media(kz_endpoint:endpoints()) -> boolean().
+any_ignoring_early_media(Endpoints) ->
+    lists:any(fun ignoring_early_media/1, Endpoints).
+
+-spec ignoring_early_media(kz_endpoint:endpoint()) -> boolean().
+ignoring_early_media(Endpoint) ->
+    kz_json:is_true(<<"Ignore-Early-Media">>, Endpoint).

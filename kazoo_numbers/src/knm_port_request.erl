@@ -470,7 +470,7 @@ transition_metadata(AuthAccountId, AuthUserId) ->
 transition_metadata(AuthAccountId, AuthUserId, Reason) ->
     transition_metadata(AuthAccountId, AuthUserId, Reason, 'undefined').
 
--spec transition_metadata(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_seconds()) -> transition_metadata().
+-spec transition_metadata(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_time:api_seconds()) -> transition_metadata().
 transition_metadata(?MATCH_ACCOUNT_RAW(AuthAccountId), UserId, Reason, RequestedTimestamp) ->
     OptionalUserId = case UserId of
                          ?NE_BINARY -> UserId;

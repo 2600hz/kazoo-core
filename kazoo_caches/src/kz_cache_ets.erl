@@ -82,7 +82,7 @@ to_tab(Name, Suffix) ->
 store(Srv, K, V, Props)  ->
     gen_server:call(Srv, {'store', cache_obj(K, V, Props)}).
 
--spec store_async(kz_typs:server_ref(), any(), any(), kz_term:proplist()) -> 'ok'.
+-spec store_async(kz_types:server_ref(), any(), any(), kz_term:proplist()) -> 'ok'.
 store_async(Srv, K, V, Props) ->
     gen_server:cast(Srv, {'store', cache_obj(K, V, Props)}).
 
@@ -358,7 +358,7 @@ add_monitor(Name, MonitorName, Key, Timeout, FromPid) ->
 monitor_response_fun(Pid, Ref) ->
     fun(_, Value, Reason) -> Pid ! {Reason, Ref, Value} end.
 
--spec start_monitor_expire_timer(kz_term:server_ref(), pos_integer(), reference()) -> reference().
+-spec start_monitor_expire_timer(kz_types:server_ref(), pos_integer(), reference()) -> reference().
 start_monitor_expire_timer(Cache, Timeout, Ref) ->
     erlang:start_timer(Timeout, whereis(Cache), {?MONITOR_EXPIRE_MSG, Ref}).
 

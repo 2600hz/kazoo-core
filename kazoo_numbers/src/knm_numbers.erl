@@ -30,6 +30,7 @@
 -export([account_listing/1
         ,emergency_enabled/1
         ,free/1
+        ,validate_ownership/2
         ]).
 
 -include("knm.hrl").
@@ -44,7 +45,8 @@
 -type lookup_return() :: {'ok', kz_term:ne_binary(), knm_options:extra_options()} |
                          {'error', lookup_error()}.
 
--type number_thing() :: kz_term:ne_binary() | kz_term:ne_binaries().
+-type number_thing() :: kz_term:ne_binary().
+-type number_things() :: [number_thing()].
 
 -type return() :: {'ok', kz_json:objects()} |
                   {'ok', kz_json:objects(), knm_errors:proplist()} |
@@ -65,7 +67,7 @@
 %% modify ones.
 %% @end
 %%------------------------------------------------------------------------------
--spec create(number_thing(), knm_options:options()) -> return().
+-spec create(number_thing() | number_things(), knm_options:options()) -> return().
 create(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:create([Num], Options));
 create(Nums, Options) when is_list(Nums) ->
@@ -77,7 +79,7 @@ create(Nums, Options) when is_list(Nums) ->
 %% Sounds too harsh for you? You are looking for release/1,2.
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(number_thing(), knm_options:options()) -> return().
+-spec delete(number_thing() | number_things(), knm_options:options()) -> return().
 delete(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:delete([Num], Options));
 delete(Nums, Options) when is_list(Nums) ->
@@ -87,10 +89,10 @@ delete(Nums, Options) when is_list(Nums) ->
 %% @doc Attempts to get a single or a list of numbers from DB.
 %% @end
 %%------------------------------------------------------------------------------
--spec get(number_thing()) -> return().
+-spec get(number_thing() | number_things()) -> return().
 get(Num) -> get(Num, knm_options:default()).
 
--spec get(number_thing(), knm_options:options()) -> return().
+-spec get(number_thing() | number_things(), knm_options:options()) -> return().
 get(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:get([Num], Options));
 get(Nums, Options) when is_list(Nums) ->
@@ -100,10 +102,10 @@ get(Nums, Options) when is_list(Nums) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec release(number_thing()) -> return().
+-spec release(number_thing() | number_things()) -> return().
 release(Num) -> release(Num, knm_options:default()).
 
--spec release(number_thing(), knm_options:options()) -> return().
+-spec release(number_thing() | number_things(), knm_options:options()) -> return().
 release(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:release([Num], Options));
 release(Nums, Options) when is_list(Nums) ->
@@ -115,11 +117,11 @@ release(Nums, Options) when is_list(Nums) ->
 %% <div class="notice">will always result in a phone_number save.</div>
 %% @end
 %%------------------------------------------------------------------------------
--spec update(number_thing(), knm_phone_number:set_functions()) -> return().
+-spec update(number_thing() | number_things(), knm_phone_number:set_functions()) -> return().
 update(Num, Routines) ->
     update(Num, Routines, knm_options:default()).
 
--spec update(number_thing(), knm_phone_number:set_functions(), knm_options:options()) -> return().
+-spec update(number_thing() | number_things(), knm_phone_number:set_functions(), knm_options:options()) -> return().
 update(Num, Routines, Options) when is_binary(Num) ->
     handle_result(knm_ops:update([Num], Routines, Options));
 update(Nums, Routines, Options) when is_list(Nums) ->
@@ -133,11 +135,11 @@ update(Nums, Routines, Options) when is_list(Nums) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec assign_to_app(number_thing(), kz_term:api_ne_binary()) -> return().
+-spec assign_to_app(number_thing() | number_things(), kz_term:api_ne_binary()) -> return().
 assign_to_app(Num, App) ->
     assign_to_app(Num, App, knm_options:default()).
 
--spec assign_to_app(number_thing(), kz_term:api_ne_binary(), knm_options:options()) -> return().
+-spec assign_to_app(number_thing() | number_things(), kz_term:api_ne_binary(), knm_options:options()) -> return().
 assign_to_app(Num, App, Options) when is_binary(Num) ->
     handle_result(knm_ops:assign_to_app([Num], App, Options));
 assign_to_app(Nums, App, Options) when is_list(Nums) ->
@@ -178,11 +180,11 @@ lookup_account(<<Num/binary>>) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec move(number_thing(), kz_term:ne_binary()) -> return().
+-spec move(number_thing() | number_things(), kz_term:ne_binary()) -> return().
 move(Num, MoveTo) ->
     move(Num, MoveTo, knm_options:default()).
 
--spec move(number_thing(), kz_term:ne_binary(), knm_options:options()) -> return().
+-spec move(number_thing() | number_things(), kz_term:ne_binary(), knm_options:options()) -> return().
 move(Num, MoveTo, Options) when is_binary(Num) ->
     handle_result(knm_ops:move([Num], MoveTo, Options));
 move(Nums, MoveTo, Options) when is_list(Nums) ->
@@ -192,7 +194,7 @@ move(Nums, MoveTo, Options) when is_list(Nums) ->
 %% @doc Fetches then transitions existing number(s) to the reserved state.
 %% @end
 %%------------------------------------------------------------------------------
--spec reserve(number_thing(), knm_options:options()) -> return().
+-spec reserve(number_thing() | number_things(), knm_options:options()) -> return().
 reserve(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:reserve([Num], Options));
 reserve(Nums, Options) when is_list(Nums) ->
@@ -255,6 +257,34 @@ free(<<Account/binary>>) ->
                   end
                  ,maps:to_list(Failed)
                  ).
+
+%%------------------------------------------------------------------------------
+%% @doc Return true if the numbers are all owned by the account, else return the
+%% tuple where the first element is `false' and the second is a list of all the
+%% numbers that are not owned by the account.
+%% @end
+%%------------------------------------------------------------------------------
+-spec validate_ownership(kz_term:ne_binary(), number_thing() | number_things()) -> 'true' | {'false', number_things()}.
+validate_ownership(AccountId, Number) when is_binary(Number) ->
+    validate_ownership(AccountId, [Number]);
+validate_ownership(_AccountId, []) -> 'true';
+validate_ownership(AccountId, Numbers) when is_list(Numbers) ->
+    Options = [{'auth_by', AccountId}],
+    Failed = knm_pipe:failed(knm_ops:get(Numbers, Options)),
+    case maps:fold(fun validate_ownership_fold/3, [], Failed) of
+        [] -> 'true';
+        Unauthorized -> {'false', Unauthorized}
+    end.
+
+-spec validate_ownership_fold(number_thing(), knm_errors:reason(), number_things()) -> number_things().
+validate_ownership_fold(_, Reason, UnauthorizedAcc) when is_atom(Reason) ->
+    %% Ignoring atom reasons, i.e. 'not_found' or 'not_reconcilable'
+    UnauthorizedAcc;
+validate_ownership_fold(Number, ReasonJObj, UnauthorizedAcc) ->
+    case knm_errors:error(ReasonJObj) of
+        <<"forbidden">> -> [Number|UnauthorizedAcc];
+        _ -> UnauthorizedAcc
+    end.
 
 %%%=============================================================================
 %%% Internal functions

@@ -59,7 +59,7 @@ reduce(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec reduce_fold_fun({fun(), kz_json:object()}, kz_json:objects()) -> kz_json:objects().
-reduce_fold_fun({F, Obj}, Acc) -> F(Obj, Acc).
+reduce_fold_fun({F, JObj}, Acc) -> F(JObj, Acc).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -111,8 +111,8 @@ data_ping(Ping) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec reduce_runtime_stats(kz_json:object(), kz_json:object()) -> kz_term:ne_binary().
-reduce_runtime_stats(Obj, Acc) ->
-    Nodes = kz_json:get_value([<<"topology">>, <<"nodes">>], Obj),
+reduce_runtime_stats(JObj, Acc) ->
+    Nodes = kz_json:get_value([<<"topology">>, <<"nodes">>], JObj),
     Routines = [{fun node_summary/2, Nodes}
                ,{fun freeswitch_summary/2, Nodes}
                ,{fun calculate_aggregates/2, Nodes}
@@ -260,7 +260,7 @@ calculate_aggregates(_Nodes, Acc) ->
     Stats = kz_json:foldl(fun calculate_aggregate/3, kz_json:new(), Acc),
     kz_json:merge(Stats, Acc).
 
--spec calculate_aggregate(kz_term:binary(), kz_term:binaries() | any(), kz_json:object()) -> kz_json:object().
+-spec calculate_aggregate(binary(), kz_term:binaries() | any(), kz_json:object()) -> kz_json:object().
 calculate_aggregate(K, V, Acc)
   when is_list(V)
        andalso length(V) > 0 ->
@@ -295,7 +295,7 @@ dedupe_media_servers([Node | Nodes], Acc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec node_freeswitch_summary_foldl(kz_term:api_binaries(), kz_term:non_neg_integer() | kz_term:binary(), kz_json:object()) -> kz_json:object().
+-spec node_freeswitch_summary_foldl(kz_term:api_binaries(), kz_json:json_term(), kz_json:object()) -> kz_json:object().
 node_freeswitch_summary_foldl(_K, V, Acc) ->
     Values = kz_json:flatten(V),
     kz_json:foldl(fun rollup_freeswitch_jobj/3, Acc, Values).
@@ -325,13 +325,13 @@ rollup_freeswitch_jobj(K, V, Acc) when is_integer(V) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec reduce_database_jobj(kz_json:object(), kz_json:objects()) -> kz_json:object().
-reduce_database_jobj(Obj, Acc) ->
-    reduce_database_jobj(Obj, Acc, ?INCLUDE_DATABASE).
+reduce_database_jobj(JObj, Acc) ->
+    reduce_database_jobj(JObj, Acc, ?INCLUDE_DATABASE).
 
 -spec reduce_database_jobj(kz_json:object(), kz_json:objects(), boolean()) -> kz_json:object().
 reduce_database_jobj(_Obj, Acc, 'false') -> Acc;
-reduce_database_jobj(Obj, Acc, 'true') ->
-    Clusters = kz_json:get_value(<<"db_clusters">>, Obj),
+reduce_database_jobj(JObj, Acc, 'true') ->
+    Clusters = kz_json:get_value(<<"db_clusters">>, JObj),
     lists:foldl(fun rollup_db_cluster_jobjs/2, Acc, kz_json:flatten(Clusters)).
 
 %%------------------------------------------------------------------------------
@@ -347,26 +347,36 @@ rollup_db_cluster_jobjs(Cluster, Acc) ->
 %% @doc normalize stats to flat waveguide scalar K/V pairs
 %% @end
 %%------------------------------------------------------------------------------
--spec normalize_db_cluster_stats(kz_term:binary(), kz_term:binary() | kz_term:binaries() | non_neg_integer(), kz_json:object()) -> kz_json:object().
+-spec normalize_db_cluster_stats(kz_json:path(), binary() | kz_term:binaries() | non_neg_integer(), kz_json:object()) -> kz_json:object().
 normalize_db_cluster_stats(K, V, Acc) when is_list(V) ->
     normalize_db_cluster_stats(K, length(V), Acc);
 normalize_db_cluster_stats([Tag, Stat], V, Acc) when is_binary(V) ->
-    kz_json:set_value(<<(?TOPO_DB_KEY)/binary,(format_wg_id([?ANONYMIZE(Tag), Stat]))/binary,".",(format_wg_id(V))/binary>>, 1, Acc);
+    NewKey = <<(?TOPO_DB_KEY)/binary
+              ,(format_wg_id([?ANONYMIZE(Tag), Stat]))/binary
+              ,"."
+              ,(format_wg_id(V))/binary
+             >>,
+    kz_json:set_value(NewKey, 1, Acc);
 normalize_db_cluster_stats([Tag, Stat], V, Acc) ->
-    kz_json:set_value(<<(?TOPO_DB_KEY)/binary,(format_wg_id([?ANONYMIZE(Tag)]))/binary,".",Stat/binary>>, V, Acc).
+    NewKey = <<(?TOPO_DB_KEY)/binary
+              ,(format_wg_id([?ANONYMIZE(Tag)]))/binary
+              ,"."
+              ,Stat/binary
+             >>,
+    kz_json:set_value(NewKey, V, Acc).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec reduce_services_jobj(kz_term:proplist(), kz_json:object()) -> kz_json:objects().
-reduce_services_jobj(Obj, Acc) ->
-    reduce_services_jobj(Obj, Acc, ?INCLUDE_SERVICES).
+reduce_services_jobj(JObj, Acc) ->
+    reduce_services_jobj(JObj, Acc, ?INCLUDE_SERVICES).
 
 -spec reduce_services_jobj(kz_term:proplist(), kz_json:object(), boolean()) -> kz_json:objects().
-reduce_services_jobj(_Obj, Acc, 'false') -> Acc;
-reduce_services_jobj(Obj, Acc, _IncludeServices) ->
-    ServiceItems = kz_json:get_json_value([<<"services">>, <<"service_items">>], Obj),
+reduce_services_jobj(_JObj, Acc, 'false') -> Acc;
+reduce_services_jobj(JObj, Acc, _IncludeServices) ->
+    ServiceItems = kz_json:get_json_value([<<"services">>, <<"service_items">>], JObj),
     normalize_service_items(kz_json:flatten(ServiceItems), Acc).
 
 %%------------------------------------------------------------------------------
@@ -374,25 +384,31 @@ reduce_services_jobj(Obj, Acc, _IncludeServices) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec normalize_service_items(kz_json:object(), kz_json:object()) -> kz_json:object().
-normalize_service_items(Obj, Acc) ->
-    kz_json:foldl(fun normalize_services_items_foldl/3, Acc, Obj).
+normalize_service_items(JObj, Acc) ->
+    kz_json:foldl(fun normalize_services_items_foldl/3, Acc, JObj).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec normalize_services_items_foldl(kz_term:binary(), kz_term:ne_binary() | kz_term:binaries() | non_neg_integer(), kz_json:object()) -> kz_json:object().
+-spec normalize_services_items_foldl(kz_json:path(), kz_term:ne_binary() | kz_term:binaries() | non_neg_integer(), kz_json:object()) -> kz_json:object().
 normalize_services_items_foldl(K, V, Acc) ->
     [Category | Rest] = K,
-    kz_json:set_value(<<(?SERVICES_KEY)/binary,Category/binary,".",(format_wg_id(Rest))/binary,".count">>, V, Acc).
+    NewKey = <<(?SERVICES_KEY)/binary
+              ,Category/binary
+              ,"."
+              ,(format_wg_id(Rest))/binary
+              ,".count"
+             >>,
+    kz_json:set_value(NewKey, V, Acc).
 
 %%------------------------------------------------------------------------------
 %% @doc extract and count unique fqdns to assert physical node counts
 %% @end
 %%------------------------------------------------------------------------------
 -spec resolve_node_topology(kz_json:object(), kz_json:object()) -> kz_json:object().
-resolve_node_topology(Obj, Acc) ->
-    Nodes = kz_json:get_value([<<"topology">>, <<"nodes">>], Obj),
+resolve_node_topology(JObj, Acc) ->
+    Nodes = kz_json:get_value([<<"topology">>, <<"nodes">>], JObj),
     Fqdns = parse_node_fqdns(Nodes, []),
     kz_json:set_value(<<(?TOPO_NODES_KEY)/binary,"physical.count">>, length(Fqdns), Acc).
 
@@ -422,7 +438,7 @@ normalize_summaries_foldl(Key, Value, Acc) ->
 %% @doc format a period seperated key from a flattened list
 %% @end
 %%------------------------------------------------------------------------------
--spec format_wg_id(kz_term:binary() | kz_term:binaries()) -> kz_term:binary().
+-spec format_wg_id(binary() | kz_term:binaries()) -> binary().
 format_wg_id(A) when is_binary(A) ->
     Temp = binary:split(A, <<".">>, ['global']),
     kz_binary:join(Temp, <<"_">>);

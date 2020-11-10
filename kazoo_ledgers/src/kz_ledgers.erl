@@ -178,7 +178,7 @@ list_source(Account, Source) ->
             }
     end.
 
--spec list_source(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:seconds(), kz_time:seconds()) ->
+-spec list_source(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()) ->
           {'ok', ledgers()} |
           {'error', any()}.
 list_source(Account, Source, CreatedFrom, CreatedTo)
@@ -212,7 +212,7 @@ total_source(Account, Source) ->
       kazoo_modb:get_results(Account, ?TOTAL_BY_SOURCE, ViewOptions)
      ).
 
--spec total_source(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:seconds(), kz_time:seconds()) ->
+-spec total_source(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()) ->
           kz_currency:available_units_return().
 total_source(Account, Source, CreatedFrom, CreatedTo)
   when is_integer(CreatedFrom), CreatedFrom > 0,

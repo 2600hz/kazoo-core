@@ -290,7 +290,8 @@ count(#{'databases' := [Database | RestDbs], 'driver_params' := Params}=Cursor, 
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec next_batch(Cursor :: kz_view_cursor:cursor(), BatchSize::kz_view_cursor:limit()) -> kz_view_cursor:result().
+-spec next_batch(Cursor :: kz_view_cursor:cursor(), BatchSize::kz_view:limit()) ->
+          kz_view_cursor:result().
 next_batch(Cursor, BatchSize) ->
     fetch_more(Cursor, new_bookmark(Cursor, BatchSize), []).
 
@@ -769,7 +770,7 @@ fetch_more(Cursor, Bookmark, Rows) ->
             handle_query_results(NewCursor, Bookmark, Rows, JObjs, props:get_value('limit', ViewOptions))
     end.
 
--spec next_view_options(kz_view:cursor(), map()) -> view_options().
+-spec next_view_options(kz_view_cursor:cursor(), map()) -> view_options().
 next_view_options(#{'direction' := Direction
                    ,'databases' := [_Db|_]
                    ,'driver_params' := #{'design_view' := _View

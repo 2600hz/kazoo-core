@@ -36,11 +36,14 @@
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 -include("kz_web.hrl").
 
+-type split_url() :: {scheme(), location(), resource_path(), querystring(), fragment()}.
+
 -export_type([scheme/0
              ,location/0
              ,resource_path/0
              ,querystring/0
              ,fragment/0
+             ,split_url/0
              ]).
 
 -define(INVALID_HOSTS, kapps_config:get(?APP_NAME
@@ -486,7 +489,7 @@ location_password(<<_/binary>>) -> 'undefined';
 location_password({<<_/binary>>, _Port}) when is_integer(_Port) -> 'undefined';
 location_password({_Host, <<_/binary>>, <<Password/binary>>}) -> Password.
 
--spec urlsplit(binary()) -> {scheme(), location(), resource_path(), querystring(), fragment()}.
+-spec urlsplit(binary()) -> split_url().
 urlsplit(Source) ->
     {Scheme, Url1}      = urlsplit_s(Source),
     {Location, Url2}    = urlsplit_l(Url1),
@@ -612,7 +615,7 @@ urlsplit_q(<<C, R/binary>>, Acc) ->
 %% @doc Joins the elements of a URL together.
 %% @end
 %%------------------------------------------------------------------------------
--spec urlunsplit({scheme(), location(), resource_path(), querystring(), fragment()}) -> binary().
+-spec urlunsplit(split_url()) -> binary().
 urlunsplit({S, N, P, Q, F}) ->
     Us = case S of <<>> -> <<>>; _ -> [S, "://"] end,
     Uq = case Q of <<>> -> <<>>; _ -> [$?, Q] end,

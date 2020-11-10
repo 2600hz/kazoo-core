@@ -1,0 +1,26 @@
+{
+    "_id": "_design/call_reports",
+    "kazoo": {
+        "view_map": [
+            {
+                "classification": "modb"
+            }
+        ]
+    },
+    "language": "javascript",
+    "views": {
+        "crossbar_listing": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_deleted || doc.pvt_type != 'call_report') return;",
+                "  emit([doc.pvt_created, doc._id], {",
+                "    id: doc._id,",
+                "    call_id: doc.call_id,",
+                "    cdr_id: doc.cdr_id,",
+                "    type: doc.type",
+                "  });",
+                "}"
+            ]
+        }
+    }
+}

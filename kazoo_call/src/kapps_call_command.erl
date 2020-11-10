@@ -258,6 +258,7 @@
              ,audio_macro_prompts/0
              ,store_fun/0
              ,collect_digits_return/0
+             ,received_event/0
              ]).
 
 -type store_fun() :: kz_term:ne_binary() | fun(() -> kz_term:ne_binary()).

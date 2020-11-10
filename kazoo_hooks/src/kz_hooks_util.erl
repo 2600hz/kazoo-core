@@ -246,7 +246,7 @@ unbind(AccountId, EventName, BindFun) ->
     lager:debug("unbinding for hook event ~s in account ~s", [EventName, AccountId]),
     kazoo_bindings:unbind(BindingKey, BindFun).
 
--spec handle_call_event(kz_call_event:doc(), kz_term:proplist()) -> 'ok'.
+-spec handle_call_event(kz_call_event:payload(), kz_term:proplist()) -> 'ok'.
 handle_call_event(JObj, Props) ->
     'true' = kapi_call:event_v(JObj),
     HookEvent = kz_api:event_name(JObj),
