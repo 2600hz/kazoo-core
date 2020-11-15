@@ -299,16 +299,12 @@ bookmark_compat(#{cursor_size := Size}=Cursor) ->
                      ,{'next_startkey_docid', maps:get('next_startkey_docid', Bookmark, 'undefined')}
                      ]
                     ),
-    case encode_bookmark(NextStartKey) of
-        'undefined' -> [{<<"page_size">>, Size}];
-        Encoded ->
-            props:filter_undefined(
-              [{<<"page_size">>, Size}
-              ,{<<"start_key">>, encode_bookmark(StartKey)}
-              ,{<<"next_start_key">>, Encoded}
-              ]
-             )
-    end.
+    props:filter_undefined(
+      [{<<"page_size">>, Size}
+      ,{<<"start_key">>, encode_bookmark(StartKey)}
+      ,{<<"next_start_key">>, encode_bookmark(NextStartKey)}
+      ]
+     ).
 
 %%------------------------------------------------------------------------------
 %% @doc

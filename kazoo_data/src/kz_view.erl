@@ -81,10 +81,19 @@
                          fun((kz_view_cursor:cursor(), kz_json:object(), kz_json:objects()) -> filtermap_ret()) |
                          {fun((any(), kz_json:object(), kz_json:objects()) -> filtermap_ret()), any()}.
 
--type fields() :: [kz_json:path() | {kz_json:path(), boolean()}].
+-type error() :: kazoo_data:data_errors().
+
+-type get_key() :: kz_json:key() | kz_json:path().
+-type field_update() :: fun((Key::kz_json:key(), Value::kz_json:json_term()) -> {Key::kz_json:key(), Value::kz_json:json_term()}).
+-type fields() :: [get_key() | {get_key(), boolean() | field_update()}].
 -type fields_fun() :: fun((kz_json:object()) -> kz_json:object()).
 
--type error() :: kazoo_data:data_errors().
+%% internal
+-type fields_fun_arg() :: #{'fields' => fields()
+                           ,'no_fields' => boolean() %% indicates this is only remove/update operations so use object as base
+                           ,'remove' => [get_key()]
+                           ,'update' => [{get_key(), field_update()}]
+                           }.
 
 -export_type([bookmark/0
              ,direction/0
@@ -350,6 +359,7 @@ build_fields_fun(Fields, FieldKeyFun) when is_function(FieldKeyFun, 1) ->
             default_fields_fun(FieldsFunArg, FieldKeyFun(JObj))
     end.
 
+-spec default_fields_fun(fields_fun_arg(), kz_json:object()) -> kz_json:object().
 default_fields_fun(#{'no_fields' := 'true', 'remove' := ToRemove}=Arg, JObj0) ->
     JObj = kz_json:delete_keys(ToRemove, kz_doc:set_id(JObj0, kz_doc:id(JObj0))),
     fields_fun_get(Arg, JObj, JObj);
@@ -357,6 +367,7 @@ default_fields_fun(#{'remove' := ToRemove}=Arg, JObj0) ->
     JObj = kz_json:delete_keys(ToRemove, kz_doc:set_id(JObj0, kz_doc:id(JObj0))),
     fields_fun_get(Arg, JObj, kz_json:new()).
 
+-spec fields_fun_get(fields_fun_arg(), kz_json:object(), kz_json:object()) -> kz_json:object().
 fields_fun_get(#{'update' := ToUpdate
                 ,'fields' := Fields
                 }, JObj, Default) ->
@@ -373,6 +384,7 @@ fields_fun_get(#{'update' := ToUpdate
                ,ToUpdate
                ).
 
+-spec build_fields_arg(fields()) -> fields_fun_arg().
 build_fields_arg(Fields) ->
     Acc = #{'remove' => [], 'update' => []
            ,'fields' => [], 'no_fields' => 'false'
@@ -383,12 +395,11 @@ build_fields_arg(Fields) ->
     {UFields, _} = lists:unzip(ToUpdate),
     Arg#{'fields' => lists:usort(NewFields ++ UFields)}.
 
+-spec build_fields_arg(fields(), fields_fun_arg()) -> fields_fun_arg().
 build_fields_arg([], #{'fields' := []}=Acc) ->
     Acc#{'fields' => [<<"_id">>]
         ,'no_fields' => 'true'
         };
-build_fields_arg([], #{'fields' := [<<"_id">>]}=Acc) ->
-    Acc#{'no_fields' => 'true'};
 build_fields_arg([], #{'fields' := Fields}=Acc) ->
     case props:get_value(<<"_id">>, Fields) of
         'undefined' ->
@@ -462,7 +473,7 @@ apply_filtermap_fold(Filtered, JObj, Acc) ->
         NewAcc -> NewAcc
     end.
 
--spec apply_fields_fun(CursorOrFieldsFun :: kz_view_cursor:cursor() | fields_fun(), JObjOrJObjs :: kz_json:objects()) ->
+-spec apply_fields_fun(CursorOrFieldsFun :: kz_view_cursor:cursor() | fields_fun(), JObjs :: kz_json:objects()) ->
           kz_json:objects().
 apply_fields_fun(FieldsFun, JObjs) when is_function(FieldsFun, 1) ->
     [FieldsFun(JObj) || JObj <- JObjs];
