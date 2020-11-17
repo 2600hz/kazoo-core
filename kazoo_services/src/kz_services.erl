@@ -1260,7 +1260,7 @@ make_diff_object([_Source, Category, Item]=Path, Quantity, Billable) ->
        ,kz_json:from_list(
           [{<<"category">>, Category}
           ,{<<"source">>, Item}
-          ,{<<"quantity">>, -1 * Quantity} %% Proposed - Current
+          ,{<<"quantity">>, Quantity} %% Proposed - Current
           ,{<<"billable">>, Billable} %% if proposed doesn't have this diff item then billable is zero
           ])
        }
