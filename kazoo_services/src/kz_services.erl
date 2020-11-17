@@ -1195,52 +1195,35 @@ save_services_jobj(Services, ProposedJObj) ->
 %%------------------------------------------------------------------------------
 -spec maybe_audit_reseller(services(), kz_json:object(), kz_json:object()) -> 'ok'.
 maybe_audit_reseller(Services, CurrentServicesJObj, ProposedServicesJObj)  ->
-    case has_quantity_changes(CurrentServicesJObj, ProposedServicesJObj) of
-        'false' -> 'ok';
-        'true' ->
-            audit_reseller(Services, CurrentServicesJObj, ProposedServicesJObj)
+    case generate_diff_obj(CurrentServicesJObj, ProposedServicesJObj) of
+        [] -> 'ok';
+        Diff ->
+            audit_reseller(Services, Diff)
     end.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec audit_reseller(services(), kz_json:object(), kz_json:object()) -> 'ok'.
-audit_reseller(Services, CurrentServicesJObj, ProposedServicesJObj) ->
+-spec audit_reseller(services(), kz_json:objects()) -> 'ok'.
+audit_reseller(Services, Diff) ->
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
     AccountId = account_id(Services),
     ResellerId = kz_services_reseller:get_id(AccountId),
 
     case kz_services_reseller:is_reseller(AccountId)
-        andalso MasterAccountId =/= AccountId of
-                                                % don't cascade audit to Master Acct
+        andalso MasterAccountId =/= AccountId
+    of
+        %% don't cascade audit to Master Acct
         'false' -> 'ok';
         'true' ->
             lager:debug("creating account ~s reseller audit for ~s", [AccountId, ResellerId]),
             JObj = kz_json:from_list_recursive([{<<"id">>, kazoo_yodb_util:yodb_id()}
-                                               ,{<<"audit">>
-                                                ,generate_diff_obj(CurrentServicesJObj, ProposedServicesJObj)
-                                                }
+                                               ,{<<"audit">>, Diff}
                                                ]),
             Doc = kz_doc:update_pvt_parameters(JObj, kazoo_yodb:get_yodb(AccountId)),
-            _ = kazoo_yodb:save_doc(AccountId, Doc),
+            {'ok', _} = kazoo_yodb:save_doc(AccountId, Doc),
             'ok'
-    end.
-
-%%------------------------------------------------------------------------------
-%% @doc run a diff between services jobs to determine if cascade quantities
-%% changed.
-%% @end
-%%------------------------------------------------------------------------------
--spec has_quantity_changes(kz_json:object(), kz_json:object()) -> boolean().
-has_quantity_changes(CurrentServicesJObj, ProposedServicesJObj) ->
-    CascadesQty = <<"quantities">>,
-    PQ = kz_json:get_json_value(CascadesQty, ProposedServicesJObj),
-    CQ = kz_json:get_json_value(CascadesQty, CurrentServicesJObj),
-    Diff = kz_json:diff(CQ, PQ),
-    case kz_json:is_empty(Diff) of
-        'true' -> 'false';
-        _ -> 'true'
     end.
 
 %%------------------------------------------------------------------------------
@@ -1250,29 +1233,39 @@ has_quantity_changes(CurrentServicesJObj, ProposedServicesJObj) ->
 -spec generate_diff_obj(kz_json:object(), kz_json:object()) -> kz_json:objects().
 generate_diff_obj(CurrentServicesJObj, ProposedServicesJObj) ->
     Key = <<"quantities">>,
-    PQ = kz_json:get_json_value(Key, ProposedServicesJObj),
-    CQ = kz_json:get_json_value(Key, CurrentServicesJObj),
-    Diffs = kz_json:diff(CQ, PQ),
-    Keys = kz_json:get_keys(kz_json:flatten(Diffs)),
-    calculate_diffs({Keys, CQ, PQ}, []).
+    PQ = sets:from_list(kz_json:to_proplist(kz_json:flatten(kz_json:get_json_value(Key, ProposedServicesJObj)))),
+    CQ = sets:from_list(kz_json:to_proplist(kz_json:flatten(kz_json:get_json_value(Key, CurrentServicesJObj)))),
 
-%%------------------------------------------------------------------------------
-%% @doc generates the changes JObj for each diff key with changed and billable
-%% quantities
-%% @end
-%%------------------------------------------------------------------------------
--spec calculate_diffs({kz_json:keys(), kz_json:object(), kz_json:object()}, kz_json:objects()) -> kz_json:objects().
-calculate_diffs({[], _, _}, Acc) -> Acc;
-calculate_diffs({[Key | Keys], CQ, PQ}, Acc) ->
-    Proposed = kz_json:get_integer_value(Key, PQ, 0),
-    Current = kz_json:get_integer_value(Key, CQ, 0),
-    [_Source, Category, Item] = Key,
-    Obj = [{<<"category">>, Category}
+    %% NOTE: filter path in cases source is empty, like current cacade is empty but porpose has cascade.
+    %% NOTE: get unique set of current and proposed. Unique set is consist of all changes in quantities
+    %% and other items that are (or were) no longer exists (unique to the set). Current quantity is
+    %% multiply with -1 to make negative then perform a sum so the final quantity is `Proposed - Current'.
+    %% Billable for current is zero, so the final billable is the proposed quantity if proposed has add/remove
+    %% or zero that means everything was removed and proposed doesn't have that item anymore.
+    CurrentQuantities = [make_diff_object(Path, -1 * V, 0)
+                         || {[_Source, _Category, _Item]=Path, V} <- sets:to_list(sets:subtract(CQ, PQ))
+                        ],
+    ProposedQuantities = [make_diff_object(Path, V, V)
+                          || {[_Source, _Category, _Item]=Path, V} <- sets:to_list(sets:subtract(PQ, CQ))
+                         ],
+    {Diff, _SourcePaths} = kz_json:get_values(
+                             kz_json:sum_jobjs(CurrentQuantities ++ ProposedQuantities)
+                            ),
+    Diff.
+
+-spec make_diff_object(kz_json:path(), integer(), non_neg_integer()) ->
+          kz_json:object().
+make_diff_object([_Source, Category, Item]=Path, Quantity, Billable) ->
+    kz_json:from_list(
+      [{kz_binary:join(Path, <<"_">>) %% makes this path summable, look at `kz_json:get_values/1' above
+       ,kz_json:from_list(
+          [{<<"category">>, Category}
           ,{<<"source">>, Item}
-          ,{<<"quantity">>, Proposed - Current}
-          ,{<<"billable">>, Proposed}
-          ],
-    calculate_diffs({Keys, CQ, PQ}, [kz_json:from_list(Obj) | Acc]).
+          ,{<<"quantity">>, Quantity} %% Proposed - Current
+          ,{<<"billable">>, Billable} %% if proposed doesn't have this diff item then billable is zero
+          ])
+       }
+      ]).
 
 %%------------------------------------------------------------------------------
 %% @doc
