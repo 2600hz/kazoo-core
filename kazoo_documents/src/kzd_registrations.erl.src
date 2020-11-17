@@ -1,0 +1,436 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2020, 2600Hz
+%%% @doc Accessors for `registrations' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_registrations).
+
+-export([new/0]).
+-export([account_name/1, account_name/2, set_account_name/2]).
+-export([account_realm/1, account_realm/2, set_account_realm/2]).
+-export([authorizing_id/1, authorizing_id/2, set_authorizing_id/2]).
+-export([authorizing_type/1, authorizing_type/2, set_authorizing_type/2]).
+-export([bridge_ruri/1, bridge_ruri/2, set_bridge_ruri/2]).
+-export([call_id/1, call_id/2, set_call_id/2]).
+-export([contact/1, contact/2, set_contact/2]).
+-export([contact_ip/1, contact_ip/2, set_contact_ip/2]).
+-export([contact_port/1, contact_port/2, set_contact_port/2]).
+-export([event_timestamp/1, event_timestamp/2, set_event_timestamp/2]).
+-export([expires/1, expires/2, set_expires/2]).
+-export([first_registration/1, first_registration/2, set_first_registration/2]).
+-export([from_host/1, from_host/2, set_from_host/2]).
+-export([from_user/1, from_user/2, set_from_user/2]).
+-export([initial_registration/1, initial_registration/2, set_initial_registration/2]).
+-export([last_registration/1, last_registration/2, set_last_registration/2]).
+-export([original_contact/1, original_contact/2, set_original_contact/2]).
+-export([presence_id/1, presence_id/2, set_presence_id/2]).
+-export([proxy_ip/1, proxy_ip/2, set_proxy_ip/2]).
+-export([proxy_path/1, proxy_path/2, set_proxy_path/2]).
+-export([proxy_port/1, proxy_port/2, set_proxy_port/2]).
+-export([proxy_protocol/1, proxy_protocol/2, set_proxy_protocol/2]).
+-export([realm/1, realm/2, set_realm/2]).
+-export([register_overwrite_notify/1, register_overwrite_notify/2, set_register_overwrite_notify/2]).
+-export([registrar_node/1, registrar_node/2, set_registrar_node/2]).
+-export([source_ip/1, source_ip/2, set_source_ip/2]).
+-export([source_port/1, source_port/2, set_source_port/2]).
+-export([suppress_unregister_notify/1, suppress_unregister_notify/2, set_suppress_unregister_notify/2]).
+-export([to_host/1, to_host/2, set_to_host/2]).
+-export([to_user/1, to_user/2, set_to_user/2]).
+-export([user_agent/1, user_agent/2, set_user_agent/2]).
+-export([username/1, username/2, set_username/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"registrations">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec account_name(doc()) -> kz_term:api_binary().
+account_name(Doc) ->
+    account_name(Doc, 'undefined').
+
+-spec account_name(doc(), Default) -> binary() | Default.
+account_name(Doc, Default) ->
+    kz_json:get_binary_value([<<"account_name">>], Doc, Default).
+
+-spec set_account_name(doc(), binary()) -> doc().
+set_account_name(Doc, AccountName) ->
+    kz_json:set_value([<<"account_name">>], AccountName, Doc).
+
+-spec account_realm(doc()) -> kz_term:api_binary().
+account_realm(Doc) ->
+    account_realm(Doc, 'undefined').
+
+-spec account_realm(doc(), Default) -> binary() | Default.
+account_realm(Doc, Default) ->
+    kz_json:get_binary_value([<<"account_realm">>], Doc, Default).
+
+-spec set_account_realm(doc(), binary()) -> doc().
+set_account_realm(Doc, AccountRealm) ->
+    kz_json:set_value([<<"account_realm">>], AccountRealm, Doc).
+
+-spec authorizing_id(doc()) -> kz_term:api_binary().
+authorizing_id(Doc) ->
+    authorizing_id(Doc, 'undefined').
+
+-spec authorizing_id(doc(), Default) -> binary() | Default.
+authorizing_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"authorizing_id">>], Doc, Default).
+
+-spec set_authorizing_id(doc(), binary()) -> doc().
+set_authorizing_id(Doc, AuthorizingId) ->
+    kz_json:set_value([<<"authorizing_id">>], AuthorizingId, Doc).
+
+-spec authorizing_type(doc()) -> kz_term:api_binary().
+authorizing_type(Doc) ->
+    authorizing_type(Doc, 'undefined').
+
+-spec authorizing_type(doc(), Default) -> binary() | Default.
+authorizing_type(Doc, Default) ->
+    kz_json:get_binary_value([<<"authorizing_type">>], Doc, Default).
+
+-spec set_authorizing_type(doc(), binary()) -> doc().
+set_authorizing_type(Doc, AuthorizingType) ->
+    kz_json:set_value([<<"authorizing_type">>], AuthorizingType, Doc).
+
+-spec bridge_ruri(doc()) -> kz_term:api_binary().
+bridge_ruri(Doc) ->
+    bridge_ruri(Doc, 'undefined').
+
+-spec bridge_ruri(doc(), Default) -> binary() | Default.
+bridge_ruri(Doc, Default) ->
+    kz_json:get_binary_value([<<"bridge_ruri">>], Doc, Default).
+
+-spec set_bridge_ruri(doc(), binary()) -> doc().
+set_bridge_ruri(Doc, BridgeRuri) ->
+    kz_json:set_value([<<"bridge_ruri">>], BridgeRuri, Doc).
+
+-spec call_id(doc()) -> kz_term:api_binary().
+call_id(Doc) ->
+    call_id(Doc, 'undefined').
+
+-spec call_id(doc(), Default) -> binary() | Default.
+call_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"call_id">>], Doc, Default).
+
+-spec set_call_id(doc(), binary()) -> doc().
+set_call_id(Doc, CallId) ->
+    kz_json:set_value([<<"call_id">>], CallId, Doc).
+
+-spec contact(doc()) -> kz_term:api_binary().
+contact(Doc) ->
+    contact(Doc, 'undefined').
+
+-spec contact(doc(), Default) -> binary() | Default.
+contact(Doc, Default) ->
+    kz_json:get_binary_value([<<"contact">>], Doc, Default).
+
+-spec set_contact(doc(), binary()) -> doc().
+set_contact(Doc, Contact) ->
+    kz_json:set_value([<<"contact">>], Contact, Doc).
+
+-spec contact_ip(doc()) -> kz_term:api_binary().
+contact_ip(Doc) ->
+    contact_ip(Doc, 'undefined').
+
+-spec contact_ip(doc(), Default) -> binary() | Default.
+contact_ip(Doc, Default) ->
+    kz_json:get_binary_value([<<"contact_ip">>], Doc, Default).
+
+-spec set_contact_ip(doc(), binary()) -> doc().
+set_contact_ip(Doc, ContactIP) ->
+    kz_json:set_value([<<"contact_ip">>], ContactIP, Doc).
+
+-spec contact_port(doc()) -> kz_term:api_integer().
+contact_port(Doc) ->
+    contact_port(Doc, 'undefined').
+
+-spec contact_port(doc(), Default) -> integer() | Default.
+contact_port(Doc, Default) ->
+    kz_json:get_integer_value([<<"contact_port">>], Doc, Default).
+
+-spec set_contact_port(doc(), integer()) -> doc().
+set_contact_port(Doc, ContactPort) ->
+    kz_json:set_value([<<"contact_port">>], ContactPort, Doc).
+
+-spec event_timestamp(doc()) -> kz_term:api_integer().
+event_timestamp(Doc) ->
+    event_timestamp(Doc, 'undefined').
+
+-spec event_timestamp(doc(), Default) -> integer() | Default.
+event_timestamp(Doc, Default) ->
+    kz_json:get_integer_value([<<"event_timestamp">>], Doc, Default).
+
+-spec set_event_timestamp(doc(), integer()) -> doc().
+set_event_timestamp(Doc, EventTimestamp) ->
+    kz_json:set_value([<<"event_timestamp">>], EventTimestamp, Doc).
+
+-spec expires(doc()) -> kz_term:api_integer().
+expires(Doc) ->
+    expires(Doc, 'undefined').
+
+-spec expires(doc(), Default) -> integer() | Default.
+expires(Doc, Default) ->
+    kz_json:get_integer_value([<<"expires">>], Doc, Default).
+
+-spec set_expires(doc(), integer()) -> doc().
+set_expires(Doc, Expires) ->
+    kz_json:set_value([<<"expires">>], Expires, Doc).
+
+-spec first_registration(doc()) -> kz_term:api_boolean().
+first_registration(Doc) ->
+    first_registration(Doc, 'undefined').
+
+-spec first_registration(doc(), Default) -> boolean() | Default.
+first_registration(Doc, Default) ->
+    kz_json:get_boolean_value([<<"first_registration">>], Doc, Default).
+
+-spec set_first_registration(doc(), boolean()) -> doc().
+set_first_registration(Doc, FirstRegistration) ->
+    kz_json:set_value([<<"first_registration">>], FirstRegistration, Doc).
+
+-spec from_host(doc()) -> kz_term:api_binary().
+from_host(Doc) ->
+    from_host(Doc, 'undefined').
+
+-spec from_host(doc(), Default) -> binary() | Default.
+from_host(Doc, Default) ->
+    kz_json:get_binary_value([<<"from_host">>], Doc, Default).
+
+-spec set_from_host(doc(), binary()) -> doc().
+set_from_host(Doc, FromHost) ->
+    kz_json:set_value([<<"from_host">>], FromHost, Doc).
+
+-spec from_user(doc()) -> kz_term:api_binary().
+from_user(Doc) ->
+    from_user(Doc, 'undefined').
+
+-spec from_user(doc(), Default) -> binary() | Default.
+from_user(Doc, Default) ->
+    kz_json:get_binary_value([<<"from_user">>], Doc, Default).
+
+-spec set_from_user(doc(), binary()) -> doc().
+set_from_user(Doc, FromUser) ->
+    kz_json:set_value([<<"from_user">>], FromUser, Doc).
+
+-spec initial_registration(doc()) -> kz_term:api_integer().
+initial_registration(Doc) ->
+    initial_registration(Doc, 'undefined').
+
+-spec initial_registration(doc(), Default) -> integer() | Default.
+initial_registration(Doc, Default) ->
+    kz_json:get_integer_value([<<"initial_registration">>], Doc, Default).
+
+-spec set_initial_registration(doc(), integer()) -> doc().
+set_initial_registration(Doc, InitialRegistration) ->
+    kz_json:set_value([<<"initial_registration">>], InitialRegistration, Doc).
+
+-spec last_registration(doc()) -> kz_term:api_integer().
+last_registration(Doc) ->
+    last_registration(Doc, 'undefined').
+
+-spec last_registration(doc(), Default) -> integer() | Default.
+last_registration(Doc, Default) ->
+    kz_json:get_integer_value([<<"last_registration">>], Doc, Default).
+
+-spec set_last_registration(doc(), integer()) -> doc().
+set_last_registration(Doc, LastRegistration) ->
+    kz_json:set_value([<<"last_registration">>], LastRegistration, Doc).
+
+-spec original_contact(doc()) -> kz_term:api_binary().
+original_contact(Doc) ->
+    original_contact(Doc, 'undefined').
+
+-spec original_contact(doc(), Default) -> binary() | Default.
+original_contact(Doc, Default) ->
+    kz_json:get_binary_value([<<"original_contact">>], Doc, Default).
+
+-spec set_original_contact(doc(), binary()) -> doc().
+set_original_contact(Doc, OriginalContact) ->
+    kz_json:set_value([<<"original_contact">>], OriginalContact, Doc).
+
+-spec presence_id(doc()) -> kz_term:api_binary().
+presence_id(Doc) ->
+    presence_id(Doc, 'undefined').
+
+-spec presence_id(doc(), Default) -> binary() | Default.
+presence_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"presence_id">>], Doc, Default).
+
+-spec set_presence_id(doc(), binary()) -> doc().
+set_presence_id(Doc, PresenceId) ->
+    kz_json:set_value([<<"presence_id">>], PresenceId, Doc).
+
+-spec proxy_ip(doc()) -> kz_term:api_binary().
+proxy_ip(Doc) ->
+    proxy_ip(Doc, 'undefined').
+
+-spec proxy_ip(doc(), Default) -> binary() | Default.
+proxy_ip(Doc, Default) ->
+    kz_json:get_binary_value([<<"proxy_ip">>], Doc, Default).
+
+-spec set_proxy_ip(doc(), binary()) -> doc().
+set_proxy_ip(Doc, ProxyIP) ->
+    kz_json:set_value([<<"proxy_ip">>], ProxyIP, Doc).
+
+-spec proxy_path(doc()) -> kz_term:api_binary().
+proxy_path(Doc) ->
+    proxy_path(Doc, 'undefined').
+
+-spec proxy_path(doc(), Default) -> binary() | Default.
+proxy_path(Doc, Default) ->
+    kz_json:get_binary_value([<<"proxy_path">>], Doc, Default).
+
+-spec set_proxy_path(doc(), binary()) -> doc().
+set_proxy_path(Doc, ProxyPath) ->
+    kz_json:set_value([<<"proxy_path">>], ProxyPath, Doc).
+
+-spec proxy_port(doc()) -> kz_term:api_integer().
+proxy_port(Doc) ->
+    proxy_port(Doc, 'undefined').
+
+-spec proxy_port(doc(), Default) -> integer() | Default.
+proxy_port(Doc, Default) ->
+    kz_json:get_integer_value([<<"proxy_port">>], Doc, Default).
+
+-spec set_proxy_port(doc(), integer()) -> doc().
+set_proxy_port(Doc, ProxyPort) ->
+    kz_json:set_value([<<"proxy_port">>], ProxyPort, Doc).
+
+-spec proxy_protocol(doc()) -> kz_term:api_binary().
+proxy_protocol(Doc) ->
+    proxy_protocol(Doc, 'undefined').
+
+-spec proxy_protocol(doc(), Default) -> binary() | Default.
+proxy_protocol(Doc, Default) ->
+    kz_json:get_binary_value([<<"proxy_protocol">>], Doc, Default).
+
+-spec set_proxy_protocol(doc(), binary()) -> doc().
+set_proxy_protocol(Doc, ProxyProtocol) ->
+    kz_json:set_value([<<"proxy_protocol">>], ProxyProtocol, Doc).
+
+-spec realm(doc()) -> kz_term:api_binary().
+realm(Doc) ->
+    realm(Doc, 'undefined').
+
+-spec realm(doc(), Default) -> binary() | Default.
+realm(Doc, Default) ->
+    kz_json:get_binary_value([<<"realm">>], Doc, Default).
+
+-spec set_realm(doc(), binary()) -> doc().
+set_realm(Doc, Realm) ->
+    kz_json:set_value([<<"realm">>], Realm, Doc).
+
+-spec register_overwrite_notify(doc()) -> kz_term:api_boolean().
+register_overwrite_notify(Doc) ->
+    register_overwrite_notify(Doc, 'undefined').
+
+-spec register_overwrite_notify(doc(), Default) -> boolean() | Default.
+register_overwrite_notify(Doc, Default) ->
+    kz_json:get_boolean_value([<<"register_overwrite_notify">>], Doc, Default).
+
+-spec set_register_overwrite_notify(doc(), boolean()) -> doc().
+set_register_overwrite_notify(Doc, RegisterOverwriteNotify) ->
+    kz_json:set_value([<<"register_overwrite_notify">>], RegisterOverwriteNotify, Doc).
+
+-spec registrar_node(doc()) -> kz_term:api_binary().
+registrar_node(Doc) ->
+    registrar_node(Doc, 'undefined').
+
+-spec registrar_node(doc(), Default) -> binary() | Default.
+registrar_node(Doc, Default) ->
+    kz_json:get_binary_value([<<"registrar_node">>], Doc, Default).
+
+-spec set_registrar_node(doc(), binary()) -> doc().
+set_registrar_node(Doc, RegistrarNode) ->
+    kz_json:set_value([<<"registrar_node">>], RegistrarNode, Doc).
+
+-spec source_ip(doc()) -> kz_term:api_binary().
+source_ip(Doc) ->
+    source_ip(Doc, 'undefined').
+
+-spec source_ip(doc(), Default) -> binary() | Default.
+source_ip(Doc, Default) ->
+    kz_json:get_binary_value([<<"source_ip">>], Doc, Default).
+
+-spec set_source_ip(doc(), binary()) -> doc().
+set_source_ip(Doc, SourceIP) ->
+    kz_json:set_value([<<"source_ip">>], SourceIP, Doc).
+
+-spec source_port(doc()) -> kz_term:api_integer().
+source_port(Doc) ->
+    source_port(Doc, 'undefined').
+
+-spec source_port(doc(), Default) -> integer() | Default.
+source_port(Doc, Default) ->
+    kz_json:get_integer_value([<<"source_port">>], Doc, Default).
+
+-spec set_source_port(doc(), integer()) -> doc().
+set_source_port(Doc, SourcePort) ->
+    kz_json:set_value([<<"source_port">>], SourcePort, Doc).
+
+-spec suppress_unregister_notify(doc()) -> kz_term:api_boolean().
+suppress_unregister_notify(Doc) ->
+    suppress_unregister_notify(Doc, 'undefined').
+
+-spec suppress_unregister_notify(doc(), Default) -> boolean() | Default.
+suppress_unregister_notify(Doc, Default) ->
+    kz_json:get_boolean_value([<<"suppress_unregister_notify">>], Doc, Default).
+
+-spec set_suppress_unregister_notify(doc(), boolean()) -> doc().
+set_suppress_unregister_notify(Doc, SuppressUnregisterNotify) ->
+    kz_json:set_value([<<"suppress_unregister_notify">>], SuppressUnregisterNotify, Doc).
+
+-spec to_host(doc()) -> kz_term:api_binary().
+to_host(Doc) ->
+    to_host(Doc, 'undefined').
+
+-spec to_host(doc(), Default) -> binary() | Default.
+to_host(Doc, Default) ->
+    kz_json:get_binary_value([<<"to_host">>], Doc, Default).
+
+-spec set_to_host(doc(), binary()) -> doc().
+set_to_host(Doc, ToHost) ->
+    kz_json:set_value([<<"to_host">>], ToHost, Doc).
+
+-spec to_user(doc()) -> kz_term:api_binary().
+to_user(Doc) ->
+    to_user(Doc, 'undefined').
+
+-spec to_user(doc(), Default) -> binary() | Default.
+to_user(Doc, Default) ->
+    kz_json:get_binary_value([<<"to_user">>], Doc, Default).
+
+-spec set_to_user(doc(), binary()) -> doc().
+set_to_user(Doc, ToUser) ->
+    kz_json:set_value([<<"to_user">>], ToUser, Doc).
+
+-spec user_agent(doc()) -> kz_term:api_binary().
+user_agent(Doc) ->
+    user_agent(Doc, 'undefined').
+
+-spec user_agent(doc(), Default) -> binary() | Default.
+user_agent(Doc, Default) ->
+    kz_json:get_binary_value([<<"user_agent">>], Doc, Default).
+
+-spec set_user_agent(doc(), binary()) -> doc().
+set_user_agent(Doc, UserAgent) ->
+    kz_json:set_value([<<"user_agent">>], UserAgent, Doc).
+
+-spec username(doc()) -> kz_term:api_binary().
+username(Doc) ->
+    username(Doc, 'undefined').
+
+-spec username(doc(), Default) -> binary() | Default.
+username(Doc, Default) ->
+    kz_json:get_binary_value([<<"username">>], Doc, Default).
+
+-spec set_username(doc(), binary()) -> doc().
+set_username(Doc, Username) ->
+    kz_json:set_value([<<"username">>], Username, Doc).

@@ -534,15 +534,14 @@ urlsplit_s(<<C, R/binary>>, Acc) ->
 %% @doc Splits out the location portion of the URL.
 %% @end
 %%------------------------------------------------------------------------------
--spec urlsplit_l(binary()) -> {binary(), binary()}.
+-spec urlsplit_l(binary()) -> {location(), binary()}.
 urlsplit_l(<<"//", R/binary>>) ->
     urlsplit_l(R, <<>>);
 
 urlsplit_l(Source) ->
     {<<>>, Source}.
 
--spec urlsplit_l(binary(), binary()) -> {binary(), binary()} |
-          {{binary(), binary(), binary()}, binary()}.
+-spec urlsplit_l(binary(), binary()) -> {location(), binary()}.
 urlsplit_l(<<>>, Acc) ->
     {Acc, <<>>};
 

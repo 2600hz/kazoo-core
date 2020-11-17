@@ -76,7 +76,7 @@ pad_left(Bin, _Size, _Value) -> Bin.
 -spec join([kz_term:text()]) -> binary().
 join(Bins) -> join(Bins, <<", ">>).
 
--spec join([kz_term:text()], iodata() | char()) -> binary().
+-spec join([kz_term:text() | integer()], iodata() | char()) -> binary().
 join([], _) -> <<>>;
 join([Bin], _) -> kz_term:to_binary(Bin);
 join([Bin|Bins], Sep) ->
