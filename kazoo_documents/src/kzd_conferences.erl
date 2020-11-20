@@ -10,6 +10,7 @@
 -module(kzd_conferences).
 
 -export([new/0]).
+-export([allow_shareable_link/1, allow_shareable_link/2, set_allow_shareable_link/2]).
 -export([bridge_password/1, bridge_password/2, set_bridge_password/2]).
 -export([bridge_username/1, bridge_username/2, set_bridge_username/2]).
 -export([caller_controls/1, caller_controls/2, set_caller_controls/2]).
@@ -43,6 +44,7 @@
 -export([profile_name/1, profile_name/2, set_profile_name/2]).
 -export([require_moderator/1, require_moderator/2, set_require_moderator/2]).
 -export([wait_for_moderator/1, wait_for_moderator/2, set_wait_for_moderator/2]).
+-export([on_enter_extension/1, set_on_enter_extension/2]).
 
 
 -include("kz_documents.hrl").
@@ -55,6 +57,18 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec allow_shareable_link(doc()) -> boolean().
+allow_shareable_link(Doc) ->
+    allow_shareable_link(Doc, false).
+
+-spec allow_shareable_link(doc(), Default) -> boolean() | Default.
+allow_shareable_link(Doc, Default) ->
+    kz_json:get_boolean_value([<<"allow_shareable_link">>], Doc, Default).
+
+-spec set_allow_shareable_link(doc(), boolean()) -> doc().
+set_allow_shareable_link(Doc, PublicLinkEnabled) ->
+    kz_json:set_value([<<"allow_shareable_link">>], PublicLinkEnabled, Doc).
 
 -spec bridge_password(doc()) -> kz_term:api_binary().
 bridge_password(Doc) ->
@@ -451,3 +465,12 @@ wait_for_moderator(Doc, Default) ->
 -spec set_wait_for_moderator(doc(), boolean()) -> doc().
 set_wait_for_moderator(Doc, WaitForModerator) ->
     kz_json:set_value([<<"wait_for_moderator">>], WaitForModerator, Doc).
+
+-spec on_enter_extension(doc() | undefined) -> kz_term:api_ne_binary().
+on_enter_extension(undefined) -> undefined;
+on_enter_extension(Doc) ->
+    kz_json:get_ne_binary_value([<<"on_enter_extension">>], Doc).
+
+-spec set_on_enter_extension(doc(), kz_term:ne_binary()) -> doc().
+set_on_enter_extension(Doc, Extension) ->
+    kz_json:set_value([<<"on_enter_extension">>], Extension, Doc).

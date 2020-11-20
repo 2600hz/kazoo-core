@@ -192,6 +192,8 @@ unsafe_decode(JSON, Options) ->
                 JSON -> throw({'invalid_json', Error, JSON});
                 Converted -> unsafe_decode(Converted)
             end;
+        'error':Error ->
+            throw({'invalid_json', {'error', Error}, JSON});
         'throw':Error ->
             throw({'invalid_json', Error, JSON});
         _Error:_Reason ->
