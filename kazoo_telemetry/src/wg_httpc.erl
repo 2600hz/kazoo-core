@@ -11,7 +11,8 @@
 
 -export([post/0, post/1
         ,user_agent/0
-        ,version/0]).
+        ,version/0
+        ]).
 
 -include("waveguide.hrl").
 
@@ -31,7 +32,9 @@ default_headers() ->
 %% @doc submit a main ping to waveguide
 %% @end
 %%------------------------------------------------------------------------------
--spec post() -> kz_http:httpc_ret().
+-spec post() ->
+          {'ok', iodata()} |
+          {'retry', iodata() | kz_http:ret()}.
 post() ->
     {'ok', Ping} = waveguide_reducer:ping(),
     post(Ping).
@@ -42,7 +45,7 @@ post() ->
 %%------------------------------------------------------------------------------
 -spec post(kz_json:object()) ->
           {'ok', iodata()} |
-          {'retry', kz_json:object()}.
+          {'retry', iodata() | kz_http:ret()}.
 post(PingObj) ->
     Type = kz_json:get_ne_binary_value(<<"type">>, PingObj),
     Response = kz_http:post(endpoint_url(Type), default_headers(), kz_json:encode(PingObj)),
@@ -71,10 +74,9 @@ endpoint_url(?WG_MAIN_PING) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_response(kz_http:httpc_ret()) ->
-          {'ok', kz_term:text()} |
-          {'retry', kz_term:text()} |
-          {'error', any()}.
+-spec handle_response(kz_http:ret()) ->
+          {'ok', iodata()} |
+          {'retry', iodata() | kz_http:ret()}.
 handle_response({'ok', Code, _, Body})
   when Code >=200
        andalso Code < 300  ->
@@ -87,7 +89,8 @@ handle_response({'ok', Code, _, Body})
   when Code >=500
        andalso Code < 600 ->
     {'retry', Body};
-handle_response(Response) -> {'retry', Response}.
+handle_response(Response) ->
+    {'retry', Response}.
 
 %%------------------------------------------------------------------------------
 %% @doc helper for waveguide user-agent

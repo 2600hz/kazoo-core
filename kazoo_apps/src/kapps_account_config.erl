@@ -294,7 +294,9 @@ get(Account, Category) ->
         {'error', _} -> kz_doc:set_id(kz_json:new(), kapps_config_util:account_doc_id(Category))
     end.
 
--spec load_config_from_system(kz_term:api_binary(), kz_term:ne_binary()) -> kazoo_data:get_results_return().
+-spec load_config_from_system(kz_term:api_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          kazoo_data:data_error().
 load_config_from_system(_Account, Category) ->
     case kapps_config:get_category(Category) of
         {'ok', JObj} ->
@@ -303,7 +305,9 @@ load_config_from_system(_Account, Category) ->
         {'error', _}=Error -> Error
     end.
 
--spec load_config_from_reseller(api_account(), kz_term:ne_binary()) -> kazoo_data:get_results_return().
+-spec load_config_from_reseller(api_account(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          kazoo_data:data_error().
 load_config_from_reseller(Account, Category) ->
     AccountId = account_id(Account),
     case AccountId =/= 'no_account_id'
@@ -314,7 +318,9 @@ load_config_from_reseller(Account, Category) ->
         [ResellerId] -> load_config_from_account(ResellerId, Category)
     end.
 
--spec load_config_from_account(account_or_not(), kz_term:ne_binary()) -> kazoo_data:get_results_return().
+-spec load_config_from_account(account_or_not(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          kazoo_data:data_error().
 load_config_from_account('no_account_id', _Category) ->
     {'error', 'no_account_id'};
 load_config_from_account(AccountId, Category) ->

@@ -64,6 +64,7 @@
         ,take_value/2, take_value/3
         ]).
 -export([get_keys/1, get_keys/2]).
+-export([get_fields/2, get_fields/3]).
 
 -export([set_value_options/0
         ,set_value/3, set_value/4
@@ -81,6 +82,9 @@
         ,merge_options/0
         ,merge_left/2, merge_left/3
         ,merge_right/2, merge_right/3
+        ]).
+-export([qsjs_merge/2, qsjs_merge/3
+        ,compact_arrays/1, compact_arrays/2
         ]).
 
 -export([from_list/1
@@ -127,21 +131,37 @@
 %% %% @headerfile "kazoo_stdlib/include/kazoo_json.hrl"
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 
--export_type([json_proplist/0
-             ,object/0, objects/0
+-export_type([encode_options/0
              ,flat_object/0, flat_objects/0
              ,flat_proplist/0
-             ,path/0, paths/0
-             ,key/0, keys/0
              ,get_key/0
+             ,json_array/0
+             ,json_proplist/0
+             ,json_string/0
              ,json_term/0, api_json_term/0, json_terms/0
-             ,encode_options/0
+             ,key/0, keys/0
+             ,object/0, objects/0
+             ,path/0, paths/0
              ]).
 
 -type get_key() :: key() | path().
 
 -define(ENCODE_OPTIONS, ['error_on_undefined']).
 -define(DECODE_OPTIONS, ['utf8_invalid_char_as_is']).
+
+%% JIFFY decode options + {default, any()}
+-type decode_option() :: 'utf8_invalid_char_as_is' |
+                         'return_maps' |
+                         'use_nil' |
+                         'return_trailer' |
+                         'dedupe_keys' |
+                         'copy_strings' |
+                         'utf8_invalid_char_as_is' |
+                         {'null_term', any()} |
+                         {'bytes_per_iter', non_neg_integer()} |
+                         {'bytes_per_red', non_neg_integer()} |
+                         {'default', api_json_term()}.
+-type decode_options() :: [decode_option()].
 
 -spec new() -> object().
 new() -> ?JSON_WRAPPER([]).
@@ -161,9 +181,10 @@ unsafe_decode(Thing) when is_list(Thing);
                           is_binary(Thing) ->
     unsafe_decode(Thing, []).
 
--spec unsafe_decode(iolist() | kz_term:ne_binary(), list()) -> json_term().
+-spec unsafe_decode(iolist() | kz_term:ne_binary(), decode_options()) -> json_term().
 unsafe_decode(JSON, Options) ->
-    try jiffy:decode(JSON, lists:merge(?DECODE_OPTIONS, Options))
+    JIFFY = lists:merge(?DECODE_OPTIONS, props:delete('default', Options)),
+    try jiffy:decode(JSON, JIFFY)
     catch
         'throw':{'error',{_Loc, 'invalid_string'}}=Error ->
             lager:debug("invalid string(near char ~p) in input, checking for unicode", [_Loc]),
@@ -171,6 +192,8 @@ unsafe_decode(JSON, Options) ->
                 JSON -> throw({'invalid_json', Error, JSON});
                 Converted -> unsafe_decode(Converted)
             end;
+        'error':Error ->
+            throw({'invalid_json', {'error', Error}, JSON});
         'throw':Error ->
             throw({'invalid_json', Error, JSON});
         _Error:_Reason ->
@@ -182,13 +205,13 @@ decode(Thing) when is_list(Thing)
                    orelse is_binary(Thing) ->
     decode(Thing, []).
 
--spec decode(iolist() | kz_term:ne_binary(), list()) -> json_term().
+-spec decode(iolist() | kz_term:ne_binary(), decode_options()) -> json_term().
 decode(JSON, Options) ->
     try unsafe_decode(JSON, Options)
     catch
         _:{'invalid_json', {'error', {_Loc, _Msg}}, _JSON} ->
             lager:error_unsafe("decode error ~s near char # ~b => ~s", [_Msg, _Loc, binary:part(JSON, _Loc, 25)]),
-            new()
+            props:get_value('default', Options, new())
     end.
 
 try_converting(JSON) ->
@@ -571,6 +594,227 @@ merge_recursive(?JSON_WRAPPER(_)=JObj1, Value, Pred, Keys, Options) when is_func
         'true' -> set_value(Syek, Value, JObj1, Options)
     end.
 
+-define(QSJS_OPTIONS, #{'default_empty' => 'undefined'
+                       ,'keep_null' => 'false'
+                       ,'keep_undefined' => 'false'
+                       }
+       ).
+
+%%------------------------------------------------------------------------------
+%% @doc Merges two possibly nested JObjs like `qs' JavaScript library merges
+%% objects while keeps order of keys and lists elements, list elements would
+%% also be merged.
+%%
+%% Source properties that resolve to `undefined' are
+%% skipped if a destination value exists.
+%%
+%% When two elements are equal, it will create a list containing both values
+%% from objects. Missing object2 keys from object1 will be added at the
+%% end of merge result from left to right. If value of a key from object1 is
+%% array (list) but the value of same key in object2 is object, object1 value will
+%% be converted to array and vice versa, if object1 is object and object2 is array
+%% object2 will be converted to object (with integer strings as key names).
+%%
+%% For maintaining lists order, `array' module is being used. This function
+%% may create an array with potentially empty cells, which by default is `undefined'.
+%% You can use `default_empty' option to change this value.
+%%
+%% For compacting empty cells, that is, removing empty cells
+%% use {@link compact_arrays/1}.
+%%
+%% Example:
+%%
+%% ```
+%% > kz_json:qsjs_merge(kz_json:from_list([{<<"a">>, <<"b">>}]), kz_json:from_list([{<<"a">>, <<"c">>}])).
+%% {[{<<"a">>,[<<"b">>,<<"c">>]}]}
+%%
+%%
+%% > A = kz_json:from_list_recursive([{<<"a">>, [[{<<"b">>, 2}], [{<<"d">>, 4}]]}]).
+%% > B = kz_json:from_list_recursive([{<<"a">>, [[{<<"c">>, 3}], [{<<"e">>, 5}]]}]).
+%% > kz_json:qsjs_merge(A, B).
+%% {[{<<"a">>,[{[{<<"b">>,2},{<<"c">>,3}]},{[{<<"d">>,4},{<<"e">>,5}]}]}]}
+%% '''
+%%
+%% See {@link kz_http_util:parse_query_arrays/2}.
+%%
+%% Lifted from
+%% https://github.com/ljharb/qs/blob/47e5f8b391d5925cd007ad2265a5134a82f9e74c/lib/utils.js#L34-L100
+%% @end
+%%------------------------------------------------------------------------------
+-spec qsjs_merge(JObj1::json_term(), JObj2::json_term()) -> object().
+qsjs_merge(JObj1, JObj2) -> qsjs_merge(JObj1, JObj2, #{}).
+
+-spec qsjs_merge(JObj1::json_term(), JObj2::json_term(), Option::map()) -> object().
+qsjs_merge(JObj1, JObj2, Options) ->
+    do_qsjs_merge(JObj1, JObj2, maps:merge(?QSJS_OPTIONS, Options)).
+
+-spec do_qsjs_merge(JObj1::json_term(), JObj2::json_term(), Option::map()) -> object().
+do_qsjs_merge(ValueA, 'null', #{'keep_null' := 'false'}) ->
+    ValueA;
+do_qsjs_merge(ValueA, 'undefined', #{'keep_undefined' := 'false'}) ->
+    ValueA;
+
+do_qsjs_merge(ValueA, ValueB, #{default_empty := DefaultEmpty}=Options)
+  when is_list(ValueA)
+       andalso is_list(ValueB) ->
+    array:to_list(
+      array:foldl(fun(I, V, Acc) -> merge_array(I, V, Acc, Options) end
+                 ,array:from_list(ValueA, DefaultEmpty)
+                 ,array:from_list(ValueB, DefaultEmpty)
+                 )
+     );
+
+do_qsjs_merge(ValueA, ValueB, Options) when is_list(ValueA) ->
+    case is_json_object(ValueB) of
+        'true' ->
+            do_qsjs_merge(array_to_object(ValueA, Options), ValueB, Options);
+        'false' ->
+            list_append(ValueA, ValueB)
+    end;
+
+do_qsjs_merge(ValueA, ValueB, Options) when is_list(ValueB) ->
+    case is_json_object(ValueA) of
+        'true' ->
+            do_qsjs_merge(ValueA, array_to_object(ValueB, Options), Options);
+        'false' -> %% true, null, undefined
+            list_append([ValueA], ValueB)
+    end;
+
+do_qsjs_merge(ValueA, ValueB, Options) ->
+    case {is_json_object(ValueA), is_json_object(ValueB)} of
+        {'true', 'true'} ->
+            foldl(fun(K, V, Acc) -> merge_object(K, V, Acc, Options) end, ValueA, ValueB);
+        {'true', 'false'} ->
+            set_value(ValueB, 'true', ValueA);
+        _ ->
+            [ValueA, ValueB]
+    end.
+
+-spec array_to_object(list(), map()) -> object().
+array_to_object(List, #{default_empty := DefaultEmpty}) ->
+    {_, JObj} =
+        lists:foldl(fun(Value, {Index, J}) when Value =:= DefaultEmpty ->
+                            {Index + 1, J};
+                       (Item, {Index, J}) ->
+                            {Index + 1, set_value(kz_term:to_binary(Index), Item, J)}
+                    end
+                   ,{0, new()}
+                   ,List
+                   ),
+    JObj.
+
+%% from array.erl
+-type array_indx() :: non_neg_integer().
+
+-spec merge_array(array_indx(), json_term(), array:array(), map()) ->
+          array:array().
+merge_array(_Index, DefaultEmpty, Acc, #{default_empty := DefaultEmpty}) ->
+    %% js vm is skipping empty head items during reduce
+    %% doing same to avoid pushing the empty to the end of Acc (case clause 2 of inner case below)
+    %% { foo: [ { a: 'a', b: 'b' }, { a: 'aa' } ] } = A
+    %% { foo: [ <1 empty item>, { b: 'bb' } ] } = B <- this will starts at index 1 ({b: 'bb'})
+    Acc;
+merge_array(Index, Item, Acc, #{default_empty := DefaultEmpty}=Options) ->
+    case array:get(Index, Acc) of
+        DefaultEmpty ->
+            array:set(Index, Item, Acc);
+        OldItem ->
+            case (is_list(OldItem)
+                  orelse is_json_object(OldItem)
+                 )
+                andalso (is_list(Item)
+                         orelse is_json_object(Item)
+                        )
+            of
+                'true' ->
+                    array:set(Index, do_qsjs_merge(OldItem, Item, Options), Acc);
+                'false' ->
+                    array:set(array:size(Acc), Item, Acc)
+            end
+    end.
+
+-spec merge_object(key(), json_term(), object(), map()) ->
+          object().
+merge_object(Key, Value, JObjA, Options) ->
+    case get_value(Key, JObjA) of
+        'undefined' ->
+            set_value(Key, Value, JObjA);
+        ValueA ->
+            set_value(Key, do_qsjs_merge(ValueA, Value, Options), JObjA)
+    end.
+
+-spec list_append(list(), list() | any()) -> list().
+list_append(ListA, ListB)
+  when is_list(ListA)
+       andalso is_list(ListB) ->
+    lists:append(ListA, ListB);
+list_append(List, NonList)
+  when is_list(List)
+       andalso not is_list(NonList) ->
+    lists:append(List, [NonList]).
+
+%%------------------------------------------------------------------------------
+%% @doc Compact JSON array, that is, remove empty cells from list.
+%%
+%% By default this function will remove lists elements with `undefined' value.
+%% You can use `default_empty' option to change empty value.
+%%
+%% Use case of this function is where you have a JSON input in form of
+%% query string and user wants to set the array elements at arbitary indices.
+%% To perserve the order and set the values in correct indices you can create
+%% a dummy list with empty elements and append the desired value at the end.
+%%
+%% After processing the query string whn you want to use the JObj you may end up
+%% with object which has a big list with empty values (empty cells) you then can use
+%% this function to compact the JObj and remove those empty cells.
+%%
+%% See {@link kz_htt_util:parse_query_arrays/1}.
+%% @end
+%%------------------------------------------------------------------------------
+-spec compact_arrays(JObj::object()) -> Result::object().
+compact_arrays(JObj) ->
+    compact_arrays(JObj, #{}).
+
+-spec compact_arrays(JObj::object(), Options::map()) -> Result::object().
+compact_arrays(JObj, Options) ->
+    js_compact_arrays(JObj, maps:merge(?QSJS_OPTIONS, Options)).
+
+-spec js_compact_arrays(JObj::object(), Options::map()) -> Result::object().
+js_compact_arrays(JObj, Options) ->
+    from_list(
+      js_compact_arrays(to_proplist(JObj), [], Options)
+     ).
+
+js_compact_arrays([], Acc, _Options) ->
+    lists:reverse(Acc);
+js_compact_arrays([{K, V}|T], Acc, Options) when is_list(V) ->
+    js_compact_arrays(T, [{K, js_compact_arrays(V, [], Options)} | Acc], Options);
+js_compact_arrays([{Key, Val}|T], Acc, Options) ->
+    case is_json_object(Val) of
+        'true' ->
+            NewVal = foldl(fun(K, V, FoldAcc) -> compact_json(K, V, FoldAcc, Options) end, new(), Val),
+            js_compact_arrays(T, [{Key, NewVal}|Acc], Options);
+        'false' ->
+            js_compact_arrays(T, [{Key, Val} | Acc], Options)
+    end;
+js_compact_arrays([DefaultEmpty|T], Acc, #{default_empty := DefaultEmpty}=Options) ->
+    js_compact_arrays(T, Acc, Options);
+js_compact_arrays([H|T], Acc, Options) when is_list(H) ->
+    js_compact_arrays(T, [js_compact_arrays(H, [], Options) | Acc], Options);
+js_compact_arrays([H|T], Acc, Options) ->
+    case is_json_object(H) of
+        'true' ->
+            NewH = foldl(fun(K, V, FoldAcc) -> compact_json(K, V, FoldAcc, Options) end, new(), H),
+            js_compact_arrays(T, [NewH|Acc], Options);
+        'false' ->
+            js_compact_arrays(T, [H|Acc], Options)
+    end.
+
+compact_json(K, V, Acc, Options) when is_list(V) ->
+    set_value(K, js_compact_arrays(V, [], Options), Acc);
+compact_json(K, V, Acc, _Options) ->
+    set_value(K, V, Acc).
+
 %% @equiv sum(JObj1, JObj2, fun kz_json:default_sumer/2)
 
 -spec sum(object(), object()) -> object().
@@ -830,7 +1074,7 @@ get_ne_json_value(Key, JObj, Default) ->
 filter(Pred, ?JSON_WRAPPER(Prop)) when is_function(Pred, 1) ->
     from_list([E || {_,_}=E <- Prop, Pred(E)]).
 
--spec filter(filter_pred(), object(), path()) -> object() | objects().
+-spec filter(filter_pred(), object(), get_key()) -> object() | objects().
 filter(Pred, ?JSON_WRAPPER(_)=JObj, Path) when is_list(Path),
                                                is_function(Pred, 1) ->
     Filtered = filter(Pred, get_json_value(Path, JObj)),
@@ -1144,6 +1388,15 @@ take_value(Key, JObj, Default) ->
         'undefined' -> 'false';
         Value -> {'value', Value, delete_key(Key, JObj)}
     end.
+
+-spec get_fields(paths(), object()) -> object().
+get_fields(Key, JObj) ->
+    get_fields(Key, JObj, new()).
+
+-spec get_fields(paths(), object(), object()) -> object().
+get_fields([], _, Acc) -> Acc;
+get_fields([K|Ks], JObj, Acc) ->
+    get_fields(Ks, JObj, set_value(K, get_value(K, JObj), Acc)).
 
 -spec get_value(get_key(), object() | objects()) -> json_term() | 'undefined'.
 get_value(Key, JObj) ->

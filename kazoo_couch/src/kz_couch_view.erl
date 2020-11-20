@@ -48,7 +48,13 @@
                        ,'start_key_doc_id'
                        ]).
 
--define(COUCH_VIEW_OPTIONS
+-define(ALL_COUCH_VIEW_OPTIONS
+       ,['limit'
+        | ?COUCH_ONLY_OPTIONS
+        ]
+       ).
+
+-define(COUCH_ONLY_OPTIONS
        ,['conflicts'
         ,'descending'
         ,'group'
@@ -57,7 +63,6 @@
         ,'attachments'
         ,'att_encoding_info'
         ,'inclusive_end'
-        ,'limit'
         ,'reduce'
         ,'skip'
         ,'sorted'
@@ -239,10 +244,7 @@ find(#server{}=Conn, Database, DesignDoc, Selector, Options) ->
             {'ok', []};
         {'ok', {#{view_options := _ViewOptions}=Params, Databases}} ->
             ?MAYBE_LOG("view_options: ~1000p", [_ViewOptions]),
-            CouchOnly = ?COUCH_VIEW_OPTIONS -- ['limit'
-                                               ,'direction'
-                                               ],
-            NewOptions = props:delete_keys(CouchOnly, Options),
+            NewOptions = props:delete_keys(?COUCH_ONLY_OPTIONS, Options),
             LoadParams = Params#{server => Conn},
             {'ok', kz_view_cursor:new(?MODULE, Databases, LoadParams, NewOptions)};
         {'error', _}=Error ->
@@ -288,7 +290,8 @@ count(#{'databases' := [Database | RestDbs], 'driver_params' := Params}=Cursor, 
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec next_batch(Cursor :: kz_view_cursor:cursor(), BatchSize::kz_view_cursor:limit()) -> kz_view_cursor:result().
+-spec next_batch(Cursor :: kz_view_cursor:cursor(), BatchSize::kz_view:limit()) ->
+          kz_view_cursor:result().
 next_batch(Cursor, BatchSize) ->
     fetch_more(Cursor, new_bookmark(Cursor, BatchSize), []).
 
@@ -315,11 +318,8 @@ build_load_params(Database, DesignDoc, Selector, Options) ->
               },
     case ensure_loaded(Database, DbClass, Design, props:is_true('no_design_module', Options, 'false')) of
         'false' ->
-            Msg = kz_binary:format("no module for db '~s' and design '~s'"
-                                  ,[Database, <<Design/binary, "/", ViewName/binary>>]
-                                  ),
-            lager:debug("~s", [Msg]),
-            {'error', Msg};
+            lager:warning("no module for db '~s' and design '~s'", [Database, <<Design/binary, "/", ViewName/binary>>]),
+            {'error', 'not_found'};
         'undefined' ->
             %% it feels a bit like monkey patching, but lets user
             %% provide databases if there is no design module yet.
@@ -331,11 +331,8 @@ build_load_params(Database, DesignDoc, Selector, Options) ->
                 'true' ->
                     maybe_design_options(Database, Params#{'ddoc_module' => Module}, Selector, Options);
                 'false' ->
-                    Msg = kz_binary:format("design module '~s' does not have view '~s' in db ~s"
-                                          ,[Module, ViewName, Database]
-                                          ),
-                    lager:debug("~s", [Msg]),
-                    {'error', Msg}
+                    lager:warning("design module '~s' does not have view '~s' in db ~s", [Module, ViewName, Database]),
+                    {'error', 'not_found'}
             end
     end.
 
@@ -495,7 +492,7 @@ build_design_range_keys(#{ddoc_module := Module, view_name := View}=Params, Sele
 -spec build_range_keys(params(), kz_view:selector(), kz_view:options()) -> kz_either:either(kz_view:error(), view_options() | 'empty').
 %% key
 build_range_keys(_, [{'key', []}], _) ->
-    lager:debug("selector 'key' is empty, returning empty to not make unnecessary db request"),
+    lager:warning("selector 'key' is empty, returning empty to not make unnecessary db request"),
     {'ok', 'empty'};
 build_range_keys(Params, [{'key', Selector}], Options) ->
     case field_range('key', Params, Selector, Options) of
@@ -580,9 +577,8 @@ field_range(KeyType, Selector, Options, <<Field/binary>>, _) ->
     Direction = props:get_value('direction', Options, 'ascending'),
     case props:get_value(Field, Selector, 'null') of
         'null' when KeyType =:= 'key' ->
-            Msg = kz_binary:format("required field '~s' is missing from selector", [Field]),
-            lager:debug(Msg),
-            {'error', Msg};
+            lager:warning("required field '~s' is missing from selector", [Field]),
+            {'error', 'failed'};
         'null' when KeyType =:= 'start'
                     orelse KeyType =:= 'end' ->
             {'ok', min_max_key(KeyType, 'min_max', Direction)};
@@ -600,9 +596,8 @@ field_range(KeyType, _, Options, [], Acc) ->
 field_range(KeyType, Selector, Options, [Field | Fields], Acc) ->
     case props:get_value(Field, Selector, 'null') of
         'null' when KeyType =:= 'key' ->
-            Msg = kz_binary:format("required field '~s' is missing from selector", [Field]),
-            lager:debug(Msg),
-            {'error', Msg};
+            lager:warning("required field '~s' is missing from selector", [Field]),
+            {'error', 'failed'};
         'null' ->
             KeyAcc = [{ForField, 'min_max'} || ForField <- [Field | Fields]] ++ Acc,
             field_range(KeyType, Selector, Options, [], KeyAcc);
@@ -636,8 +631,8 @@ cleanse_options(Options) ->
            is_couch_options(KV)
     ].
 
-is_couch_options({K, _}) -> lists:member(K, ?COUCH_VIEW_OPTIONS);
-is_couch_options(K) -> lists:member(K, ?COUCH_VIEW_OPTIONS).
+is_couch_options({K, _}) -> lists:member(K, ?ALL_COUCH_VIEW_OPTIONS);
+is_couch_options(K) -> lists:member(K, ?ALL_COUCH_VIEW_OPTIONS).
 
 %% }}} build_load_params
 
@@ -775,7 +770,7 @@ fetch_more(Cursor, Bookmark, Rows) ->
             handle_query_results(NewCursor, Bookmark, Rows, JObjs, props:get_value('limit', ViewOptions))
     end.
 
--spec next_view_options(kz_view:cursor(), map()) -> view_options().
+-spec next_view_options(kz_view_cursor:cursor(), map()) -> view_options().
 next_view_options(#{'direction' := Direction
                    ,'databases' := [_Db|_]
                    ,'driver_params' := #{'design_view' := _View
@@ -875,8 +870,8 @@ handle_query_results(#{'memory_limit' := MemoryLimit}=Cursor, Bookmark, Rows, JO
     end.
 
 process_query_results(Cursor, Bookmark, Rows, JObjs0, LimitWithLast) ->
-    #{size := TotalQueried
-     ,next_startkey := OldLastKey
+    #{'size' := TotalQueried
+     ,'next_startkey' := OldLastKey
      ,'next_startkey_docid' := OldStartDocId
      } = Bookmark,
     {NewLastKey, NewLastDocId, JObjs} = get_rows_and_next_key(Bookmark, JObjs0, LimitWithLast, length(JObjs0)),
@@ -889,15 +884,14 @@ process_query_results(Cursor, Bookmark, Rows, JObjs0, LimitWithLast) ->
             ?MAYBE_LOG("db_returned: ~b, after_limit: ~b, filtermap_returned: ~p, next_startkey: ~1000p next_startkey_docid: ~1000p"
                       ,[length(JObjs0), length(JObjs), FilteredLength, NewLastKey, NewLastDocId]
                       ),
-            NewBookmark = Bookmark#{size => TotalQueried + FilteredLength
-                                   ,next_startkey => NewLastKey
-                                   ,next_startkey_docid => NewLastDocId
+            NewBookmark = Bookmark#{'size' => TotalQueried + FilteredLength
+                                   ,'next_startkey' => NewLastKey
+                                   ,'next_startkey_docid' => NewLastDocId
                                    },
             maybe_next_batch(Cursor, NewBookmark, Rows ++ FilteredJObjs, OldLastKey, OldStartDocId)
     catch
         _E:_T:ST ->
-            lager:debug("exception during applying filtermap: ~p:~p", [_E, _T]),
-            kz_log:log_stacktrace(ST),
+            kz_log:log_stacktrace(ST, "exception during applying filtermap: ~p:~p", [_E, _T]),
             {'error', 'exception'}
     end.
 

@@ -220,11 +220,15 @@ mem_info() ->
     [print_memory_type(Info) || Info <- erlang:memory()],
     'ok'.
 
--spec print_memory_type({erlang:memory_type(), integer()}) -> 'ok'.
+%% From erlang.el
+-type memory_type() :: 'total' | 'processes' | 'processes_used' | 'system'
+                     | 'atom' | 'atom_used' | 'binary' | 'code' | 'ets'.
+
+-spec print_memory_type({memory_type(), integer()}) -> 'ok'.
 print_memory_type({Type, Size}) ->
     io:format("  ~-15s : ~6s~n", [Type, kz_term:pretty_print_bytes(Size, 'truncated')]).
 
--spec log_memory_type({erlang:memory_type(), integer()}, file:name_all()) -> 'ok'.
+-spec log_memory_type({memory_type(), integer()}, file:name_all()) -> 'ok'.
 log_memory_type({Type, Size}, Filename) ->
     Bytes = io_lib:format("  ~-15s : ~6s~n", [Type, kz_term:pretty_print_bytes(Size, 'truncated')]),
     'ok' = file:write_file(Filename, Bytes, ['append']).

@@ -185,7 +185,7 @@ amount(Ledger) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec unit_amount(ledger()) -> kz_current:units().
+-spec unit_amount(ledger()) -> kz_currency:units().
 unit_amount(#ledger{amount=Amount}) ->
     abs(Amount).
 

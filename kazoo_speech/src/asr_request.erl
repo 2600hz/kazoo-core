@@ -43,7 +43,8 @@
 -type setter_fun_2() :: fun((asr_req(), any()) -> asr_req()).
 -type setter_fun_3() :: fun((asr_req(), any(), any()) -> asr_req()).
 -type setter_fun() :: setter_fun_1() | setter_fun_2() | setter_fun_3().
--export_type([setter_fun/0
+-export_type([asr_resp/0
+             ,setter_fun/0
              ,setter_fun_1/0
              ,setter_fun_2/0
              ,setter_fun_3/0

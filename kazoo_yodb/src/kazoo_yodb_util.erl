@@ -27,7 +27,7 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec prev_year(kz_term:ne_binary() | kz_time:year()) -> kz_time:year().
-prev_year(<<_:4/binary>> = Year) ->
+prev_year(<<Year:4/binary>>) ->
     prev_year(kz_term:to_integer(Year));
 prev_year(<<AccountYod/binary>>) ->
     {_AccountId, Year} = split_account_yod(AccountYod),
@@ -39,7 +39,7 @@ prev_year(Year) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec prev_year_bin(kz_term:ne_binary() | kz_term:year()) -> kz_term:ne_binary().
+-spec prev_year_bin(kz_term:ne_binary() | kz_time:year()) -> kz_term:ne_binary().
 prev_year_bin(Y) ->
     Year = prev_year(Y),
     kz_term:to_binary(Year).

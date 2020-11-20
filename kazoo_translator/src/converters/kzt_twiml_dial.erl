@@ -445,19 +445,19 @@ conference_profile(AccountId, ConfProps) ->
       ,{<<"tts-voice">>, kzt_twiml_util:get_voice(ConfProps)}
       ]).
 
--spec get_moh(kz_term:proplist()) -> kz_term:ne_binary_value().
+-spec get_moh(kz_term:proplist()) -> kz_term:ne_binary().
 get_moh(ConfProps) ->
     Default = kapps_config:get_ne_binary(<<"pivot.twiml">>, <<"conference_moh">>, <<"$${hold_music}">>),
     props:get_binary_value('waitUrl', ConfProps, Default).
 
--spec conference_flags(kz_term:proplist()) -> kz_term:api_ne_binary_value().
+-spec conference_flags(kz_term:proplist()) -> kz_term:api_ne_binary().
 conference_flags(ConfProps) ->
     case props:get_is_true('startConferenceOnEnter', ConfProps, 'true') of
         'true' -> 'undefined';
         'false' -> <<"wait-mod">>
     end.
 
--spec conference_member_flags(kz_term:proplist()) -> kz_term:api_ne_binary_value().
+-spec conference_member_flags(kz_term:proplist()) -> kz_term:api_ne_binary().
 conference_member_flags(ConfProps) ->
     case props:get_is_true('endConferenceOnExit', ConfProps, 'false') of
         'true' -> <<"endconf">>;

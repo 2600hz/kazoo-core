@@ -355,7 +355,7 @@ copy_doc(FromDb, FromId, ToDb, ToId, Options, _Reason, Retry) ->
         {'error', _}=Error -> Error
     end.
 
--spec maybe_create_destination_db(kz_term:ne_binary(), kz_term:docid(), kz_term:ne_binary(), kz_term:proplist()) ->
+-spec maybe_create_destination_db(kz_term:ne_binary(), kazoo_data:docid(), kz_term:ne_binary(), kz_term:proplist()) ->
           'source_not_exists' |
           'too_old'|
           boolean().

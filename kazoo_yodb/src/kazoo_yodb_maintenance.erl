@@ -31,8 +31,8 @@ delete_yodbs(Period) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec delete_yodbs(kz_term:year() | kz_term:ne_binary(), boolean() | kz_term:ne_binary()) -> 'ok' | 'no_return'.
-delete_yodbs(<<_/binary>> = Period, ShouldArchive) ->
+-spec delete_yodbs(kz_time:year() | kz_term:ne_binary(), boolean() | kz_term:ne_binary()) -> 'ok' | 'no_return'.
+delete_yodbs(<<Period/binary>>, ShouldArchive) ->
     Regex = <<"(2[0-9]{3})">>,
     case re:run(Period, Regex, [{'capture', 'all', 'binary'}]) of
         {'match', [_Full, Year]} ->
@@ -58,7 +58,7 @@ delete_older_yodbs(Year, AccountYodbs, ShouldArchive) ->
     _ = [delete_yodb(AccountYodb, ShouldArchive) || AccountYodb <- AccountYodbs, should_delete(AccountYodb, Year)],
     'no_return'.
 
--spec should_delete(kz_term:ne_binary(), kz_term:year()) -> boolean().
+-spec should_delete(kz_term:ne_binary(), kz_time:year()) -> boolean().
 should_delete(AccountYodb, Year) ->
     {_AccountId, ModYear} = kazoo_yodb_util:split_account_yod(AccountYodb),
     ModYear =< Year.

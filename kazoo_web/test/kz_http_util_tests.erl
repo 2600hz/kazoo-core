@@ -196,3 +196,143 @@ resolve_uri_path_test_() ->
     [?_assertEqual(RawPathList, kz_http_util:resolve_uri_path(RawPath, Relative))
     ,?_assertEqual(RawPathList, kz_http_util:resolve_uri_path(RawPath, <<"/", Relative/binary>>))
     ].
+
+
+parse_query_arrays_test_() ->
+    [{"parse arrays in query string"
+     ,[{"simple strings", simple_strings()}
+      ,{"simple array", simple_array()}
+      ,{"simple nested objects", simple_nested_objects()}
+      ,{"mix_and_match", mix_and_match()}
+      ]
+     }
+    ].
+
+simple_strings() ->
+    [?_assertEqual(p_from_l([{<<"0">>, <<"a">>}]), parse_arrays(<<"0=a">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, 'true'}]), parse_arrays(<<"a">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, <<>>}]), parse_arrays(<<"a=">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, <<"b">>}]), parse_arrays(<<"a=b">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, <<"b=c">>}]), parse_arrays(<<"a=b=c">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, <<"b">>}, {<<"b">>, <<"c">>}]), parse_arrays(<<"a=b&b=c">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, <<"b">>}, {<<"c">>, <<>>}]), parse_arrays(<<"a=b&c=">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, <<"b">>}, {<<"c">>, 'true'}]), parse_arrays(<<"a=b&c">>))
+    ].
+
+
+simple_array() ->
+    Expected = p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]),
+    [?_assertEqual(Expected, parse_arrays(<<"a[]=b&a[]=c">>))
+    ,?_assertEqual(Expected, parse_arrays(<<"a[0]=b&a[1]=c">>))
+    ,?_assertEqual(Expected, parse_arrays(<<"a=b&a=c">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, <<"b,c">>}]), parse_arrays(<<"a=b,c">>, #{comma_array => 'false'}))
+    ,?_assertEqual(p_from_l([{<<"a">>,[<<>>,<<"b">>,<<"c">>]}]), parse_arrays(<<"a[]=&a[]=b&a[]=c">>))
+    ,?_assertEqual(p_from_l([{<<"a">>,[<<"b">>,<<>>,<<"c">>]}]), parse_arrays(<<"a[]=b&a[]=&a[]=c">>))
+    ,?_assertEqual(p_from_l([{<<"a">>,[<<"b">>,true,<<"c">>,<<>>]}]), parse_arrays(<<"a[]=b&a[]&a[]=c&a[]=">>))
+    ,?_assertEqual([{<<"a">>,<<"[\"b\"]">>}], parse_arrays(<<"a=[\"b\"]">>))
+    ,?_assertEqual([{<<"a">>,{[{<<"b c">>,<<"d">>}]}}], parse_arrays(<<"a[b%20c]=d">>))
+    ,?_assertEqual([{<<"a">>,{[{<<"30">>,<<"b">>}]}}], parse_arrays(<<"a[30]=b">>))
+    ,?_assertEqual([{<<"a">>,{[{<<"12b">>,<<"c">>}]}}], parse_arrays(<<"a[12b]=c">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, [{<<"0">>, <<"b">>}, {<<"b">>, <<"c">>}]}]), parse_arrays(<<"a[0]=b&a[b]=c">>))
+    ,?_assertEqual(p_from_l([{<<"a">>,{[{<<"b">>,[<<"c">>,<<"d">>]}]}}]), parse_arrays(<<"a[b][]=c&a[b][]=d">>))
+    ].
+
+simple_nested_objects() ->
+    [?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a=b&a=c">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, [{<<"b">>, <<"c">>}]}]), parse_arrays(<<"a[b]=c">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, [{<<"b">>, [{<<"c">>, <<"d">>}]}]}]), parse_arrays(<<"a[b][c]=d">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, [{<<"b">>, [{<<"c">>, [{<<"d">>, [{<<"e">>, [{<<"f">>, [{<<"[g][h]">>, <<"i">>}]}]}]}]}]}]}]), parse_arrays(<<"a[b][c][d][e][f][g][h]=i">>))
+    ,?_assertEqual(p_from_l([{<<"a">>, [{<<"b">>, [{<<"[c]">>, <<"d">>}]}]}]), parse_arrays(<<"a[b][c]=d">>, #{depth => 1}))
+    ,?_assertEqual(p_from_l([{<<"a[0][0]">>, <<"b">>}, {<<"a[0][1]">>, <<"c">>}, {<<"a[1]">>, <<"d">>}, {<<"e">>, <<"2">>}]), parse_arrays(<<"a[0][0]=b&a[0][1]=c&a[1]=d&e=2">>, #{depth => 0}))
+    ].
+
+
+mix_and_match() ->
+    [{"correctly detect object and add key to object"
+     ,[?_assertEqual(p_from_l([{<<"a">>, [{<<"b">>, <<"c">>}, {<<"d">>, true}]}]), parse_arrays(<<"a[b]=c&a=d">>))]
+     }
+    ,{"compacts sparse arrays"
+     ,[?_assertEqual(p_from_l([{<<"a">>, [<<"2">>, <<"1">>]}]), parse_arrays(<<"a[10]=1&a[2]=2">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [[{<<"b">>, [[{<<"c">>, <<"1">>}]]}]]}]), parse_arrays(<<"a[1][b][2][c]=1">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [[[[{<<"c">>, <<"1">>}]]]]}]), parse_arrays(<<"a[1][2][3][c]=1">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [[[[{<<"c">>, [<<"1">>]}]]]]}]), parse_arrays(<<"a[1][2][3][c][1]=1">>))
+      ]
+     }
+    ,{"parse jquery arrays"
+     ,?_assertEqual(p_from_l([{<<"filter">>, [[<<"int1">>, <<"=">>, <<"77">>], <<"and">>, [<<"int2">>, <<"=">>, <<"8">>]]}])
+                   ,parse_arrays(<<"filter%5B0%5D%5B%5D=int1&filter%5B0%5D%5B%5D=%3D&filter%5B0%5D%5B%5D=77&filter%5B%5D=and&filter%5B2%5D%5B%5D=int2&filter%5B2%5D%5B%5D=%3D&filter%5B2%5D%5B%5D=8">>)
+                   )
+     }
+    ,{"some test for when there is no parent key name"
+     ,[?_assertEqual(p_from_l([{<<"0">>, <<>>}, {<<"a">>, <<"b">>}]), parse_arrays(<<"[]=&a=b">>))
+      ,?_assertEqual(p_from_l([{<<"foo">>, <<"bar">>}]), parse_arrays(<<"[foo]=bar">>))
+      ]
+     }
+    ,{"simple comma separated array"
+     ,[?_assertEqual(p_from_l([{<<"a">>, <<"b,c">>}]), parse_arrays(<<"a=b,c">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a=b,c">>, #{comma_array => 'true'}))
+      ,?_assertEqual(p_from_l([{<<"a">>, [{<<"z">>, [<<"b">>, <<"c">>]}]}]), parse_arrays(<<"a[z]=b,c">>, #{comma_array => 'true'}))
+      ]
+     }
+    ,{"explicit array and comma separated array"
+     ,[?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], [<<"4">>, <<"5">>, <<"6">>]]}])
+                    ,parse_arrays(<<"a[]=1,2,3&a[]=4,5,6">>, #{comma_array => 'true'})
+                    )
+      ,?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], <<>>]}])
+                    ,parse_arrays(<<"a[]=1,2,3&a[]=">>, #{comma_array => 'true'})
+                    )
+      ,?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], [<<>>, <<>>]]}])
+                    ,parse_arrays(<<"a[]=1,2,3&a[]=,">>, #{comma_array => 'true'})
+                    )
+      ,?_assertEqual(p_from_l([{<<"a">>, [[<<"1">>, <<"2">>, <<"3">>], <<"a">>]}])
+                    ,parse_arrays(<<"a[]=1,2,3&a[]=a">>, #{comma_array => 'true'})
+                    )
+      ]
+     }
+    ,{"can handle un-closed opening brackets"
+     ,[?_assertEqual(p_from_l([{<<"[">>, <<"b">>}]), parse_arrays(<<"[=b">>))
+      ,?_assertEqual(p_from_l([{<<"[[">>, <<"b">>}]), parse_arrays(<<"[[=b">>))
+      ,?_assertEqual(p_from_l([{<<"[a[">>, <<"b">>}]), parse_arrays(<<"[a[=b">>))
+      ]
+     }
+    ,{"can handle un-closed closing brackets"
+     ,[?_assertEqual(p_from_l([{<<"]">>, <<"b">>}]), parse_arrays(<<"]=b">>))
+      ,?_assertEqual(p_from_l([{<<"]]">>, <<"b">>}]), parse_arrays(<<"]]=b">>))
+      ,?_assertEqual(p_from_l([{<<"]a]">>, <<"b">>}]), parse_arrays(<<"]a]=b">>))
+      ]
+     }
+    ,{"convert array to object"
+     ,[?_assertEqual(p_from_l([{<<"aab">>, [{<<"0">>, <<"bar">>}, {<<"baar">>, <<"baz">>}]}]), parse_arrays(<<"aab[0]=bar&aab[baar]=baz">>))
+      ,?_assertEqual(p_from_l([{<<"aab">>, [{<<"baar">>, <<"baz">>}, {<<"0">>, <<"bar">>}]}]), parse_arrays(<<"aab[baar]=baz&aab[0]=bar">>))
+      ,?_assertEqual(p_from_l([{<<"aab">>, [{<<"baar">>, <<"baz">>}, {<<"0">>, <<"bar">>}]}]), parse_arrays(<<"aab[baar]=baz&aab[]=bar">>))
+      ,?_assertEqual(p_from_l([{<<"aab">>, [{<<"0">>, <<"bar">>}, {<<"baar">>, <<"baz">>}]}]), parse_arrays(<<"aab[]=bar&aab[baar]=baz">>))
+      ,?_assertEqual(p_from_l([{<<"aab">>, [{<<"baar">>, <<"baz">>}, {<<"0">>, <<"bar">>}, {<<"1">>, <<"aab">>}]}]), parse_arrays(<<"aab[baar]=baz&aab[]=bar&aab[]=aab">>))
+      ,?_assertEqual(p_from_l([{<<"aab">>, [[{<<"a">>, <<"a">>}, {<<"b">>, <<"b">>}], [{<<"a">>, <<"aa">>}, {<<"b">>, <<"bb">>}]]}])
+                    ,parse_arrays(<<"aab[0][a]=a&aab[0][b]=b&aab[1][a]=aa&aab[1][b]=bb">>)
+                    )
+      ]
+     }
+    ,{"correctly compact array when converting array to object and array limit is hit"
+     ,[?_assertEqual(p_from_l([{<<"a">>,{[{<<"2">>,<<"b">>},{<<"50">>,<<"c">>}]}}]), parse_arrays(<<"a[2]=b&a[50]=c">>))]
+     }
+    ,{"order array correctly when array indices are specified"
+     ,[?_assertEqual(p_from_l([{<<"a">>,[<<"b">>,<<"c">>,<<"d">>]}]), parse_arrays(<<"a[1]=c&a[0]=b&a[2]=d">>))
+      ]
+     }
+    ,{"explicit array"
+     ,[?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a=b&a[]=c">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a[]=b&a=c">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a[0]=b&a=c">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a=b&a[0]=c">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a[1]=b&a=c">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a=b&a[1]=c">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>]}]), parse_arrays(<<"a[]=b">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>]}]), parse_arrays(<<"a[]=b&a[]=c">>))
+      ,?_assertEqual(p_from_l([{<<"a">>, [<<"b">>, <<"c">>, <<"d">>]}]), parse_arrays(<<"a[]=b&a[]=c&a[]=d">>))
+      ]
+     }
+    ].
+
+parse_arrays(QS) -> kz_http_util:parse_query_arrays(cow_qs:parse_qs(QS)).
+parse_arrays(QS, Options) -> kz_http_util:parse_query_arrays(cow_qs:parse_qs(QS), Options).
+p_from_l(L) -> kz_json:to_proplist(kz_json:from_list_recursive(L)).

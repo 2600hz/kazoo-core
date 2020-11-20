@@ -48,8 +48,8 @@ send_mwi_update(Account, BoxId) ->
     AccountDb = kzs_util:format_account_db(AccountId),
     Realm = kzd_accounts:fetch_realm(AccountId),
     {'ok', BoxJObj} = kz_datamgr:open_cache_doc(AccountDb, BoxId),
-    OwnerId = kzd_voicemail_box:owner_id(BoxJObj),
-    BoxNumber = kzd_voicemail_box:mailbox_number(BoxJObj),
+    OwnerId = kzd_vmboxes:owner_id(BoxJObj),
+    BoxNumber = kzd_vmboxes:mailbox(BoxJObj),
     {New, Saved} = kvm_messages:count_non_deleted(AccountId, BoxId),
     lager:debug("sending mwi for vmbox ~s@~s (~b/~b)", [BoxNumber, Realm, New, Saved]),
     notify_owner(AccountDb, OwnerId),
@@ -63,9 +63,9 @@ send_mwi_update(Account, BoxId) ->
               ],
     kz_amqp_worker:cast(Command, fun kapi_presence:publish_mwi_update/1).
 
--spec extended_presence_id(kz_term:ne_binary(), kz_object:object()) -> kz_term:api_binary().
+-spec extended_presence_id(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_binary().
 extended_presence_id(AccountId, BoxJObj) ->
-    BoxNumber = kzd_voicemail_box:mailbox_number(BoxJObj),
+    BoxNumber = kzd_vmboxes:mailbox(BoxJObj),
     case ?VM_NUMBER(AccountId) of
         'undefined' -> 'undefined';
         Prefix -> <<Prefix/binary, BoxNumber/binary>>

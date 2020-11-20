@@ -33,8 +33,8 @@
                   'put' |
                   'trace'.
 
--type field() :: string().
--type value() :: string() | integer().
+-type field() :: string() | binary().
+-type value() :: string() | binary() | integer().
 -type header() :: {field(), value()}.
 -type headers() :: [header()].
 
@@ -321,7 +321,7 @@ maybe_basic_auth(Headers, Options) ->
 %% @doc Build httpc request argument based on method.
 %% @end
 %%------------------------------------------------------------------------------
--spec build_request(method(), kz_term:text(), kz_term:proplist(), http_body()) -> httpc_request().
+-spec build_request(method(), kz_term:text(), headers(), http_body()) -> httpc_request().
 build_request(Method, Url, Headers, _Body) when Method =:= 'options';
                                                 Method =:= 'get';
                                                 Method =:= 'head';

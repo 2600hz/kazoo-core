@@ -57,6 +57,7 @@
 -export([ringtones/1, ringtones/2, set_ringtones/2]).
 -export([ringtones_external/1, ringtones_external/2, set_ringtones_external/2]).
 -export([ringtones_internal/1, ringtones_internal/2, set_ringtones_internal/2]).
+-export([scope_restrictions/1, scope_restrictions/2, set_scope_restrictions/2]).
 -export([timezone/1, timezone/2, set_timezone/2]).
 -export([username/1, username/2, set_username/2]).
 -export([verified/1, verified/2, set_verified/2]).
@@ -669,6 +670,18 @@ ringtones_internal(Doc, Default) ->
 set_ringtones_internal(Doc, RingtonesInternal) ->
     kz_json:set_value([<<"ringtones">>, <<"internal">>], RingtonesInternal, Doc).
 
+-spec scope_restrictions(doc()) -> kz_term:api_ne_binaries().
+scope_restrictions(Doc) ->
+    scope_restrictions(Doc, 'undefined').
+
+-spec scope_restrictions(doc(), Default) -> kz_term:ne_binaries() | Default.
+scope_restrictions(Doc, Default) ->
+    kz_json:get_list_value([<<"scope_restrictions">>], Doc, Default).
+
+-spec set_scope_restrictions(doc(), kz_term:ne_binaries()) -> doc().
+set_scope_restrictions(Doc, ScopeRestrictions) ->
+    kz_json:set_value([<<"scope_restrictions">>], ScopeRestrictions, Doc).
+
 -spec timezone(doc()) -> kz_term:api_binary().
 timezone(Doc) ->
     timezone(Doc, 'undefined').
@@ -1032,6 +1045,7 @@ validate(AccountId, UserId, ReqJObj) ->
 
                    ,fun maybe_set_identity_secret/3
                    ,fun maybe_rehash_creds/3
+                   ,fun validate_call_forward/3
                    ],
     try do_validation(AccountId, UserId, ReqJObj, ValidateFuns) of
         {UserDoc, []} -> {'true', UserDoc};
@@ -1258,7 +1272,8 @@ maybe_rehash_creds(AccountId, UserId, {Doc, []}=ValidateAcc) ->
     case
         {Username =:= CurrentUsername
         ,kz_term:is_empty(Username)
-        ,kz_term:is_empty(Password)}
+        ,kz_term:is_empty(Password)
+        }
     of
         {'false', 'false', 'false'} ->
             lager:debug("requested different username (new: ~s current: ~s) with a password"
@@ -1392,4 +1407,25 @@ rehash_creds(Username, Password, {Doc, Errors}) ->
         'true' ->
             lager:debug("resetting identity secret"),
             {kz_auth_identity:reset_doc_secret(kz_json:delete_key(<<"password">>, UpdatedDoc)), Errors}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Verify that if call forward is enabled, the call forward number is non-
+%% empty.
+%% @end
+%%------------------------------------------------------------------------------
+-spec validate_call_forward(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+validate_call_forward(_AccountId, _UserId, {Doc, Errors}) ->
+    CallForwardNumber = call_forward_number(Doc),
+    case call_forward_enabled(Doc)
+        andalso not kz_term:is_ne_binary(CallForwardNumber)
+    of
+        'true' ->
+            Msg = kz_json:from_list(
+                    [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
+                    ,{<<"cause">>, CallForwardNumber}
+                    ]),
+            {Doc, [{[<<"call_forward.number">>], <<"required">>, Msg} | Errors]};
+        'false' -> {Doc, Errors}
     end.

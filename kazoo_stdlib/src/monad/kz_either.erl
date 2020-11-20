@@ -135,14 +135,14 @@ pipe({'ok', _}=Right, []) -> Right;
 pipe({'ok', Val}, [Fun|Funs]) -> pipe(Fun(Val), Funs).
 
 %%------------------------------------------------------------------------------
-%% @doc Chain monadic function to apply to `Either' with passing a non-changable
+%% @doc Chain monadic function to apply to `Either' with passing a non-changeable
 %% State to each functions.
 %%
 %% You might use it
 %% like `state({ok, 5}, State, [fun funny_1/2, fun funny_2/2, fun funny_3/2])'.
 %% @end
 %%------------------------------------------------------------------------------
--spec state(Either :: either(L, R), State :: any(), Functions :: [fun((R) -> X)]) -> either(L, X).
+-spec state(Either :: either(L, R), State, Functions :: [fun((R, State) -> X)]) -> either(L, X).
 state({'error', _}=Left, _, _) -> Left;
 state({'ok', _}=Right, _, []) -> Right;
 state({'ok', Val}, State, [Fun|Funs]) -> state(Fun(Val, State), State, Funs).

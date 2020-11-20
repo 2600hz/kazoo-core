@@ -14,6 +14,7 @@
         ,urlencode/1, urlencode/2
         ,uri/2, resolve_uri/2
         ,parse_query_string/1
+        ,parse_query_arrays/1, parse_query_arrays/2
         ,urlsplit/1
         ,urlunsplit/1
         ,location_host/1, location_port/1, location_username/1, location_password/1
@@ -35,11 +36,14 @@
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 -include("kz_web.hrl").
 
+-type split_url() :: {scheme(), location(), resource_path(), querystring(), fragment()}.
+
 -export_type([scheme/0
              ,location/0
              ,resource_path/0
              ,querystring/0
              ,fragment/0
+             ,split_url/0
              ]).
 
 -define(INVALID_HOSTS, kapps_config:get(?APP_NAME
@@ -231,6 +235,225 @@ parse_query_string('val', <<C, R/binary>>, KeyAcc, ValAcc, RetAcc) ->
     parse_query_string('val', R, KeyAcc, <<ValAcc/binary, C>>, RetAcc).
 
 %%------------------------------------------------------------------------------
+%% @doc Normalize already parsed query string and create nested objects when
+%% the name of sub-keys are surrounded by square brackets.
+%%
+%% The intended input is `cow_qs:parse_qs/1` output.
+%%
+%% Implementation is based on `qs' NPM package.
+%% https://github.com/ljharb/qs
+%%
+%% Some QS examples (don't forget to call `cow_qs:parse/1' first):
+%%
+%% ```
+%% foo[bar]=baz --> { foo { bar: 'baz' } }
+%% a%5Bb%5D=c --> { a: { b: 'c' } }
+%% foo[bar][baz]=foobarbaz --> { foo: { bar: { baz: 'foobarbaz' } } }
+%% a[b][c][d][e][f][g][h][i]=j    (limited to 5 children deep by default)
+%%              --> { a: { b: { c: { d: { e: { f: '[g][h][i]': 'j' } } } } } }
+%%
+%% a[1]=b&a[15]=c   --> { a: ['b', 'c'] }
+%% a=b,c --> { a: ['b', 'c'] } (when comma_array set to true)
+%% '''
+%% @end
+%%------------------------------------------------------------------------------
+-spec parse_query_arrays(QueryString :: kz_term:proplist()) -> kz_term:proplist().
+parse_query_arrays(QS) ->
+    parse_query_arrays(QS, #{}).
+
+-define(DEFAULT_EMPTY, '$empty').
+-define(DEFAULT_ARRAY_OPTIONS, #{array_limits => 25
+                                ,comma_array => 'false'
+                                ,compact_arrays => 'true'
+                                ,depth => 5
+                                }).
+
+-spec parse_query_arrays(QueryString :: kz_term:proplist() | kz_json:object(), Options :: map()) -> kz_term:proplist().
+parse_query_arrays(QS, Opts) when is_list(QS) ->
+    #{'compact_arrays' := ShouldCompact} = Options = maps:merge(?DEFAULT_ARRAY_OPTIONS, Opts),
+    Parsed = lists:foldl(fun({K, V}, Acc) -> parse_query_array(K, V, Acc, Options) end
+                        ,kz_json:new()
+                        ,primarily_merge(QS, Options)
+                        ),
+    case ShouldCompact of
+        'true' ->
+            kz_json:to_proplist(kz_json:compact_arrays(Parsed, #{default_empty => ?DEFAULT_EMPTY}));
+        'false' ->
+            kz_json:to_proplist(Parsed)
+    end;
+parse_query_arrays(QsJObj, _Options) ->
+    parse_query_arrays(kz_json:recursive_to_proplist(QsJObj)).
+
+
+%% This is primarily for handling cases when the key is explicit and we are expanding
+%% comma separated string to array.
+primarily_merge([], _) ->
+    [];
+primarily_merge([{K, V} | T], Options) ->
+    NewV = explicit_array_item(K, V),
+    case props:get_value(K, T) of
+        'undefined' ->
+            [{K, NewV} | primarily_merge(T, Options)];
+        _ ->
+            {OtherVs, NewT} = take_element(K, T, [], [], Options),
+            [{K, combine(NewV, OtherVs)} | primarily_merge(NewT, Options)]
+    end.
+
+take_element(_, [], ElmAcc, QSAcc, _) ->
+    {lists:reverse(ElmAcc), lists:reverse(QSAcc)};
+take_element(Key, [{Key, Val}|QS], ElmAcc, QSAcc, Options) ->
+    take_element(Key, QS, [Val | ElmAcc], QSAcc, Options);
+take_element(Key, [Elm|QS], ElmAcc, QSAcc, Options) ->
+    take_element(Key, QS, ElmAcc, [Elm|QSAcc], Options).
+
+%% if value is list and key is explicit array `[]' then treat the whole value
+%% as a single array item.
+explicit_array_item(Key, Value) when is_list(Value) ->
+    case lists:reverse(get_all_brackets(Key)) of
+        [<<"[]">>|_] -> [Value];
+        _ -> Value
+    end;
+explicit_array_item(_K, Value) ->
+    Value.
+
+parse_query_array(Key, Value, Acc, Options) ->
+    ParentName = get_array_name(Key),
+    Children = get_all_brackets(Key),
+
+    NewValue = maybe_comma_to_array(Value, Options),
+    NewJObj = parse_query_object(ParentName, Children, NewValue, Options),
+
+    kz_json:qsjs_merge(Acc, NewJObj, #{default_empty => ?DEFAULT_EMPTY}).
+
+get_array_name(Key) ->
+    case re:run(Key, <<"\\[[^[\\]]*]">>) of
+        'nomatch' -> Key;
+        {'match', [{BracketStart, _}]} ->
+            binary:part(Key, 0, BracketStart)
+    end.
+
+get_all_brackets(Key) ->
+    case re:run(Key, <<"\\[[^[\\]]*]">>, ['global', {'capture', 'all', 'binary'}]) of
+        'nomatch' -> [];
+        {'match', Brackets} -> [K || [K] <- Brackets]
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+parse_query_object(<<>>, Children, Value, Options) ->
+    parse_query_object(Children, Value, Options);
+parse_query_object(ParentName, Children, Value, Options) ->
+    parse_query_object([ParentName | Children], Value, Options).
+
+parse_query_object([Parent | Rest]=Ks, Value, Options) ->
+    case allow_nested_depth(Rest, Options) of
+        {[], _} when Rest =/= [] ->
+            %% if max depth is reached just wrap whatever is left
+            %% to treat them as the inner most value.
+            lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
+                       ,Value
+                       ,[kz_binary:join([<<"[">>, Ks, <<"]">>], <<>>)]
+                       );
+        {_AllowedKs, []} ->
+            lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
+                       ,Value
+                       ,lists:reverse(Ks)
+                       );
+        {AllowedKs, NotAllowedKs} ->
+            %% wrap whatever is left to treat them as the inner most value.
+            lists:foldl(fun(FoldK, Acc) -> parse_query_object1(FoldK, Acc, Options) end
+                       ,Value
+                       ,[kz_binary:join([<<"[">>, NotAllowedKs, <<"]">>], <<>>) | lists:reverse([Parent | AllowedKs])]
+                       )
+    end.
+
+parse_query_object1(<<"[]">>, Value, _Options) ->
+    combine([], Value);
+parse_query_object1(Key, Value, Options) ->
+    CleanKey = remove_brackets(Key),
+    IsJsonNum = is_json_array_index(Key, Options, CleanKey),
+    case IsJsonNum of
+        'true' ->
+            Size = kz_term:to_integer(CleanKey),
+            lists:append(empty_array(Size), [Value]);
+        'false' ->
+            kz_json:from_list([{CleanKey, Value}])
+    end.
+
+empty_array(Size) ->
+    lists:foldl(fun(_, Acc) -> [?DEFAULT_EMPTY | Acc] end, [], lists:seq(1, Size)).
+
+-spec combine(list(), list() | any()) -> list().
+combine(ListA, ListB)
+  when is_list(ListA)
+       andalso is_list(ListB) ->
+    lists:append(ListA, ListB);
+combine(List, NonList)
+  when is_list(List)
+       andalso not is_list(NonList) ->
+    lists:append(List, [NonList]);
+combine(NonList, ListB)
+  when not is_list(NonList)
+       andalso is_list(ListB) ->
+    [NonList | ListB];
+combine(NonListA, NonListB) ->
+    [NonListA, NonListB].
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec remove_brackets(binary()) -> binary().
+remove_brackets(<<"[">> = Bin) ->
+    Bin;
+remove_brackets(<<"[", Rest/binary>> = Bin) ->
+    case binary:last(Rest) of
+        $] -> binary:part(Rest, 0, byte_size(Rest) - 1);
+        _ -> Bin
+    end;
+remove_brackets(Val) ->
+    Val.
+
+-spec is_json_array_index(binary(), Options::map(), binary()) -> boolean().
+is_json_array_index(Key, #{array_limits := Limits}, CleanKey) ->
+    try kz_term:to_integer(CleanKey) of
+        Integer ->
+            Key =/= CleanKey
+                andalso kz_term:to_binary(Integer) =:= CleanKey %% e.g. 1 =/= "01"
+                andalso Integer >= 0
+                andalso Integer =< Limits
+    catch
+        'error':'badarg' -> 'false'
+    end.
+
+-spec allow_nested_depth([binary()], Options::map()) -> {[binary()], [binary()]}.
+allow_nested_depth(Keys, #{depth := Depth})
+  when is_integer(Depth)
+       andalso Depth >= 0 ->
+    try lists:split(Depth, Keys)
+    catch
+        'error':'badarg' ->
+            {Keys, []}
+    end;
+allow_nested_depth(Keys, _) ->
+    {Keys, []}.
+
+-spec maybe_comma_to_array(term(), Options::map()) -> term().
+maybe_comma_to_array(Value, #{comma_array := 'true'})
+  when is_binary(Value) ->
+    case binary:match(Value, <<",">>) of
+        'nomatch' -> Value;
+        {_, _} -> binary:split(Value, <<",">>, ['global'])
+    end;
+maybe_comma_to_array(Value, Options) when is_list(Value) ->
+    [maybe_comma_to_array(V, Options) || V <- Value];
+maybe_comma_to_array(Value, _) ->
+    Value.
+
+
+%%------------------------------------------------------------------------------
 %% @doc Splits a URL
 %%
 %% Parts will be scheme, location, path, query, fragment parts, and optionally
@@ -266,7 +489,7 @@ location_password(<<_/binary>>) -> 'undefined';
 location_password({<<_/binary>>, _Port}) when is_integer(_Port) -> 'undefined';
 location_password({_Host, <<_/binary>>, <<Password/binary>>}) -> Password.
 
--spec urlsplit(binary()) -> {scheme(), location(), resource_path(), querystring(), fragment()}.
+-spec urlsplit(binary()) -> split_url().
 urlsplit(Source) ->
     {Scheme, Url1}      = urlsplit_s(Source),
     {Location, Url2}    = urlsplit_l(Url1),
@@ -311,15 +534,14 @@ urlsplit_s(<<C, R/binary>>, Acc) ->
 %% @doc Splits out the location portion of the URL.
 %% @end
 %%------------------------------------------------------------------------------
--spec urlsplit_l(binary()) -> {binary(), binary()}.
+-spec urlsplit_l(binary()) -> {location(), binary()}.
 urlsplit_l(<<"//", R/binary>>) ->
     urlsplit_l(R, <<>>);
 
 urlsplit_l(Source) ->
     {<<>>, Source}.
 
--spec urlsplit_l(binary(), binary()) -> {binary(), binary()} |
-          {{binary(), binary(), binary()}, binary()}.
+-spec urlsplit_l(binary(), binary()) -> {location(), binary()}.
 urlsplit_l(<<>>, Acc) ->
     {Acc, <<>>};
 
@@ -392,7 +614,7 @@ urlsplit_q(<<C, R/binary>>, Acc) ->
 %% @doc Joins the elements of a URL together.
 %% @end
 %%------------------------------------------------------------------------------
--spec urlunsplit({scheme(), location(), resource_path(), querystring(), fragment()}) -> binary().
+-spec urlunsplit(split_url()) -> binary().
 urlunsplit({S, N, P, Q, F}) ->
     Us = case S of <<>> -> <<>>; _ -> [S, "://"] end,
     Uq = case Q of <<>> -> <<>>; _ -> [$?, Q] end,

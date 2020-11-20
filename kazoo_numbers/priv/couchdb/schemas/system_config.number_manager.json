@@ -1,0 +1,13 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "system_config.number_manager",
+    "description": "Schema for number_manager system_config",
+    "properties": {
+        "port_in_module_name": {
+            "default": "knm_local",
+            "description": "completed port requests will create numbers with this carrier module name",
+            "type": "string"
+        }
+    },
+    "type": "object"
+}

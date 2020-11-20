@@ -152,7 +152,7 @@ dropbox_default_fields() ->
 dropbox_format_url(Map, AttInfo) ->
     kz_att_util:format_url(Map, AttInfo, dropbox_default_fields()).
 
--spec dropbox_post(binary(), kz_term:proplist(), binary()) ->
+-spec dropbox_post(binary(), kz_http:headers(), binary()) ->
           {'ok', binary(), [{binary(), binary()}]} |
           {'error', kz_term:ne_binary(), kz_http:ret() | atom()}.
 dropbox_post(Url, Headers, Body) ->
@@ -174,7 +174,7 @@ dropbox_post(Url, Headers, Body) ->
     end.
 
 %% Dropbox REST API errors reference: https://www.dropbox.com/developers/documentation/http/documentation
--spec handle_http_error_response(kz_http:req(), kz_att_error:update_routines()) -> kz_att_error:error().
+-spec handle_http_error_response(kz_http:ret(), kz_att_error:update_routines()) -> kz_att_error:error().
 handle_http_error_response({'ok', RespCode, RespHeaders, RespBody} = _E, Routines) ->
     Reason = get_reason(RespCode, RespBody),
     NewRoutines = [{fun kz_att_error:set_resp_code/2, RespCode}

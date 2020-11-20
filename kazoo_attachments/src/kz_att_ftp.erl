@@ -100,9 +100,7 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
           {'error', ftp_error() | binary()}.
 send_request(Url, Contents) ->
     case uri_string:parse(kz_term:to_list(Url)) of
-        #{scheme := "ftp"
-         ,path := FullPath
-         } = URI ->
+        #{path := FullPath} = URI ->
             send_request(ftp_connect(URI), ftp_user(URI), FullPath, Contents);
         _ -> {'error', <<"error parsing url: ", Url/binary>>}
     end.
@@ -136,12 +134,21 @@ send_request(HostPort, {User, Pass}, FullPath, Contents) ->
 -type ftp_connect_info() :: [{host, string()} | {port, pos_integer()}].
 
 -spec ftp_connect(map()) -> ftp_connect_info().
-ftp_connect(#{host := Host, port := Port}) ->
+ftp_connect(#{scheme := 'ftp', host := Host, port := Port}) ->
     [{host, Host}
     ,{port, Port}
     ];
-ftp_connect(#{host := Host}) ->
-    [{host, Host}].
+ftp_connect(#{scheme := 'ftp', host := Host}) ->
+    [{host, Host}];
+ftp_connect(#{scheme := 'ftps', host := Host, port := Port}) ->
+    [{host, Host}
+    ,{port, Port}
+    ,{tcp, []}
+    ];
+ftp_connect(#{scheme := 'ftps', host := Host}) ->
+    [{host, Host}
+    ,{tcp, []}
+    ].
 
 -spec ftp_user(map()) -> ftp_user_info().
 ftp_user(#{userinfo := UserPass}) ->

@@ -38,11 +38,11 @@
 
 -include("services.hrl").
 
--record(activation_item, {category_name :: kz_term:ne_binary()
-                         ,display_name :: kz_term:ne_binary()
+-record(activation_item, {category_name :: kz_term:api_ne_binary()
+                         ,display_name :: kz_term:api_ne_binary()
                          ,billable_quantity = 0 :: non_neg_integer()
                          ,billing_rate = 0.0 :: float()
-                         ,item_name :: kz_term:ne_binary()
+                         ,item_name :: kz_term:api_ne_binary()
                          ,total = 0.0 :: float()
                          }).
 
@@ -183,7 +183,7 @@ setters(ActivationItem, Routines) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec create(kz_services_items:item()) -> item() | 'undefined'.
+-spec create(kz_services_item:item()) -> item() | 'undefined'.
 create(Item) ->
     Plan = kz_services_item:item_plan(Item),
     Key = [<<"difference">>, <<"billable">>],
@@ -191,7 +191,7 @@ create(Item) ->
     ActivationCharge = kzd_item_plan:activation_charge(Plan, 'undefined'),
     create(Item, Changes, ActivationCharge).
 
--spec create(kz_services_items:item(), integer(), kz_term:api_float()) -> item() | 'undefined'.
+-spec create(kz_services_item:item(), integer(), kz_term:api_float()) -> item() | 'undefined'.
 create(_, Changes, _A)
   when Changes =< 0 ->
     'undefined';

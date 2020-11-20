@@ -16,6 +16,7 @@
 -export([folder/1, folder/2, set_folder/2]).
 -export([from/1, from/2, set_from/2]).
 -export([length/1, length/2, set_length/2]).
+-export([media_id/1, media_id/2, set_media_id/2]).
 -export([timestamp/1, timestamp/2, set_timestamp/2]).
 -export([to/1, to/2, set_to/2]).
 
@@ -102,6 +103,18 @@ length(Doc, Default) ->
 -spec set_length(doc(), integer()) -> doc().
 set_length(Doc, Length) ->
     kz_json:set_value([<<"length">>], Length, Doc).
+
+-spec media_id(doc()) -> kz_term:api_ne_binary().
+media_id(Doc) ->
+    media_id(Doc, 'undefined').
+
+-spec media_id(doc(), Default) -> kz_term:ne_binary() | Default.
+media_id(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"media_id">>], Doc, Default).
+
+-spec set_media_id(doc(), kz_term:ne_binary()) -> doc().
+set_media_id(Doc, Media_Id) ->
+    kz_json:set_value([<<"media_id">>], Media_Id, Doc).
 
 -spec timestamp(doc()) -> kz_term:api_integer().
 timestamp(Doc) ->

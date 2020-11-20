@@ -73,11 +73,11 @@ store_local(Srv, K, V) -> store_local(Srv, K, V, []).
 store_local(Srv, K, V, Props)  ->
     kz_cache_ets:store(Srv, K, V, Props).
 
--spec store_local_async(kz_typs:server_ref(), any(), any()) -> 'ok'.
+-spec store_local_async(kz_types:server_ref(), any(), any()) -> 'ok'.
 store_local_async(Srv, K, V) ->
     store_local_async(Srv, K, V, []).
 
--spec store_local_async(kz_typs:server_ref(), any(), any(), kz_term:proplist()) -> 'ok'.
+-spec store_local_async(kz_types:server_ref(), any(), any(), kz_term:proplist()) -> 'ok'.
 store_local_async(Srv, K, V, Props) ->
     kz_cache_ets:store_async(Srv, K, V, Props).
 

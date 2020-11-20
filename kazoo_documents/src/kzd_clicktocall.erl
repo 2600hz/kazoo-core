@@ -298,11 +298,11 @@ set_whitelist(Doc, Whitelist) ->
 history(Doc) ->
     history(Doc, []).
 
--spec history(doc(), Default) -> kz_term:objects() | Default.
+-spec history(doc(), Default) -> kz_json:objects() | Default.
 history(Doc, Default) ->
     kz_json:get_list_value(path_history(), Doc, Default).
 
--spec set_history(doc(), kz_term:objects()) -> doc().
+-spec set_history(doc(), kz_json:objects()) -> doc().
 set_history(Doc, History) ->
     kz_json:set_value(path_history(), History, Doc).
 

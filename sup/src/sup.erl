@@ -268,7 +268,7 @@ print_help() ->
 %%------------------------------------------------------------------------------
 -spec print_erl_term_args_help() -> no_return().
 print_erl_term_args_help() ->
-    stdout("Erlang term arguments must be correctly wrapped / formated as below:", []),
+    stdout("Erlang term arguments must be correctly wrapped / formatted as below:", []),
     stdout("  * Atom: atom", []),
     stdout("  * String: \"this is a string\"", []),
     stdout("  * Binary: \"<<\\\"Etc/UTC\\\">>\"", []),

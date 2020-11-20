@@ -44,7 +44,8 @@
                            }.
 
 -type update_routines() :: [{fun((extended_error(), Value) -> extended_error()), Value}].
--type error() :: {'error', kz_datamgr:data_errors(), extended_error()}.
+-type error() :: {'error', kz_datamgr:data_errors(), extended_error()} |
+                 {'error', kz_term:ne_binary(), 'return_id_missing'}.
 -export_type([error/0
              ,update_routines/0
              ]).

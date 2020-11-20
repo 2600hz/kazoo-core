@@ -62,6 +62,7 @@
                    ,databases := kz_term:ne_binaries()
                    ,direction := kz_view:direction()
                    ,driver_params := any()
+                   ,fields_fun := kz_view:fields_fun()
                    ,filtermap := kz_view:filtermap_fun()
                    ,is_exhausted := boolean()
                    ,other_options := kz_term:proplist()
@@ -91,7 +92,7 @@
              ,user_fold_ret/0
              ]).
 
--callback bookmark(Cursor::cursor()) -> kz_view:any().
+-callback bookmark(Cursor::cursor()) -> any().
 -callback count(Cursor::cursor()) -> kz_either:either(kz_view:error(), non_neg_integer()).
 -callback next_batch(Cursor::cursor(), Limit::kz_view:limit()) -> result().
 
@@ -236,7 +237,7 @@ foreach_batch(Fun, #{'batch_size' := BatchSize}=Cursor) ->
 is_exhausted(Cursor) -> get_is_exhausted(Cursor).
 
 %% maybe use record?
--spec is_cursor(Cursor::cursor() | kz_view:boolean()) -> boolean().
+-spec is_cursor(Cursor::cursor() | boolean()) -> boolean().
 is_cursor(#{bookmark := _}) -> 'true';
 is_cursor(_) -> 'false'.
 
@@ -298,16 +299,12 @@ bookmark_compat(#{cursor_size := Size}=Cursor) ->
                      ,{'next_startkey_docid', maps:get('next_startkey_docid', Bookmark, 'undefined')}
                      ]
                     ),
-    case encode_bookmark(NextStartKey) of
-        'undefined' -> [{<<"page_size">>, Size}];
-        Encoded ->
-            props:filter_undefined(
-              [{<<"page_size">>, Size}
-              ,{<<"start_key">>, encode_bookmark(StartKey)}
-              ,{<<"next_start_key">>, Encoded}
-              ]
-             )
-    end.
+    props:filter_undefined(
+      [{<<"page_size">>, Size}
+      ,{<<"start_key">>, encode_bookmark(StartKey)}
+      ,{<<"next_start_key">>, encode_bookmark(NextStartKey)}
+      ]
+     ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -319,6 +316,9 @@ new(CursorMod, Databases, DriverParams, Options) ->
                   ,'bookmark'
                   ,'databases'
                   ,'direction'
+                  ,'field_key'
+                  ,'fields'
+                  ,'fields_fun'
                   ,'filtermap'
                   ,'limit'
                   ,'reductions_max'
@@ -326,17 +326,18 @@ new(CursorMod, Databases, DriverParams, Options) ->
                   ,'no_batch'
                   ,'user_params'
                   ],
-    #{batch_size => props:get_first_defined(['batch_size', 'limit'], Options, 'infinity')
+    #{batch_size => props:get_value('batch_size', Options, 'infinity')
      ,bookmark => 'undefined'
      ,cursor_module => CursorMod
      ,cursor_size => 0
      ,databases => Databases
      ,direction => props:get_value('direction', Options, 'ascending')
      ,driver_params => DriverParams
+     ,fields_fun => props:get_value('fields_fun', Options)
      ,filtermap => props:get_value('filtermap', Options)
      ,is_exhausted => 'false'
      ,other_options => props:delete_keys(CursorOnly, Options)
-     ,page_size => props:get_value('page_size', Options, 'infinity')
+     ,page_size => props:get_first_defined(['page_size', 'limit'], Options, 'infinity')
      ,reductions_max => props:get_value('reductions_max', Options, 'infinity')
      ,reductions => 0
      ,memory_limit => props:get_value('memory_limit', Options, 'false')
@@ -353,9 +354,9 @@ get_batch_size(#{batch_size := Value}) -> Value.
 -spec set_batch_size(Cursor::cursor(), BatchSize::kz_view:limit()) -> Cursor::cursor().
 set_batch_size(Cursor, Value) -> Cursor#{batch_size => Value}.
 
--spec get_bookmark(Cursor::cursor()) -> Bookmark::kz_view:boolean().
+-spec get_bookmark(Cursor::cursor()) -> Bookmark::kz_view:bookmark().
 get_bookmark(#{cursor_module := Mod}=Cursor) -> Mod:bookmark(Cursor).
--spec set_bookmark(Cursor::cursor(), Bookmark::kz_view:boolean()) -> Cursor::cursor().
+-spec set_bookmark(Cursor::cursor(), Bookmark::kz_view:bookmark()) -> Cursor::cursor().
 set_bookmark(Cursor, Bookmark) -> Cursor#{bookmark => Bookmark}.
 
 -spec get_databases(Cursor::cursor()) -> kz_term:ne_binaries().
@@ -431,7 +432,17 @@ get_more(#{no_batch := 'true'
           ,cursor_module := Mod
           }=Cursor, 'infinity') ->
     ?MAYBE_LOG("performing non-batch infinity query", []),
-    Mod:next_batch(Cursor, 'infinity');
+    case Mod:next_batch(Cursor, 'infinity') of
+        {'ok', {NewCursor, Result}} ->
+            case apply_fields_fun(NewCursor, Result) of
+                {'ok', UpdatedResult} ->
+                    {'ok', {NewCursor, UpdatedResult}};
+                {'error', _}=Error ->
+                    Error
+            end;
+        {'error', _}=Error ->
+            Error
+    end;
 get_more(#{no_batch := 'false'
           ,batch_size := BatchSize
           }=Cursor, 'infinity') ->
@@ -452,7 +463,17 @@ get_more(Cursor, Limit) ->
                       ),
             {'error', <<"got more rows than page size">>};
         PageLimit ->
-            Mod:next_batch(Cursor, PageLimit)
+            case Mod:next_batch(Cursor, PageLimit) of
+                {'ok', {NewCursor, Result}} ->
+                    case apply_fields_fun(NewCursor, Result) of
+                        {'ok', UpdatedResult} ->
+                            {'ok', {NewCursor, UpdatedResult}};
+                        {'error', _}=Error ->
+                            Error
+                    end;
+                {'error', _}=Error ->
+                    Error
+            end
     end.
 
 %% explicitly disabled pagination
@@ -474,7 +495,22 @@ get_more_fold(#{is_exhausted := 'true'}=Cursor, Rows) ->
 get_more_fold(#{cursor_module := Mod, batch_size := BatchSize}=Cursor, Rows) ->
     case Mod:next_batch(Cursor, BatchSize) of
         {'ok', {NewCursor, Result}} ->
-            get_more_fold(NewCursor, Rows ++ Result);
+            case apply_fields_fun(NewCursor, Result) of
+                {'ok', UpdatedResult} ->
+                    get_more_fold(NewCursor, Rows ++ UpdatedResult);
+                {'error', _}=Error ->
+                    Error
+            end;
         {'error', _}=Error ->
             Error
+    end.
+
+-spec apply_fields_fun(cursor(), kz_view:result_value()) -> kz_either:either('exception', kz_view:result_value()).
+apply_fields_fun(Cursor, JObjs) ->
+    try kz_view:apply_fields_fun(Cursor, JObjs) of
+        UpdatedJObjs -> {'ok', UpdatedJObjs}
+    catch
+        _E:_T:ST ->
+            kz_log:log_stacktrace(ST, "exception during applying fields_fun: ~p:~p", [_E, _T]),
+            {'error', 'exception'}
     end.

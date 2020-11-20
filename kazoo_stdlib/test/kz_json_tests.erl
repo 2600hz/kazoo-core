@@ -1541,6 +1541,52 @@ utf8_binary_values_test_() ->
      }
     ].
 
+qsjs_merge_test_() ->
+    [{"merge same key into array"
+     ,?_assertEqual(j_from_p([{<<"a">>, [<<"b">>, <<"c">>]}])
+                   ,kz_json:qsjs_merge(j_from_p([{<<"a">>, <<"b">>}]), j_from_p([{<<"a">>, <<"c">>}]))
+                   )
+     }
+    ,{"merges keys with json_term and object into array"
+     ,[?_assertEqual(j_from_p([{<<"a">>, [<<"b">>, [{<<"c">>, <<"d">>}]]}])
+                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, <<"b">>}]), j_from_p([{<<"a">>, [{<<"c">>, <<"d">>}]}]))
+                    )
+      ,?_assertEqual(j_from_p([{<<"a">>, [{<<"c">>, <<"d">>}, {<<"b">>, true}]}])
+                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [{<<"c">>, <<"d">>}]}]), j_from_p([{<<"a">>, <<"b">>}]))
+                    )
+      ,?_assertEqual(j_from_p([{<<"a">>, [<<"z">> ,[{<<"c">>, <<"d">>}], <<"b">>]}])
+                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [<<"z">>, [{<<"c">>, <<"d">>}]]}]), j_from_p([{<<"a">>, <<"b">>}]))
+                    )
+      ]
+     }
+    ,{"merge arrays"
+     ,[?_assertEqual(j_from_p([{<<"a">>, [<<"b">>, <<"b">>, <<"c">>, <<"d">>]}])
+                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [<<"b">>]}]), j_from_p([{<<"a">>, [<<"b">>, <<"c">>, <<"d">>]}]))
+                    )
+      ,?_assertEqual(j_from_p([{<<"a">>, [[{<<"b">>, 2}, {<<"c">>, 3}], [{<<"d">>, 4}, {<<"e">>, 5}]]}])
+                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [[{<<"b">>, 2}], [{<<"d">>, 4}]]}])
+                                       ,j_from_p([{<<"a">>, [[{<<"c">>, 3}], [{<<"e">>, 5}]]}])
+                                       )
+                    )
+      ]
+     }
+    ,{"do not add key if it is undefined in source only"
+     ,[?_assertEqual(j_from_p([{<<"a">>, <<"b">>}])
+                    ,kz_json:qsjs_merge(?JSON_WRAPPER([{<<"a">>, undefined}]), j_from_p([{<<"a">>, <<"b">>}]))
+                    )
+      ,?_assertEqual(?JSON_WRAPPER([{<<"a">>, undefined}])
+                    ,kz_json:qsjs_merge(?JSON_WRAPPER([{<<"a">>, undefined}]), ?JSON_WRAPPER([{<<"a">>, undefined}]))
+                    )
+      ]
+     }
+    ].
+
+%% > A = kz_json:from_list_recursive([{<<"a">>, [[{<<"b">>, 2}], [{<<"d">>, 4}]]}]).
+%% > B = kz_json:from_list_recursive([{<<"a">>, [[{<<"c">>, 3}], [{<<"e">>, 5}]]}]).
+%% > kz_json:qsjs_merge(A, B).
+%% {[{<<"a">>,[{[{<<"b">>,2},{<<"c">>,3}]},{[{<<"d">>,4},{<<"e">>,5}]}]}]}
+j_from_p(Prop) -> kz_json:from_list_recursive(Prop).
+
 -ifdef(PERF).
 -define(REPEAT, 100000).
 

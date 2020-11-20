@@ -48,8 +48,9 @@
 
 -type req() :: kz_json:object().
 -type resp() :: kz_json:object().
+-type win() :: kz_json:object().
 
--export_type([req/0, resp/0]).
+-export_type([req/0, resp/0, win/0]).
 
 -ifdef(TEST).
 -export([get_route_req_account_routing/2

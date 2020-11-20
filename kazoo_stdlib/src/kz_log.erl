@@ -24,7 +24,16 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_amqp/include/kz_api_literals.hrl").
 
--export_type([log_level/0]).
+%% From erlang:get_stacktrace()
+-type location() :: {'file', file:filename_all()} |
+                    {'line', pos_integer()}.
+-type stack_item() :: {module(), atom(), arity() | [term()], [location()]}.
+-type stacktrace() :: [stack_item()].
+
+-export_type([log_level/0
+             ,stack_item/0
+             ,stacktrace/0
+             ]).
 
 -deprecated({'log_stacktrace', 0, 'next_major_release'}).
 -deprecated({'log_stacktrace', 2, 'next_major_release'}).

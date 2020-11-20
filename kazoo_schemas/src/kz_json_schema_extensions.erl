@@ -107,7 +107,7 @@ extra_validation(<<"metaflows.pivot.voice_url">>, URL, State) ->
 extra_validation(<<"metaflows.record_call.url">>, URL, State) ->
     url_validation(URL, State);
 extra_validation(<<"call_recording.parameters.url">>, URL, State) ->
-    url_validation(URL, State);
+    storage_url_validation(URL, State);
 extra_validation(<<"faxbox.notifications.inbound.callback.url">>, URL, State) ->
     url_validation(URL, State);
 extra_validation(<<"faxbox.notifications.outbound.callback.url">>, URL, State) ->
@@ -213,12 +213,18 @@ stability_level_to_int(<<"alpha">>) -> 1.
 url_validation(URL, State) ->
     case is_valid_client_url(URL) of
         'true' -> State;
-        'false' ->
-            lager:info("client URL '~s' not valid", [URL]),
-            UpdatedState = jesse_error:handle_data_invalid({'external_error', <<"invalid client URL">>}, URL, State),
-            lager:info("~p", [UpdatedState]),
-            UpdatedState
+        'false' -> url_error(URL, State)
     end.
+
+storage_url_validation(<<"http", _/binary>>=URL, State) ->
+    url_validation(URL, State);
+storage_url_validation(<<"ftp", _/binary>>=URL, State) ->
+    case is_valid_ftp_url(URL) of
+        'true' -> State;
+        'false' -> url_error(URL, State)
+    end;
+storage_url_validation(URL, State) ->
+    url_error(URL, State).
 
 is_valid_client_url({Scheme, Host, _Path, _QueryString, _Fragment}) ->
     lists:all(fun is_valid_url_part/1
@@ -236,6 +242,22 @@ is_valid_scheme(<<"http">>) -> 'true';
 is_valid_scheme(<<"https">>) -> 'true';
 is_valid_scheme(_) -> 'false'.
 
+is_valid_ftp_url(#{scheme := "ftp", host := Host}) ->
+    is_valid_host(kz_term:to_binary(Host));
+is_valid_ftp_url(#{scheme := "ftps", host := Host, userinfo := UserPass}) ->
+     lists:all(fun is_valid_url_part/1
+              ,[{fun is_valid_ftp_userpass/1, string:tokens(UserPass, ":")}
+               ,{fun is_valid_host/1, kz_term:to_binary(Host)}
+               ]
+              );
+is_valid_ftp_url(<<URL/binary>>) ->
+    is_valid_ftp_url(uri_string:parse(kz_term:to_list(URL)));
+is_valid_ftp_url(_URL) ->
+    'false'.
+
+is_valid_ftp_userpass([_User, _Pass]) -> 'true';
+is_valid_ftp_userpass(_) -> 'false'.
+
 -spec is_valid_host(kz_http_util:location()) -> boolean().
 is_valid_host(<<Host/binary>>) ->
     is_valid_host(kz_term:to_lower_binary(Host), kz_network_utils:is_ip(Host));
@@ -249,6 +271,11 @@ is_valid_host(Host, 'true') ->
     is_valid_host_value(Host, 'true', kz_http_util:client_ip_blacklist());
 is_valid_host(Host, 'false') ->
     is_valid_host_value(Host, 'false', kz_http_util:client_host_blacklist()).
+
+url_error(URL, State) ->
+    lager:info("client URL '~s' not valid", [URL]),
+    UpdatedState = jesse_error:handle_data_invalid({'external_error', <<"invalid client URL">>}, URL, State),
+    UpdatedState.
 
 -spec is_valid_host_value(kz_term:ne_binary(), boolean(), kz_term:api_ne_binaries()) -> boolean().
 is_valid_host_value(_Host, _IsIp, 'undefined') -> 'true';

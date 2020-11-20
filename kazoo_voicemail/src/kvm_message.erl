@@ -679,7 +679,7 @@ try_save_document(Call, MsgJObj, Loop) ->
 %% @doc create a fake Destination Box JObj to pass to change vmbox functions
 %%
 %% <div class="notice">Set `pvt_account_id' and db just to make sure for case
-%% when timezone is not passed so {@link kzd_voicemail_box} can find
+%% when timezone is not passed so {@link kzd_vmboxes} can find
 %% timezone from vmbox the owner or account.</div>
 %% @end
 %%------------------------------------------------------------------------------
