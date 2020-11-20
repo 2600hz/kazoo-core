@@ -65,6 +65,14 @@ change_state(T=#{'todo' := PNs}, _State) ->
 -spec to_port_in(knm_pipe:collection()) -> knm_pipe:collection().
 to_port_in(T0) -> ?TO_STATE2('to_port_in', T0).
 
+to_port_in(T, ?NUMBER_STATE_AGING) ->
+    knm_pipe:pipe(T
+                 ,[fun move_to_port_in_state/1
+                  ]);
+to_port_in(T, ?NUMBER_STATE_AVAILABLE) ->
+    knm_pipe:pipe(T
+                 ,[fun move_to_port_in_state/1
+                  ]);
 to_port_in(T, ?NUMBER_STATE_PORT_IN) ->
     knm_pipe:pipe(T
                  ,[fun move_to_port_in_state/1
