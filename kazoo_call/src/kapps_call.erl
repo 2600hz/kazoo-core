@@ -1160,9 +1160,9 @@ get_prompt(#kapps_call{}=Call, Media) ->
 -spec get_prompt(call(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
 get_prompt(_Call, 'undefined', _Lang) -> 'undefined';
 get_prompt(Call, Media, 'undefined') ->
-    kz_media_util:get_prompt(Media, language(Call), account_id(Call));
+    get_prompt(Call, Media, language(Call));
 get_prompt(Call, Media, Language) ->
-    kz_media_util:get_prompt(Media, Language, account_id(Call)).
+    kapps_prompt:get_prompt(account_id(Call), Media, Language).
 
 -spec set_to_tag(kz_term:ne_binary(), call()) -> call().
 set_to_tag(ToTag, #kapps_call{}=Call) when is_binary(ToTag) ->
