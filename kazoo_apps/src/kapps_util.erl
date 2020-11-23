@@ -149,7 +149,8 @@ replicate_from_account(AccountDb, TargetDb, FilterDoc) ->
 %% set it to the oldest account and return that.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_master_account_id() -> {'ok', kz_term:ne_binary()} |
+-spec get_master_account_id() ->
+          {'ok', kz_term:ne_binary()} |
           {'error', atom()}.
 get_master_account_id() ->
     case kapps_config:get_ne_binary(?KZ_ACCOUNTS_DB, <<"master_account_id">>) of
@@ -163,7 +164,7 @@ find_master_account_id({'error', _}=E) -> E;
 find_master_account_id({'ok', []}) -> {'error', 'no_accounts'};
 find_master_account_id({'ok', Accounts}) ->
     {'ok', OldestAccountId}=Ok =
-        find_oldest_doc([kz_json:get_value(<<"doc">>, Account)
+        find_oldest_doc([kz_json:get_json_value(<<"doc">>, Account)
                          || Account <- Accounts
                         ]),
     lager:debug("setting ~s.master_account_id to ~s", [?KZ_ACCOUNTS_DB, OldestAccountId]),
@@ -241,16 +242,18 @@ account_has_descendants(Account) ->
 find_oldest_doc([]) -> {'error', 'no_docs'};
 find_oldest_doc([First|Docs]) ->
     {_, OldestDocID} =
-        lists:foldl(fun(Doc, {Created, _}=Eldest) ->
-                            Older = kz_doc:created(Doc),
-                            case Older < Created  of
-                                'true' -> {Older, kz_doc:id(Doc)};
-                                'false' -> Eldest
-                            end
-                    end
+        lists:foldl(fun compare_oldest_doc/2
                    ,{kz_doc:created(First), kz_doc:id(First)}
-                   ,Docs),
+                   ,Docs
+                   ),
     {'ok', OldestDocID}.
+
+compare_oldest_doc(Doc, {Created, _}=Eldest) ->
+    Older = kz_doc:created(Doc),
+    case Older < Created  of
+        'true' -> {Older, kz_doc:id(Doc)};
+        'false' -> Eldest
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc This function will return a list of all account database names
