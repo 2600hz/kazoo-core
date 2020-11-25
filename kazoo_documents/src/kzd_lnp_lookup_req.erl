@@ -1,0 +1,33 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2020, 2600Hz
+%%% @doc Accessors for `lnp_lookup_req' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_lnp_lookup_req).
+
+-export([new/0]).
+-export([numbers/1, numbers/2, set_numbers/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"lnp_lookup_req">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec numbers(doc()) -> kz_term:api_ne_binaries().
+numbers(Doc) ->
+    numbers(Doc, 'undefined').
+
+-spec numbers(doc(), Default) -> kz_term:ne_binaries() | Default.
+numbers(Doc, Default) ->
+    kz_json:get_list_value([<<"numbers">>], Doc, Default).
+
+-spec set_numbers(doc(), kz_term:ne_binaries()) -> doc().
+set_numbers(Doc, Numbers) ->
+    kz_json:set_value([<<"numbers">>], Numbers, Doc).
