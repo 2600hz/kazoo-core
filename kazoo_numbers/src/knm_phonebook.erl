@@ -13,6 +13,7 @@
 
 -export([maybe_create_port_in/2
         ,maybe_add_comment/3
+        ,lnp_lookup/2
 
         ,should_send_to_phonebook/1
         ]).
@@ -27,7 +28,7 @@
                              ].
 
 
--type req_type() :: 'add_comment' | 'port_in'.
+-type req_type() :: 'add_comment' | 'port_in' | 'lnp_lookup'.
 -type reason() :: 'bad_phonebook' | 'bad_http'.
 
 -type errors() :: #{code => non_neg_integer()
@@ -47,7 +48,6 @@
 %% @doc exported functions
 %% @end
 %%------------------------------------------------------------------------------
-
 -spec maybe_create_port_in(kz_json:object(), phonebook_options()) -> response().
 maybe_create_port_in(JObj, Options) ->
     case should_send_to_phonebook(Options) of
@@ -61,6 +61,16 @@ maybe_add_comment(JObj, Comments, Options) ->
     case should_send_to_phonebook(Options) of
         'true' ->
             add_comment(JObj, props:get_value('auth_token', Options), Comments);
+        'false' -> {'ok', 'disabled'}
+    end.
+
+-spec lnp_lookup(kz_json:object(), phonebook_options()) -> response().
+lnp_lookup(JObj, Options) ->
+    case kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"enabled">>, 'false')
+        andalso props:get_value('user_agent', Options) =/= <<"phonebook">>
+    of
+        'true' ->
+            lnp_lookup_req(JObj, props:get_value('auth_token', Options));
         'false' -> {'ok', 'disabled'}
     end.
 
@@ -82,25 +92,29 @@ should_send_to_phonebook(Options) ->
 create_port_in(JObj, AuthToken) ->
     Url = phonebook_uri([<<"accounts">>, kz_doc:account_id(JObj), <<"ports">>, <<"in">>]),
     Data = kz_json:from_list([{<<"data">>, kz_doc:public_fields(JObj)}]),
-    make_request('port_in', JObj, AuthToken, Url, Data).
+    lager:debug("sending request to phonebook for creating/updating port ~s", [kz_doc:id(JObj)]),
+    make_request('port_in', AuthToken, Url, Data).
 
 -spec add_comment(kz_json:object(), kz_term:ne_binary(), kz_json:objects()) -> response().
 add_comment(JObj, AuthToken, Comment) ->
     Url = phonebook_uri([<<"accounts">>, kz_doc:account_id(JObj), <<"ports">>, <<"in">>, kz_doc:id(JObj), <<"notes">>]),
     Data = kz_json:set_value(<<"data">>, Comment, kz_json:new()),
-    make_request('add_comment', JObj, AuthToken, Url, Data).
+    lager:debug("sending request to phonebook to add comment port ~s", [kz_doc:id(JObj)]),
+    make_request('add_comment', AuthToken, Url, Data).
 
--spec make_request(req_type(), kz_json:object(), kz_term:ne_binary(), string(), kz_json:object()) -> response().
-make_request(Type, JObj, AuthToken, URL, Data) ->
-    log_request(Type, JObj),
+-spec lnp_lookup_req(kz_json:object(), kz_term:ne_binary()) -> response().
+lnp_lookup_req(JObj, AuthToken) ->
+    Url = phonebook_uri([<<"lnp">>, <<"lookup">>]),
+    Data = kz_json:from_list([{<<"data">>, kz_doc:public_fields(JObj)}]),
+
+    _Length = length(kz_json:get_list_value(<<"numbers">>, JObj, [])),
+    lager:debug("sending request to phonebook to lnp lookup for ~b number(s)", [_Length]),
+    make_request('lnp_lookup', AuthToken, Url, Data).
+
+-spec make_request(req_type(), kz_term:ne_binary(), string(), kz_json:object()) -> response().
+make_request(Type, AuthToken, URL, Data) ->
     Response = kz_http:put(URL, req_headers(AuthToken), kz_json:encode(Data)),
     handle_resp(Type, Response).
-
--spec log_request(req_type(), kz_json:object()) -> 'ok'.
-log_request('port_in', JObj) ->
-    lager:debug("sending request to phonebook for creating/updating port ~s", [kz_doc:id(JObj)]);
-log_request('add_comment', JObj) ->
-    lager:debug("sending request to phonebook to add comment port ~s", [kz_doc:id(JObj)]).
 
 -spec handle_resp(req_type(), kz_http:ret()) -> response().
 handle_resp(Type, {'ok', 200, _, Resp}) ->
