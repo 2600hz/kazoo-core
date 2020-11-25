@@ -153,7 +153,7 @@ ensure_load_create_state(PN, Collection) ->
             knm_pipe:add_success(Collection, Updated);
         'false' ->
             Num = knm_phone_number:number(PN),
-            lager:error("number '~s' is in state '~s', invalid for creating", [Num, State]),
+            lager:warning("number '~s' is in state '~s', invalid for creating", [Num, State]),
             knm_pipe:set_failed(Collection, Num, knm_errors:to_json('number_exists', Num))
     end.
 
