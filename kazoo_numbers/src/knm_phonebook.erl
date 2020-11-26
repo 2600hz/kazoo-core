@@ -109,7 +109,8 @@ lnp_lookup_req(JObj, AuthToken) ->
 
     _Length = length(kz_json:get_list_value(<<"numbers">>, JObj, [])),
     lager:debug("sending request to phonebook to lnp lookup for ~b number(s)", [_Length]),
-    make_request('lnp_lookup', AuthToken, Url, Data).
+    Response = kz_http:post(Url, req_headers(AuthToken), kz_json:encode(Data)),
+    handle_resp('lnp_lookup', Response).
 
 -spec make_request(req_type(), kz_term:ne_binary(), string(), kz_json:object()) -> response().
 make_request(Type, AuthToken, URL, Data) ->
