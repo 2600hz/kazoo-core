@@ -81,7 +81,7 @@
 -define(KZ_RECORDER, <<"kz_media_recording">>).
 
 -define(CHANNEL_LOOPBACK_HEADER_PREFIX, "Export-Loopback-").
--define(INTERACTION_CAT, "interaction").
+-define(INTERACTION_CAT, <<"interaction">>).
 -define(CALL_INTERACTION, "Call-Interaction").
 -define(CALL_INTERACTION_ID, "Call-Interaction-ID").
 -define(CALL_INTERACTION_DEFAULT
