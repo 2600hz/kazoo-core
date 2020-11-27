@@ -449,6 +449,7 @@ search_resp_definition() ->
                                                             ,<<"Switch-URL">>
                                                             ,<<"UUID">>
                                                             ,<<"Zone">>
+                                                            ,<<?CALL_INTERACTION_ID>>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)

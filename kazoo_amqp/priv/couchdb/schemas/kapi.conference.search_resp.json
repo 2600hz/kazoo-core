@@ -6,6 +6,9 @@
         "Answered": {
             "type": "string"
         },
+        "Call-Interaction-ID": {
+            "type": "string"
+        },
         "Conference-ID": {
             "type": "string"
         },
