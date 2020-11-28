@@ -19,6 +19,7 @@
         ,put_callid/1, get_callid/0, find_callid/1
         ,kz_log_md_clear/0, kz_log_md_put/2
         ]).
+-export([redactor/1]).
 
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -59,6 +60,7 @@
 
 -define(LOG(Fmt), begin lager:info(Fmt), io:format(Fmt ++ "~n") end).
 -define(LOG(Fmt, Args), begin lager:info(Fmt, Args), io:format(Fmt ++ "~n", Args) end).
+-define(REDACTED_REPLACEMENT, "***REDACTED***").
 
 -spec change_console_log_level(log_level()) -> 'ok'.
 change_console_log_level(L) when is_atom(L) ->
@@ -203,3 +205,20 @@ kz_log_md_clear() ->
     %% lager:md([]).
     _ = erlang:put(?LAGER_MD_KEY, []),
     'ok'.
+
+-spec redactor(kz_term:text()) -> kz_term:text().
+redactor(Line) ->
+    Routines = [fun redact_json_password/1
+               ,fun redact_json_credit_card_number/1
+               ],
+    lists:foldl(fun apply_redactor/2, Line, Routines).
+
+apply_redactor(F, L) when is_function(F, 1) -> F(L).
+
+-spec redact_json_password(kz_term:text()) -> kz_term:binary().
+redact_json_password(Line) ->
+    re:replace(Line, <<"(([\'\"])password\\2\\s*:\\s*\\2)((?:.(?!(?<![\\\\])\\2))*.?)\\2">>, "\\1" ++ ?REDACTED_REPLACEMENT ++ "\\2", [{'return', 'binary'}]).
+
+-spec redact_json_credit_card_number(kz_term:text()) -> kz_term:binary().
+redact_json_credit_card_number(Line) ->
+    re:replace(Line, <<"(([\'\"])credit_card\\2\\s*:\\s*{\\s*\\2number\\2\\s*:\\s*\\2)((?:.(?!(?<![\\\\])\\2))*.?)\\2">>, "\\1" ++ ?REDACTED_REPLACEMENT ++ "\\2", [{'return', 'binary'}]).

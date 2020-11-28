@@ -1419,9 +1419,8 @@ ensure_account_has_realm(_AccountId, {Doc, Errors}) ->
             Realm = random_realm(),
             lager:debug("doc has no realm, creating random realm '~s'", [Realm]),
             {set_realm(Doc, Realm), Errors};
-        _Realm ->
-            lager:debug("doc has realm '~s'", [_Realm]),
-            {Doc, Errors}
+        Realm ->
+            {set_realm(Doc, kz_term:to_lower_binary(Realm)), Errors}
     end.
 
 -spec ensure_account_has_timezone(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
@@ -1432,7 +1431,9 @@ ensure_account_has_timezone(_AccountId, {Doc, Errors}) ->
 
 -spec random_realm() -> kz_term:ne_binary().
 random_realm() ->
-    <<(kz_binary:rand_hex(?RANDOM_REALM_STRENGTH))/binary, ".", (?ACCOUNT_REALM_SUFFIX)/binary>>.
+    kz_term:to_lower_binary(
+      <<(kz_binary:rand_hex(?RANDOM_REALM_STRENGTH))/binary, ".", (?ACCOUNT_REALM_SUFFIX)/binary>>
+     ).
 
 -spec remove_spaces(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
 remove_spaces(_AccountId, {Doc, Errors}) ->

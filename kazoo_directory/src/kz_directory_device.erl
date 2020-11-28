@@ -370,7 +370,7 @@ generate_sip_headers(_EndpointId, _AccountId, Endpoint, Module) ->
 
 -spec add_sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
 add_sip_headers(Endpoint, Headers) ->
-    case kzd_devices:custom_sip_headers_inbound(Endpoint) of
+    case kzd_devices:custom_sip_headers_outbound(Endpoint) of
         'undefined' -> Headers;
         CustomHeaders -> kz_json:merge_jobjs(CustomHeaders, Headers)
     end.
