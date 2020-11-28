@@ -74,9 +74,9 @@ set_enabled(Doc, Enabled) ->
 
 -spec format(doc()) -> hook_format().
 format(Doc) ->
-    format(Doc, <<"form-data">>).
+    format(Doc, 'form-data').
 
--spec format(doc(), Default) -> hook_format() | Default.
+-spec format(doc(), hook_format()) -> hook_format().
 format(Doc, Default) ->
     case kz_json:get_value([<<"format">>], Doc) of
         'undefined' -> Default;
