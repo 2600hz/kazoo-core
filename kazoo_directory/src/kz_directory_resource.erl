@@ -198,7 +198,7 @@ set_caller_number(#{account_id := AccountId, options := #{cauth := CustomAuth}} 
 maybe_lookup_cnam(#{is_anonymous := 'true'} = Map) -> Map;
 maybe_lookup_cnam(#{caller_id_number := Number
                    ,caller_id_is_reconcilable := 'true'
-                   ,number := #{inbound_cnam_enabled := 'true'}
+                   ,number := #{inbound_cnam := 'true'}
                    ,ccvs := CCVs
                    } = Map) ->
     try

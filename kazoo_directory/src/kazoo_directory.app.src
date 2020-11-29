@@ -4,6 +4,7 @@
                  ,crypto
                  ,kazoo_data
                  ,lager
+                 ,kazoo_cnam
                  ]}
  ,{description, "Kazoo Directory"}
  ,{vsn, "5.0.0"}
