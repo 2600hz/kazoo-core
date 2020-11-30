@@ -25,12 +25,11 @@
             "map": [
                 "function(doc) {",
                 "  if (doc.pvt_type != 'trunk_server' || doc.pvt_deleted) return;",
-                "  if (!doc.enabled) return;",
                 "  if (!doc.server.options.enabled) return;",
-                "  var DIDs = Iterator(doc.server.DIDs);",
-                "  for (var DID in DIDs) {",
-                "    emit(DID[0], null);",
-                "  };",
+                "  for (var DID in doc.server.DIDs) {",
+                "    if (!doc.server.DIDs.hasOwnProperty(DID)) continue;",
+                "    emit(DID, null);",
+                "  }",
                 "}"
             ]
         }
