@@ -78,6 +78,7 @@
         ,set_outbound_call_id/2
         ,delete_keys/2
         ,set_values/2
+        ,continue_after/1, continue_after/2
         ]).
 
 %% helpers for working with opaque object
@@ -197,6 +198,7 @@ req_definition() ->
                                                             ,?KEY_RINGBACK
                                                             ,?KEY_T38_ENABLED
                                                             ,?KEY_TIMEOUT
+                                                            ,?KEY_CONTINUE_AFTER
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{?KEY_RESOURCE_TYPE, [?RESOURCE_TYPE_AUDIO
@@ -242,6 +244,7 @@ req_definition() ->
                 ,{?KEY_REQUESTOR_CCVS, fun kz_json:is_json_object/1}
                 ,{?KEY_REQUESTOR_CSHS, fun kz_json:is_json_object/1}
                 ,{?KEY_TO_DID, fun kz_term:is_ne_binary/1}
+                ,{?KEY_CONTINUE_AFTER, fun kz_term:is_boolean/1}
                 ]
                }
               ],
@@ -730,3 +733,11 @@ outbound_actions(Req) ->
 -spec outbound_actions(req(), Default) -> kz_json:object() | Default.
 outbound_actions(?REQ_TYPE(JObj), Default) ->
     kz_json:get_json_value(?KEY_OUTBOUND_ACTIONS, JObj, Default).
+
+-spec continue_after(req()) -> kz_term:api_boolean().
+continue_after(Req) ->
+    continue_after(Req, 'undefined').
+
+-spec continue_after(req(), Default) -> boolean() | Default.
+continue_after(?REQ_TYPE(JObj), Default) ->
+    kz_json:is_true(?KEY_CONTINUE_AFTER, JObj, Default).

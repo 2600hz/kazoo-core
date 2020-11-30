@@ -48,6 +48,8 @@ profile(EndpointId, AccountId, Options, <<"user">>) ->
     kz_directory_user:profile(EndpointId, AccountId, Options);
 profile(EndpointId, AccountId, Options, <<"group">>) ->
     kz_directory_group:profile(EndpointId, AccountId, Options);
+profile(EndpointId, AccountId, Options, <<"trunk_server">>) ->
+    kz_directory_trunkserver:profile(EndpointId, AccountId, Options);
 profile(EndpointId, AccountId, Options, <<"sys_info">>) ->
     kz_directory_trunkstore:profile(EndpointId, AccountId, Options);
 profile(_EndpointId, _AccountId, _Options, _Type) ->
