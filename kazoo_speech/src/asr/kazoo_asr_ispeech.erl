@@ -101,7 +101,7 @@ handle_response({'http_req_id', ReqID}) ->
     lager:debug("streaming response ~p to provided receiver", [ReqID]),
     {'ok', ReqID};
 handle_response({'ok', 200, _Headers, Content2}) ->
-    lager:debug("ASR of media succeeded: ~s", [Content2]),
+    lager:debug("ASR of media succeeded", []),
     {'ok', kz_json:decode(Content2)};
 handle_response({'ok', _Code, _Hdrs, Content2}) ->
     lager:debug("asr of media failed with code ~p", [_Code]),
