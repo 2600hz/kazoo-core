@@ -122,7 +122,8 @@ req_headers() ->
 %%% Execute API request to ASR Provider and handle transcription response.
 %%% @end
 %%%-----------------------------------------------------------------------------
--spec make_request(kz_term:ne_binary(), kz_term:proplist(), iolist(), kz_term:proplist()) -> kz_http:ret().
+-spec make_request(kz_http:url(), kz_http:headers(), kz_http:http_body(), kz_term:proplist()) ->
+          kz_http:ret().
 make_request(BaseUrl, Headers, Body, Opts) ->
     case props:get_value('receiver', Opts) of
         Pid when is_pid(Pid) ->
@@ -142,12 +143,10 @@ handle_response({'http_req_id', ReqID}) ->
     lager:debug("streaming response ~p to provided receiver", [ReqID]),
     {'ok', ReqID};
 handle_response({'ok', 200, _Headers, Content2}) ->
-    lager:debug("ASR of media succeeded", []),
+    lager:debug("ASR of media succeeded"),
     Results = kz_json:get_list_value(<<"results">>, kz_json:decode(Content2), []),
-    Alternatives = lists:map(fun(Alternative) -> [Value|_] = kz_json:get_list_value(<<"alternatives">>, Alternative)
-                                                     ,Value
-                             end, Results),
-    Sentences = lists:map(fun(Sentence) -> kz_json:get_value(<<"transcript">>, Sentence) end, Alternatives),
+    Sentences = [get_sentence(Alternative) || Alternative <- Results],
+
     Props = [{<<"result">>, <<"success">>}
             ,{<<"text">>, list_to_binary(Sentences)}
             ],
@@ -156,3 +155,8 @@ handle_response({'ok', _Code, _Hdrs, Content2}) ->
     lager:debug("asr of media failed with code ~p", [_Code]),
     lager:debug("resp: ~s", [Content2]),
     {'error', 'asr_provider_failure', Content2}.
+
+-spec get_sentence(kz_json:object()) -> kz_term:ne_binary().
+get_sentence(Alternative) ->
+    [Sentence|_] = kz_json:get_list_value(<<"alternatives">>, Alternative),
+    kz_json:get_value(<<"transcript">>, Sentence).

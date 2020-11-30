@@ -124,7 +124,7 @@ handle_response({'http_req_id', ReqID}) ->
     lager:debug("streaming response ~p to provided receiver", [ReqID]),
     {'ok', ReqID};
 handle_response({'ok', 200, _Headers, Content2}) ->
-    lager:debug("ASR of media succeeded", []),
+    lager:debug("ASR of media succeeded"),
     Results = kz_json:get_list_value(<<"results">>, kz_json:decode(Content2), []),
     Sentences = [get_sentence(Alternative) || Alternative <- Results],
     Props = [{<<"result">>, <<"success">>}
