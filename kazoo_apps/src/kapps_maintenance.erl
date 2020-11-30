@@ -2092,7 +2092,7 @@ wait_for_check(Pid, Ref, StartTime) ->
         {'DOWN', Ref, 'process', Pid, Reason} ->
             lager:error("check in ~p failed to run after ~pms: ~p", [Pid, kz_time:elapsed_ms(StartTime), Reason]),
             throw(Reason)
-    after 5 * ?MILLISECONDS_IN_MINUTE ->
+    after 10 * ?MILLISECONDS_IN_MINUTE ->
             lager:error("check in ~p timed out after 5 minutes", [Pid]),
             exit(Pid, 'kill'),
             throw('timeout')

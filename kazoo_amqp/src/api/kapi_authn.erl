@@ -524,7 +524,8 @@ get_auth_realm(ApiProp) when is_list(ApiProp) ->
     Realm = case kz_network_utils:is_ipv4(AuthRealm)
                 orelse kz_network_utils:is_ipv6(AuthRealm)
             of
-                'false' -> AuthRealm;
+                'false' ->
+                    maybe_strip_ports(AuthRealm);
                 'true' ->
                     To = props:get_value(<<"To">>, ApiProp, ?AUTH_DEFAULT_USERATDOMAIN),
                     [_ToUser, ToDomain] = binary:split(To, <<"@">>),
@@ -532,6 +533,14 @@ get_auth_realm(ApiProp) when is_list(ApiProp) ->
             end,
     kz_term:to_lower_binary(Realm);
 get_auth_realm(ApiJObj) -> get_auth_realm(kz_json:to_proplist(ApiJObj)).
+
+maybe_strip_ports([AuthRealm]) ->
+    AuthRealm;
+maybe_strip_ports([AuthRealm, Port]) ->
+    lager:debug("stripping port ~s from realm ~s", [Port, AuthRealm]),
+    AuthRealm;
+maybe_strip_ports(AuthRealm) when is_binary(AuthRealm) ->
+    maybe_strip_ports(binary:split(AuthRealm, <<":">>, ['global'])).
 
 -spec req_event_type() -> {kz_term:ne_binary(), kz_term:ne_binary()}.
 req_event_type() ->
