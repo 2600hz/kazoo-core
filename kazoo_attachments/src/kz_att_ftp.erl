@@ -134,12 +134,6 @@ send_request(HostPort, {User, Pass}, FullPath, Contents) ->
 -type ftp_connect_info() :: [{host, string()} | {port, pos_integer()}].
 
 -spec ftp_connect(map()) -> ftp_connect_info().
-ftp_connect(#{scheme := 'ftp', host := Host, port := Port}) ->
-    [{host, Host}
-    ,{port, Port}
-    ];
-ftp_connect(#{scheme := 'ftp', host := Host}) ->
-    [{host, Host}];
 ftp_connect(#{scheme := 'ftps', host := Host, port := Port}) ->
     [{host, Host}
     ,{port, Port}
@@ -148,7 +142,15 @@ ftp_connect(#{scheme := 'ftps', host := Host, port := Port}) ->
 ftp_connect(#{scheme := 'ftps', host := Host}) ->
     [{host, Host}
     ,{tcp, []}
-    ].
+    ];
+ftp_connect(#{scheme := 'ftp', host := Host, port := Port}) ->
+    [{host, Host}
+    ,{port, Port}
+    ];
+ftp_connect(#{scheme := 'ftp', host := Host}) ->
+    [{host, Host}];
+ftp_connect(#{host := Host}) ->
+    [{host, Host}].
 
 -spec ftp_user(map()) -> ftp_user_info().
 ftp_user(#{userinfo := UserPass}) ->
