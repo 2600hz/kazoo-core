@@ -1,4 +1,4 @@
-﻿# View changes overview
+# View changes overview
 
 Here is a summary of changes to the views in Kazoo 5. As part of cleaning up, we removed old and used views, and normalized the common tasks of views (like list by DocId in `crossbar_listing` views) in a single uniform views. Also to indexing performance reason system core views are getting move to a single design document as far as possible.
 
@@ -110,7 +110,6 @@ Here is a list of views that has been moved to `crossbar_listings` various views
 | __Name__: `temporal_rules/crossbar_listing`      <br/> __Key:__ `DocId`                                           | __Name__: `crossbar_listings/by_type_id`                   <br/> __Key:__ `[DocType, DocId]`                               |
 | __Name__: `trunkstore/crossbar_listing`          <br/> __Key:__ `DocId`                                           | __Name__: `crossbar_listings/by_type_id`                   <br/> __Key:__ `[DocType, DocId]`                               |
 | __Name__: `trunkstore/lookup_did`                <br/> __Key:__ `Number`                                          | __Name__: `crossbar_listings/by_type_number`               <br/> __Key:__ `[DocType, Number]`                              |
-| __Name__: `trunkstore/lookup_user_flags`         <br/> __Key:__ `[Realm, Username]`                               | __Name__: `crossbar_listings/trunkstore_lookup_user_flags` <br/> __Key:__ `[Realm, Username]`                              |
 | __Name__: `users/creds_by_md5`                   <br/> __Key:__ `Cred`                                            | __Name__: `crossbar_listings/user_creds_md5`               <br/> __Key:__ `Cred`                                           |
 | __Name__: `users/creds_by_sha`                   <br/> __Key:__ `Cred`                                            | __Name__: `crossbar_listings/user_creds_sha1`              <br/> __Key:__ `Cred`                                           |
 | __Name__: `users/crossbar_listing`               <br/> __Key:__ `Name`                                            | __Name__: `crossbar_listings/by_type_name`                 <br/> __Key:__ `[DocType, Name]`                                |
