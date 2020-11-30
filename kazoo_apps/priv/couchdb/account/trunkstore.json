@@ -30,7 +30,7 @@
                 "  var DIDs = Iterator(doc.server.DIDs);",
                 "  for (var DID in DIDs) {",
                 "    emit(DID[0], null);",
-                "  });",
+                "  };",
                 "}"
             ]
         }
