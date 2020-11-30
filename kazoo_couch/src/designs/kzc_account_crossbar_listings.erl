@@ -64,7 +64,6 @@
 %%% * temporal_rules/crossbar_listing --> crossbar_listings/by_type_id
 %%% * trunkstore/crossbar_listing --> crossbar_listings/by_type_id
 %%% * trunkstore/lookup_did --> crossbar_listings/by_type_number
-%%% * trunkstore/lookup_user_flags --> crossbar_listings/trunkstore_lookup_user_flags
 %%% * users/creds_by_md5 --> crossbar_listings/user_creds_md5
 %%% * users/creds_by_sha --> crossbar_listings/user_creds_sha1
 %%% * users/crossbar_listing --> crossbar_listings/by_type_name
