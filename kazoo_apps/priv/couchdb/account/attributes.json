@@ -143,13 +143,6 @@
                 "  }",
                 "  if (doc.sip && doc.sip.username && doc.sip.method == 'password' && !doc.pvt_deleted) {",
                 "    emit(doc.sip.username, owners);",
-                "  } else if (doc.pvt_type === 'sys_info' && !doc.pvt_deleted) {",
-                "    for (i in doc.servers) {",
-                "      var auth = doc.servers[i].auth;",
-                "      if (auth.auth_user && auth.auth_method == 'password') {",
-                "        emit(auth.auth_user, owners);",
-                "      }",
-                "    }",
                 "  }",
                 "}"
             ]
