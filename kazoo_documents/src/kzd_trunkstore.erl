@@ -250,8 +250,12 @@ save(Doc) ->
     end.
 
 remove_trunk_servers(Doc) ->
-    _ = kzd_trunkserver:delete(kz_doc:account_id(Doc), kz_doc:id(Doc)),
-    _ = kz_datamgr:del_doc(?KZ_SIP_DB, kz_doc:id(Doc)),
+    remove_trunk_servers(kz_doc:id(Doc), Doc).
+
+remove_trunk_servers(undefined, Doc) -> ok;
+remove_trunk_servers(Id, Doc) ->
+    _ = kzd_trunkserver:delete(kz_doc:account_id(Doc), Id),
+    _ = kz_datamgr:del_doc(?KZ_SIP_DB, Id),
     ok.
 
 save_trunk_servers(Doc) ->
