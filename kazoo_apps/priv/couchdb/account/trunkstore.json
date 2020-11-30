@@ -24,13 +24,13 @@
         "lookup_did": {
             "map": [
                 "function(doc) {",
-                "   if (doc.pvt_type != 'trunk_server' || doc.pvt_deleted) return;",
-                "   if (!doc.enabled) return;",
-                "   if (!doc.server.options.enabled) return;",
-                "   var DIDs = Iterator(doc.server.DIDs);",
-                "   for (var DID in DIDs) {",
-                "     emit(DID[0], null);",
-                "   });",
+                "  if (doc.pvt_type != 'trunk_server' || doc.pvt_deleted) return;",
+                "  if (!doc.enabled) return;",
+                "  if (!doc.server.options.enabled) return;",
+                "  var DIDs = Iterator(doc.server.DIDs);",
+                "  for (var DID in DIDs) {",
+                "    emit(DID[0], null);",
+                "  });",
                 "}"
             ]
         }
