@@ -141,22 +141,29 @@ delete(Doc) ->
 delete(undefined, _TrunstoreId) -> ok;
 delete(_AccountId, undefined) -> ok;
 delete(AccountId, TrunstoreId) ->
-    Docs = fetch_trunkserver_docs(AccountId, TrunstoreId),
-    _ = case lists:filtermap(fun(Row) -> trunkstore_id(kz_json:get_json_value(<<"doc">>, Row)) =:= TrunstoreId end, Docs) of
-            [] -> ok;
-            Filtered ->
-                kz_datamgr:del_docs(AccountId, Filtered),
-                kz_datamgr:del_docs(?KZ_SIP_DB, Filtered)
-        end,
-    ok.
+    case fetch_trunkserver_docs(AccountId, TrunstoreId) of
+        [] -> 'ok';
+        Docs ->
+            kz_datamgr:del_docs(AccountId, Docs),
+            kz_datamgr:del_docs(?KZ_SIP_DB, Docs),
+            'ok'
+    end.
 
 fetch_trunkserver_docs(AccountId, TrunstoreId) ->
     DesignDoc = <<"crossbar_listings/by_type_id">>,
-    Options = [{'key', <<"trunk_server">>}, include_docs],
-    Result = kz_datamgr:get_results(AccountId, DesignDoc, Options),
+    Options = [{'doc_type', <<"trunk_server">>}
+              ,'include_docs'
+              ],
+    Selector = [{'start', [{<<"doc_type">>, <<"trunk_server">>}]}
+               ,{'end', [{<<"doc_type">>, <<"trunk_server">>}]}
+               ],
+    Result = kz_view:find(AccountId, DesignDoc, Selector, Options),
     handle_fetch_trunkserver_docs(TrunstoreId, Result).
 
 handle_fetch_trunkserver_docs(_TrunstoreId, {error, _}) -> [];
 handle_fetch_trunkserver_docs(_TrunstoreId, {ok, []}) -> [];
-handle_fetch_trunkserver_docs(TrunstoreId, {ok, Res}) ->
-    lists:filtermap(fun(Row) -> trunkstore_id(kz_json:get_json_value(<<"doc">>, Row)) =:= TrunstoreId end, Res).
+handle_fetch_trunkserver_docs(TrunstoreId, {ok, Result}) ->
+    [kz_json:get_json_value(<<"doc">>, Row)
+     || Row <- Result,
+        trunkstore_id(kz_json:get_json_value(<<"doc">>, Row)) =:= TrunstoreId
+    ].
