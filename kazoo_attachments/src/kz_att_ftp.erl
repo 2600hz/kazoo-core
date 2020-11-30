@@ -131,23 +131,23 @@ send_request(HostPort, {User, Pass}, FullPath, Contents) ->
 
 -type ftp_user_info() :: {string(), string()}.
 
--type ftp_connect_info() :: [{host, string()} | {port, pos_integer()}].
+-type ftp_connect_info() :: [{host, string()} | {port, pos_integer()} | {tcp, []}].
 
 -spec ftp_connect(map()) -> ftp_connect_info().
-ftp_connect(#{scheme := 'ftps', host := Host, port := Port}) ->
+ftp_connect(#{scheme := "ftps", host := Host, port := Port}) ->
     [{host, Host}
     ,{port, Port}
     ,{tcp, []}
     ];
-ftp_connect(#{scheme := 'ftps', host := Host}) ->
+ftp_connect(#{scheme := "ftps", host := Host}) ->
     [{host, Host}
     ,{tcp, []}
     ];
-ftp_connect(#{scheme := 'ftp', host := Host, port := Port}) ->
+ftp_connect(#{scheme := "ftp", host := Host, port := Port}) ->
     [{host, Host}
     ,{port, Port}
     ];
-ftp_connect(#{scheme := 'ftp', host := Host}) ->
+ftp_connect(#{scheme := "ftp", host := Host}) ->
     [{host, Host}];
 ftp_connect(#{host := Host}) ->
     [{host, Host}].
