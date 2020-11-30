@@ -164,6 +164,6 @@ handle_fetch_trunkserver_docs(_TrunstoreId, {error, _}) -> [];
 handle_fetch_trunkserver_docs(_TrunstoreId, {ok, []}) -> [];
 handle_fetch_trunkserver_docs(TrunstoreId, {ok, Result}) ->
     [kz_json:get_json_value(<<"doc">>, Row)
-      || Row <- Result,
-         trunkstore_id(kz_json:get_json_value(<<"doc">>, Row)) =:= TrunstoreId
+     || Row <- Result,
+        trunkstore_id(kz_json:get_json_value(<<"doc">>, Row)) =:= TrunstoreId
     ].
