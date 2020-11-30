@@ -1808,10 +1808,10 @@ set_definition() ->
               ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
                                                             ,<<"Call-ID">>
-                                                            ,<<"Custom-Call-Vars">>
                                                             ,<<"Custom-Channel-Vars">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Custom-Application-Vars">>
+                                                            ,<<"Custom-Call-Vars">>
                                                             ,<<"Export-All">>
                                                             ,<<"Insert-At">>
                                                             ]}

@@ -64,6 +64,8 @@
 -define(RESOURCE_TYPE_VIDEO, <<"video">>).
 -define(RESOURCE_TYPE_CID, <<"cid">>).
 
+-define(KEY_CONTINUE_AFTER, <<"Continue-After">>).
+
 -define(APPLICATION_BRIDGE, <<"bridge">>).
 -define(APPLICATION_EAVESDROP, <<"eavesdrop">>).
 -define(APPLICATION_FAX, <<"fax">>).
