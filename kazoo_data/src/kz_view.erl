@@ -29,40 +29,40 @@
 -type bookmark() :: kz_term:proplist() | map() | binary() | 'undefined' | any().
 -type result_key() :: kz_term:ne_binary() | kz_json:path(). %% like `<<"key">>', `<<"id">>', `<<"value">>' and `<<"doc">>'
 
--type options() :: [couch_view_options() |
-                    {'batch_size', limit()} |
-                    {'bookmark', bookmark()} |
-                    {'databases', kz_term:ne_binaries()} |
-                    {'direction', direction()} |
-                    {'doc_type', kz_term:ne_binary()} |
-                    {'field_key', kz_term:ne_binary() | 'filtermap'} |
-                    {'fields', fields()} |
-                    {'fields_fun', fields_fun()} |
-                    {'filtermap', filtermap_fun() | result_key()} |
-                    {'first_when_multiple', boolean()} |
-                    {'memory_limit', 'false' | pos_integer()} |
-                    {'no_batch', boolean()} |
-                    {'no_design_module', boolean()} |
-                    {'page_size', limit()} |
-                    {'reductions_max', pos_integer()} |
-                    {'result_key', result_key()} |
-                    {'user_params', any()} |
-                    {'verbose_log', 'console' |
-                     'undefined' |
-                     'user' |
-                     atom() | %% Severity
-                     boolean() |
-                     {atom(), atom()} %% {Sink, Severity}
-                    } | %% control how to log, critical errors are always reported using default sink with error severity.
-                    {'lager_md', kz_term:proplist()} |
-                    {'lager_prefix', string() | binary()} |
+-type option() :: {'batch_size', limit()} |
+                  {'bookmark', bookmark()} |
+                  {'databases', kz_term:ne_binaries()} |
+                  {'direction', direction()} |
+                  {'doc_type', kz_term:ne_binary()} |
+                  {'field_key', kz_term:ne_binary() | 'filtermap'} |
+                  {'fields', fields()} |
+                  {'fields_fun', fields_fun()} |
+                  {'filtermap', filtermap_fun() | result_key()} |
+                  {'first_when_multiple', boolean()} |
+                  {'memory_limit', 'false' | pos_integer()} |
+                  {'no_batch', boolean()} |
+                  {'no_design_module', boolean()} |
+                  {'page_size', limit()} |
+                  {'reductions_max', pos_integer()} |
+                  {'result_key', result_key()} |
+                  {'user_params', any()} |
+                  {'verbose_log', 'console' |
+                   'undefined' |
+                   'user' |
+                   atom() | %% Severity
+                   boolean() |
+                   {atom(), atom()} %% {Sink, Severity}
+                  } | %% control how to log, critical errors are always reported using default sink with error severity.
+                  {'lager_md', kz_term:proplist()} |
+                  {'lager_prefix', string() | binary()} |
 
-                    %% static options
-                    {'db_classification', db_classification()} |
+                  %% static options
+                  {'db_classification', db_classification()} |
 
-                    %% other_options
-                    {atom() | kz_term:ne_binary(), any()}
-                   ].
+                  %% other_options
+                  {atom() | kz_term:ne_binary(), any()}.
+
+-type options() :: couch_view_options() | [option()].
 
 -type selector() :: [] |
                     [{'key', kz_term:proplist()}] |

@@ -220,8 +220,9 @@ type(Doc, Default) ->
 set_type(Doc, Type) ->
     kz_json:set_value([<<"type">>], Type, Doc).
 
+-spec server_has_id(kz_json:object()) -> boolean().
 server_has_id(Server) ->
-    kz_doc:id(Server) =/= undefined.
+    kz_doc:id(Server) =/= 'undefined'.
 
 -spec needs_migration(doc()) -> boolean().
 needs_migration(Doc) ->
@@ -234,30 +235,35 @@ ensure_server_ids(Doc) ->
 -spec ensure_server_id(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 ensure_server_id(Server, Acc) ->
     case kz_json:get_ne_binary_value(<<"server_id">>, Server) of
-        undefined -> [kz_json:set_value(<<"server_id">>, kz_binary:rand_hex(16), Server) | Acc];
+        'undefined' -> [kz_json:set_value(<<"server_id">>, kz_binary:rand_hex(16), Server) | Acc];
         _Id -> [Server | Acc]
     end.
 
--spec save(doc()) -> doc().
+-spec save(doc()) ->
+          {'ok', kz_json:object()} |
+          kz_datamgr:data_error().
 save(Doc) ->
     _ = remove_trunk_servers(Doc),
     case kz_datamgr:save_doc(kz_doc:account_id(Doc), ensure_server_ids(Doc)) of
-        {error, _} = Error ->
+        {'error', _} = Error ->
             Error;
-        {ok, Saved} = OK ->
+        {'ok', Saved} = OK ->
             save_trunk_servers(Saved),
             OK
     end.
 
+-spec remove_trunk_servers(doc()) -> 'ok'.
 remove_trunk_servers(Doc) ->
-    remove_trunk_servers(kz_doc:id(Doc), Doc).
+    remove_trunk_servers(Doc, kz_doc:id(Doc)).
 
-remove_trunk_servers(undefined, _Doc) -> ok;
-remove_trunk_servers(Id, Doc) ->
+-spec remove_trunk_servers(doc(), kz_term:api_ne_binary()) -> 'ok'.
+remove_trunk_servers(_Doc, 'undefined') -> 'ok';
+remove_trunk_servers(Doc, Id) ->
     _ = kzd_trunkserver:delete(kz_doc:account_id(Doc), Id),
     _ = kz_datamgr:del_doc(?KZ_SIP_DB, Id),
-    ok.
+    'ok'.
 
+-spec save_trunk_servers(doc()) -> 'ok'.
 save_trunk_servers(Doc) ->
     Servers = servers(Doc),
     lists:foreach(fun(Server) -> kzd_trunkserver:save(Server, Doc) end, Servers).
