@@ -34,7 +34,6 @@ generate_ccvs(_EndpointId, AccountId, Endpoint) ->
     Props = [{<<"Account-ID">>, AccountId}
             ,{<<"Reseller-ID">>, kz_services_reseller:get_id(AccountId)}
             ,{<<"Realm">>, Realm}
-%            ,{<<"Username">>, kzd_trunkserver:auth_user(Endpoint)}
             ],
     CCVs = kz_json:from_list(Props),
 

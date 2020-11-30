@@ -240,7 +240,6 @@ ensure_server_id(Server, Acc) ->
 
 -spec save(doc()) -> doc().
 save(Doc) ->
-    lager:warning("GOT HERE"),
     _ = remove_trunk_servers(Doc),
     case kz_datamgr:save_doc(kz_doc:account_id(Doc), ensure_server_ids(Doc)) of
         {error, _} = Error ->
@@ -256,6 +255,5 @@ remove_trunk_servers(Doc) ->
     ok.
 
 save_trunk_servers(Doc) ->
-    lager:warning("SAVING SERVERS => ~p", [Doc]),
-    Servers = kzd_trunkstore:servers(Doc),
+    Servers = servers(Doc),
     lists:foreach(fun(Server) -> kzd_trunkserver:save(Server, Doc) end, Servers).
