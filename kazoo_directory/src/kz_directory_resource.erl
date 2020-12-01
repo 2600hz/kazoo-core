@@ -198,6 +198,8 @@ set_caller_number(#{account_id := AccountId, options := #{cauth := CustomAuth}} 
 maybe_lookup_cnam(#{is_anonymous := 'true'} = Map) -> Map;
 maybe_lookup_cnam(#{caller_id_number := Number
                    ,caller_id_is_reconcilable := 'true'
+                   ,cid_type := CIDType
+                   ,profile := Profile
                    ,number := #{inbound_cnam := 'true'}
                    ,ccvs := CCVs
                    } = Map) ->
@@ -205,10 +207,14 @@ maybe_lookup_cnam(#{caller_id_number := Number
         CNam = cnam:lookup(Number),
         FromCache = kz_json:get_ne_binary_value([<<"Custom-Channel-Vars">>, <<"CNAM-From-Cache">>], CNam),
         case kz_json:get_ne_binary_value(<<"Caller-ID-Name">>, CNam) of
-            'undefined' -> Map#{caller_id_name => Number};
-            CIDName -> Map#{caller_id_name => CIDName
-                           ,ccvs => [{<<"CNAM-From-Cache">>, FromCache} | CCVs]
-                           }
+            'undefined' -> Map;
+            CIDName ->
+                Map#{caller_id_name => CIDName
+                    ,ccvs => [{<<"CNAM-From-Cache">>, FromCache} | CCVs]
+                    ,profile => [{<<CIDType/binary,"-ID-Name">>, CIDName}
+                                ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
+                                | Profile
+                                ]}
         end
     catch
         _Ex:_Err:ST ->
