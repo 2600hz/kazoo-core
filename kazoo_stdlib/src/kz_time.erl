@@ -14,6 +14,7 @@
         ,unix_timestamp_to_gregorian_seconds/1
         ,to_gregorian_seconds/2
         ,pretty_print_datetime/1, pretty_print_datetime/2
+        ,pretty_print_datetime_legacy/1
         ,rfc1036/1, rfc1036/2
         ,rfc2822/1, rfc2822/2
         ,iso8601/1, iso8601/2
@@ -125,6 +126,14 @@ to_gregorian_seconds({{_,_,_},{_,_,_}}=Datetime, ?NE_BINARY=FromTimezone) ->
     {{_,_,_}, {_,_,_}} = UTC = localtime:local_to_local(Datetime, binary_to_list(FromTimezone), "Etc/UTC"),
     calendar:datetime_to_gregorian_seconds(UTC).
 -endif.
+
+-spec pretty_print_datetime_legacy(datetime() | integer()) -> kz_term:ne_binary().
+pretty_print_datetime_legacy(Timestamp) when is_integer(Timestamp) ->
+    pretty_print_datetime_legacy(calendar:gregorian_seconds_to_datetime(Timestamp));
+pretty_print_datetime_legacy({{Y,Mo,D},{H,Mi,S}}) ->
+    iolist_to_binary(io_lib:format("~4..0w-~2..0w-~2..0w ~2..0w:~2..0w:~2..0w"
+                                  ,[Y, Mo, D, H, Mi, S]
+                                  )).
 
 -spec pretty_print_datetime(datetime() | integer()) -> kz_term:ne_binary().
 pretty_print_datetime(Timestamp) when is_integer(Timestamp) ->
