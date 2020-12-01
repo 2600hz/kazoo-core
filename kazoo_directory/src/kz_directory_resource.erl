@@ -213,7 +213,7 @@ maybe_lookup_cnam(#{caller_id_number := Number
                     ,ccvs => [{<<"CNAM-From-Cache">>, FromCache} | CCVs]
                     ,profile => [{<<CIDType/binary,"-ID-Name">>, CIDName}
                                 ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
-                                 | Profile
+                                | Profile
                                 ]}
         end
     catch
