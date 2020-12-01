@@ -369,9 +369,7 @@ merge_attribute(<<"name">> = Key, Account, Endpoint, Owner) ->
                                ,kz_json:get_ne_value(Key, Account)
                                ),
     kz_json:set_value(Key, Name, Endpoint);
-merge_attribute(<<"call_forward">>, _Account, Endpoint, _Owner) ->
-    Endpoint;
-merge_attribute(<<"xcall_forward">> = Key, Account, Endpoint, Owner) ->
+merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
     EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
     case kz_json:is_true(<<"enabled">>, EndpointAttr) of
         'true' -> Endpoint;

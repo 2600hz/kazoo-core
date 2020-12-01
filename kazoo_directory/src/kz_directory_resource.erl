@@ -236,14 +236,7 @@ set_cid_number(#{is_anonymous := 'true'
                     ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
                     | Profile
                     ]};
-set_cid_number(#{caller_id_number := CIDNumber
-                ,cid_type := CIDType
-                ,profile := Profile
-                } = Map) ->
-    Map#{profile => [{<<CIDType/binary,"-ID-Number">>, CIDNumber}
-                    ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
-                    | Profile
-                    ]}.
+set_cid_number(Map) -> Map.
 
 -spec set_cid_name(resource_context()) -> resource_context().
 set_cid_name(#{is_anonymous := 'true'
@@ -255,22 +248,7 @@ set_cid_name(#{is_anonymous := 'true'
                     ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
                     | Profile
                     ]};
-set_cid_name(#{caller_id_name := CIDName
-              ,cid_type := CIDType
-              ,profile := Profile
-              } = Map) ->
-    Map#{profile => [{<<CIDType/binary,"-ID-Name">>, CIDName}
-                    ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
-                    | Profile
-                    ]};
-set_cid_name(#{caller_id_number := CIDName
-              ,cid_type := CIDType
-              ,profile := Profile
-              } = Map) ->
-    Map#{profile => [{<<CIDType/binary,"-ID-Name">>, CIDName}
-                    ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
-                    | Profile
-                    ]}.
+set_cid_name(Map) -> Map.
 
 -spec maybe_transition_port_in(knm_options:extra_options()) -> 'ok' | pid().
 maybe_transition_port_in(NumberProps) ->

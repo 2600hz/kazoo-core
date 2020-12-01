@@ -147,9 +147,9 @@ iso_country_code(Doc, Default) ->
 set_iso_country_code(Doc, IsoCountryCode) ->
     kz_json:set_value([<<"iso_country_code">>], IsoCountryCode, Doc).
 
--spec options(doc()) -> kz_term:api_ne_binaries().
+-spec options(doc()) -> kz_term:ne_binaries().
 options(Doc) ->
-    options(Doc, 'undefined').
+    options(Doc, []).
 
 -spec options(doc(), Default) -> kz_term:ne_binaries() | Default.
 options(Doc, Default) ->

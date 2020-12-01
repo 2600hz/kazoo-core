@@ -402,7 +402,7 @@ finish_record_call(Call, Props, MediaName) ->
 
                 lager:info("storing ~s locally to ~s", [MediaName, StoreUrl]),
 
-                kapps_call_command:store(MediaName, StoreUrl, Call),
+                kapps_call_command:store_file(filename:join([<<"/tmp">>, MediaName]), StoreUrl, Call),
                 [{fun kzt_util:set_recording_url/2, StoreUrl}
                 | Setters
                 ];
@@ -411,7 +411,7 @@ finish_record_call(Call, Props, MediaName) ->
 
                 lager:info("storing ~s offsite to ~s", [MediaName, StoreUrl]),
 
-                kapps_call_command:store(MediaName, StoreUrl, Call),
+                kapps_call_command:store_file(filename:join([<<"/tmp">>, MediaName]), StoreUrl, Call),
                 [{fun kzt_util:set_recording_url/2, StoreUrl}
                 | Setters]
         end,

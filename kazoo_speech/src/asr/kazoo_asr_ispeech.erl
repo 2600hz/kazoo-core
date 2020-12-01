@@ -81,7 +81,8 @@ commands(Content, Commands, ContentType, Locale, Options) ->
         {Content1, ContentType1} -> exec_commands(Content1, Commands, ContentType1, Locale, Options)
     end.
 
--spec make_request(kz_term:ne_binary(), kz_term:proplist(), iolist(), kz_term:proplist()) -> kz_http:ret().
+-spec make_request(kz_http:url(), kz_http:headers(), kz_http:http_body(), kz_term:proplist()) ->
+          kz_http:ret().
 make_request(BaseUrl, Headers, Body, Opts) ->
     case props:get_value('receiver', Opts) of
         Pid when is_pid(Pid) ->
@@ -101,7 +102,7 @@ handle_response({'http_req_id', ReqID}) ->
     lager:debug("streaming response ~p to provided receiver", [ReqID]),
     {'ok', ReqID};
 handle_response({'ok', 200, _Headers, Content2}) ->
-    lager:debug("ASR of media succeeded: ~s", [Content2]),
+    lager:debug("ASR of media succeeded"),
     {'ok', kz_json:decode(Content2)};
 handle_response({'ok', _Code, _Hdrs, Content2}) ->
     lager:debug("asr of media failed with code ~p", [_Code]),

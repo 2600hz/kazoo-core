@@ -41,7 +41,7 @@ set_server(Doc, Server) ->
 
 -spec server_id(doc()) -> kz_term:api_binary().
 server_id(Doc) ->
-    server_id(Doc, undefined).
+    server_id(Doc, 'undefined').
 
 -spec server_id(doc(), Default) -> binary() | Default.
 server_id(Doc, Default) ->
@@ -49,7 +49,7 @@ server_id(Doc, Default) ->
 
 -spec auth_method(doc()) -> kz_term:api_binary().
 auth_method(Doc) ->
-    auth_method(Doc, undefined).
+    auth_method(Doc, 'undefined').
 
 -spec auth_method(doc(), Default) -> binary() | Default.
 auth_method(Doc, Default) ->
@@ -57,7 +57,7 @@ auth_method(Doc, Default) ->
 
 -spec auth_password(doc()) -> kz_term:api_binary().
 auth_password(Doc) ->
-    auth_password(Doc, undefined).
+    auth_password(Doc, 'undefined').
 
 -spec auth_password(doc(), Default) -> binary() | Default.
 auth_password(Doc, Default) ->
@@ -65,7 +65,7 @@ auth_password(Doc, Default) ->
 
 -spec auth_user(doc()) -> kz_term:api_binary().
 auth_user(Doc) ->
-    auth_user(Doc, undefined).
+    auth_user(Doc, 'undefined').
 
 -spec auth_user(doc(), Default) -> binary() | Default.
 auth_user(Doc, Default) ->
@@ -73,7 +73,7 @@ auth_user(Doc, Default) ->
 
 -spec auth_ip(doc()) -> kz_term:api_binary().
 auth_ip(Doc) ->
-    auth_ip(Doc, undefined).
+    auth_ip(Doc, 'undefined').
 
 -spec auth_ip(doc(), Default) -> binary() | Default.
 auth_ip(Doc, Default) ->
@@ -81,7 +81,7 @@ auth_ip(Doc, Default) ->
 
 -spec auth_port(doc()) -> kz_term:api_integer().
 auth_port(Doc) ->
-    auth_port(Doc, undefined).
+    auth_port(Doc, 'undefined').
 
 -spec auth_port(doc(), Default) -> integer() | Default.
 auth_port(Doc, Default) ->
@@ -106,57 +106,75 @@ build_trunk_server(Server, Doc) ->
               ,{fun kz_doc:set_account_id/2, AccountId}
               ,{fun kz_doc:set_account_db/2, kzs_util:format_account_db(AccountId)}
               ,{fun set_server/2, Server}
-              ,{fun kzd_trunkstore:set_servers/2, null}
+              ,{fun kzd_trunkstore:set_servers/2, 'null'}
               ,{fun set_trunkstore_id/2, TrunkstoreId}
               ],
     Built = kz_doc:setters(kz_doc:public_fields(Doc), Setters),
     kz_doc:set_id(Built, server_id(Built)).
 
--spec save(doc()) -> doc().
+-spec save(doc()) ->
+          {'ok', doc()} |
+          kz_datamgr:data_error().
 save(Doc) ->
     AccountId = kz_doc:account_id(Doc),
     IPAuth = is_ip_auth_method(Doc),
     case kz_datamgr:save_doc(AccountId, Doc) of
-        {error, _} = Error -> Error;
-        {ok, Saved} when IPAuth ->
+        {'error', _} = Error -> Error;
+        {'ok', Saved} when IPAuth ->
             case kz_datamgr:save_doc(?KZ_SIP_DB, Doc) of
-                {ok, _} -> {ok, Saved};
+                {'ok', _} -> {'ok', Saved};
                 Error -> Error
             end;
-        {ok, _} = OK -> OK
+        {'ok', _} = OK -> OK
     end.
 
--spec save(doc(), kzd_trunkstore:doc()) -> doc().
+-spec save(doc(), kzd_trunkstore:doc()) ->
+          {'ok', doc()} |
+          kz_datamgr:data_error().
 save(Server, Doc) ->
     save(build_trunk_server(Server, Doc)).
 
-
--spec delete(kzd_trunkstore:doc()) -> ok.
+-spec delete(kzd_trunkstore:doc()) -> 'ok'.
 delete(Doc) ->
     AccountId = kz_doc:account_id(Doc),
     TrunkstoreId = trunkstore_id(Doc),
     delete(AccountId, TrunkstoreId).
 
--spec delete(kz_term:api_binary(), kz_term:api_binary()) -> any().
-delete(undefined, _TrunstoreId) -> ok;
-delete(_AccountId, undefined) -> ok;
-delete(AccountId, TrunstoreId) ->
-    Docs = fetch_trunkserver_docs(AccountId, TrunstoreId),
-    _ = case lists:filtermap(fun(Row) -> trunkstore_id(kz_json:get_json_value(<<"doc">>, Row)) =:= TrunstoreId end, Docs) of
-            [] -> ok;
-            Filtered ->
-                kz_datamgr:del_docs(AccountId, Filtered),
-                kz_datamgr:del_docs(?KZ_SIP_DB, Filtered)
+-spec delete(kz_term:api_binary(), kz_term:api_binary()) -> 'ok'.
+delete('undefined', _TrunkstoreId) -> 'ok';
+delete(_AccountId, 'undefined') -> 'ok';
+delete(AccountId, TrunkstoreId) ->
+    _ = case fetch_trunkserver_docs(AccountId, TrunkstoreId) of
+            [] -> 'ok';
+            Docs ->
+                _ = kz_datamgr:del_docs(AccountId, Docs),
+                kz_datamgr:del_docs(?KZ_SIP_DB, Docs)
         end,
-    ok.
+    'ok'.
 
-fetch_trunkserver_docs(AccountId, TrunstoreId) ->
+-spec fetch_trunkserver_docs(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:objects().
+fetch_trunkserver_docs(AccountId, TrunkstoreId) ->
     DesignDoc = <<"crossbar_listings/by_type_id">>,
-    Options = [{'key', <<"trunk_server">>}, include_docs],
-    Result = kz_datamgr:get_results(AccountId, DesignDoc, Options),
-    handle_fetch_trunkserver_docs(TrunstoreId, Result).
+    Result = kz_view:find(AccountId, DesignDoc, fetch_selector(), fetch_options()),
+    handle_fetch_trunkserver_docs(TrunkstoreId, Result).
 
-handle_fetch_trunkserver_docs(_TrunstoreId, {error, _}) -> [];
-handle_fetch_trunkserver_docs(_TrunstoreId, {ok, []}) -> [];
-handle_fetch_trunkserver_docs(TrunstoreId, {ok, Res}) ->
-    lists:filtermap(fun(Row) -> trunkstore_id(kz_json:get_json_value(<<"doc">>, Row)) =:= TrunstoreId end, Res).
+-spec fetch_options() -> kz_view:options().
+fetch_options() ->
+    [{'doc_type', <<"trunk_server">>}
+    ,'include_docs'
+    ].
+
+-spec fetch_selector() -> kz_view:selector().
+fetch_selector() ->
+    [{'start', [{<<"doc_type">>, <<"trunk_server">>}]}
+    ,{'end', [{<<"doc_type">>, <<"trunk_server">>}]}
+    ].
+
+-spec handle_fetch_trunkserver_docs(kz_term:ne_binary(), kz_view:result()) -> kz_json:objects().
+handle_fetch_trunkserver_docs(_TrunkstoreId, {'error', _}) -> [];
+handle_fetch_trunkserver_docs(_TrunkstoreId, {'ok', []}) -> [];
+handle_fetch_trunkserver_docs(TrunkstoreId, {'ok', Result}) ->
+    [kz_json:get_json_value(<<"doc">>, Row)
+     || Row <- Result,
+        trunkstore_id(kz_json:get_json_value(<<"doc">>, Row)) =:= TrunkstoreId
+    ].

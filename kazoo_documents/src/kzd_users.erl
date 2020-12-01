@@ -1388,7 +1388,9 @@ remove_creds(Doc) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec rehash_creds(kz_term:ne_binary(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
-rehash_creds(Username, Password, {Doc, Errors}) ->
+rehash_creds(Username0, Password, {Doc, Errors}) ->
+    Username = kz_term:to_lower_binary(Username0),
+
     lager:debug("updating cred hashes for ~s", [Username]),
     DocMD5 = kz_json:get_ne_value(<<"pvt_md5_auth">>, Doc),
     DocSHA1 = kz_json:get_ne_value(<<"pvt_sha1_auth">>, Doc),
