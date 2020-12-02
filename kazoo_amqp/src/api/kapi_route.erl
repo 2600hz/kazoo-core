@@ -312,7 +312,7 @@ resp_v(Prop) when is_list(Prop) ->
             Valid
     end;
 resp_v(JObj) ->
-    resp(kz_json:to_proplist(JObj)).
+    resp_v(kz_json:to_proplist(JObj)).
 
 -spec publish_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
 publish_resp(RespQ, JObj) ->
