@@ -36,15 +36,12 @@ by_owner_id(OwnerId, Data, Call, Mod) ->
 
 -spec ignore_early_media(kz_endpoint:endpoints()) -> kz_term:api_binary().
 ignore_early_media(Endpoints) ->
-    case any_ignoring_early_media(Endpoints) of
-        'true' -> <<"true">>;
-        'false' -> 'undefined'
-    end.
+    not any_keeping_early_media(Endpoints).
 
--spec any_ignoring_early_media(kz_endpoint:endpoints()) -> boolean().
-any_ignoring_early_media(Endpoints) ->
-    lists:any(fun ignoring_early_media/1, Endpoints).
+-spec any_keeping_early_media(kz_endpoint:endpoints()) -> boolean().
+any_keeping_early_media(Endpoints) ->
+    lists:any(fun keeping_early_media/1, Endpoints).
 
--spec ignoring_early_media(kz_endpoint:endpoint()) -> boolean().
-ignoring_early_media(Endpoint) ->
-    kz_json:is_true(<<"Ignore-Early-Media">>, Endpoint).
+-spec keeping_early_media(kz_endpoint:endpoint()) -> boolean().
+keeping_early_media(Endpoint) ->
+    kz_json:is_false(<<"Ignore-Early-Media">>, Endpoint).
