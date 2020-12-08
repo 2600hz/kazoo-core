@@ -9,7 +9,7 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(cnam_maintenance).
+-module(kazoo_cnam_maintenance).
 
 -export([flush/0]).
 
