@@ -418,14 +418,14 @@ media_path(Path) -> media_path(Path, 'undefined').
 -spec media_path(kz_term:api_binary(), kz_term:api_ne_binary()) -> kz_term:api_binary().
 media_path('undefined', _AccountId) -> 'undefined';
 media_path(<<>>, _AccountId) -> 'undefined';
-media_path(<<"/system_media", _/binary>> = Path, _AccountId) -> Path;
-media_path(<<"system_media", _/binary>> = Path, _AccountId) -> Path;
+media_path(<<"/system_media", _/binary>> = Path, _AccountId) -> <<"prompt:/", Path/binary>>;
+media_path(<<"system_media", _/binary>> = Path, _AccountId) -> <<"prompt://", Path/binary>>;
 media_path(<<"local_stream://",_/binary>> = Path, _AccountId) -> Path;
 media_path(<<"silence_stream://",_/binary>> = Path, _AccountId) -> Path;
 media_path(_Path, 'undefined') -> 'undefined';
 media_path(Path, AccountId) when is_binary(AccountId) ->
     case binary:match(Path, <<"/">>) of
-        'nomatch' -> <<$/, AccountId/binary, $/, Path/binary>>;
+        'nomatch' -> <<"prompt://", AccountId/binary, $/, Path/binary>>;
         _Else -> Path
     end.
 

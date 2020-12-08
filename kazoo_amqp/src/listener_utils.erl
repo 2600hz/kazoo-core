@@ -22,6 +22,7 @@
 
 -export_type([responder/0
              ,responders/0
+             ,responder_callback_mappings/0
              ]).
 
 -spec add_responder(responders(), responder_callback(), responder_callback_mapping()) -> responders().

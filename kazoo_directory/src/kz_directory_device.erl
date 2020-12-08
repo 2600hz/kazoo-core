@@ -238,7 +238,7 @@ hold_music(Endpoint, CCVs) ->
     case kz_json:get_ne_binary_value([<<"music_on_hold">>, <<"media_id">>], Endpoint) of
         'undefined' -> CCVs;
         MediaId ->
-            MOH = kz_media_util:media_path(MediaId, kz_doc:account_id(Endpoint)),
+            MOH = list_to_binary(["prompt://", kz_doc:account_id(Endpoint), "/", MediaId]),
             kz_json:set_value(<<"Hold-Media">>, MOH, CCVs)
     end.
 

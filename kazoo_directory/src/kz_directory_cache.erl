@@ -63,7 +63,10 @@ cached_ids(Db, Id) ->
 
 -spec owner_ids(kz_json:object()) -> kz_term:ne_binaries().
 owner_ids(JObj) ->
-    props:filter_undefined([kzd_devices:owner_id(JObj) | kzd_devices:hotdesk_ids(JObj, [])]).
+    [Id || Id <- [kzd_devices:owner_id(JObj) | kzd_devices:hotdesk_ids(JObj, [])],
+           'undefined' =/= Id,
+           <<>> =/= Id
+    ].
 
 -spec match_doc_changed_keys(kz_term:ne_binary(), kz_term:ne_binary()) -> ets:match_spec().
 match_doc_changed_keys(Db, Id) ->

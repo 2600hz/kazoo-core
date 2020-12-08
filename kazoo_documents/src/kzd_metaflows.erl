@@ -17,6 +17,7 @@
 -export([number/2, number/3, set_number/3]).
 -export([patterns/1, patterns/2, set_patterns/2]).
 -export([pattern/2, pattern/3, set_pattern/3]).
+-export([is_empty/1]).
 
 
 -include("kz_documents.hrl").
@@ -113,3 +114,8 @@ pattern(Doc, Pattern, Default) ->
 -spec set_pattern(doc(), kz_json:key(), kz_json:object()) -> doc().
 set_pattern(Doc, Pattern, Value) ->
     kz_json:set_value([<<"patterns">>, Pattern], Value, Doc).
+
+-spec is_empty(doc()) -> boolean().
+is_empty('undefined') -> 'true';
+is_empty(Doc) ->
+    (numbers(Doc, []) ++ patterns(Doc, [])) =:= [].
