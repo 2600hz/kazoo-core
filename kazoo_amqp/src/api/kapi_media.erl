@@ -122,6 +122,7 @@ resp_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Stream-URL">>, fun(<<"shout://", _/binary>>) -> 'true';
                                        (<<"http://", _/binary>>) -> 'true';
+                                       (<<"https://", _/binary>>) -> 'true';
                                        (<<"vlc://", _/binary>>) -> 'true';
                                        (_) -> 'false'
                                     end}

@@ -26,7 +26,7 @@
 %%------------------------------------------------------------------------------
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_Type, _Args) ->
-    kz_directory_cache:bind(),
+    _ = kz_directory_cache:bind(),
     kapi_directory:declare_exchanges(),
     kazoo_directory_sup:start_link().
 

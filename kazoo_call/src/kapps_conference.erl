@@ -78,6 +78,8 @@
 
 -export([flush/0, cache/1, cache/2, retrieve/1]).
 
+-export([inter_conference_extension/0]).
+
 -include("kapps_call_command.hrl").
 -include("kapps_conference.hrl").
 
@@ -977,3 +979,7 @@ get_tone(Thing) ->
 extra_settings(#kapps_conference{conference_doc=undefined}) -> undefined;
 extra_settings(#kapps_conference{conference_doc=Doc}) ->
     kz_json:get_ne_json_value(<<"extra-settings">>, Doc).
+
+-spec inter_conference_extension() -> kz_term:ne_binary().
+inter_conference_extension() ->
+    kapps_config:get_ne_binary(<<"conferences">>, <<"inter_server_extension">>, <<"conference">>).

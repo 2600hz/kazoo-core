@@ -103,6 +103,7 @@ build(EndpointId, AccountId, Endpoint, _Options) ->
            ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
            ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
            ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
+           ,{<<"Endpoint-DND">>, dnd(Endpoint)}
            ],
     Profile = [{<<"Endpoint-Type">>, <<"user">>}
               ,{<<"Domain-Name">>, AccountId}
@@ -224,6 +225,7 @@ call_forward_base_properties(_EndpointId, _AccountId, Endpoint) ->
     ,{<<"Loopback-Bowout">>, 'true'}
     ,{<<"Call-Forward-From">>, <<"${kz_ctx_Inception}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${Unique-ID}">>}
+    ,{<<"Failover-Reasons">>, cfw_failover_reasons()}
     ].
 
 cfw_single_reject() ->
@@ -233,6 +235,11 @@ cfw_single_reject() ->
     ,<<"NORMAL_CLEARING">>
     ,<<"PROGRESS_TIMEOUT">>
     ,<<"ALLOTTED_TIMEOUT">>
+    ].
+
+cfw_failover_reasons() ->
+    [<<"SUBSCRIBER_ABSENT">>
+    ,<<"RECOVERY_ON_TIMER_EXPIRE">>
     ].
 
 call_forward_confirm_properties(_EndpointId, AccountId, Endpoint) ->
@@ -258,3 +265,7 @@ call_forward_maybe_retain_cid(_EndpointId, _AccountId, Endpoint) ->
 -spec get_realm(kz_json:object()) -> kz_term:ne_binary().
 get_realm(Endpoint) ->
     kz_json:get_ne_binary_value(<<"realm">>, Endpoint, <<"norealm">>).
+
+-spec dnd(kz_json:object()) -> boolean().
+dnd(Endpoint) ->
+    kz_json:is_true([<<"do_not_disturb">>, <<"enabled">>], Endpoint).
