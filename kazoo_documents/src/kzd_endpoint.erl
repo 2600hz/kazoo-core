@@ -51,7 +51,7 @@ get_prompt_url(Endpoint, PromptId) ->
         MediaPath -> kz_media_url:playback(MediaPath)
     end.
 
--spec moh(endpoint()) -> binary().
+-spec moh(endpoint()) -> kz_term:api_ne_binary().
 moh(Endpoint) ->
     kz_json:get_ne_binary_value([<<"music_on_hold">>, <<"media_id">>], Endpoint).
 
