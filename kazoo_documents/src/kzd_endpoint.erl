@@ -12,6 +12,10 @@
 -export([id/1]).
 -export([type/1]).
 -export([owner_id/1]).
+-export([account_id/1]).
+-export([language/1]).
+-export([get_prompt/2, get_prompt_url/2]).
+-export([moh/1, moh_media_path/1, moh_url/1]).
 
 -type endpoint() :: kz_json:object().
 -export_type([endpoint/0]).
@@ -24,6 +28,43 @@ id(Endpoint) ->
 type(Endpoint) ->
     kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint).
 
+-spec account_id(endpoint()) -> kz_term:ne_binary().
+account_id(Endpoint) ->
+    kz_doc:account_id(Endpoint).
+
 -spec owner_id(endpoint()) -> kz_term:api_ne_binary().
 owner_id(Endpoint) ->
     kz_json:get_ne_binary_value([<<"owner_id">>], Endpoint, id(Endpoint)).
+
+-spec language(endpoint()) -> kz_term:api_binary().
+language(Endpoint) ->
+    kz_json:get_ne_binary_value([<<"language">>], Endpoint).
+
+-spec get_prompt(endpoint(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
+get_prompt(Endpoint, PromptId) ->
+    kz_media_util:get_prompt(PromptId, language(Endpoint), account_id(Endpoint)).
+
+-spec get_prompt_url(endpoint(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
+get_prompt_url(Endpoint, PromptId) ->
+    case get_prompt(Endpoint, PromptId) of
+        undefined -> undefined;
+        MediaPath -> kz_media_url:playback(MediaPath)
+    end.
+
+-spec moh(endpoint()) -> kz_term:api_ne_binary().
+moh(Endpoint) ->
+    kz_json:get_ne_binary_value([<<"music_on_hold">>, <<"media_id">>], Endpoint).
+
+-spec moh_media_path(endpoint()) -> kz_term:api_ne_binary().
+moh_media_path(Endpoint) ->
+    case moh(Endpoint) of
+        undefined -> undefined;
+        MediaId -> kz_media_util:media_path(MediaId, account_id(Endpoint))
+    end.
+
+-spec moh_url(endpoint()) -> kz_term:api_ne_binary().
+moh_url(Endpoint) ->
+    case moh_media_path(Endpoint) of
+        undefined -> undefined;
+        MediaPath -> kz_media_url:playback(MediaPath)
+    end.

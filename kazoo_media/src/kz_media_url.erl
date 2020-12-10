@@ -49,6 +49,13 @@ playback(<<"prompt://", PromptPath/binary>>, Options) ->
             lager:warning("invalid prompt path: ~p", [_Path]),
             {'error', 'invalid_media_name'}
     end;
+playback(<<"silence">> = Media, _) -> Media;
+playback(<<"silence_stream://", _/binary>> = Media, _) -> Media;
+playback(<<"tone_stream://", _/binary>> = Media, _) -> Media;
+playback(<<"shout://", _/binary>> = Media, _) -> Media;
+playback(<<"http://", _/binary>> = URI, _) -> URI;
+playback(<<"https://", _/binary>> = URI, _) -> URI;
+playback(<<"\$", _/binary>> = Media, _) -> Media;
 playback(<<Media/binary>>, JObj) ->
     lager:debug("lookup media url for ~s", [Media]),
     kz_media_file:get_uri(Media, JObj);
