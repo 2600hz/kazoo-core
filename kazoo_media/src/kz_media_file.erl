@@ -38,31 +38,6 @@ get_uri(Paths, JObj) ->
         {'ok', #media_store_path{}=Store} -> maybe_proxy(JObj, Store)
     end.
 
--spec maybe_prepare_proxy(kz_term:ne_binary(), media_store_path()) -> 'ok' | 'error'.
-maybe_prepare_proxy(<<"single">>, Store) -> prepare_proxy(Store);
-maybe_prepare_proxy(<<"continuous">>, Store) -> prepare_proxy(Store);
-maybe_prepare_proxy(_, _ ) -> 'ok'.
-
--spec prepare_proxy(media_store_path()) -> 'ok' | 'error'.
-prepare_proxy(#media_store_path{db = Db
-                               ,id = Id
-                               ,att = Attachment
-                               }) ->
-    case kz_media_cache_sup:find_file_server(Db, Id, Attachment) =:= {'error', 'no_file_server'} of
-        'true' -> start_media_file_cache(Db, Id, Attachment);
-        'false' -> lager:debug("existing file server for ~s/~s/~s", [Db, Id, Attachment])
-    end.
-
--spec start_media_file_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
-start_media_file_cache(Db, Id, Attachment) ->
-    case kz_media_cache_sup:start_file_server(Db, Id, Attachment) of
-        {'ok', _FileServer} ->
-            lager:debug("file server at ~p for ~s/~s/~s", [_FileServer, Db, Id, Attachment]);
-        E ->
-            lager:debug("failed to start server for ~s/~s/~s: ~p", [Db, Id, Attachment, E]),
-            throw(E)
-    end.
-
 -spec maybe_proxy(kz_json:object(), media_store_path()) ->
           kz_term:ne_binary() | {'error', 'no_stream_strategy'}.
 maybe_proxy(JObj, #media_store_path{db = Db
@@ -90,10 +65,9 @@ proxy_uri(#media_store_path{db = Db
                            ,id = Id
                            ,att = Attachment
                            ,opt=Options
-                           }=Store
+                           }
          ,StreamType
          ) ->
-    _ = maybe_prepare_proxy(StreamType, Store),
     Path = kz_http_util:urlencode(base64:encode(term_to_binary({Db, Id, Attachment, Options}))),
     File = kz_http_util:urlencode(Attachment),
     UrlParts = [kz_media_util:proxy_base_url(StreamType)

@@ -235,12 +235,7 @@ presence_id(Endpoint, CCVs) ->
 
 -spec hold_music(kz_json:object(), kz_json:object()) -> kz_json:object().
 hold_music(Endpoint, CCVs) ->
-    case kz_json:get_ne_binary_value([<<"music_on_hold">>, <<"media_id">>], Endpoint) of
-        'undefined' -> CCVs;
-        MediaId ->
-            MOH = list_to_binary(["prompt://", kz_doc:account_id(Endpoint), "/", MediaId]),
-            kz_json:set_value(<<"Hold-Media">>, MOH, CCVs)
-    end.
+    kz_json:set_value(<<"Hold-Media">>, kzd_endpoint:moh_url(Endpoint), CCVs).
 
 -spec invite_uri(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 invite_uri(Module, Endpoint, CCVs) ->
@@ -453,14 +448,13 @@ cfw_failover_reasons() ->
     ,<<"RECOVERY_ON_TIMER_EXPIRE">>
     ].
 
-call_forward_confirm_properties(_EndpointId, AccountId, Endpoint) ->
-    Lang = kz_media_util:prompt_language(AccountId),
+call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint) ->
     case kzd_devices:call_forward_require_keypress(Endpoint) of
         'false' -> [];
         'true' -> [{<<"Confirm-Key">>, <<"1">>}
                   ,{<<"Confirm-Cancel-Timeout">>, 'true'}
                   ,{<<"Confirm-Read-Timeout">>, 3 * ?MILLISECONDS_IN_SECOND}
-                  ,{<<"Confirm-File">>, kz_media_util:get_prompt(<<"ivr-group_confirm">>, Lang, AccountId)}
+                  ,{<<"Confirm-File">>, kzd_endpoint:get_prompt_url(Endpoint, <<"ivr-group_confirm">>)}
                   ,{<<"Require-Ignore-Early-Media">>, 'true'}
                   ,{<<"Require-Fail-On-Single-Reject">>, cfw_single_reject()}
                   ]
