@@ -322,8 +322,8 @@ encryption_flags(Endpoint, CCVs) ->
 
 -spec add_alert_info(kz_json:object(), kz_json:object()) -> kz_json:object().
 add_alert_info(Endpoint, CCVs) ->
-    AlertInfo = [{<<"Internal-Alert-Info">>, kz_json:get_value([<<"ringtones">>, <<"internal">>], Endpoint)}
-                ,{<<"External-Alert-Info">>, kz_json:get_value([<<"ringtones">>, <<"external">>], Endpoint)}
+    AlertInfo = [{[<<"Internal">>, <<"Alert-Info">>], kz_json:get_value([<<"ringtones">>, <<"internal">>], Endpoint)}
+                ,{[<<"External">>, <<"Alert-Info">>], kz_json:get_value([<<"ringtones">>, <<"external">>], Endpoint)}
                 ],
     kz_json:set_values(AlertInfo, CCVs).
 
