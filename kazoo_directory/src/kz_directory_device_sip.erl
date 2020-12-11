@@ -50,16 +50,57 @@ set_invite_uri(Fun, URIUser, _RuntimeContextField, Realm, CCVs) ->
 
 -spec invite_uri(kz_json:object(), kz_json:object()) -> kz_json:object().
 invite_uri(Endpoint, CCVs) ->
+    invite_uri(Endpoint, CCVs, kzd_devices:sip_method(Endpoint)).
+
+invite_uri(Endpoint, CCVs, <<"authorization">>) ->
+    EndpointId = kz_doc:id(Endpoint),
+    invite_uri_invite_format(kzd_devices:set_sip_username(Endpoint, EndpointId)
+                            ,CCVs
+                            ,<<"username">>
+                            );
+invite_uri(Endpoint, CCVs, _Method) ->
+    invite_uri_invite_format(Endpoint, CCVs, kzd_devices:sip_invite_format(Endpoint)).
+
+invite_uri_invite_format(Endpoint, CCVs, <<"route">>) ->
+    set_invite_uri(kzd_devices:sip_route(Endpoint), CCVs);
+invite_uri_invite_format(Endpoint, CCVs, <<"e164">>) ->
     Realm = get_realm(Endpoint),
-    case kzd_devices:sip_invite_format(Endpoint) of
-        <<"route">> -> set_invite_uri(kzd_devices:sip_route(Endpoint), CCVs);
-        <<"e164">> -> set_invite_uri(fun knm_converters:normalize/1, kzd_devices:sip_number(Endpoint), <<"e164">>, Realm, CCVs);
-        <<"1npan">> -> set_invite_uri(fun knm_converters:to_1npan/1, kzd_devices:sip_number(Endpoint), <<"1npan">>, Realm, CCVs);
-        <<"npan">> -> set_invite_uri(fun knm_converters:to_npan/1, kzd_devices:sip_number(Endpoint), <<"npan">>, Realm, CCVs);
-        <<"strip_plus">> -> set_invite_uri(fun knm_converters:to_strip_plus/1, kzd_devices:sip_number(Endpoint), <<"strip_plus">>, Realm, CCVs);
-        <<"contact">> -> set_invite_uri(kzd_devices:sip_username(Endpoint), Realm, CCVs);
-        <<"username">> -> set_invite_uri(kzd_devices:sip_username(Endpoint), Realm, CCVs)
-    end.
+    set_invite_uri(fun knm_converters:normalize/1
+                  ,kzd_devices:sip_number(Endpoint)
+                  ,<<"e164">>
+                  ,Realm
+                  ,CCVs
+                  );
+invite_uri_invite_format(Endpoint, CCVs, <<"1npan">>) ->
+    Realm = get_realm(Endpoint),
+    set_invite_uri(fun knm_converters:to_1npan/1
+                  ,kzd_devices:sip_number(Endpoint)
+                  ,<<"1npan">>
+                  ,Realm
+                  ,CCVs
+                  );
+invite_uri_invite_format(Endpoint, CCVs, <<"npan">>) ->
+    Realm = get_realm(Endpoint),
+    set_invite_uri(fun knm_converters:to_npan/1
+                  ,kzd_devices:sip_number(Endpoint)
+                  ,<<"npan">>
+                  ,Realm
+                  ,CCVs
+                  );
+invite_uri_invite_format(Endpoint, CCVs, <<"strip_plus">>) ->
+    Realm = get_realm(Endpoint),
+    set_invite_uri(fun knm_converters:to_strip_plus/1
+                  ,kzd_devices:sip_number(Endpoint)
+                  ,<<"strip_plus">>
+                  ,Realm
+                  ,CCVs
+                  );
+invite_uri_invite_format(Endpoint, CCVs, <<"contact">>) ->
+    Realm = get_realm(Endpoint),
+    set_invite_uri(kzd_devices:sip_username(Endpoint), Realm, CCVs);
+invite_uri_invite_format(Endpoint, CCVs, <<"username">>) ->
+    Realm = get_realm(Endpoint),
+    set_invite_uri(kzd_devices:sip_username(Endpoint), Realm, CCVs).
 
 -spec ignore_early_media(kz_json:object()) -> boolean().
 ignore_early_media(Endpoint) ->
