@@ -424,47 +424,54 @@ build_fields_arg([F|Fs], #{'fields' := Fields}=Acc) ->
 -spec apply_filtermap(kz_view_cursor:cursor(), kz_json:objects()) ->
           kz_json:objects() |
           {'error', any()}.
-apply_filtermap(#{'filtermap' := 'undefined'}, JObjs) ->
+apply_filtermap(#{filtermap := Mapper}=Cursor, JObjs) when is_function(Mapper, 3) ->
+    apply_filtermap_fold3(Cursor, Mapper, JObjs, []);
+apply_filtermap(#{'filtermap' := Mapper}, JObjs) ->
+    apply_filtermap(Mapper, JObjs);
+apply_filtermap(#{}, JObjs) ->
     JObjs;
-apply_filtermap(#{'filtermap' := Mapper}, JObjs) when is_function(Mapper, 1) ->
+apply_filtermap('undefined', JObjs) ->
+    JObjs;
+apply_filtermap(Mapper, JObjs) ->
+    apply_filtermap_fold(Mapper, JObjs, []).
+
+apply_filtermap_fold(_, [], Acc) ->
+    lists:reverse(
+      [JObj
+       || JObj <- Acc,
+          not kz_term:is_empty(JObj)
+      ]);
+apply_filtermap_fold(Mapper, JObjs, _) when is_function(Mapper, 1) ->
     case Mapper(JObjs) of
         'false' -> [];
         'true' -> JObjs;
         {'error', _}=Error -> Error;
         NewAcc -> NewAcc
     end;
-apply_filtermap(#{filtermap := Mapper}=Cursor, JObjs) when is_function(Mapper, 2) ->
-    apply_filtermap_fold(Cursor, Mapper, JObjs, []);
-apply_filtermap(#{filtermap := Mapper}=Cursor, JObjs) when is_function(Mapper, 3) ->
-    apply_filtermap_fold(Cursor, Mapper, JObjs, []);
-apply_filtermap(#{filtermap := {Mapper, _FirstArg}=MapperArg}=Cursor, JObjs) when is_function(Mapper, 3) ->
-    apply_filtermap_fold(Cursor, MapperArg, JObjs, []);
-apply_filtermap(_, JObjs) ->
-    JObjs.
+apply_filtermap_fold(Mapper, [JObj | JObjs], Acc) ->
+    case apply_filtermap_fun(Mapper, JObj, Acc) of
+        {'error', _} = Error -> Error;
+        NewAcc -> apply_filtermap_fold(Mapper, JObjs, NewAcc)
+    end.
 
-apply_filtermap_fold(_, _, [], Acc) ->
+apply_filtermap_fun(Mapper, JObj, Acc) when is_function(Mapper, 2) ->
+    handle_filtermap(Mapper(JObj, Acc), JObj, Acc);
+apply_filtermap_fun({Mapper, FirstArg}, JObj, Acc) when is_function(Mapper, 3) ->
+    handle_filtermap(Mapper(FirstArg, JObj, Acc), JObj, Acc).
+
+apply_filtermap_fold3(_, _, [], Acc) ->
     lists:reverse(
       [JObj
        || JObj <- Acc,
           not kz_term:is_empty(JObj)
       ]);
-apply_filtermap_fold(Cursor, Mapper, [JObj | JObjs], Acc) when is_function(Mapper, 2) ->
-    case apply_filtermap_fold(Mapper(JObj, Acc), JObj, Acc) of
+apply_filtermap_fold3(Cursor, Mapper, [JObj | JObjs], Acc) when is_function(Mapper, 3) ->
+    case handle_filtermap(Mapper(Cursor, JObj, Acc), JObj, Acc) of
         {'error', _} = Error -> Error;
-        NewAcc -> apply_filtermap_fold(Cursor, Mapper, JObjs, NewAcc)
-    end;
-apply_filtermap_fold(Cursor, Mapper, [JObj | JObjs], Acc) when is_function(Mapper, 3) ->
-    case Mapper(Cursor, JObj, Acc) of
-        {'error', _} = Error -> Error;
-        NewAcc -> apply_filtermap_fold(Cursor, Mapper, JObjs, NewAcc)
-    end;
-apply_filtermap_fold(Cursor, {Mapper, FirstArg}, [JObj | JObjs], Acc) when is_function(Mapper, 3) ->
-    case apply_filtermap_fold(Mapper(FirstArg, JObj, Acc), JObj, Acc) of
-        {'error', _} = Error -> Error;
-        NewAcc -> apply_filtermap_fold(Cursor, Mapper, JObjs, NewAcc)
+        NewAcc -> apply_filtermap_fold3(Cursor, Mapper, JObjs, NewAcc)
     end.
 
-apply_filtermap_fold(Filtered, JObj, Acc) ->
+handle_filtermap(Filtered, JObj, Acc) ->
     case Filtered of
         'false' -> Acc;
         'true' -> [JObj | Acc];
