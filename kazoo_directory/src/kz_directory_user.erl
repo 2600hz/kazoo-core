@@ -212,7 +212,7 @@ call_forward_properties(EndpointId, AccountId, Endpoint) ->
 
 call_forward_base_properties(_EndpointId, _AccountId, Endpoint) ->
     [{<<"Call-Forward">>, 'true'}
-    ,{<<"Is-Substitute">>, kzd_devices:call_forward_substitute(Endpoint)}
+    ,{<<"Is-Substitute">>, call_forward_is_substitute(Endpoint)}
     ,{<<"Is-Failover">>, kzd_devices:call_forward_failover(Endpoint)}
     ,{<<"Direct-Calls-Only">>, kzd_devices:call_forward_direct_calls_only(Endpoint)}
     ,{<<"Require-Ignore-Early-Media">>, 'true'}
@@ -222,6 +222,11 @@ call_forward_base_properties(_EndpointId, _AccountId, Endpoint) ->
     ,{<<"Call-Forward-For-UUID">>, <<"${Unique-ID}">>}
     ,{<<"Failover-Reasons">>, cfw_failover_reasons()}
     ].
+
+-spec call_forward_is_substitute(kz_json:object()) -> boolean().
+call_forward_is_substitute(Endpoint) ->
+    kzd_devices:call_forward_substitute(Endpoint)
+        andalso not kzd_devices:call_forward_failover(Endpoint).
 
 cfw_single_reject() ->
     [<<"USER_BUSY">>
