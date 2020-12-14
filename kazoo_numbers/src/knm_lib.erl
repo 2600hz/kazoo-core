@@ -21,6 +21,7 @@
 
 -export([feature_inbound_cname/1
         ,feature_prepend/1
+        ,feature_caller_display_name/1
         ,find_early_ringback/1
         ,find_transfer_ringback/1
         ,force_outbound_feature/1
@@ -236,6 +237,18 @@ feature_prepend(PhoneNumber) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec feature_caller_display_name(knm_phone_number:record()) -> kz_term:api_binary().
+feature_caller_display_name(PhoneNumber) ->
+    case knm_phone_number:feature(PhoneNumber, ?FEATURE_CNAM_OUTBOUND) of
+        'undefined' -> 'undefined';
+        OutboundCNAM ->
+            kz_json:get_ne_binary_value(?CNAM_DISPLAY_NAME, OutboundCNAM)
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec feature_inbound_cname(knm_phone_number:record()) -> boolean().
 feature_inbound_cname(PhoneNumber) ->
     case knm_phone_number:feature(PhoneNumber, ?FEATURE_CNAM_INBOUND) of
@@ -256,8 +269,10 @@ feature_inbound_cname(PhoneNumber) ->
 %%------------------------------------------------------------------------------
 -spec find_early_ringback(knm_phone_number:record()) -> kz_term:api_binary().
 find_early_ringback(PhoneNumber) ->
-    RingBack = knm_phone_number:feature(PhoneNumber, ?FEATURE_RINGBACK),
-    kz_json:get_ne_value(?RINGBACK_EARLY, RingBack).
+    case knm_phone_number:feature(PhoneNumber, ?FEATURE_RINGBACK) of
+        'undefined' -> 'undefined';
+        RingBack -> kz_json:get_ne_value(?RINGBACK_EARLY, RingBack)
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -265,8 +280,11 @@ find_early_ringback(PhoneNumber) ->
 %%------------------------------------------------------------------------------
 -spec find_transfer_ringback(knm_phone_number:record()) -> kz_term:api_binary().
 find_transfer_ringback(PhoneNumber) ->
-    RingBack = knm_phone_number:feature(PhoneNumber, ?FEATURE_RINGBACK),
-    kz_json:get_ne_value(?RINGBACK_TRANSFER, RingBack).
+    case knm_phone_number:feature(PhoneNumber, ?FEATURE_RINGBACK) of
+        'undefined' -> 'undefined';
+        RingBack ->
+            kz_json:get_ne_value(?RINGBACK_TRANSFER, RingBack)
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
