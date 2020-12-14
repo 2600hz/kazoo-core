@@ -164,7 +164,7 @@ process_tollfree_search_response({'ok', Result}, Options) ->
             ],
     {'ok', Found};
 process_tollfree_search_response({'error', _}=Error, _) ->
-    Error.
+    return_search_error(Error).
 
 -spec process_search_response(api_res(), knm_search:options()) -> knm_search:mod_response().
 process_search_response({'ok', Result}, Options) ->
@@ -175,6 +175,13 @@ process_search_response({'ok', Result}, Options) ->
             ],
     {'ok', Found};
 process_search_response({'error', _}=Error, _) ->
+    return_search_error(Error).
+
+return_search_error({'error', 'not_found'}) ->
+    {'error', 'not_available'};
+return_search_error({'error', <<"Number not found">>}) ->
+    {'error', 'not_available'};
+return_search_error(Error) ->
     Error.
 
 %%------------------------------------------------------------------------------
