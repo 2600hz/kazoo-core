@@ -82,6 +82,8 @@
 -define(BW_ORDER_ID_XPATH, "Order/id/text()").
 -define(BW_ORDER_STATUS_XPATH, "OrderStatus/text()").
 
+-type api_res() :: {'ok', kz_types:xml_el()} | {'error', atom() | binary() | any()}.
+
 %%% API
 
 %%------------------------------------------------------------------------------
@@ -307,8 +309,6 @@ url(RelativePath) ->
       [io_lib:format("~s/accounts/~s/", [?BW2_BASE_URL, ?BW2_ACCOUNT_ID])
       | RelativePath
       ]).
-
--type api_res() :: {'ok', kz_types:xml_el()} | {'error', atom()}.
 
 -spec search(kz_term:ne_binary(), [nonempty_string()]) -> api_res().
 search(_Num, Params) ->
