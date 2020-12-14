@@ -36,7 +36,7 @@ fetch_attachment(#{}=Server, DbName, DocId, AName) ->
           data_error() |
           kz_att_error:error().
 fetch_attachment(#{}=Server, DbName, DocId, AName, Options) ->
-    case kzs_cache:open_cache_doc(Server, DbName, DocId, []) of
+    case kzs_cache:open_doc(Server, DbName, DocId, []) of
         {'ok', Doc} ->
             case kz_doc:attachment(Doc, AName) of
                 'undefined' -> {'error', 'not_found'};
