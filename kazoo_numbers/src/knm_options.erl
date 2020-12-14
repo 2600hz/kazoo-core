@@ -260,7 +260,7 @@ should_force_outbound(Props) when is_list(Props) ->
 
 -spec caller_display_name(extra_options()) -> kz_term:api_ne_binary().
 caller_display_name(Prop) when is_list(Prop) ->
-    prps:get_value('caller_display_name', Prop).
+    props:get_value('caller_display_name', Prop).
 
 -spec transfer_media_id(extra_options()) -> kz_term:api_binary().
 transfer_media_id(Props) when is_list(Props) ->
