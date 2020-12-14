@@ -46,6 +46,7 @@
                 "call_pickup",
                 "conference",
                 "connect_leg",
+                "deflect",
                 "detect_speech",
                 "eavesdrop",
                 "echo",
@@ -238,12 +239,14 @@
         "Event-Category": {
             "enum": [
                 "call"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "command"
-            ]
+            ],
+            "type": "string"
         },
         "Export-All": {
             "type": "string"
@@ -692,7 +695,6 @@
         "Call-ID",
         "Commands",
         "Conference-ID",
-        "Custom-Call-Vars",
         "Custom-Channel-Vars",
         "DTMFs",
         "Digits-Regex",
@@ -700,6 +702,8 @@
         "Duration",
         "Endpoints",
         "Event-Actions",
+        "Event-Category",
+        "Event-Name",
         "Extension",
         "Frequencies",
         "Insert-At",
@@ -720,6 +724,7 @@
         "Response-Code",
         "Say-Text",
         "Target-Call-ID",
+        "Target-URI",
         "Terminators",
         "Text",
         "Time",

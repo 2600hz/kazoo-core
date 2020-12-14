@@ -36,17 +36,21 @@
         "Event-Category": {
             "enum": [
                 "resource"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "eavesdrop_req"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
         "Account-ID",
-        "Endpoint-ID"
+        "Endpoint-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

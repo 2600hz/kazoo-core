@@ -21,7 +21,7 @@
         "Realm": "4a6863.sip.2600hz.local",
         "Username": "trunkstore_sip_username"
     },
-    "Event-Category": "dialplan",
+    "Event-Category": "route",
     "Event-Name": "route_win",
     "Msg-ID": "82159ZWEwNTQ2NGY4Yzc2YzRiNDE4YzY1YzdmZmVjNWQ3ZjQ",
     "Node": "ecallmgr@apps001.2600hz.local",

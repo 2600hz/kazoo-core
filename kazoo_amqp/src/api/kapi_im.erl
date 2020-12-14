@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Routing requests, responses, and wins!
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -29,35 +29,38 @@
 
 %% Inbound
 -define(INBOUND_REQ_EVENT_NAME, <<"inbound">>).
--define(INBOUND_HEADERS, [<<"Message-ID">>
-                         ,<<"Body">>
+-define(INBOUND_HEADERS, [<<"Body">>
                          ,<<"From">>
+                         ,<<"Message-ID">>
                          ,<<"To">>
                          ]).
--define(OPTIONAL_INBOUND_HEADERS, [<<"Custom-Vars">>
+-define(OPTIONAL_INBOUND_HEADERS, [<<"Account-ID">>
+                                  ,<<"Charges">>
                                   ,<<"Custom-SIP-Headers">>
+                                  ,<<"Custom-Vars">>
                                   ,<<"Request">>
-                                  ,<<"Account-ID">>
+                                  ,<<"Route-ID">>
                                   ,<<"Route-Type">>
                                   ,<<"System-ID">>
-                                  ,<<"Route-ID">>
                                   ,<<"Transaction-ID">>
-                                  ,<<"Charges">>
                                   ]).
--define(INBOUND_TYPES, [{<<"To">>, fun is_binary/1}
-                       ,{<<"From">>, fun is_binary/1}
-                       ,{<<"Request">>, fun is_binary/1}
-                       ,{<<"Message-ID">>, fun is_binary/1}
-                       ,{<<"System-ID">>, fun is_binary/1}
+
+-define(INBOUND_TYPES, [{<<"Body">>, fun erlang:is_binary/1}
                        ,{<<"Custom-Vars">>, fun kz_json:is_json_object/1}
-                       ,{<<"Body">>, fun is_binary/1}
+                       ,{<<"From">>, fun erlang:is_binary/1}
+                       ,{<<"Message-ID">>, fun erlang:is_binary/1}
+                       ,{<<"Request">>, fun erlang:is_binary/1}
+                       ,{<<"System-ID">>, fun erlang:is_binary/1}
+                       ,{<<"To">>, fun erlang:is_binary/1}
                        ]).
 -define(INBOUND_REQ_VALUES, [{<<"Event-Category">>, ?EVENT_CATEGORIES}
                             ,{<<"Event-Name">>, ?INBOUND_REQ_EVENT_NAME}
                             ,{<<"Route-Type">>, [<<"onnet">>, <<"offnet">>]}
                             ]).
 
--define(INBOUND_RK(Category, RouteType, MsgId), inbound_routing_key(Category, RouteType, MsgId)).
+-define(INBOUND_RK(Category, RouteType, MsgId)
+       ,inbound_routing_key(Category, RouteType, MsgId)
+       ).
 
 -define(BIND_INBOUND_RK(Category, Props)
        ,?INBOUND_RK(Category
@@ -101,7 +104,9 @@
                              ,{<<"Route-Type">>, [<<"onnet">>, <<"offnet">>]}
                              ]).
 
--define(OUTBOUND_RK(Category, RouteId, MsgId), outbound_routing_key(Category, RouteId, MsgId)).
+-define(OUTBOUND_RK(Category, RouteId, MsgId)
+       ,outbound_routing_key(Category, RouteId, MsgId)
+       ).
 
 -define(BIND_OUTBOUND_RK(Category, Props)
        ,?OUTBOUND_RK(Category
@@ -115,33 +120,31 @@
                     ,message_id(Props)
                     )).
 
--spec inbound(kz_term:api_terms()) -> {'ok', iolist()} |
+-spec inbound(kz_term:api_terms()) ->
+          {'ok', iolist()} |
           {'error', string()}.
-inbound(Prop) when is_list(Prop) ->
-    case inbound_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?INBOUND_HEADERS, ?OPTIONAL_INBOUND_HEADERS);
+inbound(API) ->
+    case inbound_v(API) of
+        'true' -> kz_api:build_message(API, ?INBOUND_HEADERS, ?OPTIONAL_INBOUND_HEADERS);
         'false' -> {'error', "Proplist failed validation for inbound"}
-    end;
-inbound(JObj) -> inbound(kz_json:to_proplist(JObj)).
+    end.
 
 -spec inbound_v(kz_term:api_terms()) -> boolean().
-inbound_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?INBOUND_HEADERS, ?INBOUND_REQ_VALUES, ?INBOUND_TYPES);
-inbound_v(JObj) -> inbound_v(kz_json:to_proplist(JObj)).
+inbound_v(API) ->
+    kz_api:validate(API, ?INBOUND_HEADERS, ?INBOUND_REQ_VALUES, ?INBOUND_TYPES).
 
--spec outbound(kz_term:api_terms()) -> {'ok', iolist()} |
+-spec outbound(kz_term:api_terms()) ->
+          {'ok', iolist()} |
           {'error', string()}.
-outbound(Prop) when is_list(Prop) ->
-    case outbound_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?OUTBOUND_HEADERS, ?OPTIONAL_OUTBOUND_HEADERS);
+outbound(API) ->
+    case outbound_v(API) of
+        'true' -> kz_api:build_message(API, ?OUTBOUND_HEADERS, ?OPTIONAL_OUTBOUND_HEADERS);
         'false' -> {'error', "Proplist failed validation for outbound"}
-    end;
-outbound(JObj) -> outbound(kz_json:to_proplist(JObj)).
+    end.
 
 -spec outbound_v(kz_term:api_terms()) -> boolean().
-outbound_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?OUTBOUND_HEADERS, ?OUTBOUND_REQ_VALUES, ?OUTBOUND_TYPES);
-outbound_v(JObj) -> outbound_v(kz_json:to_proplist(JObj)).
+outbound_v(API) ->
+    kz_api:validate(API, ?OUTBOUND_HEADERS, ?OUTBOUND_REQ_VALUES, ?OUTBOUND_TYPES).
 
 %%------------------------------------------------------------------------------
 %% @doc Bind AMQP Queue for routing requests.
@@ -303,6 +306,6 @@ encode(Term) -> kz_amqp_util:encode(Term).
 -spec maybe_gzip(kz_term:api_terms(), kz_term:proplist()) -> kz_term:proplist().
 maybe_gzip(Req, AMQPOptions) ->
     case kz_api:event_category(Req) of
-        <<"mms">> -> [{content_encoding, <<"gzip">>} | AMQPOptions];
+        <<"mms">> -> [{'content_encoding', <<"gzip">>} | AMQPOptions];
         <<"sms">> -> AMQPOptions
     end.

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Routing requests, responses, and wins!
 %%% @author Luis Azedo
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -44,7 +44,6 @@
 -define(DISCOVERY_EXCHANGE, <<"discovery">>).
 -define(DISCOVERY_EXCHANGE_TYPE, <<"topic">>).
 
-
 -define(DISCOVERY_EVENT_CATEGORY, <<"discovery">>).
 -define(DISCOVERY_RK, <<"discovery.*">>).
 
@@ -56,9 +55,7 @@
 -define(DISCOVERY_FLUSH_VALUES, [{<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY}
                                 ,{<<"Event-Name">>, ?DISCOVERY_FLUSH_EVENT_NAME}
                                 ]).
--define(DISCOVERY_FLUSH_TYPES, [{?KEY_QUERY_ID, fun is_binary/1}
-                               ]).
-
+-define(DISCOVERY_FLUSH_TYPES, [{?KEY_QUERY_ID, fun is_binary/1}]).
 
 %% Discovery Request
 -define(DISCOVERY_REQ_RK, <<"discovery.request">>).
@@ -75,7 +72,6 @@
                              ,{?KEY_QUANTITY, fun is_integer/1}
                              ]).
 
-
 %% Number Request
 -define(NUMBER_REQ_RK, <<"discovery.number">>).
 -define(NUMBER_REQ_EVENT_NAME, <<"number">>).
@@ -84,8 +80,7 @@
 -define(NUMBER_REQ_VALUES, [{<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY}
                            ,{<<"Event-Name">>, ?NUMBER_REQ_EVENT_NAME}
                            ]).
--define(NUMBER_REQ_TYPES, [{?KEY_NUMBER, fun is_binary/1}
-                          ]).
+-define(NUMBER_REQ_TYPES, [{?KEY_NUMBER, fun is_binary/1}]).
 
 %% Discovery/Number Response
 -define(DISCOVERY_RESP_EVENT_NAME, <<"response">>).
@@ -96,7 +91,6 @@
                                ]).
 -define(DISCOVERY_RESP_TYPES, [{?KEY_QUERY_ID, fun is_binary/1}
                               ]).
-
 
 %%------------------------------------------------------------------------------
 %% @doc Number Request

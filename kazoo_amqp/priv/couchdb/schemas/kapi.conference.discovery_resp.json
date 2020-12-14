@@ -9,18 +9,22 @@
         "Event-Category": {
             "enum": [
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "discovery_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Participant-ID": {
             "type": "string"
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Participant-ID"
     ],
     "type": "object"

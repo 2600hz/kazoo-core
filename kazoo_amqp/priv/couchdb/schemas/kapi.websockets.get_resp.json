@@ -9,13 +9,19 @@
         "Event-Category": {
             "enum": [
                 "websockets"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "get_resp"
-            ]
+            ],
+            "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

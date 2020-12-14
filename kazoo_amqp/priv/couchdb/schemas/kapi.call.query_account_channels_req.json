@@ -12,12 +12,14 @@
         "Event-Category": {
             "enum": [
                 "call_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "query_account_channels_req"
-            ]
+            ],
+            "type": "string"
         },
         "Username": {
             "type": "string"
@@ -30,7 +32,9 @@
         }
     },
     "required": [
-        "Account-ID"
+        "Account-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

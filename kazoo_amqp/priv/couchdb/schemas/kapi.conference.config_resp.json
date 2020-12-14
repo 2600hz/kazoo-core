@@ -15,12 +15,14 @@
         "Event-Category": {
             "enum": [
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "config_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Profiles": {
             "type": "string"
@@ -28,6 +30,8 @@
     },
     "required": [
         "Caller-Controls",
+        "Event-Category",
+        "Event-Name",
         "Profiles"
     ],
     "type": "object"

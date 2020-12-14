@@ -12,12 +12,14 @@
         "Event-Category": {
             "enum": [
                 "nodes"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "advertise"
-            ]
+            ],
+            "type": "string"
         },
         "Expires": {
             "type": "string"
@@ -57,6 +59,8 @@
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Expires"
     ],
     "type": "object"

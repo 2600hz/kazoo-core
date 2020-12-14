@@ -3,9 +3,25 @@
     "_id": "kapi.leader.req",
     "description": "AMQP API for leader.req",
     "properties": {
+        "Event-Category": {
+            "enum": [
+                "leader"
+            ],
+            "type": "string"
+        },
+        "Event-Name": {
+            "enum": [
+                "req"
+            ],
+            "type": "string"
+        },
         "Message": {
             "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

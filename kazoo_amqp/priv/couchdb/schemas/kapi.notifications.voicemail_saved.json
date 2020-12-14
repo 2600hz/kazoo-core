@@ -30,12 +30,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "voicemail_saved"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -88,6 +90,8 @@
     },
     "required": [
         "Account-ID",
+        "Event-Category",
+        "Event-Name",
         "From-Realm",
         "From-User",
         "To-Realm",

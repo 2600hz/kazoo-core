@@ -16,12 +16,14 @@
         "Event-Category": {
             "enum": [
                 "dialplan"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "fax_req"
-            ]
+            ],
+            "type": "string"
         },
         "Fax-T38-Option": {
             "type": "string"
@@ -35,7 +37,9 @@
     },
     "required": [
         "Action",
-        "Call"
+        "Call",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

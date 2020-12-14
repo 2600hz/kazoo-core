@@ -21,12 +21,14 @@
         "Event-Category": {
             "enum": [
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "search_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Locked": {
             "type": "string"
@@ -64,7 +66,9 @@
     },
     "required": [
         "Conference-ID",
-        "Conferences"
+        "Conferences",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

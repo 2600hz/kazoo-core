@@ -18,12 +18,14 @@
         "Event-Category": {
             "enum": [
                 "bookkeepers"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "standing_req"
-            ]
+            ],
+            "type": "string"
         },
         "Items": {
             "type": "string"
@@ -37,6 +39,8 @@
         "Bookkeeper-ID",
         "Bookkeeper-Type",
         "Estimated-Withdrawal",
+        "Event-Category",
+        "Event-Name",
         "Items",
         "Vendor-ID"
     ],

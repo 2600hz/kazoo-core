@@ -12,13 +12,19 @@
         "Event-Category": {
             "enum": [
                 "tasks"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "lookup_req"
-            ]
+            ],
+            "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

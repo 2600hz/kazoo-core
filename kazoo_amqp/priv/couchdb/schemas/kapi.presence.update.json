@@ -12,12 +12,14 @@
         "Event-Category": {
             "enum": [
                 "presence"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "update"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Package": {
             "type": "string"
@@ -68,6 +70,8 @@
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Presence-ID",
         "State"
     ],

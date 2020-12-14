@@ -19,13 +19,30 @@
             "type": "string"
         },
         "Codecs": {
+            "items": {
+                "type": "string"
+            },
             "type": "string"
         },
         "Context": {
             "type": "string"
         },
         "Cost-Parameters": {
-            "type": "string"
+            "properties": {
+                "Max-Incremental-Cost": {
+                    "type": "integer"
+                },
+                "Max-Setup-Cost": {
+                    "type": "integer"
+                },
+                "Min-Increment-Cost": {
+                    "type": "integer"
+                },
+                "Min-Setup-Cost": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
         },
         "Custom-Application-Vars": {
             "type": "object"
@@ -44,13 +61,15 @@
         },
         "Event-Category": {
             "enum": [
-                "dialplan"
-            ]
+                "route"
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "route_req"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Queue": {
             "type": "string"
@@ -152,6 +171,8 @@
     },
     "required": [
         "Call-ID",
+        "Event-Category",
+        "Event-Name",
         "From",
         "Request",
         "To"

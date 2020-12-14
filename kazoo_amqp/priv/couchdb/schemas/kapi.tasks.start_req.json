@@ -6,18 +6,22 @@
         "Event-Category": {
             "enum": [
                 "tasks"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "start_req"
-            ]
+            ],
+            "type": "string"
         },
         "Task-ID": {
             "type": "string"
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Task-ID"
     ],
     "type": "object"

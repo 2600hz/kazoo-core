@@ -12,12 +12,14 @@
         "Event-Category": {
             "enum": [
                 "start"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "job"
-            ]
+            ],
+            "type": "string"
         },
         "Job-ID": {
             "type": "string"
@@ -29,6 +31,8 @@
     "required": [
         "Account-ID",
         "Control-Queue",
+        "Event-Category",
+        "Event-Name",
         "Job-ID",
         "To-Number"
     ],

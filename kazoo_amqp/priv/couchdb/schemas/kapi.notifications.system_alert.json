@@ -21,12 +21,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "system_alert"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -72,6 +74,8 @@
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Message",
         "Subject"
     ],

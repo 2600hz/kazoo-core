@@ -96,12 +96,14 @@
         "Event-Category": {
             "enum": [
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "add_participant"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -206,7 +208,9 @@
     "required": [
         "Call-ID",
         "Conference-ID",
-        "Control-Queue"
+        "Control-Queue",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

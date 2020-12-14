@@ -15,12 +15,14 @@
         "Event-Category": {
             "enum": [
                 "bookkeepers"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "refund_req"
-            ]
+            ],
+            "type": "string"
         },
         "Transaction-DB": {
             "type": "string"
@@ -36,6 +38,8 @@
         "Account-ID",
         "Amount",
         "Bookkeeper-Type",
+        "Event-Category",
+        "Event-Name",
         "Transaction-DB",
         "Transaction-ID",
         "Vendor-ID"

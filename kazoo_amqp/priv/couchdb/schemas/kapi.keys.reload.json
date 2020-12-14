@@ -6,13 +6,19 @@
         "Event-Category": {
             "enum": [
                 "jwt.keys"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "reload"
-            ]
+            ],
+            "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

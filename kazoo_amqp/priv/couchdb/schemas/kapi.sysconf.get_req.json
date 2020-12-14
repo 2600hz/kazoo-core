@@ -12,12 +12,14 @@
         "Event-Category": {
             "enum": [
                 "sysconf"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "get_req"
-            ]
+            ],
+            "type": "string"
         },
         "Key": {
             "type": "string"
@@ -28,6 +30,8 @@
     },
     "required": [
         "Category",
+        "Event-Category",
+        "Event-Name",
         "Key"
     ],
     "type": "object"

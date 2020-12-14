@@ -27,12 +27,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "port_comment"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -77,6 +79,8 @@
     "required": [
         "Account-ID",
         "Comment",
+        "Event-Category",
+        "Event-Name",
         "Port-Request-ID"
     ],
     "type": "object"

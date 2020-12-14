@@ -27,12 +27,14 @@
         "Event-Category": {
             "enum": [
                 "authz"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "authz_req"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -64,6 +66,8 @@
         "Call-ID",
         "Caller-ID-Name",
         "Caller-ID-Number",
+        "Event-Category",
+        "Event-Name",
         "From",
         "Request",
         "To"

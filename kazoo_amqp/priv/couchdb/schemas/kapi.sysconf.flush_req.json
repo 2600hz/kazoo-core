@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "sysconf"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "flush_req"
-            ]
+            ],
+            "type": "string"
         },
         "Key": {
             "type": "string"
@@ -24,7 +26,9 @@
         }
     },
     "required": [
-        "Category"
+        "Category",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

@@ -18,12 +18,14 @@
         "Event-Category": {
             "enum": [
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "discovery_req"
-            ]
+            ],
+            "type": "string"
         },
         "Moderator": {
             "type": "string"
@@ -42,7 +44,9 @@
         }
     },
     "required": [
-        "Call"
+        "Call",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

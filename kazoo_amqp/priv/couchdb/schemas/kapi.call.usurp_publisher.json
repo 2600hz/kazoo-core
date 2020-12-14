@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "call_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "usurp_publisher"
-            ]
+            ],
+            "type": "string"
         },
         "Media-Node": {
             "type": "string"
@@ -28,6 +30,8 @@
     },
     "required": [
         "Call-ID",
+        "Event-Category",
+        "Event-Name",
         "Reference"
     ],
     "type": "object"

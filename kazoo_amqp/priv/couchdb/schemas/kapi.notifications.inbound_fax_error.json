@@ -36,12 +36,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "inbound_fax_error"
-            ]
+            ],
+            "type": "string"
         },
         "Fax-Error": {
             "type": "string"
@@ -100,6 +102,8 @@
     },
     "required": [
         "Account-ID",
+        "Event-Category",
+        "Event-Name",
         "From-Realm",
         "From-User",
         "To-Realm",

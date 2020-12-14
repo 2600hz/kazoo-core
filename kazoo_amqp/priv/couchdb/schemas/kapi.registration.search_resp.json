@@ -6,16 +6,22 @@
         "Event-Category": {
             "enum": [
                 "registration"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "search_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Registrations": {
             "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

@@ -15,16 +15,20 @@
         "Event-Category": {
             "enum": [
                 "call_inspector"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "lookup_resp"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
-        "Chunks"
+        "Chunks",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

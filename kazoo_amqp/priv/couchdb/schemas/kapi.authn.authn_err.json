@@ -6,13 +6,19 @@
         "Event-Category": {
             "enum": [
                 "directory"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "authn_err"
-            ]
+            ],
+            "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

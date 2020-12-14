@@ -33,12 +33,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "missed_call"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -87,6 +89,8 @@
         "Account-ID",
         "Call-Bridged",
         "Call-ID",
+        "Event-Category",
+        "Event-Name",
         "Message-Left"
     ],
     "type": "object"

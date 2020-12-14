@@ -6,13 +6,19 @@
         "Event-Category": {
             "enum": [
                 "cache"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "flush"
-            ]
+            ],
+            "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

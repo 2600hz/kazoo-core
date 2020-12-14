@@ -50,8 +50,10 @@
         ]).
 
 -include_lib("kz_amqp_util.hrl").
--include("kapi_dialplan.hrl").
 -include("kapi_route.hrl").
+-include("kapi_dialplan.hrl").
+
+-define(EVENT_CATEGORY, <<"route">>).
 
 -type req() :: kz_json:object().
 -type resp() :: kz_json:object().
@@ -160,6 +162,7 @@ req_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Caller-ID-Name">>, fun erlang:is_binary/1}
                 ,{<<"Caller-ID-Number">>, fun erlang:is_binary/1}
+                ,{<<"Codecs">>, fun erlang:is_list/1}
                 ,{<<"Cost-Parameters">>, fun has_cost_parameters/1}
                 ,{<<"Custom-Application-Vars">>, fun kz_json:is_json_object/1}
                 ,{<<"Custom-Channel-Vars">>, fun kz_json:is_json_object/1}
@@ -300,7 +303,9 @@ resp(Prop) when is_list(Prop) ->
                     Routes = [begin
                                   {'ok', RouteProp} = resp_route(Route),
                                   kz_json:from_list(RouteProp)
-                              end || Route <- props:get_value(<<"Routes">>, Prop)],
+                              end
+                              || Route <- props:get_value(<<"Routes">>, Prop)
+                             ],
                     [{<<"Routes">>, Routes} | props:delete(<<"Routes">>, Prop)];
                 _ ->
                     Prop
@@ -313,8 +318,8 @@ resp(JObj) ->
 resp_v(Prop) when is_list(Prop) ->
     Valid = kapi_definition:validate(Prop, resp_definition()),
     case props:get_value(<<"Method">>, Prop) of
-        <<"bridge">> when Valid->
-            lists:all(fun(Route) -> resp_route_v(Route) end
+        <<"bridge">> when Valid ->
+            lists:all(fun resp_route_v/1
                      ,props:get_value(<<"Routes">>, Prop)
                      );
         _ ->

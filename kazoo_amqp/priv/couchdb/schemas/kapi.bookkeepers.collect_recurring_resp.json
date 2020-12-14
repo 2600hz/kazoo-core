@@ -18,12 +18,14 @@
         "Event-Category": {
             "enum": [
                 "bookkeepers"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "collect_recurring_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Message": {
             "type": "string"
@@ -45,6 +47,8 @@
         "Account-ID",
         "Bookkeeper-ID",
         "Bookkeeper-Type",
+        "Event-Category",
+        "Event-Name",
         "Status"
     ],
     "type": "object"

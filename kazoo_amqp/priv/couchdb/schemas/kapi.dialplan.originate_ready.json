@@ -12,17 +12,21 @@
         "Event-Category": {
             "enum": [
                 "dialplan"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "originate_ready"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
         "Call-ID",
-        "Control-Queue"
+        "Control-Queue",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

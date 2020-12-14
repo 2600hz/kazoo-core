@@ -33,12 +33,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "register"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Timestamp": {
             "type": "string"
@@ -103,6 +105,8 @@
     },
     "required": [
         "Account-ID",
+        "Event-Category",
+        "Event-Name",
         "Realm",
         "Username"
     ],

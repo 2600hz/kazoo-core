@@ -12,16 +12,22 @@
         "Event-Category": {
             "enum": [
                 "call_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "query_channels_req"
-            ]
+            ],
+            "type": "string"
         },
         "Fields": {
             "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

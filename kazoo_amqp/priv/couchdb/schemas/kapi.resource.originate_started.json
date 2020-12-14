@@ -132,12 +132,14 @@
         "Event-Category": {
             "enum": [
                 "resource"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "originate_started"
-            ]
+            ],
+            "type": "string"
         },
         "Fax-Info": {
             "type": "string"
@@ -282,7 +284,9 @@
         }
     },
     "required": [
-        "Call-ID"
+        "Call-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

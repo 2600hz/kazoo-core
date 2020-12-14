@@ -23,12 +23,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "email_invite"
-            ]
+            ],
+            "type": "string"
         },
         "Guests": {
             "minItems": 1,

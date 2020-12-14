@@ -12,17 +12,21 @@
         "Event-Category": {
             "enum": [
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "search_req"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
         "Account-ID",
-        "Conference-ID"
+        "Conference-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

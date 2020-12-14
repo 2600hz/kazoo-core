@@ -24,19 +24,23 @@
         "Event-Category": {
             "enum": [
                 "metaflow"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "bind_req"
-            ]
+            ],
+            "type": "string"
         },
         "Resource-ID": {
             "type": "string"
         }
     },
     "required": [
-        "Account-ID"
+        "Account-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

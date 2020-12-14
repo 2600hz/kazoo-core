@@ -32,17 +32,21 @@
         "Event-Category": {
             "enum": [
                 "metaflow"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "action"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
         "Action",
-        "Call-ID"
+        "Call-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

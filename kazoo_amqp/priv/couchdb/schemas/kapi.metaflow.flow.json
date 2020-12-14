@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "metaflow"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "flow"
-            ]
+            ],
+            "type": "string"
         },
         "Flow": {
             "type": "object"
@@ -22,6 +24,8 @@
     },
     "required": [
         "Call-ID",
+        "Event-Category",
+        "Event-Name",
         "Flow"
     ],
     "type": "object"

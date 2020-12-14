@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2020, 2600Hz
+%%% @copyright (C) 2014-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -317,12 +317,12 @@ create_callflow_call() ->
     kapps_call:from_route_win(RouteWin, kapps_call:from_route_req(RouteReq)).
 
 inbound_onnet_callflow_req() ->
-    {ok,RouteReq} = kz_json:fixture(?APP, "fixtures/route_req/inbound-onnet-callflow.json"),
+    {'ok', RouteReq} = kz_json:fixture(?APP, "fixtures/route_req/inbound-onnet-callflow.json"),
     'true' = kapi_route:req_v(RouteReq),
     RouteReq.
 
 inbound_onnet_callflow_win() ->
-    {ok,RouteWin} = kz_json:fixture(?APP, "fixtures/route_win/inbound-onnet-callflow.json"),
+    {'ok', RouteWin} = kz_json:fixture(?APP, "fixtures/route_win/inbound-onnet-callflow.json"),
     'true' = kapi_route:win_v(RouteWin),
     RouteWin.
 
@@ -332,11 +332,11 @@ create_trunkstore_call() ->
     kapps_call:from_route_win(RouteWin, kapps_call:from_route_req(RouteReq)).
 
 inbound_onnet_trunkstore_req() ->
-    {ok,RouteReq} = kz_json:fixture(?APP, "fixtures/route_req/inbound-onnet-trunkstore.json"),
+    {'ok', RouteReq} = kz_json:fixture(?APP, "fixtures/route_req/inbound-onnet-trunkstore.json"),
     'true' = kapi_route:req_v(RouteReq),
     RouteReq.
 
 inbound_onnet_trunkstore_win() ->
-    {ok,RouteWin} = kz_json:fixture(?APP, "fixtures/route_win/inbound-onnet-trunkstore.json"),
+    {'ok', RouteWin} = kz_json:fixture(?APP, "fixtures/route_win/inbound-onnet-trunkstore.json"),
     'true' = kapi_route:win_v(RouteWin),
     RouteWin.

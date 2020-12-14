@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "presence"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "register_overwrite"
-            ]
+            ],
+            "type": "string"
         },
         "Previous-Contact": {
             "type": "string"
@@ -28,6 +30,8 @@
     },
     "required": [
         "Contact",
+        "Event-Category",
+        "Event-Name",
         "Previous-Contact",
         "Realm",
         "Username"

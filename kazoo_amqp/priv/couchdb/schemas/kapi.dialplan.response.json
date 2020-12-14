@@ -15,12 +15,14 @@
         "Event-Category": {
             "enum": [
                 "call"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "response"
-            ]
+            ],
+            "type": "string"
         },
         "Media-Name": {
             "type": "string"
@@ -39,6 +41,8 @@
     "required": [
         "Application-Name",
         "Call-ID",
+        "Event-Category",
+        "Event-Name",
         "Media-Name",
         "Media-Transfer-Method",
         "Media-Transfer-Results"

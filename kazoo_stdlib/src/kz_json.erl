@@ -247,7 +247,7 @@ is_defined(Path, JObj) ->
 is_empty(MaybeJObj) ->
     MaybeJObj =:= ?EMPTY_JSON_OBJECT.
 
--spec is_json_object(any()) -> boolean().
+-spec is_json_object(json_term()) -> boolean().
 is_json_object(?JSON_WRAPPER(P)) when is_list(P) -> 'true';
 is_json_object(_) -> 'false'.
 

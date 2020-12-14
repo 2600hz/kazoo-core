@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2020, 2600Hz
+%%% @copyright (C) 2017-2021, 2600Hz
 %%% @doc Kazoo API Definition Helpers.
 %%% @author Hesaam Farhang
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -28,9 +28,9 @@
         ,publish_fun/1, set_publish_fun/2
         ,required_headers/1, set_required_headers/2
         ,restrict_to/1, set_restrict_to/2
-        ,types/1, set_types/2
+        ,types/1, types/2, set_types/2
         ,validate_fun/1, set_validate_fun/2
-        ,values/1, set_values/2
+        ,values/1, values/2, set_values/2
         ]).
 
 -include_lib("kazoo_amqp/include/kapi_definition.hrl").
@@ -157,7 +157,14 @@ set_restrict_to(API, RestrictTo) -> API#kapi_definition{restrict_to = RestrictTo
 required_headers(#kapi_definition{required_headers = ReqH}) -> ReqH.
 
 -spec set_required_headers(api(), kz_api:api_headers()) -> api().
-set_required_headers(API, ReqH) -> API#kapi_definition{required_headers = ReqH}.
+set_required_headers(API, ReqH) ->
+    API#kapi_definition{required_headers =
+                            lists:usort([?KEY_EVENT_CATEGORY
+                                        ,?KEY_EVENT_NAME
+                                        | ReqH
+                                        ]
+                                       )
+                       }.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -176,8 +183,14 @@ set_optional_headers(API, OptH) -> API#kapi_definition{optional_headers = OptH}.
 -spec values(api()) -> kz_api:api_valid_values().
 values(#kapi_definition{values = Values}) -> Values.
 
+-spec values(api(), kz_term:ne_binary()) -> kz_json:api_json_term().
+values(#kapi_definition{values = Values}, Field) ->
+    props:get_value(Field, Values).
+
 -spec set_values(api(), kz_api:api_valid_values()) -> api().
-set_values(API, Values) -> API#kapi_definition{values = Values}.
+set_values(API, Values) ->
+    EventHeaders = event_type_headers(category(API), name(API)),
+    API#kapi_definition{values = props:insert_values(EventHeaders, Values)}.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -185,6 +198,10 @@ set_values(API, Values) -> API#kapi_definition{values = Values}.
 %%------------------------------------------------------------------------------
 -spec types(api()) -> kz_api:api_types().
 types(#kapi_definition{types = Types}) -> Types.
+
+-spec types(api(), kz_term:ne_binary()) -> fun().
+types(#kapi_definition{types = Types}, Field) ->
+    props:get_value(Field, Types).
 
 -spec set_types(api(), kz_api:api_types()) -> api().
 set_types(API, Types) -> API#kapi_definition{types = Types}.
@@ -248,13 +265,11 @@ build_message(JObj, Definition) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec validate(kz_term:api_terms(), api()) -> boolean().
-validate(Prop, #kapi_definition{required_headers = ReqH
-                               ,values = Values
-                               ,types = Types
-                               }) when is_list(Prop) ->
-    kz_api:validate(Prop, ReqH, Values, Types);
-validate(JObj, Definition) ->
-    validate(kz_json:to_proplist(JObj), Definition).
+validate(API, #kapi_definition{required_headers = ReqHs
+                              ,values = Values
+                              ,types = Types
+                              }=_Def) ->
+    kz_api:validate(API, ReqHs, Values, Types).
 
 -spec validate_message(kz_term:api_terms(), api()) -> boolean().
 validate_message(Prop, #kapi_definition{required_headers = ReqH

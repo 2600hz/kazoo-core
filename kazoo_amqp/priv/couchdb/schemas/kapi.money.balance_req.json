@@ -9,16 +9,20 @@
         "Event-Category": {
             "enum": [
                 "transaction"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "balance_req"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
-        "Account-ID"
+        "Account-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

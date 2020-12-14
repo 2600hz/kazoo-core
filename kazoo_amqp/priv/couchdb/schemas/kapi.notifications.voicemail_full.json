@@ -21,12 +21,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "voicemail_full"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -61,6 +63,8 @@
     },
     "required": [
         "Account-ID",
+        "Event-Category",
+        "Event-Name",
         "Max-Message-Count",
         "Message-Count",
         "Voicemail-Box"

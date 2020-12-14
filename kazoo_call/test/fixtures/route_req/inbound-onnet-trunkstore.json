@@ -23,7 +23,7 @@
         "X-AUTH-IP": "10.26.20.20",
         "X-AUTH-PORT": "58380"
     },
-    "Event-Category": "dialplan",
+    "Event-Category": "route",
     "Event-Name": "route_req",
     "From": "+14158867900@4a6863.sip.2600hz.local",
     "From-Network-Addr": "10.26.20.20",

@@ -9,16 +9,20 @@
         "Event-Category": {
             "enum": [
                 "delegate"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "job"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
-        "Delegate-Message"
+        "Delegate-Message",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

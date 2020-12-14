@@ -9,16 +9,20 @@
         "Event-Category": {
             "enum": [
                 "call_inspector"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "filter_req"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
-        "Call-IDs"
+        "Call-IDs",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

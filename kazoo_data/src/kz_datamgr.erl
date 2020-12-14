@@ -1599,7 +1599,6 @@ init_dbs(Server) ->
     Fun = fun(DB, Acc) -> [init_db(Server, DB) | Acc] end,
     Result = lists:foldl(Fun, [], ?KZ_SYSTEM_DBS),
     revise_docs_from_folder(?KZ_DATA_DB, ?APP, <<"views">>),
-    ?DEV_LOG("hwllo i'm here"),
     _ = register_views_from_folder('kazoo_couch'),
     _ = enable_change_notice(),
     lists:any(fun kz_term:is_true/1, Result).

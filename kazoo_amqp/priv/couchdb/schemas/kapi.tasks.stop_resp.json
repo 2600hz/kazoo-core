@@ -6,18 +6,22 @@
         "Event-Category": {
             "enum": [
                 "tasks"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "stop_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Reply": {
             "type": "string"
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Reply"
     ],
     "type": "object"

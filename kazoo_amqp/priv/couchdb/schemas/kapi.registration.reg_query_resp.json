@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "directory"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "reg_query_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Fields": {
             "type": "string"
@@ -23,5 +25,9 @@
             "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

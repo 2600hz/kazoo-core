@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "callflow"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "action.accepted"
-            ]
+            ],
+            "type": "string"
         },
         "Msg-ID": {
             "type": "string"
@@ -22,6 +24,8 @@
     },
     "required": [
         "Call-ID",
+        "Event-Category",
+        "Event-Name",
         "Msg-ID"
     ],
     "type": "object"

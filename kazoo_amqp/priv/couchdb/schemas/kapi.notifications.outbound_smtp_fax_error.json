@@ -24,12 +24,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "outbound_smtp_fax_error"
-            ]
+            ],
+            "type": "string"
         },
         "Fax-From-Email": {
             "type": "string"
@@ -83,6 +85,8 @@
     "required": [
         "Account-ID",
         "Errors",
+        "Event-Category",
+        "Event-Name",
         "Fax-From-Email",
         "Timestamp"
     ],

@@ -78,6 +78,18 @@
         "Duration-Seconds": {
             "type": "string"
         },
+        "Event-Category": {
+            "enum": [
+                "cdr"
+            ],
+            "type": "string"
+        },
+        "Event-Name": {
+            "enum": [
+                "report"
+            ],
+            "type": "string"
+        },
         "Extended-Data": {
             "type": "string"
         },
@@ -171,7 +183,9 @@
     },
     "required": [
         "Account-ID",
-        "Call-ID"
+        "Call-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

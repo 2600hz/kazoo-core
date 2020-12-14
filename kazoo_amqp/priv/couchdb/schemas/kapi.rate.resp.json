@@ -15,12 +15,14 @@
         "Event-Category": {
             "enum": [
                 "rate"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "resp"
-            ]
+            ],
+            "type": "string"
         },
         "Prefix": {
             "type": "string"
@@ -62,5 +64,9 @@
             "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

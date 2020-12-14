@@ -24,12 +24,14 @@
         "Event-Category": {
             "enum": [
                 "call_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "channel_status_resp"
-            ]
+            ],
+            "type": "string"
         },
         "From-Tag": {
             "type": "string"
@@ -66,6 +68,8 @@
     },
     "required": [
         "Call-ID",
+        "Event-Category",
+        "Event-Name",
         "Status"
     ],
     "type": "object"

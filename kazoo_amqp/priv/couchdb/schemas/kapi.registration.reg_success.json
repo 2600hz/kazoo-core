@@ -27,12 +27,14 @@
         "Event-Category": {
             "enum": [
                 "directory"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "reg_success"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Timestamp": {
             "type": "string"
@@ -124,6 +126,8 @@
     },
     "required": [
         "Contact",
+        "Event-Category",
+        "Event-Name",
         "Event-Timestamp",
         "Expires",
         "Realm",

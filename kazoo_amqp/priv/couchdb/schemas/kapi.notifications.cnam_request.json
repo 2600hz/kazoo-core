@@ -27,12 +27,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "cnam_request"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -71,6 +73,8 @@
     "required": [
         "Account-ID",
         "Cnam",
+        "Event-Category",
+        "Event-Name",
         "Number"
     ],
     "type": "object"

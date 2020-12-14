@@ -132,7 +132,8 @@
         "Event-Category": {
             "enum": [
                 "call_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "type": "string"
@@ -280,7 +281,9 @@
         }
     },
     "required": [
-        "Call-ID"
+        "Call-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

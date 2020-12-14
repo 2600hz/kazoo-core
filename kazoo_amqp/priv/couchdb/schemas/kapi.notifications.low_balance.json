@@ -24,12 +24,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "low_balance"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -55,7 +57,9 @@
     },
     "required": [
         "Account-ID",
-        "Current-Balance"
+        "Current-Balance",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

@@ -21,12 +21,14 @@
         "Event-Category": {
             "enum": [
                 "asr"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "req"
-            ]
+            ],
+            "type": "string"
         },
         "Language": {
             "type": "string"
@@ -40,7 +42,9 @@
         "ASR-Account-Password",
         "ASR-Endpoint",
         "Call-ID",
-        "Control-Queue"
+        "Control-Queue",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

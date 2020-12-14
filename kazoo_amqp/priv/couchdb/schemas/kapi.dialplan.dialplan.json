@@ -24,12 +24,14 @@
         "Event-Category": {
             "enum": [
                 "error"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "dialplan"
-            ]
+            ],
+            "type": "string"
         },
         "Request": {
             "type": "string"
@@ -39,7 +41,9 @@
         "Channel-Call-State",
         "Channel-State",
         "Dialplan-Error",
-        "Error-Message"
+        "Error-Message",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

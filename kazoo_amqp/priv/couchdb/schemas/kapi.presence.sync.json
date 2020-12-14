@@ -14,19 +14,23 @@
         "Event-Category": {
             "enum": [
                 "presence"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "sync"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Package": {
             "type": "string"
         }
     },
     "required": [
-        "Action"
+        "Action",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

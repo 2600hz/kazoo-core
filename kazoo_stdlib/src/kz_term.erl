@@ -91,7 +91,7 @@
 -type api_pid_ref() :: pid_ref() | 'undefined'.
 -type api_pid_refs() :: pid_refs() | 'undefined'.
 
--type api_terms() :: kz_json:object() | proplist().
+-type api_terms() :: kz_json:object() | kz_json:json_proplist().
 %% Kazoo API data type, either an Erlang representation of JSON object or a list of key-values.
 
 -type api_binary() :: binary() | 'undefined'.

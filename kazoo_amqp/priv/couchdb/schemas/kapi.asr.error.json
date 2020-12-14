@@ -12,13 +12,19 @@
         "Event-Category": {
             "enum": [
                 "asr"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "error"
-            ]
+            ],
+            "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

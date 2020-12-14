@@ -15,12 +15,14 @@
         "Event-Category": {
             "enum": [
                 "switch_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "notify"
-            ]
+            ],
+            "type": "string"
         },
         "Realm": {
             "type": "string"
@@ -31,6 +33,8 @@
     },
     "required": [
         "Event",
+        "Event-Category",
+        "Event-Name",
         "Realm",
         "Username"
     ],

@@ -12,12 +12,14 @@
         "Event-Category": {
             "enum": [
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "error"
-            ]
+            ],
+            "type": "string"
         },
         "Request": {
             "type": "string"
@@ -26,6 +28,8 @@
     "required": [
         "Conference-ID",
         "Error-Message",
+        "Event-Category",
+        "Event-Name",
         "Request"
     ],
     "type": "object"

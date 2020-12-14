@@ -6,12 +6,14 @@
         "Event-Category": {
             "enum": [
                 "hangups"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "query_resp"
-            ]
+            ],
+            "type": "string"
         },
         "account_id": {
             "type": "string"
@@ -53,5 +55,9 @@
             "type": "integer"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

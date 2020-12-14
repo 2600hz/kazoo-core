@@ -39,12 +39,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "topup"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -89,6 +91,8 @@
     "required": [
         "Account-ID",
         "Amount",
+        "Event-Category",
+        "Event-Name",
         "Response",
         "Success",
         "Timestamp"

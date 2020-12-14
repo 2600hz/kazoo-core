@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "callflow"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "action.result"
-            ]
+            ],
+            "type": "string"
         },
         "Msg-ID": {
             "type": "string"
@@ -25,6 +27,8 @@
     },
     "required": [
         "Call-ID",
+        "Event-Category",
+        "Event-Name",
         "Msg-ID",
         "Result"
     ],

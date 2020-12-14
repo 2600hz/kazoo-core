@@ -22,12 +22,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "number_feature_manual_action"
-            ]
+            ],
+            "type": "string"
         },
         "Feature": {
             "type": "object"
@@ -60,6 +62,8 @@
     },
     "required": [
         "Account-ID",
+        "Event-Category",
+        "Event-Name",
         "Feature",
         "Number"
     ],

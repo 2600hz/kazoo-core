@@ -12,19 +12,23 @@
         "Event-Category": {
             "enum": [
                 "websockets"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "get_req"
-            ]
+            ],
+            "type": "string"
         },
         "Socket-ID": {
             "type": "string"
         }
     },
     "required": [
-        "Account-ID"
+        "Account-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

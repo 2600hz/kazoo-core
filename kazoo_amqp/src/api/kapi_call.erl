@@ -177,7 +177,10 @@ event_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun event_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_event/1}
               ,{fun kapi_definition:set_binding/2, fun call_routing_key/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Call-ID">>]}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Call-ID">>
+                                                            ,<<"Event-Category">>
+                                                            ,<<"Event-Name">>
+                                                            ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Application-Data">>
                                                             ,<<"Application-Event">>
                                                             ,<<"Application-Name">>

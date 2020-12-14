@@ -18,12 +18,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "notify_update"
-            ]
+            ],
+            "type": "string"
         },
         "Failure-Message": {
             "type": "string"
@@ -64,6 +66,8 @@
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Status"
     ],
     "type": "object"

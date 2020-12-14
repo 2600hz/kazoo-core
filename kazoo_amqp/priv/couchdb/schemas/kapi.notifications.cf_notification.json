@@ -36,12 +36,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "cf_notification"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -94,6 +96,8 @@
     },
     "required": [
         "Account-ID",
+        "Event-Category",
+        "Event-Name",
         "Template-ID"
     ],
     "type": "object"

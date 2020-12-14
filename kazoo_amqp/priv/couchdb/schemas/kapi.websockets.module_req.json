@@ -13,12 +13,14 @@
         "Event-Category": {
             "enum": [
                 "websockets"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "module_req"
-            ]
+            ],
+            "type": "string"
         },
         "Module": {
             "type": "string"
@@ -29,6 +31,8 @@
     },
     "required": [
         "Action",
+        "Event-Category",
+        "Event-Name",
         "Module"
     ],
     "type": "object"

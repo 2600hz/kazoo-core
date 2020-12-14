@@ -260,17 +260,17 @@ disambiguate_and_publish(ReqJObj, RespJObj, Binding) ->
 %% validation definitions and remove any empty values
 %% @end
 %%------------------------------------------------------------------------------
--type api_formatter_fun() :: fun((kz_term:api_terms()) -> api_formatter_return()).
--type prepare_option_el() :: {'formatter', api_formatter_fun()} |
+-type prepare_option_el() :: {'formatter', formatter_fun()} |
                              {'remove_recursive', boolean()}.
 -type prepare_options() :: [prepare_option_el()].
 
 
--spec prepare_api_payload(kz_term:api_terms(), kz_term:proplist()) -> api_formatter_return() | kz_term:proplist().
+-spec prepare_api_payload(kz_term:api_terms(), kz_term:proplist()) ->
+          api_formatter_return() | kz_term:proplist().
 prepare_api_payload(Prop, HeaderValues) ->
     prepare_api_payload(Prop, HeaderValues, []).
 
--spec prepare_api_payload(kz_term:api_terms(), kz_term:proplist(), api_formatter_fun() | prepare_options()) ->
+-spec prepare_api_payload(kz_term:api_terms(), kz_term:proplist(), formatter_fun() | prepare_options()) ->
           api_formatter_return() | kz_term:proplist().
 prepare_api_payload(Prop, HeaderValues, FormatterFun) when is_function(FormatterFun, 1) ->
     prepare_api_payload(Prop, HeaderValues, [{'formatter', FormatterFun}]);
@@ -425,19 +425,13 @@ remove_optional_defaults(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec validate(kz_term:api_terms(), api_headers(), api_valid_values(), api_types()) -> boolean().
-validate(Prop, ReqH, Vals, Types) when is_list(Prop) ->
-    case has_all(Prop, ?DEFAULT_HEADERS)
-        andalso validate_message(Prop, ReqH, Vals, Types)
-    of
-        'true' -> 'true';
-        'false' ->
-            lager:debug("failing API JSON: ~s", [kz_json:encode(kz_json:from_list(Prop))]),
-            'false'
-    end;
+validate([_|_]=Prop, ReqH, Vals, Types) ->
+    has_all(Prop, ?DEFAULT_HEADERS)
+        andalso validate_message(Prop, ReqH, Vals, Types);
 validate(JObj, ReqH, Vals, Types) ->
     validate(kz_json:to_proplist(JObj), ReqH, Vals, Types).
 
--spec validate_message(kz_term:api_terms(), api_headers(), kz_term:proplist(), kz_term:proplist()) -> boolean().
+-spec validate_message(kz_term:api_terms(), api_headers(), api_valid_values(), api_types()) -> boolean().
 validate_message(Prop, ReqH, Vals, Types) when is_list(Prop) ->
     has_all(Prop, ReqH)
         andalso values_check(Prop, Vals)
@@ -449,9 +443,9 @@ validate_message(JObj, ReqH, Vals, Types) ->
 build_message(Prop, ReqH, OptH) when is_list(Prop) ->
     case defaults(Prop, ReqH ++ OptH) of
         {'error', _Reason}=Error ->
-            lager:debug("API message does not have the default headers ~s: ~p"
-                       ,[string:join([kz_term:to_list(H) || H <- ReqH], ","), Error]
-                       ),
+            ?LOG_DEBUG("API message does not have the default headers ~s: ~p"
+                      ,[string:join([kz_term:to_list(H) || H <- ReqH], ","), Error]
+                      ),
             Error;
         HeadAndProp ->
             case build_message_specific_headers(HeadAndProp, ReqH, OptH) of
@@ -468,9 +462,9 @@ build_message(JObj, ReqH, OptH) ->
 build_message_specific_headers({Headers, Prop}, ReqH, OptH) ->
     case update_required_headers(Prop, ReqH, Headers) of
         {'error', _Reason} = Error ->
-            lager:debug("API message does not have the required headers ~s: ~p : ~p"
-                       ,[kz_binary:join(ReqH, <<",">>), Error, ReqH]
-                       ),
+            ?LOG_DEBUG("API message does not have the required headers ~s: ~p : ~p"
+                      ,[kz_binary:join(ReqH, <<",">>), Error, ReqH]
+                      ),
             Error;
         {Headers1, Prop1} ->
             {Headers2, _Prop2} = update_optional_headers(Prop1, OptH, Headers1),
@@ -484,9 +478,9 @@ build_message_specific_headers(Prop, ReqH, OptH) ->
 build_message_specific({Headers, Prop}, ReqH, OptH) ->
     case update_required_headers(Prop, ReqH, Headers) of
         {'error', _Reason} = Error ->
-            lager:debug("API message does not have the required headers ~s: ~p"
-                       ,[kz_binary:join(ReqH, <<",">>), Error]
-                       ),
+            ?LOG_DEBUG("API message does not have the required headers ~s: ~p"
+                      ,[kz_binary:join(ReqH, <<",">>), Error]
+                      ),
             Error;
         {Headers1, Prop1} ->
             {Headers2, _Prop2} = update_optional_headers(Prop1, OptH, Headers1),
@@ -577,14 +571,14 @@ has_all_header(Headers, Prop) when is_list(Headers) ->
     case has_any(Prop, Headers) of
         'true' -> 'true';
         'false' ->
-            lager:debug("failed to find one of keys '~p' on API message", [Headers]),
+            ?LOG_DEBUG("failed to find one of keys '~p' on API message", [Headers]),
             'false'
     end;
 has_all_header(Header, Prop) when is_binary(Header) ->
     case props:is_defined(Header, Prop) of
         'true' -> 'true';
         'false' ->
-            lager:debug("failed to find key '~s' on API message", [Header]),
+            ?LOG_DEBUG("failed to find key '~s' on API message", [Header]),
             'false'
     end.
 
@@ -595,11 +589,11 @@ has_any(Prop, Headers) ->
 
 %% checks Prop against a list of values to ensure known key/value pairs are correct (like Event-Category
 %% and Event-Name). We don't care if a key is defined in Values and not in Prop; that is handled by has_all/1
--spec values_check(kz_term:proplist(), kz_term:proplist()) -> boolean().
+-spec values_check(kz_term:proplist(), api_valid_values()) -> boolean().
 values_check(Prop, Values) ->
     lists:all(fun(Value) -> values_check_all(Prop, Value) end, Values).
 
--spec values_check_all(kz_term:proplist(), {any(), any()}) -> boolean().
+-spec values_check_all(kz_term:proplist(), api_valid_value()) -> boolean().
 values_check_all(Prop, {Key, Vs}) when is_list(Vs) ->
     case props:get_value(Key, Prop) of
         'undefined' -> 'true'; % isn't defined in Prop, has_all will error if req'd
@@ -607,9 +601,9 @@ values_check_all(Prop, {Key, Vs}) when is_list(Vs) ->
             case lists:member(V, Vs) of
                 'true' -> 'true';
                 'false' ->
-                    lager:debug("API key '~s' value '~p' is not one of the values: ~p"
-                               ,[Key, V, Vs]
-                               ),
+                    ?LOG_DEBUG("API key '~s' value '~p' is not one of the values: ~p"
+                              ,[Key, V, Vs]
+                              ),
                     'false'
             end
     end;
@@ -618,19 +612,17 @@ values_check_all(Prop, {Key, V}) ->
         'undefined' -> 'true'; % isn't defined in Prop, has_all will error if req'd
         V -> 'true';
         _Val ->
-            lager:debug("API key '~s' value '~p' is not '~p'", [Key, _Val, V]),
+            ?LOG_DEBUG("API key '~s' value '~p' is not '~p'", [Key, _Val, V]),
             'false'
     end.
 
 %% checks Prop against a list of {Key, Fun}, running the value of Key through Fun, which returns a
 %% boolean.
--type typecheck() :: {kz_term:ne_binary(), fun((_) -> boolean())}.
--type typechecks() :: [typecheck()].
--spec type_check(kz_term:proplist(), typechecks()) -> boolean().
+-spec type_check(kz_term:api_terms(), api_types()) -> boolean().
 type_check(Prop, Types) ->
     lists:all(fun(Type) -> type_check_all(Prop, Type) end, Types).
 
--spec type_check_all(kz_term:proplist(), typecheck()) -> boolean().
+-spec type_check_all(kz_term:api_terms(), api_type()) -> boolean().
 type_check_all(Prop, {Key, Fun}) ->
     case props:get_value(Key, Prop) of
         %% isn't defined in Prop, has_all will error if req'd
@@ -639,11 +631,11 @@ type_check_all(Prop, {Key, Fun}) ->
             try Fun(Value) of % returns boolean
                 'true' -> 'true';
                 'false' ->
-                    lager:debug("API key '~s' value '~p' failed validation fun", [Key, Value]),
+                    ?LOG_DEBUG("API key '~s' value '~p' failed validation fun", [Key, Value]),
                     'false'
             catch
                 _:_R ->
-                    lager:debug("API key '~s' value '~p' caused validation fun exception: ~p", [Key, Value, _R]),
+                    ?LOG_DEBUG("API key '~s' value '~p' caused validation fun exception: ~p", [Key, Value, _R]),
                     'false'
             end
     end.

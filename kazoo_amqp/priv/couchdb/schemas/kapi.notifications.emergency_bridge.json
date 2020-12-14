@@ -69,12 +69,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "emergency_bridge"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -118,7 +120,9 @@
     },
     "required": [
         "Account-ID",
-        "Call-ID"
+        "Call-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

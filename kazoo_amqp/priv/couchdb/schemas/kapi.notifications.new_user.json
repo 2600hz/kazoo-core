@@ -21,12 +21,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "new_user"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -58,6 +60,8 @@
     },
     "required": [
         "Account-ID",
+        "Event-Category",
+        "Event-Name",
         "User-ID"
     ],
     "type": "object"

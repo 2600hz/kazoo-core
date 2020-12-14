@@ -9,13 +9,19 @@
         "Event-Category": {
             "enum": [
                 "call_inspector"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "filter_resp"
-            ]
+            ],
+            "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

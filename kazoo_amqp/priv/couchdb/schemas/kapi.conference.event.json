@@ -30,12 +30,14 @@
         "Event-Category": {
             "enum": [
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "event"
-            ]
+            ],
+            "type": "string"
         },
         "Instance-ID": {
             "type": "string"
@@ -47,6 +49,8 @@
     "required": [
         "Conference-ID",
         "Event",
+        "Event-Category",
+        "Event-Name",
         "Instance-ID"
     ],
     "type": "object"

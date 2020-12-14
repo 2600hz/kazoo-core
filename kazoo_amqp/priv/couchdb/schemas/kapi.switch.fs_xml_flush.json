@@ -6,12 +6,14 @@
         "Event-Category": {
             "enum": [
                 "switch_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "fs_xml_flush"
-            ]
+            ],
+            "type": "string"
         },
         "Realm": {
             "type": "string"
@@ -21,6 +23,8 @@
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Username"
     ],
     "type": "object"

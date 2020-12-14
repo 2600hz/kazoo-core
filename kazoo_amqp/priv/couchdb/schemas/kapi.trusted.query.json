@@ -6,18 +6,22 @@
         "Event-Category": {
             "enum": [
                 "trusted"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "query"
-            ]
+            ],
+            "type": "string"
         },
         "Server-ID": {
             "type": "string"
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Server-ID"
     ],
     "type": "object"

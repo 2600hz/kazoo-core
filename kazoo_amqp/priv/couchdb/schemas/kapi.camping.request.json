@@ -12,17 +12,21 @@
         "Event-Category": {
             "enum": [
                 "camping"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "request"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
         "Account-ID",
-        "Camping-Request"
+        "Camping-Request",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

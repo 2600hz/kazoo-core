@@ -109,12 +109,14 @@
         "Event-Category": {
             "enum": [
                 "resource"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "originate_req"
-            ]
+            ],
+            "type": "string"
         },
         "Existing-Call-ID": {
             "type": "string"
@@ -235,7 +237,9 @@
     },
     "required": [
         "Application-Name",
-        "Endpoints"
+        "Endpoints",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

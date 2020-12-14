@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "presence"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "mwi_update"
-            ]
+            ],
+            "type": "string"
         },
         "Expires": {
             "type": "string"
@@ -63,6 +65,8 @@
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Messages-New",
         "Messages-Saved",
         "To"

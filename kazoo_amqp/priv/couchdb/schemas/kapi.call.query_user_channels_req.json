@@ -15,12 +15,14 @@
         "Event-Category": {
             "enum": [
                 "call_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "query_user_channels_req"
-            ]
+            ],
+            "type": "string"
         },
         "Realm": {
             "type": "string"
@@ -35,5 +37,9 @@
             "type": "array"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

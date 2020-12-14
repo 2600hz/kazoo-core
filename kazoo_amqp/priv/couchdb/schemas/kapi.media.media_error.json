@@ -17,12 +17,14 @@
         "Event-Category": {
             "enum": [
                 "media"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "media_error"
-            ]
+            ],
+            "type": "string"
         },
         "Media-Name": {
             "type": "string"
@@ -30,6 +32,8 @@
     },
     "required": [
         "Error-Code",
+        "Event-Category",
+        "Event-Name",
         "Media-Name"
     ],
     "type": "object"

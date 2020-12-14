@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "callflow"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "resume"
-            ]
+            ],
+            "type": "string"
         },
         "Flow": {
             "type": "string"
@@ -22,6 +24,8 @@
     },
     "required": [
         "Call",
+        "Event-Category",
+        "Event-Name",
         "Flow"
     ],
     "type": "object"

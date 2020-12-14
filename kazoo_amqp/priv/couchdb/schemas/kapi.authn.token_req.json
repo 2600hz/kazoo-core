@@ -18,12 +18,14 @@
         "Event-Category": {
             "enum": [
                 "directory"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "token_req"
-            ]
+            ],
+            "type": "string"
         },
         "Expires": {
             "type": "string"
@@ -49,6 +51,8 @@
     },
     "required": [
         "Auth-Token",
+        "Event-Category",
+        "Event-Name",
         "From",
         "To"
     ],

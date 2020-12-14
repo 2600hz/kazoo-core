@@ -9,12 +9,14 @@
         "Event-Category": {
             "enum": [
                 "transaction"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "balance_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Inbound": {
             "type": "string"
@@ -39,7 +41,9 @@
         }
     },
     "required": [
-        "Account-ID"
+        "Account-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

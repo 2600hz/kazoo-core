@@ -113,12 +113,14 @@
         "Event-Category": {
             "enum": [
                 "resource"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "offnet_req"
-            ]
+            ],
+            "type": "string"
         },
         "Fail-On-Single-Reject": {
             "items": {
@@ -261,6 +263,8 @@
     },
     "required": [
         "Application-Name",
+        "Event-Category",
+        "Event-Name",
         "Resource-Type",
         "To-DID"
     ],

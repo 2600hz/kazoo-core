@@ -9,16 +9,20 @@
         "Event-Category": {
             "enum": [
                 "call_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "query_auth_id_req"
-            ]
+            ],
+            "type": "string"
         }
     },
     "required": [
-        "Auth-ID"
+        "Auth-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

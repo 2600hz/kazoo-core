@@ -24,12 +24,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "service_added"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -65,6 +67,8 @@
     "required": [
         "Account-ID",
         "Audit-Log",
+        "Event-Category",
+        "Event-Name",
         "Items",
         "Timestamp"
     ],

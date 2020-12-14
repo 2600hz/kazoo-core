@@ -24,12 +24,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "customer_update"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -63,7 +65,9 @@
         }
     },
     "required": [
-        "Account-ID"
+        "Account-ID",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

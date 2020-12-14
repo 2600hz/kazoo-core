@@ -6,12 +6,14 @@
         "Event-Category": {
             "enum": [
                 "globals"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "unregister"
-            ]
+            ],
+            "type": "string"
         },
         "Name": {
             "type": "string"
@@ -21,6 +23,8 @@
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Name"
     ],
     "type": "object"

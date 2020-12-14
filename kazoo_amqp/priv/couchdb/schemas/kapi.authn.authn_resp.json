@@ -36,12 +36,14 @@
         "Event-Category": {
             "enum": [
                 "directory"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "authn_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Expires": {
             "type": "string"
@@ -58,7 +60,9 @@
     },
     "required": [
         "Auth-Method",
-        "Auth-Password"
+        "Auth-Password",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

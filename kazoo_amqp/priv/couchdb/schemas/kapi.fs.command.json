@@ -12,12 +12,14 @@
         "Event-Category": {
             "enum": [
                 "fs"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "command"
-            ]
+            ],
+            "type": "string"
         },
         "Insert-At": {
             "type": "string"
@@ -25,7 +27,9 @@
     },
     "required": [
         "Application-Name",
-        "Args"
+        "Args",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

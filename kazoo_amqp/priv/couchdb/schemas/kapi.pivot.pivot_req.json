@@ -15,12 +15,14 @@
         "Event-Category": {
             "enum": [
                 "dialplan"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "pivot_req"
-            ]
+            ],
+            "type": "string"
         },
         "HTTP-Method": {
             "type": "string"
@@ -43,6 +45,8 @@
     },
     "required": [
         "Call",
+        "Event-Category",
+        "Event-Name",
         "Voice-URI"
     ],
     "type": "object"

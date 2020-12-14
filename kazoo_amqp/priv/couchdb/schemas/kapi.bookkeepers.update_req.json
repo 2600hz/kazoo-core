@@ -21,12 +21,14 @@
         "Event-Category": {
             "enum": [
                 "bookkeepers"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "update_req"
-            ]
+            ],
+            "type": "string"
         },
         "Invoice": {
             "type": "string"
@@ -39,6 +41,8 @@
         "Account-ID",
         "Bookkeeper-ID",
         "Bookkeeper-Type",
+        "Event-Category",
+        "Event-Name",
         "Invoice",
         "Vendor-ID"
     ],

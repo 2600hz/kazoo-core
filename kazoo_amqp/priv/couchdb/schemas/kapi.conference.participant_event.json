@@ -33,12 +33,14 @@
         "Event-Category": {
             "enum": [
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "participant_event"
-            ]
+            ],
+            "type": "string"
         },
         "Floor": {
             "type": "string"
@@ -78,6 +80,8 @@
         "Custom-Channel-Vars",
         "Energy-Level",
         "Event",
+        "Event-Category",
+        "Event-Name",
         "Floor",
         "Focus",
         "Hear",

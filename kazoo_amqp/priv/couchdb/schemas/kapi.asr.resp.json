@@ -6,16 +6,22 @@
         "Event-Category": {
             "enum": [
                 "asr"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "resp"
-            ]
+            ],
+            "type": "string"
         },
         "Response-Text": {
             "type": "string"
         }
     },
+    "required": [
+        "Event-Category",
+        "Event-Name"
+    ],
     "type": "object"
 }

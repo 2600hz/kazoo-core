@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc call detail record amqp definitions.
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,62 +36,64 @@
 -define(CDR_REPORT_REQUIRED_HEADERS
        ,[<<"Account-ID">>
         ,<<"Call-ID">>
+        ,<<"Event-Category">>
+        ,<<"Event-Name">>
         ]).
 
 -define(CDR_REPORT_OPTIONAL_HEADERS
-       ,[<<"Timestamp">>
-        ,<<"Channel-Created-Time">>
-        ,<<"Call-Interaction">>
+       ,[<<"Billing-Seconds">>
+        ,<<"Call-Control">>
+        ,<<"Call-Debug">>
         ,<<"Call-Direction">>
-        ,<<"Channel-State">>
-        ,<<"Channel-Call-State">>
-        ,<<"Channel-Name">>
-        ,<<"Channel-Answer-State">>
-        ,<<"Caller-ID-Number">>
-        ,<<"Caller-ID-Name">>
-        ,<<"Callee-ID-Number">>
+        ,<<"Call-Interaction">>
         ,<<"Callee-ID-Name">>
-        ,<<"Caller-Profile">>
+        ,<<"Callee-ID-Number">>
         ,<<"Caller-Context">>
+        ,<<"Caller-Destination-Number">>
         ,<<"Caller-Dialplan">>
-        ,<<"To-Tag">>
-        ,<<"From-Tag">>
-        ,<<"Presence-ID">>
-        ,<<"Media-Server">>
-        ,<<"Switch-Hostname">>
-        ,<<"Switch-Nodename">>
-        ,<<"Switch-URL">>
-        ,<<"Switch-URI">>
-        ,<<"User-Agent">>
+        ,<<"Caller-ID-Name">>
+        ,<<"Caller-ID-Number">>
+        ,<<"Caller-Profile">>
+        ,<<"Channel-Answer-State">>
+        ,<<"Channel-Call-State">>
+        ,<<"Channel-Created-Time">>
+        ,<<"Channel-Name">>
+        ,<<"Channel-State">>
         ,<<"Custom-Application-Vars">>
         ,<<"Custom-Channel-Vars">>
         ,<<"Custom-SIP-Headers">>
-        ,<<"Call-Control">>
-        ,<<"Request">>
-        ,<<"To">>
-        ,<<"To-URI">>
+        ,<<"Disposition">>
+        ,<<"Duration-Seconds">>
+        ,<<"Extended-Data">>
         ,<<"From">>
+        ,<<"From-Tag">>
         ,<<"From-URI">>
-        ,<<"Caller-Destination-Number">>
+        ,<<"Hangup-Cause">>
+        ,<<"Hangup-Code">>
+        ,<<"Local-SDP">>
+        ,<<"Media-Server">>
         ,<<"Originated-Legs">>
-        ,<<"Other-Leg-Direction">>
+        ,<<"Originating-Leg-UUID">>
+        ,<<"Other-Leg">>
+        ,<<"Other-Leg-Call-ID">>
         ,<<"Other-Leg-Caller-ID-Name">>
         ,<<"Other-Leg-Caller-ID-Number">>
         ,<<"Other-Leg-Destination-Number">>
-        ,<<"Other-Leg-Call-ID">>
-        ,<<"Other-Leg">>
+        ,<<"Other-Leg-Direction">>
+        ,<<"Presence-ID">>
         ,<<"Remote-SDP">>
-        ,<<"Local-SDP">>
-        ,<<"Duration-Seconds">>
+        ,<<"Request">>
         ,<<"Ringing-Seconds">>
-        ,<<"Billing-Seconds">>
-        ,<<"Hangup-Code">>
-        ,<<"Hangup-Cause">>
-        ,<<"Disposition">>
-        ,<<"Extended-Data">>
+        ,<<"Switch-Hostname">>
+        ,<<"Switch-Nodename">>
+        ,<<"Switch-URI">>
+        ,<<"Switch-URL">>
+        ,<<"Timestamp">>
+        ,<<"To">>
+        ,<<"To-Tag">>
+        ,<<"To-URI">>
         ,<<"Transfer-History">>
-        ,<<"Originating-Leg-UUID">>
-        ,<<"Call-Debug">>
+        ,<<"User-Agent">>
         ]).
 
 
@@ -128,6 +130,16 @@ report_definition() ->
               ,{fun kapi_definition:set_publish_fun/2, fun publish_report/1}
               ,{fun kapi_definition:set_required_headers/2, ?CDR_REPORT_REQUIRED_HEADERS}
               ,{fun kapi_definition:set_optional_headers/2, ?CDR_REPORT_OPTIONAL_HEADERS}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Billing-Seconds">>, fun erlang:is_integer/1}
+                ,{<<"Custom-Application-Vars">>, fun kz_json:is_json_object/1}
+                ,{<<"Custom-Channel-Vars">>, fun kz_json:is_json_object/1}
+                ,{<<"Custom-SIP-Headers">>, fun kz_json:is_json_object/1}
+                ]
+               }
               ],
     kapi_definition:setters(Setters).
 

@@ -12,18 +12,22 @@
         "Event-Category": {
             "enum": [
                 "configuration"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "doc_type_update"
-            ]
+            ],
+            "type": "string"
         },
         "Type": {
             "type": "string"
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Type"
     ],
     "type": "object"

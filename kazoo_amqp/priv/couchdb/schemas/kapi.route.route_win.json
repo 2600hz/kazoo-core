@@ -14,13 +14,15 @@
         },
         "Event-Category": {
             "enum": [
-                "dialplan"
-            ]
+                "route"
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "route_win"
-            ]
+            ],
+            "type": "string"
         },
         "Switch-Hostname": {
             "type": "string"
@@ -28,7 +30,9 @@
     },
     "required": [
         "Call-ID",
-        "Control-Queue"
+        "Control-Queue",
+        "Event-Category",
+        "Event-Name"
     ],
     "type": "object"
 }

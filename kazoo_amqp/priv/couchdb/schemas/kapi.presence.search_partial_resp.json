@@ -6,18 +6,22 @@
         "Event-Category": {
             "enum": [
                 "presence"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "search_partial_resp"
-            ]
+            ],
+            "type": "string"
         },
         "Subscriptions": {
             "type": "string"
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Subscriptions"
     ],
     "type": "object"

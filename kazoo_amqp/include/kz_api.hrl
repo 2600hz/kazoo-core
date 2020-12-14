@@ -3,11 +3,15 @@
 -include_lib("kazoo_amqp/include/kz_api_literals.hrl").
 
 -type api_formatter_return() :: {'ok', iodata()} | {'error', string()}.
--type api_headers() :: kz_term:ne_binaries() | [kz_term:ne_binary() | kz_term:ne_binaries()].
+-type api_headers() :: kz_json:keys() | [kz_json:keys()].
 
--type api_types() :: [{kz_term:ne_binary(), fun()}].
--type valid_value() :: kz_term:ne_binary() | integer().
--type api_valid_values() :: [{kz_term:ne_binary(), valid_value() | [valid_value()]}].
+-type valid_value() :: kz_json:json_term().
+-type api_valid_value() :: {kz_json:key(), valid_value()}.
+-type api_valid_values() :: [api_valid_value()].
+
+-type formatter_fun() :: fun((valid_value()) -> boolean()).
+-type api_type() :: {kz_json:key(), formatter_fun()}.
+-type api_types() :: [api_type()].
 
 %%% *_HEADERS defines a list of Keys that must exist in every message of type *
 %%% (substitute AUTHN_REQ, AUTHN_RESP, etc, for *) to be considered valid.

@@ -21,12 +21,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "account_zone_change"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -55,6 +57,8 @@
     },
     "required": [
         "Account-ID",
+        "Event-Category",
+        "Event-Name",
         "Zones"
     ],
     "type": "object"

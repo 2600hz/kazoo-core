@@ -6,18 +6,22 @@
         "Event-Category": {
             "enum": [
                 "trusted"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "reply"
-            ]
+            ],
+            "type": "string"
         },
         "Trusted": {
             "type": "object"
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Trusted"
     ],
     "type": "object"

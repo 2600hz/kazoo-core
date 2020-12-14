@@ -21,12 +21,14 @@
         "Event-Category": {
             "enum": [
                 "bookkeepers"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "collect_recurring_req"
-            ]
+            ],
+            "type": "string"
         },
         "Vendor-ID": {
             "type": "string"
@@ -37,6 +39,8 @@
         "Bookkeeper-ID",
         "Bookkeeper-Type",
         "Due-Timestamp",
+        "Event-Category",
+        "Event-Name",
         "Vendor-ID"
     ],
     "type": "object"

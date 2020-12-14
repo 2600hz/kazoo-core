@@ -81,12 +81,14 @@
             "enum": [
                 "Conference",
                 "conference"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "command"
-            ]
+            ],
+            "type": "string"
         },
         "Group-ID": {
             "type": "string"
@@ -200,6 +202,8 @@
         "Endpoint-Responses",
         "Endpoints",
         "Energy-Level",
+        "Event-Category",
+        "Event-Name",
         "Media-Name",
         "Other-Participant",
         "Parameter",

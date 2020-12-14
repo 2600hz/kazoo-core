@@ -6,12 +6,14 @@
         "Event-Category": {
             "enum": [
                 "jwt.keys"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "query"
-            ]
+            ],
+            "type": "string"
         },
         "Request-Issuer": {
             "type": "string"
@@ -21,6 +23,8 @@
         }
     },
     "required": [
+        "Event-Category",
+        "Event-Name",
         "Server-ID"
     ],
     "type": "object"

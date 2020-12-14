@@ -26,12 +26,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "bill_reminder"
-            ]
+            ],
+            "type": "string"
         },
         "From": {
             "type": "string"
@@ -71,6 +73,8 @@
     "required": [
         "Account-ID",
         "Due-Date",
+        "Event-Category",
+        "Event-Name",
         "Items",
         "Timestamp"
     ],

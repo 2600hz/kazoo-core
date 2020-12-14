@@ -36,12 +36,14 @@
         "Event-Category": {
             "enum": [
                 "notification"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Name": {
             "enum": [
                 "outbound_fax"
-            ]
+            ],
+            "type": "string"
         },
         "Fax-ID": {
             "type": "string"
@@ -87,6 +89,8 @@
         "Account-ID",
         "Callee-ID-Number",
         "Caller-ID-Number",
+        "Event-Category",
+        "Event-Name",
         "Fax-ID",
         "Fax-JobId"
     ],

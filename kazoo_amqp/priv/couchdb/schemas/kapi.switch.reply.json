@@ -12,7 +12,8 @@
         "Event-Category": {
             "enum": [
                 "switch_event"
-            ]
+            ],
+            "type": "string"
         },
         "Event-Data": {
             "type": "string"
@@ -20,7 +21,8 @@
         "Event-Name": {
             "enum": [
                 "reply"
-            ]
+            ],
+            "type": "string"
         },
         "FreeSWITCH-Node": {
             "type": "string"
@@ -34,6 +36,8 @@
     },
     "required": [
         "Command",
+        "Event-Category",
+        "Event-Name",
         "Result"
     ],
     "type": "object"
