@@ -155,23 +155,27 @@ find_numbers(Search, Quantity, Options) ->
     Result = search(Search, Params),
     process_search_response(Result, Options).
 
--spec process_tollfree_search_response(kz_types:xml_el(), knm_search:options()) -> {'ok', knm_search:results()}.
-process_tollfree_search_response(Result, Options) ->
+-spec process_tollfree_search_response(api_res(), knm_search:options()) -> knm_search:mod_response().
+process_tollfree_search_response({'ok', Result}, Options) ->
     QID = knm_search:query_id(Options),
     Found = [N
              || X <- xmerl_xpath:string("TelephoneNumberList/TelephoneNumber", Result),
                 N <- [build_tollfree_number_search_result(X, QID)]
             ],
-    {'ok', Found}.
+    {'ok', Found};
+process_tollfree_search_response({'error', _}=Error, _) ->
+    Error.
 
--spec process_search_response(kz_types:xml_el(), knm_search:options()) -> {'ok', knm_search:results()}.
-process_search_response(Result, Options) ->
+-spec process_search_response(api_res(), knm_search:options()) -> knm_search:mod_response().
+process_search_response({'ok', Result}, Options) ->
     QID = knm_search:query_id(Options),
     Found = [N
              || X <- xmerl_xpath:string("TelephoneNumberList/TelephoneNumber", Result),
                 N <- [build_number_search_result(X, QID)]
             ],
-    {'ok', Found}.
+    {'ok', Found};
+process_search_response({'error', _}=Error, _) ->
+    Error.
 
 %%------------------------------------------------------------------------------
 %% @doc Acquire a given number from the carrier
@@ -299,12 +303,9 @@ url(RelativePath) ->
 
 -type api_res() :: {'ok', kz_types:xml_el()} | {'error', atom()}.
 
--spec search(kz_term:ne_binary(), [nonempty_string()]) -> kz_types:xml_el().
-search(Num, Params) ->
-    case api_get(url(["availableNumbers?" | Params])) of
-        {'ok', Results} -> Results;
-        {'error', Reason} -> knm_errors:by_carrier(?MODULE, Reason, Num)
-    end.
+-spec search(kz_term:ne_binary(), [nonempty_string()]) -> api_res().
+search(_Num, Params) ->
+    api_get(url(["availableNumbers?" | Params])).
 
 -ifndef(TEST).
 -spec auth() -> {'basic_auth', {kz_term:ne_binary(), kz_term:ne_binary()}}.
