@@ -354,6 +354,7 @@ check_account(PN) ->
                     ,{'ringback_media', knm_lib:find_early_ringback(PN)}
                     ,{'transfer_media', knm_lib:find_transfer_ringback(PN)}
                     ,{'force_outbound', knm_lib:is_force_outbound(PN)}
+                    ,{'caller_display_name', knm_lib:feature_caller_display_name(PN)}
                     ],
             {'ok', AssignedTo, Props}
     end.
@@ -380,6 +381,7 @@ fetch_account_from_ports(Num, Error) ->
                      %% No ringback_media
                      %% No transfer_media
                     ,{'force_outbound', 'true'}
+                     %% No outbound display name
                     ],
             {'ok', AccountId, Props}
     end.

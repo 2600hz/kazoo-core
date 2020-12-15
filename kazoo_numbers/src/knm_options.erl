@@ -37,6 +37,7 @@
         ,ringback_media_id/1
         ,should_force_outbound/1
         ,transfer_media_id/1
+        ,caller_display_name/1
         ]).
 
 -export([is_defined/2
@@ -73,6 +74,7 @@
                         {'pending_port', boolean()} |
                         {'prepend', kz_term:api_binary()} | %%|false
                         {'ringback_media', kz_term:api_binary()} |
+                        {'caller_display_name', kz_term:api_ne_binary()} |
                         {'transfer_media', kz_term:api_binary()}.
 
 -type extra_options() :: [extra_option()].
@@ -255,6 +257,10 @@ ringback_media_id(Props) when is_list(Props) ->
 -spec should_force_outbound(extra_options()) -> boolean().
 should_force_outbound(Props) when is_list(Props) ->
     props:get_is_true('force_outbound', Props).
+
+-spec caller_display_name(extra_options()) -> kz_term:api_ne_binary().
+caller_display_name(Prop) when is_list(Prop) ->
+    props:get_value('caller_display_name', Prop).
 
 -spec transfer_media_id(extra_options()) -> kz_term:api_binary().
 transfer_media_id(Props) when is_list(Props) ->
