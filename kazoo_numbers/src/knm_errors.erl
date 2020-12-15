@@ -172,7 +172,7 @@ to_json('not_found', Num=?NE_BINARY, _) ->
     build_error(404, 'not_found', Message, Num);
 to_json('not_reconcilable', Num=?NE_BINARY, _) ->
     Message = <<"number ", Num/binary, " is not reconcilable">>,
-    build_error(404, 'not_reconcilable', Message, Num);
+    build_error(400, 'not_reconcilable', Message, Num);
 to_json('unauthorized', _, Cause) ->
     Message = <<"requestor is unauthorized to perform operation">>,
     build_error(403, 'forbidden', Message, Cause);
