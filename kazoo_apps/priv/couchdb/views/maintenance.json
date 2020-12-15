@@ -100,7 +100,7 @@
                 "function(doc) {",
                 "  if (doc.pvt_deleted) {",
                 "    emit(doc.pvt_type, {",
-                "      'id': doc._id",
+                "      'id': doc._id,",
                 "      '_rev': doc._rev",
                 "    });",
                 "  }",
