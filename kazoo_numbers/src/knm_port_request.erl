@@ -24,7 +24,7 @@
         ,normalize_attachments/1
         ,normalize_numbers/1
         ,transition_to_complete/2
-        ,attempt_transition/3
+        ,attempt_transition/3, attempt_transition/4
         ,compatibility_transition/2
         ,assign_to_app/3
         ,send_submitted_requests/0
@@ -346,32 +346,67 @@ transition_to_canceled(JObj, Metadata) ->
 %%------------------------------------------------------------------------------
 -spec attempt_transition(kz_json:object(), transition_metadata(), kz_term:ne_binary()) -> transition_response().
 attempt_transition(PortReq, Metadata, ToState) ->
-    PortAuthority = kzd_port_requests:find_port_authority(PortReq),
-    case is_user_allowed_to_move_state(PortReq, Metadata, ToState, PortAuthority) of
+    attempt_transition(PortReq, Metadata, ToState, []).
+
+-spec attempt_transition(kz_json:object(), transition_metadata(), kz_term:ne_binary(), kz_term:proplist()) -> transition_response().
+attempt_transition(PortReq, Metadata, ToState, Options) ->
+    PortAuthority = maybe_find_port_authority(PortReq, Options),
+    case is_user_allowed_to_move_state(PortReq, Metadata, ToState, PortAuthority, Options) of
         'true' -> maybe_transition(PortReq, Metadata, ToState);
         'false' ->
             {'error', 'user_not_allowed'}
     end.
 
--spec is_user_allowed_to_move_state(kz_json:object(), transition_metadata(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
+-spec maybe_find_port_authority(kz_json:object(), kz_term:proplist()) -> kz_term:api_ne_binary().
+maybe_find_port_authority(PortReq, Options) ->
+    case props:get_value('port_authority_id', Options) of
+        'undefined' ->
+            kzd_port_requests:find_port_authority(PortReq);
+        PortAuthority ->
+            lager:debug("using port_authority_id ~s from option", [PortAuthority]),
+            PortAuthority
+    end.
+
+-spec is_user_allowed_to_move_state(kz_json:object(), transition_metadata(), kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:proplist()) ->
           boolean().
-is_user_allowed_to_move_state(_, #{}, ToState, _)
+is_user_allowed_to_move_state(PortReq, #{}, ToState, _, _)
   when ToState =:= ?PORT_UNCONFIRMED;
        ToState =:= ?PORT_SUBMITTED ->
+    lager:debug("allowing change state from ~s to ~s", [ToState, current_state(PortReq)]),
     'true';
-is_user_allowed_to_move_state(PortReq, #{}, _, 'undefined') ->
+is_user_allowed_to_move_state(PortReq, #{}, _, 'undefined', _) ->
     lager:debug("port authority id is missing, disallowing state change for port ~s", [kz_doc:id(PortReq)]),
-    'false';
-is_user_allowed_to_move_state(PortReq, #{auth_account_id := 'undefined'}, _, _) ->
+    {'false', <<"port_authority_id is missing">>};
+is_user_allowed_to_move_state(PortReq, #{auth_account_id := 'undefined'}, _, _, _) ->
     lager:debug("auth account is is missing, disallowing state change for port ~s", [kz_doc:id(PortReq)]),
     'false';
-is_user_allowed_to_move_state(PortReq, #{auth_account_id := AuthAccountId}, ?PORT_CANCELED, PortAuthority) ->
+is_user_allowed_to_move_state(PortReq, #{auth_account_id := AuthAccountId}, ?PORT_CANCELED, PortAuthority, _) ->
+    lager:debug("checking auth_account_id ~s can cancel the port with state ~s"
+               ,[AuthAccountId, current_state(PortReq)]
+               ),
     AuthAccountId =:= PortAuthority
         orelse (current_state(PortReq) =:= ?PORT_UNCONFIRMED
                 andalso kzd_accounts:is_in_account_hierarchy(AuthAccountId, kz_doc:account_id(PortReq), 'true')
                )
         orelse kz_services_reseller:get_id('undefined') =:= AuthAccountId; %% checks if superduper
-is_user_allowed_to_move_state(_, #{auth_account_id := AuthAccountId}, _, PortAuthority) ->
+is_user_allowed_to_move_state(PortReq, #{auth_account_id := AuthAccountId}, ?PORT_REJECTED, PortAuthority, Options) ->
+    case props:is_true('is_phonebook', Options, 'false') of
+        'true' ->
+            lager:debug("phonebook is requesting to reject the port, allowing"),
+            'true';
+        'false' ->
+            lager:debug("checking auth_account_id ~s is allowed to reject port in ~s state"
+                       ,[AuthAccountId, current_state(PortReq)]
+                       ),
+            is_user_allowed_to_move_state(AuthAccountId, PortAuthority)
+    end;
+is_user_allowed_to_move_state(PortReq, #{auth_account_id := AuthAccountId}, _ToState, PortAuthority, _) ->
+    lager:debug("checking auth_account_id ~s is allowed change state from ~s to ~s"
+               ,[AuthAccountId, current_state(PortReq), _ToState]
+               ),
+    is_user_allowed_to_move_state(AuthAccountId, PortAuthority).
+
+is_user_allowed_to_move_state(AuthAccountId, PortAuthority) ->
     AuthAccountId =:= PortAuthority
         orelse kz_services_reseller:get_id('undefined') =:= AuthAccountId. %% checks if superduper
 
