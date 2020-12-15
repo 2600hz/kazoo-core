@@ -11,6 +11,7 @@
 
 -export([server/1, server/2, set_server/2]).
 -export([server_id/1, server_id/2]).
+-export([server_name/1, server_name/2]).
 -export([delete/1, delete/2]).
 -export([save/1, save/2]).
 
@@ -46,6 +47,14 @@ server_id(Doc) ->
 -spec server_id(doc(), Default) -> binary() | Default.
 server_id(Doc, Default) ->
     kz_json:get_ne_binary_value([<<"server_id">>], server(Doc), Default).
+
+-spec server_name(doc()) -> kz_term:api_binary().
+server_name(Doc) ->
+    server_name(Doc, 'undefined').
+
+-spec server_name(doc(), Default) -> binary() | Default.
+server_name(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"server_name">>], server(Doc), Default).
 
 -spec auth_method(doc()) -> kz_term:api_binary().
 auth_method(Doc) ->

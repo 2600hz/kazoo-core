@@ -94,7 +94,7 @@ do_find_numbers(_, _, _, _, _) ->
           {'ok', knm_search:results()}.
 find_more(Prefix, Quantity, Offset, AccountId, NotEnough, QID, Numbers)
   when NotEnough < Quantity ->
-    case do_find_numbers(Prefix, Quantity - NotEnough, Offset + NotEnough, QID, AccountId) of
+    case do_find_numbers(Prefix, Quantity - NotEnough, Offset + NotEnough, AccountId, QID) of
         {'ok', MoreNumbers} -> {'ok', Numbers ++ MoreNumbers};
         _Error -> {'ok', Numbers}
     end;
