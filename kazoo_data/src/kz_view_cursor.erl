@@ -222,7 +222,7 @@ foreach(Fun, #{}=Cursor, Limit) ->
             end;
         {'error', Error} ->
             lager:debug("failed to get next batch ~s", [Error]),
-            'error'
+            'ok'
     end.
 
 -spec foreach_batch(fun((kz_view:result_value()) -> 'ok'), Cursor::cursor()) -> 'ok'.
