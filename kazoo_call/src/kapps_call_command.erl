@@ -2872,8 +2872,20 @@ wait_for_bridge(Timeout, _, _) when Timeout < 0 ->
     {'error', 'timeout'};
 wait_for_bridge(Timeout, Fun, Call) ->
     Start = kz_time:start_time(),
-    lager:debug("waiting for bridge for ~p ms", [Timeout]),
+    lager:info("waiting for bridge for ~p ms", [Timeout]),
     wait_for_bridge(Timeout, Fun, Call, Start, receive_event(Timeout)).
+
+bridge_cause(JObj) ->
+    Keys = [<<"Application-Response">>
+           ,<<"Hangup-Cause">>
+           ],
+    kz_term:to_upper_binary(kz_json:get_first_defined(Keys, JObj, <<"UNSPECIFIED">>)).
+
+bridge_hangup_cause(JObj) ->
+    kz_term:to_upper_binary(kz_json:get_ne_binary_value(<<"Bridge-Hangup-Cause">>, JObj, <<"UNSPECIFIED">>)).
+
+bridge_disposition(JObj) ->
+    kz_term:to_upper_binary(kz_json:get_value(<<"Disposition">>, JObj)).
 
 -spec wait_for_bridge(timeout(), 'undefined' | fun((kz_json:object()) -> any()), kapps_call:call(), kz_time:start_time(), received_event()) ->
           kapps_api_bridge_return().
@@ -2881,10 +2893,8 @@ wait_for_bridge(_Timeout, _Fun, _Call, _Start, {'error', 'timeout'}=E) -> E;
 wait_for_bridge(Timeout, Fun, Call, Start, {'ok', JObj}) ->
     ThisCallId = kapps_call:call_id_direct(Call),
     EvtCallId = kz_call_event:call_id(JObj),
-    Disposition = kz_json:get_value(<<"Disposition">>, JObj),
-    Cause = kz_json:get_first_defined([<<"Application-Response">>
-                                      ,<<"Hangup-Cause">>
-                                      ], JObj, <<"UNSPECIFIED">>),
+    Disposition = bridge_disposition(JObj),
+    Cause = bridge_cause(JObj),
     Code = kz_json:get_value(<<"Hangup-Code">>, JObj),
     Result = case Disposition =:= <<"SUCCESS">>
                  orelse Cause =:= <<"SUCCESS">>
@@ -2893,6 +2903,7 @@ wait_for_bridge(Timeout, Fun, Call, Start, {'ok', JObj}) ->
                  'true' -> 'ok';
                  'false' -> 'fail'
              end,
+    BridgeHangupCause = bridge_hangup_cause(JObj),
     case ThisCallId =:= EvtCallId
         andalso get_event_type(JObj)
     of
@@ -2905,7 +2916,7 @@ wait_for_bridge(Timeout, Fun, Call, Start, {'ok', JObj}) ->
             {'error', JObj};
         {<<"call_event">>, <<"CHANNEL_BRIDGE">>, _} ->
             CallId = kz_json:get_value(<<"Other-Leg-Call-ID">>, JObj),
-            lager:debug("channel bridged to ~s", [CallId]),
+            lager:info("channel bridged to ~s", [CallId]),
             case is_function(Fun, 1) of
                 'false' -> 'ok';
                 'true' -> Fun(JObj)
@@ -2933,6 +2944,18 @@ wait_for_bridge(Timeout, Fun, Call, Start, {'ok', JObj}) ->
         {<<"call_event">>, <<"CHANNEL_DISCONNECTED">>, _} ->
             lager:info("channel disconnected while waiting for bridge"),
             {'ok', JObj};
+        {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"bridge">>}
+          when BridgeHangupCause =:= <<"PICKED_OFF">> ->
+            lager:info("bridge was intercepted, waiting for new bridge"),
+            NewTimeout = kz_time:decr_timeout(Timeout, Start),
+            NewStart = kz_time:start_time(),
+            wait_for_bridge(NewTimeout, Fun, Call, NewStart, receive_event(NewTimeout));
+        {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"bridge">>}
+          when BridgeHangupCause =:= <<"BOWOUT">> ->
+            lager:info("bridge bowout, waiting for new bridge"),
+            NewTimeout = kz_time:decr_timeout(Timeout, Start),
+            NewStart = kz_time:start_time(),
+            wait_for_bridge(NewTimeout, Fun, Call, NewStart, receive_event(NewTimeout));
         {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"bridge">>} ->
             lager:info("bridge execute completed with result ~s/~s/~s => ~s", [Disposition, Cause, Code, Result]),
             {Result, JObj};
