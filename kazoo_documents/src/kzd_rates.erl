@@ -58,11 +58,11 @@ new() ->
 account_id(Doc) ->
     account_id(Doc, 'undefined').
 
--spec account_id(doc(), Default) -> binary() | Default.
+-spec account_id(doc(), Default) -> kz_term:ne_binary() | Default.
 account_id(Doc, Default) ->
-    kz_json:get_binary_value([<<"account_id">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"account_id">>], Doc, Default).
 
--spec set_account_id(doc(), binary()) -> doc().
+-spec set_account_id(doc(), kz_term:ne_binary()) -> doc().
 set_account_id(Doc, AccountId) ->
     kz_json:set_value([<<"account_id">>], AccountId, Doc).
 
@@ -72,33 +72,33 @@ caller_id_numbers(Doc) ->
 
 -spec caller_id_numbers(doc(), Default) -> kz_term:ne_binary() | Default.
 caller_id_numbers(Doc, Default) ->
-    kz_json:get_binary_value([<<"caller_id_numbers">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"caller_id_numbers">>], Doc, Default).
 
 -spec set_caller_id_numbers(doc(), kz_term:ne_binary()) -> doc().
 set_caller_id_numbers(Doc, <<CallerIdNumbers/binary>>) ->
     kz_json:set_value([<<"caller_id_numbers">>], CallerIdNumbers, Doc).
 
--spec carrier(doc()) -> kz_term:api_binary().
+-spec carrier(doc()) -> kz_term:api_ne_binary().
 carrier(Doc) ->
     carrier(Doc, 'undefined').
 
--spec carrier(doc(), Default) -> binary() | Default.
+-spec carrier(doc(), Default) -> kz_term:ne_binary() | Default.
 carrier(Doc, Default) ->
-    kz_json:get_binary_value([<<"carrier">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"carrier">>], Doc, Default).
 
--spec set_carrier(doc(), binary()) -> doc().
+-spec set_carrier(doc(), kz_term:ne_binary()) -> doc().
 set_carrier(Doc, Carrier) ->
     kz_json:set_value([<<"carrier">>], Carrier, Doc).
 
--spec description(doc()) -> kz_term:api_binary().
+-spec description(doc()) -> kz_term:api_ne_binary().
 description(Doc) ->
     description(Doc, 'undefined').
 
--spec description(doc(), Default) -> binary() | Default.
+-spec description(doc(), Default) -> kz_term:ne_binary() | Default.
 description(Doc, Default) ->
-    kz_json:get_binary_value([<<"description">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"description">>], Doc, Default).
 
--spec set_description(doc(), binary()) -> doc().
+-spec set_description(doc(), kz_term:ne_binary()) -> doc().
 set_description(Doc, Description) ->
     kz_json:set_value([<<"description">>], Description, Doc).
 
@@ -135,15 +135,15 @@ internal_rate_cost(Doc, Default) ->
 set_internal_rate_cost(Doc, InternalRateCost) ->
     kz_json:set_value([<<"internal_rate_cost">>], InternalRateCost, Doc).
 
--spec iso_country_code(doc()) -> kz_term:api_binary().
+-spec iso_country_code(doc()) -> kz_term:api_ne_binary().
 iso_country_code(Doc) ->
     iso_country_code(Doc, 'undefined').
 
--spec iso_country_code(doc(), Default) -> binary() | Default.
+-spec iso_country_code(doc(), Default) -> kz_term:ne_binary() | Default.
 iso_country_code(Doc, Default) ->
-    kz_json:get_binary_value([<<"iso_country_code">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"iso_country_code">>], Doc, Default).
 
--spec set_iso_country_code(doc(), binary()) -> doc().
+-spec set_iso_country_code(doc(), kz_term:ne_binary()) -> doc().
 set_iso_country_code(Doc, IsoCountryCode) ->
     kz_json:set_value([<<"iso_country_code">>], IsoCountryCode, Doc).
 
@@ -207,15 +207,15 @@ rate_minimum(Doc, Default) ->
 set_rate_minimum(Doc, RateMinimum) ->
     kz_json:set_value([<<"rate_minimum">>], RateMinimum, Doc).
 
--spec rate_name(doc()) -> kz_term:api_binary().
+-spec rate_name(doc()) -> kz_term:api_ne_binary().
 rate_name(Doc) ->
     rate_name(Doc, 'undefined').
 
--spec rate_name(doc(), Default) -> binary() | Default.
+-spec rate_name(doc(), Default) -> kz_term:ne_binary() | Default.
 rate_name(Doc, Default) ->
-    kz_json:get_binary_value([<<"rate_name">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"rate_name">>], Doc, Default).
 
--spec set_rate_name(doc(), binary()) -> doc().
+-spec set_rate_name(doc(), kz_term:ne_binary()) -> doc().
 set_rate_name(Doc, RateName) ->
     kz_json:set_value([<<"rate_name">>], RateName, Doc).
 
@@ -243,27 +243,27 @@ rate_surcharge(Doc, Default) ->
 set_rate_surcharge(Doc, RateSurcharge) ->
     kz_json:set_value([<<"rate_surcharge">>], RateSurcharge, Doc).
 
--spec rate_version(doc()) -> kz_term:api_binary().
+-spec rate_version(doc()) -> kz_term:api_ne_binary().
 rate_version(Doc) ->
     rate_version(Doc, 'undefined').
 
--spec rate_version(doc(), Default) -> binary() | Default.
+-spec rate_version(doc(), Default) -> kz_term:ne_binary() | Default.
 rate_version(Doc, Default) ->
-    kz_json:get_binary_value([<<"rate_version">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"rate_version">>], Doc, Default).
 
--spec set_rate_version(doc(), binary()) -> doc().
+-spec set_rate_version(doc(), kz_term:ne_binary()) -> doc().
 set_rate_version(Doc, RateVersion) ->
     kz_json:set_value([<<"rate_version">>], RateVersion, Doc).
 
--spec ratedeck_id(doc()) -> kz_term:api_binary().
+-spec ratedeck_id(doc()) -> kz_term:api_ne_binary().
 ratedeck_id(Doc) ->
     ratedeck_id(Doc, 'undefined').
 
--spec ratedeck_id(doc(), Default) -> binary() | Default.
+-spec ratedeck_id(doc(), Default) -> kz_term:ne_binary() | Default.
 ratedeck_id(Doc, Default) ->
-    kz_json:get_binary_value([<<"ratedeck_id">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"ratedeck_id">>], Doc, Default).
 
--spec set_ratedeck_id(doc(), binary()) -> doc().
+-spec set_ratedeck_id(doc(), kz_term:ne_binary()) -> doc().
 set_ratedeck_id(Doc, RatedeckId) ->
     kz_json:set_value([<<"ratedeck_id">>], RatedeckId, Doc).
 
@@ -347,17 +347,18 @@ set_type(Doc) -> kz_doc:set_type(Doc, type()).
 
 -spec set_pvt_rate_cost (doc()) -> doc().
 set_pvt_rate_cost(Rate) ->
-    case kz_json:get_value(<<"internal_rate_cost">>, Rate) of
+    case kz_json:get_float_value(<<"internal_rate_cost">>, Rate) of
         'undefined' -> Rate;
         Value->
             kz_json:set_values([{<<"pvt_rate_cost">>, Value}
+                               ,{<<"pvt_internal_rate_cost">>, Value}
                                ,{<<"internal_rate_cost">>, 'null'}
                                ]
                               ,Rate
                               )
     end.
 
--spec clean_internal_surcharge (doc()) -> doc().
+-spec clean_internal_surcharge(doc()) -> doc().
 clean_internal_surcharge(Rate) ->
     case kz_json:get_float_value(<<"internal_surcharge">>, Rate) of
         'undefined' -> Rate;
@@ -386,13 +387,14 @@ private_cost(Rate) ->
     private_cost(Rate, 0.0).
 
 -spec private_cost(doc(), float()) -> kz_currency:units().
-private_cost(Rate, Default) ->
+private_cost(Rate, Default0) ->
+    Default = kz_json:get_float_value(<<"pvt_rate_cost">>, Rate, Default0),
     Cost = kz_json:get_float_value(<<"pvt_internal_rate_cost">>, Rate, Default),
     kz_currency:dollars_to_units(Cost).
 
 -spec set_private_cost(doc(), float()) -> doc().
 set_private_cost(Rate, Cost) when is_float(Cost) ->
-    kz_json:set_value(<<"pvt_internal_rate_cost">>, Cost, Rate).
+    kz_json:set_value(<<"pvt_rate_cost">>, Cost, Rate).
 
 -spec private_surcharge(doc()) -> kz_currency:units().
 private_surcharge(Rate) ->
