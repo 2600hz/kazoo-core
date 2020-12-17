@@ -188,6 +188,8 @@ req_definition() ->
                                                             ,?KEY_OUTBOUND_ACTIONS
                                                             ,?KEY_OUTBOUND_CALLER_ID_NAME
                                                             ,?KEY_OUTBOUND_CALLER_ID_NUMBER
+                                                            ,?KEY_OUTBOUND_CALLEE_ID_NAME
+                                                            ,?KEY_OUTBOUND_CALLEE_ID_NUMBER
                                                             ,?KEY_OUTBOUND_CALL_ID
                                                             ,?KEY_PRESENCE_ID
                                                             ,?KEY_PRIVACY_HIDE_NAME
