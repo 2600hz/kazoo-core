@@ -196,6 +196,12 @@
         "Outbound-Call-ID": {
             "type": "string"
         },
+        "Outbound-Callee-ID-Name": {
+            "type": "string"
+        },
+        "Outbound-Callee-ID-Number": {
+            "type": "string"
+        },
         "Outbound-Caller-ID-Name": {
             "type": "string"
         },
