@@ -113,7 +113,7 @@ fix_scheme(Scheme) -> <<Scheme/binary, "://">>.
 aws_default_port(<<"https://">>) -> 443;
 aws_default_port(_Scheme) -> 80.
 
--spec aws_region(map()) -> kz_term:api_ne_binary().
+-spec aws_region(map()) -> 'undefined' | list().
 aws_region(Map) ->
     case maps:get('region', Map, 'undefined') of
         'undefined' -> 'undefined';
