@@ -6,7 +6,13 @@
         "Args": {
             "type": "string"
         },
+        "Call-ID": {
+            "type": "string"
+        },
         "Command": {
+            "enum": [
+                "send_http"
+            ],
             "type": "string"
         },
         "Event-Category": {
