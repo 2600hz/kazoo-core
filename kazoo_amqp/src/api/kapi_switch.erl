@@ -198,11 +198,15 @@ fs_command_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Args">>
                                                             ,<<"Command">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"FreeSWITCH-Node">>]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"FreeSWITCH-Node">>
+                                                            ,<<"Call-ID">>
+                                                            ]}
               ,{fun kapi_definition:set_values/2
-               ,kapi_definition:event_type_headers(Category, EventName)
+               ,[{<<"Command">>, [<<"send_http">>]}
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
                }
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2, [{<<"Args">>, fun kz_json:is_json_object/1}]}
               ],
     kapi_definition:setters(Setters).
 

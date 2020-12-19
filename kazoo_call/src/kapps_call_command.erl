@@ -3409,6 +3409,12 @@ store_file(Filename, URLFun, Tries, Call) ->
     App = kz_application:calling_app(),
     store_file(Filename, URLFun, Tries, storage_timeout(App), Call).
 
+%% @doc Instruct media server to store a file to an HTTP URL
+%%
+%% Note: if the save is successful, calling code should check a fresh
+%% open_doc for the expected attachment name to be present as the DB
+%% can respond with 202 to the save attempt. Otherwise the attachment
+%% may not yet be present on the doc.
 -spec store_file(kz_term:ne_binary(), store_fun(), pos_integer(), timeout(), kapps_call:call()) ->
           'ok' | {'error', any()}.
 store_file(Filename, URLFun, Tries, Timeout, Call) ->
@@ -3423,6 +3429,7 @@ store_file(Filename, URLFun, Tries, Timeout, Call) ->
     API = fun() -> [{<<"Command">>, <<"send_http">>}
                    ,{<<"Args">>, kz_json:from_list(store_file_args(Filename, URLFun))}
                    ,{<<"FreeSWITCH-Node">>, kapps_call:switch_nodename(Call)}
+                   ,{<<"Call-ID">>, kapps_call:call_id(Call)}
                    | kz_api:default_headers(AppName, AppVersion)
                    ]
           end,
@@ -3433,39 +3440,45 @@ store_file(Filename, URLFun, Tries, Timeout, Call) ->
           'ok' | {'error', any()}.
 do_store_file(Tries, Timeout, API, Msg, Call) ->
     Payload = API(),
-    case kz_amqp_worker:call(Payload
-                            ,fun kapi_switch:publish_fs_command/1
-                            ,fun kapi_switch:fs_reply_v/1
-                            ,Timeout
-                            )
-    of
-        {'ok', JObj} ->
-            case kz_json:get_ne_binary_value(<<"Result">>, JObj) of
-                <<"success">> -> 'ok';
-                <<"error">> ->
-                    Error = kz_json:get_first_defined([[<<"Event-Data">>, <<"API-Error">>], <<"Error">>], JObj, <<"error not available">>),
-                    retry_store_file(Tries - 1, Timeout, API, Msg, Error, maybe_add_debug_data(JObj, Call));
-                _Other ->
-                    Error = kz_term:to_binary(io_lib:format("unhandled return ('~s') from store file", [_Other])),
-                    retry_store_file(Tries - 1, Timeout, API, Msg, Error, maybe_add_debug_data(JObj, Call))
-            end;
-        {'returned', _JObj, _Basic} ->
-            Error = io_lib:format("message returned from amqp. is ~s down ?"
-                                 ,[kapps_call:switch_nodename(Call)]
-                                 ),
-            Funs = [{fun kapps_call:kvs_store/3, 'basic_return', kz_json:to_proplist(_Basic)}],
-            retry_store_file(Tries - 1, Timeout, API, Msg, kz_term:to_binary(Error), kapps_call:exec(Funs, Call));
-        {'timeout', _JObj} ->
-            Error = io_lib:format("timeout publishing message to amqp. is ~s down ?"
-                                 ,[kapps_call:switch_nodename(Call)]
-                                 ),
-            retry_store_file(Tries - 1, Timeout, API, Msg, kz_term:to_binary(Error), Call);
-        {'error', Err} ->
-            Error = io_lib:format("error publishing message to amqp. is ~s down ? : ~p"
-                                 ,[kapps_call:switch_nodename(Call), Err]
-                                 ),
-            retry_store_file(Tries - 1, Timeout, API, Msg, kz_term:to_binary(Error), Call)
-    end.
+
+    StoreResult = kz_amqp_worker:call(Payload
+                                     ,fun kapi_switch:publish_fs_command/1
+                                     ,fun kapi_switch:fs_reply_v/1
+                                     ,Timeout
+                                     ),
+    handle_store_result(Tries, Timeout, API, Msg, Call, StoreResult).
+
+handle_store_result(Tries, Timeout, API, Msg, Call, {'ok', JObj}) ->
+    case kz_json:get_ne_binary_value(<<"Result">>, JObj) of
+        <<"success">> -> lager:debug("store successful: ~p", [JObj]);
+        <<"error">> ->
+            Error = kz_json:get_first_defined([[<<"Event-Data">>, <<"API-Error">>], <<"Error">>], JObj, <<"error not available">>),
+            lager:info("store attempt errored: ~s", [Error]),
+            retry_store_file(Tries - 1, Timeout, API, Msg, Error, maybe_add_debug_data(JObj, Call));
+        _Other ->
+            Error = kz_term:to_binary(io_lib:format("unhandled return ('~s') from store file", [_Other])),
+            lager:info("store attempt unexpected error: ~s", [Error]),
+            retry_store_file(Tries - 1, Timeout, API, Msg, Error, maybe_add_debug_data(JObj, Call))
+    end;
+handle_store_result(Tries, Timeout, API, Msg, Call, {'returned', _JObj, _Basic}) ->
+    Error = io_lib:format("message returned from amqp. is ~s down ?"
+                         ,[kapps_call:switch_nodename(Call)]
+                         ),
+    lager:info("store attempt was returned: ~s", [Error]),
+    Funs = [{fun kapps_call:kvs_store/3, 'basic_return', kz_json:to_proplist(_Basic)}],
+    retry_store_file(Tries - 1, Timeout, API, Msg, kz_term:to_binary(Error), kapps_call:exec(Funs, Call));
+handle_store_result(Tries, Timeout, API, Msg, Call, {'timeout', _JObj}) ->
+    Error = io_lib:format("timeout publishing message to amqp. is ~s down ?"
+                         ,[kapps_call:switch_nodename(Call)]
+                         ),
+    lager:info("store attempt timed out: ~s", [Error]),
+    retry_store_file(Tries - 1, Timeout, API, Msg, kz_term:to_binary(Error), Call);
+handle_store_result(Tries, Timeout, API, Msg, Call, {'error', Err}) ->
+    Error = io_lib:format("error publishing message to amqp. is ~s down ? : ~p"
+                         ,[kapps_call:switch_nodename(Call), Err]
+                         ),
+    lager:info("store attempt errored: ~s", [Error]),
+    retry_store_file(Tries - 1, Timeout, API, Msg, kz_term:to_binary(Error), Call).
 
 -spec retry_store_file(integer(), timeout(), kz_term:proplist() | function()
                       ,kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) ->

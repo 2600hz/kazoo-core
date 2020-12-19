@@ -846,7 +846,9 @@ save_docs(_DbName, []=Docs, _Options)
           data_error().
 update_doc(DbName, Id, Options) ->
     Database = kzs_util:to_database(DbName),
-    case open_doc(Database, Id) of
+    DeleteKeys = ['update', 'extra_update', 'create', 'ensure_saved'],
+    OpenOptions = props:delete_keys(DeleteKeys, Options),
+    case open_doc(Database, Id, OpenOptions) of
         {'error', 'not_found'} ->
             update_not_found(Database, Id, Options, props:is_true('should_create', Options, 'true'));
         {'error', _}=E -> E;
