@@ -1,9 +1,9 @@
 {application,kazoo_telemetry,
-             [{applications,[crypto,kazoo_data,kazoo_documents,
-                             kazoo_nodes,kazoo_services,kazoo_stdlib,
-                             kazoo_web,kernel,lager,stdlib]},
-              {description,"Telemetry gathers anonymous statistics of Kazoo clusters and running applications"},
-              {vsn,"4.0.0"},
-              {modules,[]},
-              {registered,[kazoo_telemetry_sup]},
-              {mod,{kazoo_telemetry_app,[]}}]}.
+ [{applications,[crypto,kazoo_bindings,kazoo_data,
+                 kazoo_documents,kazoo_nodes,kazoo_services,
+                 kazoo_stdlib,kazoo_web,kernel,lager,stdlib]},
+  {description,"Telemetry gathers anonymous statistics of Kazoo clusters and running applications"},
+  {vsn,"4.0.0"},
+  {modules,[]},
+  {registered,[kazoo_telemetry_sup]},
+  {mod,{kazoo_telemetry_app,[]}}]}.

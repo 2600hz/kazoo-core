@@ -1,13 +1,7 @@
-{application, kazoo_schemas
-,[
-  {description, "JSON Schema handling"}
- ,{vsn, "4.0.0"}
- ,{modules, []}
- ,{registered, [ ]}
- ,{applications, [ kernel
-                 , stdlib
-                 , lager
-                 , kazoo_stdlib
-                 , jesse
-                 ]}
- ]}.
+{application,kazoo_schemas,
+ [{applications,[jesse,kazoo_data,kazoo_stdlib,
+                 kazoo_web,kernel,lager,stdlib]},
+  {description,"JSON Schema handling"},
+  {vsn,"4.0.0"},
+  {modules,[]},
+  {registered,[]}]}.

@@ -1,14 +1,7 @@
-{application, kazoo_web, [
-                          {description, "Utility functions for HTTP / HTML manipulation"},
-                          {vsn, "4.0.0"},
-                          {modules, []},
-                          {registered, [ ]},
-                          {applications, [ kernel
-                                         , stdlib
-                                         , asn1
-                                         , crypto
-                                         , public_key
-                                         , ssl
-                                         , inets
-                                         ]}
-                         ]}.
+{application,kazoo_web,
+ [{applications,[cowlib,inets,kazoo_stdlib,kernel,
+                 lager,stdlib]},
+  {description,"Utility functions for HTTP / HTML manipulation"},
+  {vsn,"4.0.0"},
+  {modules,[]},
+  {registered,[]}]}.

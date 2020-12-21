@@ -1,10 +1,8 @@
-{application, kazoo_speech
-,[
-  {description, "Kazoo Speech providers - TTS and ASR"}
- ,{vsn, "4.0.0"}
- ,{modules, []}
- ,{registered, [ ]}
- ,{applications, [ kernel
-                 , stdlib
-                 ]}
- ]}.
+{application,kazoo_speech,
+ [{applications,[kazoo_data,
+                 kazoo_ledgers,kazoo_stdlib,
+                 kazoo_web,kernel,lager,stdlib]},
+  {description,"Kazoo Speech providers - TTS and ASR"},
+  {vsn,"4.0.0"},
+  {modules,[]},
+  {registered,[]}]}.

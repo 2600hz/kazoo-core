@@ -1,7 +1,9 @@
 {application,kazoo_databases,
- [{applications,[]},
-  {description,"Kazoo Databases - Common routines for select databases"},
-  {env,[]},
-  {modules,[]},
-  {registered,[]},
-  {vsn,"4.0.0"}]}.
+             [{applications,[kazoo_apps,kazoo_data,kazoo_documents,
+                             kazoo_ledgers,kazoo_modb,kazoo_numbers,
+                             kazoo_services,kazoo_stdlib,lager]},
+              {description,"Kazoo Databases - Common routines for select databases"},
+              {env,[]},
+              {modules,[]},
+              {registered,[]},
+              {vsn,"4.0.0"}]}.
