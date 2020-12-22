@@ -365,8 +365,8 @@ publish_voicemail_deleted(BoxId, Msg, Reason) ->
     From = kz_json:get_ne_binary_value(<<"from">>, Metadata),
     To = kz_json:get_ne_binary_value(<<"to">>, Metadata),
 
-    [FromUser, FromRealm] = binary:split(From, <<"@">>, [global]),
-    [ToUser, ToRealm] = binary:split(To, <<"@">>, [global]),
+    [FromUser, FromRealm] = binary:split(From, <<"@">>),
+    [ToUser, ToRealm] = binary:split(To, <<"@">>),
 
     Prop = [{<<"From-User">>, FromUser}
            ,{<<"From-Realm">>, FromRealm}
@@ -386,11 +386,10 @@ publish_voicemail_deleted(BoxId, Msg, Reason) ->
            ],
 
     case ?SEND_DELETE_NOTIFY_AMPQ of
-        true ->
+        'false' -> 'ok';
+        'true' ->
             _ = kz_amqp_worker:cast(Prop, fun kapi_notifications:publish_voicemail_deleted/1),
-            lager:debug("published voicemail_deleted for ~s", [BoxId]);
-        _ ->
-            ok
+            lager:debug("published voicemail_deleted for ~s", [BoxId])
     end.
 
 %%%=============================================================================
