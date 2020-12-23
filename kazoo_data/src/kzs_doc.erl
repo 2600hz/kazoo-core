@@ -357,7 +357,7 @@ copy_attachments(Src, Dst, CopySpec, {[JObj | JObjs], [Key | Keys]}, Rev) ->
                 {'ok', AttachmentDoc, _Headers} ->
                     copy_attachments(Src, Dst, CopySpec, {JObjs, Keys}, kz_doc:revision(AttachmentDoc));
                 {'error', 'conflict'} ->
-                    handle_copy_conflict(Src, Dst, CopySpec, {JObjs, Keys}, Key);
+                    handle_copy_conflict(Src, Dst, CopySpec, Key, {JObjs, Keys});
                 Error ->
                     Error
             end;
