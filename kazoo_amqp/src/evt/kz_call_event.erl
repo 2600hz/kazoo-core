@@ -34,6 +34,7 @@
         ,disposition/1
         ,dtmf_digit/1
         ,duration_seconds/1
+        ,endpoint_disposition/1
         ,error_message/1, error_message/2
         ,event_name/1
         ,hangup_cause/1, hangup_cause/2
@@ -308,3 +309,7 @@ recording_length(JObj) ->
 -spec fetch_id(payload()) -> kz_term:api_ne_binary().
 fetch_id(JObj) ->
     kz_json:get_ne_binary_value(<<"Fetch-ID">>, JObj, custom_channel_var(JObj, <<"Fetch-ID">>)).
+
+-spec endpoint_disposition(payload()) -> kz_term:api_ne_binary().
+endpoint_disposition(JObj) ->
+    kz_json:get_ne_binary_value(<<"Endpoint-Disposition">>, JObj).
