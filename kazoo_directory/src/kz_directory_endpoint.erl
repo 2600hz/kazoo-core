@@ -36,10 +36,14 @@ profile(EndpointId, AccountId, Options) ->
 
 maybe_from_options(EndpointId, AccountId, Options) ->
     {Endpoint, Without} = props:take_value('endpoint', Options),
+    NewId = kz_json:get_ne_binary_value(<<"endpoint_id">>, Endpoint),
     case kz_json:is_valid_json_object(Endpoint) of
         'false' -> {'error', 'not_found'};
+        'true' when NewId =:= EndpointId ->
+            {'error', 'not_found'};
+        'true' when NewId =:= 'undefined' ->
+            {'error', 'not_found'};
         'true' ->
-            NewId = kz_json:get_ne_binary_value(<<"endpoint_id">>, Endpoint, EndpointId),
             lager:info("found endpoint ~s in options for ~s", [NewId, EndpointId]),
             profile(NewId, AccountId, Without, kz_doc:type(Endpoint))
     end.
