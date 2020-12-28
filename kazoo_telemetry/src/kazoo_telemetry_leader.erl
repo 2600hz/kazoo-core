@@ -37,10 +37,9 @@
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
--type oldest_kztm_node() :: 'undefined' |
-                            {node(), kz_time:gregorian_seconds()}.
+-type oldest_kztm_node() :: 'undefined' | kz_nodes_ets:oldest_node().
 
--define(NODE_INFO_BINDING, <<"kz_nodes.node.info">>).
+-define(NODE_INFO_BINDING, kz_nodes_bindings:binding_node_info()).
 -define(NODE_KEY, <<"telemetry">>).
 
 %%%=============================================================================
@@ -53,26 +52,18 @@
 %%------------------------------------------------------------------------------
 -spec leader() -> node().
 leader() ->
-    case kztm_oldest_node() of
-        undefined -> node();
-        {Node, _} -> Node
-    end.
+    leader(kztm_oldest_node()).
+
+-spec leader(oldest_kztm_node()) -> node().
+leader('undefined') -> node();
+leader({Node, _}) -> Node.
 
 -spec kztm_oldest_node() -> oldest_kztm_node().
 kztm_oldest_node() ->
-    MatchSpec = [{#kz_node{node='$1'
-                          ,node_info='$2'
-                          ,_ = '_'
-                          }
-                 ,[]
-                 ,[{{'$1','$2'}}]
-                 }],
-    determine_kztm_oldest_node(MatchSpec).
-
--spec determine_kztm_oldest_node(ets:match_spec()) -> oldest_kztm_node().
-determine_kztm_oldest_node(MatchSpec) ->
-    Results = ets:select('kz_nodes', MatchSpec),
-    lists:foldl(fun determine_kztm_oldest_node_fold/2, 'undefined', Results).
+    lists:foldl(fun determine_kztm_oldest_node_fold/2
+               ,'undefined'
+               ,kz_nodes_ets:get_nodes_info()
+               ).
 
 -spec determine_kztm_oldest_node_fold({node(), kz_term:api_object()}, oldest_kztm_node()) -> oldest_kztm_node().
 determine_kztm_oldest_node_fold({_Node, 'undefined'}, Acc) ->
@@ -115,10 +106,8 @@ start_link() ->
 %%------------------------------------------------------------------------------
 -spec init([]) -> {'ok', state()}.
 init([]) ->
-    kz_process:set_startup(),
-    _ = kazoo_bindings:bind(?NODE_INFO_BINDING
-                           ,'kazoo_telemetry_leader'
-                           ,'node_info'),
+    _ = kz_process:set_startup(),
+    'ok' = kz_nodes_bindings:bind_info(?MODULE, 'node_info'),
     lager:notice("starting kazoo_telemetry leader"),
     LeaderCheck = erlang:start_timer(?TM_LEADER_TICK, self(), 'leader_poll'),
     {'ok', #state{responders=?TM_RESPONDERS
