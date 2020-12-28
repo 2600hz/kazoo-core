@@ -46,6 +46,7 @@ trunk_id(Endpoint, CCVs) ->
     kz_json:set_values([{<<"Authorizing-ID">>, kz_doc:id(Endpoint)}
                        ,{<<"Authorizing-Type">>, <<"sys_info">>}
                        ,{<<"Trunkstore-ID">>, kzd_trunkserver:trunkstore_id(Endpoint)}
+                       ,{<<"Trunkserver-ID">>, kz_doc:id(Endpoint)}
                        ]
                       ,CCVs
                       ).

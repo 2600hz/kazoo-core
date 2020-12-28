@@ -222,7 +222,7 @@ cache_store_endpoint(JObj, EndpointId, AccountDb, EndpointType) ->
     Endpoint = kz_json:set_values(Values, merge_attributes(JObj, EndpointType)),
     CacheProps = [{'origin', cache_origin(JObj, EndpointId, AccountDb)}],
     catch kz_cache:store_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}, Endpoint, CacheProps),
-    lager:debug("cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(Endpoint)]),
+    lager:debug("cached endpoint: ~s _rev: ~s", [EndpointId, kz_doc:revision(Endpoint)]),
     {'ok', Endpoint}.
 
 -spec cache_origin(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) -> list().
@@ -1112,7 +1112,10 @@ get_endpoint_type(Endpoint, Call) ->
                ],
     Type = lists:foldl(fun(Fun, 'undefined') -> Fun(Endpoint, Call);
                           (_Fun, T) -> T
-                       end, 'undefined', Routines),
+                       end
+                      ,'undefined'
+                      ,Routines
+                      ),
     case convert_endpoint_type(Type) of
         'undefined' -> maybe_guess_endpoint_type(Endpoint);
         Else -> Else
