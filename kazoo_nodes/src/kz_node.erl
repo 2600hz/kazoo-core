@@ -11,7 +11,9 @@
 
 -export([create/4]).
 
--export([print_node_status/2]).
+-export([print_node_status/2
+        ,to_json/1
+        ]).
 
 -include("kazoo_nodes.hrl").
 
@@ -448,3 +450,25 @@ format(A) ->
 
 format(A, B) ->
     io:format(format_output(), A, B).
+
+-spec to_json(kz_term:text() | kz_types:kz_node()) -> kz_json:object().
+to_json(#kz_node{node=NodeName
+                ,zone=Zone
+                ,kapps=Kapps
+                ,media_servers=MediaServers
+                ,version=Version
+                ,channels=Channels
+                ,conferences=Conferences
+                ,registrations=Regs
+                }) ->
+    kz_json:from_list([{<<"node">>, kz_term:to_binary(NodeName)}
+                      ,{<<"zone">>, kz_term:to_binary(Zone)}
+                      ,{<<"kapps">>, [K || {K, _} <- Kapps]}
+                      ,{<<"media_servers">>, [K || {K, _} <- MediaServers]}
+                      ,{<<"version">>, Version}
+                      ,{<<"channels">>, Channels}
+                      ,{<<"conferences">>, Conferences}
+                      ,{<<"registrations">>, Regs}
+                      ]);
+to_json(Node) ->
+    to_json(kz_nodes_ets:get_node(kz_term:to_atom(Node))).

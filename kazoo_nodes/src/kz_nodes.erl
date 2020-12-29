@@ -13,6 +13,7 @@
 -compile({'no_auto_import', [nodes/0]}).
 
 -export([nodes/0
+        ,node_name/0
         ,node_hostname/0
         ,node_encoded/0
         ,local_zone/0
@@ -37,21 +38,35 @@
 
 -export([is_up/1]).
 
+-include("kazoo_nodes.hrl").
+
 -spec nodes() -> kz_types:kz_nodes().
 nodes() ->
     kz_nodes_ets:nodes().
 
 -spec node_hostname() -> binary().
 node_hostname() ->
-    kz_nodes_ets:node_hostname().
+    [_Name, Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
+    Host.
 
 -spec node_encoded() -> kz_term:ne_binary().
 node_encoded() ->
-    kz_nodes_ets:node_encoded().
+    case application:get_env(?APP, 'node_encoded') of
+        'undefined' ->
+            Encoded = kz_base64url:encode(crypto:hash('md5', kz_term:to_binary(node()))),
+            application:set_env(?APP, 'node_encoded', Encoded),
+            Encoded;
+        {'ok', Encoded} -> Encoded
+    end.
+
+-spec node_name() -> binary().
+node_name() ->
+    [Name, _Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
+    Name.
 
 -spec node_to_json(kz_term:text() | kz_types:kz_node()) -> kz_json:object().
 node_to_json(Node) ->
-    kz_nodes_ets:node_to_json(Node).
+    kz_node:to_json(Node).
 
 -spec status_to_json() -> kz_json:object().
 status_to_json() ->

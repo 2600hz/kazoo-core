@@ -29,12 +29,8 @@
 -export([local_zone/0]).
 -export([whapp_zones/1, whapp_zone_count/1]).
 -export([globals_scope/0]).
--export([node_encoded/0
-        ,node_to_json/1
-        ]).
 
 -export([with_role/1, with_role/2]).
--export([node_name/0, node_hostname/0]).
 
 %% ETS Management
 -export([table_id/0
@@ -80,31 +76,6 @@ is_up(Node) ->
         [] -> 'false';
         [_] -> 'true'
     end.
-
--spec node_to_json(kz_term:text() | kz_types:kz_node()) -> kz_json:object().
-node_to_json(NodeName) when is_atom(NodeName) ->
-    [#kz_node{}=Node] = ets:lookup(?MODULE, NodeName),
-    node_to_json(Node);
-node_to_json(#kz_node{node=NodeName
-                     ,zone=Zone
-                     ,kapps=Kapps
-                     ,media_servers=MediaServers
-                     ,version=Version
-                     ,channels=Channels
-                     ,conferences=Conferences
-                     ,registrations=Regs
-                     }) ->
-    kz_json:from_list([{<<"node">>, kz_term:to_binary(NodeName)}
-                      ,{<<"zone">>, kz_term:to_binary(Zone)}
-                      ,{<<"kapps">>, [K || {K, _} <- Kapps]}
-                      ,{<<"media_servers">>, [K || {K, _} <- MediaServers]}
-                      ,{<<"version">>, Version}
-                      ,{<<"channels">>, Channels}
-                      ,{<<"conferences">>, Conferences}
-                      ,{<<"registrations">>, Regs}
-                      ]);
-node_to_json(NodeName) ->
-    node_to_json(kz_term:to_atom(NodeName)).
 
 -spec globals_scope() -> integer().
 globals_scope() ->
@@ -463,16 +434,6 @@ determine_whapp_oldest_node_fold({Whapps, Node}, {_, Startup}=Acc, Whapp) ->
         _ -> Acc
     end.
 
--spec node_encoded() -> kz_term:ne_binary().
-node_encoded() ->
-    case application:get_env(?APP, 'node_encoded') of
-        'undefined' ->
-            Encoded = kz_base64url:encode(crypto:hash('md5', kz_term:to_binary(node()))),
-            application:set_env(?APP, 'node_encoded', Encoded),
-            Encoded;
-        {'ok', Encoded} -> Encoded
-    end.
-
 -spec whapp_role_count(kz_term:text(), kz_term:text()) -> integer().
 whapp_role_count(Whapp, Role) ->
     whapp_role_count(Whapp, Role, 'false').
@@ -592,16 +553,6 @@ with_role_filter(Role, MatchSpec) ->
                ,[]
                ,ets:select(?MODULE, MatchSpec)
                ).
-
--spec node_name() -> binary().
-node_name() ->
-    [Name, _Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
-    Name.
-
--spec node_hostname() -> binary().
-node_hostname() ->
-    [_Name, Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
-    Host.
 
 -spec table_id() -> ?TAB_NAME.
 table_id() -> ?TAB_NAME.
