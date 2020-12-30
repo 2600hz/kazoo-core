@@ -28,17 +28,6 @@
 -export([notify_heartbeat/0
         ,notify_heartbeat/1
         ]).
--export([local_zone/0]).
--export([whapp_zones/1, whapp_zone_count/1]).
--export([globals_scope/0]).
--export([node_encoded/0
-        ,node_to_json/1
-        ,node_info/0
-        ,pool_state_binding/0, bind_for_pool_state/1, bind_for_pool_state/2
-        ,unbind_for_pool_state/1, unbind_for_pool_state/2
-        ]).
-
--export([with_role/1, with_role/2]).
 
 -export([init/1
         ,handle_call/3
@@ -118,80 +107,6 @@ start_link() ->
                            ,[]
                            ).
 
--spec node_to_json(kz_term:text() | kz_types:kz_node()) -> kz_json:object().
-node_to_json(NodeName) when is_atom(NodeName) ->
-    #kz_node{}=Node = kz_nodes_ets:get_node(NodeName),
-    node_to_json(Node);
-node_to_json(#kz_node{node=NodeName
-                     ,zone=Zone
-                     ,kapps=Kapps
-                     ,media_servers=MediaServers
-                     ,version=Version
-                     ,channels=Channels
-                     ,conferences=Conferences
-                     ,registrations=Regs
-                     }) ->
-    kz_json:from_list([{<<"node">>, kz_term:to_binary(NodeName)}
-                      ,{<<"zone">>, kz_term:to_binary(Zone)}
-                      ,{<<"kapps">>, [K || {K, _} <- Kapps]}
-                      ,{<<"media_servers">>, [K || {K, _} <- MediaServers]}
-                      ,{<<"version">>, Version}
-                      ,{<<"channels">>, Channels}
-                      ,{<<"conferences">>, Conferences}
-                      ,{<<"registrations">>, Regs}
-                      ]);
-node_to_json(NodeName) ->
-    node_to_json(kz_term:to_atom(NodeName)).
-
--spec globals_scope() -> integer().
-globals_scope() ->
-    MatchSpec = [{#kz_node{globals='$1'
-                          ,node='$2'
-                          ,_ = '_'
-                          }
-                 ,[{'andalso'
-                   ,{'=/=', '$1', []}
-                   ,{'=/=', '$2', {'const', node()}}
-                   }]
-                 ,['$1']
-                 }],
-    length(ets:select(?MODULE, MatchSpec)).
-
--spec whapp_zones(kz_term:text()) -> list().
-whapp_zones(Whapp) ->
-    MatchSpec = [{#kz_node{kapps='$1'
-                          ,zone='$2'
-                          ,_ = '_'
-                          }
-                 ,[{'=/=', '$1', []}]
-                 ,[{{'$2', '$1'}}]
-                 }],
-    determine_whapp_zones(kz_term:to_binary(Whapp), MatchSpec).
-
--spec determine_whapp_zones(kz_term:ne_binary(), ets:match_spec()) -> list().
-determine_whapp_zones(Whapp, MatchSpec) ->
-    {Whapp, Zones, _} =
-        lists:foldl(fun determine_whapp_zones_fold/2
-                   ,{Whapp, [], 0}
-                   ,ets:select(?MODULE, MatchSpec)
-                   ),
-    Zones.
-
--spec whapp_zone_count(kz_term:text()) -> integer().
-whapp_zone_count(Whapp) ->
-    length(whapp_zones(Whapp)).
-
--type fold_zones_acc() :: {atom(), list(), non_neg_integer()}.
-
--spec determine_whapp_zones_fold({atom(), kz_types:kapps_info()}, fold_zones_acc()) -> fold_zones_acc().
-determine_whapp_zones_fold({Zone, Whapps}, {Whapp, Zones, C}=Acc) ->
-    case props:is_defined(Whapp, Whapps)
-        andalso not lists:member(Zone, Zones)
-    of
-        'true' -> {Whapp, [Zone | Zones], C+ 1};
-        'false' -> Acc
-    end.
-
 -spec flush() -> 'ok'.
 flush() ->
     gen_listener:cast(?SERVER, 'flush').
@@ -264,8 +179,8 @@ init([]) ->
     erlang:put('kazoo_bindings_silent_apply', 'true'),
     kapi_nodes:declare_exchanges(),
     kapi_self:declare_exchanges(),
-    State = #state{zone = local_zone()
-                  ,md5 = node_encoded()
+    State = #state{zone = kz_nodes:local_zone()
+                  ,md5 = kz_nodes:node_encoded()
                   ,version = version()
                   },
     {'ok', State}.
@@ -578,9 +493,6 @@ get_zone(JObj, #state{zones=Zones, zone=LocalZone}) ->
         Zone -> kz_term:to_atom(Zone, 'true')
     end.
 
--spec local_zone() -> atom().
-local_zone() -> kz_config:zone().
-
 -spec get_amqp_broker(kz_term:api_ne_binary() | kz_json:object()) -> kz_term:api_ne_binary().
 get_amqp_broker('undefined') ->
     kz_amqp_util:normalize_amqp_uri(kz_amqp_connections:primary_broker());
@@ -596,7 +508,7 @@ notify_expire(Nodes, #state{notify_expire=Set}) ->
     notify_expire(Nodes, sets:to_list(Set));
 notify_expire([#kz_node{node=NodeName}=Node|Nodes], Pids) ->
     lager:warning("node ~s heartbeat has expired", [NodeName]),
-    _ = [gen_server:cast(Pid, {?MODULE, {'expire', Node}})
+    _ = [gen_server:cast(Pid, {'kz_nodes', {'expire', Node}})
          || Pid <- Pids
         ],
     notify_expire(Nodes, Pids).
@@ -606,7 +518,7 @@ notify_new(Node, #state{notify_new=Set}) ->
     notify_new(Node, sets:to_list(Set));
 notify_new(#kz_node{node=NodeName}=Node, Pids) ->
     lager:info("received heartbeat from new node ~s", [NodeName]),
-    _ = [gen_server:cast(Pid, {?MODULE, {'new', Node}})
+    _ = [gen_server:cast(Pid, {'kz_nodes', {'new', Node}})
          || Pid <- Pids
         ],
     'ok'.
@@ -615,11 +527,10 @@ notify_new(#kz_node{node=NodeName}=Node, Pids) ->
 notify_heartbeat(Node, #state{notify_heartbeat=Set}) ->
     notify_heartbeat(Node, sets:to_list(Set));
 notify_heartbeat(#kz_node{}=Node, Pids) ->
-    _ = [gen_server:cast(Pid, {?MODULE, {'heartbeat', Node}})
+    _ = [gen_server:cast(Pid, {'kz_nodes', {'heartbeat', Node}})
          || Pid <- Pids
         ],
     'ok'.
-
 
 -spec maybe_add_zone(kz_types:kz_node(), nodes_state()) -> nodes_state().
 maybe_add_zone(#kz_node{zone='undefined'}, #state{}=State) -> State;
@@ -659,29 +570,38 @@ amqp_status_connection(Connection) ->
                        ])
     }.
 
--spec pool_state_binding() -> kz_term:ne_binary().
-pool_state_binding() -> <<?MODULE_STRING, ".amqp.pools">>.
+-spec is_ready() -> boolean().
+is_ready() ->
+    try
+        gen_listener:call(?MODULE, 'is_ready')
+    catch
+        _T:_E ->
+            lager:info("nodes is_ready returned ~p : ~p", [_T,_E]),
+            'false'
+    end.
 
--spec bind_for_pool_state(atom()) -> kazoo_bindings:bind_result().
-bind_for_pool_state(Module) ->
-    bind_for_pool_state(Module, self()).
+-spec find_me() -> kz_term:api_pid().
+find_me() ->
+    whereis(?SERVER).
 
--spec bind_for_pool_state(atom(), pid()) -> kazoo_bindings:bind_result().
-bind_for_pool_state(Module, Pid) ->
-    _ = kazoo_bindings:bind(pool_state_binding(), Module, 'pools', Pid).
+-spec wait_for_refresh() -> 'ok'.
+wait_for_refresh() ->
+    gen_listener:call(?MODULE, 'refresh', 'infinity').
 
--spec unbind_for_pool_state(atom()) -> kazoo_bindings:unbind_result().
-unbind_for_pool_state(Module) ->
-    unbind_for_pool_state(Module, self()).
+-spec maybe_advertise_node(kz_types:kz_node()) -> 'ok'.
+maybe_advertise_node(#kz_node{broker = <<"disconnected">>}) -> 'ok';
+maybe_advertise_node(Node) ->
+    kapi_nodes:publish_advertise(advertise_payload(Node)).
 
--spec unbind_for_pool_state(atom(), kz_term:api_pid()) -> kazoo_bindings:unbind_result().
-unbind_for_pool_state(_Module, 'undefined') -> 'ok';
-unbind_for_pool_state(Module, Pid) when is_pid(Pid) ->
-    kazoo_bindings:unbind(pool_state_binding(), Module, 'pools', Pid).
+-spec version() -> kz_term:ne_binary().
+version() ->
+    {_, _, Version} = kz_application:get_app(?APP),
+    OTPRelease = kz_term:to_binary(erlang:system_info('otp_release')),
+    list_to_binary([Version, " - ", OTPRelease]).
 
 -spec pool_states() -> kz_term:proplist().
 pool_states() ->
-    AppPools = kazoo_bindings:map(pool_state_binding(), []),
+    AppPools = kazoo_bindings:map(kz_nodes_bindings:pool_state_binding(), []),
     lists:keysort(1, [pool_state(Pool)
                       || Pools <- AppPools,
                          {Pool, _Pid} <- Pools
@@ -699,96 +619,3 @@ pool_state(Name, State, Workers, Overflow, Monitors) ->
        io_lib:format("~p/~p/~p (~p)", [Workers, Monitors, Overflow, State])
       )
     }.
-
--spec node_encoded() -> kz_term:ne_binary().
-node_encoded() ->
-    case application:get_env(?APP, 'node_encoded') of
-        'undefined' ->
-            Encoded = kz_base64url:encode(crypto:hash('md5', kz_term:to_binary(node()))),
-            application:set_env(?APP, 'node_encoded', Encoded),
-            Encoded;
-        {'ok', Encoded} -> Encoded
-    end.
-
-
--spec with_role(kz_term:text()) -> kz_types:kz_nodes().
-with_role(Role) ->
-    with_role(Role, 'false').
-
--spec with_role(kz_term:text(), kz_term:text() | boolean() | 'remote') -> kz_types:kz_nodes().
-with_role(Role, Arg) when not is_atom(Arg) ->
-    with_role(Role, kz_term:to_atom(Arg, 'true'));
-with_role(Role, 'false') ->
-    MatchSpec = [{#kz_node{roles='$1'
-                          ,zone = local_zone()
-                          ,_ = '_'
-                          }
-                 ,[{'=/=', '$1', []}]
-                 ,['$_']
-                 }],
-    with_role_filter(kz_term:to_binary(Role), MatchSpec);
-with_role(Role, 'true') ->
-    MatchSpec = [{#kz_node{roles='$1'
-                          ,_ = '_'
-                          }
-                 ,[{'=/=', '$1', []}]
-                 ,['$_']
-                 }],
-    with_role_filter(kz_term:to_binary(Role), MatchSpec);
-with_role(Role, 'remote') ->
-    Zone = local_zone(),
-    MatchSpec = [{#kz_node{roles='$1'
-                          ,zone='$2'
-                          ,_ = '_'
-                          }
-                 ,[{'andalso'
-                   ,{'=/=', '$1', []}
-                   ,{'=/=', '$2', {'const', Zone}}
-                   }]
-                 ,['$_']
-                 }],
-    with_role_filter(kz_term:to_binary(Role), MatchSpec);
-with_role(Role, Unhandled) ->
-    lager:debug("invalid parameters ~p , ~p , ~p", [Role, Unhandled]),
-    [].
-
--spec with_role_filter(kz_term:ne_binary(), ets:match_spec()) -> kz_types:kz_nodes().
-with_role_filter(Role, MatchSpec) ->
-    lists:foldl(fun(#kz_node{roles=Roles}=Node, Acc) when is_list(Roles) ->
-                        case props:is_defined(Role, Roles) of
-                            'true' -> [Node | Acc];
-                            'false' -> Acc
-                        end
-                end
-               ,[]
-               ,ets:select(?MODULE, MatchSpec)
-               ).
-
--spec is_ready() -> boolean().
-is_ready() ->
-    try
-        gen_listener:call(?MODULE, 'is_ready')
-    catch
-        _T:_E ->
-            lager:info("nodes is_ready returned ~p : ~p", [_T,_E]),
-            'false'
-    end.
-
--spec find_me() -> kz_term:api_pid().
-find_me() ->
-    whereis(?SERVER).
-
--spec version() -> kz_term:ne_binary().
-version() ->
-    {_, _, Version} = kz_application:get_app(?APP),
-    OTPRelease = kz_term:to_binary(erlang:system_info('otp_release')),
-    list_to_binary([Version, " - ", OTPRelease]).
-
--spec wait_for_refresh() -> 'ok'.
-wait_for_refresh() ->
-    gen_listener:call(?MODULE, 'refresh', 'infinity').
-
--spec maybe_advertise_node(kz_types:kz_node()) -> 'ok'.
-maybe_advertise_node(#kz_node{broker = <<"disconnected">>}) -> 'ok';
-maybe_advertise_node(Node) ->
-    kapi_nodes:publish_advertise(advertise_payload(Node)).

@@ -243,7 +243,7 @@ node_status_to_json(#kz_node{zone=NodeZone
 -spec status() -> 'ok'.
 status() ->
     Nodes = nodes(),
-    print_status(Nodes, kz_nodes_listener:local_zone()),
+    print_status(Nodes, kz_nodes:local_zone()),
     check_node_versions(Nodes).
 
 -spec nodes() -> kz_types:kz_nodes().
@@ -384,7 +384,7 @@ whapp_oldest_node(Whapp, 'true') ->
                  }],
     determine_whapp_oldest_node(kz_term:to_binary(Whapp), MatchSpec);
 whapp_oldest_node(Whapp, 'false') ->
-    whapp_oldest_node(Whapp, kz_nodes_listener:local_zone());
+    whapp_oldest_node(Whapp, kz_nodes:local_zone());
 whapp_oldest_node(Whapp, Zone)
   when is_atom(Zone) ->
     MatchSpec = [{#kz_node{kapps='$1'
