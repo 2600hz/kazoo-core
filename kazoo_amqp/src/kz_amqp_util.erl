@@ -158,6 +158,8 @@
 -export([encode/1]).
 -export([split_routing_key/1]).
 
+-export([normalize_amqp_uri/1]).
+
 -define(KEY_SAFE(C), ((C >= $a
                        andalso C =< $z
                       )
@@ -1400,3 +1402,8 @@ split_routing_key(<<"consumer://", _/binary>> = RoutingKey) ->
     };
 split_routing_key(RoutingKey) ->
     {'undefined', RoutingKey}.
+
+-spec normalize_amqp_uri(kz_term:api_ne_binary()) -> kz_term:ne_binary().
+normalize_amqp_uri('undefined') -> <<"disconnected">>;
+normalize_amqp_uri(URI) ->
+    kz_term:to_binary(amqp_uri:remove_credentials(kz_term:to_list(URI))).
