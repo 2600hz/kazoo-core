@@ -25,7 +25,7 @@
 
         ,with_role/1, with_role/2
         ,whapp_oldest_node/1, whapp_oldest_node/2
-        ,whapp_zone_count/1
+        ,whapp_zones/1, whapp_zone_count/1
         ,whapp_count/1, whapp_count/2
 
         ,notify_expire/0, notify_heartbeat/0, notify_new/0
@@ -107,6 +107,10 @@ node_role_count(Role) ->
 -spec node_role_count(kz_term:text(), kz_term:text() | boolean() | 'remote') -> integer().
 node_role_count(Role, Arg) ->
     kz_nodes_ets:node_role_count(Role, Arg).
+
+-spec whapp_zones(kz_term:text()) -> list().
+whapp_zones(Whapp) ->
+    kz_nodes_ets:whapp_zones(Whapp).
 
 -spec whapp_zone_count(kz_term:text()) -> integer().
 whapp_zone_count(Whapp) ->
