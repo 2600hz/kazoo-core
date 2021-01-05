@@ -245,11 +245,11 @@ is_valid_scheme(_) -> 'false'.
 is_valid_ftp_url(#{scheme := "ftp", host := Host}) ->
     is_valid_host(kz_term:to_binary(Host));
 is_valid_ftp_url(#{scheme := "ftps", host := Host, userinfo := UserPass}) ->
-     lists:all(fun is_valid_url_part/1
-              ,[{fun is_valid_ftp_userpass/1, string:tokens(UserPass, ":")}
-               ,{fun is_valid_host/1, kz_term:to_binary(Host)}
-               ]
-              );
+    lists:all(fun is_valid_url_part/1
+             ,[{fun is_valid_ftp_userpass/1, string:tokens(UserPass, ":")}
+              ,{fun is_valid_host/1, kz_term:to_binary(Host)}
+              ]
+             );
 is_valid_ftp_url(<<URL/binary>>) ->
     is_valid_ftp_url(uri_string:parse(kz_term:to_list(URL)));
 is_valid_ftp_url(_URL) ->
