@@ -101,7 +101,7 @@ extra_validation(<<"callflows.pivot.voice_url">>, URL, State) ->
 extra_validation(<<"callflows.record_caller.url">>, URL, State) ->
     url_validation(URL, State);
 extra_validation(<<"callflows.record_call.url">>, URL, State) ->
-    url_validation(URL, State);
+    storage_url_validation(URL, State);
 extra_validation(<<"metaflows.pivot.voice_url">>, URL, State) ->
     url_validation(URL, State);
 extra_validation(<<"metaflows.record_call.url">>, URL, State) ->
