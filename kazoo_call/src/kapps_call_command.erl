@@ -1489,7 +1489,7 @@ prompt(Prompt, Lang, Call) ->
     play(kapps_call:get_prompt(Call, Prompt, Lang), Call).
 
 -spec prompt(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-prompt(Prompt, Call, Leg, _Lang) ->
+prompt(Prompt, _Lang, Call, Leg) ->
     play(kapps_call:get_prompt(Call, Prompt), ?ANY_DIGIT, Leg, Call).
 
 -spec b_prompt(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
