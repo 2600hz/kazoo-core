@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -1164,7 +1164,7 @@ bridge_command(Endpoints, Call) ->
 bridge_command(Endpoints, Timeout, Call) ->
     bridge_command(Endpoints, Timeout, kapi_dialplan:dial_method_single(), Call).
 bridge_command(Endpoints, Timeout, Strategy, Call) ->
-    bridge_command(Endpoints, Timeout, Strategy, <<"true">>, Call).
+    bridge_command(Endpoints, Timeout, Strategy, 'true', Call).
 bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
     bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, 'undefined', Call).
 bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, Call) ->
@@ -1240,27 +1240,27 @@ bridge(Endpoints, Timeout, Strategy, Call) ->
     Command = bridge_command(Endpoints, Timeout, Strategy, Call),
     send_command(Command, Call).
 
--spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) -> 'ok'.
+-spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kapps_call:call()) -> 'ok'.
 bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
     Command = bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Call),
     send_command(Command, Call).
 
--spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) -> 'ok'.
+-spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kz_term:api_binary(), kapps_call:call()) -> 'ok'.
 bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, Call) ->
     Command = bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, Call),
     send_command(Command, Call).
 
--spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kapps_call:call()) -> 'ok'.
+-spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kz_term:api_binary(), kz_term:api_object(), kapps_call:call()) -> 'ok'.
 bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, Call) ->
     Command = bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, Call),
     send_command(Command, Call).
 
--spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_binary(), kapps_call:call()) -> 'ok'.
+-spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_binary(), kapps_call:call()) -> 'ok'.
 bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, IgnoreForward, Call) ->
     Command = bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, IgnoreForward, Call),
     send_command(Command, Call).
 
--spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) -> 'ok'.
+-spec bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) -> 'ok'.
 bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, IgnoreForward, FailOnSingleReject, Call) ->
     Command = bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, IgnoreForward, FailOnSingleReject, Call),
     send_command(Command, Call).
@@ -1283,31 +1283,31 @@ b_bridge(Endpoints, Timeout, Strategy, Call) ->
     bridge(Endpoints, Timeout, Strategy, Call),
     b_bridge_wait(Timeout, Call).
 
--spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) ->
+-spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kapps_call:call()) ->
           kapps_api_bridge_return().
 b_bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
     bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Call),
     b_bridge_wait(Timeout, Call).
 
--spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) ->
+-spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kz_term:api_binary(), kapps_call:call()) ->
           kapps_api_bridge_return().
 b_bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, Call) ->
     bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, Call),
     b_bridge_wait(Timeout, Call).
 
--spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kapps_call:call()) ->
+-spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kz_term:api_binary(), kz_term:api_object(), kapps_call:call()) ->
           kapps_api_bridge_return().
 b_bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, Call) ->
     bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, Call),
     b_bridge_wait(Timeout, Call).
 
--spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_binary(), kapps_call:call()) ->
+-spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_binary(), kapps_call:call()) ->
           kapps_api_bridge_return().
 b_bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, IgnoreForward, Call) ->
     bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, IgnoreForward, Call),
     b_bridge_wait(Timeout, Call).
 
--spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) ->
+-spec b_bridge(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_boolean(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) ->
           kapps_api_bridge_return().
 b_bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, IgnoreForward, FailOnSingleReject, Call) ->
     bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHeaders, IgnoreForward, FailOnSingleReject, Call),
