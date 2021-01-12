@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -1488,9 +1488,9 @@ prompt(Prompt, Call) ->
 prompt(Prompt, Lang, Call) ->
     play(kapps_call:get_prompt(Call, Prompt, Lang), Call).
 
--spec prompt(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary()) -> kz_term:ne_binary().
-prompt(Prompt, _Lang, Call, Leg) ->
-    play(kapps_call:get_prompt(Call, Prompt), ?ANY_DIGIT, Leg, Call).
+-spec prompt(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
+prompt(Prompt, Lang, Leg, Call) ->
+    play(kapps_call:get_prompt(Call, Prompt, Lang), ?ANY_DIGIT, Leg, Call).
 
 -spec b_prompt(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_prompt(Prompt, Call) ->
