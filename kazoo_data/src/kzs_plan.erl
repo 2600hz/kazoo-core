@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc data plan
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -387,7 +387,7 @@ att_post_handler(#{}) -> 'external'.
 
 -type fetch_dataplan_ret() :: kz_json:object() | 'invalid'.
 
--spec fetch_cached_dataplan(term(), fun()) -> map().
+-spec fetch_cached_dataplan(storage_key(), fun()) -> map().
 fetch_cached_dataplan({AccountId, _StorageId} = Key, _Fun) ->
     case kz_cache:fetch_local(?KAZOO_DATA_PLAN_CACHE, {'plan', Key}) of
         {'ok', Plan} -> Plan;
@@ -410,13 +410,13 @@ fetch_cached_dataplan(Key, _Fun) ->
 load_dataplan(Key, Fun) ->
     case Fun(Key) of
         'invalid' ->
-            lager:debug("dataplan key ~p could not be loaded", [Key]);
+            lager:debug("dataplan key '~p' could not be loaded", [Key]);
         PlanJObj ->
-            lager:debug("caching dataplan key ~p", [Key]),
+            lager:debug("caching dataplan key '~p'", [Key]),
             cache_dataplan(Key, PlanJObj)
     end.
 
--spec cache_dataplan(term(), kz_json:object()) -> map().
+-spec cache_dataplan(storage_key(), kz_json:object()) -> map().
 cache_dataplan(?SYSTEM_DATAPLAN_ID=Key, PlanJObj) ->
     Plan = kz_json:to_map(PlanJObj),
     Connections = dataplan_connections(Plan),
@@ -538,7 +538,7 @@ fetch_storage_dataplan_merged(AccountId, StoragePlan) ->
 
 -spec fetch_dataplan(storage_key()) -> kz_term:api_object().
 fetch_dataplan(Id) ->
-    case kz_datamgr:open_cache_doc(?KZ_DATA_DB, Id) of
+    case kz_datamgr:open_doc(?KZ_DATA_DB, Id) of
         {'ok', JObj} -> JObj;
         {'error', _ERR} -> 'undefined'
     end.
@@ -620,10 +620,10 @@ bind_for({Type, Fun}) ->
 -spec handle_created(kz_term:api_ne_binary() | kz_json:object() | kz_json:objects()) -> 'ok'.
 handle_created('undefined') -> 'ok';
 handle_created(<<Id/binary>>) ->
-    lager:warning("received new storage ~s", [Id]),
-    case kz_datamgr:open_cache_doc(?KZ_DATA_DB, Id) of
+    lager:warning("received new storage '~s'", [Id]),
+    case kz_datamgr:open_doc(?KZ_DATA_DB, Id) of
         {'ok', Doc} -> load_account_or_storage(kz_doc:account_id(Doc), Id);
-        {'error', _ERR} -> lager:error("error fetching storage doc ~s", [Id])
+        {'error', _ERR} -> lager:error("error fetching storage doc '~s'", [Id])
     end;
 handle_created([JObj]) ->
     handle_created(JObj);
@@ -633,7 +633,7 @@ handle_created(JObj) ->
         _Type -> handle_created(kz_json:get_ne_binary_value(<<"ID">>, JObj))
     end.
 
--spec load_account_or_storage(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec load_account_or_storage(kz_term:api_ne_binary(), kz_term:ne_binary()) -> 'ok'.
 load_account_or_storage(AccountId, AccountId) ->
     load_account(AccountId);
 load_account_or_storage(AccountId, StorageId) ->
@@ -661,9 +661,9 @@ flush() ->
 reload() ->
     _ = load_dataplan(?SYSTEM_DATAPLAN_ID, fun fetch_simple_dataplan/1),
     case kz_datamgr:get_result_ids(?KZ_DATA_DB, ?KZS_PLAN_INIT_VIEW, []) of
-        {'ok', []} -> lager:info("no dataplans to load");
+        {'ok', []} -> lager:info("no account dataplans to load");
         {'ok', Accounts} -> load_accounts(Accounts);
-        Error -> lager:error_unsafe("error reloading dataplans ~p", [Error])
+        Error -> lager:error_unsafe("error reloading account dataplans ~p", [Error])
     end.
 
 -spec reset_system_dataplan() -> 'ok'.
@@ -712,6 +712,8 @@ load_account_storage(AccountId, StorageIds) ->
     lists:foreach(fun(StorageId) -> load_storage(AccountId, StorageId) end, StorageIds).
 
 -spec load_storage(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+load_storage('undefined', ?SYSTEM_DATAPLAN_ID) ->
+    load_dataplan(?SYSTEM_DATAPLAN_ID, fun fetch_simple_dataplan/1);
 load_storage(AccountId, StorageId) ->
     _ = load_dataplan({AccountId, StorageId}, fun fetch_storage_dataplan/1),
     'ok'.

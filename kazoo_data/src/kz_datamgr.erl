@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Manage data connections.
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -1041,7 +1041,8 @@ put_attachment(DbName, DocId, AName, Contents, Options) ->
     case attachment_options(Database, DocId, Options) of
         {'ok', NewOpts} ->
             NewOptions = props:delete('plan_override', NewOpts),
-            kzs_attachments:put_attachment(kzs_plan:plan(Database, NewOpts), Database, DocId, AName, Contents, NewOptions);
+            Dataplan = kzs_plan:plan(Database, NewOpts),
+            kzs_attachments:put_attachment(Dataplan, Database, DocId, AName, Contents, NewOptions);
         {'error', _} = Error -> Error
     end.
 
