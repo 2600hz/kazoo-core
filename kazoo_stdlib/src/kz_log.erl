@@ -15,6 +15,8 @@
         ,change_syslog_log_level/1
         ,change_file_log_level/2
 
+        ,change_sink_level/2
+
         ,log_stacktrace/0, log_stacktrace/1, log_stacktrace/2, log_stacktrace/3
         ,put_callid/1, get_callid/0, find_callid/1
         ,kz_log_md_clear/0, kz_log_md_put/2
@@ -61,6 +63,31 @@
 -define(LOG(Fmt), begin lager:info(Fmt), io:format(Fmt ++ "~n") end).
 -define(LOG(Fmt, Args), begin lager:info(Fmt, Args), io:format(Fmt ++ "~n", Args) end).
 -define(REDACTED_REPLACEMENT, "***REDACTED***").
+
+%% @doc Usage: kz_log:change_sink_level(amqp, debug)
+%% or sup kz_log change_sink_level amqp debug
+-spec change_sink_level(kz_term:text(), log_level()) -> 'ok'.
+change_sink_level(<<SinkHandler/binary>>, Level) ->
+    Sink = kz_term:to_atom(<<SinkHandler/binary, "_lager_event">>, 'true'),
+
+    Handlers = lager_config:global_get(handlers, []),
+
+    %% [{Backend, Pid, Sink}]
+    case lists:keyfind(Sink, 3, Handlers) of
+        'false' ->
+            io:format("no sink ~s (~s) with configuration~n", [SinkHandler, Sink]);
+        {Handler, _Pid, Sink} ->
+            case lager:get_loglevel(Sink, Handler) of
+                {'error', 'bad_module'} -> 'ok';
+                Level ->
+                    ?LOG("~s handler ~p already logging at ~p", [Sink, Handler, Level]);
+                _OldLevel ->
+                    ?LOG("~s handler ~p now logging at ~p (was ~p)", [Sink, Handler, Level, _OldLevel]),
+                    lager:set_loglevel(Sink, Handler, 'undefined', Level)
+            end
+    end;
+change_sink_level(Sink, Level) ->
+    change_sink_level(kz_term:to_binary(Sink), Level).
 
 -spec change_console_log_level(log_level()) -> 'ok'.
 change_console_log_level(L) when is_atom(L) ->

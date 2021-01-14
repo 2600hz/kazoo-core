@@ -34,7 +34,7 @@ by_owner_id(OwnerId, Data, Call, Mod) ->
                ,kz_attributes:owned_by(OwnerId, <<"device">>, Call)
                ).
 
--spec ignore_early_media(kz_endpoint:endpoints()) -> kz_term:api_binary().
+-spec ignore_early_media(kz_endpoint:endpoints()) -> boolean().
 ignore_early_media(Endpoints) ->
     not any_keeping_early_media(Endpoints).
 
