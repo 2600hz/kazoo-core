@@ -242,10 +242,10 @@ redactor(Line) ->
 
 apply_redactor(F, L) when is_function(F, 1) -> F(L).
 
--spec redact_json_password(kz_term:text()) -> kz_term:binary().
+-spec redact_json_password(kz_term:text()) -> kz_term:ne_binary().
 redact_json_password(Line) ->
     re:replace(Line, <<"(([\'\"])password\\2\\s*:\\s*\\2)((?:.(?!(?<![\\\\])\\2))*.?)\\2">>, "\\1" ++ ?REDACTED_REPLACEMENT ++ "\\2", [{'return', 'binary'}]).
 
--spec redact_json_credit_card_number(kz_term:text()) -> kz_term:binary().
+-spec redact_json_credit_card_number(kz_term:text()) -> kz_term:ne_binary().
 redact_json_credit_card_number(Line) ->
     re:replace(Line, <<"(([\'\"])credit_card\\2\\s*:\\s*{\\s*\\2number\\2\\s*:\\s*\\2)((?:.(?!(?<![\\\\])\\2))*.?)\\2">>, "\\1" ++ ?REDACTED_REPLACEMENT ++ "\\2", [{'return', 'binary'}]).
