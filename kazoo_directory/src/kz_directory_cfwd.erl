@@ -64,8 +64,8 @@ call_forward_base_properties(_EndpointId, _AccountId, Endpoint, IsReconcilable) 
     ,{<<"Loopback-Bowout">>, 'true'}
     ,{<<"Call-Forward-From">>, <<"${kz_ctx_Inception}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
-    ,{<<"Outbound-Caller-ID-Number">>, <<"${Caller-", CIDTypeName/binary, "-Caller-ID-Number}">>}
-    ,{<<"Outbound-Caller-ID-Name">>, <<"${Caller-", CIDTypeName/binary, "-Caller-ID-Name}">>}
+    ,{<<"Outbound-Caller-ID-Number">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Number|Caller-Caller-ID-Number)}">>}
+    ,{<<"Outbound-Caller-ID-Name">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Name|Caller-Caller-ID-Name)}">>}
     ,{<<"Failover-Reasons">>, cfw_failover_reasons()}
     ].
 
