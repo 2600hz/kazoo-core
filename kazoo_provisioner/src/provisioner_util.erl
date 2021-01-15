@@ -19,7 +19,6 @@
 -export([get_provision_defaults/1]).
 -export([is_mac_address_in_use/2]).
 -export([maybe_sync_sip_data/5]).
--export([cleanse_mac_address/1]).
 
 -export([sync_user/1, sync_user/2
         ,force_sync_user/2, force_sync_user/3
@@ -47,22 +46,6 @@
 -define(FORM_HEADERS, [{"content-type", "application/x-www-form-urlencoded"} | ?BASE_HEADERS]).
 
 -define(LIST_BY_PRESENCE_ID, <<"devices/listing_by_presence_id">>).
-
--spec cleanse_mac_address(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
-cleanse_mac_address('undefined') -> 'undefined';
-cleanse_mac_address(MACAddress) ->
-    MAC = kz_term:to_lower_binary(strip_non_hex(MACAddress)),
-    case kz_term:is_empty(MAC) of
-        'false' -> MAC;
-        'true' -> 'undefined'
-    end.
-
--spec strip_non_hex(kz_term:ne_binary()) -> binary().
-strip_non_hex(MACAddress) ->
-    ReOptions = ['global'
-                ,{'return','binary'}
-                ],
-    re:replace(MACAddress, <<"[^0-9a-fA-F]">>, <<>>, ReOptions).
 
 %%------------------------------------------------------------------------------
 %% @doc
