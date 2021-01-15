@@ -110,14 +110,27 @@ do_provision_v5(NewDevice, OldDevice, #{'req_verb' := ?HTTP_POST
                                        }) ->
     NewMacAddress = kzd_devices:mac_address(NewDevice),
     OldMacAddress = kzd_devices:mac_address(OldDevice),
-    case NewMacAddress =:= OldMacAddress of
-        'true' ->
-            _ = provisioner_v5:update_device(NewDevice, AuthToken);
-        'false' ->
-            NewDevice1 = kzd_devices:set_mac_address(NewDevice, OldMacAddress),
-            _ = provisioner_v5:delete_device(NewDevice1, AuthToken),
-            _ = provisioner_v5:update_device(NewDevice, AuthToken)
-    end,
+    do_provision_v5(NewDevice, AuthToken, NewMacAddress, OldMacAddress).
+
+-spec do_provision_v5(kzd_devices:doc(), kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> boolean().
+do_provision_v5(_, _, 'undefined', 'undefined') ->
+    'false';
+do_provision_v5(NewDevice, AuthToken, 'undefined', OldMacAddress) ->
+    %% Need old mac_address to remove old device from provisioner
+    NewDevice1 = kzd_devices:set_mac_address(NewDevice, OldMacAddress),
+    provisioner_v5:delete_device(NewDevice1, AuthToken),
+    'true';
+do_provision_v5(NewDevice, AuthToken, _NewMacAddress, 'undefined') ->
+    provisioner_v5:update_device(NewDevice, AuthToken),
+    'true';
+do_provision_v5(NewDevice, AuthToken, MacAddress, MacAddress) ->
+    provisioner_v5:update_device(NewDevice, AuthToken),
+    'true';
+do_provision_v5(NewDevice, AuthToken, _NewMacAddress, OldMacAddress) ->
+    %% Need old mac_address to remove old device from provisioner
+    NewDevice1 = kzd_devices:set_mac_address(NewDevice, OldMacAddress),
+    provisioner_v5:delete_device(NewDevice1, AuthToken),
+    provisioner_v5:update_device(NewDevice, AuthToken),
     'true'.
 
 %%------------------------------------------------------------------------------
