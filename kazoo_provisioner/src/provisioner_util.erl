@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc Common functions for the provisioner modules
 %%% @author Karl Anderson
 %%%
@@ -91,23 +91,33 @@ ensure_mac_cleansed(DeviceDoc) ->
 do_provision_device(NewDeviceDoc, OldDeviceDoc, ProvisionerOptions) ->
     case get_provisioning_type() of
         <<"provisioner_v5">> ->
-            do_provision_v5(NewDeviceDoc, OldDeviceDoc, ProvisionerOptions);
+            update_provisioner_v5(NewDeviceDoc, OldDeviceDoc, ProvisionerOptions);
         _ -> 'false'
     end.
 
--spec do_provision_v5(kzd_devices:doc(), kzd_devices:doc(), provisioner_options()) -> boolean().
-do_provision_v5(NewDeviceDoc, _OldDeviceDoc, #{'req_verb' := ?HTTP_PUT
-                                              ,'auth_token' := AuthToken
-                                              }) ->
+-spec update_provisioner_v5(kzd_devices:doc(), kzd_devices:doc(), provisioner_options()) -> boolean().
+update_provisioner_v5(NewDeviceDoc, _OldDeviceDoc, #{'req_verb' := ?HTTP_PUT
+                                                    ,'auth_token' := AuthToken
+                                                    }) ->
     case kz_term:is_empty(kzd_devices:mac_address(NewDeviceDoc)) of
         'true' -> 'false';
         'false' ->
             _ = provisioner_v5:update_device(NewDeviceDoc, AuthToken),
             'true'
     end;
-do_provision_v5(NewDevice, OldDevice, #{'req_verb' := ?HTTP_POST
-                                       ,'auth_token' := AuthToken
-                                       }) ->
+update_provisioner_v5(NewDevice, OldDevice, #{'req_verb' := ?HTTP_PATCH
+                                             ,'auth_token' := AuthToken
+                                             }) ->
+    do_provision_v5(NewDevice, OldDevice, AuthToken);
+update_provisioner_v5(NewDevice, OldDevice, #{'req_verb' := ?HTTP_POST
+                                             ,'auth_token' := AuthToken
+                                             }) ->
+    do_provision_v5(NewDevice, OldDevice, AuthToken);
+update_provisioner_v5(_, _, _) ->
+    'false'.
+
+-spec do_provision_v5(kzd_devices:doc(), kzd_devices:doc(), kz_term:ne_binary()) -> boolean().
+do_provision_v5(NewDevice, OldDevice, AuthToken) ->
     NewMacAddress = kzd_devices:mac_address(NewDevice),
     OldMacAddress = kzd_devices:mac_address(OldDevice),
     case NewMacAddress =:= OldMacAddress of
