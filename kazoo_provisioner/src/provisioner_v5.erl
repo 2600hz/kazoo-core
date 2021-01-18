@@ -681,7 +681,12 @@ handle_resp({'ok', Code, _, Resp}, AccountId, AuthToken) ->
 handle_resp(_Error, _, _) ->
     lager:error("provisioning fatal error ~p", [_Error]).
 
+-spec create_alert(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 create_alert(JObj, AccountId, AuthToken) ->
+    create_alert(JObj, AccountId, AuthToken, kapps_alert:enabled()).
+
+-spec create_alert(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), boolean()) -> 'ok'.
+create_alert(JObj, AccountId, AuthToken, 'true') ->
     Props = [{<<"metadata">>, JObj}
             ,{<<"category">>, <<"provisioner">>}
             ],
@@ -712,7 +717,9 @@ create_alert(JObj, AccountId, AuthToken) ->
     Msg = <<"Error trying to provision device">>,
     {'ok', AlertJObj} = kapps_alert:create(Title, Msg, From, To, Props),
     {'ok', _} = kapps_alert:save(AlertJObj),
-    lager:debug("created alert ~s: ~s", [Title, Msg]).
+    lager:debug("created alert ~s: ~s", [Title, Msg]);
+create_alert(_, _, _, 'false') ->
+    lager:debug("request to create alert received but alerts are disabled, ignoring").
 
 -spec req_headers(kz_term:ne_binary()) -> kz_term:proplist().
 req_headers(Token) ->
