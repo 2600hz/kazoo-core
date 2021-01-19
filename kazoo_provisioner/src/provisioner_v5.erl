@@ -35,12 +35,7 @@ update_device(JObj, AuthToken) ->
     AccountId = kz_doc:account_id(JObj),
     Request = device_settings(set_owner(JObj)),
     _ = update_account(AccountId, AuthToken),
-    send_req('devices_post'
-            ,maybe_add_device_defaults(Request)
-            ,AuthToken
-            ,AccountId
-            ,kzd_devices:mac_address(JObj)
-            ).
+    maybe_update_device(AccountId, JObj, maybe_add_device_defaults(Request), AuthToken).
 
 -spec maybe_add_device_defaults(kz_json:object()) -> kz_json:object().
 maybe_add_device_defaults(JObj) ->
@@ -106,12 +101,16 @@ get_model(Device) ->
 %%------------------------------------------------------------------------------
 -spec delete_device(kzd_devices:doc(), kz_term:ne_binary()) -> 'ok'.
 delete_device(JObj, AuthToken) ->
-    send_req('devices_delete'
-            ,'undefined'
-            ,AuthToken
-            ,kz_doc:account_id(JObj)
-            ,kzd_devices:mac_address(JObj)
-            ).
+    case kzd_devices:mac_address(JObj) of
+        'undefined' -> 'ok';
+        _MacAddress ->
+            send_req('devices_delete'
+                    ,'undefined'
+                    ,AuthToken
+                    ,kz_doc:account_id(JObj)
+                    ,kzd_devices:mac_address(JObj)
+                    )
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -184,10 +183,10 @@ maybe_save_device(Device, Settings, AccountId, AuthToken) ->
                 ,{<<"name">>, kzd_devices:name(Device)}
                 ,{<<"settings">>, Settings}
                 ]),
-    catch save_device(AccountId, Device, Request, AuthToken).
+    catch maybe_update_device(AccountId, Device, Request, AuthToken).
 
--spec save_device(kz_term:ne_binary(), kzd_devices:doc(), kz_json:object(), kz_term:ne_binary()) -> 'ok'.
-save_device(AccountId, Device, Request, AuthToken) ->
+-spec maybe_update_device(kz_term:ne_binary(), kzd_devices:doc(), kz_json:object(), kz_term:ne_binary()) -> 'ok'.
+maybe_update_device(AccountId, Device, Request, AuthToken) ->
     case kzd_devices:mac_address(Device) of
         'undefined' -> 'ok';
         MacAddress ->
