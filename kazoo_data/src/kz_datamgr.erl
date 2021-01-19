@@ -982,7 +982,7 @@ fetch_attachment(DbName, DocId, AName, Options) ->
     case attachment_options(Database, DocId, Options) of
         {'error', _E}=Error -> Error;
         {'ok', NewOpts} ->
-            kzs_attachments:fetch_attachment(kzs_plan:plan(Database, NewOpts), DbName, DocId, AName, Options)
+            kzs_attachments:fetch_attachment(kzs_plan:plan(Database, NewOpts), Database, DocId, AName, Options)
     end.
 
 -spec stream_attachment(database_name(), docid(), kz_term:ne_binary()) ->
