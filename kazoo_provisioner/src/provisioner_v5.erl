@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc Common functions for the provisioner modules
 %%% @author Peter Defebvre
 %%%
@@ -35,12 +35,7 @@ update_device(JObj, AuthToken) ->
     AccountId = kz_doc:account_id(JObj),
     Request = device_settings(set_owner(JObj)),
     _ = update_account(AccountId, AuthToken),
-    send_req('devices_post'
-            ,maybe_add_device_defaults(Request)
-            ,AuthToken
-            ,AccountId
-            ,kzd_devices:mac_address(JObj)
-            ).
+    maybe_update_device(AccountId, JObj, maybe_add_device_defaults(Request), AuthToken).
 
 -spec maybe_add_device_defaults(kz_json:object()) -> kz_json:object().
 maybe_add_device_defaults(JObj) ->
@@ -106,12 +101,16 @@ get_model(Device) ->
 %%------------------------------------------------------------------------------
 -spec delete_device(kzd_devices:doc(), kz_term:ne_binary()) -> 'ok'.
 delete_device(JObj, AuthToken) ->
-    send_req('devices_delete'
-            ,'undefined'
-            ,AuthToken
-            ,kz_doc:account_id(JObj)
-            ,kzd_devices:mac_address(JObj)
-            ).
+    case kzd_devices:mac_address(JObj) of
+        'undefined' -> 'ok';
+        _MacAddress ->
+            send_req('devices_delete'
+                    ,'undefined'
+                    ,AuthToken
+                    ,kz_doc:account_id(JObj)
+                    ,kzd_devices:mac_address(JObj)
+                    )
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -184,10 +183,10 @@ maybe_save_device(Device, Settings, AccountId, AuthToken) ->
                 ,{<<"name">>, kzd_devices:name(Device)}
                 ,{<<"settings">>, Settings}
                 ]),
-    catch save_device(AccountId, Device, Request, AuthToken).
+    catch maybe_update_device(AccountId, Device, Request, AuthToken).
 
--spec save_device(kz_term:ne_binary(), kzd_devices:doc(), kz_json:object(), kz_term:ne_binary()) -> 'ok'.
-save_device(AccountId, Device, Request, AuthToken) ->
+-spec maybe_update_device(kz_term:ne_binary(), kzd_devices:doc(), kz_json:object(), kz_term:ne_binary()) -> 'ok'.
+maybe_update_device(AccountId, Device, Request, AuthToken) ->
     case kzd_devices:mac_address(Device) of
         'undefined' -> 'ok';
         MacAddress ->
@@ -681,7 +680,12 @@ handle_resp({'ok', Code, _, Resp}, AccountId, AuthToken) ->
 handle_resp(_Error, _, _) ->
     lager:error("provisioning fatal error ~p", [_Error]).
 
+-spec create_alert(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 create_alert(JObj, AccountId, AuthToken) ->
+    create_alert(JObj, AccountId, AuthToken, kapps_alert:enabled()).
+
+-spec create_alert(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), boolean()) -> 'ok'.
+create_alert(JObj, AccountId, AuthToken, 'true') ->
     Props = [{<<"metadata">>, JObj}
             ,{<<"category">>, <<"provisioner">>}
             ],
@@ -712,7 +716,9 @@ create_alert(JObj, AccountId, AuthToken) ->
     Msg = <<"Error trying to provision device">>,
     {'ok', AlertJObj} = kapps_alert:create(Title, Msg, From, To, Props),
     {'ok', _} = kapps_alert:save(AlertJObj),
-    lager:debug("created alert ~s: ~s", [Title, Msg]).
+    lager:debug("created alert ~s: ~s", [Title, Msg]);
+create_alert(_, _, _, 'false') ->
+    lager:debug("request to create alert received but alerts are disabled, ignoring").
 
 -spec req_headers(kz_term:ne_binary()) -> kz_term:proplist().
 req_headers(Token) ->

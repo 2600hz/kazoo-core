@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2021, 2600Hz
 %%% @doc Call Event JSON Object
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -32,7 +32,7 @@
         ,custom_application_vars/1, custom_application_vars/2
         ,custom_sip_headers/1
         ,disposition/1
-        ,dtmf_digit/1
+        ,dtmf_digit/1, dtmf_digit/2
         ,duration_seconds/1
         ,endpoint_disposition/1
         ,error_message/1, error_message/2
@@ -168,7 +168,11 @@ is_authorized(JObj) ->
 
 -spec dtmf_digit(payload()) -> kz_term:api_ne_binary().
 dtmf_digit(JObj) ->
-    kz_json:get_ne_binary_value(<<"DTMF-Digit">>, JObj).
+    dtmf_digit(JObj, 'undefined').
+
+-spec dtmf_digit(payload(), Default) -> kz_term:ne_binary() | Default.
+dtmf_digit(JObj, Default) ->
+    kz_json:get_ne_binary_value(<<"DTMF-Digit">>, JObj, Default).
 
 -spec event_name(payload()) -> kz_term:api_ne_binary().
 event_name(JObj) ->
