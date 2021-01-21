@@ -223,6 +223,11 @@ storage_url_validation(<<"ftp", _/binary>>=URL, State) ->
         'true' -> State;
         'false' -> url_error(URL, State)
     end;
+storage_url_validation(<<"sftp", _/binary>>=URL, State) ->
+    case is_valid_sftp_url(URL) of
+        'true' -> State;
+        'false' -> url_error(URL, State)
+    end;
 storage_url_validation(URL, State) ->
     url_error(URL, State).
 
@@ -253,6 +258,17 @@ is_valid_ftp_url(#{scheme := "ftps", host := Host, userinfo := UserPass}) ->
 is_valid_ftp_url(<<URL/binary>>) ->
     is_valid_ftp_url(uri_string:parse(kz_term:to_list(URL)));
 is_valid_ftp_url(_URL) ->
+    'false'.
+
+is_valid_sftp_url(#{scheme := "sftp", host := Host, userinfo := UserPass}) ->
+    lists:all(fun is_valid_url_part/1
+             ,[{fun is_valid_ftp_userpass/1, string:tokens(UserPass, ":")}
+              ,{fun is_valid_host/1, kz_term:to_binary(Host)}
+              ]
+             );
+is_valid_sftp_url(<<URL/binary>>) ->
+    is_valid_sftp_url(uri_string:parse(kz_term:to_list(URL)));
+is_valid_sftp_url(_URL) ->
     'false'.
 
 is_valid_ftp_userpass([_User, _Pass]) -> 'true';
