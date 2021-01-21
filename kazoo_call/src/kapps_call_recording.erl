@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc Handles endpoint inbound recording
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -64,11 +64,12 @@ get_media_name(Name, Ext) ->
         _ -> <<Name/binary, ".", Ext/binary>>
     end.
 
--spec handler_from_url(kz_term:ne_binary()) -> 'kz_att_ftp' | 'kz_att_http' | 'undefined'.
+-spec handler_from_url(kz_term:ne_binary()) -> 'kz_att_ftp' | 'kz_att_sftp' |'kz_att_http' | 'undefined'.
 handler_from_url(Url) ->
     case kz_http_util:urlsplit(Url) of
         {<<"ftp">>, _, _, _, _} -> 'kz_att_ftp';
         {<<"ftps">>, _, _, _, _} -> 'kz_att_ftp';
+        {<<"sftp">>, _, _, _, _} -> 'kz_att_sftp';
         {<<"http">>, _, _, _, _} -> 'kz_att_http';
         {<<"https">>, _, _, _, _} -> 'kz_att_http';
         _ -> 'undefined'

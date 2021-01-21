@@ -1,5 +1,5 @@
 {application,kazoo_attachments,
- [{applications,[crypto,erlazure,erlcloud,ftp,hackney,
+ [{applications,[crypto,erlazure,erlcloud,ftp,ssh,hackney,
                  kazoo_nodes,
                  kazoo_stdlib,kazoo_web,kazoo_xml,kernel,lager,
                  stdlib,xmerl]},
