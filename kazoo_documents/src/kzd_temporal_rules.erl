@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,6 +14,7 @@
 -export([days/1, days/2, set_days/2]).
 -export([enabled/1, enabled/2, set_enabled/2]).
 -export([end_date/1, end_date/2, set_end_date/2]).
+-export([exclude/1, exclude/2, set_exclude/2]).
 -export([flags/1, flags/2, set_flags/2]).
 -export([interval/1, interval/2, set_interval/2]).
 -export([month/1, month/2, set_month/2]).
@@ -89,6 +90,18 @@ end_date(Doc, Default) ->
 -spec set_end_date(doc(), integer()) -> doc().
 set_end_date(Doc, EndDate) ->
     kz_json:set_value([<<"end_date">>], EndDate, Doc).
+
+-spec exclude(doc()) -> kz_term:api_ne_binaries().
+exclude(Doc) ->
+    exclude(Doc, 'undefined').
+
+-spec exclude(doc(), Default) -> kz_term:ne_binaries() | Default.
+exclude(Doc, Default) ->
+    kz_json:get_list_value([<<"exclude">>], Doc, Default).
+
+-spec set_exclude(doc(), kz_term:ne_binaries()) -> doc().
+set_exclude(Doc, Exclude) ->
+    kz_json:set_value([<<"exclude">>], Exclude, Doc).
 
 -spec flags(doc()) -> kz_term:api_ne_binaries().
 flags(Doc) ->

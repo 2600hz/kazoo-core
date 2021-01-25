@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Manage data connections.
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -846,7 +846,9 @@ save_docs(_DbName, []=Docs, _Options)
           data_error().
 update_doc(DbName, Id, Options) ->
     Database = kzs_util:to_database(DbName),
-    case open_doc(Database, Id) of
+    DeleteKeys = ['update', 'extra_update', 'create', 'ensure_saved'],
+    OpenOptions = props:delete_keys(DeleteKeys, Options),
+    case open_doc(Database, Id, OpenOptions) of
         {'error', 'not_found'} ->
             update_not_found(Database, Id, Options, props:is_true('should_create', Options, 'true'));
         {'error', _}=E -> E;
@@ -980,7 +982,7 @@ fetch_attachment(DbName, DocId, AName, Options) ->
     case attachment_options(Database, DocId, Options) of
         {'error', _E}=Error -> Error;
         {'ok', NewOpts} ->
-            kzs_attachments:fetch_attachment(kzs_plan:plan(Database, NewOpts), DbName, DocId, AName, Options)
+            kzs_attachments:fetch_attachment(kzs_plan:plan(Database, NewOpts), Database, DocId, AName, Options)
     end.
 
 -spec stream_attachment(database_name(), docid(), kz_term:ne_binary()) ->
@@ -1039,7 +1041,8 @@ put_attachment(DbName, DocId, AName, Contents, Options) ->
     case attachment_options(Database, DocId, Options) of
         {'ok', NewOpts} ->
             NewOptions = props:delete('plan_override', NewOpts),
-            kzs_attachments:put_attachment(kzs_plan:plan(Database, NewOpts), Database, DocId, AName, Contents, NewOptions);
+            Dataplan = kzs_plan:plan(Database, NewOpts),
+            kzs_attachments:put_attachment(Dataplan, Database, DocId, AName, Contents, NewOptions);
         {'error', _} = Error -> Error
     end.
 

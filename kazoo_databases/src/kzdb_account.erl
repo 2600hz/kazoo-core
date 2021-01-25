@@ -34,10 +34,21 @@
 delete('undefined') -> {'ok', 'undefined'};
 delete(?MATCH_ACCOUNT_RAW(AccountId)) ->
     case kzd_accounts:fetch(AccountId) of
-        {'error', _}=Error -> Error;
+        {'error', _}=Error ->
+            maybe_cleanup_accounts(AccountId, Error);
         {'ok', AccountJObj} ->
             lager:info("attempting to delete ~s(~s)", [AccountId, kz_doc:revision(AccountJObj)]),
             delete(AccountId, AccountJObj)
+    end.
+
+maybe_cleanup_accounts(AccountId, Error) ->
+    case kzd_accounts:fetch(AccountId, 'accounts') of
+        {'ok', AccountJObj} ->
+            case kz_doc:is_deleted(AccountJObj) of
+                'true' -> {'ok', AccountJObj};
+                'false' -> delete(AccountId, AccountJObj)
+            end;
+        {'error', _} -> Error
     end.
 
 -spec delete(kz_term:ne_binary(), kzd_accounts:doc()) ->

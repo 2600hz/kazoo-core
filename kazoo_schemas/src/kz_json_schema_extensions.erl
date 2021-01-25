@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2020, 2600Hz
+%%% @copyright (C) 2014-2021, 2600Hz
 %%% @doc Module for extending schema validation
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -99,13 +99,13 @@ extra_validation(<<"callflows.webhook.uri">>, URL, State) ->
 extra_validation(<<"callflows.pivot.voice_url">>, URL, State) ->
     url_validation(URL, State);
 extra_validation(<<"callflows.record_caller.url">>, URL, State) ->
-    url_validation(URL, State);
+    storage_url_validation(URL, State);
 extra_validation(<<"callflows.record_call.url">>, URL, State) ->
-    url_validation(URL, State);
+    storage_url_validation(URL, State);
 extra_validation(<<"metaflows.pivot.voice_url">>, URL, State) ->
     url_validation(URL, State);
 extra_validation(<<"metaflows.record_call.url">>, URL, State) ->
-    url_validation(URL, State);
+    storage_url_validation(URL, State);
 extra_validation(<<"call_recording.parameters.url">>, URL, State) ->
     storage_url_validation(URL, State);
 extra_validation(<<"faxbox.notifications.inbound.callback.url">>, URL, State) ->
@@ -250,11 +250,11 @@ is_valid_scheme(_) -> 'false'.
 is_valid_ftp_url(#{scheme := "ftp", host := Host}) ->
     is_valid_host(kz_term:to_binary(Host));
 is_valid_ftp_url(#{scheme := "ftps", host := Host, userinfo := UserPass}) ->
-     lists:all(fun is_valid_url_part/1
-              ,[{fun is_valid_ftp_userpass/1, string:tokens(UserPass, ":")}
-               ,{fun is_valid_host/1, kz_term:to_binary(Host)}
-               ]
-              );
+    lists:all(fun is_valid_url_part/1
+             ,[{fun is_valid_ftp_userpass/1, string:tokens(UserPass, ":")}
+              ,{fun is_valid_host/1, kz_term:to_binary(Host)}
+              ]
+             );
 is_valid_ftp_url(<<URL/binary>>) ->
     is_valid_ftp_url(uri_string:parse(kz_term:to_list(URL)));
 is_valid_ftp_url(_URL) ->

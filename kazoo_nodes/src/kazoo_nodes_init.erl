@@ -23,4 +23,4 @@ wait_for_nodes('true') ->
     'ignore';
 wait_for_nodes('false') ->
     timer:sleep(?MILLISECONDS_IN_SECOND),
-    wait_for_nodes(kz_nodes:is_ready()).
+    wait_for_nodes(kz_nodes_listener:is_ready()).

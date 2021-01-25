@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -24,14 +24,12 @@ call_forward(EndpointId, AccountId, Endpoint) ->
         'true' -> build_call_forward(EndpointId, AccountId, Endpoint)
     end.
 
-
 -spec is_call_forward_enabled(kz_json:object()) -> boolean().
 is_call_forward_enabled(Endpoint) ->
     kzd_devices:call_forward_number(Endpoint) =/= 'undefined'
         andalso (kzd_devices:call_forward_enabled(Endpoint)
                  orelse kzd_devices:call_forward_failover(Endpoint)
                 ).
-
 
 -spec build_call_forward(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 build_call_forward(EndpointId, AccountId, Endpoint) ->
@@ -66,14 +64,14 @@ call_forward_base_properties(_EndpointId, _AccountId, Endpoint, IsReconcilable) 
     ,{<<"Loopback-Bowout">>, 'true'}
     ,{<<"Call-Forward-From">>, <<"${kz_ctx_Inception}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
-    ,{<<"Outbound-Caller-ID-Number">>, <<"${Caller-", CIDTypeName/binary, "-Caller-ID-Number}">>}
-    ,{<<"Outbound-Caller-ID-Name">>, <<"${Caller-", CIDTypeName/binary, "-Caller-ID-Name}">>}
+    ,{<<"Outbound-Caller-ID-Number">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Number|Caller-Caller-ID-Number)}">>}
+    ,{<<"Outbound-Caller-ID-Name">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Name|Caller-Caller-ID-Name)}">>}
     ,{<<"Failover-Reasons">>, cfw_failover_reasons()}
     ].
 
 -spec call_forward_cid_type_name(boolean()) -> kz_term:ne_binary().
-call_forward_cid_type_name(true) -> <<"External">>;
-call_forward_cid_type_name(false) -> <<"Internal">>.
+call_forward_cid_type_name('true') -> <<"External">>;
+call_forward_cid_type_name('false') -> <<"Internal">>.
 
 -spec call_forward_is_substitute(kz_json:object()) -> boolean().
 call_forward_is_substitute(Endpoint) ->
@@ -109,8 +107,8 @@ call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilab
 
 call_forward_maybe_retain_cid(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
     case kzd_devices:call_forward_keep_caller_id(Endpoint) of
-        'true' -> [{<<"Retain-CID">>, 'true'}];
-        'false' -> []
+        'false' -> [];
+        'true' ->  [{<<"Retain-CID">>, 'true'}]
     end.
 
 -spec get_realm(kz_json:object()) -> kz_term:ne_binary().

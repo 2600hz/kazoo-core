@@ -811,18 +811,20 @@ calculate_document_hash(JObj) ->
 maybe_remove_attachments(JObj) ->
     case attachments(JObj) of
         'undefined' -> {'false', JObj};
-        _Attachments -> {'true', kz_json:delete_keys(?KEYS_ATTACHMENTS, JObj)}
+        Attachments -> {'true', maybe_remove_attachments(JObj, Attachments)}
     end.
 
 -spec maybe_remove_attachments(doc(), kz_term:api_object()) -> doc().
 maybe_remove_attachments(JObj, 'undefined') -> JObj;
 maybe_remove_attachments(JObj, _Attachments) ->
-    kz_json:delete_keys(?KEYS_ATTACHMENTS, JObj).
+    Set = [{Key, 'null'} || Key <- ?KEYS_ATTACHMENTS],
+    kz_json:set_values(Set, JObj).
 
 -spec maybe_remove_attachment(doc(), kz_term:ne_binary(), kz_term:api_object()) -> doc().
 maybe_remove_attachment(JObj, _AName, 'undefined') -> JObj;
 maybe_remove_attachment(JObj, AName, _AMeta) ->
-    kz_json:delete_keys(?KEYS_ATTACHMENTS(AName), JObj).
+    Set = [{Path, 'null'} || Path <- ?KEYS_ATTACHMENTS(AName)],
+    kz_json:set_values(Set, JObj).
 
 %%------------------------------------------------------------------------------
 %% @doc

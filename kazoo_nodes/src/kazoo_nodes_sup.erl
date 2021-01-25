@@ -20,15 +20,15 @@
 -define(SERVER, ?MODULE).
 
 -define(CHILDREN, [?WORKER_ARGS('kazoo_etsmgr_srv', ?ETSMGR_ARGS)
-                  ,?WORKER('kz_nodes')
+                  ,?WORKER('kz_nodes_listener')
                   ,?WORKER('kazoo_nodes_init')
                   ]).
 
 -define(ETSMGR_ARGS
-       ,[[{'table_id', kz_nodes:table_id()}
-         ,{'find_me_function', fun kz_nodes:find_me/0}
-         ,{'table_options', kz_nodes:table_options()}
-         ,{'gift_data', kz_nodes:gift_data()}
+       ,[[{'table_id', kz_nodes_ets:table_id()}
+         ,{'find_me_function', fun kz_nodes_listener:find_me/0}
+         ,{'table_options', kz_nodes_ets:table_options()}
+         ,{'gift_data', kz_nodes_ets:gift_data()}
          ]]
        ).
 

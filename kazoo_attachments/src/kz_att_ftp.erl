@@ -107,11 +107,11 @@ send_request(Url, Contents) ->
 
 -spec send_request(ftp_connect_info(), ftp_user_info(), string(), binary()) ->
           'ok' | {'error', ftp_error()}.
-send_request(HostPort, {User, Pass}, FullPath, Contents) ->
+send_request({Host, Options}, {User, Pass}, FullPath, Contents) ->
     Dir = filename:dirname(FullPath),
     File = filename:basename(FullPath),
     try
-        case ftp:open(HostPort) of
+        case ftp:open(Host, Options) of
             {'ok', Pid} ->
                 Routines = [fun() -> ftp:user(Pid, User, Pass) end
                            ,fun() -> ftp:type(Pid, 'binary') end
@@ -125,32 +125,28 @@ send_request(HostPort, {User, Pass}, FullPath, Contents) ->
         end
     catch
         _Exc:Err ->
-            lager:debug("error ~p / ~p sending file ~s to ~p", [_Exc, Err, FullPath, HostPort]),
+            lager:debug("error ~p / ~p sending file ~s to ~s", [_Exc, Err, FullPath, Host]),
             {'error', Err}
     end.
 
 -type ftp_user_info() :: {string(), string()}.
 
--type ftp_connect_info() :: [{host, string()} | {port, pos_integer()} | {tcp, []}].
+-type ftp_connect_info() :: {string(), [{port, pos_integer()} | {tls, []}]}.
 
 -spec ftp_connect(map()) -> ftp_connect_info().
 ftp_connect(#{scheme := "ftps", host := Host, port := Port}) ->
-    [{host, Host}
-    ,{port, Port}
-    ,{tcp, []}
-    ];
+    {Host,
+     [{port, Port}
+     ,{tls, []}
+     ]};
 ftp_connect(#{scheme := "ftps", host := Host}) ->
-    [{host, Host}
-    ,{tcp, []}
-    ];
+    {Host, [{tls, []}]};
 ftp_connect(#{scheme := "ftp", host := Host, port := Port}) ->
-    [{host, Host}
-    ,{port, Port}
-    ];
+    {Host, [{port, Port}]};
 ftp_connect(#{scheme := "ftp", host := Host}) ->
-    [{host, Host}];
+    {Host, []};
 ftp_connect(#{host := Host}) ->
-    [{host, Host}].
+    {Host, []}.
 
 -spec ftp_user(map()) -> ftp_user_info().
 ftp_user(#{userinfo := UserPass}) ->
