@@ -100,6 +100,16 @@ do_store_file(Tries, Timeout, API, Msg, #{media_server := Node}=Map) ->
 -spec retry_store_file(integer(), timeout(), kz_term:proplist() | function()
                       ,kz_term:ne_binary(), kz_term:ne_binary(), map()) ->
           'ok' | {'error', any()}.
+retry_store_file(_, _Timeout, _API, Msg, <<"error opening file">> = Error, Map) ->
+    lager:critical("~s : ~s", [Msg, Error]),
+    kz_notify:detailed_alert(kz_term:to_binary(Msg)
+                            ,kz_term:to_binary(Error)
+                            ,maps:to_list(Map#{store_error => Error})
+                            ,[]
+                            ),
+    %% returning a specific error that freeswitch lost the file.
+    %% We want to let the caller module know so it can handle this to not retry again.
+    {'error', 'file_not_exists'};
 retry_store_file(0, _Timeout, _API, Msg, Error, Map) ->
     lager:critical("~s : ~s", [Msg, Error]),
     kz_notify:detailed_alert(kz_term:to_binary(Msg)

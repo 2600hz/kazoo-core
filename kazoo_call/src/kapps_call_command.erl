@@ -3487,6 +3487,19 @@ handle_store_result(Tries, Timeout, API, Msg, Call, {'error', Err}) ->
 -spec retry_store_file(integer(), timeout(), kz_term:proplist() | function()
                       ,kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) ->
           'ok' | {'error', any()}.
+retry_store_file(_Tries, _Timeout, _API, Msg, <<"error opening file">> = Error, Call) ->
+    lager:critical("~s : ~s", [Msg, Error]),
+    Funs = [{fun kapps_call:kvs_store/3, 'store_error', Error}
+           ,{fun kapps_call:kvs_store/3, 'media_server', kapps_call:switch_nodename(Call)}
+           ],
+    kz_notify:detailed_alert(kz_term:to_binary(Msg)
+                            ,kz_term:to_binary(Error)
+                            ,kapps_call:to_proplist(kapps_call:exec(Funs, Call))
+                            ,[]
+                            ),
+    %% returning a specific error that freeswitch lost the file.
+    %% We want to let the caller module know so it can handle this to not retry again.
+    {'error', 'file_not_exists'};
 retry_store_file(0, _Timeout, _API, Msg, Error, Call) ->
     lager:critical("~s : ~s", [Msg, Error]),
     Funs = [{fun kapps_call:kvs_store/3, 'store_error', Error}
