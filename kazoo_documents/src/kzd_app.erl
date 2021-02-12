@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Account document
 %%% @author Peter Defebvre
 %%% @author Karl Anderson
@@ -37,6 +37,10 @@
 -export([users/1, users/2, set_users/2]).
 -export([version/1, version/2, set_version/2]).
 -export([extends/1, extends/2]).
+
+-export([app_hash/1, app_hash/2, set_app_hash/2
+        ,erlang_app/1, erlang_app/2, set_erlang_app/2
+        ]).
 
 -include("kz_documents.hrl").
 
@@ -289,10 +293,36 @@ extends(Doc, Default) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch(kz_term:api_binary(), kz_term:api_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec fetch(kz_term:api_binary(), kz_term:api_binary()) ->
+          {'ok', kz_json:object()} |
+          kz_datamgr:data_error().
 fetch('undefined', _) ->
     {'error', 'account_id_undefined'};
 fetch(_, 'undefined') ->
     {'error', 'app_id_undefined'};
 fetch(Account, Id) ->
-    kz_datamgr:open_cache_doc(kzs_util:format_account_db(Account), Id).
+    kz_datamgr:open_cache_doc(Account, Id).
+
+-spec app_hash(doc()) -> kz_term:api_ne_binary().
+app_hash(Doc) ->
+    app_hash(Doc, 'undefined').
+
+-spec app_hash(doc(), Default) -> kz_term:ne_binary() | Default.
+app_hash(Doc, Default) ->
+    kz_json:get_ne_binary_value(<<"pvt_app_hash">>, Doc, Default).
+
+-spec set_app_hash(doc(), kz_term:ne_binary()) -> doc().
+set_app_hash(Doc, Hash) ->
+    kz_json:set_value(<<"pvt_app_hash">>, Hash, Doc).
+
+-spec erlang_app(doc()) -> atom().
+erlang_app(Doc) ->
+    erlang_app(Doc, 'undefined').
+
+-spec erlang_app(doc(), Default) -> atom() | Default.
+erlang_app(Doc, Default) ->
+    kz_json:get_atom_value(<<"pvt_erlang_app">>, Doc, Default).
+
+-spec set_erlang_app(doc(), atom() | kz_term:ne_binary()) -> doc().
+set_erlang_app(Doc, App) ->
+    kz_json:set_value(<<"pvt_erlang_app">>, App, Doc).

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2020, 2600Hz
+%%% @copyright (C) 2018-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,7 @@
 
 -define(AGG_VIEW_NAME, <<"accounts/listing_by_name">>).
 
--type delete_error() :: {'error', kz_term:ne_binary(), pos_integer()}.
+-type delete_error() :: {atom(), kz_term:ne_binary()}.
 -type delete_errors() :: [delete_error()].
 
 -spec delete(kz_term:api_ne_binary()) ->
@@ -87,7 +87,7 @@ delete_remove_services({AccountJObj, Errors}=Acc) ->
     catch
         _E:_R ->
             lager:error("failed to delete services: ~s: ~p", [_E, _R]),
-            {AccountJObj, [{'error', <<"unable to cancel services">>, 500} | Errors]}
+            {AccountJObj, [{'services_error', <<"unable to cancel services">>} | Errors]}
     end.
 
 -spec delete_free_numbers(delete_acc()) -> delete_acc().
@@ -123,7 +123,7 @@ delete_remove_db({AccountJObj, Errors}=Acc) ->
             Acc;
         'false' ->
             lager:debug("failed to remove database ~s", [AccountDb]),
-            {AccountJObj, [{'error', <<"unable to remove database">>, 500} | Errors]}
+            {AccountJObj, [{'datastore_fault', <<"unable to remove account database">>} | Errors]}
     end.
 
 -spec delete_mod_dbs(delete_acc()) -> delete_acc().
@@ -144,7 +144,7 @@ delete_remove_from_accounts({AccountJObj, Errors}=Acc) ->
             Acc;
         {'error', _R} ->
             lager:info("failed to fetch 'accounts' account doc: ~p", [_R]),
-            {AccountJObj, [{'error', <<"unable to remove account definition">>, 500} | Errors]}
+            {AccountJObj, [{'datastore_fault', <<"unable to remove account definition">>} | Errors]}
     end.
 
 -spec create(kz_term:ne_binary(), kz_json:object()) -> kzd_accounts:doc() | 'undefined'.
