@@ -3543,7 +3543,7 @@ retry_store_file(_Tries, _Timeout, _API, Msg, <<"error opening file">> = Error, 
                             ),
     %% returning a specific error that freeswitch lost the file.
     %% We want to let the caller module know so it can handle this to not retry again.
-    {'error', 'file_not_exists'};
+    {'error', 'file_not_found'};
 retry_store_file(0, _Timeout, _API, Msg, Error, Call) ->
     lager:critical("~s : ~s", [Msg, Error]),
     Funs = [{fun kapps_call:kvs_store/3, 'store_error', Error}
