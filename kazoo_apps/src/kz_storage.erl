@@ -109,7 +109,7 @@ retry_store_file(_, _Timeout, _API, Msg, <<"error opening file">> = Error, Map) 
                             ),
     %% returning a specific error that freeswitch lost the file.
     %% We want to let the caller module know so it can handle this to not retry again.
-    {'error', 'file_not_exists'};
+    {'error', 'file_not_found'};
 retry_store_file(0, _Timeout, _API, Msg, Error, Map) ->
     lager:critical("~s : ~s", [Msg, Error]),
     kz_notify:detailed_alert(kz_term:to_binary(Msg)
