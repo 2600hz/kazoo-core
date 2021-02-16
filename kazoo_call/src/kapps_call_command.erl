@@ -3501,7 +3501,7 @@ handle_store_result(Tries, Timeout, API, Msg, Call, {'ok', JObj}) ->
         <<"success">> -> lager:debug("store successful: ~p", [JObj]);
         <<"error">> ->
             Error = kz_json:get_first_defined([[<<"Event-Data">>, <<"API-Error">>], <<"Error">>], JObj, <<"error not available">>),
-            Retry = kz_json:get_atom_value([<<"Event-Data">>, <<"API-File-Error">>], JObj),                    
+            Retry = kz_json:get_atom_value([<<"Event-Data">>, <<"API-File-Error">>], JObj),
             lager:info("store attempt errored: ~s", [Error]),
             retry_store_file(Tries - 1, Timeout, API, Msg, Error, maybe_add_debug_data(JObj, Call), Retry);
         _Other ->
