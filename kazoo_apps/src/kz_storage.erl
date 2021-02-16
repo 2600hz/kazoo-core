@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -81,6 +81,7 @@ do_store_file(Tries, Timeout, API, Msg, #{media_server := Node}=Map) ->
                 <<"success">> -> 'ok';
                 <<"error">> ->
                     Error = kz_json:get_first_defined([[<<"Event-Data">>, <<"API-Error">>], <<"Error">>], JObj, <<"error not available">>),
+                    Retry = kz_json:get_atom_value([<<"Event-Data">>, <<"API-File-Error">>], JObj),
                     retry_store_file(Tries - 1, Timeout, API, Msg, Error, maybe_add_debug_data(JObj, Map));
                 _Other ->
                     Error = kz_term:to_binary(io_lib:format("unhandled return ('~s') from store file", [_Other])),
@@ -100,16 +101,6 @@ do_store_file(Tries, Timeout, API, Msg, #{media_server := Node}=Map) ->
 -spec retry_store_file(integer(), timeout(), kz_term:proplist() | function()
                       ,kz_term:ne_binary(), kz_term:ne_binary(), map()) ->
           'ok' | {'error', any()}.
-retry_store_file(_, _Timeout, _API, Msg, <<"error opening file">> = Error, Map) ->
-    lager:critical("~s : ~s", [Msg, Error]),
-    kz_notify:detailed_alert(kz_term:to_binary(Msg)
-                            ,kz_term:to_binary(Error)
-                            ,maps:to_list(Map#{store_error => Error})
-                            ,[]
-                            ),
-    %% returning a specific error that freeswitch lost the file.
-    %% We want to let the caller module know so it can handle this to not retry again.
-    {'error', 'file_not_found'};
 retry_store_file(0, _Timeout, _API, Msg, Error, Map) ->
     lager:critical("~s : ~s", [Msg, Error]),
     kz_notify:detailed_alert(kz_term:to_binary(Msg)
@@ -123,6 +114,21 @@ retry_store_file(Tries, Timeout, API, Msg, Error, Map) ->
     timer:sleep(5 * ?MILLISECONDS_IN_SECOND),
     do_store_file(Tries, Timeout, API, Msg, Map).
 
+-spec retry_store_file(integer(), timeout(), kz_term:proplist() | function()
+                      ,kz_term:ne_binary(), kz_term:ne_binary(), map(), atom()) ->
+          'ok' | {'error', any()}.
+retry_store_file(Tries, Timeout, API, Msg, Error, Map, undefined) ->
+    retry_store_file(Tries, Timeout, API, Msg, Error, Map);
+retry_store_file(_Tries, _Timeout, _API, Msg, Error, Map, FileError) ->
+    lager:critical("~s : ~s : ~s", [Msg, FileError, Error]),
+    kz_notify:detailed_alert(kz_term:to_binary(Msg)
+                            ,kz_term:to_binary(Error)
+                            ,maps:to_list(Map#{store_error => Error})
+                            ,[]
+                            ),
+    {error, FileError}.
+
+-spec maybe_add_debug_data(kz_json:object(), map()) -> map().
 maybe_add_debug_data(JObj, Map) ->
     case kz_json:get_value(<<"Event-Data">>, JObj) of
         'undefined' -> Map;
