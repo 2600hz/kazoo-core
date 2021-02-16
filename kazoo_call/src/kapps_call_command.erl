@@ -3501,8 +3501,9 @@ handle_store_result(Tries, Timeout, API, Msg, Call, {'ok', JObj}) ->
         <<"success">> -> lager:debug("store successful: ~p", [JObj]);
         <<"error">> ->
             Error = kz_json:get_first_defined([[<<"Event-Data">>, <<"API-Error">>], <<"Error">>], JObj, <<"error not available">>),
+            Retry = kz_json:get_atom_value([<<"Event-Data">>, <<"API-File-Error">>], JObj),
             lager:info("store attempt errored: ~s", [Error]),
-            retry_store_file(Tries - 1, Timeout, API, Msg, Error, maybe_add_debug_data(JObj, Call));
+            retry_store_file(Tries - 1, Timeout, API, Msg, Error, maybe_add_debug_data(JObj, Call), Retry);
         _Other ->
             Error = kz_term:to_binary(io_lib:format("unhandled return ('~s') from store file", [_Other])),
             lager:info("store attempt unexpected error: ~s", [Error]),
@@ -3547,6 +3548,24 @@ retry_store_file(Tries, Timeout, API, Msg, Error, Call) ->
     timer:sleep(5 * ?MILLISECONDS_IN_SECOND),
     do_store_file(Tries, Timeout, API, Msg, Call).
 
+-spec retry_store_file(integer(), timeout(), kz_term:proplist() | function()
+                      ,kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), atom()) ->
+          'ok' | {'error', any()}.
+retry_store_file(Tries, Timeout, API, Msg, Error, Call, undefined) ->
+    retry_store_file(Tries, Timeout, API, Msg, Error, Call);
+retry_store_file(_Tries, _Timeout, _API, Msg, Error, Call, FileError) ->
+    lager:critical("~s : ~s : ~s", [Msg, FileError, Error]),
+    Funs = [{fun kapps_call:kvs_store/3, 'store_error', Error}
+           ,{fun kapps_call:kvs_store/3, 'media_server', kapps_call:switch_nodename(Call)}
+           ],
+    kz_notify:detailed_alert(kz_term:to_binary(Msg)
+                            ,kz_term:to_binary(Error)
+                            ,kapps_call:to_proplist(kapps_call:exec(Funs, Call))
+                            ,[]
+                            ),
+    {'error', FileError}.
+
+-spec maybe_add_debug_data(kz_json:object(), kapps_call:call()) -> kapps_call:call().
 maybe_add_debug_data(JObj, Call) ->
     case kz_json:get_value(<<"Event-Data">>, JObj) of
         'undefined' -> Call;

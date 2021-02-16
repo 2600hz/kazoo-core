@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Util functions used by kazoo_couch
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -85,7 +85,13 @@ check_db_create_error(_Server, _DbName, _Reason) ->
 -spec db_delete(server(), kz_term:ne_binary()) -> boolean().
 db_delete(#server{}=Conn, DbName) ->
     case couchbeam:delete_db(Conn, kz_term:to_list(DbName)) of
-        {'error', _} -> 'false';
+        %% https://github.com/apache/couchdb-documentation/blob/main/src/api/database/common.rst
+        %% :code 202: Accepted (deleted by at least one of the nodes, quorum is not met yet)
+        {'error', {'bad_response',{202,_Headers,_Body}}} ->
+            'true';
+        {'error', _E} ->
+            lager:info("failed to delete ~s: ~p", [DbName, _E]),
+            'false';
         {'ok', _} -> 'true'
     end.
 
