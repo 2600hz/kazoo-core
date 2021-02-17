@@ -120,6 +120,8 @@
 
 -export([check_release/0]).
 
+-export([start_app/1, stop_app/1, running_apps/0]).
+
 -include("kazoo_apps.hrl").
 
 -type bind() :: 'migrate' | 'refresh' | 'refresh_account' | 'register_views'.
@@ -1279,6 +1281,18 @@ remove_and_reconcile_services(AccountId) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+
+-spec start_app(atom() | nonempty_string() | kz_term:ne_binary()) ->
+          {'ok', kz_term:atoms()} |
+          {'error', any()}.
+start_app(App) -> kapps_controller:start_app(App).
+
+-spec stop_app(atom() | nonempty_string() | kz_term:ne_binary()) -> 'ok' | {'error', any()}.
+stop_app(App) -> kapps_controller:stop_app(App).
+
+-spec running_apps() -> kz_term:atoms() | string().
+running_apps() -> kapps_controller:running_apps().
+
 -spec ensure_reseller_id_accounts() -> 'ok'.
 ensure_reseller_id_accounts() ->
     Accounts = kapps_util:get_all_accounts(),
