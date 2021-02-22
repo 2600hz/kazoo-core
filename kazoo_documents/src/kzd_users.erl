@@ -1015,7 +1015,7 @@ full_name(?NE_BINARY = First, _, _) ->
 full_name(_, _, Default) ->
     Default.
 
--spec md5_auth(doc()) -> kz_term:api_object().
+-spec md5_auth(doc()) -> kz_term:api_binary().
 md5_auth(Doc) ->
     kz_json:get_ne_binary_value(<<"pvt_md5_auth">>, Doc).
 
