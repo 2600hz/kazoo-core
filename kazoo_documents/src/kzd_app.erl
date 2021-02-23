@@ -42,13 +42,15 @@
         ,erlang_app/1, erlang_app/2, set_erlang_app/2
         ]).
 
--export([i18n_description/2, set_i18n_description/3
-        ,i18n_extended_description/2, set_i18n_extended_description/3
-        ,i18n_features/2, set_i18n_features/3
-        ,i18n_icon/2, set_i18n_icon/3
-        ,i18n_label/2, set_i18n_label/3
-        ,i18n_screenshots/2, set_i18n_screenshots/3
-        ,i18n_urls/2, set_i18n_urls/3
+-export([i18n_description/2, i18n_description/3, set_i18n_description/3, path_i18_description/1
+        ,i18n_extended_description/2, i18n_extended_description/3, set_i18n_extended_description/3, path_i18_extended_description/1
+        ,i18n_features/2, i18n_features/3, set_i18n_features/3, path_i18_features/1
+        ,i18n_icon/2, i18n_icon/3, set_i18n_icon/3, path_i18_icon/1
+        ,i18n_label/2, i18n_label/3, set_i18n_label/3, path_i18_label/1
+        ,i18n_screenshots/2, i18n_screenshots/3, set_i18n_screenshots/3, path_i18_screenshots/1
+        ,i18n_urls/2, i18n_urls/3, set_i18n_urls/3, path_i18n_urls/1
+
+        ,path_i18_lang/1
         ]).
 
 -include("kz_documents.hrl").
@@ -114,54 +116,113 @@ i18n(Doc, Default) ->
 set_i18n(Doc, I18n) ->
     kz_json:set_value([<<"i18n">>], I18n, Doc).
 
+-spec path_i18_lang(kz_term:ne_binary()) -> kz_json:path().
+path_i18_lang(Language) -> [<<"i18n">>, Language].
+
 -spec i18n_description(doc(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 i18n_description(Doc, Language) ->
-    kz_json:get_ne_binary_value([<<"i18n">>, Language, <<"description">>], Doc, default_i18n(Doc, <<"description">>)).
+    i18n_description(Doc, Language, default_i18n(Doc, <<"description">>)).
+
+-spec i18n_description(doc(), kz_term:ne_binary(), Default) -> kz_term:ne_binary() | Default.
+i18n_description(Doc, Language, Default) ->
+    kz_json:get_ne_binary_value(path_i18_description(Language), Doc, Default).
+
 -spec set_i18n_description(doc(), kz_term:ne_binary(), kz_term:ne_binary()) -> doc().
 set_i18n_description(Doc, Language, Value) ->
-    kz_json:set_value([<<"i18n">>, Language, <<"description">>], Value, Doc).
+    kz_json:set_value(path_i18_description(Language), Value, Doc).
+
+-spec path_i18_description(kz_term:ne_binary()) -> kz_json:path().
+path_i18_description(Language) -> [<<"i18n">>, Language, <<"description">>].
 
 -spec i18n_extended_description(doc(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 i18n_extended_description(Doc, Language) ->
-    kz_json:get_ne_binary_value([<<"i18n">>, Language, <<"extended_description">>], Doc, default_i18n(Doc, <<"extended_description">>)).
+    i18n_extended_description(Doc, Language, default_i18n(Doc, <<"extended_description">>)).
+
+-spec i18n_extended_description(doc(), kz_term:ne_binary(), Default) -> kz_term:ne_binary() | Default.
+i18n_extended_description(Doc, Language, Default) ->
+    kz_json:get_ne_binary_value(path_i18_extended_description(Language), Doc, Default).
+
 -spec set_i18n_extended_description(doc(), kz_term:ne_binary(), kz_term:ne_binary()) -> doc().
 set_i18n_extended_description(Doc, Language, Value) ->
-    kz_json:set_value([<<"i18n">>, Language, <<"extended_description">>], Value, Doc).
+    kz_json:set_value(path_i18_extended_description(Language), Value, Doc).
+
+-spec path_i18_extended_description(kz_term:ne_binary()) -> kz_json:path().
+path_i18_extended_description(Language) -> [<<"i18n">>, Language, <<"extended_description">>].
 
 -spec i18n_features(doc(), kz_term:ne_binary()) -> kz_term:ne_binaries().
 i18n_features(Doc, Language) ->
-    kz_json:get_ne_binaries([<<"i18n">>, Language, <<"features">>], Doc, default_i18n(Doc, <<"features">>)).
+    i18n_features(Doc, Language, default_i18n(Doc, <<"features">>)).
+
+-spec i18n_features(doc(), kz_term:ne_binary(), Default) -> kz_term:ne_binaries() | Default.
+i18n_features(Doc, Language, Default) ->
+    kz_json:get_ne_binaries(path_i18_features(Language), Doc, Default).
+
 -spec set_i18n_features(doc(), kz_term:ne_binary(), kz_term:ne_binaries()) -> doc().
 set_i18n_features(Doc, Language, Value) ->
-    kz_json:set_value([<<"i18n">>, Language, <<"features">>], Value, Doc).
+    kz_json:set_value(path_i18_features(Language), Value, Doc).
+
+-spec path_i18_features(kz_term:ne_binary()) -> kz_json:path().
+path_i18_features(Language) -> [<<"i18n">>, Language, <<"features">>].
 
 -spec i18n_icon(doc(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 i18n_icon(Doc, Language) ->
-    kz_json:get_ne_binary_value([<<"i18n">>, Language, <<"icon">>], Doc, default_i18n(Doc, <<"icon">>, icon(Doc))).
+    i18n_icon(Doc, Language, default_i18n(Doc, <<"icon">>, icon(Doc))).
+
+-spec i18n_icon(doc(), kz_term:ne_binary(), Default) -> kz_term:ne_binary() | Default.
+i18n_icon(Doc, Language, Default) ->
+    kz_json:get_ne_binary_value(path_i18_icon(Language), Doc, Default).
+
 -spec set_i18n_icon(doc(), kz_term:ne_binary(), kz_term:ne_binary()) -> doc().
 set_i18n_icon(Doc, Language, Value) ->
-    kz_json:set_value([<<"i18n">>, Language, <<"icon">>], Value, Doc).
+    kz_json:set_value(path_i18_icon(Language), Value, Doc).
+
+-spec path_i18_icon(kz_term:ne_binary()) -> kz_json:path().
+path_i18_icon(Language) -> [<<"i18n">>, Language, <<"icon">>].
 
 -spec i18n_label(doc(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 i18n_label(Doc, Language) ->
-    kz_json:get_ne_binary_value([<<"i18n">>, Language, <<"label">>], Doc, default_i18n(Doc, <<"label">>)).
+    i18n_label(Doc, Language, default_i18n(Doc, <<"label">>)).
+
+-spec i18n_label(doc(), kz_term:ne_binary(), Default) -> kz_term:ne_binary() | Default.
+i18n_label(Doc, Language, Default) ->
+    kz_json:get_ne_binary_value(path_i18_label(Language), Doc, Default).
+
 -spec set_i18n_label(doc(), kz_term:ne_binary(), kz_term:ne_binary()) -> doc().
 set_i18n_label(Doc, Language, Value) ->
-    kz_json:set_value([<<"i18n">>, Language, <<"label">>], Value, Doc).
+    kz_json:set_value(path_i18_label(Language), Value, Doc).
+
+-spec path_i18_label(kz_term:ne_binary()) -> kz_json:path().
+path_i18_label(Language) -> [<<"i18n">>, Language, <<"label">>].
 
 -spec i18n_screenshots(doc(), kz_term:ne_binary()) -> kz_term:ne_binaries().
 i18n_screenshots(Doc, Language) ->
-    kz_json:get_ne_binaries([<<"i18n">>, Language, <<"screenshots">>], Doc, default_i18n(Doc, <<"screenshots">>, screenshots(Doc))).
+    i18n_screenshots(Doc, Language, default_i18n(Doc, <<"screenshots">>, screenshots(Doc))).
+
+-spec i18n_screenshots(doc(), kz_term:ne_binary(), Default) -> kz_term:ne_binaries() | Default.
+i18n_screenshots(Doc, Language, Default) ->
+    kz_json:get_ne_binaries(path_i18_screenshots(Language), Doc, Default).
+
 -spec set_i18n_screenshots(doc(), kz_term:ne_binary(), kz_term:ne_binaries()) -> doc().
 set_i18n_screenshots(Doc, Language, Value) ->
-    kz_json:set_value([<<"i18n">>, Language, <<"screenshots">>], Value, Doc).
+    kz_json:set_value(path_i18_screenshots(Language), Value, Doc).
+
+-spec path_i18_screenshots(kz_term:ne_binary()) -> kz_json:path().
+path_i18_screenshots(Language) -> [<<"i18n">>, Language, <<"screenshots">>].
 
 -spec i18n_urls(doc(), kz_term:ne_binary()) -> kz_term:api_object().
 i18n_urls(Doc, Language) ->
-    kz_json:get_ne_json_value([<<"i18n">>, Language, <<"urls">>], Doc, default_i18n(Doc, <<"urls">>)).
+    i18n_urls(Doc, Language, default_i18n(Doc, <<"urls">>)).
+
+-spec i18n_urls(doc(), kz_term:ne_binary(), Default) -> kz_json:object() | Default.
+i18n_urls(Doc, Language, Default) ->
+    kz_json:get_ne_json_value(path_i18n_urls(Language), Doc, Default).
+
 -spec set_i18n_urls(doc(), kz_term:ne_binary(), kz_json:object()) -> doc().
 set_i18n_urls(Doc, Language, Value) ->
-    kz_json:set_value([<<"i18n">>, Language, <<"urls">>], Value, Doc).
+    kz_json:set_value(path_i18n_urls(Language), Value, Doc).
+
+-spec path_i18n_urls(kz_term:ne_binary()) -> kz_json:path().
+path_i18n_urls(Language) -> [<<"i18n">>, Language, <<"urls">>].
 
 -spec default_i18n(doc(), kz_json:key()) ->
           kz_term:api_ne_binary() |
