@@ -69,9 +69,6 @@
 -export([authz_resource_types/1, authz_resource_types/2
         ,set_authz_resource_types/2, set_pvt_authz_resource_types/2
         ]).
--export([allotments/1, allotments/2
-        ,set_allotments/2
-        ]).
 -export([pvt_allotments/1, pvt_allotments/2
         ,set_pvt_allotments/2
         ]).
@@ -460,18 +457,6 @@ set_pvt_authz_resource_types(Doc, Types) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec allotments(doc()) -> kz_json:object().
-allotments(Doc) ->
-    allotments(Doc, kz_json:new()).
-
--spec allotments(doc(), Default) -> kz_json:object() | Default.
-allotments(Doc, Default) ->
-    kz_json:get_ne_json_value(<<"allotments">>, Doc, Default).
-
--spec set_allotments(doc(), kz_json:object()) -> doc().
-set_allotments(Doc, Allotments) ->
-    kz_json:set_value(<<"allotments">>, Allotments, Doc).
-
 -spec pvt_allotments(doc()) -> kz_json:object().
 pvt_allotments(Doc) ->
     pvt_allotments(Doc, kz_json:new()).
