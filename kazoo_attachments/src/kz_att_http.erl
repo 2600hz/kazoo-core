@@ -19,6 +19,8 @@
 -export([fetch_attachment/4]).
 
 -define(MAX_REDIRECTS, 10).
+-define(HTTP_CONNECT_TIMEOUT, 1500).
+-define(HTTP_CLIENT_OPTIONS, [{connect_timeout, ?HTTP_CONNECT_TIMEOUT}]).
 
 %%%=============================================================================
 %%% gen_attachment behaviour callbacks (API)
@@ -191,7 +193,7 @@ send_request(Url, _Verb, _Headers, _Contents, Redirects, _)
   when Redirects > ?MAX_REDIRECTS ->
     {'error', Url, 'too_many_redirects'};
 send_request(Url, Verb, Headers, Contents, Redirects, Debug) ->
-    case kz_http:req(Verb, Url, Headers, Contents) of
+    case kz_http:req(Verb, Url, Headers, Contents, ?HTTP_CLIENT_OPTIONS) of
         {'ok', Code, ReplyHeaders, Body} when
               is_integer(Code)
               andalso Code >= 200
