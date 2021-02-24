@@ -294,12 +294,9 @@ handle_response({'error', 'timeout'}=Err) ->
 handle_response({'EXIT', {Error,_Trace}}) ->
     lager:info("caught EXIT ~p: ~p", [Error, _Trace]),
     {'error', Error};
-handle_response({'error', {'failed_connect',[{_, _Address}, {_, _, 'nxdomain'}]}}) ->
-    lager:info("non existent domain ~p", [_Address]),
-    {'error', {'failed_connect', 'nxdomain'}};
-handle_response({'error', {'failed_connect',[{_, _Address}, {_, _, 'econnrefused'}]}}) ->
-    lager:info("connection refused to ~p", [_Address]),
-    {'error', {'failed_connect', 'econnrefused'}};
+handle_response({'error', {'failed_connect',[{_, _Address}, {_, _, Error}]}}) ->
+    lager:info("connection error ~s to ~p", [Error, _Address]),
+    {'error', {'failed_connect', Error}};
 handle_response({'error', {'malformed_url', _, Url}}) ->
     lager:info("failed to parse URL ~p", [Url]),
     {'error', {'malformed_url', Url}};
