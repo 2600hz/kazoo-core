@@ -175,7 +175,9 @@
 -export([wait_for_bridge/2, wait_for_bridge/3]).
 -export([wait_for_channel_bridge/0, wait_for_channel_unbridge/0]).
 -export([wait_for_dtmf/1]).
--export([wait_for_noop/2]).
+-export([wait_for_noop/2
+        ,wait_for_noop/3
+        ]).
 -export([wait_for_hangup/0, wait_for_hangup/1
         ,wait_for_unbridge/0, wait_for_unbridge/1
         ]).
@@ -264,6 +266,8 @@
 -type store_fun() :: kz_term:ne_binary() | fun(() -> kz_term:ne_binary()).
 
 -define(CONFIG_CAT, <<"call_command">>).
+
+-define(MAX_WAIT_MS, kapps_config:get_integer(?CONFIG_CAT, <<"max_wait_ms">>, ?MILLISECONDS_IN_DAY)).
 
 -define(DEFAULT_COLLECT_TIMEOUT, kapps_config:get_integer(?CONFIG_CAT, <<"collect_timeout">>, 5 * ?MILLISECONDS_IN_SECOND)).
 -define(DEFAULT_DIGIT_TIMEOUT, kapps_config:get_integer(?CONFIG_CAT, <<"digit_timeout">>, 3 * ?MILLISECONDS_IN_SECOND)).
@@ -1420,14 +1424,14 @@ hold_command(MOH, Call) ->
 
 -spec b_hold(kapps_call:call()) ->
           kapps_api_std_return().
-b_hold(Call) -> b_hold('infinity', 'undefined', Call).
+b_hold(Call) -> b_hold(?MAX_WAIT_MS, 'undefined', Call).
 
 -spec b_hold(timeout() | kz_term:api_binary(), kapps_call:call()) ->
           kapps_api_std_return().
 b_hold(Timeout, Call) when is_integer(Timeout);
                            Timeout =:= 'infinity' ->
     b_hold(Timeout, 'undefined', Call);
-b_hold(MOH, Call) -> b_hold('infinity', MOH, Call).
+b_hold(MOH, Call) -> b_hold(?MAX_WAIT_MS, MOH, Call).
 
 -spec b_hold(timeout(), kz_term:api_binary(), kapps_call:call()) ->
           kapps_api_std_return().
@@ -1786,7 +1790,7 @@ b_record(MediaName, Terminators, TimeLimit, SilenceThreshold, SilenceHits, Call)
                                  ,{<<"RECORD_START">>, <<"RECORD_STOP">>}
                                  ,<<"call_event">>
                                  ,fun(JObj) -> verify_media_name(JObj, MediaName) end
-                                 ,'infinity'
+                                 ,?MAX_WAIT_MS
                                  ).
 
 -spec verify_media_name(kz_json:object(), kz_term:ne_binary()) -> boolean().
@@ -1849,13 +1853,13 @@ record_call(Media, Action, TimeLimit, Terminators, Call) ->
           wait_for_headless_application_return().
 b_record_call(MediaName, Call) ->
     record_call(MediaName, Call),
-    wait_for_headless_application(<<"record">>, <<"RECORD_STOP">>, <<"call_event">>, 'infinity').
+    wait_for_headless_application(<<"record">>, <<"RECORD_STOP">>, <<"call_event">>, ?MAX_WAIT_MS).
 
 -spec b_record_call(kz_term:proplist(), kz_term:ne_binary(), kapps_call:call()) ->
           wait_for_headless_application_return().
 b_record_call(MediaName, Action, Call) ->
     record_call(MediaName, Action, Call),
-    wait_for_headless_application(<<"record">>, <<"RECORD_STOP">>, <<"call_event">>, 'infinity').
+    wait_for_headless_application(<<"record">>, <<"RECORD_STOP">>, <<"call_event">>, ?MAX_WAIT_MS).
 
 -spec b_record_call(kz_term:proplist(), kz_term:ne_binary(), kz_term:api_binary() | pos_integer(), kapps_call:call()) ->
           wait_for_headless_application_return().
@@ -1866,7 +1870,7 @@ b_record_call(MediaName, Action, TimeLimit, Call) ->
           wait_for_headless_application_return().
 b_record_call(MediaName, Action, TimeLimit, Terminators, Call) ->
     record_call(MediaName, Action, TimeLimit, Terminators, Call),
-    wait_for_headless_application(<<"record">>, <<"RECORD_STOP">>, <<"call_event">>, 'infinity').
+    wait_for_headless_application(<<"record">>, <<"RECORD_STOP">>, <<"call_event">>, ?MAX_WAIT_MS).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces the low level AMQP request to store the file.
@@ -2321,7 +2325,7 @@ b_say(Say, Type, Method, Language, Gender, Call) ->
 
 -spec wait_for_say(kapps_call:call()) -> kapps_api_std_return().
 wait_for_say(Call) ->
-    wait_for_message(Call, <<"say">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, 'infinity').
+    wait_for_message(Call, <<"say">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, ?MAX_WAIT_MS).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces the low level AMQP request to bridge a caller
@@ -2932,7 +2936,7 @@ check_for_bridge_event(_Timeout, OnBridgeFun, Call, _Start, EventJObj, {<<"call_
     CallId = kz_call_event:other_leg_call_id(EventJObj),
     lager:info("channel bridged to ~s", [CallId]),
     maybe_relay_bridge_event(OnBridgeFun, EventJObj),
-    wait_for_bridge('infinity', OnBridgeFun, Call);
+    wait_for_bridge(?MAX_WAIT_MS, OnBridgeFun, Call);
 check_for_bridge_event(Timeout, OnBridgeFun, Call, Start, EventJObj, {<<"call_event">>, <<"CHANNEL_REPLACED">>, _}) ->
     CallId = kz_call_event:replaced_by(EventJObj),
     _ = kz_log:put_callid(CallId),
@@ -3016,7 +3020,11 @@ check_end_of_bridge(_Timeout, _OnBridgeFun, _Call, _Start, EventJObj, _BridgeHan
 %%------------------------------------------------------------------------------
 -spec wait_for_noop(kapps_call:call(), kz_term:api_binary()) -> kapps_api_std_return().
 wait_for_noop(Call, NoopId) ->
-    case wait_for_message(Call, <<"noop">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, 'infinity') of
+    wait_for_noop(Call, NoopId, ?MAX_WAIT_MS).
+
+-spec wait_for_noop(kapps_call:call(), kz_term:api_binary(), timeout()) -> kapps_api_std_return().
+wait_for_noop(Call, NoopId, Timeout) ->
+    case wait_for_message(Call, <<"noop">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, Timeout) of
         {'ok', JObj}=OK ->
             case kz_call_event:application_response(JObj) of
                 NoopId when is_binary(NoopId), NoopId =/= <<>> -> OK;
@@ -3050,7 +3058,7 @@ wait_for_channel_unbridge() ->
 %%------------------------------------------------------------------------------
 -spec wait_for_channel_bridge() -> {'ok', kz_json:object()}.
 wait_for_channel_bridge() ->
-    case receive_event('infinity') of
+    case receive_event(?MAX_WAIT_MS) of
         {'ok', JObj}=Ok ->
             case kz_api:event_type(JObj) of
                 {<<"call_event">>, <<"CHANNEL_BRIDGE">>} -> Ok;
@@ -3068,7 +3076,7 @@ wait_for_channel_bridge() ->
 -spec wait_for_hangup() -> {'ok', 'channel_hungup'} |
           {'error', 'timeout'}.
 wait_for_hangup() ->
-    wait_for_hangup('infinity').
+    wait_for_hangup(?MAX_WAIT_MS).
 
 -spec wait_for_hangup(timeout()) ->
           {'ok', 'channel_hungup'} |
@@ -3095,7 +3103,7 @@ wait_for_hangup(Timeout) ->
 -spec wait_for_unbridge() ->   {'ok', 'leg_hungup'} |
           {'error', 'timeout'}.
 wait_for_unbridge() ->
-    wait_for_unbridge('infinity').
+    wait_for_unbridge(?MAX_WAIT_MS).
 
 -spec wait_for_unbridge(timeout()) ->
           {'ok', 'leg_hungup'} |
@@ -3156,7 +3164,7 @@ wait_for_fax(Timeout) ->
                     lager:debug("channel execution error while waiting for fax: ~s", [kz_json:encode(JObj)]),
                     {'error', JObj};
                 {<<"call_event">>, <<"CHANNEL_EXECUTE">>, <<"receive_fax">>} ->
-                    wait_for_fax('infinity');
+                    wait_for_fax(?MAX_WAIT_MS);
                 {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"receive_fax">>} ->
                     {'ok', kz_json:set_value(<<"Fax-Success">>, 'true', JObj)};
                 {<<"call_event">>, <<"CHANNEL_DESTROY">>, _} ->
