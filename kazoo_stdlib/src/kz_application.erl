@@ -56,9 +56,16 @@ calling_app() ->
         {Parent, _MFA} -> kz_term:to_binary(Parent)
     end.
 
+-spec calling_app(pid()) -> kz_term:ne_binary().
+calling_app(Pid) ->
+    case application:get_application(Pid) of
+        {'ok', App} -> App;
+        _Other -> calling_app()
+    end.
+
 -spec calling_app_version() -> {kz_term:ne_binary(), kz_term:ne_binary()}.
 calling_app_version() ->
-    {'ok', App} = application:get_application(self()),
+    App = calling_app(self()),
     {NewApp, _, Version} = get_app(App),
     {kz_term:to_binary(NewApp), kz_term:to_binary(Version)}.
 
