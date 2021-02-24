@@ -46,7 +46,7 @@
         ,hangup/1, hangup/2
         ,break/1
         ,queued_hangup/1, queued_hangup/2
-        ,set/3, set/4, set/5, set_terminators/2
+        ,set/2, set/3, set/4, set/5, set_terminators/2
         ,fetch/1, fetch/2
         ]).
 -export([echo/1]).
@@ -847,6 +847,10 @@ recv_dtmf_command(DTMFs) ->
 %% can not be used to set system settings</div>
 %% @end
 %%------------------------------------------------------------------------------
+
+-spec set(kz_term:api_object(), kapps_call:call()) -> 'ok'.
+set(ChannelVars, Call) ->
+    set(ChannelVars, 'undefined', 'undefined', Call).
 
 -spec set(kz_term:api_object(), kz_term:api_object(), kapps_call:call()) -> 'ok'.
 set(ChannelVars, CallVars, Call) ->
