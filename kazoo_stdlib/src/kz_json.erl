@@ -147,7 +147,7 @@
 -type get_key() :: key() | path().
 
 -define(ENCODE_OPTIONS, ['error_on_undefined']).
--define(DECODE_OPTIONS, ['utf8_invalid_char_as_is']).
+-define(DECODE_OPTIONS, ['utf8_invalid_char_as_is', 'dedupe_keys']).
 
 %% JIFFY decode options + {default, any()}
 -type decode_option() :: 'utf8_invalid_char_as_is' |
