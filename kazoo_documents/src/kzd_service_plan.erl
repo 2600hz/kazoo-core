@@ -104,7 +104,7 @@
 
 -define(PVT_TYPE, <<"service_plan">>).
 
--define(DEFAULT_MERGE_PRIORITY, 0).
+-define(DEFAULT_MERGE_PRIORITY, 50).
 -define(DEFAULT_MERGE_STRATEGY, <<"simple">>).
 
 %%------------------------------------------------------------------------------
@@ -379,7 +379,7 @@ set_merge_strategy(JObj, Strategy) ->
 %%------------------------------------------------------------------------------
 -spec merge_priority(doc()) -> kz_term:api_integer().
 merge_priority(JObj) ->
-    merge_priority(JObj, 'undefined').
+    merge_priority(JObj, ?DEFAULT_MERGE_PRIORITY).
 
 -spec merge_priority(doc(), Default) -> integer() | Default.
 merge_priority(JObj, Default) ->
