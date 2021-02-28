@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,7 +16,7 @@
         ,set_category_name/2
         ]).
 -export([quantity_category/1
-         ,set_quantity_category/2
+        ,set_quantity_category/2
         ]).
 -export([item_name/1
         ,set_item_name/2
