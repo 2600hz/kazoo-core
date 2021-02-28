@@ -15,8 +15,14 @@
 -export([category_name/1
         ,set_category_name/2
         ]).
+-export([quantity_category/1
+         ,set_quantity_category/2
+        ]).
 -export([item_name/1
         ,set_item_name/2
+        ]).
+-export([quantity_name/1
+        ,set_quantity_name/2
         ]).
 -export([quantity/1
         ,set_quantity/2
@@ -82,6 +88,8 @@
                          ,changes = 'undefined' :: kz_term:api_object()
                          ,item_plan = kz_json:new() :: kz_json:object()
                          ,masqueraded = 'false' :: boolean()
+                         ,quantity_name = 'undefined' :: kz_term:api_object()
+                         ,quantity_category = 'undefined' :: kz_term:api_object()
                          }).
 
 -opaque item() :: #kz_service_item{}.
@@ -127,6 +135,22 @@ set_category_name(#kz_service_item{}=Item, CategoryName) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec quantity_category(item()) -> kz_term:api_binary().
+quantity_category(#kz_service_item{quantity_category=CategoryName}) ->
+    CategoryName.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_quantity_category(item(), kz_term:ne_binary()) -> item().
+set_quantity_category(#kz_service_item{}=Item, CategoryName) ->
+    Item#kz_service_item{quantity_category=CategoryName}.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec item_name(item()) -> kz_term:api_binary().
 item_name(#kz_service_item{item_name=ItemName}) ->
     ItemName.
@@ -138,6 +162,23 @@ item_name(#kz_service_item{item_name=ItemName}) ->
 -spec set_item_name(item(), kz_term:ne_binary()) -> item().
 set_item_name(#kz_service_item{}=Item, ItemName) ->
     Item#kz_service_item{item_name=ItemName}.
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec quantity_name(item()) -> kz_term:api_binary().
+quantity_name(#kz_service_item{quantity_name=ItemName}) ->
+    ItemName.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_quantity_name(item(), kz_term:ne_binary()) -> item().
+set_quantity_name(#kz_service_item{}=Item, ItemName) ->
+    Item#kz_service_item{quantity_name=ItemName}.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -460,6 +501,12 @@ create(Services, ItemPlan, CategoryName, ItemName) ->
     Setters = [{fun set_item_plan/2, ItemPlan}
               ,{fun set_category_name/2, CategoryName}
               ,{fun set_item_name/2, ItemName}
+              ,{fun set_quantity_category/2
+               ,kzd_item_plan:quantity_category(ItemPlan)
+               }
+              ,{fun set_quantity_name/2
+               ,kzd_item_plan:quantity_name(ItemPlan)
+               }
               ],
     Routines = [fun calculate_quantity/2
                ,fun calculate_billable_quantity/2
@@ -494,7 +541,7 @@ log_item(_Services, Item) ->
 %%------------------------------------------------------------------------------
 -spec calculate_quantity(kz_services:services(), item()) -> item().
 calculate_quantity(Services, Item) ->
-    ItemName = item_name(Item),
+    ItemName = quantity_item_name(Item),
     Quantity =
         case kzd_service_plan:all_items_key() =:= ItemName of
             'true' -> get_category_quantity(Services, Item);
@@ -504,7 +551,7 @@ calculate_quantity(Services, Item) ->
 
 -spec get_category_quantity(kz_services:services(), item()) -> non_neg_integer().
 get_category_quantity(Services, Item) ->
-    CategoryName = category_name(Item),
+    CategoryName = quantity_category_name(Item),
     Exceptions = kzd_item_plan:exceptions(item_plan(Item)),
     case should_cascade(Item) of
         'false' ->
@@ -515,13 +562,27 @@ get_category_quantity(Services, Item) ->
 
 -spec get_item_quantity(kz_services:services(), item()) -> non_neg_integer().
 get_item_quantity(Services, Item) ->
-    CategoryName = category_name(Item),
-    ItemName = item_name(Item),
+    CategoryName = quantity_category_name(Item),
+    ItemName = quantity_item_name(Item),
     case should_cascade(Item) of
         'false' ->
             kz_services_quantities:item(Services, CategoryName, ItemName);
         'true' ->
             kz_services_quantities:cascade_item(Services, CategoryName, ItemName)
+    end.
+
+-spec quantity_category_name(item()) -> kz_tern:ne_binary().
+quantity_category_name(Item) ->
+    case quantity_category(Item) of
+        'undefined' -> category_name(Item);
+        CategoryName -> CategoryName
+    end.
+
+-spec quantity_item_name(item()) -> kz_tern:ne_binary().
+quantity_item_name(Item) ->
+    case quantity_name(Item) of
+        'undefined' -> item_name(Item);
+        ItemName -> ItemName
     end.
 
 %%------------------------------------------------------------------------------
