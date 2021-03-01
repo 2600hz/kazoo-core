@@ -74,7 +74,7 @@
 -type json_proplist() :: [{key(), json_term()}].
 %% Denotes proplist of JSON object Erlang representation.
 
--type object() :: ?JSON_WRAPPER(json_proplist()) | ?EMPTY_JSON_OBJECT.
+-type object() :: ?JSON_WRAPPER(json_proplist()) | ?EMPTY_JSON_OBJECT | map().
 %% Denotes JSON object Erlang representation, {@link json_proplist} wrapped in `{}'.
 
 -type objects() :: [object()].

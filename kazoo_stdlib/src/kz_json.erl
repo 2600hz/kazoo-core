@@ -152,7 +152,7 @@
 -type get_key() :: key() | path().
 
 -define(ENCODE_OPTIONS, ['error_on_undefined']).
--define(DECODE_OPTIONS, ['utf8_invalid_char_as_is']).
+-define(DECODE_OPTIONS, ['utf8_invalid_char_as_is', 'error_on_duplicate_key']).
 
 %% JIFFY decode options + {default, any()}
 -type decode_option() :: 'utf8_invalid_char_as_is' |
@@ -160,6 +160,7 @@
                          'use_nil' |
                          'return_trailer' |
                          'dedupe_keys' |
+                         'error_on_duplicate_key' |
                          'copy_strings' |
                          'utf8_invalid_char_as_is' |
                          {'null_term', any()} |
@@ -215,7 +216,7 @@ decode(JSON, Options) ->
     try unsafe_decode(JSON, Options)
     catch
         _:{'invalid_json', {'error', {_Loc, _Msg}}, _JSON} ->
-            lager:error_unsafe("decode error ~s near char # ~b => ~s", [_Msg, _Loc, binary:part(JSON, _Loc, 25)]),
+            lager:error_unsafe("decode error ~s near char # ~b => ~s", [_Msg, _Loc, kz_binary:truncate(_JSON, 25)]),
             props:get_value('default', Options, new())
     end.
 
@@ -997,7 +998,7 @@ recursive_to_proplist(Else) -> Else.
 
 -spec to_map(object() | objects()) -> map() | list(map()).
 to_map(JObjs) when is_list(JObjs) ->
-    jiffy:decode(encode(JObjs), ['return_maps']);
+    unsafe_decode(encode(JObjs), ['return_maps']);
 to_map(JObj) ->
     recursive_to_map(JObj).
 
