@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -228,7 +228,7 @@ host(IP) -> kz_json:get_value(<<"pvt_host">>, IP).
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec assigned_to(ip()) -> kz_term:ne_binary().
+-spec assigned_to(ip()) -> kz_term:api_ne_binary().
 assigned_to(IP) -> kz_json:get_value(<<"pvt_assigned_to">>, IP).
 
 %%------------------------------------------------------------------------------

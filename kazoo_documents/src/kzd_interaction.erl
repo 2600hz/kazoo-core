@@ -17,11 +17,11 @@
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
--spec id(kz_json:object()) -> kz_term:ne_binary().
+-spec id(kz_json:object()) -> kz_term:api_ne_binary().
 id(JObj) ->
     kz_json:get_ne_binary_value([<<?CALL_INTERACTION>>, <<"Id">>], JObj).
 
--spec key(kz_json:object()) -> kz_term:ne_binary().
+-spec key(kz_json:object()) -> kz_term:api_ne_binary().
 key(JObj) ->
     kz_json:get_ne_binary_value([<<?CALL_INTERACTION>>, <<"Key">>], JObj).
 

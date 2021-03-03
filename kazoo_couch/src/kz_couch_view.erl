@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Util functions used by kazoo_couch
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -171,8 +171,13 @@ get_results_count(#server{}=Conn, DbName, DesignDoc, ViewOptions) ->
           {'ok', kz_json:objects() | kz_term:ne_binaries()} |
           couchbeam_error().
 do_fetch_results(Db, <<DesignDoc/binary>>, Options) ->
-    [DesignName, ViewName|_] = binary:split(DesignDoc, <<"/">>, ['global']),
-    do_fetch_results(Db, {DesignName, ViewName}, map_options(Options));
+    case binary:split(DesignDoc, <<"/">>, ['global']) of
+        [DesignName, ViewName|_] ->
+            do_fetch_results(Db, {DesignName, ViewName}, map_options(Options));
+        _Error ->
+            lager:warning("failed to parse design doc ~s: ~p", [DesignDoc, _Error]),
+            {'error', 'not_found'}
+    end;
 do_fetch_results(Db, 'all_docs'=DesignDoc, Options) ->
     fetch_results(Db, DesignDoc, Options);
 do_fetch_results(Db, {_DesignName, _ViewName}=DesignDoc, Options) ->

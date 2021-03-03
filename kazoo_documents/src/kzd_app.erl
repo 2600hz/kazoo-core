@@ -12,7 +12,12 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_app).
 
--export([fetch/2]).
+-export([fetch/2
+        ,find_by_name/2
+        ,find_by_hash/1, find_by_hash/2
+        ,save/2
+        ,type/0
+        ]).
 
 -export([new/0]).
 -export([account_id/1]).
@@ -38,9 +43,7 @@
 -export([version/1, version/2, set_version/2]).
 -export([extends/1, extends/2]).
 
--export([app_hash/1, app_hash/2, set_app_hash/2
-        ,erlang_app/1, erlang_app/2, set_erlang_app/2
-        ]).
+-export([app_hash/1, app_hash/2, set_app_hash/2]).
 
 -export([i18n_description/2, i18n_description/3, set_i18n_description/3, path_i18_description/1
         ,i18n_extended_description/2, i18n_extended_description/3, set_i18n_extended_description/3, path_i18_extended_description/1
@@ -59,10 +62,14 @@
 -export_type([doc/0]).
 
 -define(SCHEMA, <<"app">>).
+-define(PVT_TYPE, <<"app">>).
 
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec type() -> kz_term:ne_binary().
+type() -> ?PVT_TYPE.
 
 -spec account_id(doc()) -> kz_term:api_ne_binary().
 account_id(Doc) ->
@@ -434,7 +441,62 @@ fetch('undefined', _) ->
 fetch(_, 'undefined') ->
     {'error', 'app_id_undefined'};
 fetch(Account, Id) ->
-    kz_datamgr:open_cache_doc(Account, Id).
+    kz_datamgr:open_cache_doc(Account, {?PVT_TYPE, Id}).
+
+-spec find_by_name(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', doc()} |
+          kz_datamgr:data_error().
+find_by_name(Account, AppName) ->
+    ViewOptions = [{'key', AppName}
+                  ,'include_docs'
+                  ],
+    case kz_datamgr:get_single_result(Account
+                                     ,<<"apps_store/crossbar_listing">>
+                                     ,ViewOptions
+                                     )
+    of
+        {'ok', Result} ->
+            {'ok', kz_json:get_json_value(<<"doc">>, Result)};
+        Error -> Error
+    end.
+
+%% @doc find app by hash in master account
+-spec find_by_hash(kz_term:ne_binary()) ->
+          {'ok', doc()} |
+          kz_datamgr:data_error().
+find_by_hash(AppHash) ->
+    {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
+    find_by_hash(MasterAccountId, AppHash).
+
+%% @doc find app by hash in provided account
+-spec find_by_hash(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', doc()} |
+          kz_datamgr:data_error().
+find_by_hash(Account, AppHash) ->
+    ViewOptions = [{'key', AppHash}
+                  ,'include_docs'
+                  ],
+    case kz_datamgr:get_single_result(Account
+                                     ,<<"apps_store/find_by_hash">>
+                                     ,ViewOptions
+                                     )
+    of
+        {'ok', Result} ->
+            {'ok', kz_json:get_json_value(<<"doc">>, Result)};
+        Error -> Error
+    end.
+
+-spec save(kz_term:ne_binary(), doc()) ->
+          {'ok', doc()} |
+          kz_datamgr:data_error().
+save(Account, AppDoc) ->
+    Doc = kz_doc:update_pvt_parameters(AppDoc, Account, [{'type', ?PVT_TYPE}]),
+    WithHash =
+        case app_hash(Doc) of
+            'undefined' -> set_app_hash(Doc, kz_binary:rand_hex(16));
+            _ -> Doc
+        end,
+    kz_datamgr:save_doc(Account, WithHash).
 
 -spec app_hash(doc()) -> kz_term:api_ne_binary().
 app_hash(Doc) ->
@@ -447,15 +509,3 @@ app_hash(Doc, Default) ->
 -spec set_app_hash(doc(), kz_term:ne_binary()) -> doc().
 set_app_hash(Doc, Hash) ->
     kz_json:set_value(<<"pvt_app_hash">>, Hash, Doc).
-
--spec erlang_app(doc()) -> atom().
-erlang_app(Doc) ->
-    erlang_app(Doc, 'undefined').
-
--spec erlang_app(doc(), Default) -> atom() | Default.
-erlang_app(Doc, Default) ->
-    kz_json:get_atom_value(<<"pvt_erlang_app">>, Doc, Default).
-
--spec set_erlang_app(doc(), atom() | kz_term:ne_binary()) -> doc().
-set_erlang_app(Doc, App) ->
-    kz_json:set_value(<<"pvt_erlang_app">>, App, Doc).

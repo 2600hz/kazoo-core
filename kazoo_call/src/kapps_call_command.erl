@@ -1492,11 +1492,11 @@ park_command(Call) ->
 prompt(Prompt, Call) ->
     play(kapps_call:get_prompt(Call, Prompt), Call).
 
--spec prompt(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
+-spec prompt(kz_term:ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
 prompt(Prompt, Lang, Call) ->
     play(kapps_call:get_prompt(Call, Prompt, Lang), Call).
 
--spec prompt(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
+-spec prompt(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
 prompt(Prompt, Lang, Leg, Call) ->
     play(kapps_call:get_prompt(Call, Prompt, Lang), ?ANY_DIGIT, Leg, Call).
 
@@ -1504,7 +1504,7 @@ prompt(Prompt, Lang, Leg, Call) ->
 b_prompt(Prompt, Call) ->
     b_play(kapps_call:get_prompt(Call, Prompt), Call).
 
--spec b_prompt(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+-spec b_prompt(kz_term:ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_prompt(Prompt, Lang, Call) ->
     b_play(kapps_call:get_prompt(Call, Prompt, Lang), Call).
 

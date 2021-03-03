@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Utility functions for AMQP listeners to use to add/remove responders.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -23,6 +23,7 @@
 -export_type([responder/0
              ,responders/0
              ,responder_callback_mappings/0
+             ,responder_start_params/0
              ]).
 
 -spec add_responder(responders(), responder_callback(), responder_callback_mapping()) -> responders().

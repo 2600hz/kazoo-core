@@ -25,6 +25,14 @@
                 "  });",
                 "}"
             ]
+        },
+        "find_by_hash": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type !== 'app' || doc.pvt_deleted || !doc.pvt_app_hash) return;",
+                "  emit(doc.pvt_app_hash, null);",
+                "}"
+            ]
         }
     }
 }

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -78,6 +78,7 @@
 -export_type([config_category/0
              ,config_key/0
              ,config_node/0
+             ,set_return/0
              ]).
 
 -define(KEY_DEFAULT, <<"default">>).
