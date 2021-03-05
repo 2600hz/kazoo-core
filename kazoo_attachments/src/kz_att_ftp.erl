@@ -30,6 +30,9 @@
                      file_write_error_reason() |
                      'euser'.
 
+-define(FTP_CONNECT_TIMEOUT, 1500).
+-define(FTP_CLIENT_OPTIONS, [{timeout, ?FTP_CONNECT_TIMEOUT}]).
+
 %%%=============================================================================
 %%% gen_attachment behaviour callbacks (API)
 %%%=============================================================================
@@ -111,7 +114,7 @@ send_request({Host, Options}, {User, Pass}, FullPath, Contents) ->
     Dir = filename:dirname(FullPath),
     File = filename:basename(FullPath),
     try
-        case ftp:open(Host, Options) of
+        case ftp:open(Host, Options ++ ?FTP_CLIENT_OPTIONS) of
             {'ok', Pid} ->
                 Routines = [fun() -> ftp:user(Pid, User, Pass) end
                            ,fun() -> ftp:type(Pid, 'binary') end
