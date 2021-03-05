@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -56,9 +56,16 @@ calling_app() ->
         {Parent, _MFA} -> kz_term:to_binary(Parent)
     end.
 
+-spec calling_app(pid()) -> kz_term:ne_binary().
+calling_app(Pid) ->
+    case application:get_application(Pid) of
+        {'ok', App} -> App;
+        _Other -> calling_app()
+    end.
+
 -spec calling_app_version() -> {kz_term:ne_binary(), kz_term:ne_binary()}.
 calling_app_version() ->
-    {'ok', App} = application:get_application(self()),
+    App = calling_app(self()),
     {NewApp, _, Version} = get_app(App),
     {kz_term:to_binary(NewApp), kz_term:to_binary(Version)}.
 
