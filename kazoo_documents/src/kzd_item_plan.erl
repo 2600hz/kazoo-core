@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -40,6 +40,8 @@
         ,cumulative_discount_maximum/1, cumulative_discount_maximum/2
         ,activation_charge/1, activation_charge/2
         ,keys/1
+        ,quantity_category/1, quantity_category/2
+        ,quantity_name/1, quantity_name/2
         ]).
 
 -include("kz_documents.hrl").
@@ -69,6 +71,9 @@
 -define(PRORATE_REMOVALS, [?PRORATE, <<"removals">>]).
 -define(UNPRORATE, <<"unprorate">>).
 -define(STEP, <<"step">>).
+-define(QUANTITY, <<"quantity">>).
+-define(QUANTITY_CATEGORY, [?QUANTITY, <<"category">>]).
+-define(QUANTITY_NAME, [?QUANTITY, <<"name">>]).
 
 -spec cumulative_merge_scheme() -> [{kz_json:key(), fun((kz_json:path(), kz_json:object()|kz_json:objects()) -> kz_json:api_json_term())}].
 cumulative_merge_scheme() ->
@@ -90,6 +95,8 @@ cumulative_merge_scheme() ->
     ,{[?DISCOUNTS, ?CUMULATIVE, ?RATE], fun kz_json:find/2}
     ,{[?DISCOUNTS, ?CUMULATIVE, ?RATES], fun ?MODULE:cumulative_merge_object/2}
     ,{[?DISCOUNTS, ?CUMULATIVE, ?MAXIMUM], fun ?MODULE:cumulative_merge_sum/2}
+    ,{?QUANTITY_CATEGORY, fun ?MODULE:cumulative_merge_object/2}
+    ,{?QUANTITY_NAME, fun ?MODULE:cumulative_merge_object/2}
     ].
 
 -spec cumulative_merge_sum(kz_json:path(), kz_json:objects()) -> non_neg_integer().
@@ -350,3 +357,19 @@ activation_charge(ItemPlan) ->
 -spec activation_charge(doc(), Default) -> float() | Default.
 activation_charge(ItemPlan, Default) ->
     kz_json:get_float_value(?ACTIVATION_CHARGE, ItemPlan, Default).
+
+-spec quantity_category(doc()) -> kz_term:api_binary().
+quantity_category(ItemPlan) ->
+    quantity_category(ItemPlan, 'undefined').
+
+-spec quantity_category(doc(), Default) -> kz_term:ne_binary() | Default.
+quantity_category(ItemPlan, Default) ->
+    kz_json:get_ne_binary_value(?QUANTITY_CATEGORY, ItemPlan, Default).
+
+-spec quantity_name(doc()) -> kz_term:api_binary().
+quantity_name(ItemPlan) ->
+    quantity_name(ItemPlan, 'undefined').
+
+-spec quantity_name(doc(), Default) -> kz_term:ne_binary() | Default.
+quantity_name(ItemPlan, Default) ->
+    kz_json:get_ne_binary_value(?QUANTITY_NAME, ItemPlan, Default).
