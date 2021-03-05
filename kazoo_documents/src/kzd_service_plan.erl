@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -104,7 +104,7 @@
 
 -define(PVT_TYPE, <<"service_plan">>).
 
--define(DEFAULT_MERGE_PRIORITY, 0).
+-define(DEFAULT_MERGE_PRIORITY, 50).
 -define(DEFAULT_MERGE_STRATEGY, <<"simple">>).
 
 %%------------------------------------------------------------------------------
@@ -379,7 +379,7 @@ set_merge_strategy(JObj, Strategy) ->
 %%------------------------------------------------------------------------------
 -spec merge_priority(doc()) -> kz_term:api_integer().
 merge_priority(JObj) ->
-    merge_priority(JObj, 'undefined').
+    merge_priority(JObj, ?DEFAULT_MERGE_PRIORITY).
 
 -spec merge_priority(doc(), Default) -> integer() | Default.
 merge_priority(JObj, Default) ->
