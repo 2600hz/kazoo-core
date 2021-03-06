@@ -82,6 +82,9 @@
 | `register_views/1` | `(App) | (_)` | |
 | `remove_aggregated_account/1` | `(Account)` | |
 | `remove_deprecated_databases/0` |  | |
+| `running_apps/0` |  | |
+| `start_app/1` | `(App)` | |
+| `stop_app/1` | `(App)` | |
 | `unbind/3` | `(Event,M,F)` | |
 | `validate_system_config/1` | `(Id)` | |
 | `validate_system_configs/0` |  | |

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Conversion of types
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -24,6 +24,7 @@
         ,to_camel_case/1
         ,strip/1, strip/2
         ,strip_left/2, strip_right/2
+        ,strip_non_hex/1
         ,suffix/2
         ,truncate/2, truncate/3
         ,truncate_left/2, truncate_right/2
@@ -142,10 +143,20 @@ strip_right(<<A, B/binary>>, C) ->
 strip_right(<<>>, _) -> <<>>.
 
 %%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec strip_non_hex(kz_term:ne_binary()) -> binary().
+strip_non_hex(MACAddress) ->
+    ReOptions = ['global'
+                ,{'return','binary'}
+                ],
+    re:replace(MACAddress, <<"[^0-9a-fA-F]">>, <<>>, ReOptions).
+
+%%------------------------------------------------------------------------------
 %% @doc Ensure a binary is a maximum given size, truncating it if not.
 %% @end
 %%------------------------------------------------------------------------------
-
 -spec truncate(binary(), non_neg_integer()) -> binary().
 truncate(Bin, Size) ->
     truncate(Bin, Size, 'right').

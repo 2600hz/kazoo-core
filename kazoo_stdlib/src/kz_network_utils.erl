@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Various utilities - a veritable cornucopia.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -57,6 +57,8 @@
         ,set_option_udp_payload_size/2
         ,set_option_usevc/2
         ]).
+
+-export([cleanse_mac_address/1]).
 
 -include_lib("kernel/include/inet.hrl").
 -include_lib("kernel/src/inet_dns.hrl").
@@ -592,4 +594,22 @@ maybe_resolve_nameservers([Domain|Values], Nameservers) ->
             maybe_resolve_nameservers(Values
                                      ,[{Address, 53} || Address <- Addresses] ++ Nameservers
                                      )
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec cleanse_mac_address(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+cleanse_mac_address('undefined') -> 'undefined';
+cleanse_mac_address(MACAddress) ->
+    case kz_term:is_ne_binary(MACAddress) of
+        'true' ->
+            MAC = kz_term:to_lower_binary(kz_binary:strip_non_hex(MACAddress)),
+            case kz_term:is_empty(MAC) of
+                'false' -> MAC;
+                'true' -> 'undefined'
+            end;
+        'false' ->
+            'undefined'
     end.

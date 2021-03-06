@@ -1,0 +1,59 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2021, 2600Hz
+%%% @doc Accessors for `app_whitelabel' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_app_whitelabel).
+
+-export([new/0]).
+-export([i18n/1, i18n/2, set_i18n/2]).
+-export([icon/1, icon/2, set_icon/2]).
+-export([screenshots/1, screenshots/2, set_screenshots/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"app_whitelabel">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec i18n(doc()) -> kz_term:api_object().
+i18n(Doc) ->
+    i18n(Doc, 'undefined').
+
+-spec i18n(doc(), Default) -> kz_json:object() | Default.
+i18n(Doc, Default) ->
+    kz_json:get_json_value([<<"i18n">>], Doc, Default).
+
+-spec set_i18n(doc(), kz_json:object()) -> doc().
+set_i18n(Doc, I18n) ->
+    kz_json:set_value([<<"i18n">>], I18n, Doc).
+
+-spec icon(doc()) -> kz_term:api_binary().
+icon(Doc) ->
+    icon(Doc, 'undefined').
+
+-spec icon(doc(), Default) -> binary() | Default.
+icon(Doc, Default) ->
+    kz_json:get_binary_value([<<"icon">>], Doc, Default).
+
+-spec set_icon(doc(), binary()) -> doc().
+set_icon(Doc, Icon) ->
+    kz_json:set_value([<<"icon">>], Icon, Doc).
+
+-spec screenshots(doc()) -> kz_term:api_ne_binaries().
+screenshots(Doc) ->
+    screenshots(Doc, 'undefined').
+
+-spec screenshots(doc(), Default) -> kz_term:ne_binaries() | Default.
+screenshots(Doc, Default) ->
+    kz_json:get_list_value([<<"screenshots">>], Doc, Default).
+
+-spec set_screenshots(doc(), kz_term:ne_binaries()) -> doc().
+set_screenshots(Doc, Screenshots) ->
+    kz_json:set_value([<<"screenshots">>], Screenshots, Doc).

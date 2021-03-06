@@ -145,7 +145,9 @@ stop_app(App) when is_atom(App) ->
 stop_app(App) ->
     stop_app(kz_term:to_atom(App)).
 
--spec restart_app(atom() | nonempty_string() | kz_term:ne_binary()) -> 'ok' | {'error', any()}.
+-spec restart_app(atom() | nonempty_string() | kz_term:ne_binary()) ->
+          {'ok', kz_term:atoms()} |
+          {'error', any()}.
 restart_app(App) when is_atom(App) ->
     lager:info("restarting kazoo application ~s", [App]),
     _ = stop_app(App),
