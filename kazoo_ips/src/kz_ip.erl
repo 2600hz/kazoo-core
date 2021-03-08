@@ -229,7 +229,7 @@ host(IP) -> kz_json:get_value(<<"pvt_host">>, IP).
 %% @end
 %%------------------------------------------------------------------------------
 -spec assigned_to(ip()) -> kz_term:api_ne_binary().
-assigned_to(IP) -> kz_json:get_value(<<"pvt_assigned_to">>, IP).
+assigned_to(IP) -> kz_json:get_ne_binary_value(<<"pvt_assigned_to">>, IP).
 
 %%------------------------------------------------------------------------------
 %% @doc
