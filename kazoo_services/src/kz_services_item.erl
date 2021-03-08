@@ -76,8 +76,8 @@
 
 -include("services.hrl").
 
--record(kz_service_item, {category_name :: kz_term:api_binary()
-                         ,item_name :: kz_term:api_binary()
+-record(kz_service_item, {category_name :: kz_term:api_ne_binary()
+                         ,item_name :: kz_term:api_ne_binary()
                          ,quantity = 0 :: non_neg_integer()
                          ,billable_quantity = 0 :: non_neg_integer()
                          ,billing_rate = 0.0 :: float()
@@ -88,8 +88,8 @@
                          ,changes = 'undefined' :: kz_term:api_object()
                          ,item_plan = kz_json:new() :: kz_json:object()
                          ,masqueraded = 'false' :: boolean()
-                         ,quantity_name = 'undefined' :: kz_term:api_object()
-                         ,quantity_category = 'undefined' :: kz_term:api_object()
+                         ,quantity_name = 'undefined' :: kz_term:api_ne_binary()
+                         ,quantity_category = 'undefined' :: kz_term:api_ne_binary()
                          }).
 
 -opaque item() :: #kz_service_item{}.
@@ -571,14 +571,14 @@ get_item_quantity(Services, Item) ->
             kz_services_quantities:cascade_item(Services, CategoryName, ItemName)
     end.
 
--spec quantity_category_name(item()) -> kz_tern:ne_binary().
+-spec quantity_category_name(item()) -> kz_term:ne_binary().
 quantity_category_name(Item) ->
     case quantity_category(Item) of
         'undefined' -> category_name(Item);
         CategoryName -> CategoryName
     end.
 
--spec quantity_item_name(item()) -> kz_tern:ne_binary().
+-spec quantity_item_name(item()) -> kz_term:ne_binary().
 quantity_item_name(Item) ->
     case quantity_name(Item) of
         'undefined' -> item_name(Item);

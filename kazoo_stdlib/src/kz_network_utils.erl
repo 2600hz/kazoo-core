@@ -73,7 +73,7 @@
 -type srvtuple() :: {integer(), integer(), integer(), string()}.
 -type naptrtuple() :: {integer(), integer(), string(), string(), string(), string()}.
 -type mxtuple() :: {integer(), string()}.
--type options() :: [inet_res:res_option()]. % not currently exported from inet_res
+-type options() :: [res_option()]. % not currently exported from inet_res
 
 -type cidr_block() :: {inet:ip_address(), inet:ip_address(), pos_integer()}.
 
@@ -81,7 +81,44 @@
              ,naptrtuple/0
              ,mxtuple/0
              ,options/0
+             ,dns_data/0
              ]).
+
+%% from inet_res.erl
+-type res_option() ::
+        {alt_nameservers, [nameserver()]}
+      | {edns, 0 | false}
+      | {inet6, boolean()}
+      | {nameservers, [nameserver()]}
+      | {recurse, boolean()}
+      | {retry, integer()}
+      | {timeout, integer()}
+      | {udp_payload_size, integer()}
+      | {usevc, boolean()}.
+
+-type nameserver() :: {inet:ip_address(), Port :: 1..65535}.
+
+-type dns_name() :: string().
+-type dns_data() ::
+        dns_name()
+      | inet:ip4_address()
+      | inet:ip6_address()
+      | {MName :: dns_name(),
+         RName :: dns_name(),
+         Serial :: integer(),
+         Refresh :: integer(),
+         Retry :: integer(),
+         Expiry :: integer(),
+         Minimum :: integer()}
+      | {inet:ip4_address(), Proto :: integer(), BitMap :: binary()}
+      | {CpuString :: string(), OsString :: string()}
+      | {RM :: dns_name(), EM :: dns_name()}
+      | {Prio :: integer(), dns_name()}
+      | {Prio :: integer(),Weight :: integer(),Port :: integer(),dns_name()}
+      | {Order :: integer(),Preference :: integer(),Flags :: string(),
+         Services :: string(),Regexp :: string(), dns_name()}
+      | [string()]
+      | binary().
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -522,13 +559,13 @@ pretty_print_bytes(Bytes) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec lookup_dns(kz_term:ne_binary(), atom()) ->
-          {'ok', [inet_res:dns_data()]}.
+          {'ok', [dns_data()]}.
 %% See kernel/src/inet_dns.hrl, the S_* macros for values for Type
 lookup_dns(Hostname, Type) ->
     lookup_dns(Hostname, Type, default_options()).
 
 -spec lookup_dns(kz_term:ne_binary(), atom(), options()) ->
-          {'ok', [inet_res:dns_data()]}.
+          {'ok', [dns_data()]}.
 lookup_dns(Hostname, Type, Options) ->
     {'ok', inet_res:lookup(kz_term:to_list(Hostname), 'in', Type, Options)}.
 
@@ -541,8 +578,6 @@ new_options() -> [].
 
 -spec default_options() -> options().
 default_options() -> ?LOOKUP_OPTIONS.
-
--type nameserver() :: {inet:ip_address(), Port :: 1..65535}.
 
 -spec set_option_alt_nameservers(options(), [nameserver()]) -> options().
 set_option_alt_nameservers(Options, Value) ->

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc proplists-like interface to json objects
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -142,6 +142,11 @@
              ,key/0, keys/0
              ,object/0, objects/0
              ,path/0, paths/0
+
+             ,exec_fun/0
+             ,exec_funs/0
+             ,exec_first_fun/0
+             ,exec_first_funs/0
              ]).
 
 -type get_key() :: key() | path().
