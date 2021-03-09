@@ -34,9 +34,11 @@ profile(EndpointId, AccountId, Options) ->
 -spec lookup_account(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 lookup_account(EndpointId, AccountId, Number, Options) ->
     case knm_numbers:lookup_account(Number) of
-        {'error', _R} = Error ->
-            lager:info("unable to determine account for number ~s: ~p",[Number, _R]),
-            Error;
+        {'error', _R} ->
+            Props = [{'number', Number}
+                    ,{'account_id', AccountId}
+                    ],
+            generate_profile({EndpointId, AccountId, Options, Props});
         {'ok', _, NumberProps} ->
             generate_profile({EndpointId, AccountId, Options, NumberProps})
     end.
@@ -259,6 +261,7 @@ set_cid_name(Map) -> Map.
 -spec maybe_transition_port_in(knm_options:extra_options()) -> 'ok' | pid().
 maybe_transition_port_in(NumberProps) ->
     case knm_options:has_pending_port(NumberProps) of
+        'undefined' -> 'ok';
         'false' -> 'ok';
         'true' -> kz_process:spawn(fun transition_port_in/1, [NumberProps])
     end.
