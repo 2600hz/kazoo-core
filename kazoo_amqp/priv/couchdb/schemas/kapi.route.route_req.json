@@ -70,6 +70,9 @@
         "Geo-Location": {
             "type": "string"
         },
+        "Is-Transfer": {
+            "type": "string"
+        },
         "Max-Call-Length": {
             "type": "string"
         },
@@ -94,6 +97,9 @@
             "type": "string"
         },
         "Prepend-CID-Name": {
+            "type": "string"
+        },
+        "Privacy": {
             "type": "string"
         },
         "Request": {

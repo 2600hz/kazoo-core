@@ -53,8 +53,7 @@ call_forward_properties(EndpointId, AccountId, Endpoint, IsReconcilable) ->
     Props = lists:foldl(fun(Fun, Acc) -> Acc ++ Fun(EndpointId, AccountId, Endpoint, IsReconcilable) end, [], Routines),
     kz_json:from_list(Props).
 
-call_forward_base_properties(_EndpointId, _AccountId, Endpoint, IsReconcilable) ->
-    CIDTypeName = call_forward_cid_type_name(IsReconcilable),
+call_forward_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
     [{<<"Call-Forward">>, 'true'}
     ,{<<"Is-Substitute">>, call_forward_is_substitute(Endpoint)}
     ,{<<"Is-Failover">>, kzd_devices:call_forward_failover(Endpoint)}
@@ -64,8 +63,6 @@ call_forward_base_properties(_EndpointId, _AccountId, Endpoint, IsReconcilable) 
     ,{<<"Loopback-Bowout">>, 'true'}
     ,{<<"Call-Forward-From">>, <<"${kz_ctx_Inception}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
-    ,{<<"Outbound-Caller-ID-Number">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Number|Caller-Caller-ID-Number)}">>}
-    ,{<<"Outbound-Caller-ID-Name">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Name|Caller-Caller-ID-Name)}">>}
     ,{<<"Failover-Reasons">>, cfw_failover_reasons()}
     ].
 
@@ -105,9 +102,12 @@ call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilab
             ]
     end.
 
-call_forward_maybe_retain_cid(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
+call_forward_maybe_retain_cid(_EndpointId, _AccountId, Endpoint, IsReconcilable) ->
+    CIDTypeName = call_forward_cid_type_name(IsReconcilable),
     case kzd_devices:call_forward_keep_caller_id(Endpoint) of
-        'false' -> [];
+        'false' -> [{<<"Outbound-Caller-ID-Number">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Number|Caller-Caller-ID-Number)}">>}
+                   ,{<<"Outbound-Caller-ID-Name">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Name|Caller-Caller-ID-Name)}">>}
+                   ];
         'true' ->  [{<<"Retain-CID">>, 'true'}]
     end.
 

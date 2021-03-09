@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Routing requests, responses, and wins!
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -123,6 +123,7 @@ req_definition() ->
                                                             ,<<"Orig-Port">>
                                                             ,<<"Origination-Call-ID">>
                                                             ,<<"Prepend-CID-Name">>
+                                                            ,<<"Privacy">>
                                                             ,<<"Resource-Type">>
                                                             ,<<"Ringback-Media">>
                                                             ,<<"SIP-Request-Host">>
@@ -135,6 +136,7 @@ req_definition() ->
                                                             ,<<"Transfer-Media">>
                                                             ,<<"User-Agent">>
                                                             ,<<"Destination-Number">>
+                                                            ,<<"Is-Transfer">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Resource-Type">>, [<<"mms">>
