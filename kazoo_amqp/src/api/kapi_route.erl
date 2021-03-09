@@ -123,6 +123,7 @@ req_definition() ->
                                                             ,<<"Orig-Port">>
                                                             ,<<"Origination-Call-ID">>
                                                             ,<<"Prepend-CID-Name">>
+                                                            ,<<"Privacy">>
                                                             ,<<"Resource-Type">>
                                                             ,<<"Ringback-Media">>
                                                             ,<<"SIP-Request-Host">>
@@ -135,6 +136,7 @@ req_definition() ->
                                                             ,<<"Transfer-Media">>
                                                             ,<<"User-Agent">>
                                                             ,<<"Destination-Number">>
+                                                            ,<<"Is-Transfer">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Resource-Type">>, [<<"mms">>

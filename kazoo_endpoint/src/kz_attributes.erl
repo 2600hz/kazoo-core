@@ -89,6 +89,7 @@ caller_id(Attribute, Call) ->
     case ((Inception =/= 'undefined'
            andalso not kz_json:is_true(<<"Call-Forward">>, CCVs)
           )
+          orelse kapps_call:is_transfer(Call)
           orelse kz_json:is_true(<<"Retain-CID">>, CCVs))
         andalso kz_term:is_false(kapps_call:kvs_fetch('force_dynamic_cid', 'false', Call))
     of

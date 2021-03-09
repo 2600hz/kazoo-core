@@ -147,6 +147,7 @@
 
 -export([is_recording/1, set_is_recording/2]).
 -export([is_call_forward/1]).
+-export([is_transfer/1]).
 
 -ifdef(TEST).
 -export([eq/2]).
@@ -213,6 +214,7 @@
                     ,message_left = 'false' :: boolean()                %% Specified during call termination whether the caller left a voicemail message
                     ,is_recording = 'false' :: boolean()                %% Control account level recording
                     ,is_call_forward = 'false' :: boolean()             %% is this call forward call
+                    ,is_transfer = 'false' :: boolean()                 %% is this call a transfer
                     }).
 
 -type call() :: #kapps_call{}.
@@ -327,6 +329,7 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                     ,from_tag = kz_json:get_ne_binary_value(<<"From-Tag">>, RouteReq, from_tag(Call))
                     ,direction = kz_json:get_ne_binary_value(<<"Call-Direction">>, RouteReq, direction(Call))
                     ,is_call_forward = kz_json:is_true(<<"Call-Forward">>, CCVs, is_call_forward(Call))
+                    ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, RouteReq, is_transfer(Call))
                     }.
 
 -spec from_route_win(kz_json:object()) -> call().
@@ -489,6 +492,7 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                    ,message_left = kz_json:is_true(<<"Message-Left">>, JObj, message_left(Call))
                    ,is_recording = kz_json:is_true(<<"Is-Recording">>, JObj, is_recording(Call))
                    ,is_call_forward = kz_json:is_true(<<"Is-Call-Forward">>, JObj, is_call_forward(Call))
+                   ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, JObj, is_transfer(Call))
                    }.
 
 %%------------------------------------------------------------------------------
@@ -541,6 +545,7 @@ to_proplist(#kapps_call{}=Call) ->
     ,{<<"Inception">>, inception(Call)}
     ,{<<"Is-Recording">>, is_recording(Call)}
     ,{<<"Is-Call-Forward">>, is_call_forward(Call)}
+    ,{<<"Is-Transfer">>, is_transfer(Call)}
     ,{<<"Key-Value-Store">>, kvs_to_proplist(Call)}
     ,{<<"Language">>, language(Call)}
     ,{<<"Message-Left">>, message_left(Call)}
@@ -1688,6 +1693,10 @@ is_recording(#kapps_call{is_recording=IsRecording}) ->
 -spec is_call_forward(call()) -> boolean().
 is_call_forward(#kapps_call{is_call_forward=IsCallForward}) ->
     IsCallForward.
+
+-spec is_transfer(call()) -> boolean().
+is_transfer(#kapps_call{is_transfer=IsTransfer}) ->
+    IsTransfer.
 
 -ifdef(TEST).
 eq(Call, Call1) ->
