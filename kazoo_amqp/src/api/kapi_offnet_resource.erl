@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -79,6 +79,7 @@
         ,delete_keys/2
         ,set_values/2
         ,continue_after/1, continue_after/2
+        ,fail_on_single_reject/1, fail_on_single_reject/2
         ]).
 
 %% helpers for working with opaque object
@@ -201,6 +202,7 @@ req_definition() ->
                                                             ,?KEY_T38_ENABLED
                                                             ,?KEY_TIMEOUT
                                                             ,?KEY_CONTINUE_AFTER
+                                                            ,?KEY_FAIL_ON_SINGLE_REJECT
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{?KEY_RESOURCE_TYPE, [?RESOURCE_TYPE_AUDIO
@@ -247,6 +249,7 @@ req_definition() ->
                 ,{?KEY_REQUESTOR_CSHS, fun kz_json:is_json_object/1}
                 ,{?KEY_TO_DID, fun kz_term:is_ne_binary/1}
                 ,{?KEY_CONTINUE_AFTER, fun kz_term:is_boolean/1}
+                ,{?KEY_FAIL_ON_SINGLE_REJECT, fun is_valid_fail_on_single_reject/1}
                 ]
                }
               ],
@@ -743,3 +746,23 @@ continue_after(Req) ->
 -spec continue_after(req(), Default) -> boolean() | Default.
 continue_after(?REQ_TYPE(JObj), Default) ->
     kz_json:is_true(?KEY_CONTINUE_AFTER, JObj, Default).
+
+-spec fail_on_single_reject(req()) -> kz_term:api_boolean() | kz_term:ne_binaries().
+fail_on_single_reject(Req) ->
+    fail_on_single_reject(Req, 'undefined').
+
+-spec fail_on_single_reject(req(), Default) -> boolean() | kz_term:ne_binaries() | Default.
+fail_on_single_reject(?REQ_TYPE(JObj), Default) ->
+    case kz_json:get_value(?KEY_FAIL_ON_SINGLE_REJECT, JObj) of
+        Bool when is_boolean(Bool) -> Bool;
+        Other ->
+            case kz_term:is_ne_binaries(Other) of
+                true -> Other;
+                false -> Default
+            end
+    end.
+
+-spec is_valid_fail_on_single_reject(term()) -> boolean().
+is_valid_fail_on_single_reject(Term) ->
+    is_boolean(Term)
+        orelse kz_term:is_ne_binaries(Term).

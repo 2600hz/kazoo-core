@@ -120,6 +120,15 @@
                 "offnet_req"
             ]
         },
+        "Fail-On-Single-Reject": {
+            "items": {
+                "type": "string"
+            },
+            "type": [
+                "boolean",
+                "array"
+            ]
+        },
         "Fax-Identity-Name": {
             "type": "string"
         },
