@@ -53,6 +53,7 @@ call_forward_properties(EndpointId, AccountId, Endpoint, IsReconcilable) ->
     Props = lists:foldl(fun(Fun, Acc) -> Acc ++ Fun(EndpointId, AccountId, Endpoint, IsReconcilable) end, [], Routines),
     kz_json:from_list(Props).
 
+-spec call_forward_base_properties(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
 call_forward_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
     [{<<"Call-Forward">>, 'true'}
     ,{<<"Is-Substitute">>, call_forward_is_substitute(Endpoint)}
@@ -75,6 +76,7 @@ call_forward_is_substitute(Endpoint) ->
     kzd_devices:call_forward_substitute(Endpoint)
         andalso not kzd_devices:call_forward_failover(Endpoint).
 
+-spec cfw_single_reject() -> kz_term:ne_binaries().
 cfw_single_reject() ->
     [<<"USER_BUSY">>
     ,<<"CALL_REJECTED">>
@@ -84,11 +86,13 @@ cfw_single_reject() ->
     ,<<"ALLOTTED_TIMEOUT">>
     ].
 
+-spec cfw_failover_reasons() -> kz_term:ne_binaries().
 cfw_failover_reasons() ->
     [<<"SUBSCRIBER_ABSENT">>
     ,<<"RECOVERY_ON_TIMER_EXPIRE">>
     ].
 
+-spec call_forward_confirm_properties(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
 call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
     case kzd_devices:call_forward_require_keypress(Endpoint) of
         'false' -> [];
@@ -102,13 +106,15 @@ call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilab
             ]
     end.
 
+-spec call_forward_maybe_retain_cid(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
 call_forward_maybe_retain_cid(_EndpointId, _AccountId, Endpoint, IsReconcilable) ->
     CIDTypeName = call_forward_cid_type_name(IsReconcilable),
     case kzd_devices:call_forward_keep_caller_id(Endpoint) of
-        'false' -> [{<<"Outbound-Caller-ID-Number">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Number|Caller-Caller-ID-Number)}">>}
-                   ,{<<"Outbound-Caller-ID-Name">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Name|Caller-Caller-ID-Name)}">>}
-                   ];
-        'true' ->  [{<<"Retain-CID">>, 'true'}]
+        'false' -> [];
+        'true' -> [{<<"Outbound-Caller-ID-Number">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Number|Caller-Caller-ID-Number)}">>}
+                  ,{<<"Outbound-Caller-ID-Name">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Name|Caller-Caller-ID-Name)}">>}
+                  ,{<<"Retain-CID">>, 'true'}
+                  ]
     end.
 
 -spec get_realm(kz_json:object()) -> kz_term:ne_binary().
