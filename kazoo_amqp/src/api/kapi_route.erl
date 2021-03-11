@@ -42,6 +42,13 @@
         ,fetch_id/1
         ]).
 
+-export([custom_channel_vars/1, custom_channel_vars/2
+        ,custom_channel_var/2, custom_channel_var/3
+        ,authorizing_id/1
+        ,authorizing_type/1
+        ,inception/1
+        ]).
+
 -include_lib("kz_amqp_util.hrl").
 -include("kapi_dialplan.hrl").
 -include("kapi_route.hrl").
@@ -532,5 +539,34 @@ has_cost_parameters(JObj) ->
     kz_json:is_json_object(JObj)
         andalso kz_json:all(fun key_is_cost_param/1, JObj).
 
+-spec key_is_cost_param({kz_json:key(), kz_json:json_term()}) -> boolean().
 key_is_cost_param({K, _V}) ->
     lists:member(K, ?ROUTE_REQ_COST_PARAMS).
+
+-spec custom_channel_vars(kz_json:object()) -> kz_term:api_object().
+custom_channel_vars(JObj) ->
+    custom_channel_vars(JObj, 'undefined').
+
+-spec custom_channel_vars(kz_json:object(), Default) -> kz_json:object() | Default.
+custom_channel_vars(JObj, Default) ->
+    kz_json:get_json_value(<<"Custom-Channel-Vars">>, JObj, Default).
+
+-spec custom_channel_var(kz_json:object(), kz_json:key()) -> kz_term:api_ne_binary().
+custom_channel_var(JObj, Key) ->
+    custom_channel_var(JObj, Key, 'undefined').
+
+-spec custom_channel_var(kz_json:object(), kz_json:key(), Default) -> kz_term:ne_binary() | Default.
+custom_channel_var(JObj, Key, Default) ->
+    kz_json:get_ne_binary_value([<<"Custom-Channel-Vars">>, Key], JObj, Default).
+
+-spec authorizing_id(kz_json:object()) -> kz_term:api_binary().
+authorizing_id(JObj) ->
+    custom_channel_var(JObj, <<"Authorizing-ID">>).
+
+-spec authorizing_type(kz_json:object()) -> kz_term:api_binary().
+authorizing_type(JObj) ->
+    custom_channel_var(JObj, <<"Authorizing-Type">>).
+
+-spec inception(kz_json:object()) -> kz_term:api_binary().
+inception(JObj) ->
+    custom_channel_var(JObj, <<"Inception">>).
