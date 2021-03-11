@@ -173,6 +173,7 @@ ensure_claims(#{payload := Payload}) ->
 -spec include_claims(kz_term:proplist()) -> kz_term:proplist().
 include_claims(Claims) ->
     Routines = [fun include_identity_sign/1
+               ,fun include_scope/1
                ,fun ensure_issuer/1
                ],
     lists:foldl(fun(Fun, Acc) -> Fun(Acc) end, Claims, Routines).
@@ -185,6 +186,13 @@ include_identity_sign(Claims) ->
         _Else ->
             lager:debug("identity signing json token failed : ~p", [_Else]),
             Claims
+    end.
+
+-spec include_scope(kz_term:proplist()) -> kz_term:proplist().
+include_scope(Claims) ->
+    case kz_auth_scope:create_claims(Claims) of
+        {'ok', NewClaim} -> NewClaim;
+        _Else -> Claims
     end.
 
 -spec ensure_issuer(kz_term:proplist()) -> kz_term:proplist().

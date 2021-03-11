@@ -48,6 +48,7 @@
 -export([ringtones/1, ringtones/2, set_ringtones/2]).
 -export([ringtones_external/1, ringtones_external/2, set_ringtones_external/2]).
 -export([ringtones_internal/1, ringtones_internal/2, set_ringtones_internal/2]).
+-export([scopes/1, scopes/2, set_scopes/2]).
 -export([timezone/1, timezone/2, set_timezone/2]).
 -export([topup/1, topup/2, set_topup/2]).
 -export([topup_threshold/1, topup_threshold/2, set_topup_threshold/2]).
@@ -759,6 +760,18 @@ zones_home(Doc, Default) ->
 -spec set_zones_home(doc(), binary()) -> doc().
 set_zones_home(Doc, ZonesHome) ->
     kz_json:set_value([<<"zones">>, <<"home">>], ZonesHome, Doc).
+
+-spec scopes(doc()) -> kz_term:ne_binaries().
+scopes(Doc) ->
+    scopes(Doc, []).
+
+-spec scopes(doc(), Default) -> kz_term:ne_binaries() | Default.
+scopes(Doc, Default) ->
+    kz_json:get_list_value([<<"scopes">>], Doc, Default).
+
+-spec set_scopes(doc(), kz_term:ne_binaries()) -> doc().
+set_scopes(Doc, scopes) ->
+    kz_json:set_value([<<"scopes">>], scopes, Doc).
 
 
 -spec type() -> kz_term:ne_binary().

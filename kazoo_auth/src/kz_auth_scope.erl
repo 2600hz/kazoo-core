@@ -21,6 +21,12 @@
         ,to_str/1
         ]).
 
+-export([create_claims/1]).
+
+-export([join/1
+        ,split/1
+        ]).
+
 -define(SCOPE_DELIM, <<":">>).
 -define(SCOPE_SEP, <<" ">>).
 -define(SCOPES_KEY, <<"scopes">>).
@@ -110,6 +116,69 @@ exists(<<Scope/binary>>) ->
     exists(to_list(Scope));
 exists(Scope) ->
     lists:member(Scope, available_scopes()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec create_claims(kz_term:proplist()) -> kz_either:either(kz_term:ne_binary(), kz_term:proplist()).
+create_claims(Claims) ->
+    AccountId = props:get_value(<<"account_id">>, Claims),
+    OwnerId = props:get_value(<<"owner_id">>, Claims),
+
+    UserScopes = get_user_scopes(AccountId, OwnerId),
+    AccountScopes = get_account_scopes(AccountId),
+
+    create_claims(Claims, UserScopes, AccountScopes).
+
+-spec create_claims(kz_term:proplist()
+                   ,kz_either:either(kz_term:binary(), kz_term:ne_binaries())
+                   ,kz_either:either(kz_term:binary(), kz_term:ne_binaries())
+                   ) -> kz_either:either(kz_term:ne_binary(), kz_term:proplist()).
+create_claims(Claims, {'ok', UserScopes}, {'ok', AccountScopes}) ->
+    ReqScopes = props:get_value(<<"scopes">>, Claims, []),
+    Scope = join(lists:usort(ReqScopes ++ UserScopes ++ AccountScopes)),
+    {'ok', props:set_value(<<"scope">>, Scope, props:delete_keys([<<"scopes">>], Claims))};
+create_claims(_, {'error', _Reason}=Error, _) ->
+    lager:debug("failed to get scopes: ~s", [_Reason]),
+    Error;
+create_claims(_, _, {'error', _Reason}=Error) ->
+    lager:debug("failed to get scopes: ~s", [_Reason]),
+    Error.
+
+-spec get_user_scopes(kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
+          kz_either:either(kz_term:binary(), kz_term:ne_binaries()).
+get_user_scopes(<<AccountId/binary>>, <<OwnerId/binary>>) ->
+    case kzd_users:fetch(AccountId, OwnerId) of
+        {'ok', JObj} ->
+            case kz_doc:type(JObj) =:= kzd_users:type() of
+                'true' ->
+                    {'ok', [kzd_users:priv_level(JObj) | kzd_users:scopes(JObj)]};
+                'false' ->
+                    {'error', kz_binary:format("doc ~s is not an user", [OwnerId])}
+            end;
+        {'error', _Reason} ->
+            {'error', kz_binary:format("failed to open doc ~s with error ~p", [OwnerId, _Reason])}
+    end;
+get_user_scopes(_, _) ->
+    {'ok', []}.
+
+-spec get_account_scopes(kz_term:api_ne_binary()) ->
+          kz_either:either(kz_term:binary(), kz_term:ne_binaries()).
+get_account_scopes(<<AccountId/binary>>) ->
+    case kzd_accounts:fetch(AccountId) of
+        {'ok', JObj} ->
+            case kz_doc:type(JObj) =:= kzd_accounts:type() of
+                'true' ->
+                    {'ok', kzd_accounts:scopes(JObj)};
+                'false' ->
+                    {'error', kz_binary:format("doc ~s is not an account", [AccountId])}
+            end;
+        {'error', _Reason} ->
+            {'error', kz_binary:format("failed to open doc ~s: ~p", [AccountId, _Reason])}
+    end;
+get_account_scopes(_) ->
+    {'ok', []}.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -225,9 +294,9 @@ resolve_scopes(Scopes, Available, Visited) ->
 %%------------------------------------------------------------------------------
 resolve_scopes_fold(Scope, {Available, Visited}) ->
     case lists:member(Scope, Visited) of
-        true ->
+        'true' ->
             {[Scope], {Available, Visited}};
-        false ->
+        'false' ->
             case props:get_value(Scope, Available, []) of
                 [] -> {[Scope], {Available, [Scope | Visited]}};
                 Scopes -> {[Scope | resolve_scopes(Scopes, Available, [Scope | Visited])], {Available, [Scope | Visited]}}
@@ -235,7 +304,9 @@ resolve_scopes_fold(Scope, {Available, Visited}) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @doc Extract scope binary into list of subscopes
+%% @doc Extract scope binary into list of subscopes (internal usage).
+%%
+%% api:read_only results in `[api, read_only]'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec to_list(kz_term:ne_binary() | kz_term:ne_binaries()) ->
@@ -257,7 +328,7 @@ to_list(<<ScopeBin/binary>>, Delim) ->
     binary:split(ScopeBin, Delim, ['global']).
 
 %%------------------------------------------------------------------------------
-%% @doc Converts scope list to space separated binary
+%% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec to_str(kz_term:api_binary() | list()) -> kz_term:api_binary().
@@ -283,3 +354,9 @@ to_str(List, Delim)
   when is_list(List) ->
     Scopes = lists:map(fun kz_term:to_binary/1, List),
     kz_binary:join(Scopes, Delim).
+
+-spec join(kz_term:ne_binaries()) -> kz_term:ne_binary().
+join(ScopeList) -> binstr:join(ScopeList, ?SCOPE_SEP).
+
+-spec split(kz_term:ne_binary()) -> kz_term:ne_binaries().
+split(Scope) -> binary:split(Scope, ?SCOPE_SEP, ['global']).
