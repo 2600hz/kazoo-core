@@ -17,6 +17,8 @@
 
 -include("kazoo_directory.hrl").
 
+-define(CONFIRM_TIMEOUT_SEC, 5).
+
 -spec call_forward(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_object().
 call_forward(EndpointId, AccountId, Endpoint) ->
     case is_call_forward_enabled(Endpoint) of
@@ -100,6 +102,7 @@ call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilab
             [{<<"Confirm-Key">>, <<"1">>}
             ,{<<"Confirm-Cancel-Timeout">>, 'true'}
             ,{<<"Confirm-Read-Timeout">>, 3 * ?MILLISECONDS_IN_SECOND}
+            ,{<<"Confirm-Timeout">>, ?CONFIRM_TIMEOUT_SEC}
             ,{<<"Confirm-File">>, kzd_endpoint:get_prompt_url(Endpoint, <<"ivr-group_confirm">>)}
             ,{<<"Require-Ignore-Early-Media">>, 'true'}
             ,{<<"Require-Fail-On-Single-Reject">>, cfw_single_reject()}
