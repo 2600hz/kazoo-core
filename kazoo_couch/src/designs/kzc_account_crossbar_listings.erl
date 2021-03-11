@@ -66,7 +66,7 @@
 %%% * trunkstore/lookup_did --> crossbar_listings/by_type_number
 %%% * users/creds_by_md5 --> crossbar_listings/user_creds_md5
 %%% * users/creds_by_sha --> crossbar_listings/user_creds_sha1
-%%% * users/crossbar_listing --> crossbar_listings/by_type_name
+%%% * users/crossbar_listing --> crossbar_listings/by_type_id (pre KZOO-163 crossbar_listings/by_type_name)
 %%% * users/list_by_email --> crossbar_listings/user_emails
 %%% * users/list_by_hotdesk_id --> crossbar_listings/by_type_id
 %%% * users/list_by_id --> crossbar_listings/by_type_id
