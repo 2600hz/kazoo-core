@@ -499,7 +499,7 @@
                 "      var last_first = (doc.last_name || '') + name_separator + (doc.first_name || '');",
                 "      defaultKey = [doc.pvt_type, last_first];",
                 "",
-                "      /* users/crossbar_listing */",
+                "      /* users/crossbar_listing (pre KZOO-163) */",
                 "      defaultValue.call_recording = doc.call_recording;",
                 "      defaultValue.email = doc.email;",
                 "      defaultValue.feature_level = doc.feature_level;",
