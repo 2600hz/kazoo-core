@@ -8,6 +8,7 @@
 -export([new/0]).
 -export([id/1, id/2, set_id/2]).
 -export([scopes/1, scopes/2, set_scopes/2]).
+-export([allow_api_request/1, allow_api_request/2, set_allow_api_request/2]).
 
 
 -include("kz_documents.hrl").
@@ -44,3 +45,15 @@ scopes(Doc, Default) ->
 -spec set_scopes(doc(), kz_term:ne_binaries()) -> doc().
 set_scopes(Doc, Scopes) ->
     kz_json:set_value([<<"scopes">>], Scopes, Doc).
+
+-spec allow_api_request(doc()) -> boolean().
+allow_api_request(Doc) ->
+    allow_api_request(Doc, []).
+
+-spec allow_api_request(doc(), Default) -> boolean() | Default.
+allow_api_request(Doc, Default) ->
+    kz_json:is_true([<<"allow_api_request">>], Doc, Default).
+
+-spec set_allow_api_request(doc(), boolean()) -> doc().
+set_allow_api_request(Doc, Allow) ->
+    kz_json:set_value([<<"allow_api_request">>], Allow, Doc).
