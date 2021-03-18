@@ -41,7 +41,7 @@
 
 -type jwt() :: map().
 -type token() :: jwt() | kz_term:ne_binary() | 'undefined'.
--type has_scope_option() :: 'any' | 'all'.
+-type scope_list_fun() :: fun((kz_term:ne_binary()) -> boolean()).
 
 %%------------------------------------------------------------------------------
 %% @doc Test if all requested scopes are present in token
@@ -49,7 +49,7 @@
 %%------------------------------------------------------------------------------
 -spec all(token(), kz_term:ne_binaries()) -> boolean().
 all(Token, ScopeList) ->
-    has_scopes(Token, ScopeList, 'all').
+    has_scopes(Token, ScopeList, fun lists:all/2).
 
 %%------------------------------------------------------------------------------
 %% @doc Test if any scopes are present in token
@@ -57,7 +57,7 @@ all(Token, ScopeList) ->
 %%------------------------------------------------------------------------------
 -spec any(token(), kz_term:ne_binaries()) -> boolean().
 any(Token, ScopeList) ->
-    has_scopes(Token, ScopeList, 'any').
+    has_scopes(Token, ScopeList, fun lists:any/2).
 
 %%------------------------------------------------------------------------------
 %% @doc Test if scope is present in token
@@ -65,22 +65,32 @@ any(Token, ScopeList) ->
 %%------------------------------------------------------------------------------
 -spec has(token(), kz_term:ne_binary()) -> boolean().
 has(Token, Scope) ->
-    has_scopes(Token, [Scope], 'all').
+    has_scopes(Token, [Scope], fun lists:all/2).
+
+%%------------------------------------------------------------------------------
+%% @doc checks if scope is defined in system_auth
+%% @end
+%%------------------------------------------------------------------------------
+-spec exists(kz_term:ne_binary() | kz_term:binaries()) -> boolean().
+exists(<<Scope/binary>>) ->
+    exists(extract_scopes(Scope));
+exists(Scope) ->
+    lists:member(Scope, available_scopes()).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec has_scopes(token(), kz_term:ne_binaries(), has_scope_option()) -> boolean().
-has_scopes(JWToken, Scopes, Option)
+-spec has_scopes(token(), kz_term:ne_binaries(), scope_list_fun()) -> boolean().
+has_scopes(JWToken, Scopes, ListFun)
   when is_binary(JWToken) ->
-    has_scopes(kz_auth_jwt:token(JWToken), Scopes, Option);
-has_scopes(Token, ScopeList, Option) ->
-    Scopes = scopes(Token),
+    has_scopes(kz_auth_jwt:token(JWToken), Scopes, ListFun);
+has_scopes(Token, ScopeList, ListFun) ->
+    TokenScopes = scopes(Token),
     Fun = fun(Scope) ->
-                  lists:member(Scope, Scopes)
+                  lists:member(Scope, TokenScopes)
           end,
-    lists:Option(Fun, ScopeList).
+    ListFun(Fun, ScopeList).
 
 %%------------------------------------------------------------------------------
 %% @doc Fetches scope by name
@@ -112,16 +122,6 @@ fetch_scopes(ViewOptions) ->
         {'ok', Scopes} -> Scopes;
         _ -> []
     end.
-
-%%------------------------------------------------------------------------------
-%% @doc checks if scope is defined in system_auth
-%% @end
-%%------------------------------------------------------------------------------
--spec exists(kz_term:ne_binary() | kz_term:binaries()) -> boolean().
-exists(<<Scope/binary>>) ->
-    exists(to_list(Scope));
-exists(Scope) ->
-    lists:member(Scope, available_scopes()).
 
 %%------------------------------------------------------------------------------
 %% @doc
