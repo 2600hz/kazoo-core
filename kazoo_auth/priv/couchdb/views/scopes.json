@@ -24,8 +24,7 @@
             "map": [
                 "function(doc) {",
                 "  if (doc.pvt_type !== 'scope' || doc.pvt_deleted) return;",
-                "  emit([doc.allow_api_request || true, doc._id], doc.scopes",
-                "  });",
+                "  emit([doc.allow_api_request || true, doc._id], doc.scopes);",
                 "}"
             ]
         }

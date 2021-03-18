@@ -41,7 +41,7 @@
 
 -type jwt() :: map().
 -type token() :: jwt() | kz_term:ne_binary() | 'undefined'.
--type scope_list_fun() :: fun((kz_term:ne_binary()) -> boolean()).
+-type scope_list_fun() :: fun((kz_term:ne_binary(), kz_term:ne_binaries()) -> boolean()).
 
 %%------------------------------------------------------------------------------
 %% @doc Test if all requested scopes are present in token
@@ -391,9 +391,7 @@ split(Scope) -> binary:split(Scope, ?SCOPE_SEP, ['global']).
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_deny_access(AuthDoc::kz_json:object(), Options::kz_term:proplist()) ->
-          {'ok', AuthDoc::kz_json:object()} |
-          {'error', any()}.
+-spec maybe_deny_access(AuthDoc::kz_json:object(), Options::kz_term:proplist()) -> boolean().
 maybe_deny_access(AuthDoc, Options) ->
     Scopes = split(kz_json:get_binary_value(<<"scope">>, AuthDoc, <<>>)),
     Transport = props:get_value('transport', Options),
