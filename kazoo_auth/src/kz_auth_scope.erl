@@ -172,7 +172,7 @@ get_user_scopes(<<AccountId/binary>>, <<OwnerId/binary>>) ->
         {'ok', JObj} ->
             case kz_doc:type(JObj) =:= kzd_users:type() of
                 'true' ->
-                    {'ok', [kzd_users:priv_level(JObj) | kzd_users:scopes(JObj)]};
+                    {'ok', add_user_type(JObj)};
                 'false' ->
                     {'error', kz_binary:format("doc ~s is not an user", [OwnerId])}
             end;
@@ -181,6 +181,15 @@ get_user_scopes(<<AccountId/binary>>, <<OwnerId/binary>>) ->
     end;
 get_user_scopes(_, _) ->
     {'ok', []}.
+
+add_user_type(JObj) ->
+    PrivLevel = kzd_users:priv_level(JObj),
+    case kz_term:is_empty(PrivLevel) of
+        'true' -> kzd_users:scopes(JObj);
+        'false' -> [user_type_scope(PrivLevel) | kzd_users:scopes(JObj)]
+    end.
+
+user_type_scope(PrivLevel) -> <<"user:", PrivLevel/binary>>.
 
 -spec get_account_scopes(kz_term:api_ne_binary()) ->
           kz_either:either(kz_term:binary(), kz_term:ne_binaries()).
