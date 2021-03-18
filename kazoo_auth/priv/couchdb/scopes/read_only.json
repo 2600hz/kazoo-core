@@ -1,6 +1,6 @@
 {
     "_id": "read_only",
-    "pvt_type": "scope",
     "allow_api_request": true,
+    "pvt_type": "scope",
     "scopes": []
 }
