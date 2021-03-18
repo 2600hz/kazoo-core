@@ -1,7 +1,6 @@
 {
     "_id": "crossbar",
     "pvt_type": "scope",
-    "scopes": [
-        "read_only"
-    ]
+    "allow_api_request": true,
+    "scopes": []
 }
