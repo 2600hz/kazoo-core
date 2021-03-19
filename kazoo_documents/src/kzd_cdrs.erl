@@ -80,6 +80,9 @@
         ,csv_headers/1
         ]).
 
+-export([created_timestamp/1
+        ]).
+
 -include("kzd_cdrs.hrl").
 
 -type doc() :: kz_json:object().
@@ -842,8 +845,7 @@ to_public_prop(Doc, IsReseller) ->
 
 -spec to_public_prop(doc(), boolean(), kz_term:api_ne_binary()) -> kz_term:proplist().
 to_public_prop(Doc, IsReseller, Timezone) ->
-    Duration = duration_seconds(Doc, 0),
-    Timestamp = timestamp(Doc, 0) - Duration,
+    Timestamp = created_timestamp(Doc),
 
     [{K, F(Doc, Timestamp, Timezone)} || {K, F} <- csv_headers(IsReseller)].
 
@@ -856,18 +858,27 @@ to_public_csv(Doc, IsReseller) ->
 
 -spec to_public_csv(doc(), boolean(), kz_term:api_ne_binary()) -> iodata().
 to_public_csv(Doc, IsReseller, Timezone) ->
-    Duration = duration_seconds(Doc, 0),
-    Timestamp = timestamp(Doc, 0) - Duration,
+    Timestamp = created_timestamp(Doc),
 
     [F(Doc, Timestamp, Timezone)
      || {_, F} <- csv_headers(IsReseller)
     ].
 
 -spec csv_headers(boolean()) -> [{kz_term:ne_binary(), fun()}].
-csv_headers('true'=_IsResller) ->
+csv_headers('true'=_IsReseller) ->
     ?COLUMNS ++ ?COLUMNS_RESELLER;
 csv_headers('false'=_IsReseller) ->
     ?COLUMNS.
+
+-spec created_timestamp(doc()) -> kz_time:gregorian_seconds().
+created_timestamp(Doc) ->
+    created_timestamp(Doc, channel_created_time(Doc)).
+
+-spec created_timestamp(doc(), 'undefined' | pos_integer()) -> kz_time:gregorian_seconds().
+created_timestamp(Doc, 'undefined') ->
+    timestamp(Doc, 0) - duration_seconds(Doc, 0);
+created_timestamp(_Doc, CCT) ->
+    kz_time:unix_seconds_to_gregorian_seconds(kz_time:microseconds_to_seconds(CCT)).
 
 %% see csv_column_fun() for specs for each function here
 col_id(JObj, _Timestamp, _Timezone) -> kz_doc:id(JObj, <<>>).
