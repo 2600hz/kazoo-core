@@ -583,6 +583,9 @@ bridge_endpoint_definition() ->
                                                             ,<<"To-URI">>
                                                             ,<<"To-User">>
                                                             ,<<"To-Username">>
+                                                            ,<<"CDR-URI-From">>
+                                                            ,<<"CDR-URI-To">>
+                                                            ,<<"CDR-URI-Request">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[?INVITE_FORMAT_TUPLE
