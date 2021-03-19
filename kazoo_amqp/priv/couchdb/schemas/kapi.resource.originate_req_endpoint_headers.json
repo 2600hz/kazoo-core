@@ -18,6 +18,15 @@
         "Bypass-Media": {
             "type": "string"
         },
+        "CDR-URI-From": {
+            "type": "string"
+        },
+        "CDR-URI-Request": {
+            "type": "string"
+        },
+        "CDR-URI-To": {
+            "type": "string"
+        },
         "Call-Context": {
             "type": "string"
         },
