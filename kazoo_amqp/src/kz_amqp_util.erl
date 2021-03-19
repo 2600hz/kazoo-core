@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Utilities to facilitate AMQP interaction.
 %%%
 %%% @author James Aimonetti
@@ -507,20 +507,12 @@ basic_publish(Exchange, RoutingKey, Payload, ContentType) ->
 basic_publish(Exchange, RoutingKey, Payload, ContentType, Prop)
   when is_list(Payload) ->
     basic_publish(Exchange, RoutingKey, iolist_to_binary(Payload), ContentType, Prop);
-basic_publish(Exchange, <<"pid://", _/binary>>=RoutingKey, ?NE_BINARY = Payload, ContentType, Props)
+basic_publish(Exchange, RoutingKey0, ?NE_BINARY = Payload, ContentType, Props0)
   when is_binary(Exchange),
-       is_binary(RoutingKey),
+       is_binary(RoutingKey0),
        is_binary(ContentType),
-       is_list(Props) ->
-    Headers = props:get_value('headers', Props, []),
-    {'match', [Pid, RK]}= re:run(RoutingKey, <<"pid://(.*)/(.*)">>, [{'capture', [1,2], 'binary'}]),
-    NewProps = props:set_value('headers', [{?KEY_DELIVER_TO_PID, binary, Pid} | Headers], Props),
-    basic_publish(Exchange, RK, Payload, ContentType, NewProps);
-basic_publish(Exchange, RoutingKey, ?NE_BINARY = Payload, ContentType, Props)
-  when is_binary(Exchange),
-       is_binary(RoutingKey),
-       is_binary(ContentType),
-       is_list(Props) ->
+       is_list(Props0) ->
+    {RoutingKey, Props} = basic_routing(RoutingKey0, Props0),
     BP = #'basic.publish'{exchange = Exchange
                          ,routing_key = RoutingKey
                          ,mandatory = ?P_GET('mandatory', Props, 'false')
@@ -557,6 +549,22 @@ basic_publish(Exchange, RoutingKey, ?NE_BINARY = Payload, ContentType, Props)
         'true' -> kz_amqp_channel:maybe_publish(BP, AM);
         'false' -> kz_amqp_channel:publish(BP, AM)
     end.
+
+-spec basic_routing(kz_term:api_binary(), kz_term:proplist()) -> {kz_term:api_binary(), kz_term:proplist()}.
+basic_routing(<<"pid://", _/binary>>=RoutingKey, Props) ->
+    Headers = props:get_value('headers', Props, []),
+    {'match', [Pid, RK]}= re:run(RoutingKey, <<"pid://(.*)/(.*)">>, [{'capture', [1,2], 'binary'}]),
+    {RK, props:set_value('headers', [{?KEY_DELIVER_TO_PID, binary, Pid} | Headers], Props)};
+basic_routing(<<"consumer://", _/binary>>=RoutingKey, Props) ->
+    Headers = props:get_value('headers', Props, []),
+    case re:run(RoutingKey, <<"(consumer://.*/)pid://(.*)/(.*)">>, [{'capture', [1,2,3], 'binary'}]) of
+        {'match', [Consumer, Pid, RK]} ->
+            NewRoutingKey = list_to_binary([Consumer, RK]),
+            {NewRoutingKey, props:set_value('headers', [{?KEY_DELIVER_TO_PID, binary, Pid} | Headers], Props)};
+        _Else ->
+            {RoutingKey, Props}
+    end;
+basic_routing(RoutingKey, Props) -> {RoutingKey, Props}.
 
 encode(<<"gzip">>, Payload) -> zlib:gzip(Payload);
 encode(_ContentType, Payload) -> Payload.
