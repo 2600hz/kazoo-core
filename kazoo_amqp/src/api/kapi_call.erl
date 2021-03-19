@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Call-related messages, like switch events, status requests, etc AMQP API.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -321,6 +321,7 @@ channel_status_resp_definition() ->
                                                             ,<<"Custom-Channel-Vars">>
                                                             ,<<"Error-Msg">>
                                                             ,<<"From-Tag">>
+                                                            ,<<"Correlation-ID">>
                                                             ,<<"Other-Leg-Call-ID">>
                                                             ,<<"Realm">>
                                                             ,<<"Switch-Hostname">>
