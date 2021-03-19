@@ -6,6 +6,9 @@
         "Call-ID": {
             "type": "string"
         },
+        "Correlation-ID": {
+            "type": "string"
+        },
         "Custom-Application-Vars": {
             "type": "object"
         },
