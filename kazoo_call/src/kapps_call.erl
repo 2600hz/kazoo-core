@@ -216,7 +216,7 @@
                     ,call_bridged = 'false' :: boolean()                %% Specified during call termination whether the call had been bridged
                     ,message_left = 'false' :: boolean()                %% Specified during call termination whether the caller left a voicemail message
                     ,is_recording = 'false' :: boolean()                %% Control account level recording
-                    ,recordings = kz_json:object()
+                    ,recordings = kz_json:new() :: kz_json:object()     %% Ensure no duplicate recordings
                     ,is_call_forward = 'false' :: boolean()             %% is this call forward call
                     ,is_transfer = 'false' :: boolean()                 %% is this call a transfer
                     }).
