@@ -30,15 +30,27 @@ maybe_record_inbound(FromNetwork, Endpoint, Call) ->
 maybe_record_inbound(_FromNetwork, _Endpoint, _Call, 'undefined') -> 'false';
 maybe_record_inbound(FromNetwork, Endpoint, Call, Data) ->
     case kz_json:is_true(<<"enabled">>, Data) of
-        'false' -> 'false';
-        'true' ->
+        'true' -> do_inbound_recording(FromNetwork, Endpoint, Call, Data);
+        _ -> 'false'
+    end.
+
+-spec do_inbound_recording(kz_term:ne_binary(), kz_json:object(), kapps_call:call(), kz_json:object()) ->
+          {'true', kapps_call:call()} | 'false'.
+do_inbound_recording(FromNetwork, Endpoint, Call, Data) ->
+    case kapps_call:is_recording(<<"inbound">>, FromNetwork, Call) of
+        'false' ->
+            lager:debug("recording call for endpoint inbound : ~s", [FromNetwork]),
             Values = [{<<"origin">>, <<"inbound from ", FromNetwork/binary, " to endpoint">>}
                      ,{<<"endpoint_id">>, kz_doc:id(Endpoint)}
                      ],
             App = kapps_call_recording:record_call_command(kz_json:set_values(Values, Data), Call),
             lager:info("setting endpoint ~s to record on answer", [kz_doc:id(Endpoint)]),
-            {'true', {[<<"Execute-On-Answer">>, <<"Record-Endpoint">>], App}}
+            {'true', {[<<"Execute-On-Answer">>, <<"Record-Endpoint">>], App}};
+        'true' ->
+            lager:debug("not recording endpoint, call is already being recorded inbound : ~s", [FromNetwork]),
+            'false'
     end.
+
 
 %% @doc maybe start recording on call made FROM the endpoint
 -spec maybe_record_outbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
@@ -51,10 +63,21 @@ maybe_record_outbound(ToNetwork, Endpoint, Call) ->
 maybe_record_outbound(_ToNetwork, _Endpoint, _Call, 'undefined') -> 'false';
 maybe_record_outbound(ToNetwork, _Endpoint, Call, Data) ->
     case kz_json:is_true(<<"enabled">>, Data) of
-        'false' -> 'false';
-        'true' ->
+        'true' -> do_outbound_recording(ToNetwork, Call, Data);
+        _ -> 'false'
+    end.
+
+-spec do_outbound_recording(kz_term:ne_binary(), kapps_call:call(), kz_json:object()) ->
+          {'true', kapps_call:call()} | 'false'.
+do_outbound_recording(ToNetwork, Call, Data) ->
+    case kapps_call:is_recording(<<"outbound">>, ToNetwork, Call) of
+        'false' ->
+            lager:debug("recording call for endpoint outbound : ~s", [ToNetwork]),
             LabeledData = kz_json:set_value(<<"origin">>, ?ENDPOINT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
-            {'true'
-            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'false', Call))
-            }
+            C2 = kapps_call:set_recording(<<"outbound">>, ToNetwork, Call),
+            C3 = kapps_call:kvs_store('recording_follow_transfer', 'false', C2),
+            {'true', kapps_call:start_recording(LabeledData, C3)};
+        'true' ->
+            lager:debug("not recording endpoint, call is already being recorded outbound : ~s", [ToNetwork]),
+            'false'
     end.

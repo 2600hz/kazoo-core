@@ -32,12 +32,8 @@ maybe_record_inbound(FromNetwork, Endpoint, Call) ->
 maybe_record_inbound(_FromNetwork, _Endpoint, _Call, 'undefined') -> 'false';
 maybe_record_inbound(FromNetwork, _Endpoint, Call, Data) ->
     case kz_json:is_true(<<"enabled">>, Data) of
-        'false' -> 'false';
-        'true' ->
-            LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_INBOUND_RECORDING_LABEL(FromNetwork), Data),
-            {'true'
-            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'false', Call))
-            }
+        'true' -> do_recording(<<"inbound">>, FromNetwork, Call, Data);
+        _ -> 'false'
     end.
 
 %% @doc maybe start recording on call made FROM the endpoint
@@ -51,10 +47,22 @@ maybe_record_outbound(ToNetwork, Endpoint, Call) ->
 maybe_record_outbound(_ToNetwork, _Endpoint, _Call, 'undefined') -> 'false';
 maybe_record_outbound(ToNetwork, _Endpoint, Call, Data) ->
     case kz_json:is_true(<<"enabled">>, Data) of
-        'false' -> 'false';
-        'true' ->
-            LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
-            {'true'
-            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'false', Call))
-            }
+        'true' -> do_recording(<<"outbound">>, ToNetwork, Call, Data);
+        _ -> 'false'
     end.
+
+-spec do_recording(kz_term:ne_binary(), kz_json:object(), kapps_call:call(), kz_json:object()) ->
+          {'true', kapps_call:call()} | 'false'.
+do_recording(Direction, ToNetwork, Call, Data) ->
+    case kapps_call:is_recording(Direction, ToNetwork, Call) of
+        'false' ->
+            lager:debug("recording call for ~s : ~s", [Direction, ToNetwork]),
+            LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
+            C2 = kapps_call:set_recording(Direction, ToNetwork, Call),
+            C3 = kapps_call:kvs_store('recording_follow_transfer', 'false', C2),
+            {'true', kapps_call:start_recording(LabeledData, C3)};
+        'true' ->
+            lager:debug("not recording, call is already being recorded for ~s : ~s", [Direction, ToNetwork]),
+            'false'
+    end.
+
