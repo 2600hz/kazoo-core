@@ -147,7 +147,7 @@
 
 -export([is_recording/1, set_is_recording/2]).
 -export([recordings/1, set_recordings/2
-        ,set_recording/3, get_recording/3, unset_recording/3
+        ,set_recording/3, already_recording/3, unset_recording/3
         ]).
 -export([is_call_forward/1]).
 -export([is_transfer/1]).
@@ -495,7 +495,7 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                    ,call_bridged = kz_json:is_true(<<"Call-Bridged">>, JObj, call_bridged(Call))
                    ,message_left = kz_json:is_true(<<"Message-Left">>, JObj, message_left(Call))
                    ,is_recording = kz_json:is_true(<<"Is-Recording">>, JObj, is_recording(Call))
-                   ,recordings = kz_json:is_true(<<"Recordings">>, JObj, recordings(Call))
+                   ,recordings = kz_json:get_json_value(<<"Recordings">>, JObj, recordings(Call))
                    ,is_call_forward = kz_json:is_true(<<"Is-Call-Forward">>, JObj, is_call_forward(Call))
                    ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, JObj, is_transfer(Call))
                    }.
@@ -1704,9 +1704,9 @@ set_recordings(Recordings, #kapps_call{}=Call) ->
 recordings(#kapps_call{recordings=Recordings}) ->
     Recordings.
 
--spec get_recording(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> boolean().
-get_recording(Direction, Network, #kapps_call{recordings=Recordings}) ->
-    kz_json:get([Direction, Network], Recordings, 'false').
+-spec already_recording(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> boolean().
+already_recording(Direction, Network, #kapps_call{recordings=Recordings}) ->
+    kz_json:get_is_true([Direction, Network], Recordings, 'false').
 
 -spec set_recording(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> call().
 set_recording(Direction, Network, #kapps_call{recordings=Recordings}=Call) ->

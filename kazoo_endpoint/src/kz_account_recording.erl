@@ -51,10 +51,10 @@ maybe_record_outbound(ToNetwork, _Endpoint, Call, Data) ->
         _ -> 'false'
     end.
 
--spec do_recording(kz_term:ne_binary(), kz_json:object(), kapps_call:call(), kz_json:object()) ->
+-spec do_recording(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kz_json:object()) ->
           {'true', kapps_call:call()} | 'false'.
 do_recording(Direction, ToNetwork, Call, Data) ->
-    case kapps_call:is_recording(Direction, ToNetwork, Call) of
+    case kapps_call:already_recording(Direction, ToNetwork, Call) of
         'false' ->
             lager:debug("recording call for ~s : ~s", [Direction, ToNetwork]),
             LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
