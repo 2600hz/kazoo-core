@@ -1706,15 +1706,15 @@ recordings(#kapps_call{recordings=Recordings}) ->
 
 -spec already_recording(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> boolean().
 already_recording(Direction, Network, #kapps_call{recordings=Recordings}) ->
-    kz_json:get_is_true([Direction, Network], Recordings, 'false').
+    kz_json:is_true([Direction, Network], Recordings, 'false').
 
 -spec set_recording(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> call().
 set_recording(Direction, Network, #kapps_call{recordings=Recordings}=Call) ->
-    set_recordings(kz_json:set_boolean_value([Direction, Network], Recordings, 'true'), Call).
+    set_recordings(kz_json:set_value([Direction, Network], 'true', Recordings), Call).
 
 -spec unset_recording(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> call().
 unset_recording(Direction, Network, #kapps_call{recordings=Recordings}=Call) ->
-    set_recordings(kz_json:set_boolean_value([Direction, Network], Recordings, 'false'), Call).
+    set_recordings(kz_json:set_value([Direction, Network], 'false', Recordings), Call).
 
 -spec is_call_forward(call()) -> boolean().
 is_call_forward(#kapps_call{is_call_forward=IsCallForward}) ->
