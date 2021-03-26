@@ -14,8 +14,6 @@
 -export([call_waiting/1, call_waiting/2, set_call_waiting/2]).
 -export([caller_id/1, caller_id/2, set_caller_id/2]).
 -export([caller_id_options/1, caller_id_options/2, set_caller_id_options/2]).
--export([caller_id_options_outbound_privacy/1, caller_id_options_outbound_privacy/2, set_caller_id_options_outbound_privacy/2]).
--export([caller_id_options_show_rate/1, caller_id_options_show_rate/2, set_caller_id_options_show_rate/2]).
 -export([dial_plan/1, dial_plan/2, set_dial_plan/2]).
 -export([do_not_disturb/1, do_not_disturb/2, set_do_not_disturb/2]).
 -export([do_not_disturb_enabled/1, do_not_disturb_enabled/2, set_do_not_disturb_enabled/2]).
@@ -45,6 +43,7 @@
 -export([ringtones_internal/1, ringtones_internal/2, set_ringtones_internal/2]).
 -export([timezone/1, timezone/2, set_timezone/2]).
 -export([topup/1, topup/2, set_topup/2]).
+-export([topup_amount/1, topup_amount/2, set_topup_amount/2]).
 -export([topup_threshold/1, topup_threshold/2, set_topup_threshold/2]).
 -export([voicemail/1, voicemail/2, set_voicemail/2]).
 -export([voicemail_notify/1, voicemail_notify/2, set_voicemail_notify/2]).
@@ -158,30 +157,6 @@ caller_id_options(Doc, Default) ->
 -spec set_caller_id_options(doc(), kz_json:object()) -> doc().
 set_caller_id_options(Doc, CallerIdOptions) ->
     kz_json:set_value([<<"caller_id_options">>], CallerIdOptions, Doc).
-
--spec caller_id_options_outbound_privacy(doc()) -> kz_term:api_binary().
-caller_id_options_outbound_privacy(Doc) ->
-    caller_id_options_outbound_privacy(Doc, 'undefined').
-
--spec caller_id_options_outbound_privacy(doc(), Default) -> binary() | Default.
-caller_id_options_outbound_privacy(Doc, Default) ->
-    kz_json:get_binary_value([<<"caller_id_options">>, <<"outbound_privacy">>], Doc, Default).
-
--spec set_caller_id_options_outbound_privacy(doc(), binary()) -> doc().
-set_caller_id_options_outbound_privacy(Doc, CallerIdOptionsOutboundPrivacy) ->
-    kz_json:set_value([<<"caller_id_options">>, <<"outbound_privacy">>], CallerIdOptionsOutboundPrivacy, Doc).
-
--spec caller_id_options_show_rate(doc()) -> kz_term:api_boolean().
-caller_id_options_show_rate(Doc) ->
-    caller_id_options_show_rate(Doc, 'undefined').
-
--spec caller_id_options_show_rate(doc(), Default) -> boolean() | Default.
-caller_id_options_show_rate(Doc, Default) ->
-    kz_json:get_boolean_value([<<"caller_id_options">>, <<"show_rate">>], Doc, Default).
-
--spec set_caller_id_options_show_rate(doc(), boolean()) -> doc().
-set_caller_id_options_show_rate(Doc, CallerIdOptionsShowRate) ->
-    kz_json:set_value([<<"caller_id_options">>, <<"show_rate">>], CallerIdOptionsShowRate, Doc).
 
 -spec dial_plan(doc()) -> kz_term:api_object().
 dial_plan(Doc) ->
@@ -530,6 +505,18 @@ topup(Doc, Default) ->
 -spec set_topup(doc(), kz_json:object()) -> doc().
 set_topup(Doc, Topup) ->
     kz_json:set_value([<<"topup">>], Topup, Doc).
+
+-spec topup_amount(doc()) -> kz_term:api_number().
+topup_amount(Doc) ->
+    topup_amount(Doc, 'undefined').
+
+-spec topup_amount(doc(), Default) -> number() | Default.
+topup_amount(Doc, Default) ->
+    kz_json:get_float_value([<<"topup">>, <<"amount">>], Doc, Default).
+
+-spec set_topup_amount(doc(), number()) -> doc().
+set_topup_amount(Doc, TopupAmount) ->
+    kz_json:set_value([<<"topup">>, <<"amount">>], TopupAmount, Doc).
 
 -spec topup_threshold(doc()) -> kz_term:api_number().
 topup_threshold(Doc) ->

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Conversion of types.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -547,30 +547,30 @@ to_upper_string(Else) -> to_upper_string(to_list(Else)).
 to_upper_char(C) when is_integer(C), $a =< C, C =< $z -> C - 32;
 to_upper_char(C) when is_integer(C), 16#E0 =< C, C =< 16#F6 -> C - 32;
 to_upper_char(C) when is_integer(C), 16#F8 =< C, C =< 16#FE -> C - 32;
-to_upper_char(C) -> C.
+to_upper_char(C) when is_integer(C) -> C.
 
 -spec is_upper_char(integer()) -> boolean().
 is_upper_char(C) when is_integer(C), $A =< C, C =< $Z -> 'true';
 is_upper_char(C) when is_integer(C), 16#C0 =< C, C =< 16#D6 -> 'true';
 is_upper_char(C) when is_integer(C), 16#D8 =< C, C =< 16#DE -> 'true';
-is_upper_char(_) -> 'false'.
+is_upper_char(C) when is_integer(C) -> 'false'.
 
 -spec to_lower_char(char()) -> char().
 to_lower_char(C) when is_integer(C), $A =< C, C =< $Z -> C + 32;
 %% Converts Latin capital letters to lowercase, skipping 16#D7 (extended ASCII 215) "multiplication sign: x"
 to_lower_char(C) when is_integer(C), 16#C0 =< C, C =< 16#D6 -> C + 32; % from string:to_lower
 to_lower_char(C) when is_integer(C), 16#D8 =< C, C =< 16#DE -> C + 32; % so we only loop once
-to_lower_char(C) -> C.
+to_lower_char(C) when is_integer(C) -> C.
 
 -spec is_lower_char(integer()) -> boolean().
 is_lower_char(C) when is_integer(C), $a =< C, C =< $z -> 'true';
 is_lower_char(C) when is_integer(C), 16#E0 =< C, C =< 16#F6 -> 'true';
 is_lower_char(C) when is_integer(C), 16#F8 =< C, C =< 16#FE -> 'true';
-is_lower_char(_)  -> 'false'.
+is_lower_char(C) when is_integer(C)  -> 'false'.
 
 -spec to_hex_char(pos_integer()) -> pos_integer().
-to_hex_char(N) when N < 10 -> $0 + N;
-to_hex_char(N) when N < 16 -> $a - 10 + N.
+to_hex_char(N) when is_integer(N), N < 10 -> $0 + N;
+to_hex_char(N) when is_integer(N), N < 16 -> $a - 10 + N.
 
 -spec error_to_binary(any()) -> binary().
 error_to_binary({'error', Reason}) ->

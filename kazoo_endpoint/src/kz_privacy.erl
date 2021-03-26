@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -69,7 +69,7 @@ get_method(JObj) ->
 
 -spec get_method(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary().
 get_method(JObj, Default) ->
-    %% NOTE: privacy_mode is deperecated, and could be set
+    %% NOTE: privacy_mode is deprecated, and could be set
     %%   to hide_name or hide_number.  If that is the case
     %%   just assume it should be hidden by Kazoo
     Keys = [[<<"caller_id_options">>, <<"privacy_method">>]

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Dialplan API commands.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -486,10 +486,10 @@ bridge_definition() ->
                                                             ,<<"Privacy-Method">>
                                                             ,<<"Proxy-Path">>
                                                             ,<<"Ringback">>
-                                                            ,<<"Secure-RTP">>
-                                                            ,<<"Simplify-Loopback">>
                                                             ,<<"SIP-Invite-Parameters">>
                                                             ,<<"SIP-Transport">>
+                                                            ,<<"Secure-RTP">>
+                                                            ,<<"Simplify-Loopback">>
                                                             ,<<"Timeout">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
