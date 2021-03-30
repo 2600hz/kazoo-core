@@ -1710,9 +1710,9 @@ already_recording(Direction, #kapps_call{recordings=Recordings}=Call) ->
 
 -spec select_call_id(kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
 select_call_id(<<"inbound">>, Call) ->
-    kapps_call:call_id(Call);
+    call_id(Call);
 select_call_id(<<"outbound">>, Call) ->
-    case kapps_call:other_leg_call_id(Call) of
+    case other_leg_call_id(Call) of
         'undefined' -> kapps_call:call_id(Call);
         Id -> Id
     end.
