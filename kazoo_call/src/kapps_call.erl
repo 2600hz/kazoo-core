@@ -1708,12 +1708,12 @@ recordings(#kapps_call{recordings=Recordings}) ->
 already_recording(Direction, #kapps_call{recordings=Recordings}=Call) ->
     lists:member(select_call_id(Direction, Call), kz_json:get_list_value(Direction, Recordings)).
 
--spec select_call_id(kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
+-spec select_call_id(kz_term:ne_binary(), call()) -> kz_term:ne_binary().
 select_call_id(<<"inbound">>, Call) ->
     call_id(Call);
 select_call_id(<<"outbound">>, Call) ->
     case other_leg_call_id(Call) of
-        'undefined' -> kapps_call:call_id(Call);
+        'undefined' -> call_id(Call);
         Id -> Id
     end.
 
