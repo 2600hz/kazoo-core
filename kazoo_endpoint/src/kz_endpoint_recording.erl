@@ -70,7 +70,7 @@ maybe_record_outbound(ToNetwork, _Endpoint, Call, Data) ->
 -spec do_outbound_recording(kz_term:ne_binary(), kapps_call:call(), kz_json:object()) ->
           {'true', kapps_call:call()} | 'false'.
 do_outbound_recording(ToNetwork, Call, Data) ->
-    case kapps_call:already_recording(<<"outbound">>, Call), Call) of
+    case kapps_call:already_recording(<<"outbound">>, Call) of
         'false' ->
             lager:debug("recording call for endpoint outbound : ~s", [ToNetwork]),
             LabeledData = kz_json:set_value(<<"origin">>, ?ENDPOINT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
