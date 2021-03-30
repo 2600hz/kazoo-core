@@ -147,7 +147,7 @@
 
 -export([is_recording/1, set_is_recording/2]).
 -export([recordings/1, set_recordings/2
-        ,set_recording/3, already_recording/3, unset_recording/3
+        ,set_recording/2, already_recording/2
         ]).
 -export([is_call_forward/1]).
 -export([is_transfer/1]).
@@ -1704,17 +1704,24 @@ set_recordings(Recordings, #kapps_call{}=Call) ->
 recordings(#kapps_call{recordings=Recordings}) ->
     Recordings.
 
--spec already_recording(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> boolean().
-already_recording(Direction, Network, #kapps_call{recordings=Recordings}) ->
-    kz_json:is_true([Direction, Network], Recordings, 'false').
+-spec already_recording(kz_term:ne_binary(), call()) -> boolean().
+already_recording(Direction, #kapps_call{recordings=Recordings}=Call) ->
+    lists:member(select_call_id(Direction, Call), kz_json:get_list_value(Direction, Recordings)).
 
--spec set_recording(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> call().
-set_recording(Direction, Network, #kapps_call{recordings=Recordings}=Call) ->
-    set_recordings(kz_json:set_value([Direction, Network], 'true', Recordings), Call).
+-spec select_call_id(kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
+select_call_id(<<"inbound">>, Call) ->
+    kapps_call:call_id(Call);
+select_call_id(<<"outbound">>, Call) ->
+    case kapps_call:other_leg_call_id(Call) of
+        'undefined' -> kapps_call:call_id(Call);
+        Id -> Id
+    end.
 
--spec unset_recording(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> call().
-unset_recording(Direction, Network, #kapps_call{recordings=Recordings}=Call) ->
-    set_recordings(kz_json:set_value([Direction, Network], 'false', Recordings), Call).
+-spec set_recording(kz_term:ne_binary(), call()) -> call().
+set_recording(Direction, #kapps_call{recordings=Recordings}=Call) ->
+    CallId = select_call_id(Direction, Call),
+    CallIds = lists:umerge(kz_json:get_list_value(Direction, Recordings), [CallId]),
+    set_recordings(kz_json:set_value(Direction, CallIds, Recordings), Call).
 
 -spec is_call_forward(call()) -> boolean().
 is_call_forward(#kapps_call{is_call_forward=IsCallForward}) ->
