@@ -35,7 +35,7 @@ maybe_record_inbound(FromNetwork, Endpoint, Call, Data) ->
     end.
 
 -spec do_inbound_recording(kz_term:ne_binary(), kz_json:object(), kapps_call:call(), kz_json:object()) ->
-          {'true', kapps_call:call()} | 'false'.
+          {'true', {kz_json:path(), kz_json:object()}} | 'false'.
 do_inbound_recording(FromNetwork, Endpoint, Call, Data) ->
     case kapps_call:already_recording(<<"inbound">>, Call) of
         'false' ->
