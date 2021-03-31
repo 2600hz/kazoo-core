@@ -14,6 +14,7 @@
 | `hotload/1` | `(Module)` | |
 | `hotload_app/1` | `(App)` | |
 | `mem_info/0` |  | |
+| `mem_info/1` | `(TopN)` | |
 | `syslog_level/1` | `(Level)` | |
 | `top_mem_consumers/0` |  | |
 | `top_mem_consumers/1` | `(Len)` | |
