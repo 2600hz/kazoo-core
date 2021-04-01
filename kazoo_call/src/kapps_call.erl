@@ -1706,7 +1706,7 @@ recordings(#kapps_call{recordings=Recordings}) ->
 
 -spec already_recording(kz_term:ne_binary(), call()) -> boolean().
 already_recording(Direction, #kapps_call{recordings=Recordings}=Call) ->
-    lists:member(select_call_id(Direction, Call), kz_json:get_list_value(Direction, Recordings)).
+    lists:member(select_call_id(Direction, Call), kz_json:get_list_value(Direction, Recordings, [])).
 
 -spec select_call_id(kz_term:ne_binary(), call()) -> kz_term:ne_binary().
 select_call_id(<<"inbound">>, Call) ->
@@ -1720,7 +1720,7 @@ select_call_id(<<"outbound">>, Call) ->
 -spec set_recording(kz_term:ne_binary(), call()) -> call().
 set_recording(Direction, #kapps_call{recordings=Recordings}=Call) ->
     CallId = select_call_id(Direction, Call),
-    CallIds = lists:umerge(kz_json:get_list_value(Direction, Recordings), [CallId]),
+    CallIds = lists:umerge(kz_json:get_list_value(Direction, Recordings, []), [CallId]),
     set_recordings(kz_json:set_value(Direction, CallIds, Recordings), Call).
 
 -spec is_call_forward(call()) -> boolean().

@@ -2038,9 +2038,9 @@ maybe_record_endpoint(Acc, 'true') -> Acc;
 maybe_record_endpoint({Endpoint, Call, CallFwd, Actions}=Acc, 'false') ->
     case kz_endpoint_recording:maybe_record_inbound(kapps_call:inception_type(Call), Endpoint, Call) of
         'false' -> Acc;
-        {'true', {ActionKey, ActionApp}} ->
+        {'true', {ActionKey, ActionApp}, C2} ->
             NewActions = kz_json:set_value(ActionKey, ActionApp, Actions),
-            {Endpoint, Call, CallFwd, NewActions}
+            {Endpoint, C2, CallFwd, NewActions}
     end.
 
 -spec endpoint_uri(kz_json:object(), kapps_call:call()) -> kz_term:ne_binary().

@@ -21,7 +21,7 @@
 
 %% @doc should recording be started on call TO the endpoint
 -spec maybe_record_inbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
-          {'true', {kz_json:path(), kz_json:object()}} | 'false'.
+          {'true', {kz_json:path(), kz_json:object()}, kapps_call:call()} | 'false'.
 maybe_record_inbound(FromNetwork, Endpoint, Call) ->
     maybe_record_inbound(FromNetwork, Endpoint, Call, kz_json:get_json_value(?ENDPOINT_INBOUND_RECORDING(FromNetwork), Endpoint)).
 
@@ -44,8 +44,9 @@ do_inbound_recording(FromNetwork, Endpoint, Call, Data) ->
                      ,{<<"endpoint_id">>, kz_doc:id(Endpoint)}
                      ],
             App = kapps_call_recording:record_call_command(kz_json:set_values(Values, Data), Call),
+            C2 = kapps_call:set_recording(<<"inbound">>, Call),
             lager:info("setting endpoint ~s to record on answer", [kz_doc:id(Endpoint)]),
-            {'true', {[<<"Execute-On-Answer">>, <<"Record-Endpoint">>], App}};
+            {'true', {[<<"Execute-On-Answer">>, <<"Record-Endpoint">>], App}, C2};
         'true' ->
             lager:debug("not recording endpoint, call is already being recorded inbound : ~s", [FromNetwork]),
             'false'
