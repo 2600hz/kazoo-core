@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -179,6 +179,7 @@ from_claim(Token) -> Token.
 %%------------------------------------------------------------------------------
 %% @doc Explode Token Scopes
 %% Transforms "a:b" into ["a", "a:b"]
+%% Transforms "a:b:c" into ["a", "a:b", "a:b:c"]
 %% @end
 %%------------------------------------------------------------------------------
 -spec explode_scopes(jwt()) -> jwt().
@@ -190,46 +191,68 @@ explode_scopes_fold(Scope, Acc) ->
     Acc ++ lists:foldl(fun explode_scope_fold/2, [], to_list(Scope, ?SCOPE_DELIM)).
 
 explode_scope_fold(Scope, Acc) ->
-    Acc ++ [kz_binary:join(Acc ++ [Scope], <<":">>)].
+    Acc ++ [kz_binary:join(lists:filter(fun kz_term:is_not_empty/1, [last(Acc), Scope]), <<":">>)].
+
+last([]) -> <<>>;
+last(List) -> lists:last(List).
 
 %%------------------------------------------------------------------------------
 %% @doc Resolves superset scopes
 %% @end
 %%------------------------------------------------------------------------------
 -spec resolve_scopes(jwt()) -> jwt().
-resolve_scopes(#{scopes := Scopes}=Token) ->
-    Available = available_scopes(),
+resolve_scopes(#{scopes := Scopes
+                ,scopes_available := Available
+                } = Token) ->
     Resolved = resolve_scopes(Scopes, Available),
-    Token#{scopes => lists:usort(Scopes ++ Resolved)}.
+    Token#{scopes => lists:usort(Scopes ++ Resolved)};
+resolve_scopes(#{scopes := _} = Token) ->
+    Available = available_scopes(),
+    resolve_scopes(Token#{scopes_available => Available}).
 
 -spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist()) -> kz_term:ne_binaries().
 resolve_scopes(Scopes, Available) ->
-    {NewScopes, _} = lists:mapfoldl(fun resolve_scopes_fold/2, Available, Scopes),
+    resolve_scopes(Scopes, Available, []).
+
+-spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
+resolve_scopes(Scopes, Available, Visited) ->
+    {NewScopes, _} = lists:mapfoldl(fun resolve_scopes_fold/2, {Available, Visited}, Scopes),
     lists:flatten(NewScopes).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
-resolve_scopes_fold(Scope, Available) ->
-    {props:get_value(Scope, Available, []), Available}.
+resolve_scopes_fold(Scope, {Available, Visited}) ->
+    case lists:member(Scope, Visited) of
+        true ->
+            {[Scope], {Available, Visited}};
+        false ->
+            case props:get_value(Scope, Available, []) of
+                [] -> {[Scope], {Available, [Scope | Visited]}};
+                Scopes -> {[Scope | resolve_scopes(Scopes, Available, [Scope | Visited])], {Available, [Scope | Visited]}}
+            end
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Extract scope binary into list of subscopes
 %% @end
 %%------------------------------------------------------------------------------
 -spec to_list(kz_term:ne_binary() | kz_term:ne_binaries()) ->
-          kz_term:ne_binaries() | [kz_term:ne_binaries()].
+          [kz_term:ne_binary() | kz_term:ne_binaries()].
 to_list(<<ScopeBin/binary>>) ->
     Scopes = to_list(ScopeBin, ?SCOPE_SEP),
-    lists:flatten(to_list(Scopes));
+    to_list(Scopes);
 to_list(ScopeList) ->
     lists:map(fun to_list_by_delim/1, ScopeList).
 
 to_list_by_delim(S) ->
-    to_list(S, ?SCOPE_DELIM).
+    case to_list(S, ?SCOPE_DELIM) of
+        [S] -> S;
+        Else -> Else
+    end.
 
--spec to_list(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binaries().
+-spec to_list(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary() | kz_term:ne_binaries().
 to_list(<<ScopeBin/binary>>, Delim) ->
     binary:split(ScopeBin, Delim, ['global']).
 
@@ -237,23 +260,26 @@ to_list(<<ScopeBin/binary>>, Delim) ->
 %% @doc Converts scope list to space separated binary
 %% @end
 %%------------------------------------------------------------------------------
--spec to_str(kz_term:ne_binaries()) -> kz_term:api_binary().
+-spec to_str(kz_term:api_binary() | list()) -> kz_term:api_binary().
 to_str(Scope)
   when is_binary(Scope) ->
     Scope;
 to_str('undefined') ->
     'undefined';
 to_str([]) ->
-    [];
-to_str(ScopeList0) ->
-    Fun = fun(S) ->
-                  to_str(S, ?SCOPE_DELIM)
-          end,
-    ScopeList1 = lists:map(Fun, ScopeList0),
-    to_str(ScopeList1, ?SCOPE_SEP).
+    'undefined';
+to_str(List)
+  when is_list(List) ->
+    Fun = fun(S) -> to_str(S, ?SCOPE_DELIM) end,
+    ScopeList = lists:map(Fun, List),
+    to_str(ScopeList, ?SCOPE_SEP);
+to_str(_Other) -> 'undefined'.
 
--spec to_str(kz_term:ne_binaries(), kz_term:ne_binary()) -> kz_term:ne_binary().
-to_str(Scope, _Delim) when is_binary(Scope) ->
+-spec to_str(kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:ne_binary()) -> kz_term:ne_binary().
+to_str(Scope, _Delim)
+  when is_binary(Scope) ->
     Scope;
-to_str(ScopeList, Delim) ->
-    binstr:join(ScopeList, Delim).
+to_str(List, Delim)
+  when is_list(List) ->
+    Scopes = lists:map(fun kz_term:to_binary/1, List),
+    kz_binary:join(Scopes, Delim).
