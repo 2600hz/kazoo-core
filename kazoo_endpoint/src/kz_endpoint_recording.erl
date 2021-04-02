@@ -75,7 +75,7 @@ do_outbound_recording(ToNetwork, Call, Data) ->
         'false' ->
             lager:debug("recording call for endpoint outbound : ~s", [ToNetwork]),
             LabeledData = kz_json:set_value(<<"origin">>, ?ENDPOINT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
-            C2 = kapps_call:set_recording(<<"outbound">>, ToNetwork, Call),
+            C2 = kapps_call:set_recording(<<"outbound">>, Call),
             C3 = kapps_call:kvs_store('recording_follow_transfer', 'false', C2),
             {'true', kapps_call:start_recording(LabeledData, C3)};
         'true' ->
