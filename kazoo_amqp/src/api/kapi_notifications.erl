@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Notification messages, like voicemail left.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -56,6 +56,12 @@
         ,transaction_v/1
         ,publish_transaction/1
         ,publish_transaction/2
+        ]).
+%% Conference notifications
+-export([email_invite/1
+        ,email_invite_v/1
+        ,publish_email_invite/1
+        ,publish_email_invite/2
         ]).
 %% Fax notifications
 -export([fax_inbound/1
@@ -570,6 +576,53 @@ transaction_definition() ->
                }
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+%%%=============================================================================
+%%% Conference Notifications Definitions
+%%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec email_invite_definition() -> kapi_definition:api().
+email_invite_definition() ->
+    EventName = <<"email_invite">>,
+    Category = <<"notification">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Email Invite">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Email Invite">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun email_invite/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun email_invite_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_email_invite/1}
+              ,{fun kapi_definition:set_binding/2
+               ,<<"notifications.", Category/binary, ".", EventName/binary>>
+               }
+              ,{fun kapi_definition:set_required_headers/2, [<<"Conference-ID">>
+                                                            ,<<"Conference-Name">>
+                                                            ,<<"Conference-Link">>
+                                                            ,<<"Conference-Call-In-Numbers">>
+                                                            ,<<"Conference-Participant-Pins">>
+                                                            ,<<"Invite-Message">>
+                                                            ,<<"Guests">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-ID">>, fun is_binary/1}
+                ,{<<"Conference-Name">>, fun is_binary/1}
+                ,{<<"Conference-Link">>, fun is_binary/1}
+                ,{<<"Conference-Call-In-Numbers">>, fun kz_term:is_ne_list/1}
+                ,{<<"Conference-Participant-Pins">>, fun kz_term:is_ne_list/1}
+                ,{<<"Invite-Message">>, fun is_binary/1}
+                ,{<<"Guests">>, fun kz_term:is_ne_list/1}
+                ]
+               }
               ],
     kapi_definition:setters(Setters).
 
@@ -1105,7 +1158,7 @@ emergency_bridge_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun emergency_bridge/1}
               ,{fun kapi_definition:set_validate_fun/2, fun emergency_bridge_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_emergency_bridge/1}
-              ,{fun kapi_definition:set_binding/2, ?BINDING_STRING(Category, <<"emergency_bridge">>)}
+              ,{fun kapi_definition:set_binding/2, ?BINDING_STRING(Category, EventName)}
               ,{fun kapi_definition:set_restrict_to/2, 'emergency_bridge'}
               ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
                                                             ,<<"Call-ID">>
@@ -1817,6 +1870,7 @@ api_definitions() ->
     ,service_added_definition()
     ,topup_definition()
     ,transaction_definition()
+    ,email_invite_definition()
     ,account_zone_change_definition()
     ,inbound_fax_definition()
     ,inbound_fax_error_definition()
@@ -1879,6 +1933,8 @@ api_definition(<<"topup">>) ->
     topup_definition();
 api_definition(<<"transaction">>) ->
     transaction_definition();
+api_definition(<<"email_invite">>) ->
+    email_invite_definition();
 api_definition(<<"inbound_fax">>) ->
     inbound_fax_definition();
 api_definition(<<"inbound_fax_error">>) ->
@@ -2357,6 +2413,36 @@ publish_transaction(JObj) ->
 publish_transaction(API, ContentType) ->
     Definition = transaction_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
+
+%%%=============================================================================
+%%% Conference Notifications Functions
+%%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc Conference Email Invite.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec email_invite(kz_term:api_terms()) -> kz_api:api_formatter_return().
+email_invite(Req) ->
+    kapi_definition:build_message(Req, email_invite_definition()).
+
+-spec email_invite_v(kz_term:api_terms()) -> boolean().
+email_invite_v(Req) ->
+    kapi_definition:validate(Req, email_invite_definition()).
+
+-spec publish_email_invite(kz_term:api_terms()) -> 'ok'.
+publish_email_invite(JObj) ->
+    publish_email_invite(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_email_invite(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_email_invite(Req, ContentType) ->
+    Definition = email_invite_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),

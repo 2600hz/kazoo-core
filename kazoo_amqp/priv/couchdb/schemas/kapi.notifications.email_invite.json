@@ -1,0 +1,51 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.notifications.email_invite",
+    "description": "AMQP API for notifications.email_invite",
+    "properties": {
+        "Conference-Call-In-Numbers": {
+            "minItems": 1,
+            "type": "string"
+        },
+        "Conference-ID": {
+            "type": "string"
+        },
+        "Conference-Link": {
+            "type": "string"
+        },
+        "Conference-Name": {
+            "type": "string"
+        },
+        "Conference-Participant-Pins": {
+            "minItems": 1,
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "notification"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "email_invite"
+            ]
+        },
+        "Guests": {
+            "minItems": 1,
+            "type": "string"
+        },
+        "Invite-Message": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Conference-Call-In-Numbers",
+        "Conference-ID",
+        "Conference-Link",
+        "Conference-Name",
+        "Conference-Participant-Pins",
+        "Guests",
+        "Invite-Message"
+    ],
+    "type": "object"
+}
