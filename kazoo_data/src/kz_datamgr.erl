@@ -113,7 +113,7 @@
 -export_type([data_error/0, data_errors/0
              ,db_classification/0
              ,get_results_return/0
-             ,paginated_results/0
+             ,paginated_results/0, paginate_options/0
              ,update_option/0, update_options/0
              ,view_listing/0, views_listing/0
              ,view_option/0, view_options/0

@@ -25,19 +25,21 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch(kz_term:api_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec fetch(kz_term:api_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', 'undefined'} |
+          kz_datamgr:data_error().
 fetch('undefined') ->
-    {'error', 'account_id_undefined'};
-fetch(Account) ->
-    AccoundDb = kzs_util:format_account_db(Account),
-    kz_datamgr:open_cache_doc(AccoundDb, ?ID).
+    {'error', 'undefined'};
+fetch(<<Account/binary>>) ->
+    kz_datamgr:open_cache_doc(Account, ?ID).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec new(kz_term:ne_binary()) -> kz_json:object().
-new(Account) ->
+new(<<Account/binary>>) ->
     Routines = [fun(JObj) -> kz_doc:set_id(JObj, ?ID) end
                ,fun(JObj) ->
                         AccountId = kzs_util:format_account_id(Account),
@@ -48,10 +50,7 @@ new(Account) ->
                         kz_doc:set_account_db(JObj, AccountDb)
                 end
                ],
-    lists:foldl(fun(F, JObj) -> F(JObj) end
-               ,kz_json:new()
-               ,Routines
-               ).
+    kz_json:exec(Routines, kz_json:new()).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -76,7 +75,6 @@ apps(JObj, Default) ->
 -spec set_apps(kz_json:object(), any()) -> kz_json:object().
 set_apps(JObj, Data) ->
     kz_json:set_value(?APPS, Data, JObj).
-
 
 %%------------------------------------------------------------------------------
 %% @doc
