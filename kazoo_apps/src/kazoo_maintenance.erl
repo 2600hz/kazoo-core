@@ -225,22 +225,35 @@ mem_info(TopN) ->
     print_app_mem_info(TopN, app_mem_info()),
     'ok'.
 
--spec print_app_mem_info(kz_term:ne_binary() | pos_integer(), map()) -> 'ok'.
+-type app_mem_info() :: #{app_usage => non_neg_integer()
+                         ,proc_count => non_neg_integer()
+                         ,big_pid => {pid(), non_neg_integer()}
+                         }.
+-type apps_mem_info() :: #{atom() := app_mem_info()}.
+-spec print_app_mem_info(kz_term:ne_binary() | pos_integer(), apps_mem_info()) -> 'ok'.
 print_app_mem_info(<<"full">>, Info) ->
-    Sorted = lists:reverse(lists:keysort(2, maps:to_list(Info))),
+    Sorted = lists:reverse(lists:usort(fun sort_app_mem_info/2, maps:to_list(Info))),
     print_app_mem_info(Sorted);
 print_app_mem_info(Top, Info) ->
     TopN = kz_term:to_integer(Top),
-    Sorted = lists:reverse(lists:keysort(2, maps:to_list(Info))),
+    Sorted = lists:reverse(lists:usort(fun sort_app_mem_info/2, maps:to_list(Info))),
     {TopL, _} = lists:split(TopN, Sorted),
     print_app_mem_info(TopL).
 
+sort_app_mem_info({_, #{app_usage:=A}}, {_, #{app_usage:=B}}) -> A < B.
+
 %% @doc [{AppName, TotalHeap}]
--spec print_app_mem_info([{atom(), integer()}]) -> 'ok'.
+-spec print_app_mem_info([{atom(), app_mem_info()}]) -> 'ok'.
 print_app_mem_info(Sorted) ->
     io:format("~n App Memory Info:~n"),
-    [io:format("  ~p: ~s~n", [App, kz_term:pretty_print_bytes(Mem, 'truncated')])
-     || {App, Mem} <- Sorted
+    io:format("~-15s | ~-6s | ~-6s | ~s~n", ["Application", "Memory", "Procs", "BigPid"]),
+    [io:format("~-15s | ~6s | ~6b | ~p ~s~n"
+              ,[App
+               ,kz_term:pretty_print_bytes(Mem, 'truncated')
+               ,PC, BP
+               ,kz_term:pretty_print_bytes(BPM, 'truncated')
+               ])
+     || {App, #{app_usage:=Mem, proc_count:=PC, big_pid:={BP, BPM}}} <- Sorted
     ],
     io:format("~n").
 
@@ -268,9 +281,23 @@ add_mem_info(Pid, Acc, App, _Dict) ->
     case process_info(Pid, ['total_heap_size']) of
         'undefined' -> Acc;
         [{'total_heap_size', Heap}] ->
-            AppUsage = maps:get(App, Acc, 0),
-            maps:put(App, AppUsage + Heap, Acc)
+            #{app_usage := AppUsage
+             ,proc_count := ProcCount
+             ,big_pid := BigPid
+             }=AppInfo = maps:get(App, Acc, #{app_usage=>0, proc_count=>0, big_pid => 'undefined'}),
+
+            maps:put(App, AppInfo#{app_usage => AppUsage + Heap
+                                  ,proc_count => ProcCount + 1
+                                  ,big_pid => maybe_big_pid(BigPid, Pid, Heap)
+                                  }
+                    ,Acc
+                    )
     end.
+
+maybe_big_pid({BPid, BHeap}, _Pid, Heap) when BHeap > Heap ->
+    {BPid, BHeap};
+maybe_big_pid(_Big, Pid, Heap) ->
+    {Pid, Heap}.
 
 default_init_call(Pid) ->
     case process_info(Pid, ['initial_call']) of

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Various utilities to work with time.
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -471,7 +471,8 @@ maybe_add_iso8601_ms_suffix(<<Date:8/binary, "T", Time:6/binary, TzOffset/binary
 %% @throws {error, invalid_offset | unknown_tz}
 %% @end
 %%------------------------------------------------------------------------------
--spec adjust_utc_timestamp(datetime() | gregorian_seconds(), integer() | kz_term:api_ne_binary() | integer()) -> gregorian_seconds().
+-spec adjust_utc_timestamp(datetime() | gregorian_seconds(), integer() | kz_term:api_ne_binary()) ->
+          gregorian_seconds().
 adjust_utc_timestamp({{_, _, _}, {_, _, _}}=DateTime, 'undefined') ->
     calendar:datetime_to_gregorian_seconds(DateTime);
 adjust_utc_timestamp(Timestamp, 'undefined') -> Timestamp;
