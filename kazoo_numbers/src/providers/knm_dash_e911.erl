@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Handle e911 provisioning
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -40,14 +40,14 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 save(PN) ->
     State = knm_phone_number:state(PN),
     save(PN, State).
 
--spec save(knm_phone_number:record(), kz_term:api_binary()) ->
-          knm_phone_number:record().
+-spec save(knm_phone_number:pn_record(), kz_term:api_binary()) ->
+          knm_phone_number:pn_record().
 save(PN, ?NUMBER_STATE_RESERVED) ->
     maybe_update_e911(PN);
 save(PN, ?NUMBER_STATE_IN_SERVICE) ->
@@ -62,8 +62,8 @@ save(PN, _State) ->
 %% provision e911 or remove the number depending on the state
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 delete(PN) ->
     case knm_phone_number:feature(PN, ?FEATURE_E911) of
         'undefined' -> PN;
@@ -82,7 +82,7 @@ delete(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_update_e911(knm_phone_number:record()) -> knm_phone_number:record().
+-spec maybe_update_e911(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 maybe_update_e911(PN) ->
     CurrentE911 = knm_phone_number:feature(PN, ?FEATURE_E911),
     E911 = kz_json:get_ne_value(?FEATURE_E911, knm_phone_number:doc(PN)),
@@ -104,7 +104,7 @@ maybe_update_e911(PN) ->
             knm_providers:activate_feature(NewPN, {?FEATURE_E911, NewE911})
     end.
 
--spec maybe_update_e911(knm_phone_number:record(), kz_json:object()) -> kz_json:object().
+-spec maybe_update_e911(knm_phone_number:pn_record(), kz_json:object()) -> kz_json:object().
 maybe_update_e911(PN, Address) ->
     Location = json_address_to_xml_location(Address),
     case is_valid_location(Location) of
@@ -140,12 +140,12 @@ maybe_update_e911(PN, Address) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec update_e911(knm_phone_number:record(), kz_json:object()) -> kz_json:object().
+-spec update_e911(knm_phone_number:pn_record(), kz_json:object()) -> kz_json:object().
 update_e911(PN, Address) ->
     DryRun = knm_phone_number:dry_run(PN),
     update_e911(PN, Address, DryRun).
 
--spec update_e911(knm_phone_number:record(), kz_json:object(), boolean()) -> kz_json:object().
+-spec update_e911(knm_phone_number:pn_record(), kz_json:object(), boolean()) -> kz_json:object().
 update_e911(_PN, Address, 'true') -> Address;
 update_e911(PN, Address, 'false') ->
     Num = knm_phone_number:number(PN),
@@ -245,7 +245,7 @@ provision_location(LocationId) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec remove_number(knm_phone_number:record()) -> kz_term:api_binary().
+-spec remove_number(knm_phone_number:pn_record()) -> kz_term:api_binary().
 remove_number(PN) ->
     Num = knm_phone_number:number(PN),
     lager:debug("removing from upstream '~s'", [Num]),

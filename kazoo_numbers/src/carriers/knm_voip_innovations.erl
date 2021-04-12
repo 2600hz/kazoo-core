@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc A Number Manager module for carrier: VoIPInnovations.com
 %%% @author Pierre Fenoll, Joe Black
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -90,7 +90,7 @@ info() ->
 -spec is_local() -> boolean().
 is_local() -> 'false'.
 
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_Number) -> 'true'.
 
 %%------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ find_numbers(<<NXX:6/binary,_/binary>>, Quantity, Options) ->
 %% @doc Acquire a given number from the carrier
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 acquire_number(PN) ->
     Debug = ?IS_SANDBOX_PROVISIONING_TRUE,
     case ?IS_PROVISIONING_ENABLED of
@@ -147,8 +147,8 @@ acquire_number(PN) ->
 %% @doc Release a number from the routing table
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 disconnect_number(PN) ->
     Debug = ?IS_SANDBOX_PROVISIONING_TRUE,
     case ?IS_PROVISIONING_ENABLED of
@@ -190,8 +190,8 @@ do_find_numbers({'ok',JObjs}, QID) ->
         ],
     {'ok', Numbers}.
 
--spec maybe_return(handle_action_resp_ret(), knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec maybe_return(handle_action_resp_ret(), knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 maybe_return({'error', Reason}, PN) ->
     knm_errors:by_carrier(?MODULE, Reason, PN);
 maybe_return({'ok', JObj}, PN) ->

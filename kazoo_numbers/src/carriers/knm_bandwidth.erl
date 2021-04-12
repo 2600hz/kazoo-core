@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Handle client requests for phone_number documents
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -147,8 +147,8 @@ found_number_to_search_response(Found, QID) ->
 %% @doc Acquire a given number from the carrier
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 acquire_number(PN) ->
     Debug = ?IS_SANDBOX_PROVISIONING_TRUE,
     case ?IS_PROVISIONING_ENABLED of
@@ -161,8 +161,8 @@ acquire_number(PN) ->
             acquire_and_provision_number(PN)
     end.
 
--spec acquire_and_provision_number(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec acquire_and_provision_number(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 acquire_and_provision_number(PN) ->
     AuthBy = knm_phone_number:auth_by(PN),
     AssignedTo = knm_phone_number:assigned_to(PN),
@@ -198,14 +198,14 @@ acquire_and_provision_number(PN) ->
 %% @doc Release a number from the routing table
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 disconnect_number(PN) -> PN.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_PN) -> 'true'.
 
 %%------------------------------------------------------------------------------

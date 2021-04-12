@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2020, 2600Hz
+%%% @copyright (C) 2016-2021, 2600Hz
 %%% @doc Handle prepend feature
 %%% @author Peter Defebvre
 %%% @author Pierre Fenoll
@@ -92,7 +92,7 @@ delete(Number) -> do_exec(Number, 'delete').
 %% @doc Settings for features.
 %% @end
 %%------------------------------------------------------------------------------
--spec settings(knm_phone_number:record()) -> kz_json:object().
+-spec settings(knm_phone_number:pn_record()) -> kz_json:object().
 settings(PhoneNumber) ->
     settings(PhoneNumber, available_features(PhoneNumber)).
 
@@ -100,7 +100,7 @@ settings(PhoneNumber) ->
 %% @doc Settings for features.
 %% @end
 %%------------------------------------------------------------------------------
--spec settings(knm_phone_number:record(), kz_term:ne_binaries()) -> kz_json:object().
+-spec settings(knm_phone_number:pn_record(), kz_term:ne_binaries()) -> kz_json:object().
 settings(PhoneNumber, Features) ->
     AccountId = knm_phone_number:assigned_to(PhoneNumber),
     Fun = fun(Feature) ->
@@ -117,7 +117,7 @@ settings(PhoneNumber, Features) ->
 %% @doc List features a number is allowed by its reseller to enable.
 %% @end
 %%------------------------------------------------------------------------------
--spec available_features(knm_phone_number:record()) -> kz_term:ne_binaries().
+-spec available_features(knm_phone_number:pn_record()) -> kz_term:ne_binaries().
 available_features(PhoneNumber) ->
     Features = list_available_features(feature_parameters(PhoneNumber)),
     AccountId = knm_phone_number:assigned_to(PhoneNumber),
@@ -154,7 +154,7 @@ service_name(Feature, _) ->
 %% @doc Util function to get E911 caller name defaults.
 %% @end
 %%------------------------------------------------------------------------------
--spec e911_caller_name(knm_phone_number:record(), kz_term:api_ne_binary()) -> kz_term:ne_binary().
+-spec e911_caller_name(knm_phone_number:pn_record(), kz_term:api_ne_binary()) -> kz_term:ne_binary().
 -ifdef(TEST).
 e911_caller_name(_PN, ?NE_BINARY=Name) -> Name;
 e911_caller_name(_PN, 'undefined') -> ?E911_NAME_DEFAULT.
@@ -201,14 +201,14 @@ list_available_features(Parameters) ->
 cleanse_features(Features) ->
     lists:usort([legacy_provider_to_feature(Feature) || Feature <- Features]).
 
--spec is_local(knm_phone_number:record()) -> boolean().
+-spec is_local(knm_phone_number:pn_record()) -> boolean().
 is_local(PN) ->
     ModuleName = knm_phone_number:module_name(PN),
     ?CARRIER_LOCAL =:= ModuleName
         orelse ?CARRIER_MDN =:= ModuleName
         orelse lists:member(?FEATURE_LOCAL, knm_phone_number:features_list(PN)).
 
--spec feature_parameters(knm_phone_number:record()) -> feature_parameters().
+-spec feature_parameters(knm_phone_number:pn_record()) -> feature_parameters().
 -ifdef(TEST).
 feature_parameters(PhoneNumber) ->
     FP = feature_parameters(is_local(PhoneNumber)
@@ -431,7 +431,7 @@ legacy_provider_to_feature(Else) -> Else.
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec requested_modules(knm_phone_number:record()) -> kz_term:ne_binaries().
+-spec requested_modules(knm_phone_number:pn_record()) -> kz_term:ne_binaries().
 requested_modules(PhoneNumber) ->
     AccountId = knm_phone_number:assigned_to(PhoneNumber),
     Doc = knm_phone_number:doc(PhoneNumber),
@@ -445,7 +445,7 @@ requested_modules(PhoneNumber) ->
     Features = (RequestedFeatures ++ ExistingFeatures) -- [?FEATURE_LOCAL],
     provider_modules(Features, AccountId).
 
--spec allowed_modules(knm_phone_number:record()) -> kz_term:ne_binaries().
+-spec allowed_modules(knm_phone_number:pn_record()) -> kz_term:ne_binaries().
 allowed_modules(PhoneNumber) ->
     AccountId = knm_phone_number:assigned_to(PhoneNumber),
     provider_modules(available_features(PhoneNumber), AccountId).
@@ -500,7 +500,7 @@ do_exec(T0=#{'todo' := PNs}, Action) ->
     lists:foldl(F, T0, PNs).
 
 
--spec exec(knm_phone_number:record(), exec_action()) -> knm_phone_number:record().
+-spec exec(knm_phone_number:pn_record(), exec_action()) -> knm_phone_number:pn_record().
 exec(PN, Action='delete') ->
     RequestedModules = requested_modules(PN),
     ?LOG_DEV("deleting feature providers: ~s", [?PP(RequestedModules)]),
@@ -517,7 +517,7 @@ exec(PN, Action='save') ->
             knm_errors:unauthorized()
     end.
 
--spec remove_deprecated_features(knm_phone_number:record()) -> knm_phone_number:record().
+-spec remove_deprecated_features(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 remove_deprecated_features(PN) ->
     Features = knm_phone_number:features(PN),
     case lists:any(fun(K) -> kz_json:is_defined(K, Features) end, ?DEPRECATED_FEATURES) of
@@ -527,7 +527,7 @@ remove_deprecated_features(PN) ->
         false -> PN
     end.
 
--spec maybe_rename_carrier_and_strip_denied(knm_phone_number:record()) -> {knm_phone_number:record(), kz_term:ne_binaries(), kz_term:ne_binaries()}.
+-spec maybe_rename_carrier_and_strip_denied(knm_phone_number:pn_record()) -> {knm_phone_number:pn_record(), kz_term:ne_binaries(), kz_term:ne_binaries()}.
 maybe_rename_carrier_and_strip_denied(PN) ->
     {AllowedRequests, DeniedRequests} = split_requests(PN),
     ?LOG_DEV("allowing feature providers: ~s", [?PP(AllowedRequests)]),
@@ -541,15 +541,15 @@ maybe_rename_carrier_and_strip_denied(PN) ->
             {PN2, NewAllowed, NewDenied}
     end.
 
--spec remove_denied_features(knm_phone_number:record()) -> knm_phone_number:record().
+-spec remove_denied_features(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 remove_denied_features(PN) ->
     knm_phone_number:remove_denied_features(PN).
 
--spec features_denied(knm_phone_number:record()) -> kz_term:ne_binaries().
+-spec features_denied(knm_phone_number:pn_record()) -> kz_term:ne_binaries().
 features_denied(PN) ->
     cleanse_features(list_denied_features(feature_parameters(PN))).
 
--spec split_requests(knm_phone_number:record()) -> {kz_term:ne_binaries(), kz_term:ne_binaries()}.
+-spec split_requests(knm_phone_number:pn_record()) -> {kz_term:ne_binaries(), kz_term:ne_binaries()}.
 split_requests(PN) ->
     RequestedModules = requested_modules(PN),
     ?LOG_DEV("requested feature providers: ~s", [?PP(RequestedModules)]),
@@ -558,8 +558,8 @@ split_requests(PN) ->
     F = fun (Feature) -> lists:member(Feature, AllowedModules) end,
     lists:partition(F, RequestedModules).
 
--spec exec(knm_phone_number:record(), exec_action(), kz_term:ne_binaries()) ->
-          knm_phone_number:record().
+-spec exec(knm_phone_number:pn_record(), exec_action(), kz_term:ne_binaries()) ->
+          knm_phone_number:pn_record().
 exec(PN, _, []) -> PN;
 exec(PN, Action, [Provider|Providers]) ->
     case kz_module:ensure_loaded(Provider) of
@@ -578,15 +578,15 @@ exec(PN, Action, [Provider|Providers]) ->
 %%------------------------------------------------------------------------------
 -type set_feature() :: {kz_term:ne_binary(), kz_json:api_json_term()}.
 
--spec activate_feature(knm_phone_number:record(), set_feature() | kz_term:ne_binary()) ->
-          knm_phone_number:record().
+-spec activate_feature(knm_phone_number:pn_record(), set_feature() | kz_term:ne_binary()) ->
+          knm_phone_number:pn_record().
 activate_feature(PN, Feature=?NE_BINARY) ->
     activate_feature(PN, {Feature, kz_json:new()});
 activate_feature(PN, FeatureToSet={?NE_BINARY,_}) ->
     do_activate_feature(PN, FeatureToSet).
 
--spec do_activate_feature(knm_phone_number:record(), set_feature()) ->
-          knm_phone_number:record().
+-spec do_activate_feature(knm_phone_number:pn_record(), set_feature()) ->
+          knm_phone_number:pn_record().
 do_activate_feature(PhoneNumber, {Feature,FeatureData}) ->
     ?LOG_DEV("adding feature ~s to ~s"
             ,[Feature, knm_phone_number:number(PhoneNumber)]
@@ -597,7 +597,7 @@ do_activate_feature(PhoneNumber, {Feature,FeatureData}) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec deactivate_feature(knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record().
+-spec deactivate_feature(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 deactivate_feature(PhoneNumber, Feature) ->
     Features = knm_phone_number:features(PhoneNumber),
     knm_phone_number:set_features(PhoneNumber, kz_json:delete_key(Feature, Features)).
@@ -606,7 +606,7 @@ deactivate_feature(PhoneNumber, Feature) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec deactivate_features(knm_phone_number:record(), kz_term:ne_binaries()) -> knm_phone_number:record().
+-spec deactivate_features(knm_phone_number:pn_record(), kz_term:ne_binaries()) -> knm_phone_number:pn_record().
 deactivate_features(PhoneNumber, Features) ->
     ExistingFeatures = knm_phone_number:features(PhoneNumber),
     knm_phone_number:set_features(PhoneNumber, kz_json:delete_keys(Features, ExistingFeatures)).

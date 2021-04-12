@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -22,12 +22,12 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PN) ->
     State = knm_phone_number:state(PN),
     save(PN, State).
 
--spec save(knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 save(PN, ?NUMBER_STATE_RESERVED) ->
     handle_outbound_cnam(PN);
 save(PN, ?NUMBER_STATE_IN_SERVICE) ->
@@ -41,7 +41,7 @@ save(PN, _State) ->
 %% @doc This function is called each time a number is deleted
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) ->
     _ = remove_inbound_cnam(PN),
     knm_providers:deactivate_features(PN
@@ -59,7 +59,7 @@ delete(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_outbound_cnam(knm_phone_number:record()) -> knm_phone_number:record().
+-spec handle_outbound_cnam(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 handle_outbound_cnam(PN) ->
     IsDryRun = knm_phone_number:dry_run(PN),
     Feature = knm_phone_number:feature(PN, ?FEATURE_CNAM_OUTBOUND),
@@ -85,8 +85,8 @@ handle_outbound_cnam(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec try_update_outbound_cnam(knm_phone_number:record(), kz_term:ne_binary()) ->
-          knm_phone_number:record().
+-spec try_update_outbound_cnam(knm_phone_number:pn_record(), kz_term:ne_binary()) ->
+          knm_phone_number:pn_record().
 try_update_outbound_cnam(PN, NewCNAM) ->
     DID = knm_phone_number:number(PN),
     case
@@ -120,8 +120,8 @@ outbound_cnam_options(DID, NewCNAM) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec process_outbound_xml_resp(knm_phone_number:record(), kz_term:ne_binary(), kz_term:text()) ->
-          knm_phone_number:record().
+-spec process_outbound_xml_resp(knm_phone_number:pn_record(), kz_term:ne_binary(), kz_term:text()) ->
+          knm_phone_number:pn_record().
 process_outbound_xml_resp(PN, FeatureData, XML_binary) ->
     XML = unicode:characters_to_list(XML_binary),
     try xmerl_scan:string(XML) of
@@ -140,8 +140,8 @@ process_outbound_xml_resp(PN, FeatureData, XML_binary) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec process_outbound_resp(knm_phone_number:record(), kz_term:ne_binary(), kz_types:xml_els()) ->
-          knm_phone_number:record().
+-spec process_outbound_resp(knm_phone_number:pn_record(), kz_term:ne_binary(), kz_types:xml_els()) ->
+          knm_phone_number:pn_record().
 process_outbound_resp(PN, FeatureData, Children) ->
     case knm_vitelity_util:xml_resp_status_msg(Children) of
         <<"ok">> -> check_outbound_response_tag(PN, FeatureData, Children);
@@ -154,8 +154,8 @@ process_outbound_resp(PN, FeatureData, Children) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec check_outbound_response_tag(knm_phone_number:record(), kz_term:ne_binary(), kz_types:xml_els()) ->
-          knm_phone_number:record().
+-spec check_outbound_response_tag(knm_phone_number:pn_record(), kz_term:ne_binary(), kz_types:xml_els()) ->
+          knm_phone_number:pn_record().
 check_outbound_response_tag(PN, NewCNAM, Children) ->
     case knm_vitelity_util:xml_resp_response_msg(Children) of
         'undefined' -> knm_errors:unspecified('resp_tag_not_found', PN);
@@ -174,12 +174,12 @@ check_outbound_response_tag(PN, NewCNAM, Children) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec handle_inbound_cnam(knm_phone_number:record()) -> knm_phone_number:record().
+-spec handle_inbound_cnam(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 handle_inbound_cnam(PN) ->
     IsDryRun = knm_phone_number:dry_run(PN),
     handle_inbound_cnam(PN, IsDryRun).
 
--spec handle_inbound_cnam(knm_phone_number:record(), boolean()) -> knm_phone_number:record().
+-spec handle_inbound_cnam(knm_phone_number:pn_record(), boolean()) -> knm_phone_number:pn_record().
 handle_inbound_cnam(PN, 'true') ->
     Doc = knm_phone_number:doc(PN),
     case kz_json:is_true([?FEATURE_CNAM, ?CNAM_INBOUND_LOOKUP], Doc) of
@@ -202,7 +202,7 @@ handle_inbound_cnam(PN, 'false') ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec remove_inbound_cnam(knm_phone_number:record()) -> knm_phone_number:record().
+-spec remove_inbound_cnam(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 remove_inbound_cnam(PN) ->
     DID = knm_phone_number:number(PN),
     _ = knm_vitelity_util:query_vitelity(
@@ -232,8 +232,8 @@ remove_inbound_options(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec add_inbound_cnam(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec add_inbound_cnam(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 add_inbound_cnam(PN) ->
     DID = knm_phone_number:number(PN),
     case
@@ -266,8 +266,8 @@ inbound_options(DID) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec process_xml_resp(knm_phone_number:record(), kz_term:text()) ->
-          knm_phone_number:record().
+-spec process_xml_resp(knm_phone_number:pn_record(), kz_term:text()) ->
+          knm_phone_number:pn_record().
 process_xml_resp(PN, XML) ->
     try xmerl_scan:string(XML) of
         {XmlEl, _} -> process_xml_content_tag(PN, XmlEl)
@@ -281,8 +281,8 @@ process_xml_resp(PN, XML) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec process_xml_content_tag(knm_phone_number:record(), kz_types:xml_el()) ->
-          knm_phone_number:record().
+-spec process_xml_content_tag(knm_phone_number:pn_record(), kz_types:xml_el()) ->
+          knm_phone_number:pn_record().
 process_xml_content_tag(PN, #xmlElement{name='content'
                                        ,content=Children
                                        }) ->
@@ -300,7 +300,7 @@ process_xml_content_tag(PN, #xmlElement{name='content'
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec publish_cnam_update(knm_phone_number:record()) -> 'ok'.
+-spec publish_cnam_update(knm_phone_number:pn_record()) -> 'ok'.
 publish_cnam_update(PN) ->
     Feature = knm_phone_number:feature(PN, ?FEATURE_CNAM),
     Notify = [{<<"Account-ID">>, knm_phone_number:assigned_to(PN)}

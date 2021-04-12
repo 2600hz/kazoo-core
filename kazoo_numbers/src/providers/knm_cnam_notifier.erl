@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -22,12 +22,12 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PN) ->
     State = knm_phone_number:state(PN),
     save(PN, State).
 
--spec save(knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 save(PN, ?NUMBER_STATE_RESERVED) ->
     handle(PN);
 save(PN, ?NUMBER_STATE_IN_SERVICE) ->
@@ -41,7 +41,7 @@ save(PN, _State) ->
 %% @doc This function is called each time a number is deleted
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) ->
     Features = [?FEATURE_CNAM_INBOUND
                ,?FEATURE_CNAM_OUTBOUND
@@ -57,7 +57,7 @@ delete(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle(knm_phone_number:record()) -> knm_phone_number:record().
+-spec handle(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 handle(PN) ->
     support_depreciated_cnam(
       handle_inbound_cnam(
@@ -71,7 +71,7 @@ handle(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_outbound_cnam(knm_phone_number:record()) -> knm_phone_number:record().
+-spec handle_outbound_cnam(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 handle_outbound_cnam(PhoneNumber) ->
     Doc = knm_phone_number:doc(PhoneNumber),
     Feature = knm_phone_number:feature(PhoneNumber, ?FEATURE_CNAM_OUTBOUND),
@@ -91,7 +91,7 @@ handle_outbound_cnam(PhoneNumber) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_inbound_cnam(knm_phone_number:record()) -> knm_phone_number:record().
+-spec handle_inbound_cnam(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 handle_inbound_cnam(PN) ->
     Doc = knm_phone_number:doc(PN),
     Feature = knm_phone_number:feature(PN, ?FEATURE_CNAM_INBOUND),
@@ -113,7 +113,7 @@ handle_inbound_cnam(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec support_depreciated_cnam(knm_phone_number:record()) -> knm_phone_number:record().
+-spec support_depreciated_cnam(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 support_depreciated_cnam(PN) ->
     knm_providers:deactivate_feature(PN, ?FEATURE_CNAM).
 
@@ -122,12 +122,12 @@ support_depreciated_cnam(PN) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec publish_cnam_update(knm_phone_number:record()) -> 'ok'.
+-spec publish_cnam_update(knm_phone_number:pn_record()) -> 'ok'.
 publish_cnam_update(PN) ->
     DryRun = knm_phone_number:dry_run(PN),
     publish_cnam_update(PN, DryRun).
 
--spec publish_cnam_update(knm_phone_number:record(), boolean()) -> 'ok'.
+-spec publish_cnam_update(knm_phone_number:pn_record(), boolean()) -> 'ok'.
 publish_cnam_update(_PN, 'true') -> 'ok';
 publish_cnam_update(PN, 'false') ->
     Feature = knm_phone_number:feature(PN, ?FEATURE_CNAM_OUTBOUND),

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Handle im features
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,7 +28,7 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PN) ->
     knm_im:save(?IM_TYPE, PN).
 
@@ -37,12 +37,12 @@ save(PN) ->
 %% remove the prepend route
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) ->
     knm_im:delete(?IM_TYPE, PN).
 
 
--spec available(knm_phone_number:record()) -> boolean().
+-spec available(knm_phone_number:pn_record()) -> boolean().
 available(PN) ->
     knm_im:available(?IM_TYPE, PN).
 
@@ -50,6 +50,6 @@ available(PN) ->
 available(Carrier, State, AccountId) ->
     knm_im:available(?IM_TYPE, Carrier, State, AccountId).
 
--spec settings(knm_phone_number:record()) -> kz_json:object().
+-spec settings(knm_phone_number:pn_record()) -> kz_json:object().
 settings(PN) ->
     knm_im:settings(?IM_TYPE, PN).

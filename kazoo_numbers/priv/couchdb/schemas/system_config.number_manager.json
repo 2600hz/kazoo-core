@@ -8,6 +8,37 @@
             "description": "should number ports be allowed to transition from submitted to scheduled?",
             "type": "boolean"
         },
+        "available_module_name": {
+            "default": "knm_local",
+            "description": "default carrier module name to use when creating a number",
+            "type": "string"
+        },
+        "carrier_modules": {
+            "default": [
+                "knm_local"
+            ],
+            "description": "carrier modules to perform number search & ordering from",
+            "items": {
+                "type": "string"
+            },
+            "type": "array"
+        },
+        "features": {
+            "properties": {
+                "allow": {
+                    "description": "number_manager features allow",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            }
+        },
+        "local_feature_override": {
+            "default": false,
+            "description": "overrides the filtering of external features for local numbers",
+            "type": "boolean"
+        },
         "maximum_search_quantity": {
             "default": 500,
             "description": "maximum number of returned DIDs in a search query",
@@ -24,6 +55,25 @@
             "default": "knm_local",
             "description": "completed port requests will create numbers with this carrier module name",
             "type": "string"
+        },
+        "providers": {
+            "description": "legacy value for number_manager.features.allow",
+            "items": {
+                "type": "string"
+            },
+            "type": "array"
+        },
+        "time_between_accounts_ms": {
+            "default": 1000,
+            "description": "time to pause in between the processing of accounts in milliseconds",
+            "minimum": 1,
+            "type": "integer"
+        },
+        "time_between_db_ms": {
+            "default": 50,
+            "description": "number_manager time_between_db_ms",
+            "minimum": 1,
+            "type": "integer"
         }
     },
     "type": "object"

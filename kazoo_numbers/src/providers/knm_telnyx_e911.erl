@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Handle e911 provisioning
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -30,12 +30,12 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PN) ->
     State = knm_phone_number:state(PN),
     save(PN, State).
 
--spec save(knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 save(PN, ?NUMBER_STATE_RESERVED) ->
     maybe_update_e911(PN);
 save(PN, ?NUMBER_STATE_IN_SERVICE) ->
@@ -50,7 +50,7 @@ save(PN, _State) ->
 %% provision e911 or remove the number depending on the state
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) ->
     case knm_phone_number:feature(PN, ?FEATURE_E911) of
         'undefined' -> PN;
@@ -68,14 +68,14 @@ delete(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_update_e911(knm_phone_number:record()) -> knm_phone_number:record().
+-spec maybe_update_e911(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 maybe_update_e911(PN) ->
     IsDryRun = knm_phone_number:dry_run(PN),
     maybe_update_e911(PN, (IsDryRun
                            orelse ?IS_SANDBOX_PROVISIONING_TRUE
                           )).
 
--spec maybe_update_e911(knm_phone_number:record(), boolean()) -> knm_phone_number:record().
+-spec maybe_update_e911(knm_phone_number:pn_record(), boolean()) -> knm_phone_number:pn_record().
 maybe_update_e911(PN, 'true') ->
     CurrentE911 = knm_phone_number:feature(PN, ?FEATURE_E911),
     E911 = kz_json:get_ne_value(?FEATURE_E911, knm_phone_number:doc(PN)),
@@ -113,8 +113,8 @@ maybe_update_e911(PN, 'false') ->
             end
     end.
 
--spec update_e911(knm_phone_number:record(), kz_json:object()) ->
-          {'ok', knm_phone_number:record()} |
+-spec update_e911(knm_phone_number:pn_record(), kz_json:object()) ->
+          {'ok', knm_phone_number:pn_record()} |
           {'error', kz_term:ne_binary()}.
 update_e911(PN, AddressJObj) ->
     remove_number_address(PN),
@@ -123,7 +123,7 @@ update_e911(PN, AddressJObj) ->
         {'ok', AddressId} -> assign_address(PN, AddressId)
     end.
 
--spec create_address(knm_phone_number:record(), kz_json:object()) ->
+-spec create_address(knm_phone_number:pn_record(), kz_json:object()) ->
           {'ok', kz_term:ne_binary()} |
           {'error', kz_term:ne_binary() | any()}.
 create_address(PN, AddressJObj) ->
@@ -146,8 +146,8 @@ create_address(PN, AddressJObj) ->
             {'error', Reason}
     end.
 
--spec assign_address(knm_phone_number:record(), kz_term:ne_binary() | 'null') ->
-          {'ok', knm_phone_number:record()} |
+-spec assign_address(knm_phone_number:pn_record(), kz_term:ne_binary() | 'null') ->
+          {'ok', knm_phone_number:pn_record()} |
           {'error', kz_term:ne_binary()}.
 assign_address(PN, AddressId) ->
     IsEnabling = is_binary(AddressId),
@@ -174,12 +174,12 @@ assign_address(PN, AddressId) ->
 toogle('true') -> "enable";
 toogle('false') -> "disable".
 
--spec set_address_id(knm_phone_number:record(), kz_term:ne_binary() | 'null') -> knm_phone_number:record().
+-spec set_address_id(knm_phone_number:pn_record(), kz_term:ne_binary() | 'null') -> knm_phone_number:pn_record().
 set_address_id(PN, AddressId) ->
     Data = kz_json:from_list([{?ADDRESS_ID, AddressId}]),
     knm_phone_number:update_carrier_data(PN, Data).
 
--spec remove_number(knm_phone_number:record()) -> {'ok', knm_phone_number:record()} |
+-spec remove_number(knm_phone_number:pn_record()) -> {'ok', knm_phone_number:pn_record()} |
           {'error', kz_term:ne_binary()}.
 remove_number(PN) ->
     CarrierData = knm_phone_number:carrier_data(PN),
@@ -190,7 +190,7 @@ remove_number(PN) ->
             assign_address(PN, 'null')
     end.
 
--spec remove_number_address(knm_phone_number:record()) -> 'ok'.
+-spec remove_number_address(knm_phone_number:pn_record()) -> 'ok'.
 remove_number_address(PN) ->
     CarrierData = knm_phone_number:carrier_data(PN),
     case kz_json:get_ne_binary_value(?ADDRESS_ID, CarrierData) of
@@ -213,7 +213,7 @@ reason(RepJObj) ->
     lager:error("~s", [Reason]),
     Reason.
 
--spec e911_address(knm_phone_number:record(), kz_json:object()) -> kz_json:object().
+-spec e911_address(knm_phone_number:pn_record(), kz_json:object()) -> kz_json:object().
 e911_address(PN, JObj) ->
     E911Name = kz_json:get_ne_binary_value(?E911_NAME, JObj),
     CallerName = knm_providers:e911_caller_name(PN, E911Name),

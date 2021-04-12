@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2021, 2600Hz
 %%% @doc Bulk operations on numbers.
 %%%
 %%% <div class="notice">Functions should not throw, instead should return
@@ -141,7 +141,7 @@ update(Nums, Routines) ->
 
 -ifdef(TEST).
 
--spec update(kz_term:ne_binaries() | knm_phone_number:records(), knm_phone_number:set_functions(), knm_options:options()) ->
+-spec update(kz_term:ne_binaries() | knm_phone_number:pn_records(), knm_phone_number:set_functions(), knm_options:options()) ->
           knm_pipe:collection().
 %% FIXME: first argument could be ne_binaries or knm_phone_numbers
 update([?NE_BINARY|_]=Nums, Routines, Options) ->
@@ -343,12 +343,12 @@ dry_run_services(T=#{'todo' := Numbers}, CrossbarOptions) ->
             knm_pipe:set_succeeded(knm_pipe:set_quotes(T, JObj), Numbers)
     end.
 
--spec services_group_numbers(knm_phone_number:records()) -> kz_json:object().
+-spec services_group_numbers(knm_phone_number:pn_records()) -> kz_json:object().
 services_group_numbers(PNs) ->
     %% TODO: sort these so the account with the largest pvt_tree is first...
     services_group_numbers(PNs, dict:new()).
 
--spec services_group_numbers(knm_phone_number:records(), dict:dict()) -> kz_json:object().
+-spec services_group_numbers(knm_phone_number:pn_records(), dict:dict()) -> kz_json:object().
 services_group_numbers([], Updates) ->
     kz_json:set_values(dict:to_list(Updates), kz_json:new());
 services_group_numbers([PhoneNumber|PNs], Updates) ->
@@ -367,7 +367,7 @@ services_group_numbers([PhoneNumber|PNs], Updates) ->
                                ),
     services_group_numbers(PNs, UpdatedGroups).
 
--spec services_group_number(knm_phone_number:record(), kz_term:api_binary(), kz_term:api_binary()) -> kz_term:proplist().
+-spec services_group_number(knm_phone_number:pn_record(), kz_term:api_binary(), kz_term:api_binary()) -> kz_term:proplist().
 services_group_number(_PhoneNumber, 'undefined', 'undefined') -> [];
 services_group_number(PhoneNumber, 'undefined', PrevAssignedTo) ->
     ProposedJObj = kz_json:new(),
@@ -441,14 +441,14 @@ maybe_call_callbacks(Collection) ->
             knm_pipe:set_succeeded(Collection, Todo)
     end.
 
--spec call_callbacks(knm_phone_number:records() | knm_phone_number:record()) -> 'ok'.
+-spec call_callbacks(knm_phone_number:pn_records() | knm_phone_number:pn_record()) -> 'ok'.
 call_callbacks(PNs) when is_list(PNs) ->
     plists:foreach(fun call_callbacks/1, PNs);
 call_callbacks(PN) ->
     CBs = knm_phone_number:on_success(PN),
     plists:foreach(fun({CB, Args}) -> call_callback(PN, CB, Args) end, CBs).
 
--spec call_callback(knm_phone_number:record(), knm_phone_number:callback(), list()) -> any().
+-spec call_callback(knm_phone_number:pn_record(), knm_phone_number:callback(), list()) -> any().
 call_callback(PN, CB, Args) ->
     _Number = knm_phone_number:number(PN),
     lager:debug("applying ~p on number ~s", [CB, _Number]),
@@ -550,7 +550,7 @@ unwind_maybe_disconnect(T) ->
                        ]),
     knm_pipe:merge_okkos(Ta, Tb).
 
--spec should_disconnect(knm_phone_number:record()) -> boolean().
+-spec should_disconnect(knm_phone_number:pn_record()) -> boolean().
 should_disconnect(PN) ->
     'undefined' =:= knm_phone_number:assigned_to(PN).
 
@@ -568,13 +568,13 @@ delete_permanently(T) ->
     knm_pipe:do(fun knm_phone_number:delete/1, T).
 
 %% FIXME: opaque
--spec split_on(fun((knm_phone_number:record()) -> boolean()), knm_pipe:collection()) ->
+-spec split_on(fun((knm_phone_number:pn_record()) -> boolean()), knm_pipe:collection()) ->
           {knm_pipe:collection(), knm_pipe:collection()}.
 split_on(Pred, T=#{'todo' := PNs}) ->
     {Yes, No} = lists:partition(Pred, PNs),
     {knm_pipe:set_todo(T, Yes), knm_pipe:set_todo(T, No)}.
 
--spec is_carrier_local_or_mdn(knm_phone_number:record()) -> boolean().
+-spec is_carrier_local_or_mdn(knm_phone_number:pn_record()) -> boolean().
 is_carrier_local_or_mdn(PN) ->
     Carrier = knm_phone_number:module_name(PN),
     ?CARRIER_LOCAL =:= Carrier
@@ -596,6 +596,6 @@ maybe_age(T=#{'todo' := PNs}) ->
             knm_pipe:merge_okkos(Ta, Tb)
     end.
 
--spec is_state_available(knm_phone_number:record()) -> boolean().
+-spec is_state_available(knm_phone_number:pn_record()) -> boolean().
 is_state_available(PN) ->
     ?NUMBER_STATE_AVAILABLE =:= knm_phone_number:state(PN).

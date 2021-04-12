@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Handle client requests for phone_number documents using the voxbone api
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -89,14 +89,14 @@ maybe_escape_wildcard(Prefix) ->
 %% Acquire a given number from the carrier
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 acquire_number(PN) -> PN.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 disconnect_number(PN) ->
     {'ok', Response} = fetch_did(PN),
     {Numbers, _Keys} = kz_json:get_values(<<"dids">>, Response),
@@ -107,7 +107,7 @@ disconnect_number(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_PN) -> 'true'.
 
 %%------------------------------------------------------------------------------
@@ -370,7 +370,7 @@ maybe_destroy_cart(#{id := CartId, query_id := _QueryId}=_Cart) ->
 %% Fetches DID metadata from voxbone portal
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_did(knm_phone_number:record()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec fetch_did(knm_phone_number:pn_record()) -> {'ok', kz_json:object()} | {'error', any()}.
 fetch_did(PN) ->
     Options = [{'e164Pattern', knm_voxbone_util:to_voxbone_pattern(knm_phone_number:number(PN))}
               | knm_voxbone_util:required_params()
