@@ -15,6 +15,9 @@
         "Custom-Channel-Vars": {
             "type": "object"
         },
+        "Custom-SIP-Headers": {
+            "type": "object"
+        },
         "Error-Msg": {
             "type": "string"
         },
