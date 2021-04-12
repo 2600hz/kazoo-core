@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2021, 2600Hz
 %%% @doc Handle client requests for phone number at
 %%% <a href="https://www.simwood.com/services/api">Simwood</a> (UK based provider).
 %%%
@@ -84,8 +84,8 @@ find_numbers(Prefix, Quantity, Options) ->
 %% @doc Acquire a given number from Simwood.
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 acquire_number(PN) ->
     Num = to_simwood(PN),
     URL = list_to_binary([?SW_NUMBER_URL, "/", ?SW_ACCOUNT_ID, <<"/allocated/">>, Num]),
@@ -99,8 +99,8 @@ acquire_number(PN) ->
 %% @doc Return number back to Simwood.
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 disconnect_number(PN) ->
     Num = to_simwood(PN),
     URL = list_to_binary([?SW_NUMBER_URL, "/", ?SW_ACCOUNT_ID, <<"/allocated/">>, Num]),
@@ -114,7 +114,7 @@ disconnect_number(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_PN) -> 'true'.
 
 %%------------------------------------------------------------------------------
@@ -132,7 +132,7 @@ should_lookup_cnam() -> 'true'.
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec to_simwood(knm_phone_number:record()) -> kz_term:ne_binary().
+-spec to_simwood(knm_phone_number:pn_record()) -> kz_term:ne_binary().
 to_simwood(PN) ->
     case knm_phone_number:number(PN) of
         <<$+, N/binary>> -> N;

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -22,12 +22,12 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PhoneNumber) ->
     State = knm_phone_number:state(PhoneNumber),
     save(PhoneNumber, State).
 
--spec save(knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 save(PhoneNumber, ?NUMBER_STATE_RESERVED) ->
     handle(PhoneNumber);
 save(PhoneNumber, ?NUMBER_STATE_IN_SERVICE) ->
@@ -41,7 +41,7 @@ save(PhoneNumber, _State) ->
 %% @doc This function is called each time a number is deleted
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) ->
     toggle_inbound(PN, 'false'),
     knm_providers:deactivate_features(PN
@@ -59,7 +59,7 @@ delete(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle(knm_phone_number:record()) -> knm_phone_number:record().
+-spec handle(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 handle(PhoneNumber) ->
     support_depreciated_cnam(
       handle_inbound_cnam(
@@ -69,7 +69,7 @@ handle(PhoneNumber) ->
        )
      ).
 
--spec handle_outbound_cnam(knm_phone_number:record()) -> knm_phone_number:record().
+-spec handle_outbound_cnam(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 handle_outbound_cnam(PhoneNumber) ->
     IsDryRun = knm_phone_number:dry_run(PhoneNumber),
     Doc = knm_phone_number:doc(PhoneNumber),
@@ -90,7 +90,7 @@ handle_outbound_cnam(PhoneNumber) ->
             PhoneNumber1
     end.
 
--spec handle_inbound_cnam(knm_phone_number:record()) -> knm_phone_number:record().
+-spec handle_inbound_cnam(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 handle_inbound_cnam(PhoneNumber) ->
     CurrentInboundCNAM = kz_json:is_true(?CNAM_INBOUND_LOOKUP
                                         ,knm_phone_number:feature(PhoneNumber, ?FEATURE_CNAM_INBOUND)),
@@ -112,11 +112,11 @@ handle_inbound_cnam(PhoneNumber) ->
             knm_providers:activate_feature(PhoneNumber, {?FEATURE_CNAM_INBOUND, FeatureData})
     end.
 
--spec support_depreciated_cnam(knm_phone_number:record()) -> knm_phone_number:record().
+-spec support_depreciated_cnam(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 support_depreciated_cnam(PhoneNumber) ->
     knm_providers:deactivate_feature(PhoneNumber, ?FEATURE_CNAM).
 
--spec toggle_inbound(knm_phone_number:record(), boolean()) -> 'ok'.
+-spec toggle_inbound(knm_phone_number:pn_record(), boolean()) -> 'ok'.
 toggle_inbound(PhoneNumber, ShouldEnable) ->
     case knm_phone_number:dry_run(PhoneNumber) of
         'true' -> 'ok';
@@ -128,7 +128,7 @@ toggle_inbound(PhoneNumber, ShouldEnable) ->
             'ok'
     end.
 
--spec set_outbound(knm_phone_number:record(), kz_term:ne_binary()) -> 'ok'.
+-spec set_outbound(knm_phone_number:pn_record(), kz_term:ne_binary()) -> 'ok'.
 set_outbound(Number, NewCNAM) ->
     Key = <<"cnam_listing_details">>,
     Body = kz_json:from_list([{Key, NewCNAM}
@@ -142,7 +142,7 @@ set_outbound(Number, NewCNAM) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec publish_cnam_update(knm_phone_number:record()) -> 'ok'.
+-spec publish_cnam_update(knm_phone_number:pn_record()) -> 'ok'.
 %% FIXME: maybe move TEST guard to ampq polisher. This way we could actually test
 %% the message is building properly and validate.
 -ifndef(TEST).

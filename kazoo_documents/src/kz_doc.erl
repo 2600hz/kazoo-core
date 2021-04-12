@@ -95,6 +95,8 @@
         ,private_fields/1
         ,is_private_key/1
         ,leak_private_fields/1
+        ,read_only/1, read_only/2, base_read_only/1
+        ,set_read_only/1, set_read_only/2
         ]).
 
 -export([calculate_document_hash/1]).
@@ -789,6 +791,35 @@ leak_private_field(Key, Value, JObj) ->
 remove_pvt(<<"_", Key/binary>>) -> Key;
 remove_pvt(<<"pvt_", Key/binary>>) -> Key;
 remove_pvt(Key) -> Key.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_read_only(doc()) -> kz_json:object().
+set_read_only(Doc) ->
+    set_read_only(Doc, kz_json:new()).
+
+-spec set_read_only(doc(), kz_json:object()) -> kz_json:object().
+set_read_only(Doc, NewReadOnly) ->
+    ExistingRO = read_only(Doc),
+    ReadOnly = kz_json:merge(ExistingRO, NewReadOnly),
+    kz_json:set_value(<<"_read_only">>, ReadOnly, Doc).
+
+-spec base_read_only(doc()) -> kz_json:object().
+base_read_only(Doc) ->
+    kz_json:from_list([{<<"id">>, id(Doc)}
+                      ,{<<"created">>, created(Doc)}
+                      ,{<<"modified">>, modified(Doc)}
+                      ]).
+
+-spec read_only(doc()) -> kz_json:object().
+read_only(Doc) ->
+    read_only(Doc, base_read_only(Doc)).
+
+-spec read_only(doc(), Default) -> kz_json:object() | Default.
+read_only(Doc, Default) ->
+    kz_json:get_json_value(<<"_read_only">>, Doc, Default).
 
 %%------------------------------------------------------------------------------
 %% @doc

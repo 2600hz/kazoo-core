@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2020, 2600Hz
+%%% @copyright (C) 2014-2021, 2600Hz
 %%% @doc Handle client requests for phone_number documents
 %%% @author James Aimonetti
 %%% @author Pierre Fenoll
@@ -72,8 +72,8 @@ find_numbers(Prefix, Quantity, Options) ->
 %% @doc Acquire a given number from the carrier
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 acquire_number(PN) ->
     DID = knm_phone_number:number(PN),
     case knm_converters:classify(DID) of
@@ -89,8 +89,8 @@ acquire_number(PN) ->
 %% @doc Release a number from the routing table
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 disconnect_number(PN) ->
     DID = knm_phone_number:number(PN),
     lager:debug("attempting to disconnect ~s", [DID]),
@@ -109,7 +109,7 @@ should_lookup_cnam() ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_) -> 'true'.
 
 %%%=============================================================================
@@ -387,8 +387,8 @@ purchase_tollfree_options(DID) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec query_vitelity(knm_phone_number:record(), knm_vitelity_util:query_options()) ->
-          knm_phone_number:record().
+-spec query_vitelity(knm_phone_number:pn_record(), knm_vitelity_util:query_options()) ->
+          knm_phone_number:pn_record().
 query_vitelity(PN, QOptions) ->
     URI = knm_vitelity_util:build_uri(QOptions),
     lager:debug("querying ~s", [URI]),
@@ -405,8 +405,8 @@ query_vitelity(PN, QOptions) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec process_xml_resp(knm_phone_number:record(), kz_term:text()) ->
-          knm_phone_number:record().
+-spec process_xml_resp(knm_phone_number:pn_record(), kz_term:text()) ->
+          knm_phone_number:pn_record().
 process_xml_resp(PN, XML_binary) ->
     XML = unicode:characters_to_list(XML_binary),
     try xmerl_scan:string(XML) of
@@ -421,8 +421,8 @@ process_xml_resp(PN, XML_binary) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec process_xml_content_tag(knm_phone_number:record(), kz_types:xml_el()) ->
-          knm_phone_number:record().
+-spec process_xml_content_tag(knm_phone_number:pn_record(), kz_types:xml_el()) ->
+          knm_phone_number:pn_record().
 process_xml_content_tag(PN, #xmlElement{name='content'
                                        ,content=Children
                                        }) ->

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Find reserved numbers in an account's reseller account.
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -111,14 +111,14 @@ format_numbers(QID, JObjs) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_PN) -> 'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc Acquire a given number from the carrier
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 acquire_number(PN) -> PN.
 
 %%------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ acquire_number(PN) -> PN.
 %% @end
 %%------------------------------------------------------------------------------
 
--spec disconnect_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 disconnect_number(_PN) -> _PN.
 
 %%------------------------------------------------------------------------------

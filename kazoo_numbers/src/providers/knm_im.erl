@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Handle im features
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -33,12 +33,12 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(im_type(), knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(im_type(), knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(Type, PN) ->
     State = knm_phone_number:state(PN),
     save(Type, PN, State).
 
--spec save(im_type(), knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record().
+-spec save(im_type(), knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 save(Type, PN, ?NUMBER_STATE_IN_SERVICE) ->
     update_im(Type, PN);
 save(Type, PN, _State) ->
@@ -49,14 +49,14 @@ save(Type, PN, _State) ->
 %% remove the prepend route
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(im_type(), knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(im_type(), knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(Type, PN) ->
     case knm_phone_number:feature(PN, ?KEY) of
         'undefined' -> PN;
         _Else -> deactivate(Type, PN)
     end.
 
--spec enabled(knm_phone_number:record(), im_type()) -> boolean().
+-spec enabled(knm_phone_number:pn_record(), im_type()) -> boolean().
 enabled(PN, Type) ->
     Feature = knm_phone_number:feature(PN, ?KEY),
     case kz_term:is_empty(Feature) of
@@ -72,7 +72,7 @@ enabled(PN, Type) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec update_im(im_type(), knm_phone_number:record()) -> knm_phone_number:record().
+-spec update_im(im_type(), knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 update_im(Type, PN) ->
     CurrentFeature = knm_phone_number:feature(PN, ?KEY),
     Feature = kz_json:get_ne_value(?KEY, knm_phone_number:doc(PN)),
@@ -106,7 +106,7 @@ feature_available(AccountId, Type, Config) ->
            ],
     lists:all(fun(Fun) -> Fun() end, Funs).
 
--spec number_available(knm_phone_number:record()) -> boolean().
+-spec number_available(knm_phone_number:pn_record()) -> boolean().
 number_available(PN) ->
     number_available(knm_phone_number:state(PN), knm_phone_number:assigned_to(PN)).
 
@@ -117,7 +117,7 @@ number_available(State, AccountId) ->
            ],
     lists:all(fun(Fun) -> Fun() end, Funs).
 
--spec available(im_type(), knm_phone_number:record()) -> boolean().
+-spec available(im_type(), knm_phone_number:pn_record()) -> boolean().
 available(Type, PN) ->
     Config = knm_gen_carrier:configuration(PN),
     AccountId = knm_phone_number:assigned_to(PN),
@@ -132,7 +132,7 @@ available(Type, Module, State, AccountId) ->
     number_available(State, AccountId)
         andalso feature_available(AccountId, Type, Config).
 
--spec settings(im_type(), knm_phone_number:record()) -> kz_json:object().
+-spec settings(im_type(), knm_phone_number:pn_record()) -> kz_json:object().
 settings(Type, PN) ->
     Config = knm_gen_carrier:configuration(PN),
     carrier_settings(Type, Config).
@@ -167,13 +167,13 @@ deactivate(Type, PN) ->
         false -> maybe_set_callback(Type, deactivate, PN1)
     end.
 
--spec requires_manual_action(im_type(), knm_phone_number:record()) -> boolean().
+-spec requires_manual_action(im_type(), knm_phone_number:pn_record()) -> boolean().
 requires_manual_action(Type, PN) ->
     Config = knm_gen_carrier:configuration(PN),
     carrier_feature(Type, ?FEATURE_ACTIVATION, Config, <<"auto">>) =:= <<"manual">>
         andalso kz_term:is_ne_binary_or_binaries(carrier_feature(Type, ?FEATURE_ACTIVATION_NOTIFY_TO, Config)).
 
--spec maybe_set_callback(im_type(), atom(), knm_phone_number:record()) -> knm_phone_number:record().
+-spec maybe_set_callback(im_type(), atom(), knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 maybe_set_callback(Type, Action, PN) ->
     case requires_manual_action(Type, PN) of
         'true' ->
@@ -182,7 +182,7 @@ maybe_set_callback(Type, Action, PN) ->
             PN
     end.
 
--spec send_notify(knm_phone_number:record(), im_type(), atom()) -> 'ok'.
+-spec send_notify(knm_phone_number:pn_record(), im_type(), atom()) -> 'ok'.
 send_notify(PN, Type, Action) ->
     Config = knm_gen_carrier:configuration(PN),
     To = carrier_feature(Type, ?FEATURE_ACTIVATION_NOTIFY_TO, Config),

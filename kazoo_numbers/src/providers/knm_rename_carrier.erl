@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Handle renaming module_name for admins
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -23,7 +23,7 @@
 %% add the prepend route (for in service numbers only)
 %% @end
 %%------------------------------------------------------------------------------
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PN) ->
     Doc = knm_phone_number:doc(PN),
     Value = kz_json:get_ne_value(?KEY, Doc),
@@ -46,7 +46,7 @@ save(PN) ->
 %% remove the prepend route
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) -> PN.
 
 -spec maybe_prefix_carrier(kz_term:ne_binary()) -> kz_term:ne_binary().
@@ -54,7 +54,7 @@ maybe_prefix_carrier(<<"knm_", Carrier/binary>>) -> maybe_prefix_carrier(Carrier
 maybe_prefix_carrier(<<"wnm_", Carrier/binary>>) -> maybe_prefix_carrier(Carrier);
 maybe_prefix_carrier(Carrier=?NE_BINARY) -> <<"knm_", Carrier/binary>>.
 
--spec is_valid(kz_term:ne_binary(), knm_phone_number:record()) -> boolean().
+-spec is_valid(kz_term:ne_binary(), knm_phone_number:pn_record()) -> boolean().
 is_valid(CarrierModule, PN) ->
     case knm_phone_number:is_admin(PN) of
         'false' -> knm_errors:unauthorized();

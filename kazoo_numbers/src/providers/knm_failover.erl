@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc Handle failover provisioning
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,11 +24,11 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PN) ->
     save(PN, knm_phone_number:state(PN)).
 
--spec save(knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 save(PN, ?NUMBER_STATE_IN_SERVICE) -> update_failover(PN);
 save(PN, _) -> delete(PN).
 
@@ -37,7 +37,7 @@ save(PN, _) -> delete(PN).
 %% remove the failover route
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) ->
     case knm_phone_number:feature(PN, ?KEY) =:= 'undefined' of
         'true' -> PN;
@@ -52,7 +52,7 @@ delete(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec update_failover(knm_phone_number:record()) -> knm_phone_number:record().
+-spec update_failover(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 update_failover(PN) ->
     Private = knm_phone_number:feature(PN, ?KEY),
     Public = kz_json:get_ne_value(?KEY, knm_phone_number:doc(PN)),

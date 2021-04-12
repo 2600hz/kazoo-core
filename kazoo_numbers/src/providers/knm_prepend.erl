@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Handle prepend feature
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,12 +24,12 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PN) ->
     State = knm_phone_number:state(PN),
     save(PN, State).
 
--spec save(knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 save(PN, ?NUMBER_STATE_IN_SERVICE) ->
     update_prepend(PN);
 save(PN, _State) ->
@@ -40,7 +40,7 @@ save(PN, _State) ->
 %% remove the prepend route
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) ->
     case knm_phone_number:feature(PN, ?KEY) of
         'undefined' -> PN;
@@ -55,7 +55,7 @@ delete(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec update_prepend(knm_phone_number:record()) -> knm_phone_number:record().
+-spec update_prepend(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 update_prepend(PN) ->
     CurrentPrepend = knm_phone_number:feature(PN, ?KEY),
     Prepend = kz_json:get_ne_value(?KEY, knm_phone_number:doc(PN)),

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc A Number Manager module for carrier: telnyx.com
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -55,7 +55,7 @@ info() ->
 -spec is_local() -> boolean().
 is_local() -> 'false'.
 
--spec is_number_billable(knm_phone_number:record()) -> 'true'.
+-spec is_number_billable(knm_phone_number:pn_record()) -> 'true'.
 is_number_billable(_PN) -> 'true'.
 
 %%------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ get_nxx(_) -> 'undefined'.
 %% @doc Acquire a given number from the carrier
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 acquire_number(PN) ->
     Debug = ?IS_SANDBOX_PROVISIONING_TRUE,
     case ?IS_PROVISIONING_ENABLED of
@@ -129,7 +129,7 @@ acquire_number(PN) ->
 %% @doc Release a number from the routing table
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 disconnect_number(PN) ->
     Debug = ?IS_SANDBOX_PROVISIONING_TRUE,
     case ?IS_PROVISIONING_ENABLED of
