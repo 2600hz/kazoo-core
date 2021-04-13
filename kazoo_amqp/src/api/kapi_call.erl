@@ -319,6 +319,7 @@ channel_status_resp_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Custom-Application-Vars">>
                                                             ,<<"Custom-Channel-Vars">>
+                                                            ,<<"Custom-SIP-Headers">>
                                                             ,<<"Error-Msg">>
                                                             ,<<"From-Tag">>
                                                             ,<<"Correlation-ID">>
@@ -338,6 +339,7 @@ channel_status_resp_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Custom-Application-Vars">>, fun kz_json:is_json_object/1}
                 ,{<<"Custom-Channel-Vars">>, fun kz_json:is_json_object/1}
+                ,{<<"Custom-SIP-Headers">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],
