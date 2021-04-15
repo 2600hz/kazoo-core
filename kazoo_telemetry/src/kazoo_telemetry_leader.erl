@@ -177,6 +177,7 @@ handle_info(_Info, State) ->
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
 terminate(_Reason, _State) ->
+    _ = kz_nodes_bindings:unbind_info(?MODULE, 'node_info'),
     'ok'.
 
 %%------------------------------------------------------------------------------
