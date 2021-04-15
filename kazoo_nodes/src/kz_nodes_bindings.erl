@@ -12,6 +12,7 @@
 -export([bind/1, bind/2, bind/3
         ,bind_info/1, bind_info/2
         ,unbind/1, unbind/2, unbind/3
+        ,unbind_info/1, unbind_info/2
         ,request/1
 
         ,binding_node_info/0
@@ -83,6 +84,16 @@ unbind(App, Module, Function)
         'false' ->
             kazoo_bindings:unbind(Binding, ?DEFAULT_MODULE, ?DEFAULT_FUNCTION)
     end.
+
+-spec unbind_info(module()) -> bind_result().
+unbind_info(Module) ->
+    unbind_info(Module, 'node_info').
+
+-spec unbind_info(module(), atom()) -> bind_result().
+unbind_info(Module, Function)
+  when is_atom(Module)
+       andalso is_atom(Function) ->
+    kazoo_bindings:unbind(binding_node_info(), Module, Function).
 
 routing_key(App) ->
     <<"kz_nodes.request.", (kz_term:to_binary(App))/binary>>.
