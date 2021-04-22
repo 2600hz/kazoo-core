@@ -486,6 +486,7 @@ bridge_definition() ->
                                                             ,<<"Privacy-Method">>
                                                             ,<<"Proxy-Path">>
                                                             ,<<"Ringback">>
+                                                            ,<<"SIP-Invite-Contact-User">>
                                                             ,<<"SIP-Invite-Parameters">>
                                                             ,<<"SIP-Transport">>
                                                             ,<<"Secure-RTP">>
@@ -575,6 +576,7 @@ bridge_endpoint_definition() ->
                                                             ,<<"Route">>
                                                             ,<<"Simplify-Loopback">>
                                                             ,<<"SIP-Interface">>
+                                                            ,<<"SIP-Invite-Contact-User">>
                                                             ,<<"SIP-Invite-Parameters">>
                                                             ,<<"SIP-Transport">>
                                                             ,<<"To-DID">>

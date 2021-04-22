@@ -248,6 +248,9 @@
         "Ringback": {
             "type": "string"
         },
+        "SIP-Invite-Contact-User": {
+            "type": "string"
+        },
         "Timeout": {
             "type": "string"
         },

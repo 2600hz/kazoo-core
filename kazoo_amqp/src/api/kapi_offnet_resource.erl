@@ -53,6 +53,7 @@
         ,hold_media/1, hold_media/2
         ,hunt_account_id/1, hunt_account_id/2
         ,ignore_early_media/1, ignore_early_media/2
+        ,invite_contact_user/1, invite_contact_user/2
         ,media/1, media/2
         ,message_id/1, message_id/2
         ,outbound_call_id/1, outbound_call_id/2
@@ -203,6 +204,7 @@ req_definition() ->
                                                             ,?KEY_TIMEOUT
                                                             ,?KEY_CONTINUE_AFTER
                                                             ,?KEY_FAIL_ON_SINGLE_REJECT
+                                                            ,?KEY_INVITE_CONTACT_USER
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{?KEY_RESOURCE_TYPE, [?RESOURCE_TYPE_AUDIO
@@ -766,3 +768,11 @@ fail_on_single_reject(?REQ_TYPE(JObj), Default) ->
 is_valid_fail_on_single_reject(Term) ->
     is_boolean(Term)
         orelse kz_term:is_ne_binaries(Term).
+
+-spec invite_contact_user(req()) -> kz_term:api_binary().
+invite_contact_user(Req) ->
+    invite_contact_user(Req, 'undefined').
+
+-spec invite_contact_user(req(), Default) -> kz_term:ne_binary() | Default.
+invite_contact_user(?REQ_TYPE(JObj), Default) ->
+    kz_json:get_ne_value(?KEY_INVITE_CONTACT_USER, JObj, Default).
