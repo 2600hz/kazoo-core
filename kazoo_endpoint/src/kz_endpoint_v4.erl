@@ -347,7 +347,7 @@ merge_attribute(<<"name">> = Key, Account, Endpoint, Owner) ->
                                ),
     kz_json:set_value(Key, Name, Endpoint);
 merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
-    case kzd_call_failover:enabled(kzd_devices:call_failover(Endpoint)) of
+    case kzd_call_failover:enabled(kzd_devices:call_failover(Endpoint, kz_json:new())) of
         'true' -> Endpoint;
         'false' ->
             AccountAttr = kzd_accounts:call_failover(Key, Account, kz_json:new()),
@@ -357,7 +357,7 @@ merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
             kz_json:set_value(Key, Merged, Endpoint)
     end;
 merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
-    case kzd_call_forward:enabled(kzd_devices:call_forward(Endpoint)) of
+    case kzd_call_forward:enabled(kzd_devices:call_forward(Endpoint, kz_json:new())) of
         'true' -> Endpoint;
         'false' ->
             AccountAttr = kzd_accounts:call_forward(Key, Account, kz_json:new()),
