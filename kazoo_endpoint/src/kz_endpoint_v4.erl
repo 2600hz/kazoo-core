@@ -248,7 +248,8 @@ account_tree_keys() ->
     [<<"call_restriction">>].
 
 attributes_keys() ->
-    [<<"call_forward">>
+    [<<"call_failover">>
+    ,<<"call_forward">>
     ,<<"call_recording">>
     ,<<"call_restriction">>
     ,<<"call_waiting">>
@@ -345,13 +346,24 @@ merge_attribute(<<"name">> = Key, Account, Endpoint, Owner) ->
                                ,kzd_accounts:name(Account)
                                ),
     kz_json:set_value(Key, Name, Endpoint);
-merge_attribute(<<"call_forward">> = Key, _Account, Endpoint, Owner) ->
-    case kzd_devices:call_forward_enabled(Endpoint) of
+merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
+    case kzd_call_failover:enabled(kzd_devices:call_failover(Endpoint)) of
         'true' -> Endpoint;
         'false' ->
+            AccountAttr = kzd_accounts:call_failover(Key, Account, kz_json:new()),
+            OwnerAttr = kzd_users:call_failover(Owner, kz_json:new()),
+            EndpointAttr = kzd_devices:call_failover(Endpoint, kz_json:new()),
+            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
+            kz_json:set_value(Key, Merged, Endpoint)
+    end;
+merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
+    case kzd_call_forward:enabled(kzd_devices:call_forward(Endpoint)) of
+        'true' -> Endpoint;
+        'false' ->
+            AccountAttr = kzd_accounts:call_forward(Key, Account, kz_json:new()),
             OwnerAttr = kzd_users:call_forward(Owner, kz_json:new()),
             EndpointAttr = kzd_devices:call_forward(Endpoint, kz_json:new()),
-            Merged = kz_json:merge([EndpointAttr, OwnerAttr]),
+            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
             kz_json:set_value(Key, Merged, Endpoint)
     end;
 merge_attribute(<<"call_waiting">> = Key, Account, Endpoint, Owner) ->
@@ -1767,7 +1779,6 @@ maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}) ->
                                  ]),
     {Endpoint, Call, CallFwd
     ,kz_json:set_values([{<<"Call-Forward">>, <<"true">>}
-                        ,{<<"Is-Failover">>, is_failover(CallFwd)}
                         ,{<<"Authorizing-Type">>, <<"device">>}
                         ,{<<"Authorizing-ID">>, kz_doc:id(Endpoint)}
                         ,{<<"Call-Forward-From">>, kapps_call:inception_type(Call)}
@@ -1780,18 +1791,6 @@ maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}) ->
                        ,CCVs
                        )
     }.
-
--spec is_failover(kz_json:object()) -> 'true' | 'undefined'.
-is_failover(CallFwd) ->
-    IsFailover = kz_json:is_true(<<"failover">>, CallFwd),
-    IsCallFwdEnabled = kz_json:is_true(<<"enabled">>, CallFwd),
-
-    case (not IsCallFwdEnabled)
-        andalso IsFailover
-    of
-        'true' -> 'true';
-        'false' -> 'undefined'
-    end.
 
 -spec maybe_rtcp_mux(ccv_acc()) -> ccv_acc().
 maybe_rtcp_mux({Endpoint, Call, CallFwd, CCVs} = Acc) ->
