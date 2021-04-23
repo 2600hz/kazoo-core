@@ -6,6 +6,7 @@
 -module(kzd_call_failover).
 
 -export([new/0]).
+-export([direct_calls_only/1, direct_calls_only/2, set_direct_calls_only/2]).
 -export([enabled/1, enabled/2, set_enabled/2]).
 -export([ignore_early_media/1, ignore_early_media/2, set_ignore_early_media/2]).
 -export([keep_caller_id/1, keep_caller_id/2, set_keep_caller_id/2]).
@@ -23,6 +24,18 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec direct_calls_only(doc()) -> boolean().
+direct_calls_only(Doc) ->
+    direct_calls_only(Doc, false).
+
+-spec direct_calls_only(doc(), Default) -> boolean() | Default.
+direct_calls_only(Doc, Default) ->
+    kz_json:get_boolean_value([<<"direct_calls_only">>], Doc, Default).
+
+-spec set_direct_calls_only(doc(), boolean()) -> doc().
+set_direct_calls_only(Doc, DirectCallsOnly) ->
+    kz_json:set_value([<<"direct_calls_only">>], DirectCallsOnly, Doc).
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
