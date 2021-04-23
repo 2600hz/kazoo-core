@@ -146,6 +146,7 @@ build(EndpointId, AccountId, Endpoint, _Options, Module) ->
               ,{<<"SIP-Proxy-Route-URI">>, Module:sip_route_uri(Endpoint)}
               ,{<<"SIP-Interface">>, Module:sip_interface(Endpoint)}
               ,{<<"CallForward">> , kz_directory_cfwd:call_forward(EndpointId, AccountId, Endpoint)}
+              ,{<<"Failover">> , kz_directory_failover:failover(EndpointId, AccountId, Endpoint)}
               ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
               ],
     {'ok', kz_json:from_list(Profile)}.
