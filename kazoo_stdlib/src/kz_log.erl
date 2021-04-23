@@ -20,6 +20,7 @@
         ,log_stacktrace/0, log_stacktrace/1, log_stacktrace/2, log_stacktrace/3
         ,put_callid/1, get_callid/0, find_callid/1
         ,kz_log_md_clear/0, kz_log_md_put/2
+        ,format/2, format/3
         ]).
 -export([redactor/1]).
 
@@ -249,3 +250,21 @@ redact_json_password(Line) ->
 -spec redact_json_credit_card_number(kz_term:text()) -> kz_term:ne_binary().
 redact_json_credit_card_number(Line) ->
     re:replace(Line, <<"(([\'\"])credit_card\\2\\s*:\\s*{\\s*\\2number\\2\\s*:\\s*\\2)((?:.(?!(?<![\\\\])\\2))*.?)\\2">>, "\\1" ++ ?REDACTED_REPLACEMENT ++ "\\2", [{'return', 'binary'}]).
+
+-spec format(lager_msg:lager_msg(),list(),list()) -> any().
+format(Message, Config, Colors) ->
+    lager_default_formatter:format(Message, lists:foldr(fun log_format/2, [], Config), Colors).
+
+-spec format(lager_msg:lager_msg(),list()) -> any().
+format(Msg, Config) ->
+    format(Msg, Config, []).
+
+log_format(rfc3339, Acc) ->
+    Now = os:system_time(nanosecond),
+    RFC3339Options = [{unit, nanosecond}
+                     ,{offset, "Z"}
+                     ],
+    RFC3339 = calendar:system_time_to_rfc3339(Now, RFC3339Options),
+    [RFC3339 | Acc];
+log_format(Term, Acc) ->
+    [Term | Acc].
