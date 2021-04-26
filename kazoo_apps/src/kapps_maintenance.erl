@@ -264,7 +264,7 @@ migrate_failover_from_forward([Account | Accounts], Total) ->
               ,{'databases', [Account]}
               ,'include_docs'
               ],
-    case kz_view:find(Account, <<"maintenance/listing_by_type">>, [], Options) of
+    case kz_view:find_batch(Account, <<"maintenance/listing_by_type">>, [], Options) of
         {'ok', Cursor} ->
             BatchSize = 200,
             Fun = fun(JObjs) -> migrate_failover_from_forward_fold(Account, JObjs) end,
@@ -283,7 +283,7 @@ migrate_failover_from_forward_fold(Account, JObjs) ->
     case kz_datamgr:save_docs(Account, Updated) of
         {'ok', []} -> 'ok';
         {'ok', _} ->
-            io:format("~p    migrated ~b documents", [self(), length(Updated)]);
+            io:format("~p    migrated ~b documents~n", [self(), length(Updated)]);
         {'error', _Reason} ->
             io:format("~p     failed to save this batch of spliting failover from forward ~s: ~p~n"
                      ,[self(), Account, _Reason]
@@ -299,24 +299,25 @@ move_failover_from_fwd(JObjs) ->
 
 -spec do_move_failover_from_fwd(kz_json:object()) -> kz_term:api_object().
 do_move_failover_from_fwd(JObj) ->
+    Doc = kz_json:get_value(<<"doc">>, JObj),
     OldFailoverPath = [<<"call_forward">>, <<"failover">>],
-    case kz_json:is_true(OldFailoverPath, JObj, 'undefined') of
+    case kz_json:is_true(OldFailoverPath, Doc, 'undefined') of
         'undefined' ->
             'undefined';
         'true' ->
-            CallForward = kzd_devices:call_forward(JObj),
-            Setters = [{fun kzd_call_failover:direct_calls_only/2, kzd_call_forward:direct_calls_only(CallForward)}
-                      ,{fun kzd_call_failover:enabled/2, 'true'}
-                      ,{fun kzd_call_failover:ignore_early_media/2, kzd_call_forward:ignore_early_media(CallForward)}
-                      ,{fun kzd_call_failover:keep_caller_id/2, kzd_call_forward:keep_caller_id(CallForward)}
-                      ,{fun kzd_call_failover:number/2, kzd_call_forward:number(CallForward)}
-                      ,{fun kzd_call_failover:require_keypress/2, kzd_call_forward:require_keypress(CallForward)}
+            CallForward = kzd_devices:call_forward(Doc),
+            Setters = [{fun kzd_call_failover:set_direct_calls_only/2, kzd_call_forward:direct_calls_only(CallForward)}
+                      ,{fun kzd_call_failover:set_enabled/2, 'true'}
+                      ,{fun kzd_call_failover:set_ignore_early_media/2, kzd_call_forward:ignore_early_media(CallForward)}
+                      ,{fun kzd_call_failover:set_keep_caller_id/2, kzd_call_forward:keep_caller_id(CallForward)}
+                      ,{fun kzd_call_failover:set_number/2, kzd_call_forward:number(CallForward)}
+                      ,{fun kzd_call_failover:set_require_keypress/2, kzd_call_forward:require_keypress(CallForward)}
                       ],
-            kzd_devices:set_call_failover(kz_json:delete_key(OldFailoverPath, JObj)
+            kzd_devices:set_call_failover(kz_json:delete_key(OldFailoverPath, Doc)
                                          ,kz_doc:setters(Setters)
                                          );
         'false' ->
-            kz_json:delete_key(OldFailoverPath, JObj)
+            kz_json:delete_key(OldFailoverPath, Doc)
     end.
 
 %%------------------------------------------------------------------------------
