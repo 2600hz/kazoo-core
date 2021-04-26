@@ -155,15 +155,18 @@ find_next(Cursor) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec find_one(kz_term:ne_binary(), ddoc()) -> result().
+-spec find_one(kz_term:ne_binary(), ddoc()) ->
+          kz_either:either(error(), kz_json:object() | any()).
 find_one(DbName, DesignDoc) ->
     find_one(DbName, DesignDoc, []).
 
--spec find_one(kz_term:ne_binary(), ddoc(), selector()) -> result().
+-spec find_one(kz_term:ne_binary(), ddoc(), selector()) ->
+          kz_either:either(error(), kz_json:object() | any()).
 find_one(DbName, DesignDoc, Selector) ->
     find_one(DbName, DesignDoc, Selector, []).
 
--spec find_one(kz_term:ne_binary(), ddoc(), selector(), options()) -> result().
+-spec find_one(kz_term:ne_binary(), ddoc(), selector(), options()) ->
+          kz_either:either(error(), kz_json:object() | any()).
 find_one(DbName, DesignDoc, Selector, Options) ->
     lager(Options),
     ?MAYBE_LOG("~s:find_one(~100p, ~100p, ~1000p, ~1000p)", [?MODULE, DbName, DesignDoc, Selector, Options]),
@@ -182,15 +185,15 @@ find_one(DbName, DesignDoc, Selector, Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec find_batch(kz_term:ne_binary(), ddoc()) -> result().
+-spec find_batch(kz_term:ne_binary(), ddoc()) -> kz_either:either(error(), kz_view_cursor:cursor()).
 find_batch(DbName, DesignDoc) ->
     find_batch(DbName, DesignDoc, []).
 
--spec find_batch(kz_term:ne_binary(), ddoc(), selector()) -> result().
+-spec find_batch(kz_term:ne_binary(), ddoc(), selector()) -> kz_either:either(error(), kz_view_cursor:cursor()).
 find_batch(DbName, DesignDoc, Selector) ->
     find_batch(DbName, DesignDoc, Selector, []).
 
--spec find_batch(kz_term:ne_binary(), ddoc(), selector(), options()) -> kz_either:either(any(), kz_view_cursor:cursor()).
+-spec find_batch(kz_term:ne_binary(), ddoc(), selector(), options()) -> kz_either:either(error(), kz_view_cursor:cursor()).
 find_batch(DbName, DesignDoc, Selector, Options) ->
     lager(Options),
     ?MAYBE_LOG("~s:find_batch(~100p, ~100p, ~1000p, ~1000p)", [?MODULE, DbName, DesignDoc, Selector, Options]),
