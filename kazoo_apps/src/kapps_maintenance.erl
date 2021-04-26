@@ -39,6 +39,10 @@
         ,parallel_migrate_modbs_ranged/3
         ,parallel_migrate_modbs_ranged/4
         ]).
+-export([migrate_failover_from_forward/0
+        ,migrate_failover_from_forward/1
+        ]).
+
 -export([find_invalid_acccount_dbs/0]).
 -export([refresh/0, refresh/1
         ,refresh_account/1
@@ -224,6 +228,7 @@ migrate(Pause, Databases) ->
     _  = remove_deprecated_databases(Databases),
 
     migrate_kapps_account_config(Accounts),
+    migrate_failover_from_forward(Accounts),
 
     _ = kazoo_bindings:map(binding('migrate'), [Accounts]),
 
@@ -235,6 +240,84 @@ migrate_kapps_account_config([AccountDb | AccountDbs]) ->
     kapps_account_config:migrate(AccountDb),
     _ = timer:sleep(?DEFAULT_PAUSE),
     migrate_kapps_account_config(AccountDbs).
+
+-spec migrate_failover_from_forward() -> 'ok'.
+migrate_failover_from_forward() ->
+    migrate_failover_from_forward(kapps_util:get_all_accounts()).
+
+-spec migrate_failover_from_forward(kz_term:ne_binaries() | kz_term:ne_binary()) -> 'ok'.
+migrate_failover_from_forward(<<Account/binary>>) ->
+    migrate_failover_from_forward([Account]);
+migrate_failover_from_forward(Accounts) ->
+    migrate_failover_from_forward(Accounts, length(Accounts)).
+
+
+-spec migrate_failover_from_forward(kz_term:ne_binaries() | kz_term:ne_binary(), non_neg_integer()) -> 'ok'.
+migrate_failover_from_forward([], _Total) ->
+    'ok';
+migrate_failover_from_forward([Account | Accounts], Total) ->
+    io:format("~p (~p/~p) checking account ~s to split failover from forward~n"
+             ,[self(), length(Accounts) + 1, Total, Account]
+             ),
+    Options = [{'no_design_module', 'true'}
+              ,{'keys', [kzd_devices:type(), kzd_users:type()]}
+              ,{'databases', [Account]}
+              ,'include_docs'
+              ],
+    case kz_view:find(Account, <<"maintenance/listing_by_type">>, [], Options) of
+        {'ok', Cursor} ->
+            BatchSize = 200,
+            Fun = fun(JObjs) -> migrate_failover_from_forward_fold(Account, JObjs) end,
+            kz_view_cursor:foreach(Fun, Cursor, BatchSize),
+            migrate_failover_from_forward(Accounts, Total);
+        {'error', _Reason} ->
+            io:format("~p failed to check account ~s to split failover from forward: ~p~n"
+                     ,[self(), Account, _Reason]
+                     ),
+            migrate_failover_from_forward(Accounts, Total)
+    end.
+
+-spec migrate_failover_from_forward_fold(kz_term:ne_binary(), kz_json:objects()) -> 'ok'.
+migrate_failover_from_forward_fold(Account, JObjs) ->
+    Updated = move_failover_from_fwd(JObjs),
+    case kz_datamgr:save_docs(Account, Updated) of
+        {'ok', []} -> 'ok';
+        {'ok', _} ->
+            io:format("~p    migrated ~b documents", [self(), length(Updated)]);
+        {'error', _Reason} ->
+            io:format("~p     failed to save this batch of spliting failover from forward ~s: ~p~n"
+                     ,[self(), Account, _Reason]
+                     )
+    end.
+
+-spec move_failover_from_fwd(kz_json:objects()) -> kz_json:objects().
+move_failover_from_fwd(JObjs) ->
+    [Updated || JObj <- JObjs,
+                Updated <- [do_move_failover_from_fwd(JObj)],
+                Updated =/= 'undefined'
+    ].
+
+-spec do_move_failover_from_fwd(kz_json:object()) -> kz_term:api_object().
+do_move_failover_from_fwd(JObj) ->
+    OldFailoverPath = [<<"call_forward">>, <<"failover">>],
+    case kz_json:is_true(OldFailoverPath, JObj, 'undefined') of
+        'undefined' ->
+            'undefined';
+        'true' ->
+            CallForward = kzd_devices:call_forward(JObj),
+            Setters = [{fun kzd_call_failover:direct_calls_only/2, kzd_call_forward:direct_calls_only(CallForward)}
+                      ,{fun kzd_call_failover:enabled/2, 'true'}
+                      ,{fun kzd_call_failover:ignore_early_media/2, kzd_call_forward:ignore_early_media(CallForward)}
+                      ,{fun kzd_call_failover:keep_caller_id/2, kzd_call_forward:keep_caller_id(CallForward)}
+                      ,{fun kzd_call_failover:number/2, kzd_call_forward:number(CallForward)}
+                      ,{fun kzd_call_failover:require_keypress/2, kzd_call_forward:require_keypress(CallForward)}
+                      ],
+            kzd_devices:set_call_failover(kz_json:delete_key(OldFailoverPath, JObj)
+                                         ,kz_doc:setters(Setters)
+                                         );
+        'false' ->
+            kz_json:delete_key(OldFailoverPath, JObj)
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
