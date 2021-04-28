@@ -71,8 +71,6 @@
        ,kapps_config:get_pos_integer(?KNM_CONFIG_CAT, <<"number_search_timeout_ms">>, 5 * ?MILLISECONDS_IN_SECOND)
        ).
 
--define(POLLING_INTERVAL, 5000).
-
 -define(EOT, '$end_of_table').
 
 -type state() :: #{node => kz_term:ne_binary()
@@ -97,10 +95,7 @@
 -spec start_link() -> kz_types:startlink_ret().
 -ifdef(TEST).
 start_link() ->
-    gen_listener:start_link({'local', ?MODULE}
-                           ,?MODULE
-                           ,[]
-                           ,[]).
+    gen_listener:start_link({'local', ?MODULE}, ?MODULE, [], []).
 -else.
 start_link() ->
     gen_listener:start_link({'local', ?MODULE}
@@ -111,7 +106,8 @@ start_link() ->
                             ,{'queue_options', ?QUEUE_OPTIONS}
                             ,{'consume_options', ?CONSUME_OPTIONS}
                             ]
-                           ,[]).
+                           ,[]
+                           ).
 -endif.
 %%%=============================================================================
 %%% gen_server callbacks
@@ -121,12 +117,12 @@ start_link() ->
 %% @doc Initializes the server.
 %% @end
 %%------------------------------------------------------------------------------
--spec init([]) -> {'ok', state(), timeout()}.
+-spec init([]) -> {'ok', state()}.
 init([]) ->
     State = #{node => kz_term:to_binary(node())
              ,cache => ets:new(?ETS_DISCOVERY_CACHE, ?ETS_DISCOVERY_CACHE_OPTIONS)
              },
-    {'ok', State, ?POLLING_INTERVAL}.
+    {'ok', State}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -136,9 +132,9 @@ init([]) ->
 handle_call({'first', Options}, _From, State) ->
     QueryId = query_id(Options),
     flush(QueryId),
-    {'reply', next(Options), State, ?POLLING_INTERVAL};
+    {'reply', next(Options), State};
 handle_call(_Request, _From, State) ->
-    {'reply', {'error', 'not_implemented'}, State, ?POLLING_INTERVAL}.
+    {'reply', {'error', 'not_implemented'}, State}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling cast messages.
@@ -146,21 +142,21 @@ handle_call(_Request, _From, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'gen_listener',{'created_queue', Queue}}, State) ->
-    {'noreply', State#{queue => Queue}, ?POLLING_INTERVAL};
+    {'noreply', State#{queue => Queue}};
 handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
     {'noreply', State};
 handle_cast({'gen_listener',{'federators_consuming', _AreFederatorsConsuming}}, State) ->
     {'noreply', State};
-handle_cast({'reset_search',QID}, #{cache := Cache} = State) ->
-    lager:debug("resetting query id ~s", [QID]),
-    ets:delete(Cache, QID),
-    {'noreply', State, ?POLLING_INTERVAL};
+handle_cast({'reset_search', QID}, #{cache := Cache} = State) ->
+    lager:debug("removing cached query ~s", [QID]),
+    'true' = ets:delete(Cache, QID),
+    {'noreply', State};
 handle_cast({'add_result', Numbers}, #{cache := Cache} = State) ->
     ets:insert(Cache, Numbers),
-    {'noreply', State, ?POLLING_INTERVAL};
+    {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),
-    {'noreply', State, ?POLLING_INTERVAL}.
+    {'noreply', State}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling all non call/cast messages.
@@ -168,18 +164,19 @@ handle_cast(_Msg, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
 handle_info(_Info, State) ->
-    {'noreply', State, ?POLLING_INTERVAL}.
+    lager:info("unhandled msg: ~p", [_Info]),
+    {'noreply', State}.
 
 -spec handle_event(kz_json:object(), state()) -> gen_listener:handle_event_return().
 handle_event(JObj, #{node := Node}) ->
-    _ = case kz_api:node(JObj) =/= Node
-            andalso kz_api:event_name(JObj)
-        of
-            <<"flush">> -> kz_process:spawn(fun handle_flush/1, [JObj]);
-            <<"request">> -> kz_process:spawn(fun handle_search/1, [JObj]);
-            <<"number">> -> kz_process:spawn(fun handle_number/1, [JObj]);
-            _ -> 'ok'
-        end,
+    _P = case kz_api:node(JObj) =/= Node
+             andalso kz_api:event_name(JObj)
+         of
+             <<"flush">> -> kz_process:spawn(fun handle_flush/1, [JObj]);
+             <<"request">> -> kz_process:spawn(fun handle_search/1, [JObj]);
+             <<"number">> -> kz_process:spawn(fun handle_number/1, [JObj]);
+             _ -> 'ok'
+         end,
     'ignore'.
 
 %%------------------------------------------------------------------------------
@@ -202,7 +199,6 @@ terminate(_Reason, #{}) ->
 code_change(_OldVsn, State, _Extra) ->
     {'ok', State}.
 
-
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
@@ -224,7 +220,7 @@ find(Options) ->
 
 find(Options, 0) ->
     first(Options);
-find(Options, _) ->
+find(Options, _Offset) ->
     do_find(Options, is_local(query_id(Options))).
 
 do_find(Options, 'true') ->
@@ -235,14 +231,18 @@ do_find(Options, 'false') ->
               ,{<<"Quantity">>, quantity(Options)}
               ,{<<"Offset">>, offset(Options)}
               ,{<<"Account-ID">>, account_id(Options)}
+              ,{<<"Msg-ID">>, kz_log:get_callid()}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
               ],
+    StartTime = kz_time:start_time(),
     case kz_amqp_worker:call(Payload
                             ,fun kapi_discovery:publish_req/1
                             ,fun kapi_discovery:resp_v/1
                             )
     of
-        {'ok', JObj} -> kapi_discovery:results(JObj);
+        {'ok', JObj} ->
+            lager:debug("remote search req returned after ~pms", [kz_time:elapsed_ms(StartTime)]),
+            kapi_discovery:results(JObj);
         {'error', _Error} ->
             lager:debug("error requesting search from amqp: ~p", [_Error]),
             []
@@ -259,46 +259,76 @@ first(Options) ->
                ,{'offset', 0}
                ,{'normalized_prefix', normalized_prefix(Options)}
                ],
-    Opts = props:insert_values(Defaults, Options),
-    lists:foreach(fun(Carrier) -> search_spawn(Self, Carrier, Opts) end, Carriers),
-    wait_for_search(length(Carriers)),
+    Opts = props:set_values(Defaults, Options),
+
+    StartTime = kz_time:start_time(),
+
+    PidRefs = [{Carrier, kz_process:spawn_monitor(fun search_spawn/3, [Self, Carrier, Opts])}
+               || Carrier <- Carriers
+              ],
+    wait_for_search(PidRefs),
+
+    lager:info("search results available after ~pms", [kz_time:elapsed_ms(StartTime)]),
+
     gen_listener:call(?MODULE, {'first', Options}).
 
--spec search_spawn(pid(), atom(), kz_term:proplist()) -> any().
+-spec search_spawn(pid(), module(), kz_term:proplist()) -> {module(), mod_response()}.
 search_spawn(Pid, Carrier, Options) ->
-    F = fun() -> Pid ! {Carrier, search_carrier(Carrier, Options)} end,
-    kz_process:spawn(F).
+    Pid ! {Carrier, search_carrier(Carrier, Options)}.
 
--spec search_carrier(atom(), kz_term:proplist()) -> any().
+-spec search_carrier(module(), kz_term:proplist()) -> mod_response().
 search_carrier(Carrier, Options) ->
     Prefix = normalized_prefix(Options),
     Quantity = quantity(Options),
-    catch (Carrier:find_numbers(Prefix, Quantity, Options)).
+    lager:info("finding ~p numbers for prefix ~p in carrier ~p", [Quantity, Prefix, Carrier]),
 
--spec wait_for_search(integer()) -> 'ok'.
-wait_for_search(0) -> 'ok';
-wait_for_search(N) ->
+    StartTime = kz_time:start_time(),
+
+    try Carrier:find_numbers(Prefix, Quantity, Options) of
+        Results ->
+            lager:debug("search of ~s took ~pms", [Carrier, kz_time:elapsed_ms(StartTime)]),
+            Results
+    catch
+        _E:_R ->
+            lager:info("error finding numbers in ~s after ~pms: ~s: ~p"
+                      ,[Carrier, kz_time:elapsed_ms(StartTime), _E, _R]
+                      ),
+            {'error', 'not_available'}
+    end.
+
+-spec wait_for_search([{module(), kz_term:pid_ref()}]) -> 'ok'.
+wait_for_search([]) -> 'ok';
+wait_for_search([{Carrier, {Pid, Ref}}|Rest]=All) ->
     receive
-        {_Carrier, {'ok', []}} ->
-            lager:debug("~s found no numbers", [_Carrier]),
-            wait_for_search(N - 1);
-        {_Carrier, {'ok', Numbers}} ->
-            lager:debug("~s found numbers", [_Carrier]),
+        {'DOWN', Ref, 'process', Pid, 'normal'} ->
+            lager:info("searching carrier ~s in process ~p down normally, checking for carrire results"
+                      ,[Carrier, Pid]
+                      ),
+            wait_for_search(All);
+        {'DOWN', Ref, 'process', Pid, _Reason} ->
+            lager:info("process ~p for carrier ~p died: ~p", [Pid, Carrier, _Reason]),
+            wait_for_search(Rest);
+        {Carrier, {'ok', []}} ->
+            erlang:demonitor(Ref, ['flush']),
+            lager:debug("~s found no numbers", [Carrier]),
+            wait_for_search(Rest);
+        {Carrier, {'ok', Numbers}} ->
+            erlang:demonitor(Ref, ['flush']),
+            lager:debug("~s found numbers", [Carrier]),
             gen_listener:cast(?MODULE, {'add_result', Numbers}),
-            wait_for_search(N - 1);
-        {_Carrier, {'bulk', Numbers}} ->
-            lager:debug("~s found bulk numbers", [_Carrier]),
+            wait_for_search(Rest);
+        {Carrier, {'bulk', Numbers}} ->
+            erlang:demonitor(Ref, ['flush']),
+            lager:debug("~s found bulk numbers", [Carrier]),
             gen_listener:cast(?MODULE, {'add_result', Numbers}),
-            wait_for_search(N - 1);
-        {_Carrier, {'error', 'not_available'}} ->
-            lager:debug("~s had no results", [_Carrier]),
-            wait_for_search(N - 1);
-        _Other ->
-            lager:debug("unexpected search result ~p", [_Other]),
-            wait_for_search(N - 1)
+            wait_for_search(Rest);
+        {Carrier, {'error', 'not_available'}} ->
+            erlang:demonitor(Ref, ['flush']),
+            lager:debug("~s had no results", [Carrier]),
+            wait_for_search(Rest)
     after ?NUMBER_SEARCH_TIMEOUT ->
-            lager:debug("timeout (~B) collecting responses from search providers", [?NUMBER_SEARCH_TIMEOUT]),
-            wait_for_search(N - 1)
+            lager:debug("timeout waiting for carrier results: ~p", [Carrier]),
+            wait_for_search(Rest)
     end.
 
 -spec next(options()) -> kz_json:objects().
@@ -309,17 +339,29 @@ next(Options) ->
     MatchSpec = [{{QID,'$1'},[],['$1']}],
     QLH = qlc:keysort(1, ets:table(?ETS_DISCOVERY_CACHE, [{'traverse', {'select', MatchSpec}}])),
     QLC = qlc:cursor(QLH),
-    _ = Offset > 0
-        andalso qlc:next_answers(QLC, Offset),
-    Results = qlc:next_answers(QLC, Quantity),
+
+    Answers = get_answers(QLC, Offset, Quantity),
+
     qlc:delete_cursor(QLC),
-    lager:debug("returning ~B results", [length(Results)]),
+    lager:debug("returning ~B results", [length(Answers)]),
     [kz_json:from_list(
        [{<<"number">>, Num}
        ,{<<"state">>, State}
        ])
-     || {Num, _ModuleName, State, _CarrierData} <- Results
+     || {Num, _ModuleName, State, _CarrierData} <- Answers
     ].
+
+get_answers(QLC, 0, Quantity) ->
+    qlc:next_answers(QLC, Quantity);
+get_answers(QLC, Offset, Quantity) ->
+    case qlc:next_answers(QLC, Offset) of
+        {'error', _M, _R} ->
+            lager:debug("error moving cursor when skipping ~p answers: ~p", [Offset, _R]),
+            [];
+        _Skipped ->
+            lager:debug("moved cursor to skip ~p answers", [Offset]),
+            get_answers(QLC, 0, Quantity)
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Create a number in a discovery state.
