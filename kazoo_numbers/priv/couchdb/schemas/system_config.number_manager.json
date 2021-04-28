@@ -8,6 +8,18 @@
             "description": "should number ports be allowed to transition from submitted to scheduled?",
             "type": "boolean"
         },
+        "maximum_search_quantity": {
+            "default": 500,
+            "description": "maximum number of returned DIDs in a search query",
+            "minimum": 1,
+            "type": "integer"
+        },
+        "number_search_timeout_ms": {
+            "default": 5000,
+            "description": "number manager number search timeout in milliseconds",
+            "minimum": 1,
+            "type": "integer"
+        },
         "port_in_module_name": {
             "default": "knm_local",
             "description": "completed port requests will create numbers with this carrier module name",
