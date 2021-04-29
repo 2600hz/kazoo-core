@@ -248,11 +248,11 @@ migrate_failover_from_forward() ->
 -spec migrate_failover_from_forward(kz_term:ne_binaries() | kz_term:ne_binary()) -> 'ok'.
 migrate_failover_from_forward(<<Account/binary>>) ->
     migrate_failover_from_forward([Account]);
-migrate_failover_from_forward(Accounts) ->
+migrate_failover_from_forward(Accounts) when is_list(Accounts) ->
     migrate_failover_from_forward(Accounts, length(Accounts)).
 
-
--spec migrate_failover_from_forward(kz_term:ne_binaries() | kz_term:ne_binary(), non_neg_integer()) -> 'ok'.
+%% @private
+-spec migrate_failover_from_forward(kz_term:ne_binaries(), non_neg_integer()) -> 'ok'.
 migrate_failover_from_forward([], _Total) ->
     'ok';
 migrate_failover_from_forward([Account | Accounts], Total) ->
