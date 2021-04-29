@@ -245,40 +245,43 @@ migrate_kapps_account_config([AccountDb | AccountDbs]) ->
 migrate_failover_from_forward() ->
     migrate_failover_from_forward(kapps_util:get_all_accounts()).
 
--spec migrate_failover_from_forward(kz_term:ne_binaries() | kz_term:ne_binary()) -> 'ok'.
+-spec migrate_failover_from_forward(kz_term:ne_binary() | kz_term:ne_binaries()) -> 'ok'.
 migrate_failover_from_forward(<<Account/binary>>) ->
     migrate_failover_from_forward([Account]);
 migrate_failover_from_forward(Accounts) when is_list(Accounts) ->
-    migrate_failover_from_forward(Accounts, length(Accounts)).
+    migrate_failover_fold(Accounts, length(Accounts)).
 
 %% @private
--spec migrate_failover_from_forward(kz_term:ne_binaries(), non_neg_integer()) -> 'ok'.
-migrate_failover_from_forward([], _Total) ->
+-spec migrate_failover_fold(kz_term:ne_binaries(), non_neg_integer()) -> 'ok'.
+migrate_failover_fold([], _Total) ->
     'ok';
-migrate_failover_from_forward([Account | Accounts], Total) ->
+migrate_failover_fold([Account | Accounts], Total) ->
     io:format("~p (~p/~p) checking account ~s to split failover from forward~n"
              ,[self(), length(Accounts) + 1, Total, Account]
              ),
-    Options = [{'no_design_module', 'true'}
-              ,{'keys', [kzd_devices:type(), kzd_users:type()]}
-              ,{'databases', [Account]}
-              ,'include_docs'
-              ],
+    Options = migrate_failover_view_options(Account),
     case kz_view:find_batch(Account, <<"maintenance/listing_by_type">>, [], Options) of
         {'ok', Cursor} ->
             BatchSize = 200,
-            Fun = fun(JObjs) -> migrate_failover_from_forward_fold(Account, JObjs) end,
+            Fun = fun(JObjs) -> migrate_account_failover_fold(Account, JObjs) end,
             kz_view_cursor:foreach(Fun, Cursor, BatchSize),
-            migrate_failover_from_forward(Accounts, Total);
+            migrate_failover_fold(Accounts, Total);
         {'error', _Reason} ->
             io:format("~p failed to check account ~s to split failover from forward: ~p~n"
                      ,[self(), Account, _Reason]
                      ),
-            migrate_failover_from_forward(Accounts, Total)
+            migrate_failover_fold(Accounts, Total)
     end.
 
--spec migrate_failover_from_forward_fold(kz_term:ne_binary(), kz_json:objects()) -> 'ok'.
-migrate_failover_from_forward_fold(Account, JObjs) ->
+migrate_failover_view_options(Account) ->
+    [{'no_design_module', 'true'}
+    ,{'keys', [kzd_devices:type(), kzd_users:type()]}
+    ,{'databases', [Account]}
+    ,'include_docs'
+    ].
+
+-spec migrate_account_failover_fold(kz_term:ne_binary(), kz_json:objects()) -> 'ok'.
+migrate_account_failover_fold(Account, JObjs) ->
     Updated = move_failover_from_fwd(JObjs),
     case kz_datamgr:save_docs(Account, Updated) of
         {'ok', []} -> 'ok';
