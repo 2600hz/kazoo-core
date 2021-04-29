@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Allow resellers directly below the master account to find
 %%% manually-added `available' numbers.
 %%%
@@ -78,21 +78,25 @@ do_find_numbers(<<"+",_/binary>>=Prefix, Quantity, Offset, AccountId, QID)
                   ,{'limit', Quantity}
                   ,{'skip', Offset}
                   ],
-    case
-        'undefined' /= (DB = knm_converters:to_db(Prefix))
-        andalso kz_datamgr:get_results(DB, <<"numbers/status">>, ViewOptions)
-    of
-        'false' -> {'error', 'not_available'};
-        {'ok', []} ->
-            lager:debug("found no available local numbers for account ~s", [AccountId]),
-            {'error', 'not_available'};
-        {'ok', JObjs} ->
-            lager:debug("found available local numbers for account ~s", [AccountId]),
-            Numbers = format_numbers(QID, JObjs),
-            find_more(Prefix, Quantity, Offset, AccountId, length(Numbers), QID, Numbers);
-        {'error', _R} ->
-            lager:debug("failed to lookup available local numbers: ~p", [_R]),
-            {'error', 'datastore_fault'}
+    case knm_converters:to_db(Prefix) of
+        'undefined' -> {'error', 'not_available'};
+        DB ->
+            case kz_datamgr:get_results(DB, <<"numbers/status">>, ViewOptions) of
+                {'ok', []} ->
+                    lager:debug("found no available local numbers for account ~s in ~s"
+                               ,[AccountId, DB]
+                               ),
+                    {'error', 'not_available'};
+                {'ok', JObjs} ->
+                    lager:debug("found available local numbers for account ~s in ~s"
+                               ,[AccountId, DB]
+                               ),
+                    Numbers = format_numbers(QID, JObjs),
+                    find_more(Prefix, Quantity, Offset, AccountId, length(Numbers), QID, Numbers);
+                {'error', _R} ->
+                    lager:debug("failed to lookup available local numbers in ~s: ~p", [DB, _R]),
+                    {'error', 'datastore_fault'}
+            end
     end;
 do_find_numbers(_, _, _, _, _) ->
     {'error', 'not_available'}.
