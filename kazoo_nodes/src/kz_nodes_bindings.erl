@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,6 +29,7 @@
 -define(CALLBACK_ARITY, 1).
 
 -type bind_result() :: kazoo_bindings:bind_result().
+-type unbind_result() :: kazoo_bindings:unbind_result().
 
 -spec bind(atom()) -> bind_result().
 bind(App) ->
@@ -85,11 +86,11 @@ unbind(App, Module, Function)
             kazoo_bindings:unbind(Binding, ?DEFAULT_MODULE, ?DEFAULT_FUNCTION)
     end.
 
--spec unbind_info(module()) -> bind_result().
+-spec unbind_info(module()) -> unbind_result().
 unbind_info(Module) ->
     unbind_info(Module, 'node_info').
 
--spec unbind_info(module(), atom()) -> bind_result().
+-spec unbind_info(module(), atom()) -> unbind_result().
 unbind_info(Module, Function)
   when is_atom(Module)
        andalso is_atom(Function) ->
