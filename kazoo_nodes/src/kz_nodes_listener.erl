@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -546,9 +546,12 @@ node_info() ->
     AMQP = [{<<"connections">>, kz_json:from_list(amqp_status())}
            ,{<<"pools">>, kz_json:from_list(pool_states())}
            ],
-    Info = kazoo_bindings:map(<<"kz_nodes.node.info">>, []),
+    Info = kazoo_bindings:map(kz_nodes_bindings:binding_node_info(), []),
     NodeInfo = [{<<"amqp">>, kz_json:from_list(AMQP)}
-               | [{Key, Value} || {Key, Value} <- Info] % only use 2-tuples from Info
+               | [{Key, Value} ||
+                     {Key, Value} <- Info,
+                     'EXIT' =/= Key
+                 ] % only use 2-tuples from Info
                ],
     kz_json:from_list(NodeInfo).
 
