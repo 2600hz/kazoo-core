@@ -40,7 +40,7 @@ read_only_fold(Key, Value, {Tests, Leaked}) ->
 add_metadata_test_() ->
     {'ok', JObj} = kz_json:fixture(?APP, <<"fixtures/doc_no_attachment.json">>),
 
-    [{"has metadata", ?_assert(has_metadata(kz_doc:add_metadata(JObj)))}
+    [{"has metadata", ?_assert(has_metadata(kz_doc:set_read_only(JObj)))}
     ].
 
 -spec has_metadata(kz_json:object()) -> boolean().
