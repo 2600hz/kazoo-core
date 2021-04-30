@@ -29,5 +29,8 @@
 -define(KEY_REPLY_TO_PID, <<"Reply-To-PID">>).
 -define(KEY_DELIVER_TO_PID, <<"Deliver-To-PID">>).
 
+-define(KEY_AMQP_ROUTING_KEY_PREFIX, <<"Routing-Key-Prefix">>).
+-define(KEY_AMQP_ROUTING_KEY, <<"Routing-Key">>).
+
 -define(KZ_API_LITERALS_HRL, 'true').
 -endif.
