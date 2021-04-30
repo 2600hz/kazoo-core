@@ -44,6 +44,8 @@
         ,defer_response/1
         ,from_pid/1
         ,reply_to/1
+        ,routing_key/1, routing_key/2
+        ,routing_key_prefix/1, routing_key_prefix/2
         ]).
 
 -export([is_federated_event/1
@@ -158,6 +160,26 @@ call_id(Props, Default) when is_list(Props) ->
     props:get_ne_binary_value(?KEY_API_CALL_ID, Props, Default);
 call_id(JObj, Default) ->
     kz_json:get_ne_binary_value(?KEY_API_CALL_ID, JObj, Default).
+
+-spec routing_key(kz_term:api_terms()) -> kz_term:api_binary().
+routing_key(Props) ->
+    routing_key(Props, undefined).
+
+-spec routing_key(kz_term:api_terms(), Default) -> kz_term:ne_binary() | Default.
+routing_key(Props, Default) when is_list(Props) ->
+    props:get_ne_binary_value(?KEY_AMQP_ROUTING_KEY, Props, Default);
+routing_key(JObj, Default) ->
+    kz_json:get_ne_binary_value(?KEY_AMQP_ROUTING_KEY, JObj, Default).
+
+-spec routing_key_prefix(kz_term:api_terms()) -> kz_term:api_binary().
+routing_key_prefix(Props) ->
+    routing_key_prefix(Props, undefined).
+
+-spec routing_key_prefix(kz_term:api_terms(), Default) -> kz_term:ne_binary() | Default.
+routing_key_prefix(Props, Default) when is_list(Props) ->
+    props:get_ne_binary_value(?KEY_AMQP_ROUTING_KEY_PREFIX, Props, Default);
+routing_key_prefix(JObj, Default) ->
+    kz_json:get_ne_binary_value(?KEY_AMQP_ROUTING_KEY_PREFIX, JObj, Default).
 
 -spec defer_response(kz_term:api_terms()) -> boolean().
 defer_response(Props) when is_list(Props) ->
