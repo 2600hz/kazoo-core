@@ -445,6 +445,10 @@ bind_q(Q, Props) ->
     RestrictTo = props:get_value('restrict_to', Props, ['authn_req']),
     bind_q(Q, Props, RestrictTo).
 
+bind_q(Q, Props, ['authn_routes'|RestrictTo]) ->
+    Routes = props:get_value('routes', Props, []),
+    lists:foreach(fun({Restriction, Routing}) -> bind_q(Q, Props ++ Routing, [Restriction]) end, Routes),
+    bind_q(Q, Props, RestrictTo);
 bind_q(Q, Props, ['authn_reg'|RestrictTo]) ->
     kz_amqp_util:bind_q_to_registrar(Q, get_authn_req_bind_routing(Props)),
     bind_q(Q, Props, RestrictTo);
@@ -461,6 +465,10 @@ unbind_q(Q, Props) ->
     RestrictTo = props:get_value('restrict_to', Props, ['authn_req']),
     unbind_q(Q, Props, RestrictTo).
 
+unbind_q(Q, Props, ['authn_routes'|RestrictTo]) ->
+    Routes = props:get_value('routes', Props, []),
+    lists:foreach(fun({Restriction, Routing}) -> unbind_q(Q, Props ++ Routing, [Restriction]) end, Routes),
+    bind_q(Q, Props, RestrictTo);
 unbind_q(Q, Props, ['authn_reg' | RestrictTo]) ->
     _ = kz_amqp_util:unbind_q_from_registrar(Q, get_authn_req_bind_routing(Props)),
     unbind_q(Q, Props, RestrictTo);
