@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Handles authentication requests, responses, queue bindings AMQP API.
 %%% @author James Aimonetti
 %%% @author Luis Azedo
@@ -442,37 +442,35 @@ publish_error(Queue, Resp, ContentType) ->
 
 -spec bind_q(kz_term:ne_binary(), options()) -> 'ok'.
 bind_q(Q, Props) ->
-    Realm = props:get_value('realm', Props, <<"*">>),
     RestrictTo = props:get_value('restrict_to', Props, ['authn_req']),
-    bind_q(Q, Realm, RestrictTo).
+    bind_q(Q, Props, RestrictTo).
 
-bind_q(Q, Realm, ['authn_reg'|RestrictTo]) ->
-    kz_amqp_util:bind_q_to_registrar(Q, get_authn_req_routing(Realm)),
-    bind_q(Q, Realm, RestrictTo);
-bind_q(Q, Realm, ['authn_req'|RestrictTo]) ->
-    kz_amqp_util:bind_q_to_callmgr(Q, get_authn_req_routing(Realm)),
-    bind_q(Q, Realm, RestrictTo);
-bind_q(Q, Realm, ['token_req'|RestrictTo]) ->
-    kz_amqp_util:bind_q_to_callmgr(Q, get_authn_token_req_routing(Realm)),
-    bind_q(Q, Realm, RestrictTo);
-bind_q(_Q, _Realm, []) -> 'ok'.
+bind_q(Q, Props, ['authn_reg'|RestrictTo]) ->
+    kz_amqp_util:bind_q_to_registrar(Q, get_authn_req_bind_routing(Props)),
+    bind_q(Q, Props, RestrictTo);
+bind_q(Q, Props, ['authn_req'|RestrictTo]) ->
+    kz_amqp_util:bind_q_to_callmgr(Q, get_authn_req_bind_routing(Props)),
+    bind_q(Q, Props, RestrictTo);
+bind_q(Q, Props, ['token_req'|RestrictTo]) ->
+    kz_amqp_util:bind_q_to_callmgr(Q, get_authn_token_req_bind_routing(Props)),
+    bind_q(Q, Props, RestrictTo);
+bind_q(_Q, _Props, []) -> 'ok'.
 
 -spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Q, Props) ->
-    Realm = props:get_value('realm', Props, <<"*">>),
     RestrictTo = props:get_value('restrict_to', Props, ['authn_req']),
-    unbind_q(Q, Realm, RestrictTo).
+    unbind_q(Q, Props, RestrictTo).
 
-unbind_q(Q, Realm, ['authn_reg' | RestrictTo]) ->
-    _ = kz_amqp_util:unbind_q_from_registrar(Q, get_authn_req_routing(Realm)),
-    unbind_q(Q, Realm, RestrictTo);
-unbind_q(Q, Realm, ['authn_req' | RestrictTo]) ->
-    _ = kz_amqp_util:unbind_q_from_callmgr(Q, get_authn_req_routing(Realm)),
-    unbind_q(Q, Realm, RestrictTo);
-unbind_q(Q, Realm, ['token_req' | RestrictTo]) ->
-    _ = kz_amqp_util:unbind_q_from_callmgr(Q, get_authn_token_req_routing(Realm)),
-    unbind_q(Q, Realm, RestrictTo);
-unbind_q(_Q, _Realm, []) -> 'ok'.
+unbind_q(Q, Props, ['authn_reg' | RestrictTo]) ->
+    _ = kz_amqp_util:unbind_q_from_registrar(Q, get_authn_req_bind_routing(Props)),
+    unbind_q(Q, Props, RestrictTo);
+unbind_q(Q, Props, ['authn_req' | RestrictTo]) ->
+    _ = kz_amqp_util:unbind_q_from_callmgr(Q, get_authn_req_bind_routing(Props)),
+    unbind_q(Q, Props, RestrictTo);
+unbind_q(Q, Props, ['token_req' | RestrictTo]) ->
+    _ = kz_amqp_util:unbind_q_from_callmgr(Q, get_authn_token_req_bind_routing(Props)),
+    unbind_q(Q, Props, RestrictTo);
+unbind_q(_Q, _Props, []) -> 'ok'.
 
 %%------------------------------------------------------------------------------
 %% @doc Declare the exchanges used by this API.
@@ -483,24 +481,44 @@ declare_exchanges() ->
     kz_amqp_util:callmgr_exchange().
 
 %%------------------------------------------------------------------------------
-%% @doc Creating the routing key for either binding queues or publishing messages.
+%% @doc Creating the routing key for binding queues
 %% @end
 %%------------------------------------------------------------------------------
--spec get_authn_req_routing(kz_term:ne_binary() | kz_term:api_terms()) -> kz_term:ne_binary().
-get_authn_req_routing(Realm) when is_binary(Realm) ->
-    list_to_binary([?KEY_AUTHN_REQ, ".", kz_amqp_util:encode(Realm)]);
-get_authn_req_routing(Req) ->
-    get_authn_req_routing(get_auth_realm(Req)).
+-spec get_authn_req_bind_routing(kz_term:proplist()) -> kz_term:ne_binary().
+get_authn_req_bind_routing(Props) ->
+    Realm = props:get_value('realm', Props, <<"*">>),
+    Routing = props:get_value('routing', Props, ?KEY_AUTHN_REQ),
+    list_to_binary([Routing, ".", kz_amqp_util:encode(Realm)]).
 
 %%------------------------------------------------------------------------------
-%% @doc Creating the routing key for either binding queues or publishing messages.
+%% @doc Creating the routing key for publishing messages.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_authn_token_req_routing(kz_term:ne_binary() | kz_term:api_terms()) -> kz_term:ne_binary().
-get_authn_token_req_routing(Realm) when is_binary(Realm) ->
-    list_to_binary([?KEY_AUTHN_TOKEN_REQ, ".", kz_amqp_util:encode(Realm)]);
+-spec get_authn_req_routing(kz_term:api_terms()) -> kz_term:ne_binary().
+get_authn_req_routing(Req) ->
+    Realm = get_auth_realm(Req),
+    Routing = kz_api:routing_key_prefix(Req, ?KEY_AUTHN_REQ),
+    list_to_binary([Routing, ".", kz_amqp_util:encode(Realm)]).
+
+%%------------------------------------------------------------------------------
+%% @doc Creating the routing key for either binding queues.
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_authn_token_req_bind_routing(kz_term:proplist()) -> kz_term:ne_binary().
+get_authn_token_req_bind_routing(Props) ->
+    Realm = props:get_value('realm', Props, <<"*">>),
+    Routing = props:get_value('routing', Props, ?KEY_AUTHN_TOKEN_REQ),
+    list_to_binary([Routing, ".", kz_amqp_util:encode(Realm)]).
+
+%%------------------------------------------------------------------------------
+%% @doc Creating the routing key for publishing messages.
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_authn_token_req_routing(kz_term:api_terms()) -> kz_term:ne_binary().
 get_authn_token_req_routing(Req) ->
-    get_authn_token_req_routing(get_auth_realm(Req)).
+    Realm = get_auth_realm(Req),
+    Routing = kz_api:routing_key_prefix(Req, ?KEY_AUTHN_TOKEN_REQ),
+    list_to_binary([Routing, ".", kz_amqp_util:encode(Realm)]).
 
 -define(AUTH_DEFAULT_USERATDOMAIN, <<"nouser@nodomain">>).
 
