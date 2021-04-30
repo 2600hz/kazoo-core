@@ -446,6 +446,9 @@ bind_q(Q, Props) ->
     RestrictTo = props:get_value('restrict_to', Props, ['authn_req']),
     bind_q(Q, Realm, RestrictTo).
 
+bind_q(Q, Realm, ['authn_reg'|RestrictTo]) ->
+    kz_amqp_util:bind_q_to_registrar(Q, get_authn_req_routing(Realm)),
+    bind_q(Q, Realm, RestrictTo);
 bind_q(Q, Realm, ['authn_req'|RestrictTo]) ->
     kz_amqp_util:bind_q_to_callmgr(Q, get_authn_req_routing(Realm)),
     bind_q(Q, Realm, RestrictTo);
@@ -460,6 +463,9 @@ unbind_q(Q, Props) ->
     RestrictTo = props:get_value('restrict_to', Props, ['authn_req']),
     unbind_q(Q, Realm, RestrictTo).
 
+unbind_q(Q, Realm, ['authn_reg' | RestrictTo]) ->
+    _ = kz_amqp_util:unbind_q_from_registrar(Q, get_authn_req_routing(Realm)),
+    unbind_q(Q, Realm, RestrictTo);
 unbind_q(Q, Realm, ['authn_req' | RestrictTo]) ->
     _ = kz_amqp_util:unbind_q_from_callmgr(Q, get_authn_req_routing(Realm)),
     unbind_q(Q, Realm, RestrictTo);
