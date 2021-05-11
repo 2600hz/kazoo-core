@@ -1242,7 +1242,7 @@ save(AccountJObj) ->
     AccountDb = kz_doc:account_db(AccountJObj),
     case kz_datamgr:save_doc(AccountDb, AccountJObj) of
         {'error', _R}=E ->
-            lager:info("failed to save account doc: ~p", [_R]),
+            lager:info("failed to save account doc to ~s: ~p: ~p", [AccountDb, _R, AccountJObj]),
             E;
         {'ok', SavedJObj} ->
             lager:info("saved account doc ~s(~s)", [kz_doc:id(SavedJObj), kz_doc:revision(SavedJObj)]),

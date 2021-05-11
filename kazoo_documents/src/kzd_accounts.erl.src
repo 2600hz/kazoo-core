@@ -482,15 +482,15 @@ ringtones_internal(Doc, Default) ->
 set_ringtones_internal(Doc, RingtonesInternal) ->
     kz_json:set_value([<<"ringtones">>, <<"internal">>], RingtonesInternal, Doc).
 
--spec timezone(doc()) -> kz_term:api_ne_binary().
+-spec timezone(doc()) -> kz_term:api_binary().
 timezone(Doc) ->
     timezone(Doc, 'undefined').
 
--spec timezone(doc(), Default) -> kz_term:ne_binary() | Default.
+-spec timezone(doc(), Default) -> binary() | Default.
 timezone(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"timezone">>], Doc, Default).
+    kz_json:get_binary_value([<<"timezone">>], Doc, Default).
 
--spec set_timezone(doc(), kz_term:ne_binary()) -> doc().
+-spec set_timezone(doc(), binary()) -> doc().
 set_timezone(Doc, Timezone) ->
     kz_json:set_value([<<"timezone">>], Timezone, Doc).
 

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -1576,7 +1576,7 @@ maybe_add_sip_headers(JObj, Endpoint, Call) ->
 -spec get_sip_headers(kz_json:object(), kapps_call:call()) -> kz_json:objects().
 get_sip_headers(Endpoint, Call) ->
     case ?MODULE:get(Call) of
-        {'error', _} ->
+        {'error', _E} ->
             [kzd_devices:custom_sip_headers_inbound(Endpoint)];
         {'ok', AuthorizingEndpoint} ->
             [kzd_devices:custom_sip_headers_inbound(Endpoint)
@@ -1584,7 +1584,7 @@ get_sip_headers(Endpoint, Call) ->
             ]
     end.
 
--spec merge_custom_sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
+-spec merge_custom_sip_headers(kz_json:api_object(), kz_json:object()) -> kz_json:object().
 merge_custom_sip_headers('undefined', JObj) ->
     JObj;
 merge_custom_sip_headers(CustomHeaders, JObj) ->
