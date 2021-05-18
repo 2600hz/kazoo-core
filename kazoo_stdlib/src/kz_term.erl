@@ -57,6 +57,10 @@
 
 -export([high_unicode_value/0]).
 
+-export([rand_integer/2
+        ,rand_number/2
+        ]).
+
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -type text() :: string() | atom() | binary() | iolist().
@@ -642,3 +646,19 @@ maybe_unitfy_bytes(_Bytes, 'truncated') ->
 %%------------------------------------------------------------------------------
 -spec high_unicode_value() -> ne_binary().
 high_unicode_value() -> <<16#fff0/utf8>>.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec rand_integer(number(), number()) -> integer().
+rand_integer(Min, Max) ->
+    kz_math:floor(rand_number(Min, Max)).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec rand_number(number(), number()) -> number().
+rand_number(Min, Max) ->
+    rand:uniform_real() * (Max - Min + 1) + Min.

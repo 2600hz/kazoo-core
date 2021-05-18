@@ -40,6 +40,7 @@
 | `find_invalid_acccount_dbs/0` |  | |
 | `flush_account_views/0` |  | |
 | `flush_getby_cache/0` |  | |
+| `gather_external_numbers/0` |  | |
 | `get_all_account_views/0` |  | |
 | `import_account/2` | `(Account,Parent)` | |
 | `init_system/0` |  | |

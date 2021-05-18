@@ -42,13 +42,14 @@
 -define(KEY_MESSAGE_ID, <<"Message-ID">>).
 -define(KEY_MODE, <<"Mode">>).
 -define(KEY_ORIGINAL_RESOURCE_TYPE, <<"Original-Resource-Type">>).
--define(KEY_ORIGINATION_CALL_ID, <<"Origination-Call-ID">>).
 -define(KEY_OUTBOUND_ACTIONS, <<"Outbound-Actions">>).
 -define(KEY_OUTBOUND_CALLEE_ID_NAME, <<"Outbound-Callee-ID-Name">>).
 -define(KEY_OUTBOUND_CALLEE_ID_NUMBER, <<"Outbound-Callee-ID-Number">>).
 -define(KEY_OUTBOUND_CALLER_ID_NAME, <<"Outbound-Caller-ID-Name">>).
 -define(KEY_OUTBOUND_CALLER_ID_NUMBER, <<"Outbound-Caller-ID-Number">>).
 -define(KEY_OUTBOUND_CALL_ID, <<"Outbound-Call-ID">>).
+-define(KEY_ORIGINATION_CALL_ID, <<"Origination-Call-ID">>).
+-define(KEY_ORIGINATE_IMMEDIATE, <<"Originate-Immediate">>).
 -define(KEY_PRESENCE_ID, <<"Presence-ID">>).
 -define(KEY_PRIVACY_HIDE_NAME, <<"Privacy-Hide-Name">>).
 -define(KEY_PRIVACY_HIDE_NUMBER, <<"Privacy-Hide-Number">>).

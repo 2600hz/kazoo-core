@@ -40,7 +40,7 @@
 | `find_invalid_acccount_dbs/0` |  | |
 | `flush_account_views/0` |  | |
 | `flush_getby_cache/0` |  | |
-| `get_all_account_views/0` |  | |
+| `get_all_account_views/0` |  | Will scan all accounts and grandfather current reconcilable endpoint caller ids that are not assigned phone numbers as verified external numbers. |
 | `import_account/2` | `(Account,Parent)` | |
 | `init_system/0` |  | |
 | `maybe_delete_db/1` | `(Database)` | |

@@ -49,6 +49,7 @@
         ,refresh_account_db/1
         ,maybe_delete_db/1
         ]).
+-export([gather_external_numbers/0]).
 -export([import_account/2]).
 -export([remove_deprecated_databases/0]).
 -export([ensure_reseller_id_accounts/0
@@ -687,6 +688,112 @@ refresh_account(AccountId) ->
 -spec refresh_account_db(kz_term:ne_binary()) -> 'ok'.
 refresh_account_db(Database) ->
     refresh(kzs_util:format_account_db(Database)).
+
+%%------------------------------------------------------------------------------
+%% @doc This function will scan all endpoint documents (account, user, device)
+%% for caller id numbers and create external numbers documents each that meet
+%% the following criteria:
+%% 1. is a reconcilable number
+%% 2. not an assigned phone number
+%% 3. not an existing external number
+%% @end
+%%------------------------------------------------------------------------------
+-spec gather_external_numbers() -> 'no_return'.
+gather_external_numbers() ->
+    Databases = get_databases(),
+    AccountIds = [kzs_util:format_account_id(Db)
+                  || Db <- Databases,
+                     kzs_util:is_account_db(Db)
+                 ],
+    gather_external_numbers(AccountIds, ?DEFAULT_PAUSE).
+
+-spec gather_external_numbers(kz_term:ne_binaries(), kz_term:text() | non_neg_integer()) -> 'no_return'.
+gather_external_numbers(AccountIds, Pause) ->
+    Total = length(AccountIds),
+    gather_external_numbers(AccountIds, kz_term:to_integer(Pause), Total).
+
+-spec gather_external_numbers(kz_term:ne_binaries(), non_neg_integer(), non_neg_integer()) -> 'no_return'.
+gather_external_numbers(AccountIds, Pause, Total) ->
+    gather_external_numbers(AccountIds, Pause, Total, []).
+
+-spec gather_external_numbers(kz_term:ne_binaries(), non_neg_integer(), non_neg_integer(), [string()]) -> 'no_return'.
+gather_external_numbers([], _, _, []) ->
+    'no_return';
+gather_external_numbers([], _, _, Unexpected) ->
+    io:format("WARNING: although the command finished it had the following exceptions~n"),
+    _ = lists:foreach(fun(Message) -> io:format("~s~n", [Message]) end, Unexpected),
+    'no_return';
+gather_external_numbers([AccountId|AccountIds], Pause, Total, Unexpected) ->
+    io:format("~p (~p/~p) building external numbers for '~s'~n"
+             ,[self(), length(AccountIds) + 1, Total, AccountId]
+             ),
+    NewUnexpected =
+        try
+            {'ok', JObjs} = kz_datamgr:get_results(AccountId, <<"crossbar_listings/endpoints_lookup">>),
+            PhoneNumbers = props:get_keys(knm_numbers:account_listing(AccountId)),
+            ExternalNumbers = get_external_numbers(AccountId),
+            CallerIds = [CallerId
+                         || CallerId <- gather_caller_ids(JObjs)
+                                ,not lists:member(CallerId, PhoneNumbers)
+                                andalso not lists:member(CallerId, ExternalNumbers)
+                        ],
+            _ = create_external_numbers(AccountId, CallerIds),
+            Unexpected
+        catch
+            Error:Reason:StackTrace ->
+                [io_lib:format("unable to build external numbers for ~s! ~s: {~p, ~p}"
+                              ,[AccountId, Error, Reason, StackTrace]
+                              )
+                | Unexpected
+                ]
+        end,
+    gather_external_numbers(AccountIds, Pause, Total, NewUnexpected).
+
+-spec gather_caller_ids(kz_json:objects()) -> kz_term:ne_binaries().
+gather_caller_ids(JObjs) ->
+    Numbers = [hd(kz_json:get_value(<<"key">>, JObj))
+               || JObj <- JObjs
+              ],
+    [knm_converters:normalize(Number)
+     || Number <- Numbers
+            ,kz_term:is_not_empty(Number)
+            andalso knm_converters:is_reconcilable(Number)
+    ].
+
+-spec get_external_numbers(kz_term:ne_binary()) -> kz_term:ne_binaries().
+get_external_numbers(AccountId) ->
+    ViewOptions = [{'startkey', [kzd_external_numbers:type()]}
+                  ,{'endkey', [kzd_external_numbers:type(), kz_json:new()]}
+                  ],
+    {'ok', JObjs} =kz_datamgr:get_results(AccountId, <<"crossbar_listings/by_type_number">>, ViewOptions),
+    [lists:nth(2, kz_json:get_value(<<"key">>, JObj))
+     || JObj <- JObjs
+    ].
+
+-spec create_external_numbers(kz_term:ne_binary(), kz_term:ne_binaries()) -> 'ok'.
+create_external_numbers(_, []) ->
+    'ok';
+create_external_numbers(AccountId, [CallerId | CallerIds]) ->
+    Setters = [{fun kzd_external_numbers:set_number/2, CallerId}
+              ,{fun kz_doc:set_type/2, kzd_external_numbers:type()}
+              ,{fun kzd_external_numbers:set_attestation_date/2, kz_time:now_s()}
+              ,{fun kzd_external_numbers:set_attestation_token_method/2
+               ,<<"maintenance">>
+               }
+              ,{fun kzd_external_numbers:set_attestation_token_source/2
+               ,<<"system">>
+               }
+              ,{fun kzd_external_numbers:set_attestation_account_id/2, AccountId}
+              ,{fun kzd_external_numbers:set_attestation_account_name/2
+               ,kzd_accounts:fetch_name(AccountId)
+               }
+              ,{fun kzd_external_numbers:set_pvt_adopted/2, 'true'}
+              ,{fun kzd_external_numbers:set_pvt_verified/2, 'true'}
+              ,{fun kzd_external_numbers:set_pvt_code/2, 'undefined'}
+              ],
+    Doc = kz_doc:setters(kz_json:new(), Setters),
+    _ = kz_datamgr:save_doc(AccountId, Doc),
+    create_external_numbers(AccountId, CallerIds).
 
 %%------------------------------------------------------------------------------
 %% @doc

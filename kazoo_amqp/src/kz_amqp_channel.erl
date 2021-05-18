@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,7 @@
 -export([consumer_pid/0
         ,consumer_pid/1
         ,remove_consumer_pid/0
+        ,is_consumer_pid_valid/0
         ]).
 -export([consumer_broker/0
         ,consumer_broker/1
@@ -22,6 +23,7 @@
         ,remove_consumer_channel/0
         ,is_consumer_channel_valid/0
         ]).
+-export([check_consumer_pids/0]).
 -export([channel_publish_method/0
         ,channel_publish_method/1
         ]).
@@ -66,6 +68,13 @@ consumer_pid(Pid) when is_pid(Pid) ->
 remove_consumer_pid() ->
     put('$kz_amqp_consumer_pid', 'undefined').
 
+-spec is_consumer_pid_valid() -> boolean().
+is_consumer_pid_valid() ->
+    case get('$kz_amqp_consumer_pid') of
+        'undefined' -> 'false';
+        Channel -> is_process_alive(Channel)
+    end.
+
 -spec consumer_channel() -> pid() | kz_amqp_assignment() | {'error', 'timeout'}.
 consumer_channel() ->
     case get('$kz_amqp_consumer_channel') of
@@ -83,6 +92,20 @@ consumer_channel(Channel) ->
 -spec remove_consumer_channel() -> 'undefined'.
 remove_consumer_channel() ->
     put('$kz_amqp_consumer_channel', 'undefined').
+
+-spec check_consumer_pid({fun(() -> boolean()), fun(() -> 'undefined')}) -> any().
+check_consumer_pid({ValidateFun, RemoveFun}) ->
+    case ValidateFun() of
+        'true' -> 'ok';
+        'false' -> RemoveFun()
+    end.
+
+-spec check_consumer_pids() -> any().
+check_consumer_pids() ->
+    Funs = [{fun is_consumer_pid_valid/0, fun remove_consumer_pid/0}
+           ,{fun is_consumer_channel_valid/0, fun remove_consumer_channel/0}
+           ],
+    lists:foreach(fun check_consumer_pid/1, Funs).
 
 -spec is_consumer_channel_valid() -> boolean().
 is_consumer_channel_valid() ->

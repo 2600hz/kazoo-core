@@ -17,7 +17,9 @@
 -export([from_route_win/1, from_route_win/2]).
 -export([from_originate_uuid/1, from_originate_uuid/2]).
 -export([from_originate_ready/1, from_originate_ready/2]).
+-export([from_originate_resp/1, from_originate_resp/2]).
 -export([from_channel_create/1, from_channel_create/2]).
+-export([to_public_json/1]).
 -export([to_json/1, from_json/1, from_json/2]).
 -export([to_proplist/1]).
 -export([is_call/1]).
@@ -427,6 +429,77 @@ from_originate_ready(JObj, #kapps_call{}=Call) ->
                    ,call_id=kz_json:get_value(<<"Call-ID">>, JObj, call_id(Call))
                    }.
 
+-spec from_originate_resp(kz_json:object()) -> call().
+from_originate_resp(OriginateResp) ->
+    from_originate_resp(OriginateResp, new()).
+
+-spec from_originate_resp(kz_json:object(), call()) -> call().
+from_originate_resp(OriginateResp, #kapps_call{account_id=OldAccountId
+                                              ,account_db=OldAccountDb
+                                              }=Call) ->
+    CallId = kz_api:call_id(OriginateResp, call_id(Call)),
+    kz_log:put_callid(CallId),
+
+    CCVs = merge(custom_channel_vars(Call), kz_json:get_json_value(<<"Custom-Channel-Vars">>, OriginateResp)),
+    CAVs = merge(custom_application_vars(Call), kz_json:get_json_value(<<"Custom-Application-Vars">>, OriginateResp)),
+    SHs = merge(custom_sip_headers(Call), kz_json:get_json_value(<<"Custom-SIP-Headers">>, OriginateResp)),
+
+    Request = kz_json:get_ne_binary_value(<<"Request">>, OriginateResp, request(Call)),
+    From = kz_json:get_ne_binary_value(<<"From">>, OriginateResp, from(Call)),
+    To = kz_json:get_ne_binary_value(<<"To">>, OriginateResp, to(Call)),
+
+    {AccountId, AccountDb} =
+        find_account_info(OldAccountId, OldAccountDb, kz_json:get_value(<<"Account-ID">>, CCVs)),
+
+    [ToUser, ToRealm] = binary:split(To, <<"@">>),
+    [FromUser, FromRealm] = binary:split(From, <<"@">>),
+    [RequestUser, RequestRealm] = binary:split(Request, <<"@">>),
+
+    AuthorizingId = kz_json:get_ne_binary_value(<<"Authorizing-ID">>, CCVs, authorizing_id(Call)),
+    EndpointId = endpoint_id(OriginateResp, endpoint_id(Call)),
+
+    Call#kapps_call{call_id=CallId
+                   ,origination_call_id=kz_json:get_ne_binary_value(<<"Origination-Call-ID">>, OriginateResp, origination_call_id(Call))
+                   ,context=kz_json:get_ne_binary_value(<<"Context">>, OriginateResp, context(Call))
+                   ,request=Request
+                   ,request_user=to_e164(RequestUser, AccountId, EndpointId)
+                   ,request_realm=RequestRealm
+                   ,from=From
+                   ,from_user=FromUser
+                   ,from_realm=FromRealm
+                   ,to=To
+                   ,to_user=ToUser
+                   ,to_realm=ToRealm
+                   ,account_id=AccountId
+                   ,account_db=AccountDb
+                   ,inception = kz_json:get_ne_binary_value(<<"Inception">>, CCVs, inception(Call))
+                   ,switch_hostname = kz_json:get_ne_binary_value(<<"Switch-Hostname">>, OriginateResp, switch_hostname(Call))
+                   ,switch_nodename = kz_json:get_ne_binary_value(<<"Switch-Nodename">>, OriginateResp, switch_nodename(Call))
+                   ,switch_url = kz_json:get_ne_binary_value(<<"Switch-URL">>, OriginateResp, switch_url(Call))
+                   ,switch_uri = kz_json:get_ne_binary_value(<<"Switch-URI">>, OriginateResp, switch_uri(Call))
+                   ,authorizing_id = AuthorizingId
+                   ,authorizing_type = kz_json:get_ne_binary_value(<<"Authorizing-Type">>, CCVs, authorizing_type(Call))
+                   ,owner_id = kz_json:get_ne_binary_value(<<"Owner-ID">>, CCVs, owner_id(Call))
+                   ,fetch_id = kz_json:get_ne_binary_value(<<"Fetch-ID">>, CCVs, fetch_id(Call))
+                   ,bridge_id = kz_json:get_ne_binary_value(<<"Bridge-ID">>, CCVs, bridge_id(Call))
+                   ,caller_id_name = kz_json:get_binary_value(<<"Caller-ID-Name">>, OriginateResp, caller_id_name(Call))
+                   ,callee_id_name = kz_json:get_binary_value(<<"Callee-ID-Name">>, OriginateResp, callee_id_name(Call))
+                   ,caller_id_number = kz_json:get_binary_value(<<"Caller-ID-Number">>, OriginateResp, caller_id_number(Call))
+                   ,callee_id_number = kz_json:get_binary_value(<<"Callee-ID-Number">>, OriginateResp, ToUser)
+                   ,ccvs = CCVs
+                   ,cavs = CAVs
+                   ,sip_headers = SHs
+                   ,resource_type = kz_json:get_ne_binary_value(<<"Resource-Type">>, CCVs, resource_type(Call))
+                   ,to_tag = kz_json:get_ne_binary_value(<<"To-Tag">>, OriginateResp, to_tag(Call))
+                   ,from_tag = kz_json:get_ne_binary_value(<<"From-Tag">>, OriginateResp, from_tag(Call))
+                   ,direction = kz_json:get_ne_binary_value(<<"Call-Direction">>, OriginateResp, direction(Call))
+                   ,is_call_forward = kz_json:is_true(<<"Call-Forward">>, CCVs, is_call_forward(Call))
+                   ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, OriginateResp, is_transfer(Call))
+                   ,endpoint_id = EndpointId
+                   ,control_q = kz_json:get_ne_binary_value(<<"Control-Queue">>, OriginateResp)
+                   ,language = kz_media_util:prompt_language(AccountId, language(Call))
+                   }.
+
 -spec from_channel_create(kz_json:object()) -> call().
 from_channel_create(JObj) ->
     from_channel_create(JObj, new()).
@@ -514,6 +587,17 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
 %% when converting to/from JSON</div>
 %% @end
 %%------------------------------------------------------------------------------
+-spec to_public_json(call()) -> kz_json:object().
+to_public_json(Call) ->
+    Keys = [<<"Controller-Queue">>
+           ,<<"Control-Queue">>
+           ,<<"Switch-Hostname">>
+           ,<<"Switch-Nodename">>
+           ,<<"Switch-URI">>
+           ,<<"Switch-URL">>
+           ],
+    kz_json:normalize(kz_json:delete_keys(Keys, to_json(Call))).
+
 -spec to_json(call()) -> kz_json:object().
 to_json(#kapps_call{}=Call) ->
     Props = to_proplist(Call),
@@ -1725,8 +1809,10 @@ is_transfer(#kapps_call{is_transfer=IsTransfer}) ->
     IsTransfer.
 
 -spec endpoint_id(call()) -> kz_term:api_ne_binary().
-endpoint_id(#kapps_call{endpoint_id=EndpointId}) ->
-    EndpointId.
+endpoint_id(#kapps_call{endpoint_id='undefined'
+                       ,authorizing_id=AuthzId
+                       }) -> AuthzId;
+endpoint_id(#kapps_call{endpoint_id=EndpointId}) -> EndpointId.
 
 -ifdef(TEST).
 eq(Call, Call1) ->
@@ -1748,8 +1834,8 @@ eq([V1|_], [V2|_], Pos) ->
 
 %% @doc get endpoint id if redirected or referred by an endpoint;
 %% otherwise use authorizing id
-endpoint_id(RouteReq, AuthorizingId) ->
-    lists:foldl(fun(CCVKey, Id) -> maybe_find_endpoint_id(CCVKey, Id, RouteReq) end
+endpoint_id(Req, AuthorizingId) ->
+    lists:foldl(fun(CCVKey, Id) -> maybe_find_endpoint_id(CCVKey, Id, Req) end
                ,AuthorizingId
                ,[<<"Referred-By">>, <<"Redirected-By">>]
                ).
@@ -1763,8 +1849,7 @@ maybe_find_endpoint_id(CCVKey, Id, RouteReq) ->
 maybe_find_endpoint_id_from_uri(Contact, Id) ->
     case kzsip_uri:uris(Contact) of
         [#uri{ext_opts=Opts1, opts=Opts2}] ->
-            case props:get_value(<<"endpoint_id">>, Opts1 ++ Opts2) of
-                'undefined' -> Id;
+            case props:get_value(<<"endpoint_id">>, Opts1 ++ Opts2, Id) of
                 Id -> Id;
                 EID ->
                     lager:info("using endpoint id ~s over authz id ~s", [EID, Id]),

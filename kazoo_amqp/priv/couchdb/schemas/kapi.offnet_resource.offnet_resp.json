@@ -3,6 +3,9 @@
     "_id": "kapi.offnet_resource.offnet_resp",
     "description": "AMQP API for offnet_resource.offnet_resp",
     "properties": {
+        "Call": {
+            "type": "object"
+        },
         "Call-ID": {
             "type": "string"
         },

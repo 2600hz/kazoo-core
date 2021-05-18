@@ -30,6 +30,7 @@
         ,channel_status_resp_v/1
         ,publish_channel_status_resp/2
         ,publish_channel_status_resp/3
+        ,channel_status_extended_headers/0
         ]).
 -export([query_auth_id_req/1
         ,query_auth_id_req_v/1
@@ -324,15 +325,12 @@ channel_status_resp_definition() ->
                                                             ,<<"Custom-Channel-Vars">>
                                                             ,<<"Custom-SIP-Headers">>
                                                             ,<<"Error-Msg">>
-                                                            ,<<"From-Tag">>
-                                                            ,<<"Correlation-ID">>
-                                                            ,<<"Other-Leg-Call-ID">>
                                                             ,<<"Realm">>
                                                             ,<<"Switch-Hostname">>
                                                             ,<<"Switch-Nodename">>
                                                             ,<<"Switch-URL">>
-                                                            ,<<"To-Tag">>
                                                             ,<<"Username">>
+                                                            | channel_status_extended_headers()
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Status">>, [<<"active">>, <<"tmpdown">>, <<"terminated">>]}
@@ -347,6 +345,31 @@ channel_status_resp_definition() ->
                }
               ],
     kapi_definition:setters(Setters).
+
+
+-spec channel_status_extended_headers() -> kz_term:ne_binaries().
+channel_status_extended_headers() ->
+    [<<"Answered">>
+    ,<<"Call-Direction">>
+    ,<<"Callee-ID-Name">>
+    ,<<"Callee-ID-Number">>
+    ,<<"Caller-ID-Name">>
+    ,<<"Caller-ID-Number">>
+    ,<<"Destination">>
+    ,<<"Elapsed-Seconds">>
+    ,<<"Fetch-ID">>
+    ,<<"From">>
+    ,<<"From-Tag">>
+    ,<<"Is-Loopback">>
+    ,<<"Is-On-Hold">>
+    ,<<"Loopback-Leg-Name">>
+    ,<<"Loopback-Other-Leg">>
+    ,<<"Other-Leg-Call-ID">>
+    ,<<"Presence-ID">>
+    ,<<"Request">>
+    ,<<"To">>
+    ,<<"To-Tag">>
+    ].
 
 -spec query_auth_id_req_definition() -> kapi_definition:api().
 query_auth_id_req_definition() ->

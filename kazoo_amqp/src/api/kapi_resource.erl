@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -184,8 +184,17 @@ originate_resp_definition() ->
               ,{fun kapi_definition:set_publish_fun/2, fun publish_originate_resp/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Call-ID">>]}
               ,{fun kapi_definition:set_optional_headers/2
-               ,[<<"Channel-Call-State">>
-                | kapi_call:optional_call_event_headers()
+               ,[<<"Application-Response">>
+                ,<<"Call-ID">>
+                ,<<"Control-Queue">>
+                ,<<"Channel-Call-State">>
+                ,<<"Custom-Application-Vars">>
+                ,<<"Custom-Channel-Vars">>
+                ,<<"Custom-SIP-Headers">>
+                ,<<"Switch-Hostname">>
+                ,<<"Switch-Nodename">>
+                ,<<"Switch-URL">>
+                | kapi_call:channel_status_extended_headers()
                 ]
                }
               ,{fun kapi_definition:set_values/2

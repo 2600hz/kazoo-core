@@ -186,6 +186,7 @@ req_definition() ->
                                                             ,?KEY_MESSAGE_ID
                                                             ,?KEY_MODE
                                                             ,?KEY_ORIGINAL_RESOURCE_TYPE
+                                                            ,?KEY_ORIGINATE_IMMEDIATE
                                                             ,?KEY_ORIGINATION_CALL_ID
                                                             ,?KEY_OUTBOUND_ACTIONS
                                                             ,?KEY_OUTBOUND_CALLER_ID_NAME
@@ -275,6 +276,7 @@ resp_definition() ->
                                                             ,?KEY_CONTROL_QUEUE
                                                             ,<<"Resource-Response">>
                                                             ,<<"Response-Code">>
+                                                            ,<<"Call">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)

@@ -125,6 +125,7 @@
         ]).
 
 -export([noop/1, noop_id/0]).
+-export([wait_for_answer/1]).
 -export([flush/1, flush_dtmf/1
         ,send_dtmf/2, send_dtmf/3
         ,recv_dtmf/2
@@ -157,6 +158,9 @@
         ]).
 
 -export([b_noop/1]).
+-export([b_wait_for_answer/1
+        ,b_wait_for_answer/2
+        ]).
 -export([b_flush/1]).
 -export([b_privacy/1
         ,b_privacy/2
@@ -2414,6 +2418,24 @@ noop(Call) ->
 b_noop(Call) -> wait_for_noop(Call, noop(Call)).
 
 %%------------------------------------------------------------------------------
+%% @doc Produces the low level AMQP request to preform a `wait_for_answer'.
+%% @end
+%%------------------------------------------------------------------------------
+-spec wait_for_answer(kapps_call:call()) -> 'ok'.
+wait_for_answer(Call) ->
+    Command = [{<<"Application-Name">>, <<"wait_for_answer">>}],
+    send_command(Command, Call).
+
+-spec b_wait_for_answer(kapps_call:call()) -> kapps_api_std_return().
+b_wait_for_answer(Call) ->
+    b_wait_for_answer(Call, ?BRIDGE_DEFAULT_TIMEOUT).
+
+-spec b_wait_for_answer(kapps_call:call(), integer() | kz_term:ne_binary()) -> kapps_api_std_return().
+b_wait_for_answer(Call, Timeout) ->
+    wait_for_answer(Call),
+    wait_for_message(Call, <<"wait_for_answer">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, Timeout).
+
+%%------------------------------------------------------------------------------
 %% @doc Produces the low level AMQP request to flush the command
 %% queue.
 %% @end
@@ -3216,7 +3238,7 @@ send_command(Command, Call) when is_list(Command) ->
             AppVersion = kapps_call:application_version(Call),
             case kapps_call:kvs_fetch('consumer_pid', Call) of
                 Pid when is_pid(Pid) -> _ = kz_amqp_channel:consumer_pid(Pid), 'ok';
-                _Else -> 'ok'
+                _Else -> kz_amqp_channel:check_consumer_pids()
             end,
             Prop =
                 props:insert_value(<<"Call-ID">>, CallId, Command)
