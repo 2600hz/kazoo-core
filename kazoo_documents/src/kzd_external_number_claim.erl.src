@@ -1,0 +1,33 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2021, 2600Hz
+%%% @doc Accessors for `external_number_claim' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_external_number_claim).
+
+-export([new/0]).
+-export([code/1, code/2, set_code/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"external_number_claim">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec code(doc()) -> kz_term:api_ne_binary().
+code(Doc) ->
+    code(Doc, 'undefined').
+
+-spec code(doc(), Default) -> kz_term:ne_binary() | Default.
+code(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"code">>], Doc, Default).
+
+-spec set_code(doc(), kz_term:ne_binary()) -> doc().
+set_code(Doc, Code) ->
+    kz_json:set_value([<<"code">>], Code, Doc).

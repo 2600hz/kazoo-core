@@ -3,7 +3,25 @@
     "_id": "kapi.call.channel_status_resp",
     "description": "AMQP API for call.channel_status_resp",
     "properties": {
+        "Answered": {
+            "type": "string"
+        },
+        "Call-Direction": {
+            "type": "string"
+        },
         "Call-ID": {
+            "type": "string"
+        },
+        "Callee-ID-Name": {
+            "type": "string"
+        },
+        "Callee-ID-Number": {
+            "type": "string"
+        },
+        "Caller-ID-Name": {
+            "type": "string"
+        },
+        "Caller-ID-Number": {
             "type": "string"
         },
         "Correlation-ID": {
@@ -18,6 +36,12 @@
         "Custom-SIP-Headers": {
             "type": "object"
         },
+        "Destination": {
+            "type": "string"
+        },
+        "Elapsed-Seconds": {
+            "type": "string"
+        },
         "Error-Msg": {
             "type": "string"
         },
@@ -31,13 +55,37 @@
                 "channel_status_resp"
             ]
         },
+        "Fetch-ID": {
+            "type": "string"
+        },
+        "From": {
+            "type": "string"
+        },
         "From-Tag": {
+            "type": "string"
+        },
+        "Is-Loopback": {
+            "type": "string"
+        },
+        "Is-On-Hold": {
+            "type": "string"
+        },
+        "Loopback-Leg-Name": {
+            "type": "string"
+        },
+        "Loopback-Other-Leg": {
             "type": "string"
         },
         "Other-Leg-Call-ID": {
             "type": "string"
         },
+        "Presence-ID": {
+            "type": "string"
+        },
         "Realm": {
+            "type": "string"
+        },
+        "Request": {
             "type": "string"
         },
         "Status": {
@@ -55,6 +103,9 @@
             "type": "string"
         },
         "Switch-URL": {
+            "type": "string"
+        },
+        "To": {
             "type": "string"
         },
         "To-Tag": {

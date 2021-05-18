@@ -196,6 +196,9 @@
         "Original-Resource-Type": {
             "type": "string"
         },
+        "Originate-Immediate": {
+            "type": "string"
+        },
         "Origination-Call-ID": {
             "type": "string"
         },

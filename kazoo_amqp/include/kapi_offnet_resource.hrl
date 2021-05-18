@@ -46,6 +46,7 @@
 -define(KEY_ASSERTED_IDENTITY_REALM, <<"Asserted-Identity-Realm">>).
 -define(KEY_OUTBOUND_CALL_ID, <<"Outbound-Call-ID">>).
 -define(KEY_ORIGINATION_CALL_ID, <<"Origination-Call-ID">>).
+-define(KEY_ORIGINATE_IMMEDIATE, <<"Originate-Immediate">>).
 -define(KEY_PRESENCE_ID, <<"Presence-ID">>).
 -define(KEY_RESOURCE_TYPE, <<"Resource-Type">>).
 -define(KEY_ORIGINAL_RESOURCE_TYPE, <<"Original-Resource-Type">>).

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Dialplan API commands.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -189,6 +189,9 @@
 -export([hold_control/1
         ,hold_control_v/1
         ]).
+-export([wait_for_answer/1
+        ,wait_for_answer_v/1
+        ]).
 -export([event_actions/1
         ,event_actions_v/1
         ]).
@@ -295,6 +298,7 @@ api_definitions() ->
     ,play_macro_definition()
     ,sound_touch_definition()
     ,hold_control_definition()
+    ,wait_for_answer_definition()
     ,event_actions_definition()
     ,queue_definition()
     ,error_definition()
@@ -419,6 +423,8 @@ api_definition(<<"sound_touch">>) ->
     sound_touch_definition();
 api_definition(<<"hold_control">>) ->
     hold_control_definition();
+api_definition(<<"wait_for_answer">>) ->
+    wait_for_answer_definition();
 api_definition(<<"event_actions">>) ->
     event_actions_definition();
 api_definition(<<"queue">>) ->
@@ -2337,6 +2343,30 @@ hold_control_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+-spec wait_for_answer_definition() -> kapi_definition:api().
+wait_for_answer_definition() ->
+    EventName = <<"command">>,
+    Category = <<"call">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Wait for Answer">>}
+              ,{fun kapi_definition:set_description/2, <<"Wait for the session to be answered before continuing.">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun wait_for_answer/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun wait_for_answer_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Call-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
 -spec event_actions_definition() -> kapi_definition:api().
 event_actions_definition() ->
     EventName = <<"command">>,
@@ -3422,6 +3452,19 @@ sound_touch(Req) ->
 -spec sound_touch_v(kz_term:api_terms()) -> boolean().
 sound_touch_v(Req) ->
     kapi_definition:validate(Req, sound_touch_definition()).
+
+%%------------------------------------------------------------------------------
+%% @doc Format a Dialplan: noop API call.
+%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec wait_for_answer(kz_term:api_terms()) -> kz_api:api_formatter_return().
+wait_for_answer(Req) ->
+    kapi_definition:build_message(Req, wait_for_answer_definition()).
+
+-spec wait_for_answer_v(kz_term:api_terms()) -> boolean().
+wait_for_answer_v(Req) ->
+    kapi_definition:validate(Req, wait_for_answer_definition()).
 
 %%------------------------------------------------------------------------------
 %% @doc Event action.

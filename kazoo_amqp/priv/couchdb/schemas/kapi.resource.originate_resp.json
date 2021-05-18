@@ -3,28 +3,10 @@
     "_id": "kapi.resource.originate_resp",
     "description": "AMQP API for resource.originate_resp",
     "properties": {
-        "Application-Data": {
-            "type": "string"
-        },
-        "Application-Event": {
-            "type": "string"
-        },
-        "Application-Name": {
+        "Answered": {
             "type": "string"
         },
         "Application-Response": {
-            "type": "string"
-        },
-        "Billing-Seconds": {
-            "type": "string"
-        },
-        "Bridge-B-Unique-ID": {
-            "type": "string"
-        },
-        "Bridge-Hangup-Cause": {
-            "type": "string"
-        },
-        "Call-Debug": {
             "type": "string"
         },
         "Call-Direction": {
@@ -39,61 +21,13 @@
         "Callee-ID-Number": {
             "type": "string"
         },
-        "Caller-Destination-Number": {
-            "type": "string"
-        },
         "Caller-ID-Name": {
             "type": "string"
         },
         "Caller-ID-Number": {
             "type": "string"
         },
-        "Channel-Answer-State": {
-            "type": "string"
-        },
         "Channel-Call-State": {
-            "type": "string"
-        },
-        "Channel-Created-Time": {
-            "type": "integer"
-        },
-        "Channel-Debug": {
-            "type": "string"
-        },
-        "Channel-Is-Loopback": {
-            "type": "string"
-        },
-        "Channel-Loopback-Bowout": {
-            "type": "string"
-        },
-        "Channel-Loopback-Bowout-Execute": {
-            "type": "string"
-        },
-        "Channel-Loopback-Leg": {
-            "type": "string"
-        },
-        "Channel-Loopback-Other-Leg-ID": {
-            "type": "string"
-        },
-        "Channel-Moving": {
-            "type": "string"
-        },
-        "Channel-Name": {
-            "type": "string"
-        },
-        "Channel-State": {
-            "type": "string"
-        },
-        "Conference-Config": {
-            "type": "string"
-        },
-        "Conference-Name": {
-            "type": "string"
-        },
-        "Connecting-Leg-A-UUID": {
-            "type": "string"
-        },
-        "Connecting-Leg-B-UUID": {
             "type": "string"
         },
         "Control-Queue": {
@@ -108,25 +42,10 @@
         "Custom-SIP-Headers": {
             "type": "object"
         },
-        "DTMF-Digit": {
+        "Destination": {
             "type": "string"
         },
-        "DTMF-Duration": {
-            "type": "string"
-        },
-        "Detected-Tone": {
-            "type": "string"
-        },
-        "Digits-Dialed": {
-            "type": "string"
-        },
-        "Disposition": {
-            "type": "string"
-        },
-        "Duration-Seconds": {
-            "type": "string"
-        },
-        "Endpoint-Disposition": {
+        "Elapsed-Seconds": {
             "type": "string"
         },
         "Event-Category": {
@@ -139,7 +58,7 @@
                 "originate_resp"
             ]
         },
-        "Fax-Info": {
+        "Fetch-ID": {
             "type": "string"
         },
         "From": {
@@ -148,88 +67,25 @@
         "From-Tag": {
             "type": "string"
         },
-        "From-Uri": {
+        "Is-Loopback": {
             "type": "string"
         },
-        "Hangup-Cause": {
+        "Is-On-Hold": {
             "type": "string"
         },
-        "Hangup-Code": {
+        "Loopback-Leg-Name": {
             "type": "string"
         },
-        "Interaction-ID": {
-            "type": "string"
-        },
-        "Intercepted-By": {
-            "type": "string"
-        },
-        "Length": {
-            "type": "string"
-        },
-        "Local-SDP": {
-            "type": "string"
-        },
-        "Media-Recordings": {
-            "type": "string"
-        },
-        "Media-Server": {
-            "type": "string"
-        },
-        "Origination-Call-ID": {
+        "Loopback-Other-Leg": {
             "type": "string"
         },
         "Other-Leg-Call-ID": {
             "type": "string"
         },
-        "Other-Leg-Caller-ID-Name": {
-            "type": "string"
-        },
-        "Other-Leg-Caller-ID-Number": {
-            "type": "string"
-        },
-        "Other-Leg-Destination-Number": {
-            "type": "string"
-        },
-        "Other-Leg-Direction": {
-            "type": "string"
-        },
-        "Parking-Slot": {
-            "type": "string"
-        },
         "Presence-ID": {
             "type": "string"
         },
-        "Raw-Application-Data": {
-            "type": "string"
-        },
-        "Raw-Application-Name": {
-            "type": "string"
-        },
-        "Recording": {
-            "type": "string"
-        },
-        "Remote-SDP": {
-            "type": "string"
-        },
-        "Replaced-By": {
-            "type": "string"
-        },
         "Request": {
-            "type": "string"
-        },
-        "Resigning-Peer-UUID": {
-            "type": "string"
-        },
-        "Resigning-UUID": {
-            "type": "string"
-        },
-        "Ringing-Seconds": {
-            "type": "string"
-        },
-        "Root-Call-Interaction-ID": {
-            "type": "string"
-        },
-        "Silence-Terminated": {
             "type": "string"
         },
         "Switch-Hostname": {
@@ -238,43 +94,13 @@
         "Switch-Nodename": {
             "type": "string"
         },
-        "Switch-URI": {
-            "type": "string"
-        },
         "Switch-URL": {
-            "type": "string"
-        },
-        "Target-Call-ID": {
-            "type": "string"
-        },
-        "Terminator": {
-            "type": "string"
-        },
-        "Timestamp": {
             "type": "string"
         },
         "To": {
             "type": "string"
         },
         "To-Tag": {
-            "type": "string"
-        },
-        "To-Uri": {
-            "type": "string"
-        },
-        "Transfer-Disposition": {
-            "type": "string"
-        },
-        "Transfer-History": {
-            "type": "string"
-        },
-        "Transfer-Source": {
-            "type": "string"
-        },
-        "Transfer-To": {
-            "type": "string"
-        },
-        "Transfer-Type": {
             "type": "string"
         },
         "User-Agent": {

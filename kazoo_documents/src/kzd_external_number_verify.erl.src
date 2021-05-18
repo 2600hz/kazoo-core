@@ -1,0 +1,46 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2021, 2600Hz
+%%% @doc Accessors for `external_number_verify' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_external_number_verify).
+
+-export([new/0]).
+-export([message/1, message/2, set_message/2]).
+-export([method/1, method/2, set_method/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"external_number_verify">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec message(doc()) -> kz_term:api_binary().
+message(Doc) ->
+    message(Doc, 'undefined').
+
+-spec message(doc(), Default) -> binary() | Default.
+message(Doc, Default) ->
+    kz_json:get_binary_value([<<"message">>], Doc, Default).
+
+-spec set_message(doc(), binary()) -> doc().
+set_message(Doc, Message) ->
+    kz_json:set_value([<<"message">>], Message, Doc).
+
+-spec method(doc()) -> binary().
+method(Doc) ->
+    method(Doc, <<"voice">>).
+
+-spec method(doc(), Default) -> binary() | Default.
+method(Doc, Default) ->
+    kz_json:get_binary_value([<<"method">>], Doc, Default).
+
+-spec set_method(doc(), binary()) -> doc().
+set_method(Doc, Method) ->
+    kz_json:set_value([<<"method">>], Method, Doc).
