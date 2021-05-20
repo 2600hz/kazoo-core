@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2021, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% @author Pierre Fenoll
@@ -322,7 +322,7 @@ fetch_account_from_number(Num) ->
         {'error', _}=Error -> maybe_fetch_account_from_ports(Num, Error)
     end.
 
--spec check_number(knm_phone_number:record()) -> lookup_return().
+-spec check_number(knm_phone_number:pn_record()) -> lookup_return().
 check_number(PN) ->
     AssignedTo = knm_phone_number:assigned_to(PN),
     case kz_term:is_empty(AssignedTo) of
@@ -339,7 +339,7 @@ check_number(PN) ->
             end
     end.
 
--spec check_account(knm_phone_number:record()) -> lookup_return().
+-spec check_account(knm_phone_number:pn_record()) -> lookup_return().
 check_account(PN) ->
     AssignedTo = knm_phone_number:assigned_to(PN),
     case kzd_accounts:is_enabled(AssignedTo) of

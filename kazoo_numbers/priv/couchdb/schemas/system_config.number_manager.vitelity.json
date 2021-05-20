@@ -1,0 +1,13 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "system_config.number_manager.vitelity",
+    "description": "Schema for number_manager.vitelity system_config",
+    "properties": {
+        "use_stepswitch_cnam": {
+            "default": false,
+            "description": "number_manager vitelity use_stepswitch_cnam",
+            "type": "boolean"
+        }
+    },
+    "type": "object"
+}

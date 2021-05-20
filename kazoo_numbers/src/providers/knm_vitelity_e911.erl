@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2020, 2600Hz
+%%% @copyright (C) 2014-2021, 2600Hz
 %%% @doc Handle e911 provisioning
 %%% @author James Aimonetti
 %%% @author Peter Defebvre
@@ -27,12 +27,12 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PN) ->
     State = knm_phone_number:state(PN),
     save(PN, State).
 
--spec save(knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 save(PN, ?NUMBER_STATE_RESERVED) ->
     maybe_update_e911(PN);
 save(PN, ?NUMBER_STATE_IN_SERVICE) ->
@@ -47,7 +47,7 @@ save(PN, _State) ->
 %% provision e911 or remove the number depending on the state
 %% @end
 %%------------------------------------------------------------------------------
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) ->
     case knm_phone_number:feature(PN, ?FEATURE_E911) of
         'undefined' -> PN;
@@ -74,7 +74,7 @@ is_valid_location(Location) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_location(kz_term:ne_binary() | knm_phone_number:record()) ->
+-spec get_location(kz_term:ne_binary() | knm_phone_number:pn_record()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 get_location(?NE_BINARY=DID) ->
@@ -95,12 +95,12 @@ get_location(PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_update_e911(knm_phone_number:record()) -> knm_phone_number:record().
+-spec maybe_update_e911(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 maybe_update_e911(PN) ->
     IsDryRun = knm_phone_number:dry_run(PN),
     maybe_update_e911(PN, IsDryRun).
 
--spec maybe_update_e911(knm_phone_number:record(), boolean()) -> knm_phone_number:record().
+-spec maybe_update_e911(knm_phone_number:pn_record(), boolean()) -> knm_phone_number:pn_record().
 maybe_update_e911(PN, 'true') ->
     CurrentE911 = knm_phone_number:feature(PN, ?FEATURE_E911),
     E911 = kz_json:get_ne_value(?FEATURE_E911, knm_phone_number:doc(PN)),
@@ -143,7 +143,7 @@ maybe_update_e911(PN, 'false') ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec remove_number(knm_phone_number:record()) ->
+-spec remove_number(knm_phone_number:pn_record()) ->
           {'ok', kz_json:object() | kz_term:ne_binary()} |
           {'error', kz_term:ne_binary()}.
 remove_number(PN) ->
@@ -186,7 +186,7 @@ get_location_options(DID) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec update_e911(knm_phone_number:record(), kz_json:object()) ->
+-spec update_e911(knm_phone_number:pn_record(), kz_json:object()) ->
           {'ok', kz_json:object() | kz_term:ne_binary()} |
           {'error', kz_term:ne_binary()}.
 update_e911(PN, Address) ->
@@ -200,7 +200,7 @@ update_e911(PN, Address) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec e911_options(knm_phone_number:record(), kz_json:object()) ->
+-spec e911_options(knm_phone_number:pn_record(), kz_json:object()) ->
           knm_vitelity_util:query_options().
 e911_options(PN, AddressJObj) ->
     DID = knm_phone_number:number(PN),
@@ -235,7 +235,7 @@ get_unit(ExtendedAddress) ->
         _ -> {'undefined', 'undefined'}
     end.
 
--spec get_caller_name(knm_phone_number:record(), kz_json:object()) -> kz_term:ne_binary().
+-spec get_caller_name(knm_phone_number:pn_record(), kz_json:object()) -> kz_term:ne_binary().
 get_caller_name(PN, AddressJObj) ->
     case kz_json:get_ne_binary_value(?CUSTOMER_NAME, AddressJObj) of
         ?NE_BINARY=Name -> Name;

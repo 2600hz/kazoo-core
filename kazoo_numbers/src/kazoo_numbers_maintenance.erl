@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2020, 2600Hz
+%%% @copyright (C) 2016-2021, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -1928,7 +1928,7 @@ print_feature_permissions(Allowed, Denied) ->
              ),
     'no_return'.
 
--spec list_number_feature_permissions(knm_phone_number:record()) -> 'no_return'.
+-spec list_number_feature_permissions(knm_phone_number:pn_record()) -> 'no_return'.
 list_number_feature_permissions(PN) ->
     Num = knm_phone_number:number(PN),
     Allowed = knm_phone_number:features_allowed(PN),

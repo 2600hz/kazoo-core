@@ -369,7 +369,7 @@ get_answers(QLC, Offset, Quantity) ->
 %%------------------------------------------------------------------------------
 -ifndef(TEST).
 -spec create_discovery(kz_term:ne_binary(), module(), kz_json:object(), knm_options:options()) ->
-          knm_phone_number:record().
+          knm_phone_number:pn_record().
 create_discovery(DID=?NE_BINARY, Carrier, Data, Options0) ->
     Options = [{'state', ?NUMBER_STATE_DISCOVERY}
               ,{'module_name', kz_term:to_binary(Carrier)}
@@ -381,7 +381,7 @@ create_discovery(DID=?NE_BINARY, Carrier, Data, Options0) ->
                                 ),
     PhoneNumber.
 
--spec create_discovery(kz_json:object(), knm_options:options()) -> knm_phone_number:record().
+-spec create_discovery(kz_json:object(), knm_options:options()) -> knm_phone_number:pn_record().
 create_discovery(JObj, Options) ->
     knm_phone_number:from_json_with_options(JObj, Options).
 -endif.
@@ -453,13 +453,13 @@ is_local(QID) ->
     ets:match_object(?ETS_DISCOVERY_CACHE, {QID, '_'}) =/= [].
 
 -spec discovery(kz_term:ne_binary()) ->
-          {'ok', knm_phone_number:record()} |
+          {'ok', knm_phone_number:pn_record()} |
           {'error', any()}.
 discovery(Num) ->
     discovery(Num, []).
 
 -spec discovery(kz_term:ne_binary(), knm_options:options()) ->
-          {'ok', knm_phone_number:record()} |
+          {'ok', knm_phone_number:pn_record()} |
           {'error', any()}.
 discovery(Num, Options) ->
     case local_discovery(Num, Options) of
@@ -468,7 +468,7 @@ discovery(Num, Options) ->
     end.
 
 -spec local_discovery(kz_term:ne_binary(), knm_options:options()) ->
-          {'ok', knm_phone_number:record()} |
+          {'ok', knm_phone_number:pn_record()} |
           {'error', any()}.
 -ifdef(TEST).
 local_discovery(_Num, _Options) -> {'error', 'not_found'}.
@@ -482,7 +482,7 @@ local_discovery(Num, Options) ->
 -endif.
 
 -spec remote_discovery(kz_term:ne_binary(), knm_options:options()) ->
-          {'ok', knm_phone_number:record()} |
+          {'ok', knm_phone_number:pn_record()} |
           {'error', any()}.
 -ifdef(TEST).
 remote_discovery(_Num, _Options) -> {'error', 'not_found'}.

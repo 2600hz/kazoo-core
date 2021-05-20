@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Handle failover provisioning
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -19,21 +19,21 @@
 -define(KEY, ?FEATURE_FORCE_OUTBOUND).
 
 
--spec save(knm_phone_number:record()) -> knm_phone_number:record().
+-spec save(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 save(PN) ->
     case knm_phone_number:state(PN) of
         ?NUMBER_STATE_IN_SERVICE -> update(PN);
         _ -> delete(PN)
     end.
 
--spec delete(knm_phone_number:record()) -> knm_phone_number:record().
+-spec delete(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 delete(PN) ->
     case knm_phone_number:feature(PN, ?KEY) of
         'undefined' -> PN;
         _F -> knm_providers:deactivate_feature(PN, ?KEY)
     end.
 
--spec update(knm_phone_number:record()) -> knm_phone_number:record().
+-spec update(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 update(PN) ->
     Private = knm_phone_number:feature(PN, ?KEY),
     Public0 = kz_json:get_ne_value(?KEY, knm_phone_number:doc(PN)),

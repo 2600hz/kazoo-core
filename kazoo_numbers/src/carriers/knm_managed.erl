@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Luis Azedo
 %%% @author Pierre Fenoll
@@ -116,14 +116,14 @@ format_number_resp(QID, JObj) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_PN) -> 'true'.
 
 %%------------------------------------------------------------------------------
 %% @doc Acquire a given number from the carrier
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 acquire_number(PN) ->
     AssignTo = knm_phone_number:assigned_to(PN),
     State = knm_phone_number:state(PN),
@@ -136,8 +136,8 @@ acquire_number(PN) ->
 %% @doc Release a number from the routing table
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 disconnect_number(PN) ->
     lager:debug("disconnecting number ~s"
                ,[knm_phone_number:number(PN)]
@@ -186,8 +186,8 @@ save_doc(AccountId, Number) ->
                  ],
     kz_datamgr:save_doc(?KZ_MANAGED_DB, kz_doc:update_pvt_parameters(kz_doc:setters(Setters), 'undefined', PvtOptions)).
 
--spec update_doc(knm_phone_number:record(), kz_term:proplist()) ->
-          knm_phone_number:record().
+-spec update_doc(knm_phone_number:pn_record(), kz_term:proplist()) ->
+          knm_phone_number:pn_record().
 update_doc(PN, UpdateProps) ->
     Num = knm_phone_number:number(PN),
 

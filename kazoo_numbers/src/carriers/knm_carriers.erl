@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% @author Pierre Fenoll
@@ -224,7 +224,7 @@ usable_carriers() ->
 %% @doc Buy a number from its carrier module
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire(knm_phone_number:record()) -> knm_phone_number:record();
+-spec acquire(knm_phone_number:pn_record()) -> knm_phone_number:pn_record();
              (knm_pipe:collection()) -> knm_pipe:collection().
 %% FIXME: opaque
 acquire(T0=#{'todo' := PNs}) ->
@@ -240,8 +240,8 @@ acquire(PN) ->
     DryRun = knm_phone_number:dry_run(PN),
     acquire(PN, Module, DryRun).
 
--spec acquire(knm_phone_number:record(), kz_term:api_ne_binary(), boolean()) ->
-          knm_phone_number:record().
+-spec acquire(knm_phone_number:pn_record(), kz_term:api_ne_binary(), boolean()) ->
+          knm_phone_number:pn_record().
 acquire(PN, 'undefined', _DryRun) ->
     knm_errors:carrier_not_specified(PN);
 acquire(PN, _Mod, 'true') ->
@@ -258,7 +258,7 @@ acquire(PN, ?NE_BINARY=Mod, 'false') ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect(knm_phone_number:record()) -> knm_phone_number:record();
+-spec disconnect(knm_phone_number:pn_record()) -> knm_phone_number:pn_record();
                 (knm_pipe:collection()) -> knm_pipe:collection().
 %% FIXME: opaque
 disconnect(T0=#{'todo' := PNs}) ->
@@ -322,7 +322,7 @@ reseller_id(Options) ->
 %% @doc Returns whether carrier handles numbers local to the system.
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(PN) ->
     Carrier = knm_phone_number:module_name(PN),
     try apply(Carrier, 'is_number_billable', [PN])
@@ -353,7 +353,7 @@ is_local(Carrier) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec apply(module() | kz_term:ne_binary() | knm_phone_number:record(), atom(), list()) -> any().
+-spec apply(module() | kz_term:ne_binary() | knm_phone_number:pn_record(), atom(), list()) -> any().
 apply(Module, FName, Args) when is_atom(Module), Module =/= 'undefined' ->
     lager:debug("contacting carrier ~s for ~s", [Module, FName]),
     erlang:apply(Module, FName, Args);

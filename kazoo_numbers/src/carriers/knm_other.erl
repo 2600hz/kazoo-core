@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Handle client requests for phone_number documents
 %%% @author Karl Anderson
 %%% @author Pierre Fenoll
@@ -128,14 +128,14 @@ check_numbers(Numbers) ->
 %% in a rate center
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_PN) -> 'true'.
 
 %%------------------------------------------------------------------------------
 %% @doc Acquire a given number from the carrier
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 acquire_number(PN) ->
     Num = knm_phone_number:number(PN),
     case ?PHONEBOOK_URL of
@@ -175,7 +175,7 @@ acquire_number(PN) ->
 %% @doc Release a number from the routing table
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 disconnect_number(PN) -> PN.
 
 %%------------------------------------------------------------------------------
@@ -342,8 +342,8 @@ format_block_resp_fold(Block, QID) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec format_acquire_resp(knm_phone_number:record(), kz_json:object()) ->
-          knm_phone_number:record().
+-spec format_acquire_resp(knm_phone_number:pn_record(), kz_json:object()) ->
+          knm_phone_number:pn_record().
 format_acquire_resp(PN, Body) ->
     Num = knm_phone_number:number(PN),
     JObj = kz_json:get_value([<<"data">>, Num], Body, kz_json:new()),
@@ -362,8 +362,8 @@ format_acquire_resp(PN, Body) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_merge_opaque(kz_json:object(), knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec maybe_merge_opaque(kz_json:object(), knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 maybe_merge_opaque(JObj, PN) ->
     case kz_json:get_ne_value(<<"opaque">>, JObj) of
         'undefined' -> PN;
@@ -375,8 +375,8 @@ maybe_merge_opaque(JObj, PN) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_merge_locality(kz_json:object(), knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec maybe_merge_locality(kz_json:object(), knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 maybe_merge_locality(JObj, PN) ->
     case kz_json:get_ne_value(<<"locality">>,  JObj) of
         'undefined' -> PN;
