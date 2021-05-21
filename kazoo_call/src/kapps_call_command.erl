@@ -256,6 +256,10 @@
         {'tts', kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()} |
         {'tts', kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()}.
 -type audio_macro_prompts() :: [audio_macro_prompt()].
+
+-type received_event() :: {'ok', kz_json:object()} |
+                          {'error', 'timeout'}.
+
 -export_type([audio_macro_prompt/0
              ,audio_macro_prompts/0
              ,store_fun/0
@@ -471,9 +475,6 @@ relay_event(Pid, JObj) ->
 -spec relay_event(pid(), kz_json:object(), relay_fun()) -> any().
 relay_event(Pid, JObj, RelayFun) ->
     RelayFun(Pid, {'amqp_msg', JObj}).
-
--type received_event() :: {'ok', kz_json:object()} |
-                          {'error', 'timeout'}.
 
 -spec receive_event(timeout()) -> received_event().
 receive_event(Timeout) -> receive_event(Timeout, 'true').
@@ -781,7 +782,7 @@ b_connect_leg(TargetCallId, Insert, ContinueOnFail, ContinueOnCancel, ParkAfterP
 redirect(Contact, Call) ->
     redirect(Contact, 'undefined', Call).
 
--spec redirect(kz_term:ne_binary(), kz_term:api_binary(), kapps_call:call()) -> 'ok'.
+-spec redirect(kz_term:ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 redirect(Contact, Server, Call) ->
     lager:debug("redirect to ~s on ~s", [Contact, Server]),
     Command = [{<<"Redirect-Contact">>, Contact}
@@ -789,8 +790,7 @@ redirect(Contact, Server, Call) ->
               ,{<<"Application-Name">>, <<"redirect">>}
               ],
     send_command(Command, Call),
-    timer:sleep(2 * ?MILLISECONDS_IN_SECOND),
-    'ok'.
+    timer:sleep(2 * ?MILLISECONDS_IN_SECOND).
 
 %%------------------------------------------------------------------------------
 %% @doc Create a redirect request to Node.
@@ -2135,21 +2135,21 @@ play_and_collect_digits(MinDigits, MaxDigits, Media, Tries, Timeout, Call) ->
     play_and_collect_digits(MinDigits, MaxDigits, Media, Tries, Timeout, 'undefined', Call).
 
 -spec play_and_collect_digits(integer(), integer(), kz_term:ne_binary()
-                             ,integer(), integer(), kz_term:api_binary()
+                             ,integer(), integer(), kz_term:api_ne_binary()
                              ,kapps_call:call()) ->
           'ok'.
 play_and_collect_digits(MinDigits, MaxDigits, Media, Tries, Timeout, MediaInvalid, Call) ->
     play_and_collect_digits(MinDigits, MaxDigits, Media, Tries, Timeout, MediaInvalid, <<"\\d+">>, Call).
 
 -spec play_and_collect_digits(integer(), integer(), kz_term:ne_binary()
-                             ,integer(), integer(), kz_term:api_binary()
+                             ,integer(), integer(), kz_term:api_ne_binary()
                              ,kz_term:ne_binary(), kapps_call:call()) ->
           'ok'.
 play_and_collect_digits(MinDigits, MaxDigits, Media, Tries, Timeout, MediaInvalid, Regex, Call) ->
     play_and_collect_digits(MinDigits, MaxDigits, Media, Tries, Timeout, MediaInvalid, Regex, [<<"#">>], Call).
 
 -spec play_and_collect_digits(integer(), integer(), kz_term:ne_binary()
-                             ,integer(), integer(), kz_term:api_binary()
+                             ,integer(), integer(), kz_term:api_ne_binary()
                              ,kz_term:ne_binary(), kz_term:ne_binaries(), kapps_call:call()) ->
           'ok'.
 play_and_collect_digits(MinDigits, MaxDigits, Media, Tries, Timeout, MediaInvalid, Regex, Terminators, Call) ->
@@ -2163,7 +2163,7 @@ play_and_collect_digits(MinDigits, MaxDigits, Media, Tries, Timeout, MediaInvali
               ,{<<"Failed-Media-Name">>, MediaInvalid}
               ,{<<"Digits-Regex">>, Regex}
               ],
-    send_command(Command, Call).
+    send_command(props:filter_undefined(Command), Call).
 
 -spec b_play_and_collect_digit(kz_term:ne_binary(), kapps_call:call()) ->
           b_play_and_collect_digits_return().
@@ -3219,8 +3219,8 @@ send_command(Command, Call) when is_list(Command) ->
                 _Else -> 'ok'
             end,
             Prop =
-                props:insert_value(<<"Call-ID">>, CallId, Command) ++
-                kz_api:default_headers(Q, <<"call">>, <<"command">>, AppName, AppVersion),
+                props:insert_value(<<"Call-ID">>, CallId, Command)
+                ++ kz_api:default_headers(Q, <<"call">>, <<"command">>, AppName, AppVersion),
             kapi_dialplan:publish_command(CtrlQ, props:filter_undefined(Prop));
         'false' -> 'ok'
     end;

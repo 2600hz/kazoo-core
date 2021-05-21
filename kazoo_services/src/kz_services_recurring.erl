@@ -315,11 +315,8 @@ do_notify_reseller(AccountId, Services, Invoice, DueTimestamp) ->
 -spec maybe_add_payment_token(kz_services:services(), kz_services_invoice:invoice()) ->
           kz_term:proplist().
 maybe_add_payment_token(Services, Invoice) ->
-    case kz_services_invoice:bookkeeper_type(Invoice) of
-        'undefined' -> [];
-        Bookkeeper ->
-            [{<<"Payment-Token">>, kz_services_payment_tokens:default(Services, Bookkeeper)}]
-    end.
+    Bookkeeper = kz_services_invoice:bookkeeper_type(Invoice),
+    [{<<"Payment-Token">>, kz_services_payment_tokens:default(Services, Bookkeeper)}].
 
 %%%=============================================================================
 %%% Internal functions

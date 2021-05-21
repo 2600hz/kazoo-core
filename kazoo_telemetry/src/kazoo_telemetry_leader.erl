@@ -37,7 +37,7 @@
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
--type oldest_kztm_node() :: 'undefined' | kz_nodes_ets:oldest_node().
+-type oldest_kztm_node() :: 'undefined' | {node(), kz_term:api_integer()}.
 
 -define(NODE_INFO_BINDING, kz_nodes_bindings:binding_node_info()).
 -define(NODE_KEY, <<"telemetry">>).
@@ -65,16 +65,16 @@ kztm_oldest_node() ->
                ,kz_nodes_ets:get_nodes_info()
                ).
 
--spec determine_kztm_oldest_node_fold({node(), kz_term:api_object()}, oldest_kztm_node()) -> oldest_kztm_node().
+-spec determine_kztm_oldest_node_fold({node(), kz_term:api_object()}, oldest_kztm_node()) ->
+          oldest_kztm_node().
 determine_kztm_oldest_node_fold({_Node, 'undefined'}, Acc) ->
     Acc;
 determine_kztm_oldest_node_fold({Node, Info}, Acc) ->
-    NodeTs = kz_json:get_integer_value([?NODE_KEY, <<"Startup">>], Info, 'undefined'),
-    case Acc of
-        'undefined' when NodeTs =:= 'undefined' -> Acc;
-        'undefined' -> {Node, NodeTs};
-        {_, Startup} when NodeTs < Startup -> {Node, NodeTs};
-        _ -> Acc
+    case {Acc, kz_json:get_integer_value([?NODE_KEY, <<"Startup">>], Info, 'undefined')} of
+        {'undefined', 'undefined'} -> Acc;
+        {'undefined', NodeTs} -> {Node, NodeTs};
+        {{_, AccStartup}, NodeTs} when NodeTs < AccStartup -> {Node, NodeTs};
+        {Acc, _} -> Acc
     end.
 
 -spec node_info() -> {kz_term:ne_binary(), kz_json:object()}.
