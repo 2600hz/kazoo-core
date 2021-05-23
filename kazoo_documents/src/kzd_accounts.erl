@@ -10,6 +10,9 @@
 -module(kzd_accounts).
 
 -export([new/0]).
+-export([blacklists/1, blacklists/2, set_blacklists/2]).
+-export([call_failover/1, call_failover/2, set_call_failover/2]).
+-export([call_forward/1, call_forward/2, set_call_forward/2]).
 -export([call_recording/1, call_recording/2, set_call_recording/2]).
 -export([call_recording_account/1, call_recording_account/2, set_call_recording_account/2]).
 -export([call_recording_endpoint/1, call_recording_endpoint/2, set_call_recording_endpoint/2]).
@@ -150,6 +153,42 @@ new() ->
                                  ,{'now', kz_time:now_s()}
                                  ]
                                 ).
+
+-spec blacklists(doc()) -> kz_term:api_ne_binaries().
+blacklists(Doc) ->
+    blacklists(Doc, 'undefined').
+
+-spec blacklists(doc(), Default) -> kz_term:ne_binaries() | Default.
+blacklists(Doc, Default) ->
+    kz_json:get_list_value([<<"blacklists">>], Doc, Default).
+
+-spec set_blacklists(doc(), kz_term:ne_binaries()) -> doc().
+set_blacklists(Doc, Blacklists) ->
+    kz_json:set_value([<<"blacklists">>], Blacklists, Doc).
+
+-spec call_failover(doc()) -> kz_term:api_object().
+call_failover(Doc) ->
+    call_failover(Doc, 'undefined').
+
+-spec call_failover(doc(), Default) -> kz_json:object() | Default.
+call_failover(Doc, Default) ->
+    kz_json:get_json_value([<<"call_failover">>], Doc, Default).
+
+-spec set_call_failover(doc(), kz_json:object()) -> doc().
+set_call_failover(Doc, CallFailover) ->
+    kz_json:set_value([<<"call_failover">>], CallFailover, Doc).
+
+-spec call_forward(doc()) -> kz_term:api_object().
+call_forward(Doc) ->
+    call_forward(Doc, 'undefined').
+
+-spec call_forward(doc(), Default) -> kz_json:object() | Default.
+call_forward(Doc, Default) ->
+    kz_json:get_json_value([<<"call_forward">>], Doc, Default).
+
+-spec set_call_forward(doc(), kz_json:object()) -> doc().
+set_call_forward(Doc, CallForward) ->
+    kz_json:set_value([<<"call_forward">>], CallForward, Doc).
 
 -spec call_recording(doc()) -> kz_term:api_object().
 call_recording(Doc) ->
@@ -1395,6 +1434,8 @@ validate(ParentId, AccountId, ReqJObj) ->
                    ,fun validate_account_name_is_unique/2
                    ,fun(AID, Acc) ->  validate_schema(ParentId, AID, Acc) end
                    ,fun normalize_alphanum_name/2
+                   ,fun validate_call_failover/2
+                   ,fun validate_call_forward/2
                    ],
     try do_validation(AccountId, ReqJObj, ValidateFuns) of
         {AccountDoc, []} -> {'true', AccountDoc};
@@ -1557,6 +1598,50 @@ normalize_alphanum_name(_AccountId, {Doc, Errors}) ->
     {kz_json:set_value(<<"pvt_alphanum_name">>, Normalized, Doc)
     ,Errors
     }.
+
+%%------------------------------------------------------------------------------
+%% @doc Verify that if call failover is enabled, the call forward failover is non-
+%% empty.
+%% @end
+%%------------------------------------------------------------------------------
+-spec validate_call_failover(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+validate_call_failover(_AccountId, {Doc, Errors}) ->
+    CallFailover = call_failover(Doc, kz_json:new()),
+    CallFailoverNumber = kzd_call_failover:number(CallFailover),
+    case kzd_call_failover:enabled(CallFailover)
+        andalso not kz_term:is_ne_binary(CallFailoverNumber)
+    of
+        'true' ->
+            Msg = kz_json:from_list(
+                    [{<<"message">>, <<"Call failover number cannot be empty when call failover is enabled">>}
+                    ,{<<"cause">>, CallFailoverNumber}
+                    ]),
+            {Doc, [{[<<"call_failover.number">>], <<"required">>, Msg} | Errors]};
+        'false' -> {Doc, Errors}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Verify that if call forward is enabled, the call forward number is non-
+%% empty.
+%% @end
+%%------------------------------------------------------------------------------
+-spec validate_call_forward(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+validate_call_forward(_AccountId, {Doc, Errors}) ->
+    Callforward = call_forward(Doc, kz_json:new()),
+    CallForwardNumber = kzd_call_forward:number(Callforward),
+    case kzd_call_forward:enabled(Callforward)
+        andalso not kz_term:is_ne_binary(CallForwardNumber)
+    of
+        'true' ->
+            Msg = kz_json:from_list(
+                    [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
+                    ,{<<"cause">>, CallForwardNumber}
+                    ]),
+            {Doc, [{[<<"call_forward.number">>], <<"required">>, Msg} | Errors]};
+        'false' -> {Doc, Errors}
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc This function returns the private fields to be added to a new account

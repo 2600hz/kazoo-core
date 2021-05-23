@@ -6,6 +6,9 @@
 -module(kzd_accounts).
 
 -export([new/0]).
+-export([blacklists/1, blacklists/2, set_blacklists/2]).
+-export([call_failover/1, call_failover/2, set_call_failover/2]).
+-export([call_forward/1, call_forward/2, set_call_forward/2]).
 -export([call_recording/1, call_recording/2, set_call_recording/2]).
 -export([call_recording_account/1, call_recording_account/2, set_call_recording_account/2]).
 -export([call_recording_endpoint/1, call_recording_endpoint/2, set_call_recording_endpoint/2]).
@@ -61,6 +64,42 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec blacklists(doc()) -> kz_term:api_ne_binaries().
+blacklists(Doc) ->
+    blacklists(Doc, 'undefined').
+
+-spec blacklists(doc(), Default) -> kz_term:ne_binaries() | Default.
+blacklists(Doc, Default) ->
+    kz_json:get_list_value([<<"blacklists">>], Doc, Default).
+
+-spec set_blacklists(doc(), kz_term:ne_binaries()) -> doc().
+set_blacklists(Doc, Blacklists) ->
+    kz_json:set_value([<<"blacklists">>], Blacklists, Doc).
+
+-spec call_failover(doc()) -> kz_term:api_object().
+call_failover(Doc) ->
+    call_failover(Doc, 'undefined').
+
+-spec call_failover(doc(), Default) -> kz_json:object() | Default.
+call_failover(Doc, Default) ->
+    kz_json:get_json_value([<<"call_failover">>], Doc, Default).
+
+-spec set_call_failover(doc(), kz_json:object()) -> doc().
+set_call_failover(Doc, CallFailover) ->
+    kz_json:set_value([<<"call_failover">>], CallFailover, Doc).
+
+-spec call_forward(doc()) -> kz_term:api_object().
+call_forward(Doc) ->
+    call_forward(Doc, 'undefined').
+
+-spec call_forward(doc(), Default) -> kz_json:object() | Default.
+call_forward(Doc, Default) ->
+    kz_json:get_json_value([<<"call_forward">>], Doc, Default).
+
+-spec set_call_forward(doc(), kz_json:object()) -> doc().
+set_call_forward(Doc, CallForward) ->
+    kz_json:set_value([<<"call_forward">>], CallForward, Doc).
 
 -spec call_recording(doc()) -> kz_term:api_object().
 call_recording(Doc) ->
