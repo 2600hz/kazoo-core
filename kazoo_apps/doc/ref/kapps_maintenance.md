@@ -46,6 +46,8 @@
 | `maybe_delete_db/1` | `(Database)` | |
 | `migrate/0` |  | |
 | `migrate/1` | `(Pause)` | |
+| `migrate_failover_from_forward/0` |  | |
+| `migrate_failover_from_forward/1` | `(Account) | (Accounts)` | |
 | `migrate_limits/0` |  | |
 | `migrate_limits/1` | `(Account)` | |
 | `migrate_media/0` |  | |

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -346,7 +346,7 @@ merge_attribute(<<"name">> = Key, Account, Endpoint, Owner) ->
                                ),
     kz_json:set_value(Key, Name, Endpoint);
 merge_attribute(<<"call_forward">> = Key, _Account, Endpoint, Owner) ->
-    case kzd_devices:call_forward_enabled(Endpoint) of
+    case kzd_call_forward:enabled(kzd_devices:call_forward(Endpoint, kz_json:new())) of
         'true' -> Endpoint;
         'false' ->
             OwnerAttr = kzd_users:call_forward(Owner, kz_json:new()),
@@ -1306,8 +1306,9 @@ maybe_get_t38(Endpoint, Call) ->
 
 -spec maybe_build_failover(kz_json:object(), kapps_call:call()) -> kz_term:api_object().
 maybe_build_failover(Endpoint, Call) ->
-    Number = kzd_devices:call_forward_number(Endpoint),
-    case kzd_devices:call_forward_failover(Endpoint, 'false')
+    Failover = kzd_devices:call_failover(Endpoint, kz_json:new()),
+    Number = kzd_call_failover:number(Failover),
+    case kzd_call_failover:enabled(Endpoint)
         andalso not kz_term:is_empty(Number)
     of
         'false' -> 'undefined';
@@ -1433,13 +1434,13 @@ create_skype_endpoint(Endpoint, Properties, _Call) ->
           kz_json:object().
 create_call_fwd_endpoint(Endpoint, Properties, Call) ->
     CallForward = kz_json:get_ne_value(<<"call_forward">>, Endpoint, kz_json:new()),
-    ToDID = kzd_devices:call_forward_number(Endpoint),
+    ToDID = kzd_call_forward:number(kzd_devices:call_forward(Endpoint, kz_json:new())),
     lager:info("call forwarding endpoint to ~s", [ToDID]),
-    IgnoreEarlyMedia = case kzd_devices:call_forward_require_keypress(Endpoint, 'false')
-                           orelse not kzd_devices:call_forward_substitute(Endpoint, 'false')
+    IgnoreEarlyMedia = case kzd_call_forward:require_keypress(kzd_devices:call_forward(Endpoint, kz_json:new()), 'false')
+                           orelse not kzd_call_forward:substitute(kzd_devices:call_forward(Endpoint, kz_json:new()), 'false')
                        of
                            'true' -> 'true';
-                           'false' -> kzd_devices:call_forward_ignore_early_media(Endpoint)
+                           'false' -> kzd_call_forward:ignore_early_media(kzd_devices:call_forward(Endpoint, kz_json:new()), 'false')
                        end,
     Clid = case kapps_call:inception(Call) of
                'undefined' -> get_clid(Endpoint, Properties, Call, <<"external">>);

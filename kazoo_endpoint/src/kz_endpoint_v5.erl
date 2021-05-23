@@ -272,7 +272,8 @@ account_tree_keys() ->
     [<<"call_restriction">>].
 
 attributes_keys() ->
-    [<<"call_forward">>
+    [<<"call_failover">>
+    ,<<"call_forward">>
     ,<<"call_recording">>
     ,<<"call_restriction">>
     ,<<"call_waiting">>
@@ -369,6 +370,19 @@ merge_attribute(<<"name">> = Key, Account, Endpoint, Owner) ->
                                ,kz_json:get_ne_value(Key, Account)
                                ),
     kz_json:set_value(Key, Name, Endpoint);
+merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
+    EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
+    case kz_json:is_true(<<"enabled">>, EndpointAttr) of
+        'true' -> Endpoint;
+        'false' ->
+            AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
+            OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
+            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
+            case kz_json:is_true([Key, <<"enabled">>], Merged) of
+                'true' -> kz_json:set_value(Key, Merged, Endpoint);
+                'false' -> Endpoint
+            end
+    end;
 merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
     EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
     case kz_json:is_true(<<"enabled">>, EndpointAttr) of
@@ -377,7 +391,10 @@ merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
             AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
             OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
             Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            kz_json:set_value(Key, Merged, Endpoint)
+            case kz_json:is_true([Key, <<"enabled">>], Merged) of
+                'true' -> kz_json:set_value(Key, Merged, Endpoint);
+                'false' -> Endpoint
+            end
     end;
 merge_attribute(<<"call_waiting">> = Key, Account, Endpoint, Owner) ->
     AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
@@ -1732,7 +1749,6 @@ maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
                                  ]),
     {Endpoint, Call, CallFwd
     ,kz_json:set_values([{<<"Call-Forward">>, <<"true">>}
-                        ,{<<"Is-Failover">>, is_failover(CallFwd)}
                         ,{<<"Authorizing-Type">>, <<"device">>}
                         ,{<<"Authorizing-ID">>, kz_doc:id(Endpoint)}
                         ,{<<"Call-Forward-From">>, kapps_call:inception_type(Call)}
@@ -1745,18 +1761,6 @@ maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
                        ,CCVs
                        )
     }.
-
--spec is_failover(kz_json:object()) -> 'true' | 'undefined'.
-is_failover(CallFwd) ->
-    IsFailover = kz_json:is_true(<<"failover">>, CallFwd),
-    IsCallFwdEnabled = kz_json:is_true(<<"enabled">>, CallFwd),
-
-    case (not IsCallFwdEnabled)
-        andalso IsFailover
-    of
-        'true' -> 'true';
-        'false' -> 'undefined'
-    end.
 
 -spec bowout_settings(boolean()) -> kz_term:proplist().
 bowout_settings('true') ->
