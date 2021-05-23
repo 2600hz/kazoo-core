@@ -17,7 +17,8 @@
 
 -include("kazoo_directory.hrl").
 
--define(CONFIRM_TIMEOUT_SEC, 5).
+-define(CONFIRM_PLAY_COUNT, 3).
+-define(CONFIRM_READ_TIMEOUT_SEC, 3).
 
 -spec failover(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_object().
 failover(EndpointId, AccountId, Endpoint) ->
@@ -101,8 +102,8 @@ call_failover_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcila
         'true' ->
             [{<<"Confirm-Key">>, <<"1">>}
             ,{<<"Confirm-Cancel-Timeout">>, 'true'}
-            ,{<<"Confirm-Read-Timeout">>, 3 * ?MILLISECONDS_IN_SECOND}
-            ,{<<"Confirm-Timeout">>, ?CONFIRM_TIMEOUT_SEC}
+            ,{<<"Confirm-Read-Timeout">>, ?CONFIRM_READ_TIMEOUT_SEC * ?MILLISECONDS_IN_SECOND}
+            ,{<<"Confirm-Play-Count">>, ?CONFIRM_PLAY_COUNT}
             ,{<<"Confirm-File">>, kzd_endpoint:get_prompt_url(Endpoint, <<"ivr-group_confirm">>)}
             ,{<<"Require-Ignore-Early-Media">>, 'true'}
             ,{<<"Require-Fail-On-Single-Reject">>, cfw_single_reject()}
