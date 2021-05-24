@@ -31,35 +31,11 @@
                             {'ok', string(), _, _}.
 -type couchbeam_error() :: {'error', couchbeam_errors()}.
 
--record(design_data, {db_name = <<>> :: binary() %% the actual DB name, encoded (/ -> %2f)
-                     ,design_name = <<>> :: binary()
-                     ,node :: atom()
-                     ,shards = [] :: kz_term:ne_binaries()
-                     ,disk_size = 0 :: non_neg_integer()
-                     ,data_size = 0 :: non_neg_integer()
-                     ,conn = #server{} :: server()
-                     ,admin_conn = #server{} :: server()
-                     ,do_compaction = 'false' :: boolean()
-                     }).
--record(db_data, {db_name = <<>> :: binary() %% the shard name
-                 ,node :: atom()
-                 ,disk_size = 0 :: non_neg_integer()
-                 ,data_size = 0 :: non_neg_integer()
-                 ,conn = #server{} :: server()
-                 ,admin_conn = #server{} :: server()
-                 ,do_compaction = 'false' :: boolean()
-                 }).
-
--record(kz_couch_connection, {id = kz_time:now_s() :: kz_time:gregorian_seconds()
-                             ,host = "localhost" :: string()
+-record(kz_couch_connection, {host = "localhost" :: string()
                              ,port = ?DEFAULT_PORT :: inet:port_number()
                              ,username = "" :: string()
                              ,password = "" :: string()
                              ,options = [] :: kz_term:proplist()
-                             ,connected = 'false' :: boolean()
-                             ,ready = 'false' :: boolean()
-                             ,admin = 'false' :: boolean()
-                             ,server = #server{} :: server()
                              }).
 -type couch_connection() :: #kz_couch_connection{}.
 -type couch_connections() :: [couch_connection()].

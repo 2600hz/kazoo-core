@@ -218,7 +218,7 @@ are_reconcilable(Nums) ->
     lists:partition(fun is_reconcilable/1, Nums).
 
 %%------------------------------------------------------------------------------
-%% @doc
+%% @doc Is the number recognized as "global" number or a "local" extension
 %% @end
 %%------------------------------------------------------------------------------
 -spec is_reconcilable(kz_term:ne_binary()) -> boolean().

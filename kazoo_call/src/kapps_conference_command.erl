@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -121,7 +121,8 @@ participant_energy(ParticipantId, EnergyLevel, Conference) ->
 
 -spec kick(kapps_conference:conference()) -> 'ok'.
 kick(Conference) ->
-    kick('undefined', Conference).
+    Command = [{<<"Application-Name">>, <<"kick">>}],
+    send_command(Command, Conference).
 
 -spec kick(non_neg_integer() | 'undefined', kapps_conference:conference()) -> 'ok'.
 kick(ParticipantId, Conference) ->

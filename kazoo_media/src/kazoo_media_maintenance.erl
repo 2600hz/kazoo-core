@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -111,7 +111,8 @@ import_prompt(Path, Lang) ->
             Error
     end.
 
--spec import_prompt(file:filename_all(), kz_term:text(), kz_term:ne_binary()) -> 'ok' | {'error', any()}.
+-spec import_prompt(file:filename_all(), kz_term:text(), kz_term:ne_binary()) ->
+          'ok' | kz_datamgr:data_error().
 import_prompt(Path0, Lang0, Contents) ->
     Lang = kz_term:to_binary(Lang0),
     Path = kz_term:to_binary(Path0),
@@ -119,8 +120,11 @@ import_prompt(Path0, Lang0, Contents) ->
     ContentLength = byte_size(Contents),
 
     MetaJObj = media_meta_doc(Path, Lang, ContentLength),
+    Update = [{'update', kz_json:to_proplist(kz_json:flatten(MetaJObj))}
+             ,{'ensure_saved', 'true'}
+             ],
 
-    case kz_datamgr:ensure_saved(?KZ_MEDIA_DB, MetaJObj) of
+    case kz_datamgr:update_doc(?KZ_MEDIA_DB, kz_doc:id(MetaJObj), Update) of
         {'ok', MetaJObj1} ->
             io:format("  saved metadata about '~s'~n", [Path]),
 
@@ -307,7 +311,7 @@ delete_original_config(OrigJObj, Updates, 'false') ->
 -spec ensure_save_config_db(kz_json:flat_proplist(), kz_json:object()) -> 'ok'.
 ensure_save_config_db(Updates, JObj) ->
     Id = kz_doc:id(JObj),
-    PvtUpdates = [{<<"pvt_modified">>, kz_time:now_s()}],
+    PvtUpdates = [{[<<"pvt_modified">>], kz_time:now_s()}],
     Update = [{'update', Updates}
              ,{'extra_update', PvtUpdates}
              ,{'ensure_saved', 'true'}

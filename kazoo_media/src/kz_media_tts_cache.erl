@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%%
@@ -37,8 +37,7 @@
 
 -define(TIMEOUT_MESSAGE, {'$kz_media_tts_cache', 'tts_timeout'}).
 
--record(state, {text :: kz_term:api_ne_binary()
-               ,contents = <<>> :: binary()
+-record(state, {contents = <<>> :: binary()
                ,status :: 'streaming' | 'ready'
                ,kz_http_req_id :: kz_http:req_id()
                ,reqs :: [{pid(), reference()}]
@@ -264,7 +263,7 @@ handle_info(_Info, State) ->
     {'noreply', State, 'hibernate'}.
 
 -spec log_error(any(), binary()) -> 'ok'.
-log_error({'failed_connect',[{'to_address',{_Server, _Port}},{'inet',['inet'],'econnrefused'}]}, _) ->
+log_error({'failed_connect',[{'to_address',{_Server, _Port}},{'inet',['inet'],'econnrefused'}]}, _Contents) ->
     lager:error("server ~s:~p refusing connections", [_Server, _Port]);
 log_error(_Error, _Contents) ->
     lager:info("recv error ~p : collected: ~p", [_Error, _Contents]).

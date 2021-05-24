@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -47,7 +47,6 @@
                ,restarted = 0          :: integer()
                ,callback_module        :: atom()
                ,callback_state         :: any()
-               ,down = []              :: kz_term:atoms()
                ,candidates = [node()]  :: kz_term:atoms()
                }).
 

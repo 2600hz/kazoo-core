@@ -23,7 +23,7 @@ package:
         is a great example of the wonderful things that can
         happen when software is open.  If you need help you
         can contact us via the dev mailing list or on IRC
-        at #2600hz on FreeNode.
+        at #2600hz on libera.chat.
     dist: .el7.centos
     name: kazoo-core
     license: MPL 2.0

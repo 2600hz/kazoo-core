@@ -41,20 +41,5 @@
                            }).
 -type oauth_service_app() :: #oauth_service_app{}.
 
--record(oauth_user, {full_id :: kz_term:api_binary()
-                    ,app_id  :: kz_term:api_binary()
-                    ,oauth_id  :: kz_term:api_binary()
-                    ,account_id :: kz_term:api_binary()
-                    ,owner_id :: kz_term:api_binary()
-                    ,email :: kz_term:api_binary()
-                    ,verified_email :: kz_term:api_boolean()
-                    ,access_type :: kz_term:api_binary()
-                    ,scope   :: kz_term:api_binary()
-                    ,scopes  :: kz_term:api_binaries()
-                    ,refresh_token :: kz_term:api_binary()
-                    ,app :: oauth_app()
-                    }).
--type oauth_user() :: #oauth_user{}.
-
 -define(KAZOO_OAUTH_TYPES_HRL, 'true').
 -endif.

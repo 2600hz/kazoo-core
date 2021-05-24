@@ -24,7 +24,6 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -record(state, {tref :: kz_term:api_reference()
-               ,has_check_failed = 'false' :: boolean()
                ,name :: 'undefined' | string() %% node name of the running node, e.g. kazoo_apps
                ,host :: 'undefined' | string() %% local hostname of the running node
                ,epmd_mod :: atom() %% in case we're using a custom epmd client module

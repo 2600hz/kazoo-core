@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2020, 2600Hz
+%%% @copyright (C) 2013-2021, 2600Hz
 %%% @doc Listens for a list of events and gproc-sends them out to folks who
 %%% want them
 %%%
@@ -50,8 +50,7 @@
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
 
--record(state, {call_events = [] :: kz_term:ne_binaries()}).
--type state() :: #state{}.
+-type state() :: 'ok'.
 
 %%%=============================================================================
 %%% API
@@ -101,7 +100,7 @@ init([]) ->
     kz_log:put_callid(?MODULE),
     lager:debug("started ~s", [?MODULE]),
     kapi_call:declare_exchanges(),
-    {'ok', #state{}}.
+    {'ok', 'ok'}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.

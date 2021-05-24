@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,8 +32,7 @@
 
 -export_type([data_connection/0, data_connections/0]).
 
--record(state, {cookie = 'change_me'}).
--type state() :: #state{}.
+-type state() :: 'ok'.
 
 %%%=============================================================================
 %%% API
@@ -138,7 +137,7 @@ init([]) ->
                          ,{'keypos', #data_connection.id}
                          ,'named_table'
                          ]),
-    {'ok', #state{}}.
+    {'ok', 'ok'}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.

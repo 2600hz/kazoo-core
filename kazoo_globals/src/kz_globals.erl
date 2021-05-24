@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author Luis Azedo
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -96,7 +96,6 @@
 -record(state, {zone = 'local' :: atom()
                ,zones = [] :: kz_term:proplist()
                ,queue :: kz_term:api_binary()
-               ,node = node() :: atom()
                ,is_consuming = 'false' :: boolean()
                ,has_ets = 'false' :: boolean()
                }).

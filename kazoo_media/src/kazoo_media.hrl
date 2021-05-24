@@ -11,14 +11,6 @@
 -define(CONFIG_CAT, <<"media">>).
 
 -define(MEDIA_DB, <<"system_media">>).
--define(PORT_RANGE, 0). % use 0 to have OS assign port #, {Low, Hi} for range of ports to try
--define(PORT_OPTIONS, ['binary'
-                      ,{'packet', 0}
-                      ,{'active', 'false'}
-                      ,{'reuseaddr', 'true'}
-                      ]).
--define(MAX_RESERVED_PORTS, 10).
--define(MAX_WAIT_FOR_LISTENERS, (10 * 60 * ?MILLISECONDS_IN_SECOND)).
 
 -define(PROMPT_LANGUAGE_KEY, <<"default_language">>).
 

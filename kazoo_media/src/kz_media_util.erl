@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -367,13 +367,9 @@ recording_url(CallId, Data) ->
     Url = kz_binary:strip_right(kz_json:get_value(<<"url">>, Data, <<>>), $/),
     <<Url/binary, "/call_recording_", CallId/binary, ".", Format/binary>>.
 
--spec max_recording_time_limit() -> ?SECONDS_IN_HOUR.
+-spec max_recording_time_limit() -> pos_integer().
 max_recording_time_limit() ->
     kapps_config:get_integer(?CONFIG_CAT, <<"max_recording_time_limit">>, ?DEFAULT_MAX_RECORDING_LIMIT).
-
-%% base_url(Host) ->
-%%     Port = kz_couch_connections:get_port(),
-%%     base_url(Host, Port).
 
 -spec base_url(kz_term:text(), inet:port_number() | kz_term:text()) -> kz_term:ne_binary().
 base_url(Host, Port) ->

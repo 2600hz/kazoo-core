@@ -87,7 +87,6 @@
                          ,taxes = kz_json:new() :: kz_json:object()
                          ,changes = 'undefined' :: kz_term:api_object()
                          ,item_plan = kz_json:new() :: kz_json:object()
-                         ,masqueraded = 'false' :: boolean()
                          ,quantity_name = 'undefined' :: kz_term:api_ne_binary()
                          ,quantity_category = 'undefined' :: kz_term:api_ne_binary()
                          }).

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -1207,7 +1207,9 @@ maybe_audit_reseller(Services, CurrentServicesJObj, ProposedServicesJObj)  ->
 %%------------------------------------------------------------------------------
 -spec audit_reseller(services(), kz_json:objects()) -> 'ok'.
 audit_reseller(Services, Diff) ->
-    {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
+    audit_reseller(Services, Diff, kapps_util:get_master_account_id()).
+
+audit_reseller(Services, Diff, {'ok', MasterAccountId}) ->
     AccountId = account_id(Services),
     ResellerId = kz_services_reseller:get_id(AccountId),
 
@@ -1224,7 +1226,9 @@ audit_reseller(Services, Diff) ->
             Doc = kz_doc:update_pvt_parameters(JObj, kazoo_yodb:get_yodb(AccountId)),
             {'ok', _} = kazoo_yodb:save_doc(AccountId, Doc),
             'ok'
-    end.
+    end;
+audit_reseller(_Services, _Diff, {'error', 'not_found'}) ->
+    lager:warning("master account ID not set").
 
 %%------------------------------------------------------------------------------
 %% @doc extracts diff of services and returns audit changes JObj

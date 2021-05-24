@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% @author Luis Azedo
 %%%
@@ -24,7 +24,7 @@ start_link() ->
     case kapps_config:get_is_true(?CONFIG_CAT, <<"fix_media_names">>, 'true') of
         'true' ->
             kz_datamgr:suppress_change_notice(),
-            kazoo_media_maintenance:fix_media_names(),
+            _ = kazoo_media_maintenance:fix_media_names(),
             'ignore';
         'false' -> 'ignore'
     end.
