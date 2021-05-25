@@ -521,6 +521,8 @@ bridge_definition() ->
 
 -spec bridge_endpoint_definition() -> kapi_definition:api().
 bridge_endpoint_definition() ->
+    EventName = <<"command">>,
+    Category = <<"call">>,
     Setters = [{fun kapi_definition:set_friendly_name/2, <<"Bridge Endpoints">>}
               ,{fun kapi_definition:set_description/2, <<"Bridge Endpoints">>}
               ,{fun kapi_definition:set_build_fun/2, fun bridge_endpoint/1}
@@ -594,6 +596,7 @@ bridge_endpoint_definition() ->
                 ,{<<"Endpoint-Type">>, [<<"sip">>, <<"freetdm">>, <<"skype">>]}
                 ,{<<"Enable-T38-Gateway">>, [<<"self">>, <<"peer">>]}
                 ,{<<"SIP-Transport">>, [<<"udp">>, <<"tcp">>, <<"tls">>, <<"sctp">>]}
+                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
