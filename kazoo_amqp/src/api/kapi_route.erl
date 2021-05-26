@@ -53,7 +53,7 @@
 -include("kapi_route.hrl").
 -include("kapi_dialplan.hrl").
 
--define(EVENT_CATEGORY, <<"route">>).
+-define(EVENT_CATEGORY, <<"dialplan">>).
 
 -type req() :: kz_json:object().
 -type resp() :: kz_json:object().
