@@ -1584,7 +1584,7 @@ get_sip_headers(Endpoint, Call) ->
             ]
     end.
 
--spec merge_custom_sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
+-spec merge_custom_sip_headers(kz_term:api_object(), kz_json:object()) -> kz_json:object().
 merge_custom_sip_headers('undefined', JObj) ->
     JObj;
 merge_custom_sip_headers(CustomHeaders, JObj) ->

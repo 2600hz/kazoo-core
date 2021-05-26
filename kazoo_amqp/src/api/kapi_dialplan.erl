@@ -486,10 +486,11 @@ bridge_definition() ->
                                                             ,<<"Privacy-Method">>
                                                             ,<<"Proxy-Path">>
                                                             ,<<"Ringback">>
-                                                            ,<<"Secure-RTP">>
-                                                            ,<<"Simplify-Loopback">>
+                                                            ,<<"SIP-Invite-Contact-User">>
                                                             ,<<"SIP-Invite-Parameters">>
                                                             ,<<"SIP-Transport">>
+                                                            ,<<"Secure-RTP">>
+                                                            ,<<"Simplify-Loopback">>
                                                             ,<<"Timeout">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
@@ -575,6 +576,7 @@ bridge_endpoint_definition() ->
                                                             ,<<"Route">>
                                                             ,<<"Simplify-Loopback">>
                                                             ,<<"SIP-Interface">>
+                                                            ,<<"SIP-Invite-Contact-User">>
                                                             ,<<"SIP-Invite-Parameters">>
                                                             ,<<"SIP-Transport">>
                                                             ,<<"To-DID">>

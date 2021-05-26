@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2020, 2600Hz
+%%% @copyright (C) 2016-2021, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% @author Pierre Fenoll
@@ -136,7 +136,7 @@ ensure_can_load_to_create(T) ->
                ),
     lists:foldl(fun ensure_load_create_state/2, knm_pipe:set_todo(T, []), PNs).
 
--spec ensure_load_create_state(knm_phone_number:record(), knm_pipe:collection()) ->
+-spec ensure_load_create_state(knm_phone_number:pn_record(), knm_pipe:collection()) ->
           knm_pipe:collection().
 ensure_load_create_state(PN, Collection) ->
     AllowedStates = [?NUMBER_STATE_AGING
@@ -225,7 +225,7 @@ allowed_creation_states(Options, AuthBy) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec feature_prepend(knm_phone_number:record()) -> kz_term:api_binary().
+-spec feature_prepend(knm_phone_number:pn_record()) -> kz_term:api_binary().
 feature_prepend(PhoneNumber) ->
     Prepend = knm_phone_number:feature(PhoneNumber, ?FEATURE_PREPEND),
     case kz_json:is_true(?PREPEND_ENABLED, Prepend) of
@@ -237,7 +237,7 @@ feature_prepend(PhoneNumber) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec feature_caller_display_name(knm_phone_number:record()) -> kz_term:api_binary().
+-spec feature_caller_display_name(knm_phone_number:pn_record()) -> kz_term:api_binary().
 feature_caller_display_name(PhoneNumber) ->
     case knm_phone_number:feature(PhoneNumber, ?FEATURE_CNAM_OUTBOUND) of
         'undefined' -> 'undefined';
@@ -249,7 +249,7 @@ feature_caller_display_name(PhoneNumber) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec feature_inbound_cname(knm_phone_number:record()) -> boolean().
+-spec feature_inbound_cname(knm_phone_number:pn_record()) -> boolean().
 feature_inbound_cname(PhoneNumber) ->
     case knm_phone_number:feature(PhoneNumber, ?FEATURE_CNAM_INBOUND) of
         'undefined' -> 'false';
@@ -267,7 +267,7 @@ feature_inbound_cname(PhoneNumber) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec find_early_ringback(knm_phone_number:record()) -> kz_term:api_binary().
+-spec find_early_ringback(knm_phone_number:pn_record()) -> kz_term:api_binary().
 find_early_ringback(PhoneNumber) ->
     case knm_phone_number:feature(PhoneNumber, ?FEATURE_RINGBACK) of
         'undefined' -> 'undefined';
@@ -278,7 +278,7 @@ find_early_ringback(PhoneNumber) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec find_transfer_ringback(knm_phone_number:record()) -> kz_term:api_binary().
+-spec find_transfer_ringback(knm_phone_number:pn_record()) -> kz_term:api_binary().
 find_transfer_ringback(PhoneNumber) ->
     case knm_phone_number:feature(PhoneNumber, ?FEATURE_RINGBACK) of
         'undefined' -> 'undefined';
@@ -290,7 +290,7 @@ find_transfer_ringback(PhoneNumber) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_force_outbound(knm_phone_number:record()) -> boolean().
+-spec is_force_outbound(knm_phone_number:pn_record()) -> boolean().
 is_force_outbound(PN) ->
     is_force_outbound(knm_phone_number:state(PN)
                      ,knm_phone_number:module_name(PN)
@@ -312,7 +312,7 @@ is_force_outbound(_State, _Module, ForceOutbound) ->
     ForceOutbound.
 
 %% FIXME: move to kpn
--spec force_outbound_feature(knm_phone_number:record()) -> boolean().
+-spec force_outbound_feature(knm_phone_number:pn_record()) -> boolean().
 force_outbound_feature(PN) ->
     case knm_phone_number:feature(PN, ?FEATURE_FORCE_OUTBOUND) of
         'undefined' -> knm_config:should_force_outbound();

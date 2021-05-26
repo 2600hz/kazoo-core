@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc When implementing carrier modules, these callbacks are a must!
 %%% @author Karl Anderson
 %%% @author Pierre Fenoll
@@ -16,16 +16,16 @@
 -callback find_numbers(kz_term:ne_binary(), pos_integer(), knm_search:options()) ->
     knm_search:mod_response().
 
--callback acquire_number(knm_phone_number:record()) ->
-    knm_phone_number:record() | no_return().
+-callback acquire_number(knm_phone_number:pn_record()) ->
+    knm_phone_number:pn_record() | no_return().
 
--callback disconnect_number(knm_phone_number:record()) ->
-    knm_phone_number:record() | no_return().
+-callback disconnect_number(knm_phone_number:pn_record()) ->
+    knm_phone_number:pn_record() | no_return().
 
 -callback should_lookup_cnam() ->
     boolean().
 
--callback is_number_billable(knm_phone_number:record()) ->
+-callback is_number_billable(knm_phone_number:pn_record()) ->
     boolean().
 
 -callback is_local() ->
@@ -39,7 +39,7 @@
 
 -optional_callbacks([configuration/0]).
 
--type carrier() :: kz_term:api_ne_binary() | knm_phone_number:record().
+-type carrier() :: kz_term:api_ne_binary() | knm_phone_number:pn_record().
 
 -export_type([carrier/0]).
 

@@ -529,6 +529,9 @@
         "Ringback": {
             "type": "string"
         },
+        "SIP-Invite-Contact-User": {
+            "type": "string"
+        },
         "SIP-Invite-Parameters": {
             "items": {
                 "type": "string"

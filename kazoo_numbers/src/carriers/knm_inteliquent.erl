@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2021, 2600Hz
 %%% @doc Handle client requests for phone number
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -62,7 +62,7 @@ find_numbers(_Prefix, _Quantity, _Options) ->
 %% @doc Acquire a given number from carrier.
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) ->
+-spec acquire_number(knm_phone_number:pn_record()) ->
           no_return().
 acquire_number(Number) ->
     knm_errors:by_carrier(?MODULE, 'not_implemented', Number).
@@ -71,14 +71,14 @@ acquire_number(Number) ->
 %% @doc Return number back to carrier.
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 disconnect_number(Number) -> Number.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_Number) -> 'true'.
 
 %%------------------------------------------------------------------------------

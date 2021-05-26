@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Handle client requests for phone_number documents using new bandwidth api
 %%% @author Karl Anderson
 %%% @author Mark Magnusson
@@ -104,7 +104,7 @@ info() ->
 -spec is_local() -> boolean().
 is_local() -> 'false'.
 
--spec is_number_billable(knm_phone_number:record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_Number) -> 'true'.
 
 %%------------------------------------------------------------------------------
@@ -190,7 +190,7 @@ return_search_error(Error) ->
 %% @doc Acquire a given number from the carrier
 %% @end
 %%------------------------------------------------------------------------------
--spec acquire_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec acquire_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 acquire_number(PhoneNumber) ->
     Debug = ?IS_SANDBOX_PROVISIONING_TRUE,
     case ?IS_PROVISIONING_ENABLED of
@@ -226,8 +226,8 @@ acquire_number(PhoneNumber) ->
             end
     end.
 
--spec check_order(kz_term:api_binary(), kz_term:ne_binary(), kz_types:xml_el(), knm_phone_number:record()) ->
-          knm_phone_number:record().
+-spec check_order(kz_term:api_binary(), kz_term:ne_binary(), kz_types:xml_el(), knm_phone_number:pn_record()) ->
+          knm_phone_number:pn_record().
 check_order(OrderId, <<"RECEIVED">>, _Response, PhoneNumber) ->
     timer:sleep(?BW2_ORDER_POLL_INTERVAL),
     Url = ["orders/", kz_term:to_list(OrderId)],
@@ -269,7 +269,7 @@ from_bandwidth2(Number) -> <<"+1", Number/binary>>.
 %% @doc Release a number from the routing table
 %% @end
 %%------------------------------------------------------------------------------
--spec disconnect_number(knm_phone_number:record()) -> knm_phone_number:record().
+-spec disconnect_number(knm_phone_number:pn_record()) -> knm_phone_number:pn_record().
 disconnect_number(_Number) -> _Number.
 
 

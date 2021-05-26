@@ -64,6 +64,8 @@
 -export([set_inception/2, inception/1, inception_type/1]).
 -export([is_inter_account/1, inter_account_id/1]).
 
+-export([interaction_id/1]).
+
 -export([set_authorizing_id/2, authorizing_id/1]).
 -export([set_authorizing_type/2, authorizing_type/1]).
 -export([set_authorization/3]).
@@ -1366,6 +1368,10 @@ handle_ccvs_update(CCVs, #kapps_call{}=Call) ->
                ,Call#kapps_call{ccvs=CCVs}
                ,?SPECIAL_VARS
                ).
+
+-spec interaction_id(call()) -> kz_term:api_ne_binary().
+interaction_id(#kapps_call{ccvs=CCVs}) ->
+    kz_json:get_ne_binary_value(<<?CALL_INTERACTION_ID>>, CCVs).
 
 -spec set_custom_publish_function(kapps_custom_publish(), call()) -> call().
 set_custom_publish_function(Fun, #kapps_call{}=Call) when is_function(Fun, 2) ->

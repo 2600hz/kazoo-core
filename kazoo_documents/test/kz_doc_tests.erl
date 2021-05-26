@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @Copyright (C) 2010-2016, 2600Hz
+%%% @Copyright (C) 2010-2021, 2600Hz
 %%% @doc Test utilities for manipulating Kazoo/Kazoo documents
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -36,3 +36,16 @@ read_only_fold(Key, Value, {Tests, Leaked}) ->
      ]
     ,Leaked
     }.
+
+add_metadata_test_() ->
+    {'ok', JObj} = kz_json:fixture(?APP, <<"fixtures/doc_no_attachment.json">>),
+
+    [{"has metadata", ?_assert(has_metadata(kz_doc:set_read_only(JObj)))}
+    ].
+
+-spec has_metadata(kz_json:object()) -> boolean().
+has_metadata(JObj) ->
+    Keys = [<<"_read_only">>
+           | [[<<"_read_only">>, Key] || Key <- [<<"id">>, <<"created">>, <<"modified">>]]
+           ],
+    lists:all(fun(Key) -> kz_json:is_defined(Key, JObj) end, Keys).

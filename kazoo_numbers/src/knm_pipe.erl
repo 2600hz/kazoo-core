@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -39,13 +39,13 @@
 -include("knm.hrl").
 
 %% {{{ Type definitions
--type success() :: knm_phone_number:record().
+-type success() :: knm_phone_number:pn_record().
 -type succeeded() :: [success()].
 
 -type set_failed() :: kz_term:ne_binary() |
                       kz_term:ne_binaries() |
-                      knm_phone_number:record() |
-                      knm_phone_number:records().
+                      knm_phone_number:pn_record() |
+                      knm_phone_number:pn_records().
 
 -type quotes() :: kz_term:api_objects().
 
@@ -270,11 +270,11 @@ to_json(#{'succeeded' := PNs, 'failed' := Failed}) ->
 %% get rid of this _thing_.
 %% @end
 %%------------------------------------------------------------------------------
--type attempt_fun() :: fun((knm_phone_number:record()) -> knm_phone_number:record()) |
-                       fun((knm_phone_number:record(), atom()) -> knm_phone_number:record()).
+-type attempt_fun() :: fun((knm_phone_number:pn_record()) -> knm_phone_number:pn_record()) |
+                       fun((knm_phone_number:pn_record(), atom()) -> knm_phone_number:pn_record()).
 
--spec attempt(attempt_fun(), [knm_phone_number:record()] | [knm_phone_number:record() | atom()]) ->
-          {'ok', knm_phone_number:record()} |
+-spec attempt(attempt_fun(), [knm_phone_number:pn_record()] | [knm_phone_number:pn_record() | atom()]) ->
+          {'ok', knm_phone_number:pn_record()} |
           {'error', knm_errors:error()}.
 attempt(Fun, Args) ->
     try apply(Fun, Args) of
@@ -294,7 +294,7 @@ attempt(Fun, Args) ->
             {'error', knm_errors:to_json(Reason, num_to_did(Number), Cause)}
     end.
 
--spec num_to_did(kz_term:api_ne_binary() | knm_phone_number:record()) -> kz_term:api_ne_binary().
+-spec num_to_did(kz_term:api_ne_binary() | knm_phone_number:pn_record()) -> kz_term:api_ne_binary().
 num_to_did('undefined') -> 'undefined';
 num_to_did(<<DID/binary>>) -> DID;
 num_to_did(PhoneNumber) -> knm_phone_number:number(PhoneNumber).

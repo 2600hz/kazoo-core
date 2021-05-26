@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -743,7 +743,7 @@ numbers_not_in_account_nor_in_service(AccountId, Nums) ->
     ]
         ++ maps:keys(Failed).
 
--spec is_in_account_and_in_service(kz_term:ne_binary(), knm_phone_number:record()) -> boolean().
+-spec is_in_account_and_in_service(kz_term:ne_binary(), knm_phone_number:pn_record()) -> boolean().
 is_in_account_and_in_service(AccountId, PN) ->
     AccountId =:= knm_phone_number:assigned_to(PN)
         andalso ?NUMBER_STATE_IN_SERVICE =:= knm_phone_number:state(PN).

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2020, 2600Hz
+%%% @copyright (C) 2016-2021, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% @author Pierre Fenoll
@@ -190,12 +190,12 @@ authorize_subaccount(T) ->
 authorize(T) ->
     knm_pipe:do(fun knm_phone_number:is_authorized/1, T).
 
--spec not_assigning_to_self(knm_phone_number:record()) -> knm_phone_number:record();
+-spec not_assigning_to_self(knm_phone_number:pn_record()) -> knm_phone_number:pn_record();
                            (knm_pipe:collection()) -> knm_pipe:collection().
 not_assigning_to_self(Collection) ->
     not_assigning_to_self(knm_pipe:todo(Collection), Collection).
 
--spec not_assigning_to_self(knm_phone_number:records(), knm_pipe:collection()) -> knm_pipe:collection().
+-spec not_assigning_to_self(knm_phone_number:pn_records(), knm_pipe:collection()) -> knm_pipe:collection().
 not_assigning_to_self([], Collection) ->
     Collection;
 not_assigning_to_self([PN|PNs], Collection) ->
@@ -226,7 +226,7 @@ move_to_reserved_state(T) ->
 move_to_in_service_state(T) ->
     move_number_to_state(T, ?NUMBER_STATE_IN_SERVICE).
 
--spec move_number_to_state(knm_phone_number:record(), kz_term:ne_binary()) -> knm_phone_number:record();
+-spec move_number_to_state(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record();
                           (knm_pipe:collection(), kz_term:ne_binary()) -> knm_pipe:collection().
 %% FIXME: opaque
 move_number_to_state(T=#{'todo' := PNs}, ToState) ->
@@ -236,7 +236,7 @@ move_number_to_state(PN, ToState) ->
     {'ok', NewPN} = move_phone_number_to_state(PN, ToState),
     NewPN.
 
--spec move_phone_number_to_state(knm_phone_number:record(), kz_term:ne_binary()) ->
+-spec move_phone_number_to_state(knm_phone_number:pn_record(), kz_term:ne_binary()) ->
           knm_phone_number:return().
 move_phone_number_to_state(PN, ToState=?NUMBER_STATE_AVAILABLE) ->
     knm_phone_number:setters(PN, [{fun knm_phone_number:set_state/2, ToState}]);
@@ -244,7 +244,7 @@ move_phone_number_to_state(PN, ToState) ->
     AssignedTo = knm_phone_number:assigned_to(PN),
     move_phone_number_to_state(PN, ToState, AssignedTo).
 
--spec move_phone_number_to_state(knm_phone_number:record(), kz_term:ne_binary(), kz_term:api_binary()) ->
+-spec move_phone_number_to_state(knm_phone_number:pn_record(), kz_term:ne_binary(), kz_term:api_binary()) ->
           knm_phone_number:return().
 move_phone_number_to_state(PN, ToState, 'undefined') ->
     Setters =

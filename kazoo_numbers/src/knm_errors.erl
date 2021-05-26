@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -80,7 +80,7 @@ failed_to_proplist(Failed) ->
 failed_to_json(Failed) ->
     kz_json:from_map(Failed).
 
--spec unspecified(any(), knm_phone_number:record() | kz_term:ne_binary()) -> no_return().
+-spec unspecified(any(), knm_phone_number:pn_record() | kz_term:ne_binary()) -> no_return().
 unspecified(Error, PN) ->
     throw({'error', Error, PN}).
 
@@ -92,22 +92,22 @@ unauthorized() ->
 number_exists(DID) ->
     throw({'error', 'number_exists', DID}).
 
--spec invalid_state_transition(knm_phone_number:record() | knm_phone_number:record(), kz_term:api_ne_binary(), kz_term:ne_binary()) -> no_return().
+-spec invalid_state_transition(knm_phone_number:pn_record() | knm_phone_number:pn_record(), kz_term:api_ne_binary(), kz_term:ne_binary()) -> no_return().
 invalid_state_transition(PN, undefined, ToState) ->
     invalid_state_transition(PN, <<"(nothing)">>, ToState);
 invalid_state_transition(PN, FromState, ToState) ->
     Reason = <<"from ", FromState/binary, " to ", ToState/binary>>,
     throw({'error', 'invalid_state_transition', PN, Reason}).
 
--spec no_change_required(knm_phone_number:record()) -> no_return().
+-spec no_change_required(knm_phone_number:pn_record()) -> no_return().
 no_change_required(PN) ->
     throw({'error', 'no_change_required', PN}).
 
--spec service_restriction(knm_phone_number:record(), kz_term:ne_binary()) -> no_return().
+-spec service_restriction(knm_phone_number:pn_record(), kz_term:ne_binary()) -> no_return().
 service_restriction(PN, Message) ->
     throw({'error', 'service_restriction', PN, Message}).
 
--spec carrier_not_specified(knm_phone_number:record()) -> no_return().
+-spec carrier_not_specified(knm_phone_number:pn_record()) -> no_return().
 carrier_not_specified(PN) ->
     throw({'error', 'carrier_not_specified', PN}).
 
@@ -115,19 +115,19 @@ carrier_not_specified(PN) ->
 billing_issue(AccountId, Reason) ->
     throw({'error', 'billing_issue', AccountId, Reason}).
 
--spec invalid(knm_phone_number:record(), kz_term:ne_binary()) -> no_return().
+-spec invalid(knm_phone_number:pn_record(), kz_term:ne_binary()) -> no_return().
 invalid(PN, Reason) ->
     throw({'error', 'invalid', PN, Reason}).
 
--spec multiple_choice(knm_phone_number:record(), kz_json:object()) -> no_return().
+-spec multiple_choice(knm_phone_number:pn_record(), kz_json:object()) -> no_return().
 multiple_choice(PN, Update) ->
     throw({'error', 'multiple_choice', PN, Update}).
 
--spec assign_failure(knm_phone_number:record(), any()) -> no_return().
+-spec assign_failure(knm_phone_number:pn_record(), any()) -> no_return().
 assign_failure(PN, E) ->
     throw({'error', 'assign_failure', PN, E}).
 
--spec database_error(kz_datamgr:data_error(), knm_phone_number:record()) -> no_return().
+-spec database_error(kz_datamgr:data_error(), knm_phone_number:pn_record()) -> no_return().
 database_error(E, PN) ->
     throw({'error', 'database_error', PN, E}).
 
@@ -135,7 +135,7 @@ database_error(E, PN) ->
 number_is_porting(Num) ->
     throw({'error', 'number_is_porting', Num}).
 
--spec by_carrier(module(), binatom_reason(), kz_term:api_ne_binary() | knm_phone_number:record()) -> no_return().
+-spec by_carrier(module(), binatom_reason(), kz_term:api_ne_binary() | knm_phone_number:pn_record()) -> no_return().
 by_carrier(Carrier, E, 'undefined') ->
     throw_by_carrier(Carrier, E, <<"unknown">>);
 by_carrier(Carrier, E, <<Num/binary>>) ->

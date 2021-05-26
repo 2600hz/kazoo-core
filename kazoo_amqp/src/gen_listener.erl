@@ -754,7 +754,9 @@ handle_info({#'basic.deliver'{}=BD
         end,
     case props:is_true('spawn_handle_event', Params, 'false') of
         'false' ->
+            CallId = kz_log:get_callid(),
             Reply = handle_event(binary:copy(Payload), {CT, CE}, {BD, Basic}, State),
+            kz_log:put_callid(CallId),
             maybe_gc(Reply);
         'true'  ->
             kz_process:spawn(fun handle_event/4, [Payload, {CT, CE}, {BD, Basic}, State]),

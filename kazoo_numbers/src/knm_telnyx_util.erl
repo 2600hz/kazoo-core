@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2020, 2600Hz
+%%% @copyright (C) 2014-2021, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -50,7 +50,7 @@
 %% @doc Turns +13129677542 into %2B13129677542.
 %% @end
 %%------------------------------------------------------------------------------
--spec did(knm_phone_number:record()) -> nonempty_string().
+-spec did(knm_phone_number:pn_record()) -> nonempty_string().
 did(PN) ->
     binary_to_list(
       kz_http_util:urlencode(

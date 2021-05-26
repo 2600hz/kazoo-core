@@ -33,6 +33,7 @@
 -define(KEY_HUNT_ACCOUNT_ID, <<"Hunt-Account-ID">>).
 -define(KEY_IGNORE_EARLY_MEDIA, <<"Ignore-Early-Media">>).
 -define(KEY_INCEPTION, <<"Inception">>).
+-define(KEY_INVITE_CONTACT_USER, <<"SIP-Invite-Contact-User">>).
 -define(KEY_MEDIA, <<"Media">>).
 -define(KEY_MESSAGE_ID, <<"Message-ID">>).
 -define(KEY_MODE, <<"Mode">>).

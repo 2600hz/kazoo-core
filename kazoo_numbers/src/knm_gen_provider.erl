@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc When implementing provider modules, these callbacks are a must!
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -12,16 +12,16 @@
 
 -include("knm.hrl").
 
--callback save(knm_phone_number:record()) ->
-    knm_phone_number:record().
+-callback save(knm_phone_number:pn_record()) ->
+    knm_phone_number:pn_record().
 
--callback delete(knm_phone_number:record()) ->
-    knm_phone_number:record().
+-callback delete(knm_phone_number:pn_record()) ->
+    knm_phone_number:pn_record().
 
--callback available(knm_phone_number:record()) -> boolean().
+-callback available(knm_phone_number:pn_record()) -> boolean().
 -callback available(kz_term:ne_binary() | module(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
 
--callback settings(knm_phone_number:record()) -> kz_json:object().
+-callback settings(knm_phone_number:pn_record()) -> kz_json:object().
 
 -optional_callbacks([available/1
                     ,available/3
@@ -32,7 +32,7 @@
         ,settings/2
         ]).
 
--spec available(kz_term:ne_binary() | module(), knm_phone_number:record()) -> boolean().
+-spec available(kz_term:ne_binary() | module(), knm_phone_number:pn_record()) -> boolean().
 available(Feature, PN) ->
     try feature_callback(Feature, available, [PN]) of
         no_module -> false;
@@ -52,7 +52,7 @@ available(Feature, Carrier, State, AccountId) ->
         _ -> true
     end.
 
--spec settings(kz_term:ne_binary() | module(), knm_phone_number:record()) -> kz_json:object().
+-spec settings(kz_term:ne_binary() | module(), knm_phone_number:pn_record()) -> kz_json:object().
 settings(Feature, PN) ->
     try feature_callback(Feature, settings, [PN]) of
         no_callback -> kz_json:new();
