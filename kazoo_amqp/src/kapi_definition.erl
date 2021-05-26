@@ -157,14 +157,7 @@ set_restrict_to(API, RestrictTo) -> API#kapi_definition{restrict_to = RestrictTo
 required_headers(#kapi_definition{required_headers = ReqH}) -> ReqH.
 
 -spec set_required_headers(api(), kz_api:api_headers()) -> api().
-set_required_headers(API, ReqH) ->
-    API#kapi_definition{required_headers =
-                            lists:usort([?KEY_EVENT_CATEGORY
-                                        ,?KEY_EVENT_NAME
-                                        | ReqH
-                                        ]
-                                       )
-                       }.
+set_required_headers(API, ReqH) -> API#kapi_definition{required_headers = ReqH}.
 
 %%------------------------------------------------------------------------------
 %% @doc
