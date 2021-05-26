@@ -1,10 +1,17 @@
 {
     "_id": "7145b996f7ee0d40b314114a9869b7fe",
     "_rev": "1-2daf56bf5164e7ff19b6828396fe98db",
+    "call_failover": {
+        "direct_calls_only": false,
+        "enabled": true,
+        "ignore_early_media": true,
+        "keep_caller_id": true,
+        "number": "+18887776666",
+        "require_keypress": false
+    },
     "call_forward": {
         "direct_calls_only": false,
         "enabled": false,
-        "failover": true,
         "ignore_early_media": true,
         "keep_caller_id": true,
         "number": "+18887776666",
