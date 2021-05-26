@@ -594,7 +594,6 @@ bridge_endpoint_definition() ->
                 ,{<<"Endpoint-Type">>, [<<"sip">>, <<"freetdm">>, <<"skype">>]}
                 ,{<<"Enable-T38-Gateway">>, [<<"self">>, <<"peer">>]}
                 ,{<<"SIP-Transport">>, [<<"udp">>, <<"tcp">>, <<"tls">>, <<"sctp">>]}
-                | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
