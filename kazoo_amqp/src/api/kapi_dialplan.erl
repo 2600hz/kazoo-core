@@ -521,8 +521,6 @@ bridge_definition() ->
 
 -spec bridge_endpoint_definition() -> kapi_definition:api().
 bridge_endpoint_definition() ->
-    EventName = <<"command">>,
-    Category = <<"call">>,
     Setters = [{fun kapi_definition:set_friendly_name/2, <<"Bridge Endpoints">>}
               ,{fun kapi_definition:set_description/2, <<"Bridge Endpoints">>}
               ,{fun kapi_definition:set_build_fun/2, fun bridge_endpoint/1}
