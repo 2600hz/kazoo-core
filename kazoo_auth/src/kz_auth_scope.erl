@@ -30,11 +30,11 @@
 -export([maybe_deny_access/2]).
 
 -export([scope_doc_id/1
-        ,restriction_doc_id/1
+        ,scope_rules_doc_id/1
         ]).
 
--define(SCOPE_PREFIX, "scope:").
--define(SCOPE_RESTRICTION_PREFIX, "scope_rule:").
+-define(SCOPE_DOC_ID_PREFIX, "scope-").
+-define(SCOPE_RULE_DOC_ID_PREFIX, "scope_rule-").
 
 -define(SCOPE_DELIM, <<":">>).
 -define(SCOPE_SEP, <<" ">>).
@@ -412,7 +412,7 @@ maybe_deny_access(AuthDoc, Options, Scopes, Transport) ->
     end.
 
 call_transport(AuthDoc, Options, Scopes, Transport) ->
-    ScopeRestrcitionIds = [restriction_doc_id(Scope) || Scope <- Scopes],
+    ScopeRestrcitionIds = [scope_rules_doc_id(Scope) || Scope <- Scopes],
     State = #{auth_doc => kz_json:to_map(AuthDoc)
              ,scopes => Scopes
              ,restrcition_ids => ScopeRestrcitionIds
@@ -463,10 +463,35 @@ fetch_restrictions(Db, #{restrcition_ids := DocIds}) ->
             []
     end.
 
--spec restriction_doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
-restriction_doc_id(<<?SCOPE_RESTRICTION_PREFIX, _/binary>> = Id) -> Id;
-restriction_doc_id(Scope) -> <<?SCOPE_RESTRICTION_PREFIX, Scope/binary>>.
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec scope_rules_doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
+scope_rules_doc_id(<<?SCOPE_RULE_DOC_ID_PREFIX, _/binary>> = Id) ->
+    normalize_doc_id(Id);
+scope_rules_doc_id(Scope) ->
+    normalize_doc_id(<<?SCOPE_RULE_DOC_ID_PREFIX, Scope/binary>>).
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec scope_doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
-scope_doc_id(<<?SCOPE_PREFIX, _/binary>> = Id) -> Id;
-scope_doc_id(Scope) -> <<?SCOPE_PREFIX, Scope/binary>>.
+scope_doc_id(<<?SCOPE_DOC_ID_PREFIX, _/binary>> = Id) ->
+    normalize_doc_id(Id);
+scope_doc_id(Scope) ->
+    normalize_doc_id(<<?SCOPE_DOC_ID_PREFIX, Scope/binary>>).
+
+%%------------------------------------------------------------------------------
+%% @doc Convert DocId to a CouchDB 3 compatible ID.
+%%
+%% CouchDB 3 is using the first colon (`:') as the partition name
+%% (if db is partitioned). We need to normalize DocId and convert it to a
+%% proper format to not break that feature if in future releases we started
+%% using it.
+%% @end
+%%------------------------------------------------------------------------------
+-spec normalize_doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
+normalize_doc_id(<<Id/binary>>) ->
+    binary:replace(Id, <<":">>, <<"_">>, ['global']).
