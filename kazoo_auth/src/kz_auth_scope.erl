@@ -73,7 +73,7 @@ has(Token, Scope) ->
 %%------------------------------------------------------------------------------
 -spec exists(kz_term:ne_binary() | kz_term:binaries()) -> boolean().
 exists(<<Scope/binary>>) ->
-    exists(extract_scopes(Scope));
+    exists(to_list(Scope));
 exists(Scope) ->
     lists:member(Scope, available_scopes()).
 
