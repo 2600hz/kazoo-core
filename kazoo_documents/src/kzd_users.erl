@@ -749,7 +749,7 @@ ringtones_internal(Doc, Default) ->
 set_ringtones_internal(Doc, RingtonesInternal) ->
     kz_json:set_value([<<"ringtones">>, <<"internal">>], RingtonesInternal, Doc).
 
--spec scopes(doc()) -> kz_term:api_ne_binaries().
+-spec scopes(doc()) -> kz_term:ne_binaries().
 scopes(Doc) ->
     scopes(Doc, []).
 
