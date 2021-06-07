@@ -42,6 +42,7 @@
 -export([account_has_descendants/1
         ,account_descendants/1
         ]).
+-export([account_type/1]).
 -export([find_oldest_doc/1]).
 -export([get_call_termination_reason/1]).
 -export([get_view_json/1, get_view_json/2]).
@@ -80,6 +81,8 @@
 -define(ACCT_BY_REALM_CACHE(Name), {?MODULE, 'account_by_realm', Name}).
 -define(ACCT_BY_IP_CACHE(IP), {?MODULE, 'account_by_ip', IP}).
 -define(GET_BY_CACHE_ORIGIN, [{'origin', [{'db', ?KZ_ACCOUNTS_DB, <<"account">>}]}]).
+
+-type account_types() :: 'master' | 'regular' | 'reseller'.
 
 %%------------------------------------------------------------------------------
 %% @doc Update a document in each crossbar account database with the
@@ -195,6 +198,23 @@ is_master_account(Account) ->
     case get_master_account_id() of
         {'ok', AccountId} -> 'true';
         _Else -> 'false'
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Returns the  Account.
+%%
+%% Account type can be `master', `reseller' or `regular'.
+%% @end
+%%------------------------------------------------------------------------------
+-spec account_type(kz_term:ne_binary()) -> account_types().
+account_type(Account) ->
+    case is_master_account(Account) of
+        'true' -> 'master';
+        'false' ->
+            case kz_services_reseller:is_reseller(Account) of
+                'true' -> 'reseller';
+                'false' -> 'regular'
+            end
     end.
 
 %%------------------------------------------------------------------------------
