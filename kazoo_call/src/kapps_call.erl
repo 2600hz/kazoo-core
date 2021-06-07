@@ -150,6 +150,7 @@
 -export([is_recording/1, set_is_recording/2]).
 -export([is_call_forward/1]).
 -export([is_transfer/1]).
+-export([endpoint_id/1]).
 
 -ifdef(TEST).
 -export([eq/2]).
@@ -157,6 +158,7 @@
 -endif.
 
 -include("kapps_call_command.hrl").
+-include_lib("kazoo_sip/include/kzsip_uri.hrl").
 
 -define(CALL_CMD_CAT, <<"call_command">>).
 
@@ -217,6 +219,7 @@
                     ,is_recording = 'false' :: boolean()                %% Control account level recording
                     ,is_call_forward = 'false' :: boolean()             %% is this call forward call
                     ,is_transfer = 'false' :: boolean()                 %% is this call a transfer
+                    ,endpoint_id :: kz_term:api_ne_binary()             %% if a refer/redirect, find the endpoint id (esp if no authz-id
                     }).
 
 -type call() :: #kapps_call{}.
@@ -289,17 +292,22 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
     [FromUser, FromRealm] = binary:split(From, <<"@">>),
     [RequestUser, RequestRealm] = binary:split(Request, <<"@">>),
 
+    AuthorizingId = kz_json:get_ne_binary_value(<<"Authorizing-ID">>, CCVs, authorizing_id(Call)),
+    AuthorizingType = kz_json:get_ne_binary_value(<<"Authorizing-Type">>, CCVs, authorizing_type(Call)),
+
     Call1 =
         case kz_json:get_ne_binary_value(<<"Prepend-CID-Name">>, RouteReq) of
             'undefined' -> Call;
             Prepend -> kvs_store('prepend_cid_name', Prepend, Call)
         end,
 
+    EndpointId = endpoint_id(RouteReq, AuthorizingId),
+
     Call1#kapps_call{call_id=CallId
                     ,origination_call_id=kz_json:get_ne_binary_value(<<"Origination-Call-ID">>, RouteReq, origination_call_id(Call1))
                     ,context=kz_json:get_ne_binary_value(<<"Context">>, RouteReq, context(Call))
                     ,request=Request
-                    ,request_user=to_e164(RequestUser, AccountId)
+                    ,request_user=to_e164(RequestUser, AccountId, EndpointId)
                     ,request_realm=RequestRealm
                     ,from=From
                     ,from_user=FromUser
@@ -314,8 +322,8 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                     ,switch_nodename = kz_json:get_ne_binary_value(<<"Switch-Nodename">>, RouteReq, switch_nodename(Call))
                     ,switch_url = kz_json:get_ne_binary_value(<<"Switch-URL">>, RouteReq, switch_url(Call))
                     ,switch_uri = kz_json:get_ne_binary_value(<<"Switch-URI">>, RouteReq, switch_uri(Call))
-                    ,authorizing_id = kz_json:get_ne_binary_value(<<"Authorizing-ID">>, CCVs, authorizing_id(Call))
-                    ,authorizing_type = kz_json:get_ne_binary_value(<<"Authorizing-Type">>, CCVs, authorizing_type(Call))
+                    ,authorizing_id = AuthorizingId
+                    ,authorizing_type = AuthorizingType
                     ,owner_id = kz_json:get_ne_binary_value(<<"Owner-ID">>, CCVs, owner_id(Call))
                     ,fetch_id = kz_json:get_ne_binary_value(<<"Fetch-ID">>, CCVs, fetch_id(Call))
                     ,bridge_id = kz_json:get_ne_binary_value(<<"Bridge-ID">>, CCVs, bridge_id(Call))
@@ -332,6 +340,7 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                     ,direction = kz_json:get_ne_binary_value(<<"Call-Direction">>, RouteReq, direction(Call))
                     ,is_call_forward = kz_json:is_true(<<"Call-Forward">>, CCVs, is_call_forward(Call))
                     ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, RouteReq, is_transfer(Call))
+                    ,endpoint_id = EndpointId
                     }.
 
 -spec from_route_win(kz_json:object()) -> call().
@@ -495,6 +504,7 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                    ,is_recording = kz_json:is_true(<<"Is-Recording">>, JObj, is_recording(Call))
                    ,is_call_forward = kz_json:is_true(<<"Is-Call-Forward">>, JObj, is_call_forward(Call))
                    ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, JObj, is_transfer(Call))
+                   ,endpoint_id = kz_json:get_ne_binary_value(<<"Endpoint-ID">>, JObj, endpoint_id(Call))
                    }.
 
 %%------------------------------------------------------------------------------
@@ -539,6 +549,7 @@ to_proplist(#kapps_call{}=Call) ->
     ,{<<"Custom-Application-Vars">>, custom_application_vars(Call)}
     ,{<<"Custom-Channel-Vars">>, custom_channel_vars(Call)}
     ,{<<"Custom-SIP-Headers">>, custom_sip_headers(Call)}
+    ,{<<"Endpoint-ID">>, endpoint_id(Call)}
     ,{<<"Fetch-ID">>, fetch_id(Call)}
     ,{<<"From">>, from(Call)}
     ,{<<"From-Realm">>, from_realm(Call)}
@@ -888,21 +899,30 @@ callee_id_number(#kapps_call{callee_id_number='undefined'}) -> <<>>;
 callee_id_number(#kapps_call{callee_id_number=CIDNumber}) -> CIDNumber.
 
 -spec set_request(kz_term:ne_binary(), call()) -> call().
-set_request(Request, #kapps_call{account_id=AccountId}=Call) when is_binary(Request) ->
+set_request(<<Request/binary>>
+           ,#kapps_call{account_id=AccountId
+                       ,endpoint_id=EndpointId
+                       }=Call
+           ) ->
     [RequestUser, RequestRealm] = binary:split(Request, <<"@">>),
     Call#kapps_call{request=Request
-                   ,request_user=to_e164(RequestUser, AccountId)
+                   ,request_user=to_e164(RequestUser, AccountId, EndpointId)
                    ,request_realm=RequestRealm
                    }.
 
 -ifdef(TEST).
-to_e164(Number, _AccountId) -> Number.
+to_e164(Number, _AccountId, _DeviceId) -> Number.
 -else.
-to_e164(<<"*", _/binary>>=Number, _AccountId) -> Number;
-to_e164(Number, 'undefined') ->
+to_e164(<<"*", _/binary>>=Number, _AccountId, _DeviceId) -> Number;
+to_e164(Number, 'undefined', _DeviceId) ->
+    lager:debug("no account id, just normalizing ~s", [Number]),
     knm_converters:normalize(Number);
-to_e164(Number, AccountId) ->
-    knm_converters:normalize(Number, AccountId).
+to_e164(Number, AccountId, 'undefined') ->
+    lager:debug("no authz id, just normalizing ~s in account ~s", [Number, AccountId]),
+    knm_converters:normalize(Number, AccountId);
+to_e164(Number, AccountId, <<DeviceId/binary>>) ->
+    lager:debug("normalizing ~s in account ~s with authz ~s", [Number, AccountId, DeviceId]),
+    knm_converters:normalize(Number, AccountId, DeviceId).
 -endif.
 
 -spec request(call()) -> kz_term:ne_binary().
@@ -1704,6 +1724,10 @@ is_call_forward(#kapps_call{is_call_forward=IsCallForward}) ->
 is_transfer(#kapps_call{is_transfer=IsTransfer}) ->
     IsTransfer.
 
+-spec endpoint_id(call()) -> kz_term:api_ne_binary().
+endpoint_id(#kapps_call{endpoint_id=EndpointId}) ->
+    EndpointId.
+
 -ifdef(TEST).
 eq(Call, Call1) ->
     eq(tuple_to_list(Call), tuple_to_list(Call1), 1).
@@ -1721,3 +1745,29 @@ eq([V1|_], [V2|_], Pos) ->
     ?debugFmt("at ~p, vary:~n~p~n~p~n", [Pos, V1, V2]),
     'false'.
 -endif.
+
+%% @doc get endpoint id if redirected or referred by an endpoint;
+%% otherwise use authorizing id
+endpoint_id(RouteReq, AuthorizingId) ->
+    lists:foldl(fun(CCVKey, Id) -> maybe_find_endpoint_id(CCVKey, Id, RouteReq) end
+               ,AuthorizingId
+               ,[<<"Referred-By">>, <<"Redirected-By">>]
+               ).
+
+maybe_find_endpoint_id(CCVKey, Id, RouteReq) ->
+    case kz_json:get_ne_binary_value([<<"Custom-Channel-Vars">>, CCVKey], RouteReq) of
+        'undefined' -> Id;
+        Contact -> maybe_find_endpoint_id_from_uri(Contact, Id)
+    end.
+
+maybe_find_endpoint_id_from_uri(Contact, Id) ->
+    case kzsip_uri:uris(Contact) of
+        [#uri{ext_opts=Opts1, opts=Opts2}] ->
+            case props:get_value(<<"endpoint_id">>, Opts1 ++ Opts2) of
+                Id -> Id;
+                EID ->
+                    lager:info("using endpoint id ~s over authz id ~s", [EID, Id]),
+                    EID
+            end;
+        _Else -> Id
+    end.

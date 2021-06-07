@@ -72,6 +72,10 @@
             },
             "type": "array"
         },
+        "e164_converters": {
+            "description": "regular expressions to convert numbers to E164 format",
+            "type": "object"
+        },
         "features": {
             "properties": {
                 "allow": {

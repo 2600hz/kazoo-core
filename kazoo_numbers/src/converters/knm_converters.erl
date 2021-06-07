@@ -132,8 +132,12 @@ normalize(Nums, AccountId)
   when is_list(Nums) ->
     [normalize(Num, AccountId) || Num <- Nums].
 
--spec normalize(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:ne_binary();
-               (kz_term:ne_binaries(), kz_term:ne_binary(), kz_json:object()) -> kz_term:ne_binaries().
+-spec normalize(kz_term:ne_binary() | kz_term:ne_binaries()
+               ,kz_term:ne_binary()
+               ,kz_term:api_ne_binary() | kz_json:object()
+               ) ->
+          kz_term:ne_binary() |
+          kz_term:ne_binaries().
 normalize(Num=?NE_BINARY, ?MATCH_ACCOUNT_RAW(AccountId), DialPlan) ->
     (?CONVERTER_MOD):normalize(Num, AccountId, DialPlan);
 normalize(Nums, ?MATCH_ACCOUNT_RAW(AccountId), DialPlan)

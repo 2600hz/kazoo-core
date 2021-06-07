@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,6 +18,8 @@
 -export([get_e164_converters/0
         ,get_e164_converters/1
         ]).
+
+-export([default_converters/0]).
 
 -include("knm.hrl").
 
@@ -38,23 +40,38 @@
 
 -define(KEY_E164_CONVERTERS, <<"e164_converters">>).
 
+-spec default_converters() -> kz_json:object().
+default_converters() ->
+    ?DEFAULT_E164_CONVERTERS.
+
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec normalize(kz_term:ne_binary()) ->
           kz_term:ne_binary().
-normalize(?NE_BINARY = Num) ->
+normalize(<<Num/binary>>) ->
     to_e164(Num).
 
 -spec normalize(kz_term:ne_binary(), kz_term:ne_binary()) ->
           kz_term:ne_binary().
-normalize(?NE_BINARY = Num, AccountId) ->
+normalize(<<Num/binary>>, 'undefined') ->
+    normalize(Num);
+normalize(<<Num/binary>>, AccountId) ->
     to_e164(Num, AccountId).
 
--spec normalize(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+-spec normalize(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_ne_binary() | kz_json:object()) ->
           kz_term:ne_binary().
-normalize(?NE_BINARY = Num, AccountId, DialPlan) ->
+normalize(Num, 'undefined', _Id) ->
+    normalize(Num);
+normalize(Num, AccountId, 'undefined') ->
+    normalize(Num, AccountId);
+normalize(Num, AccountId, <<Id/binary>>) ->
+    {'ok', Doc} = kz_datamgr:open_cache_doc(AccountId, Id),
+    DialPlan = kz_json:get_json_value([<<"dial_plan">>], Doc),
+    normalize(Num, AccountId, DialPlan);
+normalize(<<Num/binary>>, AccountId, DialPlan) ->
+    lager:debug("normalize(~p, ~p, ~p)", [Num, AccountId, DialPlan]),
     to_e164_from_account_dialplan(Num, AccountId, DialPlan).
 
 %%------------------------------------------------------------------------------
@@ -124,7 +141,7 @@ to_e164(Number, Account) ->
     end.
 
 -spec to_e164_from_account(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-to_e164_from_account(Number, ?NE_BINARY = AccountId) ->
+to_e164_from_account(Number, <<AccountId/binary>>) ->
     Converters = get_e164_converters(AccountId),
     Regexps = kz_json:get_keys(Converters),
     maybe_convert_to_e164(Number, Converters, Regexps).
@@ -154,6 +171,7 @@ apply_dialplan(Number, DialPlan, [Regex|Rs]) ->
             Root = lists:last(Captures),
             Prefix = kz_json:get_binary_value([Regex, <<"prefix">>], DialPlan, <<>>),
             Suffix = kz_json:get_binary_value([Regex, <<"suffix">>], DialPlan, <<>>),
+            lager:debug("applying dialplan ~s: ~s / ~s / ~s", [Regex, Prefix, Root, Suffix]),
             <<Prefix/binary, Root/binary, Suffix/binary>>
     end.
 
