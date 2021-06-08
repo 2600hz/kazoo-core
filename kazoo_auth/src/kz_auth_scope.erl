@@ -33,11 +33,17 @@
         ,scope_rules_doc_id/1
         ]).
 
--define(SCOPE_DOC_ID_PREFIX, "scope-").
+-define(SCOPE_DOC_ID_PREFIX, "scope_definition-").
 -define(SCOPE_RULE_DOC_ID_PREFIX, "scope_rule-").
 
 -define(SCOPE_DELIM, <<":">>).
 -define(SCOPE_SEP, <<" ">>).
+-define(SCOPES_CAT, <<"system_auth">>).
+-define(SCOPES_LIST, <<"scopes/crossbar_listing">>).
+
+-define(DEFAULT_MISSING_USER_TYPE_SCOPE, <<"other">>).
+
+-define(CATCH_ALL, <<"*">>).
 
 -type jwt() :: map().
 -type token() :: jwt() | kz_term:ne_binary() | 'undefined'.
@@ -98,115 +104,17 @@ has_scopes(Token, ScopeList, ListFun) ->
 %%------------------------------------------------------------------------------
 -spec available_scopes() -> kz_term:proplist().
 available_scopes() ->
-    Options = ['include_docs'],
-    Scopes = fetch_scopes(Options),
+    Options = [],
+    Scopes = fetch_scopes(?SCOPES_LIST, Options),
     maybe_flatten_scopes(Scopes).
 
 -spec available_scopes(atom() | kz_term:ne_binary()) -> kz_term:binaries().
 available_scopes(Scope) when is_atom(Scope) ->
     available_scopes(kz_term:to_binary(Scope));
 available_scopes(ScopeBin) ->
-    Options = [{'key', ScopeBin}
-              ,'include_docs'
-              ],
-    Scopes = fetch_scopes(Options),
+    Options = [{'key', ScopeBin}],
+    Scopes = fetch_scopes(?SCOPES_LIST, Options),
     maybe_flatten_scopes(Scopes).
-
-%%------------------------------------------------------------------------------
-%% @doc Filters a list of scopes by owner
-%% @end
-%%------------------------------------------------------------------------------
--spec fetch_scopes(kazoo_data:view_options()) -> kz_term:ne_binaries().
-fetch_scopes(ViewOptions) ->
-    case kz_datamgr:get_results(?KZ_AUTH_DB, <<"scopes/crossbar_listing">>, ViewOptions) of
-        {'ok', Scopes} -> Scopes;
-        _ -> []
-    end.
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec create_claims(kz_term:proplist()) -> kz_either:either(kz_term:ne_binary(), kz_term:proplist()).
-create_claims(Claims) ->
-    AccountId = props:get_value(<<"account_id">>, Claims),
-    OwnerId = props:get_value(<<"owner_id">>, Claims),
-
-    UserScopes = get_user_scopes(AccountId, OwnerId),
-    AccountScopes = get_account_scopes(AccountId),
-
-    create_claims(Claims, UserScopes, AccountScopes).
-
--spec create_claims(kz_term:proplist()
-                   ,kz_either:either(kz_term:binary(), kz_term:ne_binaries())
-                   ,kz_either:either(kz_term:binary(), kz_term:ne_binaries())
-                   ) -> kz_either:either(kz_term:ne_binary(), kz_term:proplist()).
-create_claims(Claims, {'ok', UserScopes}, {'ok', AccountScopes}) ->
-    ReqScopes = allowed_request_scopes(props:get_value(<<"scopes">>, Claims, [])),
-    Scope = join(lists:usort(ReqScopes ++ UserScopes ++ AccountScopes)),
-    {'ok', props:set_value(<<"scope">>, Scope, props:delete_keys([<<"scopes">>], Claims))};
-create_claims(_, {'error', _Reason}=Error, _) ->
-    lager:debug("failed to get scopes: ~s", [_Reason]),
-    Error;
-create_claims(_, _, {'error', _Reason}=Error) ->
-    lager:debug("failed to get scopes: ~s", [_Reason]),
-    Error.
-
-allowed_request_scopes([]) ->
-    [];
-allowed_request_scopes(Scopes) ->
-    Options = [{'keys', Scopes}],
-    case kz_datamgr:get_results(?KZ_AUTH_DB, <<"scopes/list_allowed_by_scope_id">>, Options) of
-        {'ok', JObjs} ->
-            [kzd_scopes:scopes(JObj)
-             || JObj <- JObjs,
-                kzd_scopes:allow_api_request(JObj)
-            ];
-        _ -> []
-    end.
-
--spec get_user_scopes(kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
-          kz_either:either(kz_term:binary(), kz_term:ne_binaries()).
-get_user_scopes(<<AccountId/binary>>, <<OwnerId/binary>>) ->
-    case kzd_users:fetch(AccountId, OwnerId) of
-        {'ok', JObj} ->
-            case kz_doc:type(JObj) =:= kzd_users:type() of
-                'true' ->
-                    {'ok', add_user_type(JObj)};
-                'false' ->
-                    {'error', kz_binary:format("doc ~s is not an user", [OwnerId])}
-            end;
-        {'error', _Reason} ->
-            {'error', kz_binary:format("failed to open doc ~s with error ~p", [OwnerId, _Reason])}
-    end;
-get_user_scopes(_, _) ->
-    {'ok', []}.
-
-add_user_type(JObj) ->
-    PrivLevel = kzd_users:priv_level(JObj),
-    case kz_term:is_empty(PrivLevel) of
-        'true' -> kzd_users:scopes(JObj);
-        'false' -> [user_type_scope(PrivLevel) | kzd_users:scopes(JObj)]
-    end.
-
-user_type_scope(PrivLevel) -> <<"user:", PrivLevel/binary>>.
-
--spec get_account_scopes(kz_term:api_ne_binary()) ->
-          kz_either:either(kz_term:binary(), kz_term:ne_binaries()).
-get_account_scopes(<<AccountId/binary>>) ->
-    case kzd_accounts:fetch(AccountId) of
-        {'ok', JObj} ->
-            case kz_doc:type(JObj) =:= kzd_accounts:type() of
-                'true' ->
-                    {'ok', kzd_accounts:scopes(JObj)};
-                'false' ->
-                    {'error', kz_binary:format("doc ~s is not an account", [AccountId])}
-            end;
-        {'error', _Reason} ->
-            {'error', kz_binary:format("failed to open doc ~s: ~p", [AccountId, _Reason])}
-    end;
-get_account_scopes(_) ->
-    {'ok', []}.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -223,16 +131,140 @@ maybe_flatten_scopes(Scopes) ->
 %%------------------------------------------------------------------------------
 flatten_scopes_fold(JObj, Acc) ->
     ScopeId = kz_doc:id(JObj),
-    Doc = kz_json:get_json_value([<<"doc">>], JObj),
-    maybe_explode_scopes(ScopeId, Doc, Acc).
+    Scopes = kz_json:get_json_value([<<"value">>], JObj),
+    maybe_explode_scopes(ScopeId, Scopes, Acc).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 maybe_explode_scopes(_ScopeId, 'undefined', Acc) -> Acc;
-maybe_explode_scopes(ScopeId, Doc, Acc) ->
-    [{ScopeId, kzd_scopes:scopes(Doc)} | Acc].
+maybe_explode_scopes(ScopeId, Scopes, Acc) ->
+    [{ScopeId, Scopes} | Acc].
+
+%%------------------------------------------------------------------------------
+%% @doc Filters a list of scopes by owner
+%% @end
+%%------------------------------------------------------------------------------
+-spec fetch_scopes(kz_term:ne_binary(), kazoo_data:view_options()) -> kz_term:ne_binaries().
+fetch_scopes(View, ViewOptions) ->
+    fetch_scopes(?SCOPES_CAT, View, ViewOptions).
+
+-spec fetch_scopes(kz_term:ne_binary(), kz_term:ne_binary(), kazoo_data:view_options()) ->
+          kz_term:ne_binaries().
+fetch_scopes(Db, View, ViewOptions) ->
+    case kz_datamgr:get_results(Db, View, ViewOptions) of
+        {'ok', Scopes} -> Scopes;
+        _ -> []
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec create_claims(kz_term:proplist()) -> kz_either:either(kz_term:ne_binary(), kz_term:proplist()).
+create_claims(Claims) ->
+    AccountId = props:get_value(<<"account_id">>, Claims),
+    OwnerId = props:get_value(<<"owner_id">>, Claims),
+
+    UserJObj = get_user_doc(AccountId, OwnerId),
+    UserScopes = get_user_scopes(UserJObj),
+    AccountScopes = get_account_scopes(AccountId),
+
+    ReqScopes = get_requested_scopes(Claims, UserJObj),
+    Scope = join(lists:usort(ReqScopes ++ UserScopes ++ AccountScopes)),
+    case kz_term:is_empty(Scope) of
+        'true' ->
+            props:delete_keys([<<"scopes">>], Claims);
+        'false' ->
+            props:set_value(<<"scope">>, Scope, props:delete_keys([<<"scopes">>], Claims))
+    end.
+
+get_requested_scopes(Claims, UserJObj) ->
+    Scopes = props:get_value(<<"scopes">>, Claims, []),
+    AccountId = props:get_value(<<"account_id">>, Claims),
+    case kz_term:is_not_empty(Scopes)
+        andalso kz_term:is_not_empty(AccountId)
+    of
+        'true' ->
+            get_requested_scopes(Scopes, AccountId, UserJObj);
+        'false' -> []
+    end.
+
+-spec get_requested_scopes(kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:api_object()) ->
+          kz_term:ne_binaries().
+get_requested_scopes(Scopes, AccountId, UserJObj) ->
+    AccountType = account_type(AccountId),
+    Options = [{'keys', [[ScopeName, [AccountType, PrivLevel]]
+                         || ScopeName <- Scopes,
+                            PrivLevel <- user_type_query(UserJObj)
+                        ]
+               }
+              ],
+    case kz_datamgr:get_results(?SCOPES_CAT, <<"scopes/list_by_id_permission">>, Options) of
+        {'ok', [JObj | _]} ->
+            kz_json:get_ne_binaries(<<"key">>, JObj, []);
+        _ -> []
+    end.
+
+account_type(AccountId) ->
+    case kapps_util:account_type(AccountId) of
+        'regular' -> <<"non-reseller">>;
+        Type -> kz_term:to_binary(Type)
+    end.
+
+%% Should we allow catch all for account?
+%% account_type_query('undefined') ->
+%%     [?CATCH_ALL];
+%% account_type_query(AccountId) ->
+%%     [kz_term:to_binary(kapps_util:account_type(AccountId)), ?CATCH_ALL].
+
+user_type_query('undefined') ->
+    [?CATCH_ALL];
+user_type_query(UserJObj) ->
+    [kzd_users:priv_level(UserJObj), ?CATCH_ALL].
+
+-spec get_user_doc(kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> kz_term:api_object().
+get_user_doc(<<AccountId/binary>>, <<OwnerId/binary>>) ->
+    case kzd_users:fetch(AccountId, OwnerId) of
+        {'ok', JObj} ->
+            case kz_doc:type(JObj) =:= kzd_users:type() of
+                'true' -> JObj;
+                'false' ->
+                    lager:warning("doc ~s is not an user doc", [OwnerId]),
+                    'undefined'
+            end;
+        {'error', _Reason} ->
+            lager:warning("failed to open doc ~s with error ~p", [OwnerId, _Reason]),
+            'undefined'
+    end;
+get_user_doc(_, _) ->
+    'undefined'.
+
+get_user_scopes('undefined') ->
+    [];
+get_user_scopes(JObj) ->
+    [user_type_scope(kzd_users:priv_level(JObj)) | kzd_users:scopes(JObj)].
+
+user_type_scope(PrivLevel) -> <<"user:", PrivLevel/binary>>.
+
+-spec get_account_scopes(kz_term:api_ne_binary()) -> kz_term:ne_binaries().
+get_account_scopes(<<AccountId/binary>>) ->
+    case kzd_accounts:fetch(AccountId) of
+        {'ok', JObj} ->
+            case kz_doc:type(JObj) =:= kzd_accounts:type() of
+                'true' ->
+                    kzd_accounts:scopes(JObj);
+                'false' ->
+                    lager:warning("doc ~s is not an account", [AccountId]),
+                    []
+            end;
+        {'error', _Reason} ->
+            lager:warning("failed to open doc ~s: ~p", [AccountId, _Reason]),
+            []
+    end;
+get_account_scopes(_) ->
+    [].
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -436,7 +468,7 @@ maybe_deny_scopes([FetchFun | FetchFuns], #{transport := Transport} = State) ->
         'false' -> maybe_deny_scopes(FetchFuns, State)
     end.
 
-fetch_system_restrictions(State) -> fetch_restrictions(?KZ_AUTH_DB, State).
+fetch_system_restrictions(State) -> fetch_restrictions(?SCOPES_CAT, State).
 
 fetch_reseller_restrictions(#{auth_doc := #{account_id := AccountId}}=State) ->
     case kz_services_reseller:is_reseller(AccountId) of

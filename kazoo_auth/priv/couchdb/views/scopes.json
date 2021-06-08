@@ -13,18 +13,34 @@
             "map": [
                 "function(doc) {",
                 "  if (doc.pvt_type !== 'scope' || doc.pvt_deleted) return;",
-                "  emit(doc._id, {",
-                "    'scopes': doc.scopes,",
-                "    'allow_api_request': doc.allow_api_request || true",
-                "  });",
+                "  emit(doc.name || doc._id, doc.scopes);",
                 "}"
             ]
         },
-        "list_allowed_by_scope_id": {
+        "list_by_id_permission": {
             "map": [
                 "function(doc) {",
                 "  if (doc.pvt_type !== 'scope' || doc.pvt_deleted) return;",
-                "  emit([doc.allow_api_request || true, doc._id], doc.scopes);",
+                "  if ((doc.permissions || []).length > 0) {",
+                "    for (var i in doc.permissions) {",
+                "      emit([doc.name || doc._id, doc.permissions[i].split(':')], doc.scopes || []);",
+                "    }",
+                "  }",
+                "}"
+            ]
+        },
+        "list_by_scope_id": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type !== 'scope' || doc.pvt_deleted) return;",
+                "  emit([doc._id], null);",
+                "  if (doc.scopes.length > 0) {",
+                "    for (var i in doc.scopes) {",
+                "      emit([doc.name || doc._id, doc.scopes[i]], {",
+                "        _id: doc.scopes[i]",
+                "      });",
+                "    }",
+                "  }",
                 "}"
             ]
         }

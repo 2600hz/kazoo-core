@@ -1,0 +1,13 @@
+{
+    "_id": "scope_definition-read_only",
+    "description": "Generic Read-Only Scope",
+    "name": "read_only",
+    "permissions": [
+        "master:*",
+        "reseller:*",
+        "non-reseller:*"
+    ],
+    "precedence": "allow",
+    "pvt_type": "scope",
+    "scopes": []
+}

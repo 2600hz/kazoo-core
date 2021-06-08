@@ -1,0 +1,13 @@
+{
+    "_id": "scope_definition-crossbar",
+    "description": "Top-Level Crossbar App Scope",
+    "name": "crossbar",
+    "permissions": [
+        "master:*",
+        "reseller:*",
+        "non-reseller:*"
+    ],
+    "precedence": "allow",
+    "pvt_type": "scope",
+    "scopes": []
+}
