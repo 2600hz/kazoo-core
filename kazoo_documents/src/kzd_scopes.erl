@@ -6,8 +6,11 @@
 -module(kzd_scopes).
 
 -export([new/0]).
--export([allow_api_request/1, allow_api_request/2, set_allow_api_request/2]).
 -export([description/1, description/2, set_description/2]).
+-export([id/1, id/2, set_id/2]).
+-export([name/1, name/2, set_name/2]).
+-export([permissions/1, permissions/2, set_permissions/2]).
+-export([precedence/1, precedence/2, set_precedence/2]).
 -export([scopes/1, scopes/2, set_scopes/2]).
 
 
@@ -22,18 +25,6 @@
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
--spec allow_api_request(doc()) -> kz_term:api_boolean().
-allow_api_request(Doc) ->
-    allow_api_request(Doc, 'undefined').
-
--spec allow_api_request(doc(), Default) -> boolean() | Default.
-allow_api_request(Doc, Default) ->
-    kz_json:get_boolean_value([<<"allow_api_request">>], Doc, Default).
-
--spec set_allow_api_request(doc(), boolean()) -> doc().
-set_allow_api_request(Doc, AllowAPIRequest) ->
-    kz_json:set_value([<<"allow_api_request">>], AllowAPIRequest, Doc).
-
 -spec description(doc()) -> kz_term:api_binary().
 description(Doc) ->
     description(Doc, 'undefined').
@@ -45,6 +36,54 @@ description(Doc, Default) ->
 -spec set_description(doc(), binary()) -> doc().
 set_description(Doc, Description) ->
     kz_json:set_value([<<"description">>], Description, Doc).
+
+-spec id(doc()) -> kz_term:api_binary().
+id(Doc) ->
+    id(Doc, 'undefined').
+
+-spec id(doc(), Default) -> binary() | Default.
+id(Doc, Default) ->
+    kz_json:get_binary_value([<<"id">>], Doc, Default).
+
+-spec set_id(doc(), binary()) -> doc().
+set_id(Doc, Id) ->
+    kz_json:set_value([<<"id">>], Id, Doc).
+
+-spec name(doc()) -> kz_term:api_binary().
+name(Doc) ->
+    name(Doc, 'undefined').
+
+-spec name(doc(), Default) -> binary() | Default.
+name(Doc, Default) ->
+    kz_json:get_binary_value([<<"name">>], Doc, Default).
+
+-spec set_name(doc(), binary()) -> doc().
+set_name(Doc, Name) ->
+    kz_json:set_value([<<"name">>], Name, Doc).
+
+-spec permissions(doc()) -> kz_term:api_ne_binaries().
+permissions(Doc) ->
+    permissions(Doc, 'undefined').
+
+-spec permissions(doc(), Default) -> kz_term:ne_binaries() | Default.
+permissions(Doc, Default) ->
+    kz_json:get_list_value([<<"permissions">>], Doc, Default).
+
+-spec set_permissions(doc(), kz_term:ne_binaries()) -> doc().
+set_permissions(Doc, Permissions) ->
+    kz_json:set_value([<<"permissions">>], Permissions, Doc).
+
+-spec precedence(doc()) -> binary().
+precedence(Doc) ->
+    precedence(Doc, <<"allow">>).
+
+-spec precedence(doc(), Default) -> binary() | Default.
+precedence(Doc, Default) ->
+    kz_json:get_binary_value([<<"precedence">>], Doc, Default).
+
+-spec set_precedence(doc(), binary()) -> doc().
+set_precedence(Doc, Precedence) ->
+    kz_json:set_value([<<"precedence">>], Precedence, Doc).
 
 -spec scopes(doc()) -> kz_term:ne_binaries().
 scopes(Doc) ->
