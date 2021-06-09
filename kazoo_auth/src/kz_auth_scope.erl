@@ -9,7 +9,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_auth_scope).
 
--include("kazoo_auth.hrl").
+-include("kz_auth_scope.hrl").
 
 -export([has/2
         ,any/2
@@ -27,23 +27,11 @@
         ,split/1
         ]).
 
--export([maybe_deny_access/2]).
-
 -export([scope_doc_id/1
-        ,scope_rules_doc_id/1
+        ,normalize_doc_id/1
         ]).
 
--define(SCOPE_DOC_ID_PREFIX, "scope_definition-").
--define(SCOPE_RULE_DOC_ID_PREFIX, "scope_rule-").
-
--define(SCOPE_DELIM, <<":">>).
--define(SCOPE_SEP, <<" ">>).
--define(SCOPES_CAT, <<"system_auth">>).
--define(SCOPES_LIST, <<"scopes/crossbar_listing">>).
-
 -define(DEFAULT_MISSING_USER_TYPE_SCOPE, <<"other">>).
-
--define(CATCH_ALL, <<"*">>).
 
 -type jwt() :: map().
 -type token() :: jwt() | kz_term:ne_binary() | 'undefined'.
@@ -413,97 +401,19 @@ to_str(List, Delim)
     Scopes = lists:map(fun kz_term:to_binary/1, List),
     kz_binary:join(Scopes, Delim).
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec join(kz_term:ne_binaries()) -> kz_term:ne_binary().
 join(ScopeList) -> binstr:join(ScopeList, ?SCOPE_SEP).
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec split(kz_term:ne_binary()) -> kz_term:ne_binaries().
 split(Scope) -> binary:split(Scope, ?SCOPE_SEP, ['global']).
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec maybe_deny_access(AuthDoc::kz_json:object(), Options::kz_term:proplist()) -> boolean().
-maybe_deny_access(AuthDoc, Options) ->
-    Scopes = split(kz_json:get_binary_value(<<"scope">>, AuthDoc, <<>>)),
-    Transport = props:get_value('transport', Options),
-    maybe_deny_access(AuthDoc, Options, Scopes, Transport).
-
-maybe_deny_access(_, _, [], _) ->
-    'false';
-maybe_deny_access(_, _, _, 'undefined') ->
-    lager:warning("scope transport is undefined"),
-    'false';
-maybe_deny_access(AuthDoc, Options, Scopes, Transport) ->
-    case kz_module:is_exported(Transport, 'maybe_deny_scopes', 3) of
-        'true' ->
-            call_transport(AuthDoc, Options, Scopes, Transport);
-        'false' ->
-            lager:debug("invalid scope transport ~s", [Transport]),
-            'false'
-    end.
-
-call_transport(AuthDoc, Options, Scopes, Transport) ->
-    ScopeRestrcitionIds = [scope_rules_doc_id(Scope) || Scope <- Scopes],
-    State = #{auth_doc => kz_json:to_map(AuthDoc)
-             ,scopes => Scopes
-             ,restrcition_ids => ScopeRestrcitionIds
-             ,transport => Transport
-             ,options => maps:from_list(Options)
-             },
-    Funs = [fun fetch_system_restrictions/1
-           ,fun fetch_reseller_restrictions/1
-           ,fun fetch_account_restrictions/1
-           ],
-    maybe_deny_scopes(Funs, State).
-
-maybe_deny_scopes([], #{}) ->
-    'false';
-maybe_deny_scopes([FetchFun | FetchFuns], #{transport := Transport} = State) ->
-    Restrictions = FetchFun(State),
-    case kz_term:is_not_empty(Restrictions)
-        andalso Transport:maybe_deny_scopes(Restrictions, State)
-    of
-        'true' -> 'true';
-        'false' -> maybe_deny_scopes(FetchFuns, State)
-    end.
-
-fetch_system_restrictions(State) -> fetch_restrictions(?SCOPES_CAT, State).
-
-fetch_reseller_restrictions(#{auth_doc := #{account_id := AccountId}}=State) ->
-    case kz_services_reseller:is_reseller(AccountId) of
-        'true' -> [];
-        'false' ->
-            case kz_services_reseller:get_id(AccountId) of
-                'undefined' -> [];
-                ResellerId -> fetch_restrictions(ResellerId, State)
-            end
-    end.
-
-fetch_account_restrictions(#{auth_doc := #{account_id := AccountId}}=State) ->
-    fetch_restrictions(AccountId, State).
-
-fetch_restrictions(Db, #{restrcition_ids := DocIds}) ->
-    case kz_datamgr:open_docs(Db, DocIds) of
-        {'ok', JObjs} ->
-            [Doc || JObj <- JObjs,
-                    Doc <- [kz_json:get_ne_json_value(<<"doc">>, JObj)],
-                    Doc =/= 'undefined'
-            ];
-        {'error', _Reason} ->
-            lager:debug("failed to fetch scope restrictions from ~s: ~p", [Db, _Reason]),
-            []
-    end.
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec scope_rules_doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
-scope_rules_doc_id(<<?SCOPE_RULE_DOC_ID_PREFIX, _/binary>> = Id) ->
-    normalize_doc_id(Id);
-scope_rules_doc_id(Scope) ->
-    normalize_doc_id(<<?SCOPE_RULE_DOC_ID_PREFIX, Scope/binary>>).
 
 %%------------------------------------------------------------------------------
 %% @doc
