@@ -770,8 +770,8 @@ scopes(Doc, Default) ->
     kz_json:get_list_value([<<"scopes">>], Doc, Default).
 
 -spec set_scopes(doc(), kz_term:ne_binaries()) -> doc().
-set_scopes(Doc, scopes) ->
-    kz_json:set_value([<<"scopes">>], scopes, Doc).
+set_scopes(Doc, Scopes) ->
+    kz_json:set_value([<<"scopes">>], Scopes, Doc).
 
 
 -spec type() -> kz_term:ne_binary().
