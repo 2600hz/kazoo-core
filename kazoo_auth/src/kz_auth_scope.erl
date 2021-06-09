@@ -62,16 +62,6 @@ has(Token, Scope) ->
     has_scopes(Token, [Scope], fun lists:all/2).
 
 %%------------------------------------------------------------------------------
-%% @doc checks if scope is defined in system_auth
-%% @end
-%%------------------------------------------------------------------------------
--spec exists(kz_term:ne_binary() | kz_term:binaries()) -> boolean().
-exists(<<Scope/binary>>) ->
-    exists(to_list(Scope));
-exists(Scope) ->
-    lists:member(Scope, available_scopes()).
-
-%%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
@@ -96,13 +86,39 @@ available_scopes() ->
     Scopes = fetch_scopes(?SCOPES_LIST, Options),
     maybe_flatten_scopes(Scopes).
 
--spec available_scopes(atom() | kz_term:ne_binary()) -> kz_term:proplist().
+-spec available_scopes(atom() | kz_term:ne_binary() | kz_term:ne_binaries()) -> kz_term:proplist().
 available_scopes(Scope) when is_atom(Scope) ->
     available_scopes(kz_term:to_binary(Scope));
 available_scopes(ScopeBin) ->
     Options = [{'key', ScopeBin}],
     Scopes = fetch_scopes(?SCOPES_LIST, Options),
     maybe_flatten_scopes(Scopes).
+
+%%------------------------------------------------------------------------------
+%% @doc Filters a list of scopes by owner
+%% @end
+%%------------------------------------------------------------------------------
+-spec fetch_scopes(kz_term:ne_binary(), kazoo_data:view_options()) -> kz_term:ne_binaries().
+fetch_scopes(View, ViewOptions) ->
+    fetch_scopes(?SCOPES_CAT, View, ViewOptions).
+
+-spec fetch_scopes(kz_term:ne_binary(), kz_term:ne_binary(), kazoo_data:view_options()) ->
+          kz_term:ne_binaries().
+fetch_scopes(Db, View, ViewOptions) ->
+    case kz_datamgr:get_results(Db, View, ViewOptions) of
+        {'ok', Scopes} -> Scopes;
+        _ -> []
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc checks if scope is defined in system_auth
+%% @end
+%%------------------------------------------------------------------------------
+-spec exists(kz_term:ne_binary() | kz_term:binaries()) -> boolean().
+exists(<<Scope/binary>>) ->
+    exists(to_list(Scope));
+exists(Scope) ->
+    lists:member(Scope, available_scopes()).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -131,20 +147,149 @@ maybe_explode_scopes(ScopeId, Scopes, Acc) ->
     [{ScopeId, Scopes} | Acc].
 
 %%------------------------------------------------------------------------------
-%% @doc Filters a list of scopes by owner
+%% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_scopes(kz_term:ne_binary(), kazoo_data:view_options()) -> kz_term:ne_binaries().
-fetch_scopes(View, ViewOptions) ->
-    fetch_scopes(?SCOPES_CAT, View, ViewOptions).
+-spec scopes(token()) -> kz_term:ne_binaries().
+scopes('undefined') -> [];
+scopes(JWToken)
+  when is_binary(JWToken) ->
+    scopes(kz_auth_jwt:token(JWToken));
+scopes(Token) ->
+    Routines = [fun init_scopes/1
+               ,fun from_claim/1
+               ,fun resolve_scopes/1
+               ,fun explode_scopes/1
+               ],
+    #{scopes := Scopes} = kz_maps:exec(Routines, Token),
+    Scopes.
 
--spec fetch_scopes(kz_term:ne_binary(), kz_term:ne_binary(), kazoo_data:view_options()) ->
-          kz_term:ne_binaries().
-fetch_scopes(Db, View, ViewOptions) ->
-    case kz_datamgr:get_results(Db, View, ViewOptions) of
-        {'ok', Scopes} -> Scopes;
-        _ -> []
+%%------------------------------------------------------------------------------
+%% @doc Initialize jwt token map
+%% @end
+%%------------------------------------------------------------------------------
+-spec init_scopes(jwt()) -> jwt().
+init_scopes(Token) ->
+    Token#{scopes => []}.
+
+%%------------------------------------------------------------------------------
+%% @doc Extracts scope claim from token
+%% @end
+%%------------------------------------------------------------------------------
+-spec from_claim(jwt()) -> jwt().
+from_claim(#{scopes := Scopes
+            ,payload := #{<<"scope">> := Scope}
+            } = Token) ->
+    Token#{scopes => Scopes ++ to_list(Scope, ?SCOPE_SEP)};
+from_claim(Token) -> Token.
+
+%%------------------------------------------------------------------------------
+%% @doc Explode Token Scopes
+%% Transforms "a:b" into ["a", "a:b"]
+%% Transforms "a:b:c" into ["a", "a:b", "a:b:c"]
+%% @end
+%%------------------------------------------------------------------------------
+-spec explode_scopes(jwt()) -> jwt().
+explode_scopes(#{scopes := Scopes} = Token) ->
+    NewScopes = lists:foldl(fun explode_scopes_fold/2, [], Scopes),
+    Token#{scopes => NewScopes}.
+
+explode_scopes_fold(Scope, Acc) ->
+    Acc ++ lists:foldl(fun explode_scope_fold/2, [], to_list(Scope, ?SCOPE_DELIM)).
+
+explode_scope_fold(Scope, Acc) ->
+    Acc ++ [kz_binary:join(lists:filter(fun kz_term:is_not_empty/1, [last(Acc), Scope]), <<":">>)].
+
+last([]) -> <<>>;
+last(List) -> lists:last(List).
+
+%%------------------------------------------------------------------------------
+%% @doc Resolves superset scopes
+%% @end
+%%------------------------------------------------------------------------------
+-spec resolve_scopes(jwt()) -> jwt().
+resolve_scopes(#{scopes := Scopes
+                ,scopes_available := Available
+                } = Token) ->
+    Resolved = resolve_scopes(Scopes, Available),
+    Token#{scopes => lists:usort(Scopes ++ Resolved)};
+resolve_scopes(#{scopes := _} = Token) ->
+    Available = available_scopes(),
+    resolve_scopes(Token#{scopes_available => Available}).
+
+-spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist()) -> kz_term:ne_binaries().
+resolve_scopes(Scopes, Available) ->
+    resolve_scopes(Scopes, Available, []).
+
+-spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
+resolve_scopes(Scopes, Available, Visited) ->
+    {NewScopes, _} = lists:mapfoldl(fun resolve_scopes_fold/2, {Available, Visited}, Scopes),
+    lists:flatten(NewScopes).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+resolve_scopes_fold(Scope, {Available, Visited}) ->
+    case lists:member(Scope, Visited) of
+        'true' ->
+            {[Scope], {Available, Visited}};
+        'false' ->
+            case props:get_value(Scope, Available, []) of
+                [] -> {[Scope], {Available, [Scope | Visited]}};
+                Scopes -> {[Scope | resolve_scopes(Scopes, Available, [Scope | Visited])], {Available, [Scope | Visited]}}
+            end
     end.
+
+%%------------------------------------------------------------------------------
+%% @doc Extract scope binary into list of subscopes
+%% @end
+%%------------------------------------------------------------------------------
+-spec to_list(kz_term:ne_binary() | kz_term:ne_binaries()) ->
+          [kz_term:ne_binary() | kz_term:ne_binaries()].
+to_list(<<ScopeBin/binary>>) ->
+    Scopes = to_list(ScopeBin, ?SCOPE_SEP),
+    to_list(Scopes);
+to_list(ScopeList) ->
+    lists:map(fun to_list_by_delim/1, ScopeList).
+
+to_list_by_delim(S) ->
+    case to_list(S, ?SCOPE_DELIM) of
+        [S] -> S;
+        Else -> Else
+    end.
+
+-spec to_list(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary() | kz_term:ne_binaries().
+to_list(<<ScopeBin/binary>>, Delim) ->
+    binary:split(ScopeBin, Delim, ['global']).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec to_str(kz_term:api_binary() | list()) -> kz_term:api_binary().
+to_str(Scope)
+  when is_binary(Scope) ->
+    Scope;
+to_str('undefined') ->
+    'undefined';
+to_str([]) ->
+    'undefined';
+to_str(List)
+  when is_list(List) ->
+    Fun = fun(S) -> to_str(S, ?SCOPE_DELIM) end,
+    ScopeList = lists:map(Fun, List),
+    to_str(ScopeList, ?SCOPE_SEP);
+to_str(_Other) -> 'undefined'.
+
+-spec to_str(kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:ne_binary()) -> kz_term:ne_binary().
+to_str(Scope, _Delim)
+  when is_binary(Scope) ->
+    Scope;
+to_str(List, Delim)
+  when is_list(List) ->
+    Scopes = lists:map(fun kz_term:to_binary/1, List),
+    kz_binary:join(Scopes, Delim).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -253,153 +398,6 @@ get_account_scopes(<<AccountId/binary>>) ->
     end;
 get_account_scopes(_) ->
     [].
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec scopes(token()) -> kz_term:ne_binaries().
-scopes('undefined') -> [];
-scopes(JWToken)
-  when is_binary(JWToken) ->
-    scopes(kz_auth_jwt:token(JWToken));
-scopes(Token) ->
-    Routines = [fun init_scopes/1
-               ,fun from_claim/1
-               ,fun resolve_scopes/1
-               ,fun explode_scopes/1
-               ],
-    #{scopes := Scopes} = kz_maps:exec(Routines, Token),
-    Scopes.
-
-%%------------------------------------------------------------------------------
-%% @doc Initialize jwt token map
-%% @end
-%%------------------------------------------------------------------------------
--spec init_scopes(jwt()) -> jwt().
-init_scopes(Token) ->
-    Token#{scopes => []}.
-
-%%------------------------------------------------------------------------------
-%% @doc Extracts scope claim from token
-%% @end
-%%------------------------------------------------------------------------------
--spec from_claim(jwt()) -> jwt().
-from_claim(#{scopes := Scopes
-            ,payload := #{<<"scope">> := Scope}
-            } = Token) ->
-    Token#{scopes => Scopes ++ to_list(Scope, ?SCOPE_SEP)};
-from_claim(Token) -> Token.
-
-%%------------------------------------------------------------------------------
-%% @doc Explode Token Scopes
-%% Transforms "a:b" into ["a", "a:b"]
-%% Transforms "a:b:c" into ["a", "a:b", "a:b:c"]
-%% @end
-%%------------------------------------------------------------------------------
--spec explode_scopes(jwt()) -> jwt().
-explode_scopes(#{scopes := Scopes} = Token) ->
-    NewScopes = lists:foldl(fun explode_scopes_fold/2, [], Scopes),
-    Token#{scopes => NewScopes}.
-
-explode_scopes_fold(Scope, Acc) ->
-    Acc ++ lists:foldl(fun explode_scope_fold/2, [], to_list(Scope, ?SCOPE_DELIM)).
-
-explode_scope_fold(Scope, Acc) ->
-    Acc ++ [kz_binary:join(lists:filter(fun kz_term:is_not_empty/1, [last(Acc), Scope]), <<":">>)].
-
-last([]) -> <<>>;
-last(List) -> lists:last(List).
-
-%%------------------------------------------------------------------------------
-%% @doc Resolves superset scopes
-%% @end
-%%------------------------------------------------------------------------------
--spec resolve_scopes(jwt()) -> jwt().
-resolve_scopes(#{scopes := Scopes
-                ,scopes_available := Available
-                } = Token) ->
-    Resolved = resolve_scopes(Scopes, Available),
-    Token#{scopes => lists:usort(Scopes ++ Resolved)};
-resolve_scopes(#{scopes := _} = Token) ->
-    Available = available_scopes(),
-    resolve_scopes(Token#{scopes_available => Available}).
-
--spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist()) -> kz_term:ne_binaries().
-resolve_scopes(Scopes, Available) ->
-    resolve_scopes(Scopes, Available, []).
-
--spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
-resolve_scopes(Scopes, Available, Visited) ->
-    {NewScopes, _} = lists:mapfoldl(fun resolve_scopes_fold/2, {Available, Visited}, Scopes),
-    lists:flatten(NewScopes).
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
-resolve_scopes_fold(Scope, {Available, Visited}) ->
-    case lists:member(Scope, Visited) of
-        'true' ->
-            {[Scope], {Available, Visited}};
-        'false' ->
-            case props:get_value(Scope, Available, []) of
-                [] -> {[Scope], {Available, [Scope | Visited]}};
-                Scopes -> {[Scope | resolve_scopes(Scopes, Available, [Scope | Visited])], {Available, [Scope | Visited]}}
-            end
-    end.
-
-%%------------------------------------------------------------------------------
-%% @doc Extract scope binary into list of subscopes (internal usage).
-%%
-%% api:read_only results in `[api, read_only]'.
-%% @end
-%%------------------------------------------------------------------------------
--spec to_list(kz_term:ne_binary() | kz_term:ne_binaries()) ->
-          [kz_term:ne_binary() | kz_term:ne_binaries()].
-to_list(<<ScopeBin/binary>>) ->
-    Scopes = to_list(ScopeBin, ?SCOPE_SEP),
-    to_list(Scopes);
-to_list(ScopeList) ->
-    lists:map(fun to_list_by_delim/1, ScopeList).
-
-to_list_by_delim(S) ->
-    case to_list(S, ?SCOPE_DELIM) of
-        [S] -> S;
-        Else -> Else
-    end.
-
--spec to_list(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary() | kz_term:ne_binaries().
-to_list(<<ScopeBin/binary>>, Delim) ->
-    binary:split(ScopeBin, Delim, ['global']).
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec to_str(kz_term:api_binary() | list()) -> kz_term:api_binary().
-to_str(Scope)
-  when is_binary(Scope) ->
-    Scope;
-to_str('undefined') ->
-    'undefined';
-to_str([]) ->
-    'undefined';
-to_str(List)
-  when is_list(List) ->
-    Fun = fun(S) -> to_str(S, ?SCOPE_DELIM) end,
-    ScopeList = lists:map(Fun, List),
-    to_str(ScopeList, ?SCOPE_SEP);
-to_str(_Other) -> 'undefined'.
-
--spec to_str(kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:ne_binary()) -> kz_term:ne_binary().
-to_str(Scope, _Delim)
-  when is_binary(Scope) ->
-    Scope;
-to_str(List, Delim)
-  when is_list(List) ->
-    Scopes = lists:map(fun kz_term:to_binary/1, List),
-    kz_binary:join(Scopes, Delim).
 
 %%------------------------------------------------------------------------------
 %% @doc
