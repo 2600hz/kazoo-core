@@ -20,6 +20,8 @@
 -define(TOKENS_CACHE, 'kazoo_auth_tokens_cache').
 -define(PROFILE_CACHE, 'kazoo_auth_profile_cache').
 
+-define(EXPAND_CACHE, 'kazoo_auth_scope_expand_cache').
+
 -define(APPID_KEYS, [<<"app_id">>
                     ,<<"clientId">>
                     ,<<"client_id">>

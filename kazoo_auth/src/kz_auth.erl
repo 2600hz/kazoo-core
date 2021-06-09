@@ -41,7 +41,13 @@ validate_token(Token) ->
           {'error', any()}.
 validate_token(JWToken, Options) ->
     case kz_auth_jwt:token(JWToken, Options) of
-        #{verify_result := 'true'} = Token -> validate_claims(Token, Options);
+        #{verify_result := 'true'} = Token ->
+            case validate_claims(Token, Options) of
+                {'ok', Claims} ->
+                    {'ok', kz_auth_scope_expand:lookup_with_claim(Claims)};
+                {'error',_}=Error ->
+                    Error
+            end;
         #{verify_result := 'false', verify_error := Error} -> {'error', Error};
         Error -> Error
     end.

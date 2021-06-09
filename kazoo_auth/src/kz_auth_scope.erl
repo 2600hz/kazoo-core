@@ -108,7 +108,7 @@ available_scopes() ->
     Scopes = fetch_scopes(?SCOPES_LIST, Options),
     maybe_flatten_scopes(Scopes).
 
--spec available_scopes(atom() | kz_term:ne_binary()) -> kz_term:binaries().
+-spec available_scopes(atom() | kz_term:ne_binary()) -> kz_term:proplist().
 available_scopes(Scope) when is_atom(Scope) ->
     available_scopes(kz_term:to_binary(Scope));
 available_scopes(ScopeBin) ->
