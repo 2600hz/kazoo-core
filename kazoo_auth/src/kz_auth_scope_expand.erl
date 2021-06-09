@@ -145,8 +145,7 @@ handle_call({'lookup_scopes', Scopes}, _From, State) ->
 handle_call({'debug', 'dump'}, _From, State) ->
     {'reply', State, State};
 handle_call(_Request, _From, State) ->
-    {'noreply', State}.
-    % {'reply', {'error', 'not_implemented'}, State}.
+    {'reply', {'error', 'not_implemented'}, State}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling cast messages
@@ -175,7 +174,6 @@ handle_info(_Info, State) ->
 %% terminate. It should be the opposite of Module:init/1 and do any
 %% necessary cleaning up. When it returns, the gen_server terminates
 %% with Reason. The return value is ignored.
-%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
@@ -184,7 +182,6 @@ terminate(Reason, _State) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Convert process state when code is changed
-%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec code_change(any(), state(), any()) -> {'ok', state()}.
@@ -199,6 +196,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec lookup_scopes(kz_term:ne_binaries(), state(), kz_term:ne_binaries()) ->
+          {kz_term:ne_binaries(), state()}.
 lookup_scopes([], State, Acc) ->
     {lists:reverse(Acc), State};
 lookup_scopes([Scope | Scopes], State, Acc) ->
@@ -209,7 +208,8 @@ lookup_scopes([Scope | Scopes], State, Acc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec lookup_scope(state(), kz_term:ne_binary(), non_neg_integer()) -> kz_term:ne_binaries().
+-spec lookup_scope(state(), kz_term:ne_binary(), non_neg_integer()) ->
+          {state(), non_neg_integer(), kz_term:ne_binaries()}.
 lookup_scope(State, Scope, ExpandLevel) ->
     case maps:get(Scope, State, 'undefined') of
         'undefined' ->
@@ -223,6 +223,9 @@ lookup_scope(State, Scope, ExpandLevel) ->
             {State, ExpandLevel, Result}
     end.
 
+-spec fetch_expand(state(), kz_term:ne_binary(), non_neg_integer()) ->
+          'undefined' |
+          {state(), non_neg_integer(), kz_term:ne_binaries()}.
 fetch_expand(_State, _Scope, ExpandLevel) when ?MAX_EXPAND_LEVEL < ExpandLevel ->
     lager:warning("reached to maximum loop to expand scope '~s', giving up...", [_Scope]),
     'undefined';

@@ -264,7 +264,7 @@ to_list(<<ScopeBin/binary>>, Delim) ->
     binary:split(ScopeBin, Delim, ['global']).
 
 %%------------------------------------------------------------------------------
-%% @doc
+%% @doc Converts scope list to space separated binary
 %% @end
 %%------------------------------------------------------------------------------
 -spec to_str(kz_term:api_binary() | list()) -> kz_term:api_binary().
@@ -313,6 +313,7 @@ create_claims(Claims) ->
             props:set_value(<<"scope">>, Scope, props:delete_keys([<<"scopes">>], Claims))
     end.
 
+-spec get_requested_scopes(kz_term:proplist(), kz_json:object()) -> kz_term:ne_binaries().
 get_requested_scopes(Claims, UserJObj) ->
     Scopes = props:get_value(<<"scopes">>, Claims, []),
     AccountId = props:get_value(<<"account_id">>, Claims),
@@ -328,8 +329,8 @@ get_requested_scopes(Claims, UserJObj) ->
           kz_term:ne_binaries().
 get_requested_scopes(Scopes, AccountId, UserJObj) ->
     AccountType = account_type(AccountId),
-    Options = [{'keys', [[ScopeName, [AccountType, PrivLevel]]
-                         || ScopeName <- Scopes,
+    Options = [{'keys', [[ScopeId, [AccountType, PrivLevel]]
+                         || ScopeId <- Scopes,
                             PrivLevel <- user_type_query(UserJObj)
                         ]
                }
@@ -340,6 +341,7 @@ get_requested_scopes(Scopes, AccountId, UserJObj) ->
         _ -> []
     end.
 
+-spec account_type(kz_term:ne_binary()) -> kz_term:ne_binary().
 account_type(AccountId) ->
     case kapps_util:account_type(AccountId) of
         'regular' -> <<"non-reseller">>;
@@ -347,11 +349,13 @@ account_type(AccountId) ->
     end.
 
 %% Should we allow catch all for account?
+%% -spec account_type_query(kz_term:api_ne_binary()) -> kz_term:ne_binaries().
 %% account_type_query('undefined') ->
 %%     [?CATCH_ALL];
 %% account_type_query(AccountId) ->
 %%     [kz_term:to_binary(kapps_util:account_type(AccountId)), ?CATCH_ALL].
 
+-spec user_type_query(kz_term:api_ne_binary()) -> kz_term:ne_binaries().
 user_type_query('undefined') ->
     [?CATCH_ALL];
 user_type_query(UserJObj) ->
@@ -374,11 +378,13 @@ get_user_doc(<<AccountId/binary>>, <<OwnerId/binary>>) ->
 get_user_doc(_, _) ->
     'undefined'.
 
+-spec get_user_scopes(kz_term:api_object()) -> kz_term:ne_binaries().
 get_user_scopes('undefined') ->
     [];
 get_user_scopes(JObj) ->
     [user_type_scope(kzd_users:priv_level(JObj)) | kzd_users:scopes(JObj)].
 
+-spec user_type_scope(kz_term:ne_binary()) -> kz_term:ne_binary().
 user_type_scope(PrivLevel) -> <<"user:", PrivLevel/binary>>.
 
 -spec get_account_scopes(kz_term:api_ne_binary()) -> kz_term:ne_binaries().
