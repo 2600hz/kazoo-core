@@ -8,6 +8,7 @@
 -export([new/0]).
 -export([application/1, application/2, set_application/2]).
 -export([description/1, description/2, set_description/2]).
+-export([precedence/1, precedence/2, set_precedence/2]).
 -export([rules/1, rules/2, set_rules/2]).
 -export([scope_name/1, scope_name/2, set_scope_name/2]).
 -export([transport/1, transport/2, set_transport/2]).
@@ -47,6 +48,18 @@ description(Doc, Default) ->
 -spec set_description(doc(), binary()) -> doc().
 set_description(Doc, Description) ->
     kz_json:set_value([<<"description">>], Description, Doc).
+
+-spec precedence(doc()) -> binary().
+precedence(Doc) ->
+    precedence(Doc, <<"allow">>).
+
+-spec precedence(doc(), Default) -> binary() | Default.
+precedence(Doc, Default) ->
+    kz_json:get_binary_value([<<"precedence">>], Doc, Default).
+
+-spec set_precedence(doc(), binary()) -> doc().
+set_precedence(Doc, Precedence) ->
+    kz_json:set_value([<<"precedence">>], Precedence, Doc).
 
 -spec rules(doc()) -> any().
 rules(Doc) ->

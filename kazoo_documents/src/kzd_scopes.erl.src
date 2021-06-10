@@ -10,7 +10,6 @@
 -export([id/1, id/2, set_id/2]).
 -export([name/1, name/2, set_name/2]).
 -export([permissions/1, permissions/2, set_permissions/2]).
--export([precedence/1, precedence/2, set_precedence/2]).
 -export([scopes/1, scopes/2, set_scopes/2]).
 
 
@@ -72,18 +71,6 @@ permissions(Doc, Default) ->
 -spec set_permissions(doc(), kz_term:ne_binaries()) -> doc().
 set_permissions(Doc, Permissions) ->
     kz_json:set_value([<<"permissions">>], Permissions, Doc).
-
--spec precedence(doc()) -> binary().
-precedence(Doc) ->
-    precedence(Doc, <<"allow">>).
-
--spec precedence(doc(), Default) -> binary() | Default.
-precedence(Doc, Default) ->
-    kz_json:get_binary_value([<<"precedence">>], Doc, Default).
-
--spec set_precedence(doc(), binary()) -> doc().
-set_precedence(Doc, Precedence) ->
-    kz_json:set_value([<<"precedence">>], Precedence, Doc).
 
 -spec scopes(doc()) -> kz_term:ne_binaries().
 scopes(Doc) ->
