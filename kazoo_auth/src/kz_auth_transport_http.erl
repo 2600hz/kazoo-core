@@ -9,42 +9,45 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_auth_transport_http).
 
--export([maybe_deny_scopes/2]).
--include("kazoo_auth.hrl").
+-export([maybe_deny_access/4]).
+
+-include("kz_auth_scope.hrl").
 
 %%%------------------------------------------------------------------------------
 %%% @doc
 %%% @end
 %%%------------------------------------------------------------------------------
--spec maybe_deny_scopes(Restrictions::kz_json:objects(), State::map()) -> boolean().
-maybe_deny_scopes([], _) ->
+-spec maybe_deny_access(AuthDoc::kz_json:object()
+                       ,HttpPath::binary() | kz_term:binaries()
+                       ,HttpMethod::kz_term:api_ne_binary()
+                       ,Rules::kz_json:objects()
+                       ) -> boolean().
+maybe_deny_access(_, _, 'undefined', _) ->
     'false';
-maybe_deny_scopes([Restriction | Restrictions], #{options := #{http_path := ReqPath}}=State) ->
-    case kz_term:is_empty(ReqPath) of
+maybe_deny_access(AuthDoc, HttpPath, HttpMethod, Rules) ->
+    case kz_term:is_empty(HttpPath) of
         'true' -> 'false';
         'false' ->
-            case is_match_endpoint(path_tokens(ReqPath), get_method_rules(State, Restriction)) of
-                'true' -> 'true';
-                'false' -> maybe_deny_scopes(Restrictions, State)
-            end
-    end;
-maybe_deny_scopes(_, _) ->
-    'false'.
-
--spec get_method_rules(State::map(), Restriction::kz_json:object()) -> kz_term:ne_binaries().
-get_method_rules(State, Restriction) ->
-    Options = maps:get('options', State, #{}),
-    case maps:get('http_method', Options, 'undefined') of
-        'undefined' -> [];
-        Method ->
-            HttpMethod = kz_term:to_lower_binary(Method),
-            Precedence = kz_json:get_ne_binary_value(<<"precedence">>, Restriction),
-            get_method_rules(kz_json:get_ne_binaries([<<"allow">>, HttpMethod], Restriction)
-                            ,kz_json:get_ne_binaries([<<"deny">>, HttpMethod], Restriction)
-                            ,kz_json:get_ne_binaries([<<"_">>, HttpMethod], Restriction)
-                            ,Precedence
-                            )
+            maybe_deny_access1(AuthDoc, path_tokens(HttpPath), HttpMethod, Rules)
     end.
+
+maybe_deny_access1(_, _, _, []) ->
+    'false';
+maybe_deny_access1(AuthDoc, Paths, HttpMethod, [Rule | Rules]) ->
+    case is_match_endpoint(Paths, get_method_rules(HttpMethod, Rule)) of
+        'true' -> 'true';
+        'false' -> maybe_deny_access(AuthDoc, Paths, HttpMethod, Rules)
+    end.
+
+-spec get_method_rules(kz_term:ne_binary(), kz_json:object()) -> kz_term:ne_binaries().
+get_method_rules(Method, Rule) ->
+    HttpMethod = kz_term:to_lower_binary(Method),
+    Precedence = kzd_scope_rules:precedence(Rule),
+    get_method_rules(kz_json:get_ne_binaries([<<"rules">>, <<"allow">>, HttpMethod], Rule)
+                    ,kz_json:get_ne_binaries([<<"rules">>, <<"deny">>, HttpMethod], Rule)
+                    ,kz_json:get_ne_binaries([<<"rules">>, <<"_">>, HttpMethod], Rule)
+                    ,Precedence
+                    ).
 
 -spec get_method_rules(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
           kz_term:ne_binaries().
@@ -59,24 +62,35 @@ get_method_rules(_Allow, _Deny, _Catchall, _Precedence) -> [].
 -spec path_token(binary()) -> binary().
 path_token(Token) -> kz_http_util:urldecode(Token).
 
--spec path_tokens(map()) -> kz_term:ne_binaries().
-path_tokens(#{options := #{http_path := <<Path/binary>>}}) ->
+-spec path_tokens(binary() | [binary()]) -> [binary()].
+path_tokens(<<Path/binary>>) ->
     [path_token(Token)
      || Token <- binary:split(Path, <<"/">>, ['global', 'trim'])
     ];
-path_tokens(#{options := #{http_path := [<<>>, _]=ReqPath}}) ->
+path_tokens([<<>>, _]=ReqPath) ->
     ReqPath;
-path_tokens(#{options := #{http_path := ReqPath}}) when is_list(ReqPath) ->
+path_tokens(ReqPath) when is_list(ReqPath) ->
     [<<>> | ReqPath].
 
--spec is_match_endpoint(kz_term:ne_binaries(), kz_term:ne_binaries()) -> boolean().
+-spec is_match_endpoint([binary()], kz_term:ne_binaries()) -> boolean().
 is_match_endpoint(_, []) ->
     'false';
-is_match_endpoint(PathParam, [Rule|Rules]) ->
-    case kazoo_bindings:matches(binary:split(Rule, <<"/">>, ['global', 'trim'])
-                               ,PathParam
-                               )
-    of
-        'false' -> is_match_endpoint(PathParam, Rules);
-        'true' -> 'true'
+is_match_endpoint(Paths, [Rule|Rules]) ->
+    case Rule of
+        <<"/", _binary>> ->
+            check_full_url(Paths, Rule)
+                orelse is_match_endpoint(Paths, Rules);
+        _Else ->
+            check_relative_url(Paths, path_tokens(Rule))
+                orelse is_match_endpoint(Paths, Rules)
     end.
+
+check_full_url(Paths, Rule) ->
+    kazoo_bindings:matches(binary:split(Rule, <<"/">>, ['global', 'trim'])
+                          ,Paths
+                          ).
+
+check_relative_url(Paths, [<<>>, Module | _]) ->
+    lists:member(Module, Paths);
+check_relative_url(_, _) ->
+    'false'.

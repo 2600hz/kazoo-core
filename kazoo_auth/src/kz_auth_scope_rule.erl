@@ -11,75 +11,36 @@
 
 -include("kz_auth_scope.hrl").
 
--export([maybe_deny_access/2]).
--export([scope_rules_doc_id/1]).
+-export([fetch_system/1]).
+-export([fetch_reseller/2]).
+-export([fetch_account/2]).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
-%%------------------------------------------------------------------------------
--spec maybe_deny_access(AuthDoc::kz_json:object(), Options::kz_term:proplist()) -> boolean().
-maybe_deny_access(AuthDoc, Options) ->
-    Scopes = kz_auth_scope:split(kz_json:get_binary_value(<<"scope">>, AuthDoc, <<>>)),
-    Transport = props:get_value('transport', Options),
-    maybe_deny_access(AuthDoc, Options, Scopes, Transport).
+%------------------------------------------------------------------------------
+-spec fetch_system(kz_term:ne_binaries()) -> kz_json:objects().
+fetch_system(Scopes) ->
+    fetch_rules(?SCOPES_CAT, Scopes).
 
-maybe_deny_access(_, _, [], _) ->
-    'false';
-maybe_deny_access(_, _, _, 'undefined') ->
-    lager:warning("scope transport is undefined"),
-    'false';
-maybe_deny_access(AuthDoc, Options, Scopes, Transport) ->
-    case kz_module:is_exported(Transport, 'maybe_deny_scopes', 3) of
-        'true' ->
-            call_transport(AuthDoc, Options, Scopes, Transport);
-        'false' ->
-            lager:debug("invalid scope transport ~s", [Transport]),
-            'false'
-    end.
-
-call_transport(AuthDoc, Options, Scopes, Transport) ->
-    ScopeRestrcitionIds = [scope_rules_doc_id(Scope) || Scope <- Scopes],
-    State = #{auth_doc => kz_json:to_map(AuthDoc)
-             ,scopes => Scopes
-             ,restrcition_ids => ScopeRestrcitionIds
-             ,transport => Transport
-             ,options => maps:from_list(Options)
-             },
-    Funs = [fun fetch_system_restrictions/1
-           ,fun fetch_reseller_restrictions/1
-           ,fun fetch_account_restrictions/1
-           ],
-    maybe_deny_scopes(Funs, State).
-
-maybe_deny_scopes([], #{}) ->
-    'false';
-maybe_deny_scopes([FetchFun | FetchFuns], #{transport := Transport} = State) ->
-    Restrictions = FetchFun(State),
-    case kz_term:is_not_empty(Restrictions)
-        andalso Transport:maybe_deny_scopes(Restrictions, State)
-    of
-        'true' -> 'true';
-        'false' -> maybe_deny_scopes(FetchFuns, State)
-    end.
-
-fetch_system_restrictions(State) -> fetch_restrictions(?SCOPES_CAT, State).
-
-fetch_reseller_restrictions(#{auth_doc := #{account_id := AccountId}}=State) ->
+-spec fetch_reseller(kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:objects().
+fetch_reseller(AccountId, Scopes) ->
     case kz_services_reseller:is_reseller(AccountId) of
         'true' -> [];
         'false' ->
             case kz_services_reseller:get_id(AccountId) of
                 'undefined' -> [];
-                ResellerId -> fetch_restrictions(ResellerId, State)
+                ResellerId -> fetch_rules(ResellerId, Scopes)
             end
     end.
 
-fetch_account_restrictions(#{auth_doc := #{account_id := AccountId}}=State) ->
-    fetch_restrictions(AccountId, State).
+-spec fetch_account(kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:objects().
+fetch_account(AccountId, Scopes) ->
+    fetch_rules(AccountId, Scopes).
 
-fetch_restrictions(Db, #{restrcition_ids := DocIds}) ->
-    case kz_datamgr:open_docs(Db, DocIds) of
+fetch_rules(Db, Scopes) ->
+    DocIds = [scope_rules_doc_id(Scope) || Scope <- Scopes],
+    case kz_datamgr:open_cache_docs(Db, DocIds) of
         {'ok', JObjs} ->
             [Doc || JObj <- JObjs,
                     Doc <- [kz_json:get_ne_json_value(<<"doc">>, JObj)],
