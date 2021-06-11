@@ -22,6 +22,7 @@
         ]).
 
 -export([create_claims/1]).
+-export([resolve_scopes/2]).
 
 -export([join/1
         ,split/1
@@ -83,27 +84,45 @@ has_scopes(Token, ScopeList, ListFun) ->
 -spec available_scopes() -> kz_term:proplist().
 available_scopes() ->
     Options = [],
-    Scopes = fetch_scopes(?SCOPES_LIST, Options),
-    maybe_flatten_scopes(Scopes).
+    get_scopes(?SCOPES_LIST, Options).
 
 -spec available_scopes(atom() | kz_term:ne_binary() | kz_term:ne_binaries()) -> kz_term:proplist().
 available_scopes(Scope) when is_atom(Scope) ->
     available_scopes(kz_term:to_binary(Scope));
-available_scopes(ScopeBin) ->
-    Options = [{'key', ScopeBin}],
-    Scopes = fetch_scopes(?SCOPES_LIST, Options),
-    maybe_flatten_scopes(Scopes).
+available_scopes(<<ScopeBin/binary>>) ->
+    Available = available_scopes(),
+    case props:get_value(ScopeBin, Available) of
+        'undefined' -> [];
+        Resolved -> [{ScopeBin, Resolved}]
+    end;
+available_scopes([]) ->
+    [];
+available_scopes(Scopes) when is_list(Scopes) ->
+    [{Scope, Resolved}
+     || {Scope, Resolved} <- available_scopes(),
+        lists:member(Scope, Scopes)
+    ].
 
 %%------------------------------------------------------------------------------
 %% @doc Filters a list of scopes by owner
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_scopes(kz_term:ne_binary(), kazoo_data:view_options()) -> kz_term:ne_binaries().
-fetch_scopes(View, ViewOptions) ->
-    fetch_scopes(?SCOPES_CAT, View, ViewOptions).
+-spec get_scopes(kz_term:ne_binary(), kazoo_data:view_options()) -> kz_json:objects().
+get_scopes(View, ViewOptions) ->
+    case kz_cache:fetch_local(?SCOPES_CACHE, 'available_scopes') of
+        {'ok', Scopes} ->
+            Scopes;
+        {'error', 'not_found'} ->
+            JObjs = fetch_scopes(?SCOPES_CAT, View, ViewOptions),
+            Scopes0 = maybe_flatten_scopes(JObjs),
+            Scopes = [{Scope, resolve_scopes([Scope], Scopes0)} || {Scope, _} <- Scopes0],
+            CacheProps = [{'origin', [{'db', ?SCOPES_CAT, <<"scope">>}]}],
+            kz_cache:store_local(?SCOPES_CACHE, 'available_scopes', Scopes, CacheProps),
+            Scopes
+    end.
 
 -spec fetch_scopes(kz_term:ne_binary(), kz_term:ne_binary(), kazoo_data:view_options()) ->
-          kz_term:ne_binaries().
+          kz_json:objects().
 fetch_scopes(Db, View, ViewOptions) ->
     case kz_datamgr:get_results(Db, View, ViewOptions) of
         {'ok', Scopes} -> Scopes;
@@ -208,15 +227,11 @@ last(List) -> lists:last(List).
 %% @end
 %%------------------------------------------------------------------------------
 -spec resolve_scopes(jwt()) -> jwt().
-resolve_scopes(#{scopes := Scopes
-                ,scopes_available := Available
-                } = Token) ->
-    Resolved = resolve_scopes(Scopes, Available),
-    Token#{scopes => lists:usort(Scopes ++ Resolved)};
-resolve_scopes(#{scopes := _} = Token) ->
-    Available = available_scopes(),
-    resolve_scopes(Token#{scopes_available => Available}).
+resolve_scopes(#{scopes := Scopes} = Token) ->
+    Available = available_scopes(Scopes),
+    resolve_scopes(Token#{scopes => lists:usort(Scopes ++ Available)}).
 
+%% Called by available_scopes to resolve/expand superset scopes.
 -spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist()) -> kz_term:ne_binaries().
 resolve_scopes(Scopes, Available) ->
     resolve_scopes(Scopes, Available, []).

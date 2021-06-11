@@ -28,6 +28,7 @@
         ,flush_private_keys/0
         ,flush_profiles/0
         ,flush_tokens/0
+        ,flush_available_scopes/0
         ]).
 
 -export([ensure_secret/0]).
@@ -97,7 +98,8 @@ register_common_scopes() ->
 flush() ->
     flush_private_keys(),
     flush_profiles(),
-    flush_tokens().
+    flush_tokens(),
+    flush_available_scopes().
 
 -spec flush_private_keys() -> 'ok'.
 flush_private_keys() ->
@@ -110,6 +112,10 @@ flush_profiles() ->
 -spec flush_tokens() -> 'ok'.
 flush_tokens() ->
     kz_cache:flush_local(?TOKENS_CACHE).
+
+-spec flush_available_scopes() -> 'ok'.
+flush_available_scopes() ->
+    kz_cache:flush_local(?SCOPES_CACHE).
 
 -spec ensure_secret() -> 'ok'.
 ensure_secret() ->
