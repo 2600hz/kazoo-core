@@ -134,7 +134,7 @@ maybe_flatten_scopes(Scopes) ->
 %% @end
 %%------------------------------------------------------------------------------
 flatten_scopes_fold(JObj, Acc) ->
-    ScopeId = kz_doc:id(JObj),
+    ScopeId = kz_json:get_ne_binary_value(<<"key">>, JObj),
     Scopes = kz_json:get_value([<<"value">>], JObj),
     maybe_explode_scopes(ScopeId, Scopes, Acc).
 
