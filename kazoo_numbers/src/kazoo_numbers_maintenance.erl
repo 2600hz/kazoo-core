@@ -18,17 +18,19 @@
 -export([carrier_module_usage/0
         ,carrier_module_usage/1
         ]).
+
 -export([convert_carrier_module/2
         ,convert_carrier_module/3
         ,convert_carrier_module_number/2
         ]).
+
 -export([refresh_numbers_dbs/0
         ,refresh_numbers_db/1
         ]).
+
 -export([init_dbs/0
         ,register_views/0
         ]).
-
 
 -export([copy_accounts_to_number_dbs/0
         ,copy_accounts_to_number_dbs/1
