@@ -1764,6 +1764,7 @@ maybe_find_endpoint_id_from_uri(Contact, Id) ->
     case kzsip_uri:uris(Contact) of
         [#uri{ext_opts=Opts1, opts=Opts2}] ->
             case props:get_value(<<"endpoint_id">>, Opts1 ++ Opts2) of
+                'undefined' -> Id;
                 Id -> Id;
                 EID ->
                     lager:info("using endpoint id ~s over authz id ~s", [EID, Id]),
