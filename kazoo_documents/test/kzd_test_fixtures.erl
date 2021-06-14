@@ -9,7 +9,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_test_fixtures).
 
--export([setup/0
+-export([setup/0, setup/1
         ,cleanup/1
         ]).
 
@@ -17,10 +17,10 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 setup() ->
-    ?LOG_DEBUG(":: Setting up Kazoo FixtureDB"),
+    setup('false').
 
-    {'ok', _} = application:ensure_all_started('kazoo_config'),
-    kazoo_fixturedb:start().
+setup(SilentLager) ->
+    kazoo_fixturedb:start(SilentLager).
 
 cleanup(LinkPid) ->
     _DataLink = erlang:exit(LinkPid, 'normal'),

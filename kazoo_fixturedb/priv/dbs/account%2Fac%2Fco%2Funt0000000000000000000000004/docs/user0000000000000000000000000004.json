@@ -220,6 +220,7 @@
     "pronounced_name": {
         "media_id": "media000000000000000000000000004"
     },
+    "pvt_signature_secret": "8dfd08ea5dcf3bd5734569c5a59bc8ee",
     "pvt_account_db": "account%2Fac%2Fco%2Funt0000000000000000000000004",
     "pvt_account_id": "account0000000000000000000000004",
     "pvt_auth_account_id": "account0000000000000000000000003",
