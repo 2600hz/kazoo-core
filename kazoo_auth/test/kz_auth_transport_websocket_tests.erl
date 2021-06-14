@@ -13,7 +13,8 @@
 -include("../src/kz_auth_scope.hrl").
 
 -define(ROUTE_1, <<"call.events.answered">>).
--define(ROUTE_2, <<"channel.created.*">>).
+-define(ROUTE_2, <<"channel.created.thats-a-lie">>).
+-define(ROUTE_3, <<"call.me.sometimes">>).
 
 maybe_deny_access_test_() ->
     AuthDoc = kz_json:new(),
@@ -25,45 +26,53 @@ maybe_deny_access_test_() ->
     PrecedenceAllow = fixture("rule-ws-precedence-allow.json"),
     PrecedenceDeny = fixture("rule-ws-precedence-deny.json"),
     NoPrecedence = fixture("rule-ws-no-precedence.json"),
+    AllowMatchAll = fixture("rule-ws-precedence-allow-matchall.json"),
+    DenyMatchAll = fixture("rule-ws-precedence-deny-matchall.json"),
 
-    [{"verify undefined routing_key returns false"
+    [{"undefined routing_key returns false"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, 'undefined', [Allow1]), 'false')
      }
-    ,{"verify empty routing_key returns false"
+    ,{"empty routing_key returns false"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, <<>>, [Allow1]), 'false')
      }
-    ,{"verify empty rule list returns false"
+    ,{"empty rule list returns false"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_1, []), 'false')
      }
-    ,{"verify allowed binding when using allowed only"
+    ,{"allowed binding when using allowed only"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_1, [Allow1]), 'false')
      }
-    ,{"verify allowed binding when multiple rules"
+    ,{"allowed binding when multiple rules"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_2, [Allow1, Allow2]), 'false')
      }
-    ,{"verify denied binding when multiple rules"
+    ,{"denied binding when multiple rules"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_2, [Deny1, Deny2]), 'true')
      }
-    ,{"verify allowing with rules order allow,deny"
+    ,{"allowing with rules order allow,deny"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_1, [Allow1, Deny1]), 'false')
      }
-    ,{"verify denying with rules order allow,deny"
+    ,{"denying with rules order allow,deny"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_1, [Deny1, Allow1]), 'true')
      }
-    ,{"verify allowing with precedence allow"
+    ,{"allowing with precedence allow"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_2, [PrecedenceAllow]), 'false')
      }
-    ,{"verify denying with precedence deny"
+    ,{"denying with precedence deny"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_2, [PrecedenceDeny]), 'true')
      }
-    ,{"verify allow when deny has no match with precedence deny"
+    ,{"allow when deny has no match with precedence deny"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_1, [PrecedenceDeny]), 'false')
      }
-    ,{"verify deny when allow has no match with precedence allow"
+    ,{"deny when allow has no match with precedence allow"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_1, [PrecedenceAllow]), 'true')
      }
-    ,{"verify not denying with rule doesn't have correct precedence value"
+    ,{"not denying with rule doesn't have correct precedence value"
      ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_1, [NoPrecedence]), 'false')
+     }
+    ,{"allowing catch all with allow precedence"
+     ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_3, [AllowMatchAll]), 'false')
+     }
+    ,{"denying catch all with deny precedence"
+     ,?_assertEqual(kz_auth_transport_websocket:maybe_deny_access(AuthDoc, ?ROUTE_3, [DenyMatchAll]), 'true')
      }
     ].
 

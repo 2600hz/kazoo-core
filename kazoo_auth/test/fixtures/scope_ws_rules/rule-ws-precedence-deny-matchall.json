@@ -1,0 +1,20 @@
+{
+    "_id": "scope_rule-ws_precedence_deny_match_all",
+    "application": "blackhole",
+    "description": "description",
+    "precedence": "deny",
+    "pvt_doc_type": "scope_rule",
+    "rules": {
+        "allow": [
+            "call.me.sometimes",
+            "call.events.*",
+            "channel.created.*"
+        ],
+        "deny": [
+            "channel.created.*",
+            "*"
+        ]
+    },
+    "scope_name": "ws_precedence_deny_match_all",
+    "transport": "websockets"
+}

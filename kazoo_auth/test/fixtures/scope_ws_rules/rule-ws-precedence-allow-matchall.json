@@ -1,0 +1,19 @@
+{
+    "_id": "scope_rule-ws_precedence_allow_match_all",
+    "application": "blackhole",
+    "description": "description",
+    "precedence": "allow",
+    "pvt_doc_type": "scope_rule",
+    "rules": {
+        "allow": [
+            "never.call.that.#",
+            "*"
+        ],
+        "deny": [
+            "call.me.sometimes",
+            "channel.created.*"
+        ]
+    },
+    "scope_name": "ws_precedence_allow_match_all",
+    "transport": "websockets"
+}

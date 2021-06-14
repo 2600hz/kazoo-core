@@ -68,6 +68,8 @@ maybe_deny_access(_RoutingParts, _Precedence, _, _, _) ->
 
 matches(_, []) ->
     'no_match';
+matches(_, [?MATCH_ALL_PERMISIONS | _]) ->
+    ?MATCH_ALL_PERMISIONS;
 matches(RoutingParts, [Binding | Bindings]) ->
     case kazoo_bindings:matches(binary:split(Binding, <<".">>, ['global']), RoutingParts) of
         'true' -> Binding;
