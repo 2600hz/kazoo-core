@@ -341,23 +341,28 @@ create_claims(Claims) ->
     AccountScopes = get_account_scopes(AccountId),
 
     ReqScopes = get_requested_scopes(Claims, UserJObj),
-    Scope = join(lists:usort(ReqScopes ++ UserScopes ++ AccountScopes)),
+    CallerScopes = props:get_value(<<"scopes">>, Claims, []),
+
+    DeleteKeys = [<<"scopes">>, <<"req_scopes">>],
+
+    %% TODO: to sort or not? if not in which order?
+    Scope = join(lists:usort(CallerScopes ++ ReqScopes ++ UserScopes ++ AccountScopes)),
     case kz_term:is_empty(Scope) of
         'true' ->
-            props:delete_keys([<<"scopes">>], Claims);
+            props:delete_keys(DeleteKeys, Claims);
         'false' ->
-            props:set_value(<<"scope">>, Scope, props:delete_keys([<<"scopes">>], Claims))
+            props:set_value(<<"scope">>, Scope, props:delete_keys(DeleteKeys, Claims))
     end.
 
 -spec get_requested_scopes(kz_term:proplist(), kz_json:object()) -> kz_term:ne_binaries().
 get_requested_scopes(Claims, UserJObj) ->
-    Scopes = props:get_value(<<"scopes">>, Claims, []),
+    ReqScopes = props:get_value(<<"req_scopes">>, Claims, []),
     AccountId = props:get_value(<<"account_id">>, Claims),
-    case kz_term:is_not_empty(Scopes)
+    case kz_term:is_not_empty(ReqScopes)
         andalso kz_term:is_not_empty(AccountId)
     of
         'true' ->
-            get_requested_scopes(Scopes, AccountId, UserJObj);
+            get_requested_scopes(ReqScopes, AccountId, UserJObj);
         'false' -> []
     end.
 
