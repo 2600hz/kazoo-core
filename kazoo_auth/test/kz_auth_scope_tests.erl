@@ -20,23 +20,24 @@
                           ,{<<"zyzzy">>, [<<"waldo">>, <<"fred:plugh">>]}
                           ,{<<"thud">>, [<<"baz:qux">>, <<"fred:plugh">>]}
                           ]).
--define(EXPECTED_SCOPES, [<<"bar">>
+-define(EXPECTED_SCOPES, [<<"foo">>
+                         ,<<"bar">>
                          ,<<"baz">>
                          ,<<"baz:qux">>
-                         ,<<"corge">>
-                         ,<<"foo">>
-                         ,<<"fred">>
-                         ,<<"fred:plugh">>
-                         ,<<"grault">>
-                         ,<<"grault:garply">>
                          ,<<"quux">>
-                         ,<<"waldo">>
                          ,<<"z">>
                          ,<<"z:y">>
                          ,<<"z:y:w">>
+                         ,<<"corge">>
+                         ,<<"grault">>
+                         ,<<"grault:garply">>
+                         ,<<"waldo">>
+                         ,<<"fred">>
+                         ,<<"fred:plugh">>
                          ]).
 -define(CLAIMS, [{<<"foo">>, <<"bar">>}]).
 
+-export([give_me_decoded_token/0]).
 
 key() ->
     {ok, Key} = kz_auth_keys:gen_private_key(),
@@ -65,7 +66,7 @@ transform_test_() ->
     ].
 
 
-has_test_() ->
+give_me_decoded_token() ->
     Key = key(),
     PK = kz_auth_keys:get_public_key_from_private_key(Key),
     Scope = kz_auth_scope:to_str(?ISSUED_SCOPES),
@@ -73,7 +74,10 @@ has_test_() ->
     Encoded = token(Key, Claims),
     {ok, T0} = kz_auth_jwt:parse(Encoded),
     T1 = T0#{jwt_public_key => PK},
-    Decoded = T1#{scopes_available => ?AVAILABLE_SCOPES},
+    T1#{scopes_available => lists:flatten(props:get_values(?AVAILABLE_SCOPES))}.
+
+has_test_() ->
+    Decoded = give_me_decoded_token(),
 
     [{"exploded scopes match"
      ,?_assertEqual(kz_auth_scope:scopes(Decoded), ?EXPECTED_SCOPES)
