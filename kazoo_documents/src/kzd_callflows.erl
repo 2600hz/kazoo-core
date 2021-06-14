@@ -343,7 +343,7 @@ do_validation(AccountId, CallflowId, ReqJObj, ValidateFuns) ->
 validate_either_numbers_or_patterns_is_set(_AccountId, _CallflowId, {Doc, Errors}=ValidateAcc) ->
     case {numbers(Doc, []), patterns(Doc, [])} of
         {[], []} ->
-            lager:error("callflows must be assigned at least one number or pattern"),
+            lager:warning("callflows must be assigned at least one number or pattern"),
             Msg = kz_json:from_list(
                     [{<<"message">>, <<"Callflows must be assigned at least one number or pattern">>}]
                    ),
@@ -374,8 +374,9 @@ maybe_validate_numbers(AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
             do_further_number_validation(AccountId, CallflowId, ValidateAcc);
         Numbers ->
             %% No need to add error as this will be added by schema check
-            lager:error("validation error, callflow's ~p is not of type list, value: ~p, skipping further number validation"
-                       ,[?KEY_NUMBERS, Numbers]),
+            lager:warning("validation error, callflow's ~p is not of type list, value: ~p, skipping further number validation"
+                         ,[?KEY_NUMBERS, Numbers]
+                         ),
             ValidateAcc
     end.
 
@@ -449,8 +450,9 @@ maybe_validate_patterns(AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
             do_further_pattern_validation(AccountId, CallflowId, ValidateAcc);
         Patterns ->
             %% No need to add error as this will be added by schema check
-            lager:error("validation error, callflow's ~p is not of type list, value: ~p, skipping further pattern validation"
-                       ,[?KEY_PATTERNS, Patterns]),
+            lager:warning("validation error, callflow's ~p is not of type list, value: ~p, skipping further pattern validation"
+                         ,[?KEY_PATTERNS, Patterns]
+                         ),
             ValidateAcc
     end.
 
@@ -600,7 +602,7 @@ add_attribute_conflict_error(Key, CallflowView, {Doc, Errors}) ->
     Id = kz_doc:id(CallflowView),
     Name = kz_json:get_ne_binary_value([<<"value">>, <<"name">>], CallflowView, <<>>),
     Number = kz_json:get_value(<<"key">>, CallflowView),
-    lager:error("validation error, ~p ~p exists in callflow ~s (~s)", [Key, Number, Id, Name]),
+    lager:warning("validation error, ~p ~p exists in callflow ~s (~s)", [Key, Number, Id, Name]),
     Msg = kz_json:from_list(
             [{<<"message">>, <<Number/binary, " exists in callflow ", Id/binary, " (", Name/binary, ")">>}
             ,{<<"cause">>, Number}
