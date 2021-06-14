@@ -240,12 +240,17 @@ last(List) -> lists:last(List).
 %% @end
 %%------------------------------------------------------------------------------
 -spec resolve_scopes(jwt()) -> jwt().
-resolve_scopes(#{available_scopes := Available
+resolve_scopes(#{scopes_available := Available
                 ,scopes := Scopes
                 } = Token) ->
-    resolve_scopes(Token#{scopes => kz_term:uniq_list(Scopes ++ Available)});
+    Token#{scopes => kz_term:uniq_list(Scopes ++ Available)};
 resolve_scopes(#{scopes := Scopes} = Token) ->
-    resolve_scopes(Token#{available_scopes => available_scopes(Scopes)}).
+    Available = kz_term:uniq_list(
+                  lists:flatten(
+                    props:get_values(available_scopes(Scopes))
+                   )
+                 ),
+    resolve_scopes(Token#{scopes_available => Available}).
 
 %% Called by available_scopes to resolve/expand superset scopes.
 -spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist()) -> kz_term:ne_binaries().
@@ -382,15 +387,15 @@ account_type(AccountId) ->
 %% Should we allow catch all for account?
 %% -spec account_type_query(kz_term:api_ne_binary()) -> kz_term:ne_binaries().
 %% account_type_query('undefined') ->
-%%     [?CATCH_ALL];
+%%     [?MATCH_ALL_PERMISIONS];
 %% account_type_query(AccountId) ->
-%%     [kz_term:to_binary(kapps_util:account_type(AccountId)), ?CATCH_ALL].
+%%     [kz_term:to_binary(kapps_util:account_type(AccountId)), ?MATCH_ALL_PERMISIONS].
 
 -spec user_type_query(kz_term:api_ne_binary()) -> kz_term:ne_binaries().
 user_type_query('undefined') ->
-    [?CATCH_ALL];
+    [?MATCH_ALL_PERMISIONS];
 user_type_query(UserJObj) ->
-    [kzd_users:priv_level(UserJObj), ?CATCH_ALL].
+    [kzd_users:priv_level(UserJObj), ?MATCH_ALL_PERMISIONS].
 
 -spec get_user_doc(kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> kz_term:api_object().
 get_user_doc(<<AccountId/binary>>, <<OwnerId/binary>>) ->
