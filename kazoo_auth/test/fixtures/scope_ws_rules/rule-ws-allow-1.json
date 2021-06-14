@@ -1,0 +1,14 @@
+{
+    "_id": "scope_rule-ws_allow_1",
+    "application": "blackhole",
+    "description": "description",
+    "precedence": "allow",
+    "pvt_doc_type": "scope_rule",
+    "rules": {
+        "allow": [
+            "call.events.*"
+        ]
+    },
+    "scope_name": "ws_allow_1",
+    "transport": "websockets"
+}

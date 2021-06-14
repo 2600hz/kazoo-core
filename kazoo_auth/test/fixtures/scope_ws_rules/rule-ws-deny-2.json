@@ -1,0 +1,14 @@
+{
+    "_id": "scope_rule-ws_deny_2",
+    "application": "blackhole",
+    "description": "description",
+    "precedence": "deny",
+    "pvt_doc_type": "scope_rule",
+    "rules": {
+        "deny": [
+            "channel.created.*"
+        ]
+    },
+    "scope_name": "ws_deny_2",
+    "transport": "websockets"
+}
