@@ -71,7 +71,7 @@
 -type json_number() :: integer() | float().
 %% Denotes number in JSON.
 
--type json_proplist() :: [{key(), json_term()}].
+-type json_proplist() :: [{key(), api_json_term()}].
 %% Denotes proplist of JSON object Erlang representation.
 
 -ifdef(PROPER).
