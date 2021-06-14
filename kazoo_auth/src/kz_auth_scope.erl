@@ -35,7 +35,8 @@
 -define(DEFAULT_MISSING_USER_TYPE_SCOPE, <<"other">>).
 
 -type jwt() :: map().
--type token() :: jwt() | kz_term:ne_binary() | 'undefined'.
+-type claim() :: kz_json:object().
+-type token() :: jwt() | claim() | kz_term:ne_binary() | 'undefined'.
 -type scope_list_fun() :: fun((kz_term:ne_binary(), kz_term:ne_binaries()) -> boolean()).
 
 %%------------------------------------------------------------------------------
@@ -83,14 +84,14 @@ has_scopes(Token, ScopeList, ListFun) ->
 %%------------------------------------------------------------------------------
 -spec available_scopes() -> kz_term:proplist().
 available_scopes() ->
-    Options = [],
-    get_scopes(?SCOPES_LIST, Options).
+    ViewOptions = [],
+    get_scopes(?SCOPES_LIST, ViewOptions).
 
 -spec available_scopes(atom() | kz_term:ne_binary() | kz_term:ne_binaries()) -> kz_term:proplist().
 available_scopes(Scope) when is_atom(Scope) ->
     available_scopes(kz_term:to_binary(Scope));
 available_scopes(<<ScopeBin/binary>>) ->
-    Available = available_scopes(),
+    Available = get_available_scopes(ScopeBin),
     case props:get_value(ScopeBin, Available) of
         'undefined' -> [];
         Resolved -> [{ScopeBin, Resolved}]
@@ -99,9 +100,19 @@ available_scopes([]) ->
     [];
 available_scopes(Scopes) when is_list(Scopes) ->
     [{Scope, Resolved}
-     || {Scope, Resolved} <- available_scopes(),
+     || {Scope, Resolved} <- get_available_scopes(Scopes),
         lists:member(Scope, Scopes)
     ].
+
+-spec get_available_scopes(kz_term:ne_binary() | kz_term:ne_binaries()) -> kz_term:proplist().
+get_available_scopes(Key) ->
+    case erlang:get(Key) of
+        'undefined' ->
+            Available = available_scopes(),
+            _ = erlang:put({'available_scopes', Key}),
+            Available;
+        Available -> Available
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Filters a list of scopes by owner
@@ -174,14 +185,16 @@ scopes('undefined') -> [];
 scopes(JWToken)
   when is_binary(JWToken) ->
     scopes(kz_auth_jwt:token(JWToken));
-scopes(Token) ->
+scopes(Token) when is_map(Token) ->
     Routines = [fun init_scopes/1
                ,fun from_claim/1
                ,fun resolve_scopes/1
                ,fun explode_scopes/1
                ],
     #{scopes := Scopes} = kz_maps:exec(Routines, Token),
-    Scopes.
+    Scopes;
+scopes(Claim) ->
+    scopes(#{payload => kz_json:to_map(Claim)}).
 
 %%------------------------------------------------------------------------------
 %% @doc Initialize jwt token map
@@ -227,9 +240,12 @@ last(List) -> lists:last(List).
 %% @end
 %%------------------------------------------------------------------------------
 -spec resolve_scopes(jwt()) -> jwt().
+resolve_scopes(#{available_scopes := Available
+                ,scopes := Scopes
+                } = Token) ->
+    resolve_scopes(Token#{scopes => kz_term:uniq_list(Scopes ++ Available)});
 resolve_scopes(#{scopes := Scopes} = Token) ->
-    Available = available_scopes(Scopes),
-    resolve_scopes(Token#{scopes => lists:usort(Scopes ++ Available)}).
+    resolve_scopes(Token#{available_scopes => available_scopes(Scopes)}).
 
 %% Called by available_scopes to resolve/expand superset scopes.
 -spec resolve_scopes(kz_term:ne_binaries(), kz_term:proplist()) -> kz_term:ne_binaries().
