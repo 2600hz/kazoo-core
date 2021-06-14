@@ -11,7 +11,7 @@
 -define(SCOPES_LIST, <<"scopes/crossbar_listing">>).
 
 
--define(CATCH_ALL, <<"*">>).
+-define(MATCH_ALL_PERMISIONS, <<"*">>).
 
 -define(KZ_AUTH_SCOPE_HRL, 'true').
 -endif.
