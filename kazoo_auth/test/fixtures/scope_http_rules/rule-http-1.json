@@ -1,0 +1,39 @@
+{
+    "_id": "scope_rule-http_1",
+    "application": "crossbar",
+    "description": "description",
+    "precedence": "allow",
+    "pvt_doc_type": "scope_rule",
+    "rules": {
+        "allow": {
+            "get": [
+                "/accounts",
+                "/accounts/*",
+                "/accounts/123/callflow",
+                "/accounts/*/devices/#",
+                "/accounts/123/media/123",
+                "/accounts/*/system_configs",
+                "/accounts/*/teletype/#",
+                "users",
+                "users/*"
+            ]
+        },
+        "deny": {
+            "get": [
+                "/accounts/123",
+                "/accounts/123/alerts",
+                "/accounts/*/cdrs",
+                "/accounts/*/conferences/123",
+                "/accounts/123/channels/#",
+                "/accounts/123/devices/123",
+                "/accounts/123/media/123",
+                "/accounts/*/teletype/*",
+                "/accounts/*/scopes",
+                "pivot",
+                "pivot/*"
+            ]
+        }
+    },
+    "scope_name": "http_1",
+    "transport": "http"
+}

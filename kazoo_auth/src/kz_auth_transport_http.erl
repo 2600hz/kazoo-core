@@ -18,79 +18,109 @@
 %%% @end
 %%%------------------------------------------------------------------------------
 -spec maybe_deny_access(AuthDoc::kz_json:object()
-                       ,HttpPath::binary() | kz_term:binaries()
+                       ,HttpPath::kz_term:api_binary() | kz_term:binaries()
                        ,HttpMethod::kz_term:api_ne_binary()
                        ,Rules::kz_json:objects()
                        ) -> boolean().
+maybe_deny_access(_, 'undefined', _, _) ->
+    'false';
+maybe_deny_access(_, <<>>, _, _) ->
+    'false';
+maybe_deny_access(_, [], _, _) ->
+    'false';
 maybe_deny_access(_, _, 'undefined', _) ->
     'false';
-maybe_deny_access(AuthDoc, HttpPath, HttpMethod, Rules) ->
-    case kz_term:is_empty(HttpPath) of
-        'true' -> 'false';
-        'false' ->
-            maybe_deny_access1(AuthDoc, path_tokens(HttpPath), HttpMethod, Rules)
-    end.
+maybe_deny_access(AuthDoc, HttpPath, HttpMethod, ScopeRules) ->
+    maybe_deny_access1(AuthDoc, path_tokens(HttpPath), kz_term:to_lower_binary(HttpMethod), ScopeRules).
 
 maybe_deny_access1(_, _, _, []) ->
     'false';
-maybe_deny_access1(AuthDoc, Paths, HttpMethod, [Rule | Rules]) ->
-    case is_match_endpoint(Paths, get_method_rules(HttpMethod, Rule)) of
-        'true' -> 'true';
-        'false' -> maybe_deny_access(AuthDoc, Paths, HttpMethod, Rules)
+maybe_deny_access1(AuthDoc, Paths, HttpMethod, [ScopeRule | ScopeRules]) ->
+    Precedence = kzd_scope_rules:precedence(ScopeRule, <<"allow">>),
+    case is_match_endpoint(Paths, HttpMethod, ScopeRule, Precedence) of
+        'no_match' -> maybe_deny_access1(AuthDoc, Paths, HttpMethod, ScopeRules);
+        'allow' -> 'false';
+        'deny' -> 'true'
     end.
-
--spec get_method_rules(kz_term:ne_binary(), kz_json:object()) -> kz_term:ne_binaries().
-get_method_rules(Method, Rule) ->
-    HttpMethod = kz_term:to_lower_binary(Method),
-    Precedence = kzd_scope_rules:precedence(Rule),
-    get_method_rules(kz_json:get_ne_binaries([<<"rules">>, <<"allow">>, HttpMethod], Rule)
-                    ,kz_json:get_ne_binaries([<<"rules">>, <<"deny">>, HttpMethod], Rule)
-                    ,kz_json:get_ne_binaries([<<"rules">>, <<"_">>, HttpMethod], Rule)
-                    ,Precedence
-                    ).
-
--spec get_method_rules(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
-          kz_term:ne_binaries().
-get_method_rules('undefined', 'undefined', 'undefined', _Precedence) -> [];
-get_method_rules('undefined', 'undefined', CatchAll, _Precedence) -> CatchAll;
-get_method_rules('undefined', Deny, _CatchAll, _Precedence) -> Deny;
-get_method_rules(Allow, 'undefined', _CatchAll, _Precedence) -> Allow;
-get_method_rules(Allow, _Deny, _CatchAll, <<"allow">>) -> Allow;
-get_method_rules(_Allow, Deny, _CatchAll, <<"deny">>) -> Deny;
-get_method_rules(_Allow, _Deny, _Catchall, _Precedence) -> [].
 
 -spec path_token(binary()) -> binary().
 path_token(Token) -> kz_http_util:urldecode(Token).
 
 -spec path_tokens(binary() | [binary()]) -> [binary()].
 path_tokens(<<Path/binary>>) ->
-    [path_token(Token)
-     || Token <- binary:split(Path, <<"/">>, ['global', 'trim'])
-    ];
-path_tokens([<<>>, _]=ReqPath) ->
+    case [path_token(Token)
+          || Token <- binary:split(Path, <<"/">>, ['global', 'trim'])
+         ]
+    of
+        [<<>> | ReqPath] -> ReqPath;
+        ReqPath -> ReqPath
+    end;
+path_tokens([<<>> | ReqPath]) ->
     ReqPath;
 path_tokens(ReqPath) when is_list(ReqPath) ->
-    [<<>> | ReqPath].
+    ReqPath.
 
--spec is_match_endpoint([binary()], kz_term:ne_binaries()) -> boolean().
-is_match_endpoint(_, []) ->
-    'false';
-is_match_endpoint(Paths, [Rule|Rules]) ->
+-spec is_match_endpoint([binary()], kz_term:ne_binary(), kz_json:object(), kz_term:ne_binary()) -> boolean().
+is_match_endpoint(Paths, HttpMethod, ScopeRule, <<"allow">>) ->
+    case is_match_rules(Paths, HttpMethod, ScopeRule, <<"allow">>) of
+        {_, 'no_match'} ->
+            case is_match_rules(Paths, HttpMethod, ScopeRule, <<"deny">>) of
+                {_, 'no_match'} -> 'no_match';
+                {MatchedMethod, Path} -> deny_access(Paths, HttpMethod, ScopeRule, MatchedMethod, Path)
+            end;
+        {MatchedMethod, Path} -> allow_access(Paths, HttpMethod, ScopeRule, MatchedMethod, Path)
+    end;
+is_match_endpoint(Paths, HttpMethod, ScopeRule, <<"deny">>) ->
+    case is_match_rules(Paths, HttpMethod, ScopeRule, <<"deny">>) of
+        {_, 'no_match'} ->
+            case is_match_rules(Paths, HttpMethod, ScopeRule, <<"allow">>) of
+                {_, 'no_match'} -> 'no_match';
+                {MatchedMethod, Path} -> allow_access(Paths, HttpMethod, ScopeRule, MatchedMethod, Path)
+            end;
+        {MatchedMethod, Path} -> deny_access(Paths, HttpMethod, ScopeRule, MatchedMethod, Path)
+    end.
+
+is_match_rules(Paths, HttpMethod, ScopeRule, Key) ->
+    Rules = kzd_scope_rules:rules(ScopeRule),
+    KeyRules = kz_json:get_ne_binaries([Key, HttpMethod], Rules, []),
+    CatchAll = kz_json:get_ne_binaries([Key, ?MATCH_ALL_PERMISIONS], Rules, []),
+    case matches(Paths, KeyRules) of
+        'no_match' -> {?MATCH_ALL_PERMISIONS, matches(Paths, CatchAll)};
+        Path -> {HttpMethod, Path}
+    end.
+
+matches(_, []) ->
+    'no_match';
+matches(_, [?MATCH_ALL_PERMISIONS | _]) ->
+    ?MATCH_ALL_PERMISIONS;
+matches(Paths, [Rule | Rules]) ->
     case Rule of
-        <<"/", _binary>> ->
-            check_full_url(Paths, Rule)
-                orelse is_match_endpoint(Paths, Rules);
+        <<"/", _/binary>> ->
+            case check_full_url(Paths, Rule) of
+                'true' -> Rule;
+                'false' -> matches(Paths, Rules)
+            end;
         _Else ->
-            check_relative_url(Paths, path_tokens(Rule))
-                orelse is_match_endpoint(Paths, Rules)
+            case check_relative_url(Paths, path_tokens(Rule)) of
+                'true' -> Rule;
+                'false' -> matches(Paths, Rules)
+            end
     end.
 
 check_full_url(Paths, Rule) ->
-    kazoo_bindings:matches(binary:split(Rule, <<"/">>, ['global', 'trim'])
+    kazoo_bindings:matches(path_tokens(Rule)
                           ,Paths
                           ).
 
-check_relative_url(Paths, [<<>>, Module | _]) ->
+check_relative_url(Paths, [Module | _]) ->
     lists:member(Module, Paths);
 check_relative_url(_, _) ->
     'false'.
+
+deny_access(_Paths, _HttpMethod, ScopeRule, _MatchedMethod, _Path) ->
+    lager:debug("scope ~s denies access to http path", [kzd_scope_rules:scope_name(ScopeRule)]),
+    'deny'.
+
+allow_access(_Paths, _HttpMethod, ScopeRule, _MatchedMethod, _Path) ->
+    lager:debug("scope ~s allows access to http", [kzd_scope_rules:scope_name(ScopeRule)]),
+    'allow'.
