@@ -11,40 +11,44 @@
 
 -include("kz_auth_scope.hrl").
 
--export([fetch_system/1]).
--export([fetch_reseller/2]).
--export([fetch_account/2]).
+-export([fetch_system/2]).
+-export([fetch_reseller/3]).
+-export([fetch_account/3]).
+
+-type app() :: atom() | kz_term:ne_binary().
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %------------------------------------------------------------------------------
--spec fetch_system(kz_term:ne_binaries()) -> kz_json:objects().
-fetch_system(Scopes) ->
-    fetch_rules(?SCOPES_CAT, Scopes).
+-spec fetch_system(app(), kz_term:ne_binaries()) -> kz_json:objects().
+fetch_system(Application, Scopes) ->
+    fetch_rules(Application, ?SCOPES_CAT, Scopes).
 
--spec fetch_reseller(kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:objects().
-fetch_reseller(AccountId, Scopes) ->
+-spec fetch_reseller(app(), kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:objects().
+fetch_reseller(Application, AccountId, Scopes) ->
     case kz_services_reseller:is_reseller(AccountId) of
         'true' -> [];
         'false' ->
             case kz_services_reseller:get_id(AccountId) of
                 'undefined' -> [];
-                ResellerId -> fetch_rules(ResellerId, Scopes)
+                ResellerId -> fetch_rules(Application, ResellerId, Scopes)
             end
     end.
 
--spec fetch_account(kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:objects().
-fetch_account(AccountId, Scopes) ->
-    fetch_rules(AccountId, Scopes).
+-spec fetch_account(app(), kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:objects().
+fetch_account(Application, AccountId, Scopes) ->
+    fetch_rules(Application, AccountId, Scopes).
 
-fetch_rules(Db, Scopes) ->
+fetch_rules(App, Db, Scopes) ->
+    Application = kz_term:to_binary(App),
     DocIds = [scope_rules_doc_id(Scope) || Scope <- Scopes],
     case kz_datamgr:open_cache_docs(Db, DocIds) of
         {'ok', JObjs} ->
             [Doc || JObj <- JObjs,
                     Doc <- [kz_json:get_ne_json_value(<<"doc">>, JObj)],
                     Doc =/= 'undefined'
+                        andalso Application =:= kzd_scope_rules:application(Doc)
             ];
         {'error', _Reason} ->
             lager:debug("failed to fetch scope restrictions from ~s: ~p", [Db, _Reason]),
