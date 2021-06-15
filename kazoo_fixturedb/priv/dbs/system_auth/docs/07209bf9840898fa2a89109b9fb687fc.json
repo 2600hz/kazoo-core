@@ -1,4 +1,13 @@
 {
+    "_attachments": {
+        "private_key.pem": {
+            "content_type": "application/x-pem-file",
+            "digest": "md5-3S9NMCr0VEzIA+u/uwkddg==",
+            "length": 1676,
+            "revpos": 2,
+            "stub": true
+        }
+    },
     "_id": "07209bf9840898fa2a89109b9fb687fc",
     "_rev": "1-07209bf9840898fa2a89109b9fb687fc",
     "pvt_account_db": "system_auth",
@@ -7,14 +16,5 @@
     "pvt_document_hash": "6b41e11f33265808cf8afcaef4708f77",
     "pvt_modified": 63790885890,
     "pvt_node": "nonode@nohost",
-    "pvt_type": "system_key",
-    "_attachments": {
-        "private_key.pem": {
-          "content_type": "application/x-pem-file",
-          "revpos": 2,
-          "digest": "md5-3S9NMCr0VEzIA+u/uwkddg==",
-          "length": 1676,
-          "stub": true
-        }
-      }
+    "pvt_type": "system_key"
 }
