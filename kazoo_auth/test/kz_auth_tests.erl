@@ -20,13 +20,13 @@ create_token_test_() ->
     ,fun setup/0
     ,fun cleanup/1
     ,fun(_) ->
-             [create_tokens_normal()
-             ,{"Validating mocked functions", validate_mock()}
+             [doc_test_create_token()
+             ,validate_kz_auth_mock()
              ]
      end
     }.
 
-create_tokens_normal() ->
+doc_test_create_token() ->
     Token1 = create_token([{<<"account_id">>, ?ACCOUNT_4}
                           ,{<<"owner_id">>, ?USER_4}
                           ]
@@ -39,6 +39,18 @@ create_tokens_normal() ->
     ,{"token is valid"
      ,?_assert(kz_term:is_not_empty(Decoded1))
      }
+    ,{"print token claim"
+     ,fun () -> ?debugFmt("~n~p~n", [kz_term:to_list(kz_json:encode(Decoded1))]), ?_assert('true') end
+     }
+    ,{"print claim scope"
+     ,fun () -> ?debugFmt("~n~p~n", [kz_json:get_value(<<"scope">>, Decoded1, <<"NO TOKEN">>)]), ?_assert('true') end
+     }
+    ,{"token has scopes"
+     ,?_assert(lists:member(<<"crossbar:read_only">>
+                           ,kz_auth_scope:split(kz_json:get_value(<<"scope">>, Decoded1, <<>>))
+                           )
+              )
+     }
     ].
 
 create_token(Prop, Log) ->
@@ -46,8 +58,8 @@ create_token(Prop, Log) ->
         {'ok', Token} -> Token;
         {'error', _Error} when Log ->
             ?debugFmt("~nfailed to create token ~p~n", [_Error]),
-            'undefined';
-        {'error', _ } -> 'undefined'
+            <<>>;
+        {'error', _ } -> <<>>
     end.
 
 validate_token(Token, Options, Log) ->
@@ -55,12 +67,12 @@ validate_token(Token, Options, Log) ->
         {'ok', Claim} -> Claim;
         {'error', _Error} when Log ->
             ?debugFmt("~nfailed to validate token ~p~n", [_Error]),
-            'undefined';
+            kz_json:new();
         {'error', _Error} -> kz_json:new()
     end.
 
 setup() ->
-    mock_them_all(),
+    mock_kz_auth(),
     LinPid = kzd_test_fixtures:setup(),
     LinPid.
 
@@ -68,12 +80,12 @@ cleanup(LinkPid) ->
     kzd_test_fixtures:cleanup(LinkPid),
     meck:unload().
 
-mock_them_all() ->
+mock_kz_auth() ->
     meck:new('kz_cache', ['unstick', 'passthrough']),
     meck:expect('kz_cache', 'store_local', kz_cache_store_local()),
     'ok'.
 
-validate_mock() ->
+validate_kz_auth_mock() ->
     [{"Validating mocked " ++ kz_term:to_list(Mocked)
      ,?_assertEqual('true', meck:validate(Mocked))
      }

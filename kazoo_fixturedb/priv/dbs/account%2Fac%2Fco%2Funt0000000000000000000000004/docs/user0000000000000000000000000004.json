@@ -238,6 +238,9 @@
         "external": "<http://192.168.0.231/Device1/MyRing1.wav>;info=Callers",
         "internal": "<http://192.168.0.231/Device1/MyRing2.wav>;info=Friends"
     },
+    "scopes": [
+        "crossbar:read_only"
+    ],
     "timezone": "Europe/Paris",
     "user_type": "sip_user",
     "username": "userthree",
