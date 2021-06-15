@@ -190,10 +190,7 @@ include_identity_sign(Claims) ->
 
 -spec include_scope(kz_term:proplist()) -> kz_term:proplist().
 include_scope(Claims) ->
-    case kz_auth_scope:create_claims(Claims) of
-        {'ok', NewClaim} -> NewClaim;
-        _Else -> Claims
-    end.
+    kz_auth_scope:create_claims(Claims).
 
 -spec ensure_issuer(kz_term:proplist()) -> kz_term:proplist().
 ensure_issuer(Claims) ->
