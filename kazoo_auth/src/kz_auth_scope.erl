@@ -28,7 +28,7 @@
         ,split/1
         ]).
 
--export([scope_doc_id/1
+-export([doc_id/1
         ,normalize_doc_id/1
         ]).
 
@@ -464,10 +464,10 @@ split(Scope) -> binary:split(Scope, ?SCOPE_SEP, ['global']).
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec scope_doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
-scope_doc_id(<<?SCOPE_DOC_ID_PREFIX, _/binary>> = Id) ->
+-spec doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
+doc_id(<<?SCOPE_DOC_ID_PREFIX, _/binary>> = Id) ->
     normalize_doc_id(Id);
-scope_doc_id(Scope) ->
+doc_id(Scope) ->
     normalize_doc_id(<<?SCOPE_DOC_ID_PREFIX, Scope/binary>>).
 
 %%------------------------------------------------------------------------------
