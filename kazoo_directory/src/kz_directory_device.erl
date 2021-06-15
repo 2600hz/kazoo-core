@@ -117,6 +117,7 @@ maybe_cached_hotdesk_ids(Props, JObj, AccountDb) ->
 build(EndpointId, AccountId, Endpoint, _Options, Module) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Module),
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Module),
+    CRVs = generate_routing_ccvs(Endpoint, Module),
 
     {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
     {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
@@ -140,6 +141,7 @@ build(EndpointId, AccountId, Endpoint, _Options, Module) ->
               ,{<<"Account-ID">>, AccountId}
               ,{<<"Custom-Channel-Vars">>, CCVs}
               ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
+              ,{<<"Custom-Routing-Vars">>, CRVs}
               ,{<<"Custom-SIP-Headers">>, SIPHeaders}
               ,{<<"Codecs">>, Module:codecs(Endpoint)}
               ,{<<"SIP-Invite-Route-URI">>, Module:sip_route(Endpoint)}
@@ -358,6 +360,16 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, Module) ->
               ],
     kz_json:exec(CCVFuns, CCVs).
 
+generate_routing_ccvs(Endpoint, Module) ->
+    CCVs = kz_json:new(),
+    CCVFuns = [{fun routing_ccvs/3, Module, Endpoint}
+              ],
+    kz_json:exec(CCVFuns, CCVs).
+
+-spec routing_ccvs(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+routing_ccvs(Mod, Endpoint, CCVs) ->
+    Mod:routing_ccvs(Endpoint, CCVs).
+
 -spec generate_sip_headers(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), module()) -> kz_json:object().
 generate_sip_headers(_EndpointId, _AccountId, Endpoint, Module) ->
     HeaderFuns = [{fun add_sip_headers/2, Endpoint}
@@ -367,7 +379,7 @@ generate_sip_headers(_EndpointId, _AccountId, Endpoint, Module) ->
 
 -spec add_sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
 add_sip_headers(Endpoint, Headers) ->
-    case kzd_devices:custom_sip_headers_outbound(Endpoint) of
+    case kzd_devices:custom_sip_headers_routing(Endpoint) of
         'undefined' -> Headers;
         CustomHeaders -> kz_json:merge_jobjs(CustomHeaders, Headers)
     end.
