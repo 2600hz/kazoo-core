@@ -31,7 +31,7 @@ authorizing_type(Endpoint) ->
 
 -spec set_invite_uri(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 set_invite_uri(URI, CCVs) ->
-    kz_json:set_values([{<<"SIP-Invite-To-URI">>, URI}], CCVs).
+    kz_json:set_values([{<<"SIP-Invite-URI">>, URI}], CCVs).
 
 -spec set_invite_uri(kz_term:api_ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 set_invite_uri('undefined', _Realm, CCVs) -> CCVs;
