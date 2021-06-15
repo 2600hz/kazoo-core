@@ -40,9 +40,7 @@ authorizing_type(_Endpoint) -> <<"mobile">>.
 
 -spec set_invite_uri(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 set_invite_uri(URI, CCVs) ->
-    kz_json:set_values([{<<"SIP-Invite-To-URI">>, URI}
-                       ,{<<"SIP-Invite-Request-URI">>, URI}
-                       ], CCVs).
+    kz_json:set_values([{<<"SIP-Invite-To-URI">>, URI}], CCVs).
 
 -spec invite_uri(kz_json:object(), kz_json:object()) -> kz_json:object().
 invite_uri(Endpoint, CCVs) ->
