@@ -15,6 +15,8 @@
 -export([fetch_reseller/3]).
 -export([fetch_account/3]).
 
+-export([doc_id/1]).
+
 -type app() :: atom() | kz_term:ne_binary().
 
 %%------------------------------------------------------------------------------
@@ -42,7 +44,7 @@ fetch_account(Application, AccountId, Scopes) ->
 
 fetch_rules(App, Db, Scopes) ->
     Application = kz_term:to_binary(App),
-    DocIds = [scope_rules_doc_id(Scope) || Scope <- Scopes],
+    DocIds = [doc_id(Scope) || Scope <- Scopes],
     case kz_datamgr:open_cache_docs(Db, DocIds) of
         {'ok', JObjs} ->
             [Doc || JObj <- JObjs,
@@ -59,8 +61,8 @@ fetch_rules(App, Db, Scopes) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec scope_rules_doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
-scope_rules_doc_id(<<?SCOPE_RULE_DOC_ID_PREFIX, _/binary>> = Id) ->
+-spec doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
+doc_id(<<?SCOPE_RULE_DOC_ID_PREFIX, _/binary>> = Id) ->
     kz_auth_scope:normalize_doc_id(Id);
-scope_rules_doc_id(Scope) ->
+doc_id(Scope) ->
     kz_auth_scope:normalize_doc_id(<<?SCOPE_RULE_DOC_ID_PREFIX, Scope/binary>>).
