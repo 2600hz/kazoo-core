@@ -116,6 +116,11 @@
             },
             "type": "array"
         },
+        "reconcile_regex": {
+            "default": "^(\\+?1)?\\d{10}$|^\\+[2-9]\\d{7,}$|^011\\d*$|^00\\d*$",
+            "description": "if a number matches this regular expression then it is reconcilable",
+            "type": "string"
+        },
         "time_between_accounts_ms": {
             "default": 1000,
             "description": "time to pause in between the processing of accounts in milliseconds",
