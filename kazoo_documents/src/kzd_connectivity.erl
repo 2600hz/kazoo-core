@@ -22,17 +22,22 @@
 -export([name/1, name/2, set_name/2]).
 -export([servers/1, servers/2, set_servers/2]).
 
+-export([type/0]).
 
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().
 -export_type([doc/0]).
 
+-define(TYPE, <<"sys_info">>).
 -define(SCHEMA, <<"connectivity">>).
 
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec type() -> kz_term:ne_binary().
+type() -> ?TYPE.
 
 -spec account(doc()) -> kz_term:api_object().
 account(Doc) ->
