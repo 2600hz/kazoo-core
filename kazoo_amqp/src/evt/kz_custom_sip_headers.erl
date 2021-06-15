@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,10 +13,13 @@
         ,outbound/1, outbound/2, set_outbound/2
         ,inbound_header/2, inbound_header/3
         ,outbound_header/2, outbound_header/3
+        ,routing/1, routing/2, set_routing/2
+        ,routing_header/2, routing_header/3
         ]).
 
 -define(IN, <<"in">>).
 -define(OUT, <<"out">>).
+-define(ROUTING, <<"routing">>).
 
 -spec inbound(kz_json:object()) -> kz_term:api_object().
 inbound(CSH) ->
@@ -78,3 +81,28 @@ set_inbound(CSH, Headers) ->
 -spec set_outbound(kz_json:object(), kz_json:object()) -> kz_json:object().
 set_outbound(CSH, Headers) ->
     kz_json:set_value(?OUT, Headers, CSH).
+
+-spec routing(kz_json:object()) -> kz_term:api_object().
+routing(CSH) ->
+    routing(CSH, 'undefined').
+
+-spec routing(kz_json:object(), Default) -> kz_json:object() | Default.
+routing(CSH, Default) ->
+    CustomHeaders = kz_json:get_json_value(?ROUTING, CSH, kz_json:new()),
+
+    case kz_json:is_empty(CustomHeaders) of
+        'false' -> CustomHeaders;
+        'true' -> Default
+    end.
+
+-spec routing_header(kz_json:object(), kz_json:key()) -> kz_json:json_term() | 'undefined'.
+routing_header(DeviceJObj, Name) ->
+    routing_header(DeviceJObj, Name, 'undefined').
+
+-spec routing_header(kz_json:object(), kz_json:key(), Default) -> kz_json:json_term() | Default.
+routing_header(DeviceJObj, Name, Default) ->
+    kz_json:get_ne_value(Name, routing(DeviceJObj), Default).
+
+-spec set_routing(kz_json:object(), kz_json:object()) -> kz_json:object().
+set_routing(CSH, Headers) ->
+    kz_json:set_value(?ROUTING, Headers, CSH).
