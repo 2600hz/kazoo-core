@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -21,6 +21,7 @@
 -export([ignore_early_media/1]).
 -export([bypass_media/1]).
 -export([invite_uri/2]).
+-export([routing_ccvs/2]).
 
 -include("kazoo_directory.hrl").
 
@@ -141,3 +142,7 @@ video_codecs(JObj) ->
 -spec get_realm(kz_json:object()) -> kz_term:ne_binary().
 get_realm(Endpoint) ->
     kz_json:get_ne_binary_value(<<"realm">>, Endpoint, <<"norealm">>).
+
+-spec routing_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
+routing_ccvs(Endpoint, CCVs) ->
+    kz_json:merge(CCVs, kz_custom_channel_vars:routing(kzd_devices:sip_custom_channel_vars(Endpoint, kz_json:new()), kz_json:new())).

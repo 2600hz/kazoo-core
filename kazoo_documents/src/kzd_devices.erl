@@ -65,6 +65,7 @@
 -export([ringtones_internal/1, ringtones_internal/2, set_ringtones_internal/2]).
 -export([sip/1, sip/2, set_sip/2]).
 -export([sip_custom_sip_headers/1, sip_custom_sip_headers/2, set_sip_custom_sip_headers/2]).
+-export([sip_custom_channel_vars/1, sip_custom_channel_vars/2, set_sip_custom_channel_vars/2]).
 -export([sip_custom_sip_interface/1, sip_custom_sip_interface/2, set_sip_custom_sip_interface/2]).
 -export([sip_expire_seconds/1, sip_expire_seconds/2, set_sip_expire_seconds/2]).
 -export([sip_forward/1, sip_forward/2, set_sip_forward/2]).
@@ -94,6 +95,9 @@
         ,custom_sip_headers_outbound/1, custom_sip_headers_outbound/2, set_custom_sip_headers_outbound/2
         ,custom_sip_header_inbound/2, custom_sip_header_inbound/3
         ,custom_sip_header_outbound/2, custom_sip_header_outbound/3
+
+        ,custom_sip_headers_routing/1, custom_sip_headers_routing/2, set_custom_sip_headers_routing/2
+        ,custom_sip_header_routing/2, custom_sip_header_routing/3
 
         ,set_outbound_flags/3
         ,outbound_static_flags/1, set_outbound_static_flags/2
@@ -836,6 +840,18 @@ sip_custom_sip_headers(Doc, Default) ->
 set_sip_custom_sip_headers(Doc, SipCustomSipHeaders) ->
     kz_json:set_value([<<"sip">>, <<"custom_sip_headers">>], SipCustomSipHeaders, Doc).
 
+-spec sip_custom_channel_vars(doc()) -> kz_json:object().
+sip_custom_channel_vars(Doc) ->
+    sip_custom_channel_vars(Doc, kz_json:new()).
+
+-spec sip_custom_channel_vars(doc(), Default) -> kz_json:object() | Default.
+sip_custom_channel_vars(Doc, Default) ->
+    kz_json:get_json_value([<<"sip">>, <<"custom_channel_vars">>], Doc, Default).
+
+-spec set_sip_custom_channel_vars(doc(), kz_json:object()) -> doc().
+set_sip_custom_channel_vars(Doc, SipCustomChannelVars) ->
+    kz_json:set_value([<<"sip">>, <<"custom_channel_vars">>], SipCustomChannelVars, Doc).
+
 -spec sip_custom_sip_interface(doc()) -> kz_term:api_binary().
 sip_custom_sip_interface(Doc) ->
     sip_custom_sip_interface(Doc, 'undefined').
@@ -1115,6 +1131,24 @@ custom_sip_headers_outbound(DeviceJObj, Default) ->
     CSH = sip_custom_sip_headers(DeviceJObj),
     kz_custom_sip_headers:outbound(CSH, Default).
 
+-spec custom_sip_headers_routing(doc()) -> kz_term:api_object().
+custom_sip_headers_routing(DeviceJObj) ->
+    custom_sip_headers_routing(DeviceJObj, 'undefined').
+
+-spec custom_sip_headers_routing(doc(), Default) -> kz_json:object() | Default.
+custom_sip_headers_routing(DeviceJObj, Default) ->
+    CSH = sip_custom_sip_headers(DeviceJObj),
+    kz_custom_sip_headers:routing(CSH, Default).
+
+-spec custom_sip_header_routing(doc(), kz_json:key()) -> kz_json:json_term() | 'undefined'.
+custom_sip_header_routing(DeviceJObj, Name) ->
+    custom_sip_header_routing(DeviceJObj, Name, 'undefined').
+
+-spec custom_sip_header_routing(doc(), kz_json:key(), Default) -> kz_json:json_term() | Default.
+custom_sip_header_routing(DeviceJObj, Name, Default) ->
+    CSH = sip_custom_sip_headers(DeviceJObj),
+    kz_custom_sip_headers:routing_header(CSH, Name, Default).
+
 -spec set_custom_sip_headers_inbound(doc(), kz_json:object()) -> doc().
 set_custom_sip_headers_inbound(Device, Headers) ->
     CSH = sip_custom_sip_headers(Device),
@@ -1126,6 +1160,12 @@ set_custom_sip_headers_outbound(Device, Headers) ->
     CSH = sip_custom_sip_headers(Device),
     OutboundCSH = kz_custom_sip_headers:set_outbound(CSH, Headers),
     set_sip_custom_sip_headers(Device, OutboundCSH).
+
+-spec set_custom_sip_headers_routing(doc(), kz_json:object()) -> doc().
+set_custom_sip_headers_routing(Device, Headers) ->
+    CSH = sip_custom_sip_headers(Device),
+    RoutingCSH = kz_custom_sip_headers:set_routing(CSH, Headers),
+    set_sip_custom_sip_headers(Device, RoutingCSH).
 
 -spec set_outbound_flags(kz_json:object(), kz_term:api_ne_binaries(), kz_term:api_ne_binaries()) ->
           kz_json:object().

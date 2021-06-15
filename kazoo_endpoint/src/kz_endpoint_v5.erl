@@ -1622,7 +1622,10 @@ maybe_add_invite_format(JObj, Endpoint, Call) ->
 -spec maybe_add_invite_format(kz_json:object(), kz_json:object(), kapps_call:call(), kz_term:ne_binary()) ->
           kz_json:object().
 maybe_add_invite_format(JObj, _Endpoint, _Call, Format) ->
-    kz_json:set_value(<<"X-KAZOO-INVITE-FORMAT">>, Format, JObj).
+    case kzd_endpoint:type(JObj) of
+        <<"device">> -> kz_json:set_value(<<"X-KAZOO-INVITE-FORMAT">>, Format, JObj);
+        _Else -> JObj
+    end.
 
 -spec maybe_add_aor(kz_json:object(), kz_json:object(), kapps_call:call()) -> kz_json:object().
 maybe_add_aor(JObj, Endpoint, Call) ->
