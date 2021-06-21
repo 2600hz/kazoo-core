@@ -72,6 +72,7 @@
         ,insert_value/3, insert_values/2
         ,new/0
         ]).
+-export([rename_key/3]).
 -export([delete_key/2, delete_key/3
         ,delete_keys/2, prune_keys/2
         ]).
@@ -1603,6 +1604,21 @@ insert_values(KVs, JObj) ->
 -spec insert_value_fold({get_key(), json_term()}, object()) -> object().
 insert_value_fold({Key, Value}, JObj) ->
     insert_value(Key, Value, JObj).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec rename_key(get_key(), get_key(), object()) -> object() | {'error', {'badkey', get_key()}}.
+rename_key(CurKey, NewKey, JObj) ->
+    rename_key(CurKey, NewKey, JObj, is_defined(CurKey, JObj)).
+
+-spec rename_key(get_key(), get_key(), object(), boolean()) -> object() | {'error', {'badkey', get_key()}}.
+rename_key(CurKey, NewKey, JObj, 'true') ->
+    set_value(NewKey, get_value(CurKey, JObj), delete_key(CurKey, JObj));
+rename_key(CurKey, _NewKey, _JObj, 'false') ->
+    {'error', {'badkey', CurKey}}.
 
 %%------------------------------------------------------------------------------
 %% @doc

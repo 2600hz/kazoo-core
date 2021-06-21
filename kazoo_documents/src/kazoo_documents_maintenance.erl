@@ -12,6 +12,8 @@
         ,init_app/1, init_app/2
         ,refresh_apps/1, refresh_apps/2
         ,refresh_app/1, refresh_app/2
+        ,rename_and_refresh_app/2, rename_and_refresh_app/3
+        ,rename_app/4 %% Please read the note inside the function before using it.
         ,apps/0
         ,app/1
         ,set_app_field/3
@@ -83,6 +85,119 @@ refresh_app(AppPath) ->
 refresh_app(AppPath, AppUrl) ->
     ?SUP_LOG_INFO("trying to refresh app from ~s~n", [AppPath]),
     maybe_update_app(AppPath, AppUrl, ?REFRESH_APP_KEYS).
+
+%%------------------------------------------------------------------------------
+%% @doc Takes care of updating the given (`PrevName') application's metadata
+%% after renaming its folder.
+%%
+%% NOTE: if the desire is just to change the application's label (name) that
+%% appears on monster-ui, then modify the `i18n' field information within the
+%% metadata.json file of the application and use `refresh_app/[1,2]' instead.
+%% @end
+%%------------------------------------------------------------------------------
+-spec rename_and_refresh_app(file:filename_all(), kz_term:ne_binary()) -> 'ok'.
+rename_and_refresh_app(AppPath, PrevName) ->
+    rename_and_refresh_app(AppPath, PrevName, 'undefined').
+
+-spec rename_and_refresh_app(file:filename_all(), kz_term:ne_binary(), kz_term:api_binary()) -> 'ok'.
+rename_and_refresh_app(AppPath, PrevName, AppUrl) ->
+    ?SUP_LOG_INFO("renaming and refreshing ~s app from ~s~n", [PrevName, AppPath]),
+    {'ok', MasterAccountDb} = kapps_util:get_master_account_db(),
+    {'ok', MetaData} = find_metadata(AppPath),
+    case kzd_app:find_by_name(MasterAccountDb, PrevName) of
+        {'ok', AppDoc} ->
+            maybe_update_app(AppPath
+                            ,maybe_set_api_url(AppUrl, MetaData)
+                            ,?REFRESH_APP_KEYS
+                            ,MasterAccountDb
+                            ,AppDoc
+                            ),
+            rename_app(kz_doc:id(AppDoc), PrevName, kzd_app:name(MetaData));
+        {'error', Error} ->
+            ?SUP_LOG_INFO(" failed to find app ~s: ~p", [PrevName, Error])
+    end.
+
+-spec rename_app(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+rename_app(AppId, PrevName, NewName) ->
+    {'ok', MA} = kapps_util:get_master_account_id(),
+    Accounts = kapps_util:account_descendants(MA),
+    case rename_app(AppId, PrevName, NewName, [MA | Accounts]) of
+        [] ->
+            ?SUP_LOG_DEBUG("~s -> ~s renamed successfully for all the accounts found"
+                          ,[PrevName, NewName]
+                          );
+        Failed ->
+            ?SUP_LOG_WARNING("failed to rename ~s for these accounts: ~s"
+                            ,[PrevName, kz_binary:join(Failed, <<", ">>)]
+                            )
+    end.
+
+-spec rename_app(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
+rename_app(AppId, PrevName, NewName, Accounts) ->
+    %% NOTE: this function is intended for the particular case when
+    %% somehow rename_app functionality fails to update a given
+    %% account as part of the `rename_and_refresh_app' process. Or
+    %% maybe an application was renamed a few days ago and for a given
+    %% customer it has not been renamed yet.  First, make sure the
+    %% application was already renamed on its own document
+    %% (`kzd_app:find_by_name(MasterAccountDb, NewName)') and the
+    %% master account DB apps_store document
+    %% ({MASTER_ACCOUNT_DB/apps_store}).
+    rename_app(AppId, PrevName, NewName, Accounts, []).
+
+-spec rename_app(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
+rename_app(_AppId, _PrevName, _NewName, [], Failed) ->
+    Failed;
+rename_app(AppId, PrevName, NewName, AccountId, Failed) when is_binary(AccountId) ->
+    rename_app(AppId, PrevName, NewName, [AccountId], Failed);
+rename_app(AppId, PrevName, NewName, [Account | Accounts], Failed) ->
+    ?SUP_LOG_DEBUG("renaming application ~s (~s -> ~s) for account ~s. ~p accounts remaining"
+                  ,[AppId, PrevName, NewName, Account, length(Accounts)]
+                  ),
+    NewFailed = rename_app_on_accountdb_apps_store_doc(AppId, PrevName, NewName, Account, Failed),
+    %% This function may receive thousands of accounts, so give the DB some rest in between of accounts.
+    timer:sleep(500),
+    rename_app(AppId, PrevName, NewName, Accounts, NewFailed).
+
+%%------------------------------------------------------------------------------
+%% @doc Document: {ACCOUNT_DB}/apps_store
+%%      Keys to modify:
+%%      - apps -> {APP_ID} -> name
+%% @end
+%%------------------------------------------------------------------------------
+-spec rename_app_on_accountdb_apps_store_doc(kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
+rename_app_on_accountdb_apps_store_doc(AppId, PrevName, NewName, Account, Failed) ->
+    MaybeAppDoc = kzd_apps_store:fetch(Account),
+    rename_app_on_accountdb_apps_store_doc(AppId, PrevName, NewName, Account, MaybeAppDoc, Failed).
+
+-spec rename_app_on_accountdb_apps_store_doc(kz_term:api_binary()
+                                            ,kz_term:ne_binary()
+                                            ,kz_term:ne_binary()
+                                            ,kz_term:ne_binary()
+                                            ,{'ok', kz_json:object()} | {'error', 'undefined'} | kz_datamgr:data_error()
+                                            ,kz_term:ne_binaries()
+                                            ) -> kz_term:ne_binaries().
+rename_app_on_accountdb_apps_store_doc(AppId, _PrevName, NewName, Account, {'ok', AppDoc}, Failed) ->
+    Renamed = kz_json:set_value([<<"apps">>, AppId, <<"name">>], NewName, AppDoc),
+    AccountDB = kzs_util:format_account_db(Account),
+    case kz_datamgr:save_doc(AccountDB, Renamed) of
+        {'ok', _JObj} ->
+            ?SUP_LOG_INFO("renamed ~s -> ~s on ~s/apps_store doc", [_PrevName, NewName, AccountDB]),
+            ?SUP_LOG_INFO("reconciling services for account ~s", [Account]),
+            %% takes care of updating/renaming application within services document for the account.
+            _ = kz_services:reconcile(Account),
+            Failed;
+        {'error', _Error} ->
+            ?SUP_LOG_INFO("failed to rename ~s (~s) app on ~s/apps_store doc with error: ~p"
+                         ,[AppId, _PrevName, AccountDB, _Error]
+                         ),
+            [Account | Failed]
+    end;
+rename_app_on_accountdb_apps_store_doc(_AppId, _PrevName, _NewName, Account, _Err, Failed) ->
+    ?SUP_LOG_WARNING("failed to fetch apps_store document for account ~s, skipping. Error: ~p"
+                    ,[Account, _Err]
+                    ),
+    [Account | Failed].
 
 -spec find_apps(file:name()) -> [file:name()].
 find_apps(AppsPath) ->

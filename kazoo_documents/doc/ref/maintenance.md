@@ -12,6 +12,9 @@
 | `refresh_app/2` | `(AppPath,AppUrl)` | |
 | `refresh_apps/1` | `(AppsPath)` | |
 | `refresh_apps/2` | `(AppsPath,AppUrl)` | |
+| `rename_and_refresh_app/2` | `(AppPath,PrevName)` | |
+| `rename_and_refresh_app/3` | `(AppPath,PrevName,AppUrl)` | |
+| `rename_app/4` | `(AppId,PrevName,NewName,AccountId) | (AppId,PrevName,NewName,_) | (_AppId,_PrevName,_NewName,[])` | |
 | `set_app_description/2` | `(AppId,Value)` | |
 | `set_app_extended_description/2` | `(AppId,Value)` | |
 | `set_app_features/2` | `(AppId,Value)` | |
