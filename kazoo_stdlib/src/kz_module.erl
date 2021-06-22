@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2020, 2600Hz
+%%% @copyright (C) 2018-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,6 +13,7 @@
 -export([ensure_loaded/1]).
 -export([application_integrations/1]).
 -export([hotload/1]).
+-export([behaviours/1, has_behaviour/2]).
 
 -type integration() :: {kz_term:ne_binary() | module(), module(), atom()} |
                        {kz_term:ne_binary() | module(), module(), atom(), boolean()} |
@@ -87,12 +88,14 @@ load_integration({Q, M, F, 'false'}) ->
     end;
 load_integration({Q, M, F}) ->
     load_integration({Q, M, F, 'false'});
-load_integration(H) when is_atom(H) ->
+load_integration(H)
+  when is_atom(H) ->
     Loaded = code:ensure_loaded(H),
     lager:debug("application integration loading ~p, result: ~p", [H, Loaded]).
 
 -spec hotload(kz_term:text() | atom()) -> 'ok' | 'no_return'.
-hotload(Module) when is_atom(Module) ->
+hotload(Module)
+  when is_atom(Module) ->
     _ = code:soft_purge(Module),
     case code:load_file(Module) of
         {'module', _} -> 'ok';
@@ -102,3 +105,16 @@ hotload(Module) when is_atom(Module) ->
     end;
 hotload(Module) ->
     hotload(kz_term:to_atom(Module, 'true')).
+
+-spec behaviours(atom()) -> [atom()].
+behaviours(Module)
+  when is_atom(Module) ->
+    props:get_value(behaviour, Module:module_info(attributes)).
+
+-spec has_behaviour(atom(), atom()) -> boolean().
+has_behaviour(Module, Behaviour)
+  when is_atom(Module) ->
+    case ensure_loaded(Module) of
+        'false' -> 'false';
+        Module -> lists:member(Behaviour, behaviours(Module))
+    end.

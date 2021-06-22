@@ -13,6 +13,8 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_directory_device_sip).
 
+-behaviour(kz_directory_device_spec).
+
 -export([codecs/1]).
 -export([sip_interface/1]).
 -export([sip_route/1, sip_route_uri/1]).
@@ -22,6 +24,7 @@
 -export([bypass_media/1]).
 -export([invite_uri/2]).
 -export([routing_ccvs/2]).
+-export([sip_headers/2]).
 
 -include("kazoo_directory.hrl").
 
@@ -144,3 +147,7 @@ get_realm(Endpoint) ->
 -spec routing_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
 routing_ccvs(Endpoint, CCVs) ->
     kz_json:merge(CCVs, kz_custom_channel_vars:routing(kzd_devices:sip_custom_channel_vars(Endpoint, kz_json:new()), kz_json:new())).
+
+-spec sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
+sip_headers(_Endpoint, Headers) ->
+    Headers.
