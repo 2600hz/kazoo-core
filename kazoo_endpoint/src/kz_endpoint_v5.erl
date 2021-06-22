@@ -1310,7 +1310,8 @@ create_push_endpoint(Endpoint, Properties, Call) ->
         ,{<<"To-Realm">>, ToRealm}
         ,{<<"To-DID">>, get_to_did(Endpoint, Call)}
         ,{<<"SIP-Transport">>, get_sip_transport(SIPJObj)}
-        ,{<<"Route">>, <<"sip:", ToUser/binary, ";fs_path='", Proxy/binary, "'">> }
+        ,{<<"Route">>, <<"sip:", ToUser/binary>>}
+        ,{<<"SIP-Proxy-Route-URI">>, Proxy}
         ,{<<"Outbound-Callee-ID-Name">>, Clid#clid.callee_name}
         ,{<<"Outbound-Callee-ID-Number">>, Clid#clid.callee_number}
         ,{<<"Outbound-Caller-ID-Number">>, Clid#clid.caller_number}
