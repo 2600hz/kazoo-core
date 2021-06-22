@@ -157,22 +157,48 @@ build(EndpointId, AccountId, Endpoint, _Options, Module) ->
 get_device_module(Endpoint) ->
     case get_endpoint_type(Endpoint) of
         <<"unknown">> -> 'undefined';
-        Type -> kz_term:to_atom(<<"kz_directory_device_", Type/binary>>, 'true')
+        Type -> ensure_device_module(Type)
+    end.
+
+-spec ensure_device_module(kz_term:ne_binary()) -> atom().
+ensure_device_module(Name) ->
+    Module = kz_term:to_atom(<<"kz_directory_device_", Name/binary>>, 'true'),
+    case kz_module:has_behaviour(Module, kz_directory_device_spec) of
+        true -> Module;
+        false -> undefined
     end.
 
 -spec get_endpoint_type(kz_json:object()) -> kz_term:ne_binary().
 get_endpoint_type(Endpoint) ->
-    Type = kz_json:get_first_defined([<<"endpoint_type">>
-                                     ,<<"device_type">>
-                                     ]
-                                    ,Endpoint
-                                    ),
+    Routines = [fun maybe_endpoint_type_is_push/1
+               ,fun get_endpoint_type_property/1
+               ],
+    Fun = fun(F, 'undefined') -> F(Endpoint);
+             (_F, T) -> T
+          end,
+    Type = lists:foldl(Fun, 'undefined', Routines),
     case convert_endpoint_type(Type) of
         'undefined' -> maybe_guess_endpoint_type(Endpoint);
         Else -> Else
     end.
 
+-spec maybe_endpoint_type_is_push(kz_json:object()) -> kz_term:api_ne_binary().
+maybe_endpoint_type_is_push(Endpoint) ->
+    case kz_json:is_empty(kz_json:get_json_value(<<"push">>, Endpoint, kz_json:new())) of
+        'true' -> 'undefined';
+        'false' -> <<"push">>
+    end.
+
+-spec get_endpoint_type_property(kz_json:object()) -> kz_term:api_ne_binary().
+get_endpoint_type_property(Endpoint) ->
+    kz_json:get_first_defined([<<"endpoint_type">>
+                              ,<<"device_type">>
+                              ]
+                             ,Endpoint
+                             ).
+
 -spec convert_endpoint_type(kz_term:ne_binary()) -> kz_term:api_ne_binary().
+convert_endpoint_type(<<"push">>) -> <<"push">>;
 convert_endpoint_type(<<"sip_", _/binary>>) -> <<"sip">>;
 convert_endpoint_type(<<"smartphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"softphone">>) -> <<"sip">>;
@@ -180,6 +206,7 @@ convert_endpoint_type(<<"cellphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"landline">>) -> <<"sip">>;
 convert_endpoint_type(<<"fax">>) -> <<"sip">>;
 convert_endpoint_type(<<"mobile">>) -> <<"mobile">>;
+convert_endpoint_type(<<"application">>) -> <<"sip">>;
 convert_endpoint_type(_Else) ->
     lager:info("failed to convert endpoint type ~s", [_Else]),
     'undefined'.
@@ -373,7 +400,9 @@ routing_ccvs(Mod, Endpoint, CCVs) ->
 -spec generate_sip_headers(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), module()) -> kz_json:object().
 generate_sip_headers(_EndpointId, _AccountId, Endpoint, Module) ->
     HeaderFuns = [{fun add_sip_headers/2, Endpoint}
-                 ,{fun maybe_add_aor/3, Module, Endpoint}
+                 ,{fun maybe_add_aor/2, Endpoint}
+                 ,{fun maybe_add_invite_format/3, Module, Endpoint}
+                 ,{fun maybe_add_specific_headers/3, Module, Endpoint}
                  ],
     kz_json:exec(HeaderFuns, kz_json:new()).
 
@@ -384,20 +413,30 @@ add_sip_headers(Endpoint, Headers) ->
         CustomHeaders -> kz_json:merge_jobjs(CustomHeaders, Headers)
     end.
 
--spec maybe_add_aor(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
-maybe_add_aor(Module, Endpoint, Headers) ->
+-spec maybe_add_aor(kz_json:object(), kz_json:object()) -> kz_json:object().
+maybe_add_aor(Endpoint, Headers) ->
     Username = kzd_devices:sip_username(Endpoint),
-    maybe_add_aor(Module, Username, Endpoint, Headers).
+    maybe_add_aor(Username, Endpoint, Headers).
 
--spec maybe_add_aor(module(), kz_term:api_binary(), kz_json:object(), kz_json:object()) -> kz_json:object().
-maybe_add_aor(_Mod, 'undefined', _Endpoint, Headers) -> Headers;
-maybe_add_aor(Mod, Username, Endpoint, Headers) ->
+-spec maybe_add_aor(kz_term:api_binary(), kz_json:object(), kz_json:object()) -> kz_json:object().
+maybe_add_aor('undefined', _Endpoint, Headers) -> Headers;
+maybe_add_aor(Username, Endpoint, Headers) ->
     Realm = kzd_devices:sip_realm(Endpoint,  kz_json:get_ne_binary_value(<<"realm">>, Endpoint)),
-    Format = Mod:invite_format(Endpoint),
-    AOR = [{<<"X-KAZOO-AOR">>, <<"sip:", Username/binary, "@", Realm/binary>>}
-          ,{<<"X-KAZOO-INVITE-FORMAT">>, Format}
-          ],
-    kz_json:set_values(AOR, Headers).
+    AOR = <<"sip:", Username/binary, "@", Realm/binary>>,
+    kz_json:set_value(<<"X-KAZOO-AOR">>, AOR, Headers).
+
+-spec maybe_add_invite_format(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+maybe_add_invite_format(undefined, _Endpoint, Headers) ->
+    Headers;
+maybe_add_invite_format(Module, Endpoint, Headers) ->
+    Format = Module:invite_format(Endpoint),
+    kz_json:set_value(<<"X-KAZOO-INVITE-FORMAT">>, Format, Headers).
+
+-spec maybe_add_specific_headers(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+maybe_add_specific_headers(undefined, _Endpoint, Headers) ->
+    Headers;
+maybe_add_specific_headers(Module, Endpoint, Headers) ->
+    Module:sip_headers(Endpoint, Headers).
 
 -spec dnd(kz_json:object()) -> boolean().
 dnd(Endpoint) ->
