@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2021, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% @author Pierre Fenoll
@@ -230,7 +230,7 @@ account_id(Props) when is_list(Props) ->
 set_account_id(Props, AccountId=?MATCH_ACCOUNT_RAW(_)) when is_list(Props) ->
     props:set_value('account_id', AccountId, Props).
 
--spec has_pending_port(extra_options()) -> boolean().
+-spec has_pending_port(extra_options()) -> kz_term:api_boolean().
 has_pending_port(Props) when is_list(Props) ->
     props:get_is_true('pending_port', Props).
 

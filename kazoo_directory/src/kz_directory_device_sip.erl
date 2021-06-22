@@ -28,7 +28,7 @@
 
 -include("kazoo_directory.hrl").
 
--spec authorizing_type(kz_json:object()) -> binary().
+-spec authorizing_type(kz_json:object()) -> kz_term:ne_binary().
 authorizing_type(Endpoint) ->
     kz_doc:type(Endpoint).
 

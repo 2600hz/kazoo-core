@@ -26,7 +26,7 @@
 -export([routing_ccvs/2]).
 -export([sip_headers/2]).
 
--spec authorizing_type(kz_json:object()) -> binary().
+-spec authorizing_type(kz_json:object()) -> kz_term:api_ne_binary().
 authorizing_type(Endpoint) ->
     kz_doc:type(Endpoint).
 

@@ -36,7 +36,7 @@
 -define(DEFAULT_MOBILE_CODECS, [<<"PCMU">>]).
 -define(DEFAULT_CALLER_ID_NAME, <<"unknown">>).
 
--spec authorizing_type(kz_json:object()) -> binary().
+-spec authorizing_type(kz_json:object()) -> kz_term:ne_binary().
 authorizing_type(_Endpoint) -> <<"mobile">>.
 
 -spec set_invite_uri(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
@@ -109,7 +109,7 @@ sip_route_uri(_Endpoint) ->
 sip_interface(_Endpoint) ->
     kapps_config:get_binary(?MOBILE_CONFIG_CAT, <<"custom_sip_interface">>).
 
--spec codecs(kz_json:object()) -> 'undefined' | kz_term:ne_binaries().
+-spec codecs(kz_json:object()) -> kz_term:ne_binaries().
 codecs(_Endpoint) ->
     kapps_config:get(?MOBILE_CONFIG_CAT, <<"codecs">>, ?DEFAULT_MOBILE_CODECS).
 

@@ -117,11 +117,11 @@ get_binary(Category, Key) ->
         Else -> kz_term:to_binary(Else)
     end.
 
--spec get_binary(config_category(), config_key(), Default) -> binary() | Default.
+-spec get_binary(config_category(), config_key(), any()) -> binary().
 get_binary(Category, Key, Default) ->
     get_binary(Category, Key, Default, kz_term:to_binary(node())).
 
--spec get_binary(config_category(), config_key(), Default, config_node()) -> binary() | Default.
+-spec get_binary(config_category(), config_key(), any(), config_node()) -> binary().
 get_binary(Category, Key, Default, Node) ->
     kz_term:to_binary(get(Category, Key, Default, Node)).
 
