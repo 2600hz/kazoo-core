@@ -37,6 +37,7 @@ sip(CausePlusText) ->
 q850(CausePlusText) ->
     case parse_cause_text(CausePlusText) of
         {'match', [_, _]=Matches} ->
+            lager:info("matches: ~p", [Matches]),
             matches_to_return(Matches, fun q850_cause/1);
         'nomatch' ->
             {'error', 'not_found'}
@@ -60,6 +61,8 @@ q850_cause(2) ->
     {404, <<"NO_ROUTE_TRANSIT_NET">>};
 q850_cause(3) ->
     {404, <<"NO_ROUTE_DESTINATION">>};
+q850_cause(16) ->
+    {200, <<"NORMAL_CLEARING">>};
 q850_cause(17) ->
     {486, <<"USER_BUSY">>};
 q850_cause(18) ->

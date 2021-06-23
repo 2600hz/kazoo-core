@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -44,6 +44,7 @@
 -export_type([std_return/0
              ,endpoint/0
              ,endpoints/0
+             ,build_errors/0
              ]).
 
 %%------------------------------------------------------------------------------
@@ -96,7 +97,6 @@ flush_local(Db, Id) -> ?MOD:flush_local(Db, Id).
                       | 'endpoint_called_self' | 'endpoint_id_undefined'
                       | 'invalid_endpoint_id' | 'not_found' | 'owner_called_self'
                       | 'do_not_disturb' | 'no_resource_type'.
-
 
 -spec build(kz_term:api_ne_binary() | kz_json:object(), kapps_call:call()) ->
           {'ok', kz_json:objects()} |

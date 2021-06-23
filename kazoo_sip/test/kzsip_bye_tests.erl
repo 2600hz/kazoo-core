@@ -1,0 +1,18 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2011-2021, 2600Hz
+%%% @doc
+%%% This Source Code Form is subject to the terms of the Mozilla Public
+%%% License, v. 2.0. If a copy of the MPL was not distributed with this
+%%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
+%%%
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzsip_bye_tests).
+
+-include_lib("eunit/include/eunit.hrl").
+
+parse_q850_test_() ->
+    [?_assertEqual({200, <<"NORMAL_CLEARING">>}
+                  ,kzsip_bye:parse_reason(<<"Q.850;cause=16;text=\"NORMAL_CLEARING\"">>)
+                  )
+    ].

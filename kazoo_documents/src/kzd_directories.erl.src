@@ -13,7 +13,6 @@
 -export([name/1, name/2, set_name/2]).
 -export([search_fields/1, search_fields/2, set_search_fields/2]).
 -export([sort_by/1, sort_by/2, set_sort_by/2]).
--export([users/1, users/2, set_users/2]).
 
 
 -include("kz_documents.hrl").
@@ -110,15 +109,3 @@ sort_by(Doc, Default) ->
 -spec set_sort_by(doc(), binary()) -> doc().
 set_sort_by(Doc, SortBy) ->
     kz_json:set_value([<<"sort_by">>], SortBy, Doc).
-
--spec users(doc()) -> kz_term:ne_binaries().
-users(Doc) ->
-    users(Doc, []).
-
--spec users(doc(), Default) -> kz_term:ne_binaries() | Default.
-users(Doc, Default) ->
-    kz_json:get_list_value([<<"users">>], Doc, Default).
-
--spec set_users(doc(), kz_term:ne_binaries()) -> doc().
-set_users(Doc, Users) ->
-    kz_json:set_value([<<"users">>], Users, Doc).
