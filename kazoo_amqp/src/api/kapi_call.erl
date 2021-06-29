@@ -530,7 +530,10 @@ query_channels_resp_definition() ->
                ,kapi_definition:event_type_headers(Category, EventName)
                }
               ,{fun kapi_definition:set_types/2
-               ,[{<<"Channels">>, fun kz_json:is_json_object/1}]
+               ,[{<<"Channels">>, fun(Channels) ->
+                                          kz_json:is_json_object(Channels)
+                                          andalso not kz_json:is_empty(Channels)
+                                  end}]
                }
               ],
     kapi_definition:setters(Setters).
