@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,7 +29,7 @@ maybe_record_inbound(FromNetwork, Endpoint, Call) ->
           {'true', {kz_json:path(), kz_json:object()}} | 'false'.
 maybe_record_inbound(_FromNetwork, _Endpoint, _Call, 'undefined') -> 'false';
 maybe_record_inbound(FromNetwork, Endpoint, Call, Data) ->
-    case kz_json:is_true(<<"enabled">>, Data) of
+    case kz_account_recording:should_record_call(Call, Data) of
         'false' -> 'false';
         'true' ->
             Values = [{<<"origin">>, <<"inbound from ", FromNetwork/binary, " to endpoint">>}
@@ -50,7 +50,7 @@ maybe_record_outbound(ToNetwork, Endpoint, Call) ->
           {'true', kapps_call:call()} | 'false'.
 maybe_record_outbound(_ToNetwork, _Endpoint, _Call, 'undefined') -> 'false';
 maybe_record_outbound(ToNetwork, _Endpoint, Call, Data) ->
-    case kz_json:is_true(<<"enabled">>, Data) of
+    case kz_account_recording:should_record_call(Call, Data) of
         'false' -> 'false';
         'true' ->
             LabeledData = kz_json:set_value(<<"origin">>, ?ENDPOINT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
