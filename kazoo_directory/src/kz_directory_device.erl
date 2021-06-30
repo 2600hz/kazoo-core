@@ -358,7 +358,7 @@ add_alert_info(Endpoint, CCVs) ->
     kz_json:set_values(AlertInfo, CCVs).
 
 -spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), module()) -> kz_json:object().
-generate_ccvs(_EndpointId, AccountId, Endpoint, Module) ->
+generate_ccvs(_EndpointId, AccountId, Endpoint, _Module) ->
     Realm = kzd_devices:sip_realm(Endpoint, kz_json:get_ne_binary_value(<<"realm">>, Endpoint)),
     Props = [{<<"Account-ID">>, AccountId}
             ,{<<"Reseller-ID">>, kz_services_reseller:get_id(AccountId)}
@@ -370,7 +370,12 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, Module) ->
 
     CCVFuns = [{fun endpoint_id/2, Endpoint}
               ,{fun owner_id/2, Endpoint}
-              ,{fun rtcp_mux/2, Endpoint}
+              ],
+    kz_json:exec(CCVFuns, CCVs).
+
+generate_routing_ccvs(Endpoint, Module) ->
+    CCVs = kz_json:new(),
+    CCVFuns = [{fun rtcp_mux/2, Endpoint}
               ,{fun webrtc/2, Endpoint}
               ,{fun enable_fax/2, Endpoint}
               ,{fun enforce_security/2, Endpoint}
@@ -378,18 +383,13 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, Module) ->
               ,{fun presence_id/2, Endpoint}
               ,{fun add_alert_info/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
-              ,{fun invite_uri/3, Module, Endpoint}
               ,{fun call_waiting/2, Endpoint}
               ,{fun progress_timeout/2, Endpoint}
               ,{fun ignore_early_media/3, Module, Endpoint}
               ,{fun bypass_media/3, Module, Endpoint}
               ,{fun ignore_completed_elsewhere/2, Endpoint}
-              ],
-    kz_json:exec(CCVFuns, CCVs).
-
-generate_routing_ccvs(Endpoint, Module) ->
-    CCVs = kz_json:new(),
-    CCVFuns = [{fun routing_ccvs/3, Module, Endpoint}
+              ,{fun invite_uri/3, Module, Endpoint}
+              ,{fun routing_ccvs/3, Module, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
