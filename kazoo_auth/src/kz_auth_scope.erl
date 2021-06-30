@@ -106,10 +106,10 @@ available_scopes(Scopes) when is_list(Scopes) ->
 
 -spec get_available_scopes(kz_term:ne_binary() | kz_term:ne_binaries()) -> kz_term:proplist().
 get_available_scopes(Key) ->
-    case erlang:get(Key) of
+    case erlang:get({'available_scopes', Key}) of
         'undefined' ->
             Available = available_scopes(),
-            _ = erlang:put({'available_scopes', Key}),
+            _ = erlang:put({'available_scopes', Key}, Available),
             Available;
         Available -> Available
     end.
