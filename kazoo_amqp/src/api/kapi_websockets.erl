@@ -11,6 +11,11 @@
 
 -export([api_definitions/0, api_definition/1]).
 
+-export([app_event/1
+        ,app_event_v/1
+        ,publish_app_event/1
+        ,publish_app_event/2
+        ]).
 -export([get_req/1
         ,get_req_v/1
         ,publish_get_req/1
@@ -37,10 +42,17 @@
         ,declare_exchanges/0
         ]).
 
+-export([create_app_event_key/0, create_app_event_key/5]).
+
 -include("kapi_websockets.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
--type restriction() :: 'get' | 'module_req'.
+-type restriction() :: 'app_event' |
+                       {'app_event', Application :: kz_term:ne_binary()} |
+                       {'app_event', {Application :: kz_term:ne_binary(), AccountId :: kz_term:ne_binary()}} |
+                       {'app_event', Prop :: kz_term:proplist()} |
+                       'get' |
+                       'module_req'.
 -type restrictions() :: [restriction()].
 -type bind_prop() :: {'restrict_to', restrictions()}.
 -type bind_props() :: [bind_prop()].
@@ -69,6 +81,8 @@ api_definitions() ->
 -spec api_definition(kz_term:text()) -> kapi_definition:api().
 api_definition(Name) when not is_binary(Name) ->
     api_definition(kz_term:to_binary(Name));
+api_definition(<<"app_event">>) ->
+    app_event_definition();
 api_definition(<<"get_req">>) ->
     get_req_definition();
 api_definition(<<"get_resp">>) ->
@@ -77,6 +91,35 @@ api_definition(<<"module_req">>) ->
     module_req_definition();
 api_definition(<<"module_resp">>) ->
     module_resp_definition().
+
+-spec app_event_definition() -> kapi_definition:api().
+app_event_definition() ->
+    EventName = <<"app_event">>,
+    Category = <<"websockets">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"WebSockets Application Event">>}
+              ,{fun kapi_definition:set_description/2, <<"Publish a payload to an Desktop application">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun app_event/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun app_event_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_app_event/1}
+              ,{fun kapi_definition:set_binding/2, fun app_event_binding/1}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
+                                                            ,<<"Application">>
+                                                            ,<<"Category">>
+                                                            ,<<"Sub-Category">>
+                                                            ]
+               }
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Payload">>
+                                                            ,<<"Subscriptions">>
+                                                            ]
+               }
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
 
 -spec get_req_definition() -> kapi_definition:api().
 get_req_definition() ->
@@ -178,6 +221,28 @@ module_resp_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+%% Application Event request
+-spec app_event(kz_term:api_terms()) -> kz_api:api_formatter_return().
+app_event(Req) ->
+    kapi_definition:build_message(Req, app_event_definition()).
+
+-spec app_event_v(kz_term:api_terms()) -> boolean().
+app_event_v(Req) ->
+    kapi_definition:validate(Req, app_event_definition()).
+
+-spec publish_app_event(kz_term:api_terms()) -> 'ok'.
+publish_app_event(API) ->
+    publish_app_event(API, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_app_event(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_app_event(API, ContentType) ->
+    Definition = app_event_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:kapps_publish((kapi_definition:binding(Definition))(API), Payload, ContentType).
+
 %% request to read
 -spec get_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
 get_req(Req) ->
@@ -276,6 +341,12 @@ bind_q(Queue, Props) ->
                  ).
 
 -spec add_restriction(kz_term:ne_binary(), restriction()) -> 'ok'.
+add_restriction(Queue, 'app_event') ->
+    kz_amqp_util:bind_q_to_kapps(Queue, create_app_event_key());
+add_restriction(Queue, {'app_event', {_App, _AccountId}=Key}) ->
+    kz_amqp_util:bind_q_to_kapps(Queue, app_event_key(Key));
+add_restriction(Queue, {'app_event', AppOrProp}) ->
+    kz_amqp_util:bind_q_to_kapps(Queue, app_event_key(AppOrProp));
 add_restriction(Queue, 'get') ->
     kz_amqp_util:bind_q_to_sysconf(Queue, ?KEY_WEBSOCKETS_GET_REQ);
 add_restriction(Queue, 'module_req') ->
@@ -289,6 +360,12 @@ unbind_q(Queue, Props) ->
                  ).
 
 -spec remove_restriction(kz_term:ne_binary(), restriction()) -> 'ok'.
+remove_restriction(Queue, 'app_event') ->
+    kz_amqp_util:unbind_q_from_kapps(Queue, create_app_event_key());
+remove_restriction(Queue, {'app_event', {_App, _AccountId}=Key}) ->
+    kz_amqp_util:unbind_q_from_kapps(Queue, app_event_key(Key));
+remove_restriction(Queue, {'app_event', AppOrProp}) ->
+    kz_amqp_util:unbind_q_from_kapps(Queue, app_event_key(AppOrProp));
 remove_restriction(Queue, 'get') ->
     kz_amqp_util:unbind_q_from_sysconf(Queue, ?KEY_WEBSOCKETS_GET_REQ);
 remove_restriction(Queue, 'module_req') ->
@@ -299,3 +376,35 @@ declare_exchanges() ->
     kz_amqp_util:kapps_exchange(),
     kz_amqp_util:targeted_exchange(),
     kz_amqp_util:sysconf_exchange().
+
+app_event_key(App) when is_binary(App) ->
+    create_app_event_key(App, <<"*">>, <<"*">>, <<"*">>, []);
+app_event_key({App, AccountId}) ->
+    create_app_event_key(App, AccountId, <<"*">>, <<"*">>, []);
+app_event_key(Props) when is_list(Props) ->
+    App = props:get_value('application', Props, <<"*">>),
+    AccountId = props:get_value('account_id', Props, <<"*">>),
+    Category = props:get_value('category', Props, <<"*">>),
+    SubCategory = props:get_value('subcategory', Props, <<"*">>),
+    Subscriptions = props:get_value('subscriptions', Props, []),
+    create_app_event_key(App, AccountId, Category, SubCategory, Subscriptions).
+
+-spec app_event_binding(kz_term:api_terms()) -> kz_term:ne_binary().
+app_event_binding(Prop) when is_list(Prop) ->
+    app_event_binding(kz_json:from_list(Prop));
+app_event_binding(API) ->
+    App = kz_json:get_ne_binary_value(<<"Application">>, API, <<"*">>),
+    AccountId = kz_json:get_ne_binary_value(<<"Account-ID">>, API, <<"*">>),
+    Category = kz_json:get_ne_binary_value(<<"Category">>, API, <<"*">>),
+    SubCategory = kz_json:get_ne_binary_value(<<"Sub-Category">>, API, <<"*">>),
+    Subscriptions = kz_json:get_list_value(<<"Subscriptions">>, API, []),
+    create_app_event_key(App, AccountId, Category, SubCategory, Subscriptions).
+
+-spec create_app_event_key() -> kz_term:ne_binary().
+create_app_event_key() ->
+    kz_binary:join([?KEY_WS_APP_EVENT, <<"#">>], <<".">>).
+
+-spec create_app_event_key(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()) ->
+          kz_term:ne_binary().
+create_app_event_key(App, AccountId, Category, SubCategory, Subscriptions) ->
+    kz_binary:join([?KEY_WS_APP_EVENT, App, AccountId, Category, SubCategory | Subscriptions], <<".">>).

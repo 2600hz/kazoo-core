@@ -6,5 +6,8 @@
 %% websockets whapp routing keys for responses to clients
 -define(KEY_WEBSOCKETS_GET_REQ, <<"websockets.get">>).
 
+
+-define(KEY_WS_APP_EVENT, <<"websockets.app_event">>).
+
 -define(KAPI_WEBSOCKETS_HRL, 'true').
 -endif.
