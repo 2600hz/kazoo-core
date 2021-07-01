@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2019, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Utilities for working with file extensions.
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -86,6 +86,7 @@ normalize_content_type(<<"application/pdf">>) -> <<"application/pdf">>;
 normalize_content_type(<<"application/x-pdf">>) -> <<"application/pdf">>;
 normalize_content_type(<<"text/pdf">>) -> <<"application/pdf">>;
 normalize_content_type(<<"text/x-pdf">>) -> <<"application/pdf">>;
+normalize_content_type(<<"audio/x-wav">>) -> <<"audio/wav">>;
 normalize_content_type(<<_/binary>> = Else) -> Else;
 normalize_content_type(CT) ->
     normalize_content_type(kz_term:to_binary(CT)).
