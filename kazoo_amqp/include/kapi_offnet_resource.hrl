@@ -61,6 +61,7 @@
 -define(KEY_T38_ENABLED, <<"Fax-T38-Enabled">>).
 -define(KEY_TIMEOUT, <<"Timeout">>).
 -define(KEY_TO_DID, <<"To-DID">>).
+-define(KEY_CALL_INTERACTION_ID, <<?CALL_INTERACTION_ID>>).
 
 -define(RESOURCE_TYPE_AUDIO, <<"audio">>).
 -define(RESOURCE_TYPE_CID, <<"cid">>).

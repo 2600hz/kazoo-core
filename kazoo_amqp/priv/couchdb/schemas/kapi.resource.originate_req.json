@@ -34,6 +34,9 @@
         "Call-Context": {
             "type": "string"
         },
+        "Call-Interaction-ID": {
+            "type": "string"
+        },
         "Callee-ID-Name": {
             "type": "string"
         },

@@ -144,6 +144,7 @@ originate_req_definition() ->
                                                             ,<<"Outbound-Call-ID">>
                                                             ,<<"Simplify-Loopback">> %% loopback_bowout flag
                                                             ,<<"Start-Control-Process">>
+                                                            ,<<?CALL_INTERACTION_ID>>
                                                             | kapi_dialplan:optional_bridge_req_headers()
                                                             ]}
               ,{fun kapi_definition:set_values/2
