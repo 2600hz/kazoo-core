@@ -35,6 +35,7 @@
 -export([set_origination_call_id/2, origination_call_id/1]).
 
 -export([context/1, context/2, set_context/2]).
+-export([routing_context/1]).
 
 -export([set_control_queue/2, control_queue/1, control_queue_direct/1]).
 -export([control_queue_helper/2, clear_control_queue_helper/1]).
@@ -170,6 +171,9 @@
 
 -define(DEFAULT_UNKNOWN_CALLER_ID_NAME, <<"unknown">>).
 -define(UNKNOWN_CALLER_ID_NAME_KEY, <<"unknown_cid_name">>).
+
+-define(NON_DIRECT_MODULES_KEY, <<"non_direct_modules">>).
+-define(DEFAULT_NON_DIRECT_MODULES, [<<"cf_ring_group">>, <<"acdc_util">>, <<"cf_qubicle">>, <<"qubicle">>]).
 
 -record(kapps_call, {call_id :: kz_term:api_binary()                       %% The UUID of the call
                     ,call_id_helper = fun default_helper_function/2 :: kapps_helper_function()         %% A function used when requesting the call id, to ensure it is up-to-date
@@ -1856,4 +1860,45 @@ maybe_find_endpoint_id_from_uri(Contact, Id) ->
                     EID
             end;
         _Else -> Id
+    end.
+
+-spec routing_context(call()) -> kz_json:object().
+routing_context(Call) ->
+    Props = [{<<"Inception">>, inception_type(Call)}
+            ,{<<"Other-UUID">>, other_leg_call_id(Call)}
+            ],
+    Routines = [fun routing_context_flags/2
+               ,fun routing_context_request_uris/2
+               ],
+    KVs = lists:foldl(fun(F, Acc) -> F(Call, Acc) end, Props, Routines),
+    kz_json:set_values(KVs, kvs_fetch('call-context', kz_json:new(), Call)).
+
+-spec routing_context_request_uris(call(), kz_term:proplist()) -> kz_term:proplist().
+routing_context_request_uris(Call, Props) ->
+    URIs = [{<<"e164">>, knm_converters:normalize(request_user(Call), account_id(Call))}
+           ,{<<"npan">>, knm_converters:to_npan(request_user(Call))}
+           ,{<<"1npan">>, knm_converters:to_1npan(request_user(Call))}
+           ,{<<"strip_plus">>, knm_converters:to_strip_plus(request_user(Call))}
+           ,{<<"route">>, request_user(Call)}
+           ],
+    [{<<"request">>, kz_json:from_list(URIs)} | Props].
+
+-spec routing_context_flags(call(), kz_term:proplist()) -> kz_term:proplist().
+routing_context_flags(Call, Props) ->
+    Flags = kvs_fetch('context-flags', [], Call)
+        ++ routing_context_direct_call_flag(Call),
+    [{<<"Flags">>, Flags} | Props].
+
+-spec routing_context_non_direct_modules() -> kz_term:ne_binaries().
+routing_context_non_direct_modules() ->
+    kapps_config:get_ne_binaries(?CALL_CMD_CAT, ?NON_DIRECT_MODULES_KEY, ?DEFAULT_NON_DIRECT_MODULES).
+
+-spec routing_context_direct_call_flag(call()) -> kz_term:ne_binaries().
+routing_context_direct_call_flag(Call) ->
+    Source = kz_term:to_binary(kvs_fetch('context-source', Call)),
+    case not lists:member(Source, routing_context_non_direct_modules())
+        andalso custom_channel_var(<<"Call-Forward">>, Call) =:= 'undefined'
+    of
+        'true' -> [<<"direct_call">>];
+        'false' -> [<<"non_direct_call">>]
     end.

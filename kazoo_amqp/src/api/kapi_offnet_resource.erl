@@ -157,7 +157,6 @@ req_definition() ->
                                                             ,?KEY_BODY
                                                             ,?KEY_BYPASS_E164
                                                             ,?KEY_CALL_ID
-                                                            ,?KEY_CALL_ID
                                                             ,?KEY_CAVS
                                                             ,?KEY_CCVS
                                                             ,?KEY_CONTROL_QUEUE
@@ -206,6 +205,7 @@ req_definition() ->
                                                             ,?KEY_CONTINUE_AFTER
                                                             ,?KEY_FAIL_ON_SINGLE_REJECT
                                                             ,?KEY_INVITE_CONTACT_USER
+                                                            ,?KEY_CALL_INTERACTION_ID
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{?KEY_RESOURCE_TYPE, [?RESOURCE_TYPE_AUDIO

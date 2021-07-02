@@ -74,6 +74,9 @@
         "Call-ID": {
             "type": "string"
         },
+        "Call-Interaction-ID": {
+            "type": "string"
+        },
         "Continue-After": {
             "type": "string"
         },

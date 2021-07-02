@@ -61,6 +61,8 @@
 -define(KEY_PRIVACY_HIDE_NUMBER, <<"Privacy-Hide-Number">>).
 -define(KEY_EMERGENCY_RESOURCE, <<"Emergency-Resource">>).
 -define(KEY_FAIL_ON_SINGLE_REJECT, <<"Fail-On-Single-Reject">>).
+-define(KEY_CALL_INTERACTION_ID, <<?CALL_INTERACTION_ID>>).
+
 -define(RESOURCE_TYPE_AUDIO, <<"audio">>).
 -define(RESOURCE_TYPE_ORIGINATE, <<"originate">>).
 -define(RESOURCE_TYPE_SMS, <<"sms">>).
