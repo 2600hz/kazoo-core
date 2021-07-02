@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2020, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -150,10 +150,7 @@ put_attachment(#{att_handler := {Handler, Params}}=Map
 
     case Handler:put_attachment(Params, DbName, DocId, AName, Contents, Options) of
         {'ok', Props} ->
-            CT = props:get_value('content_type'
-                                ,Options
-                                ,kz_mime:normalize_content_type(kz_mime:from_filename(AName))
-                                ),
+            CT = props:get_value('content_type', Options, kz_mime:from_filename(AName)),
             Size = size(Contents),
             Att = attachment_from_handler(AName, attachment_handler_jobj(Handler, Props), Size, CT),
             handle_put_attachment(Map, Att, DbName, DocId, AName, Contents, Options, Props);
