@@ -51,6 +51,7 @@
 
 -export([originate_ready/1, originate_ready_v/1
         ,originate_execute/1, originate_execute_v/1
+        ,originate_cancel/1, originate_cancel_v/1
         ]).
 
 -include("kz_amqp_util.hrl").
@@ -133,6 +134,8 @@ originate_req_definition() ->
                                                             ,<<"Eavesdrop-Mode">>
 
                                                             ,<<"Existing-Call-ID">> % If set, use this node, otherwise ignore
+                                                            ,<<"Switch-Nodename">>
+                                                            ,<<"Originate-UUID">>
                                                             ,<<"Export-Custom-Channel-Vars">>
                                                             ,<<"Fax-Identity-Name">>
                                                             ,<<"Fax-Identity-Number">>
@@ -192,6 +195,7 @@ originate_resp_definition() ->
                 ,<<"Custom-Application-Vars">>
                 ,<<"Custom-Channel-Vars">>
                 ,<<"Custom-SIP-Headers">>
+                ,<<"Originate-UUID">>
                 ,<<"Switch-Hostname">>
                 ,<<"Switch-Nodename">>
                 ,<<"Switch-URL">>
@@ -220,20 +224,10 @@ originate_started_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun originate_started/1}
               ,{fun kapi_definition:set_validate_fun/2, fun originate_started_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_originate_started/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Call-ID">>]}
-              ,{fun kapi_definition:set_optional_headers/2
-               ,[<<"Channel-Call-State">>
-                | kapi_call:optional_call_event_headers()
-                ]
-               }
-              ,{fun kapi_definition:set_values/2
-               ,kapi_definition:event_type_headers(Category, EventName)
-               }
-              ,{fun kapi_definition:set_types/2
-               ,[{<<"Custom-Application-Vars">>, fun kz_json:is_json_object/1}
-                ,{<<"Custom-Channel-Vars">>, fun kz_json:is_json_object/1}
-                ]
-               }
+              ,{fun kapi_definition:set_required_headers/2, [<<"Originate-UUID">>]}
+              ,{fun kapi_definition:set_optional_headers/2 ,[]}
+              ,{fun kapi_definition:set_values/2, kapi_definition:event_type_headers(Category, EventName)}
+              ,{fun kapi_definition:set_types/2, []}
               ],
     kapi_definition:setters(Setters).
 
@@ -249,10 +243,8 @@ originate_uuid_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun originate_uuid_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_originate_uuid/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Outbound-Call-ID">>]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Outbound-Call-Control-Queue">>]}
-              ,{fun kapi_definition:set_values/2
-               ,kapi_definition:event_type_headers(Category, EventName)
-               }
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2, kapi_definition:event_type_headers(Category, EventName)}
               ,{fun kapi_definition:set_types/2, []}
               ],
     kapi_definition:setters(Setters).
@@ -328,6 +320,14 @@ originate_execute(API) ->
 originate_execute_v(API) ->
     kapi_dialplan:originate_execute_v(API).
 
+-spec originate_cancel(kz_term:api_terms()) -> api_formatter_return().
+originate_cancel(API) ->
+    kapi_dialplan:originate_cancel(API).
+
+-spec originate_cancel_v(kz_term:api_terms()) -> boolean().
+originate_cancel_v(API) ->
+    kapi_dialplan:originate_cancel_v(API).
+
 %%------------------------------------------------------------------------------
 %% @doc Resource Request.
 %% Takes proplist, creates JSON string or error.
@@ -370,15 +370,25 @@ publish_originate_req(JObj) ->
 -spec publish_originate_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_originate_req(Req, ContentType) ->
     Definition = originate_req_definition(),
+    BaseKey = kapi_definition:binding(Definition),
+    RK = publish_originate_req_key(BaseKey, Req),
     {'ok', Payload} = kz_api:prepare_api_payload(Req
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
-    kz_amqp_util:callmgr_publish(Payload
-                                ,ContentType
-                                ,kapi_definition:binding(Definition)
-                                ,[{'mandatory', 'true'}]
-                                ).
+    kz_amqp_util:callmgr_publish(Payload, ContentType, RK, [{'mandatory', 'true'}]).
+
+-spec publish_originate_req_key(kz_term:ne_binary(), kz_term:api_terms()) -> kz_term:ne_binary().
+publish_originate_req_key(BaseKey, Req)
+  when is_list(Req) ->
+    case props:get_ne_binary_value(<<"Switch-Nodename">>, Req) of
+        undefined ->
+            BaseKey;
+        Switch ->
+            list_to_binary([BaseKey, ".", kz_amqp_util:encode(Switch)])
+    end;
+publish_originate_req_key(BaseKey, Req) ->
+    publish_originate_req_key(BaseKey, kz_json:to_proplist(Req)).
 
 %%------------------------------------------------------------------------------
 %% @doc Resource Request.
@@ -522,7 +532,9 @@ bind_q(Queue, _Prop, 'undefined') ->
     'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(originate_req_definition())),
     kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(eavesdrop_req_definition()));
 bind_q(Queue, Prop, ['originate'|T]) ->
-    'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(originate_req_definition())),
+    RK = kapi_definition:binding(originate_req_definition()),
+    Node = props:get_ne_binary_value('node', Prop),
+    kz_amqp_util:bind_q_to_callmgr(Queue, bind_key(RK, Node)),
     bind_q(Queue, Prop, T);
 bind_q(Queue, Prop, ['eavesdrop'|T]) ->
     'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(eavesdrop_req_definition())),
@@ -540,7 +552,9 @@ unbind_q(Queue, _Prop, 'undefined') ->
     'ok' = kz_amqp_util:unbind_q_from_callmgr(Queue, kapi_definition:binding(originate_req_definition())),
     kz_amqp_util:unbind_q_from_callmgr(Queue, kapi_definition:binding(eavesdrop_req_definition()));
 unbind_q(Queue, Prop, ['originate'|T]) ->
-    'ok' = kz_amqp_util:unbind_q_from_callmgr(Queue, kapi_definition:binding(originate_req_definition())),
+    RK = kapi_definition:binding(originate_req_definition()),
+    Node = props:get_ne_binary_value('node', Prop),
+    kz_amqp_util:unbind_q_from_callmgr(Queue, bind_key(RK, Node)),
     unbind_q(Queue, Prop, T);
 unbind_q(Queue, Prop, ['eavesdrop'|T]) ->
     'ok' = kz_amqp_util:unbind_q_from_callmgr(Queue, kapi_definition:binding(eavesdrop_req_definition())),
@@ -549,6 +563,12 @@ unbind_q(Queue, Prop, [_|T]) ->
     unbind_q(Queue, Prop, T);
 unbind_q(_, _, []) ->
     'ok'.
+
+-spec bind_key(kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_term:ne_binary().
+bind_key(RK, undefined) ->
+    RK;
+bind_key(Base, Node) ->
+    list_to_binary([Base, ".", kz_amqp_util:encode(Node)]).
 
 %%------------------------------------------------------------------------------
 %% @doc Declare the exchanges used by this API.

@@ -20,6 +20,12 @@
                 "originate_ready"
             ],
             "type": "string"
+        },
+        "Originate-Queue": {
+            "type": "string"
+        },
+        "Originate-UUID": {
+            "type": "string"
         }
     },
     "required": [
