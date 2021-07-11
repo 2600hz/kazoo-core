@@ -370,6 +370,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Module) ->
 
     CCVFuns = [{fun endpoint_id/2, Endpoint}
               ,{fun owner_id/2, Endpoint}
+              ,{fun presence_id/2, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
@@ -380,7 +381,6 @@ generate_routing_ccvs(Endpoint, Module) ->
               ,{fun enable_fax/2, Endpoint}
               ,{fun enforce_security/2, Endpoint}
               ,{fun encryption_flags/2, Endpoint}
-              ,{fun presence_id/2, Endpoint}
               ,{fun add_alert_info/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
               ,{fun call_waiting/2, Endpoint}
