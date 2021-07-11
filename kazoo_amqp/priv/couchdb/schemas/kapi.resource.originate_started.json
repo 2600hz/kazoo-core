@@ -175,6 +175,9 @@
         "Media-Server": {
             "type": "string"
         },
+        "Originate-UUID": {
+            "type": "string"
+        },
         "Origination-Call-ID": {
             "type": "string"
         },
