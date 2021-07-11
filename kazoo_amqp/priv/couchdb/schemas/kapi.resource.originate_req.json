@@ -180,6 +180,9 @@
         "Originate-Immediate": {
             "type": "string"
         },
+        "Originate-UUID": {
+            "type": "string"
+        },
         "Origination-Call-ID": {
             "type": "string"
         },
@@ -232,6 +235,9 @@
             "type": "string"
         },
         "Start-Control-Process": {
+            "type": "string"
+        },
+        "Switch-Nodename": {
             "type": "string"
         },
         "Timeout": {

@@ -17,6 +17,9 @@
                 "originate_execute"
             ],
             "type": "string"
+        },
+        "Originate-UUID": {
+            "type": "string"
         }
     },
     "required": [

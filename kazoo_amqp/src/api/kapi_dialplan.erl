@@ -165,6 +165,11 @@
         ,publish_originate_execute/2
         ,publish_originate_execute/3
         ]).
+-export([originate_cancel/1
+        ,originate_cancel_v/1
+        ,publish_originate_cancel/2
+        ,publish_originate_cancel/3
+        ]).
 -export([fax_detection/1
         ,fax_detection_v/1
         ]).
@@ -290,6 +295,7 @@ api_definitions() ->
     ,conference_definition()
     ,originate_ready_definition()
     ,originate_execute_definition()
+    ,originate_cancel_definition()
     ,fax_detection_definition()
     ,store_vm_definition()
     ,audio_level_definition()
@@ -2043,8 +2049,8 @@ originate_ready_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun originate_ready/1}
               ,{fun kapi_definition:set_validate_fun/2, fun originate_ready_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_originate_ready/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Call-ID">>
-                                                            ,<<"Control-Queue">>
+              ,{fun kapi_definition:set_required_headers/2, [<<"Originate-UUID">>
+                                                            ,<<"Originate-Queue">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
@@ -2067,7 +2073,32 @@ originate_execute_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun originate_execute/1}
               ,{fun kapi_definition:set_validate_fun/2, fun originate_execute_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_originate_execute/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Call-ID">>
+              ,{fun kapi_definition:set_required_headers/2, [<<"Originate-UUID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec originate_cancel_definition() -> kapi_definition:api().
+originate_cancel_definition() ->
+    EventName = <<"originate_cancel">>,
+    Category = <<"dialplan">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Originate Cancel">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Cancels an ongoing Originate Request">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun originate_cancel/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun originate_cancel_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_originate_cancel/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Originate-UUID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
@@ -3238,6 +3269,32 @@ publish_originate_execute(ServerId, JObj) ->
 -spec publish_originate_execute(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_originate_execute(ServerId, API, ContentType) ->
     Definition = originate_execute_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(ServerId, Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Originate Cancel.
+%% Cancels ongoing Originate.
+%% @end
+%%------------------------------------------------------------------------------
+-spec originate_cancel(kz_term:api_terms()) -> kz_api:api_formatter_return().
+originate_cancel(Req) ->
+    kapi_definition:build_message(Req, originate_cancel_definition()).
+
+-spec originate_cancel_v(kz_term:api_terms()) -> boolean().
+originate_cancel_v(Req) ->
+    kapi_definition:validate(Req, originate_cancel_definition()).
+
+-spec publish_originate_cancel(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_originate_cancel(ServerId, JObj) ->
+    publish_originate_cancel(ServerId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_originate_cancel(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_originate_cancel(ServerId, API, ContentType) ->
+    Definition = originate_cancel_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(API
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)

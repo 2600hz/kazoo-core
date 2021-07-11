@@ -81,6 +81,9 @@
         "Loopback-Other-Leg": {
             "type": "string"
         },
+        "Originate-UUID": {
+            "type": "string"
+        },
         "Other-Leg-Call-ID": {
             "type": "string"
         },
