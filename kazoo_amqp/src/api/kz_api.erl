@@ -413,6 +413,8 @@ remove_optional_defaults(JObj) ->
     Keys = [Key || Key <- ?OPTIONAL_DEFAULT_HEADERS
                        ,Key /= ?KEY_API_ACCOUNT_ID
                        ,Key /= ?KEY_API_CALL_ID
+                       ,Key /= ?KEY_MSG_ID
+                       ,Key /= ?KEY_SERVER_ID
            ],
     kz_json:delete_keys(Keys, JObj).
 
