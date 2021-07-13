@@ -47,7 +47,7 @@ retry504s(Fun) when is_function(Fun, 0) ->
 
 -spec retry504s(fun(() -> retry504_ret()), 0..3) -> retry504_ret().
 retry504s(_Fun, 3) ->
-    lager:debug("504 retry failed"),
+    lager:error("504 retry failed"),
     {'error', 'timeout'};
 retry504s(Fun, Cnt) ->
     kazoo_stats:increment_counter(<<"bigcouch-request">>),
@@ -80,12 +80,12 @@ retry504s(Fun, Cnt) ->
             {'error', format_error(Other)};
         OK -> OK
     catch
-        ?STACKTRACE(_E, _R, ST)
-        lager:debug("exception running fun: ~p:~p", [_E, _R]),
-        kz_log:log_stacktrace(ST),
-        kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
-        retry504s(Fun, Cnt+1)
-        end.
+        _E:_R:ST ->
+            lager:debug("exception running fun: ~p:~p", [_E, _R]),
+            kz_log:log_stacktrace(ST),
+            kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
+            retry504s(Fun, Cnt+1)
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
