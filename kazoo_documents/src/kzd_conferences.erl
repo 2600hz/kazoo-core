@@ -45,6 +45,7 @@
 -export([require_moderator/1, require_moderator/2, set_require_moderator/2]).
 -export([wait_for_moderator/1, wait_for_moderator/2, set_wait_for_moderator/2]).
 -export([on_enter_extension/1, set_on_enter_extension/2]).
+-export([video/1, video/2, set_video/2]).
 
 
 -include("kz_documents.hrl").
@@ -474,3 +475,15 @@ on_enter_extension(Doc) ->
 -spec set_on_enter_extension(doc(), kz_term:ne_binary()) -> doc().
 set_on_enter_extension(Doc, Extension) ->
     kz_json:set_value([<<"on_enter_extension">>], Extension, Doc).
+
+-spec video(doc()) -> kz_term:api_boolean().
+video(Doc) ->
+    video(Doc, 'undefined').
+
+-spec video(doc(), kz_term:api_boolean()) -> kz_term:api_boolean().
+video(Doc, Default) ->
+    kz_json:get_boolean_value([<<"video">>], Doc, Default).
+
+-spec set_video(doc(), kz_term:api_boolean()) -> doc().
+set_video(Doc, Video) ->
+    kz_json:set_value([<<"video">>], Video, Doc).

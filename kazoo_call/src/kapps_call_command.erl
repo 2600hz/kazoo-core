@@ -118,10 +118,12 @@
 -export([conference/2, conference/3
         ,conference/4, conference/5
         ,conference/6, conference/7
+        ,conference/8
         ]).
 -export([b_conference/2, b_conference/3
         ,b_conference/4, b_conference/5
         ,b_conference/6, b_conference/7
+        ,b_conference/8
         ]).
 
 -export([noop/1, noop_id/0]).
@@ -2323,6 +2325,10 @@ conference(ConfId, Mute, Deaf, Moderator, ProfileName, Call) ->
 
 -spec conference(kz_term:ne_binary(), boolean(), boolean(), boolean(), kz_term:ne_binary(), boolean(), kapps_call:call()) -> 'ok'.
 conference(ConfId, Mute, Deaf, Moderator, ProfileName, Reinvite, Call) ->
+    conference(ConfId, Mute, Deaf, Moderator, ProfileName, Reinvite, 'false', Call).
+
+-spec conference(kz_term:ne_binary(), boolean(), boolean(), boolean(), kz_term:ne_binary(), boolean(), boolean(), kapps_call:call()) -> 'ok'.
+conference(ConfId, Mute, Deaf, Moderator, ProfileName, Reinvite, VideoMute, Call) ->
     Command = [{<<"Application-Name">>, <<"conference">>}
               ,{<<"Conference-ID">>, ConfId}
               ,{<<"Mute">>, Mute}
@@ -2331,6 +2337,7 @@ conference(ConfId, Mute, Deaf, Moderator, ProfileName, Reinvite, Call) ->
               ,{<<"Profile">>, ProfileName}
               ,{<<"Reinvite">>, Reinvite}
               ,{<<"Account-ID">>, kapps_call:account_id(Call)}
+              ,{<<"Video-Mute">>, VideoMute}
               ],
     send_command(Command, Call).
 
@@ -2356,7 +2363,11 @@ b_conference(ConfId, Mute, Deaf, Moderator, Profile, Call) ->
 
 -spec b_conference(kz_term:ne_binary(), boolean(), boolean(), boolean(), kz_term:ne_binary(), boolean(), kapps_call:call()) -> kapps_api_std_return().
 b_conference(ConfId, Mute, Deaf, Moderator, Profile, Reinvite, Call) ->
-    conference(ConfId, Mute, Deaf, Moderator, Profile, Reinvite, Call),
+    b_conference(ConfId, Mute, Deaf, Moderator, Profile, Reinvite, 'false', Call).
+
+-spec b_conference(kz_term:ne_binary(), boolean(), boolean(), boolean(), kz_term:ne_binary(), boolean(), boolean(), kapps_call:call()) -> kapps_api_std_return().
+b_conference(ConfId, Mute, Deaf, Moderator, Profile, Reinvite, VideoMute, Call) ->
+    conference(ConfId, Mute, Deaf, Moderator, Profile, Reinvite, VideoMute, Call),
     wait_for_message(Call, <<"conference">>, <<"CHANNEL_EXECUTE">>).
 
 %%------------------------------------------------------------------------------

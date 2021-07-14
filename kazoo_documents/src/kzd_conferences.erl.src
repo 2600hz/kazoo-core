@@ -39,6 +39,7 @@
 -export([profile/1, profile/2, set_profile/2]).
 -export([profile_name/1, profile_name/2, set_profile_name/2]).
 -export([require_moderator/1, require_moderator/2, set_require_moderator/2]).
+-export([video/1, video/2, set_video/2]).
 -export([wait_for_moderator/1, wait_for_moderator/2, set_wait_for_moderator/2]).
 
 
@@ -448,6 +449,18 @@ require_moderator(Doc, Default) ->
 -spec set_require_moderator(doc(), boolean()) -> doc().
 set_require_moderator(Doc, RequireModerator) ->
     kz_json:set_value([<<"require_moderator">>], RequireModerator, Doc).
+
+-spec video(doc()) -> kz_term:api_boolean().
+video(Doc) ->
+    video(Doc, 'undefined').
+
+-spec video(doc(), Default) -> boolean() | Default.
+video(Doc, Default) ->
+    kz_json:get_boolean_value([<<"video">>], Doc, Default).
+
+-spec set_video(doc(), boolean()) -> doc().
+set_video(Doc, Video) ->
+    kz_json:set_value([<<"video">>], Video, Doc).
 
 -spec wait_for_moderator(doc()) -> kz_term:api_boolean().
 wait_for_moderator(Doc) ->

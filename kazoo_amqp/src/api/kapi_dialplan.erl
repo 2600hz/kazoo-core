@@ -2017,6 +2017,7 @@ conference_definition() ->
                                                             ,<<"Nospeak-Check">> %% update relations
                                                             ,<<"Profile">>
                                                             ,<<"Reinvite">>
+                                                            ,<<"Video-Mute">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"conference">>}
@@ -2031,6 +2032,7 @@ conference_definition() ->
                 ,{<<"Deaf">>, fun kz_term:is_boolean/1}
                 ,{<<"Moderator">>, fun kz_term:is_boolean/1}
                 ,{<<"Reinvite">>, fun kz_term:is_boolean/1}
+                ,{<<"Video-Mute">>, fun kz_term:is_boolean/1}
                 ]
                }
               ],
