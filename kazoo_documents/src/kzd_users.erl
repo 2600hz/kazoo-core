@@ -71,7 +71,7 @@
 -export([fetch/2
         ,to_vcard/1
         ,enable/1, disable/1
-        ,type/0
+        ,type/0, schema/0
         ,fax_settings/1
         ,name/1
         ,is_account_admin/1, is_account_admin/2
@@ -88,6 +88,8 @@
 -export_type([doc/0, docs/0]).
 
 -define(SCHEMA, <<"users">>).
+-define(PVT_TYPE, <<"user">>).
+
 -define(LIST_BY_USERNAME, <<"users/list_by_username">>).
 -define(LIST_BY_HOTDESK_ID, <<"users/list_by_hotdesk_id">>).
 
@@ -948,7 +950,10 @@ disable(JObj) ->
     kz_json:set_value([<<"enabled">>], 'false', JObj).
 
 -spec type() -> kz_term:ne_binary().
-type() -> <<"user">>.
+type() -> ?PVT_TYPE.
+
+-spec schema() -> kz_term:ne_binary().
+schema() -> ?SCHEMA.
 
 -spec fax_settings(doc()) -> doc().
 fax_settings(Doc) ->
@@ -1154,7 +1159,7 @@ maybe_import_credentials(_AccountId, _UserId, {Doc, Errors}) ->
           kazoo_documents:doc_validation_acc().
 validate_user_schema(AccountId, UserId, {Doc, Errors}) ->
     OnSuccess = fun(ValidateAcc) -> on_successful_schema_validation(AccountId, UserId, ValidateAcc) end,
-    kzd_module_utils:validate_schema(<<"users">>, {Doc, Errors}, OnSuccess).
+    kzd_module_utils:validate_schema(?SCHEMA, {Doc, Errors}, OnSuccess).
 
 %%------------------------------------------------------------------------------
 %% @doc Executed after `validate_user_schema/3' if it passes schema validation.
