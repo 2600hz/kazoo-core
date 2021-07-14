@@ -78,12 +78,19 @@ handle_db_create_resp(_Server, _DbName, _Options, Error) ->
     Error.
 
 wait_for_db_confirmation(Server, DbName, Options) ->
+    wait_for_db_confirmation(Server, DbName, Options, 5 * ?MILLISECONDS_IN_SECOND).
+
+wait_for_db_confirmation(_Server, _DbName, _Options, Timeout) when Timeout =< 0 ->
+    lager:warning("failed to see created db ~s exist", [_DbName]),
+    throw({'error', 'db_create_failed'});
+wait_for_db_confirmation(Server, DbName, Options, Timeout) ->
+    StartTime = kz_time:start_time(),
     case db_exists(Server, DbName) of
         'true' ->
             {'ok', #db{server=Server, name=DbName, options=Options}};
         'false' ->
             timer:sleep(100),
-            wait_for_db_confirmation(Server, DbName, Options)
+            wait_for_db_confirmation(Server, DbName, Options, kz_time:decr_timeout(Timeout, StartTime))
     end.
 
 -spec check_db_create_error(server(), kz_term:ne_binary(), any()) -> boolean().
