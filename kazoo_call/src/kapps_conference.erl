@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -41,6 +41,7 @@
 -export([member_join_deaf/1, set_member_join_deaf/2]).
 -export([moderator_join_muted/1, set_moderator_join_muted/2]).
 -export([moderator_join_deaf/1, set_moderator_join_deaf/2]).
+-export([participant_join_video_muted/1, set_participant_join_video_muted/2]).
 -export([max_participants/1, set_max_participants/2]).
 -export([max_members_media/1, set_max_members_media/2]).
 -export([require_moderator/1, set_require_moderator/2]).
@@ -88,36 +89,37 @@
 
 %%%% conference record %%%%%%%%
 %%
-%%  id                       the conference id
-%%  focus                    the conference focus
-%%  profile_name             conference profile_name (config settings)
-%%  controller_q             the controller queue, for responses
-%%  bridge_username          the username used for a conference bridge
-%%  bridge_password          the password used for a conference bridge
-%%  member_pins              a list of pins for use by members
-%%  moderator_pins           a list of pins for use by the moderators
-%%  moderator                tri-state true/false if the caller is known to be a moderator, otherwise 'undefined'
-%%  member_join_muted        should the member join muted
-%%  member_join_deaf         should the member join deaf
-%%  moderator_join_muted     should the moderator join muted
-%%  moderator_join_deaf      should the moderator join deaf
-%%  max_participants         max number of participants
-%%  max_members_media        media to play instead of allowing new users to conference
-%%  require_moderator        does the conference require a moderator
-%%  wait_for_moderator       can members wait for a moderator
-%%  play_name_on_join        should participants have their name played on join
-%%  play_entry_prompt        Play prompt telling caller they're entering the conference
-%%  play_exit_tone           Play tone telling caller they have left the conference
-%%  play_entry_tone          Play tone telling caller they have entered the conference
-%%  play_welcome             Play prompt welcoming caller to the conference
-%%  conference_doc           the complete conference doc used to create the record (when and if)
-%%  app_name                 The application name used during kapps_conference_command
-%%  app_version              The application version used during kapps_conference_command
-%%  kvs                      allows conferences to set values that propagate to children
-%%  call                     kapps_call object
-%%  account_id               %% account id
-%%  moderator_controls       moderator controls (config settings)
-%%  caller_controls          caller controls (config settings)
+%%  id                            the conference id
+%%  focus                         the conference focus
+%%  profile_name                  conference profile_name (config settings)
+%%  controller_q                  the controller queue, for responses
+%%  bridge_username               the username used for a conference bridge
+%%  bridge_password               the password used for a conference bridge
+%%  member_pins                   a list of pins for use by members
+%%  moderator_pins                a list of pins for use by the moderators
+%%  moderator                     tri-state true/false if the caller is known to be a moderator, otherwise 'undefined'
+%%  member_join_muted             should the member join muted
+%%  member_join_deaf              should the member join deaf
+%%  moderator_join_muted          should the moderator join muted
+%%  moderator_join_deaf           should the moderator join deaf
+%%  participant_join_video_muted  should participants video feed be muted at join
+%%  max_participants              max number of participants
+%%  max_members_media             media to play instead of allowing new users to conference
+%%  require_moderator             does the conference require a moderator
+%%  wait_for_moderator            can members wait for a moderator
+%%  play_name_on_join             should participants have their name played on join
+%%  play_entry_prompt             Play prompt telling caller they're entering the conference
+%%  play_exit_tone                Play tone telling caller they have left the conference
+%%  play_entry_tone               Play tone telling caller they have entered the conference
+%%  play_welcome                  Play prompt welcoming caller to the conference
+%%  conference_doc                the complete conference doc used to create the record (when and if)
+%%  app_name                      The application name used during kapps_conference_command
+%%  app_version                   The application version used during kapps_conference_command
+%%  kvs                           allows conferences to set values that propagate to children
+%%  call                          kapps_call object
+%%  account_id                    %% account id
+%%  moderator_controls            moderator controls (config settings)
+%%  caller_controls               caller controls (config settings)
 %%
 
 -record(kapps_conference, {id :: kz_term:api_ne_binary()
@@ -137,6 +139,7 @@
                           ,member_join_deaf = 'false' :: boolean()
                           ,moderator_join_muted = 'false' :: boolean()
                           ,moderator_join_deaf = 'false' :: boolean()
+                          ,participant_join_video_muted = 'false' :: boolean()
                           ,max_participants = 0 :: non_neg_integer()
                           ,max_members_media :: kz_term:api_ne_binary()
                           ,require_moderator = 'false' :: boolean()
@@ -212,6 +215,7 @@ do_from_json(JObj, Conference) ->
                                ,member_join_deaf = kz_json:is_true(<<"Member-Join-Deaf">>, JObj, member_join_deaf(Conference))
                                ,moderator_join_muted = kz_json:is_true(<<"Moderator-Join-Muted">>, JObj, moderator_join_muted(Conference))
                                ,moderator_join_deaf = kz_json:is_true(<<"Moderator-Join-Deaf">>, JObj, moderator_join_deaf(Conference))
+                               ,participant_join_video_muted = kz_json:is_true(<<"Participant-Join-Video-Muted">>, JObj, participant_join_video_muted(Conference))
                                ,max_participants = kz_json:get_integer_value(<<"Max-Participants">>, JObj, max_participants(Conference))
                                ,max_members_media = kz_json:get_ne_binary_value(<<"Max-Members-Media">>, JObj, max_members_media(Conference))
                                ,require_moderator = kz_json:is_true(<<"Require-Moderator">>, JObj, require_moderator(Conference))
@@ -279,6 +283,7 @@ to_proplist(#kapps_conference{}=Conference) ->
     ,{<<"Moderator-Controls">>, moderator_controls(Conference)}
     ,{<<"Moderator-Join-Deaf">>, moderator_join_deaf(Conference)}
     ,{<<"Moderator-Join-Muted">>, moderator_join_muted(Conference)}
+    ,{<<"Participant-Join-Video-Muted">>, participant_join_video_muted(Conference)}
     ,{<<"Moderator-Pins">>, moderator_pins(Conference)}
     ,{<<"Play-Entry-Prompt">>, play_entry_prompt(Conference)}
     ,{<<"Play-Entry-Tone">>, play_entry_tone(Conference)}
@@ -349,6 +354,7 @@ from_conference_doc(JObj, Conference) ->
                                ,play_welcome = kzd_conferences:play_welcome(JObj, play_welcome(Conference))
                                ,moderator_join_muted = kzd_conferences:moderator_join_muted(JObj, moderator_join_muted(Conference))
                                ,moderator_join_deaf = kzd_conferences:moderator_join_deaf(JObj, moderator_join_deaf(Conference))
+                               ,participant_join_video_muted = not kz_term:is_true(kzd_conferences:video(JObj))
                                ,max_participants = kzd_conferences:max_participants(JObj, max_participants(Conference))
                                ,max_members_media = kzd_conferences:max_members_media(JObj, max_members_media(Conference))
                                ,require_moderator = kzd_conferences:require_moderator(JObj, require_moderator(Conference))
@@ -792,6 +798,14 @@ moderator_join_deaf(#kapps_conference{moderator_join_deaf=ModeratorJoinDeaf}) ->
 -spec set_moderator_join_deaf(boolean(), conference()) -> conference().
 set_moderator_join_deaf(ModeratorJoinDeaf, Conference) when is_boolean(ModeratorJoinDeaf) ->
     Conference#kapps_conference{moderator_join_deaf=ModeratorJoinDeaf}.
+
+-spec participant_join_video_muted(conference()) -> boolean().
+participant_join_video_muted(#kapps_conference{participant_join_video_muted=ParticipantJoinVideoMuted}) ->
+    ParticipantJoinVideoMuted.
+
+-spec set_participant_join_video_muted(boolean(), conference()) -> conference().
+set_participant_join_video_muted(ParticipantJoinVideoMuted, Conference) when is_boolean(ParticipantJoinVideoMuted) ->
+    Conference#kapps_conference{participant_join_video_muted=ParticipantJoinVideoMuted}.
 
 -spec max_participants(conference()) -> pos_integer().
 max_participants(#kapps_conference{max_participants=MaxParticipants}) ->

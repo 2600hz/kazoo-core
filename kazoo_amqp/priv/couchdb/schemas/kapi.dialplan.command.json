@@ -678,6 +678,9 @@
         "Unhold-Key": {
             "type": "string"
         },
+        "Video-Mute": {
+            "type": "string"
+        },
         "Voice": {
             "enum": [
                 "female",

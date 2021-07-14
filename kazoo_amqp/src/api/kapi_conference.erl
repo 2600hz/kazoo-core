@@ -200,8 +200,10 @@
 
 -type doc() :: kz_json:object().
 -type discovery_req() :: kz_json:object().
+-type config_req() :: kz_json:object().
 -export_type([doc/0
              ,discovery_req/0
+             ,config_req/0
              ]).
 
 -define(APPLICATION_MAP, [appmap_tuple(<<"deaf_participant">>, deaf_participant_definition())
