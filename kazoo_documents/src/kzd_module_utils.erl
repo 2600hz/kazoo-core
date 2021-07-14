@@ -82,11 +82,14 @@ pass_hashes(Username, Password) ->
 %% `OnSuccess' function will only be called if the Doc passes schema validation.
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_schema(kz_term:ne_binary() | kzd_schema:doc()
+-spec validate_schema(kz_term:api_ne_binary() | kzd_schema:doc()
                      ,kazoo_documents:doc_validation_acc()
                      ,kazoo_documents:doc_validation_after_fun()
                      ) ->
           kazoo_documents:doc_validation_acc().
+validate_schema('undefined', {_Doc, _ValidationErrors}, _OnSuccess) ->
+    lager:warning("no schema supplied for validation"),
+    throw({'error', 'no_schema'});
 validate_schema(<<Schema/binary>>, {Doc, ValidationErrors}, OnSuccess) ->
     lager:debug("validating payload against schema ~s", [Schema]),
     SchemaRequired = ?SHOULD_ENSURE_SCHEMA_IS_VALID,

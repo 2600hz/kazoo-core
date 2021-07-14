@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2020, 2600Hz
+%%% @copyright (C) 2014-2021, 2600Hz
 %%% @doc Module for interacting with JSON schema docs
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -11,7 +11,8 @@
 -module(kz_json_schema).
 
 -export([add_defaults/2
-        ,load/1, fload/1
+        ,load/1, load/2
+        ,fload/1
         ,flush/0, flush/1
         ,diff/0, diff/1
         ,diff_schema/1, diff_schema/2
@@ -89,16 +90,21 @@ setup_extra_validator(Options) ->
                        kz_datamgr:data_error().
 -ifdef(TEST).
 load(Schema) -> fload(Schema).
+load(Schema, _Options) -> fload(Schema).
 -else.
 -spec load(kz_term:ne_binary() | string()) -> load_return().
-load(<<"./", Schema/binary>>) -> load(Schema);
-load(<<"file://", Schema/binary>>) -> load(Schema);
-load(<<SchemaId/binary>>) ->
-    case kz_datamgr:open_cache_doc(?KZ_SCHEMA_DB, SchemaId, [{'cache_failures', ['not_found']}]) of
+load(Schema) ->
+    load(Schema, [{'cache_failures', ['not_found']}]).
+
+-spec load(kz_term:ne_binary() | string(), kz_datamgr:open_doc_options()) -> load_return().
+load(<<"./", Schema/binary>>, Options) -> load(Schema, Options);
+load(<<"file://", Schema/binary>>, Options) -> load(Schema, Options);
+load(<<SchemaId/binary>>, Options) ->
+    case kz_datamgr:open_cache_doc(?KZ_SCHEMA_DB, SchemaId, Options) of
         {'error', _E}=E -> E;
         {'ok', JObj} -> {'ok', kz_json:insert_value(<<"id">>, SchemaId, JObj)}
     end;
-load(Schema) -> load(kz_term:to_binary(Schema)).
+load(Schema, Options) -> load(kz_term:to_binary(Schema), Options).
 -endif.
 
 -spec fload(kz_term:ne_binary() | string()) -> {'ok', kz_json:object()} |

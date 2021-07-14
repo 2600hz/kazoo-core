@@ -103,6 +103,17 @@
 -type view_listing() :: {kz_term:ne_binary(), kz_json:object()}.
 -type views_listing() :: [view_listing()].
 
+-type couch_open_option() :: {'accept', 'any' | kz_term:ne_binary()} | % accepted content-types?
+                             %% string() = "attachments" here V
+                             {string(), 'true'} | string() |
+                             %% querystring params to add
+                             {kz_term:ne_binary(), kz_term:ne_binary()}.
+
+-type open_doc_option() :: {'doc_type', kz_term:ne_binary()} |
+                           {'cache_failures', [atom()]} |
+                           couch_open_option().
+-type open_doc_options() :: [open_doc_option()].
+
 -type db_classification() :: 'account' |
                              'acdc' |
                              'aggregate' |

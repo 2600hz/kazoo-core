@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -54,7 +54,7 @@
 -define(STAMPEDE_WAIT_MS, 1500). % see kz_cache_stampede_tests
 -define(CACHE_KEY(DbName, DocId), {?MODULE, DbName, DocId}).
 
--spec open_cache_doc(kz_term:text(), kz_term:ne_binary(), kz_term:proplist()) ->
+-spec open_cache_doc(kz_term:text(), kz_term:ne_binary(), kz_datamgr:open_doc_options()) ->
           {'ok', kz_json:object()} |
           data_error() |
           {'error', 'not_found'}.
@@ -75,7 +75,7 @@ open_cache_doc(DbName, DocId, Options) ->
             fetch_doc(DbName, DocId, Options, CacheStrategy)
     end.
 
--spec mitigate_stampede(kz_term:text(), kz_term:ne_binary(), kz_term:proplist(), cache_strategy()) ->
+-spec mitigate_stampede(kz_term:text(), kz_term:ne_binary(), kz_datamgr:open_doc_options(), cache_strategy()) ->
           {'ok', kz_json:object()} |
           data_error() |
           {'error', 'not_found'}.
@@ -88,7 +88,7 @@ mitigate_stampede(DbName, DocId, Options, CacheStrategy) ->
             kz_cache:wait_for_stampede_local(?CACHE_NAME, ?CACHE_KEY(DbName, DocId), ?STAMPEDE_WAIT_MS)
     end.
 
--spec fetch_doc(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), cache_strategy()) ->
+-spec fetch_doc(kz_term:ne_binary(), kz_term:ne_binary(), kz_datamgr:open_doc_options(), cache_strategy()) ->
           {'ok', kz_json:object()} |
           data_error() |
           {'error', 'not_found'}.
@@ -97,13 +97,13 @@ fetch_doc(DbName, DocId, Options, CacheStrategy) ->
     _ = maybe_cache(DbName, DocId, Options, R, CacheStrategy),
     R.
 
--spec maybe_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), data_error() | {'ok', kz_json:object()}, cache_strategy()) ->
+-spec maybe_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_datamgr:open_doc_options(), data_error() | {'ok', kz_json:object()}, cache_strategy()) ->
           'ok'.
 maybe_cache(DbName, DocId, _Options, {'error', 'conflict'}, _CacheStrategy) ->
     flush_cache_doc(DbName, DocId);
 maybe_cache(DbName, DocId, Options, {'error', _}=E, CacheStrategy) ->
     maybe_cache_failure(DbName, DocId, Options, E, CacheStrategy);
-maybe_cache(DbName, DocId, _, {'ok', JObj}, CacheStrategy) ->
+maybe_cache(DbName, DocId, _Options, {'ok', JObj}, CacheStrategy) ->
     add_to_doc_cache(DbName, DocId, JObj, CacheStrategy).
 
 -spec open_cache_doc(map(), kz_term:text(), kz_term:ne_binary(), kz_term:proplist()) ->
@@ -204,11 +204,11 @@ to_nonbulk_format({DocId, 'error', Reason}) ->
       ,{<<"error">>, kz_term:to_atom(Reason, 'true')}
       ]).
 
--spec remove_cache_options(kz_term:proplist()) -> kz_term:proplist().
+-spec remove_cache_options(kz_datamgr:open_doc_options()) -> kz_datamgr:open_doc_options().
 remove_cache_options(Options) ->
     props:delete_keys(['cache_failures'], Options).
 
--spec maybe_cache_failure(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), data_error(), cache_strategy()) -> 'ok'.
+-spec maybe_cache_failure(kz_term:ne_binary(), kz_term:ne_binary(), kz_datamgr:open_doc_options(), data_error(), cache_strategy()) -> 'ok'.
 maybe_cache_failure(DbName, DocId, Options, {'error', _}=Error, CacheStrategy) ->
     case props:get_value('cache_failures', Options) of
         ErrorCodes when is_list(ErrorCodes) ->
@@ -219,7 +219,7 @@ maybe_cache_failure(DbName, DocId, Options, {'error', _}=Error, CacheStrategy) -
             kz_cache:erase_local(?CACHE_NAME, ?CACHE_KEY(DbName, DocId))
     end.
 
--spec maybe_cache_failure(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), data_error(), kz_term:atoms(), cache_strategy()) -> 'ok'.
+-spec maybe_cache_failure(kz_term:ne_binary(), kz_term:ne_binary(), kz_datamgr:open_doc_options(), data_error(), kz_term:atoms(), cache_strategy()) -> 'ok'.
 maybe_cache_failure(DbName, DocId, _Options, {'error', ErrorCode}=Error, ErrorCodes, CacheStrategy) ->
     case lists:member(ErrorCode, ErrorCodes) of
         'true' -> add_to_doc_cache(DbName, DocId, Error, CacheStrategy);

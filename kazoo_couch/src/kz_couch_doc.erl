@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Util functions used by kazoo_couch
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -47,7 +47,7 @@ get_db(#server{}=Conn, DbName) ->
 open_doc(Conn, DbName, DocId) ->
     open_doc(Conn, DbName, DocId, []).
 
--spec open_doc(server(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+-spec open_doc(server(), kz_term:ne_binary(), kz_term:ne_binary(), kz_datamgr:open_doc_options()) ->
           doc_return().
 open_doc(#server{}=Conn, DbName, DocId, Options) ->
     Db = get_db(Conn, DbName),
@@ -136,7 +136,7 @@ do_fetch_rev(#db{}=Db, DocId) ->
         'false' -> ?RETRY_504(couchbeam:lookup_doc_rev(Db, DocId))
     end.
 
--spec do_fetch_doc(couchbeam_db(), kz_term:ne_binary(), kz_term:proplist()) ->
+-spec do_fetch_doc(couchbeam_db(), kz_term:ne_binary(), kz_datamgr:open_doc_options()) ->
           doc_return().
 do_fetch_doc(#db{}=Db, DocId, Options) ->
     case kz_term:is_empty(DocId) of

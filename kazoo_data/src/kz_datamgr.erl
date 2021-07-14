@@ -117,6 +117,7 @@
              ,update_option/0, update_options/0
              ,view_listing/0, views_listing/0
              ,view_option/0, view_options/0
+             ,open_doc_options/0
              ]).
 
 -deprecated({'ensure_saved', '_', 'eventually'}).
@@ -537,7 +538,7 @@ open_cache_doc(DbName, {DocType, DocId}) ->
 open_cache_doc(DbName, DocId) ->
     open_cache_doc(DbName, DocId, []).
 
--spec open_cache_doc(database_name(), docid(), kz_term:proplist()) ->
+-spec open_cache_doc(database_name(), docid(), open_doc_options()) ->
           {'ok', kz_json:object()} |
           data_error().
 open_cache_doc(DbName, {DocType, DocId}, Options) ->
