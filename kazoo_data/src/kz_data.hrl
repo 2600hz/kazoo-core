@@ -110,7 +110,8 @@
                              {kz_term:ne_binary(), kz_term:ne_binary()}.
 
 -type open_doc_option() :: {'doc_type', kz_term:ne_binary()} |
-                           {'cache_failures', [atom()]} |
+                           {'cache_failures', [atom()] | boolean()} |
+                           {'deleted', 'true'} |
                            couch_open_option().
 -type open_doc_options() :: [open_doc_option()].
 
