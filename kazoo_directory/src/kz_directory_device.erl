@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -369,6 +369,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Module) ->
 
     CCVFuns = [{fun endpoint_id/2, Endpoint}
               ,{fun owner_id/2, Endpoint}
+              ,{fun hold_music/2, Endpoint}
               ,{fun presence_id/2, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
@@ -381,7 +382,6 @@ generate_routing_ccvs(Endpoint, Module) ->
               ,{fun enforce_security/2, Endpoint}
               ,{fun encryption_flags/2, Endpoint}
               ,{fun add_alert_info/2, Endpoint}
-              ,{fun hold_music/2, Endpoint}
               ,{fun call_waiting/2, Endpoint}
               ,{fun progress_timeout/2, Endpoint}
               ,{fun ignore_early_media/3, Module, Endpoint}
