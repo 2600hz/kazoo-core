@@ -1567,6 +1567,7 @@ call_pickup_definition() ->
                                                             ,<<"Park-After-Pickup">> %% Will park either leg after cancel
                                                             ,<<"Unanswered-Only">>
                                                             ,<<"Unbridged-Only">>
+                                                            ,<<"Publish-Usurp">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"call_pickup">>}
