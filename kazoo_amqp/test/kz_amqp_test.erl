@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Test module to work on recovering after AMQP disconnect
 %%%
 %%% Creates a basic publisher and consumer and starts appropriate timers. When
@@ -12,6 +12,7 @@
 %%% P ! stop.
 %%%
 %%% 'stop' will terminate both the consumer and producer
+%%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -23,6 +24,7 @@
 -export([start/0]).
 
 -include_lib("kazoo_amqp/include/kz_amqp.hrl").
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -spec start() -> pid().
 start() ->
@@ -30,9 +32,10 @@ start() ->
 
 run_it() ->
     Pub = start_publisher(),
+    RemotePub = start_remote_publisher(),
     Con = start_consumer(),
     lager:info("started pub: ~p and con: ~p", [Pub, Con]),
-    wait([Pub, Con]).
+    wait([Pub, RemotePub, Con]).
 
 wait([]) -> 'ok';
 wait(PidRefs) ->
@@ -57,6 +60,9 @@ wait(PidRefs) ->
 start_publisher() ->
     spawn_monitor(fun run_publisher/0).
 
+start_remote_publisher() ->
+    spawn_monitor(fun run_remote_publisher/0).
+
 run_publisher() ->
     kz_log:put_callid(<<?MODULE_STRING"-publisher">>),
     'ok' = kz_amqp_channel:requisition(),
@@ -67,6 +73,23 @@ run_publisher() ->
               ],
     loop_publisher(Payload).
 
+run_remote_publisher() ->
+    RemoteBrokers = lists:delete(kz_amqp_connections:primary_broker(), kz_amqp_connections:uris()),
+    run_remote_publisher(RemoteBrokers).
+
+run_remote_publisher([]) ->
+    lager:notice("no remote brokers, not testing federation");
+run_remote_publisher([RemoteBroker|_]) ->
+    kz_log:put_callid(<<?MODULE_STRING"-remote-publisher">>),
+    lager:info("using remote broker ~s for publishing", [RemoteBroker]),
+    kz_amqp_channel:requisition(RemoteBroker),
+
+    Payload = [{<<"Category">>, <<"amqp">>}
+              ,{<<"Key">>, <<"recv">>}
+              | kz_api:default_headers(RemoteBroker, <<"1.0">>)
+              ],
+    loop_publisher(Payload).
+
 loop_publisher(Payload) ->
     loop_publisher(Payload, 2600).
 
@@ -74,9 +97,12 @@ loop_publisher(Payload, Timeout) ->
     Start = kz_time:start_time(),
     receive
         'stop' -> lager:info("publisher instructed to stop");
-        {'kz_amqp_assignment',{'new_channel',_IsNew, _Channel}} ->
-            lager:info("publisher moved to ~s channel ~p", [_IsNew, _Channel]),
+        {'kz_amqp_assignment',{'new_channel',_Reconn, Channel}} ->
+            _ = kz_amqp_channel:consumer_channel(Channel),
+
+            lager:info("publisher moved to channel ~p (reconn: ~s) ", [Channel, _Reconn]),
             lager:info("publisher broker: ~p", [kz_amqp_channel:consumer_broker()]),
+
             publish_payload(Payload),
             loop_publisher(Payload);
         {'kz_amqp_assignment', 'lost_channel'} ->
@@ -94,7 +120,6 @@ loop_publisher(Payload, Timeout) ->
 publish_payload(Payload) ->
     kapi_sysconf:publish_get_req(Payload).
 
-
 start_consumer() ->
     spawn_monitor(fun run_consumer/0).
 
@@ -105,10 +130,10 @@ run_consumer() ->
     loop_consumer(<<?MODULE_STRING>>).
 
 loop_consumer(Queue) ->
-    loop_consumer(Queue, 5000).
+    loop_consumer(Queue, 5 * ?MILLISECONDS_IN_SECOND).
 
 loop_consumer(Queue, Timeout) ->
-    Start = erlang:monotonic_time(),
+    Start = kz_time:start_time(),
     receive
         'stop' -> lager:info("consumer stopping");
         {#'basic.deliver'{}=_Deliver
@@ -121,8 +146,10 @@ loop_consumer(Queue, Timeout) ->
             Queue = kz_amqp_util:new_queue(<<?MODULE_STRING>>, []),
             'ok' = kz_amqp_util:basic_consume(Queue, [{'no_ack', 'true'}]),
             loop_consumer(Queue);
-        {'kz_amqp_assignment',{'new_channel','true', _Channel}} ->
-            lager:info("new consumer channel is ~p", [_Channel]),
+        {'kz_amqp_assignment',{'new_channel','true', Channel}} ->
+            lager:info("new consumer channel is ~p", [Channel]),
+            _ = kz_amqp_channel:consumer_channel(Channel),
+
             Queue = kz_amqp_util:new_queue(<<?MODULE_STRING>>, []),
             'ok' = kz_amqp_util:basic_consume(Queue, [{'no_ack', 'true'}]),
             loop_consumer(Queue);
@@ -131,7 +158,7 @@ loop_consumer(Queue, Timeout) ->
             loop_consumer(Queue, 'infinity');
         #'basic.consume_ok'{consumer_tag=CTag} ->
             lager:info("consumer is consuming on tag ~s", [CTag]),
-            kapi_sysconf:bind_q(Queue, ['get']),
+            kapi_sysconf:bind_q(Queue, ['get', 'federate']),
             loop_consumer(Queue, decr(Timeout, Start));
         Msg ->
             lager:info("consumer recv ~p", [Msg]),

@@ -828,7 +828,7 @@ new_queue() -> new_queue(new_queue_name()).
 -spec new_queue(binary()) -> new_queue_ret().
 new_queue(Queue) -> new_queue(Queue, []).
 
--spec new_queue(binary(), kz_term:proplist()) -> new_queue_ret().
+-spec new_queue(binary(), queue_options()) -> new_queue_ret().
 new_queue(<<"amq.", _/binary>>, Options) ->
     new_queue(new_queue_name(), Options);
 new_queue(<<>>, Options) ->
@@ -1264,7 +1264,7 @@ unbind_q_from_exchange(Queue, Routing, Exchange) ->
 -spec basic_consume(kz_term:ne_binary()) -> 'ok' | {'error', any()}.
 basic_consume(Queue) -> basic_consume(Queue, []).
 
--spec basic_consume(kz_term:ne_binary(), kz_term:proplist()) -> 'ok' | {'error', any()}.
+-spec basic_consume(kz_term:ne_binary(), consume_options()) -> 'ok' | {'error', any()}.
 basic_consume(Queue, Options) ->
     BC = #'basic.consume'{queue = Queue
                          ,consumer_tag = <<>>

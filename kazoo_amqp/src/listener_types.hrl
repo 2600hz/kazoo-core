@@ -20,17 +20,19 @@
 %% `ExchangeName, ExchangeType[, ExchangeOptions]'
 -type declare_exchanges() :: [declare_exchange()].
 
--type start_params() :: [{'responders', responder_start_params()} |
-                         {'bindings', bindings()} |
-                         {'queue_name', binary()} |
-                         {'queue_options', kz_term:proplist()} |
-                         {'consume_options', kz_term:proplist()} |
+-type start_params() :: [{'auto_ack', boolean()} |
                          {'basic_qos', non_neg_integer()} |
+                         {'bindings', bindings()} |
                          {'broker' | 'broker_tag', kz_term:ne_binary()} |
+                         {'channel_flow', boolean()} |
+                         {'consume_options', consume_options()} |
                          {'declare_exchanges', declare_exchanges()} |
-                         {'auto_ack', boolean()} |
+                         {'queue_name', binary()} |
+                         {'queue_name_always_generate', boolean()} |
+                         {'queue_options', queue_options()} |
+                         {'responders', responder_start_params()} |
                          {'server_confirms', boolean()} |
-                         {'channel_flow', boolean()}
+                         {'spawn_handle_event', boolean()}
                         ].
 
 -type responder_callback_fun2() :: fun((kz_json:object(), kz_term:proplist()) -> any()).
