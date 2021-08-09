@@ -32,7 +32,7 @@
         ,call_id/1, call_id/2
         ,account_id/1
         ,server_id/1, server_id/2
-        ,queue_id/1
+        ,queue_id/1, queue_id/2
         ,msg_id/1, msg_id/2
         ,msg_reply_id/1
         ,event_category/1
@@ -100,7 +100,11 @@ server_id(JObj, Default) ->
 
 -spec queue_id(kz_json:object()) -> kz_term:api_binary().
 queue_id(JObj) ->
-    kz_json:get_ne_binary_value(?KEY_QUEUE_ID, JObj, server_id(JObj)).
+    queue_id(JObj, server_id(JObj)).
+
+-spec queue_id(kz_json:object(), Default) -> kz_term:ne_binary() | Default.
+queue_id(JObj, Default) ->
+    kz_json:get_ne_binary_value(?KEY_QUEUE_ID, JObj, Default).
 
 -spec event_category(kz_term:api_terms()) -> kz_term:api_binary().
 event_category(Props) when is_list(Props) ->
