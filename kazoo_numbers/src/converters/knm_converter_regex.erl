@@ -67,8 +67,8 @@ normalize(Num, 'undefined', _Id) ->
 normalize(Num, AccountId, 'undefined') ->
     normalize(Num, AccountId);
 normalize(Num, AccountId, <<Id/binary>>) ->
-    {'ok', Doc} = kz_datamgr:open_cache_doc(AccountId, Id),
-    DialPlan = kz_json:get_json_value([<<"dial_plan">>], Doc),
+    {'ok', Endpoint} = kz_endpoint:get(Id, AccountId),
+    DialPlan = kz_json:get_json_value([<<"dial_plan">>], Endpoint),
     normalize(Num, AccountId, DialPlan);
 normalize(<<Num/binary>>, AccountId, DialPlan) ->
     lager:debug("normalize(~p, ~p, ~p)", [Num, AccountId, DialPlan]),
