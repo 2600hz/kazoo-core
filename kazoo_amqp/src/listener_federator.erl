@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2020, 2600Hz
+%%% @copyright (C) 2013-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -138,12 +138,9 @@ handle_event(JObj, Props, #state{parent={Parent, _Ref}
     amqp:debug("relaying federated ~s event (~p) ~s from ~s to ~p with consumer pid ~p",
                [kz_api:event_category(JObj), kz_api:msg_id(JObj), kz_api:event_name(JObj), Zone, Parent, Self]
               ),
-    RemoteServerId = list_to_binary(["consumer://"
-                                    ,Self, "/"
-                                    ,kz_api:server_id(JObj, <<>>)
-                                    ]),
     gen_listener:federated_event(Parent
-                                ,kz_json:set_values([{<<"Server-ID">>, RemoteServerId}
+                                ,kz_json:set_values([{?KEY_SERVER_ID, remote_server_id(JObj, Self)}
+                                                    ,{?KEY_QUEUE_ID, remote_queue_id(JObj, Self)}
                                                     ,{<<"AMQP-Broker">>, Broker}
                                                     ,{<<"AMQP-Broker-Zone">>, Zone}
                                                     ]
@@ -177,3 +174,22 @@ code_change(_OldVsn, State, _Extra) ->
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc returns formatted remote server_id
+%% @end
+%%------------------------------------------------------------------------------
+-spec remote_server_id(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary().
+remote_server_id(JObj, Self) ->
+    list_to_binary(["consumer://", Self, "/", kz_api:server_id(JObj, <<>>)]).
+
+%%------------------------------------------------------------------------------
+%% @doc returns formatted remote queue_id or null
+%% @end
+%%------------------------------------------------------------------------------
+-spec remote_queue_id(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary() | null.
+remote_queue_id(JObj, Self) ->
+    case kz_api:queue_id(JObj, undefined) of
+        undefined -> null;
+        QueueId -> list_to_binary(["consumer://", Self, "/", QueueId])
+    end.

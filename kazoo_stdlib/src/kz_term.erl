@@ -110,6 +110,9 @@
 -type api_binaries() :: [api_binary()] | 'undefined'.
 %% Denotes either data type is defined as {@link api_binary()} or it's `undefined'.
 
+-type api_ne_binary_or_binaries() :: ne_binary_or_binaries() | 'undefined'.
+%% Denotes either data type is defined as {@link ne_binary_or_binaries()} or it's `undefined'.
+
 -type api_object() :: kz_json:object() | 'undefined'.
 %% Denotes either data type is defined as {@link kz_json:object()} or it's `undefined'.
 
@@ -172,6 +175,9 @@
 -type ne_binaries() :: [ne_binary()].
 %% Denotes a list of non-empty binaries.
 
+-type ne_binary_or_binaries() :: ne_binary() | ne_binaries().
+%% Denotes a non-empty binary or a list of non-empty binaries.
+
 -type binaries() :: [binary()].
 
 -type strings() :: [string()].
@@ -196,6 +202,7 @@
              ,api_list/0
              ,api_ne_binaries/0
              ,api_ne_binary/0
+             ,api_ne_binary_or_binaries/0
              ,api_non_neg_integer/0
              ,api_number/0
              ,api_object/0
@@ -218,6 +225,7 @@
              ,jobjs_return/0
              ,ne_binaries/0
              ,ne_binary/0
+             ,ne_binary_or_binaries/0
              ,pid_ref/0
              ,pid_refs/0
              ,pids/0
