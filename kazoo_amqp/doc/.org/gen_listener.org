@@ -1,3 +1,6 @@
+#+TITLE:  gen_listener behaviour
+#+OPTIONS: toc:nil
+
 * =gen_listener=
 
 An Erlang behaviour for creating AMQP consumers.
