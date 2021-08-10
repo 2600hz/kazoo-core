@@ -72,6 +72,11 @@
             },
             "type": "array"
         },
+        "default_force_outbound": {
+            "default": false,
+            "description": "should we 'force_outbound' when this feature is not set on the number?",
+            "type": "boolean"
+        },
         "e164_converters": {
             "description": "regular expressions to convert numbers to E164 format",
             "type": "object"
@@ -86,6 +91,26 @@
                     "type": "array"
                 }
             }
+        },
+        "fetch_account_from_ports": {
+            "default": true,
+            "description": "should we also search ports when trying to `/identify` a number?",
+            "type": "boolean"
+        },
+        "force_local_outbound": {
+            "default": true,
+            "description": "default value for 'force_outbound' for local numbers only",
+            "type": "boolean"
+        },
+        "force_port_in_outbound": {
+            "default": true,
+            "description": "default value for 'force_outbound' for port_in numbers only",
+            "type": "boolean"
+        },
+        "force_port_out_outbound": {
+            "default": true,
+            "description": "default value for 'force_outbound' for port_out numbers only",
+            "type": "boolean"
         },
         "local_feature_override": {
             "default": false,
@@ -120,6 +145,21 @@
             "default": "^(\\+?1)?\\d{10}$|^\\+[2-9]\\d{7,}$|^011\\d*$|^00\\d*$",
             "description": "if a number matches this regular expression then it is reconcilable",
             "type": "string"
+        },
+        "released_state": {
+            "default": "available",
+            "description": "state to put numbers in when they are being released and their reserve history is empty",
+            "type": "string"
+        },
+        "should_age": {
+            "default": false,
+            "description": "Should numbers go through an aging period before being available?",
+            "type": "boolean"
+        },
+        "should_permanently_delete": {
+            "default": false,
+            "description": "when disconnecting numbers, if this flag is true they will be deleted otherwise they will go back to a pool. Local numbers are not affected by this flag",
+            "type": "boolean"
         },
         "time_between_accounts_ms": {
             "default": 1000,

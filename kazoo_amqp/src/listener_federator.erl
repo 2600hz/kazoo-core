@@ -32,7 +32,7 @@
 
 -record(state, {parent :: {pid(), reference()}
                ,broker :: kz_term:ne_binary()
-               ,self_binary = kz_term:to_binary(pid_to_list(self())) :: kz_term:ne_binary()
+               ,self_binary = kz_term:to_binary(self()) :: kz_term:ne_binary()
                ,zone :: kz_term:ne_binary()
                }).
 -type state() :: #state{}.
@@ -106,10 +106,15 @@ handle_cast({'gen_listener', {'is_consuming', 'true'}}
                   ,broker=Broker
                   }=State
            ) ->
-    gen_server:cast(Parent, {'federator_is_consuming', Broker, 'true'}),
+    gen_server:cast(Parent, {'federator_is_consuming', self(), Broker, 'true'}),
     {'noreply', State};
-handle_cast({'gen_listener', {'is_consuming', 'false'}}, #state{broker=Broker}=State) ->
-    lager:info("no longer consuming on federator for broker ~s", [Broker]),
+handle_cast({'gen_listener', {'is_consuming', 'false'}}
+           ,#state{parent={Parent, _Ref}
+                  ,broker=Broker
+                  }=State
+           ) ->
+    lager:info("federator no longer consuming on broker ~s", [Broker]),
+    gen_server:cast(Parent, {'federator_is_consuming', self(), Broker, 'false'}),
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),

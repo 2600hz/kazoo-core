@@ -3,6 +3,14 @@
     "_id": "system_config.number_manager.vitelity",
     "description": "Schema for number_manager.vitelity system_config",
     "properties": {
+        "api_uri": {
+            "default": "https://api.vitelity.net/api.php",
+            "description": "number_manager.vitelity api uri",
+            "type": "string"
+        },
+        "routesip": {
+            "description": "number_manager.vitelity routesip"
+        },
         "use_stepswitch_cnam": {
             "default": false,
             "description": "number_manager vitelity use_stepswitch_cnam",

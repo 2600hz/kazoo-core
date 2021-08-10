@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -631,7 +631,7 @@ send_notifications(#kz_amqp_assignment{}=Assignment) ->
 
 -spec notify_connection(kz_amqp_assignment()) -> 'ok'.
 notify_connection(#kz_amqp_assignment{connection=Connection}) ->
-    %% Trigger the connection to primitively open a new channel (prechannel)
+    %% Trigger the connection to preemptively open a new channel (prechannel)
     kz_amqp_connection:create_prechannel(Connection).
 
 -spec notify_consumer(kz_amqp_assignment()) -> 'ok'.
@@ -648,14 +648,16 @@ notify_watchers(#kz_amqp_assignment{watchers=Watchers}=Assignment) ->
     notify_watchers(Assignment, sets:to_list(Watchers)).
 
 -spec notify_watchers(kz_amqp_assignment(), [pid()]) -> kz_amqp_assignment().
-notify_watchers(#kz_amqp_assignment{}=Assignment, []) ->
-    Assignment#kz_amqp_assignment{watchers=sets:new(), reconnect='false'};
-notify_watchers(#kz_amqp_assignment{}=Assignment, [Watcher|Watchers]) ->
+notify_watchers(#kz_amqp_assignment{}=Assignment, Watchers) ->
+    lists:foreach(fun(W) -> notify_watcher(Assignment, W) end, Watchers),
+    Assignment#kz_amqp_assignment{watchers=sets:new(), reconnect='false'}.
+
+-spec notify_watcher(kz_amqp_assignment(), pid()) -> 'ok'.
+notify_watcher(#kz_amqp_assignment{}=Assignment, Watcher) ->
     %% Notify consumer processes waiting on a channel that they where just
     %% assigned one
-    lager:debug("notifying watcher ~p of assignment", [Watcher]),
     Watcher ! Assignment,
-    notify_watchers(Assignment, Watchers).
+    lager:debug("notified watcher ~p of assignment", [Watcher]).
 
 %%------------------------------------------------------------------------------
 %% @doc

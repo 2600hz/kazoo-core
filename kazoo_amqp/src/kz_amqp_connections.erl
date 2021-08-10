@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -81,11 +81,14 @@
 start_link() ->
     gen_server:start_link({'local', ?SERVER}, ?MODULE, [], []).
 
+%% @doc create a new local-zone connection to an AMQP URI
 -spec new(kz_amqp_connection() | kz_term:text()) ->
           kz_amqp_connection() |
           {'error', any()}.
 new(Broker) -> new(Broker, 'local').
 
+%% @doc create a new connection (if not existing) to an AMQP URI,
+%% assigned to a zone
 -spec new(kz_amqp_connection() | kz_term:text(), kz_term:text()) ->
           kz_amqp_connection() |
           {'error', any()}.
@@ -171,14 +174,18 @@ remove(Broker=?NE_BINARY) ->
                                   },
     remove([Connection || [Connection] <- ets:match(?TAB, Pattern)]).
 
+%% @doc Change a connection's availability to 'true'
 -spec available(pid()) -> 'ok'.
 available(Connection) when is_pid(Connection) ->
     gen_server:cast(?SERVER, {'connection_available', Connection}).
 
+%% @doc Change a connection's availability to 'false'
 -spec unavailable(pid()) -> 'ok'.
 unavailable(Connection) when is_pid(Connection) ->
     gen_server:cast(?SERVER, {'connection_unavailable', Connection}).
 
+%% @doc Selects the first available, non-hidden broker as the
+%% arbitrator broker.
 -spec arbitrator_broker() -> kz_term:api_binary().
 arbitrator_broker() ->
     MatchSpec = [{#kz_amqp_connections{broker='$1'
@@ -194,10 +201,12 @@ arbitrator_broker() ->
         [Arbitrator|_] -> Arbitrator
     end.
 
+%% @doc counts how many connections to Broker (AMQP URI) exist
 -spec broker_connections(kz_term:ne_binary()) -> non_neg_integer().
 broker_connections(Broker) ->
     gen_server:call(?SERVER, {'broker_connections', Broker}).
 
+%% @doc returns all kz_amqp_connections() records
 -spec connections() -> [kz_amqp_connections()].
 connections() ->
     MatchSpec = [{#kz_amqp_connections{connection='$1'
@@ -208,6 +217,7 @@ connections() ->
                 ],
     ets:select(?TAB, MatchSpec).
 
+%% @doc returns all kz_amqp_connection() records for Broker
 -spec connections(kz_term:ne_binary()) -> [kz_amqp_connection()].
 connections(Broker) ->
     MatchSpec = [{#kz_amqp_connections{broker=Broker
@@ -219,6 +229,8 @@ connections(Broker) ->
                 ],
     ets:select(?TAB, MatchSpec).
 
+%% @doc selects all amqp_client connection PIDs for Broker (or primary
+%% broker if undefined)
 -spec managers(kz_term:api_ne_binary()) -> [pid()].
 managers('undefined') ->
     managers(primary_broker());
@@ -237,6 +249,8 @@ managers(Broker) ->
 broker_available_connections(Broker) ->
     gen_server:call(?SERVER, {'broker_available_connections', Broker}).
 
+%% @doc returns the first Broker URI from the sorted list of
+%% available, non-hidden brokers in the 'local' zone
 -spec primary_broker() -> kz_term:api_ne_binary().
 primary_broker() ->
     Pattern = #kz_amqp_connections{available='true'
@@ -253,6 +267,8 @@ primary_broker() ->
         [Broker|_] -> Broker
     end.
 
+%% @doc returns list of unique broker URIs that are not in the 'local'
+%% zone and are not hidden.
 -spec federated_brokers() -> kz_term:ne_binaries().
 federated_brokers() ->
     MatchSpec = [{#kz_amqp_connections{zone='$1'
@@ -273,6 +289,7 @@ federated_brokers() ->
        )
      ).
 
+%% @doc returns what zone a Broker URI is assigned (or 'unknown' if none found)
 -spec broker_zone(kz_term:ne_binary()) -> atom().
 broker_zone(Broker) ->
     Pattern = #kz_amqp_connections{broker=Broker
@@ -287,6 +304,7 @@ broker_zone(Broker) ->
 -spec is_available() -> boolean().
 is_available() -> primary_broker() =/= 'undefined'.
 
+%% @doc wait until the primary broker is available
 -spec wait_for_available() -> 'ok'.
 wait_for_available() ->
     wait_for_available('infinity').
@@ -295,16 +313,16 @@ wait_for_available() ->
 wait_for_available(Timeout) ->
     wait_for_available(fun is_available/0, Timeout).
 
+%% @doc wait until a broker with Tag is available
 -spec wait_for_available_tag(binary()) -> 'ok'.
 wait_for_available_tag(Tag) -> wait_for_available(fun() -> is_tag_available(Tag) end, 'infinity').
 
--spec wait_for_available(any(), 'infinity') -> 'ok';
-                        (any(), non_neg_integer()) -> 'ok' | {'error', 'timeout'}.
-wait_for_available(Fun, Timeout) ->
-    case Fun() of
+-spec wait_for_available(fun(() -> boolean()), timeout()) -> 'ok' | {'error', 'timeout'}.
+wait_for_available(IsAvailableFun, Timeout) ->
+    case IsAvailableFun() of
         'true' -> 'ok';
         'false' ->
-            gen_server:cast(?SERVER, {'add_watcher', Fun, self()}),
+            gen_server:cast(?SERVER, {'add_watcher', IsAvailableFun, self()}),
             wait_for_notification(Timeout)
     end.
 
@@ -357,9 +375,9 @@ handle_call(_Msg, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'new_connection', Connection, Broker, Zone, Tags}, State) ->
-    Ref = erlang:monitor('process', Connection),
-    _ = ets:insert(?TAB, #kz_amqp_connections{connection=Connection
+handle_cast({'new_connection', KZConnection, Broker, Zone, Tags}, State) ->
+    Ref = erlang:monitor('process', KZConnection),
+    _ = ets:insert(?TAB, #kz_amqp_connections{connection=KZConnection
                                              ,connection_ref=Ref
                                              ,broker=Broker
                                              ,zone=Zone
@@ -484,7 +502,6 @@ broker_with_tag(Tag) ->
         [] -> 'undefined';
         [#kz_amqp_connections{broker=Broker}|_] -> Broker
     end.
-
 
 -spec brokers_for_zone(atom()) -> kz_amqp_connections_list().
 brokers_for_zone(Zone) ->
