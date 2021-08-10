@@ -189,13 +189,13 @@
 -type kz_amqp_type() :: 'sticky' | 'float'.
 
 -record(kz_amqp_assignment, {timestamp = kz_time:start_time() :: kz_time:start_time() | '_'
-                            ,consumer :: kz_term:api_pid() | '$2' | '_'
+                            ,consumer :: kz_term:api_pid() | '$2' | '_' % KAZOO PID
                             ,consumer_ref :: kz_term:api_reference() | '_'
                             ,application :: atom() | '_'
                             ,type = 'float' :: kz_amqp_type() | 'undefined' | '_'
-                            ,channel :: kz_term:api_pid() | '$1' | '_'
+                            ,channel :: kz_term:api_pid() | '$1' | '_' % amqp_client channel PID
                             ,channel_ref :: kz_term:api_reference() | '_'
-                            ,connection :: kz_term:api_pid() | '$1' | '_'
+                            ,connection :: kz_term:api_pid() | '$1' | '_' % amqp_client connection PID
                             ,broker :: kz_term:api_binary() | '$1' | '_'
                             ,assigned :: kz_time:start_time() | 'undefined' | '_'
                             ,reconnect = 'false' :: boolean() | '_'
@@ -210,9 +210,9 @@
 -record(kz_amqp_connection, {broker :: kz_term:ne_binary() | '_'
                             ,params :: #'amqp_params_direct'{} | #'amqp_params_network'{} | '_'
                             ,manager :: kz_term:api_pid() | '_'
-                            ,connection :: kz_term:api_pid() | '_'
+                            ,connection :: kz_term:api_pid() | '_' % amqp_client connection PID
                             ,connection_ref :: kz_term:api_reference() | '_'
-                            ,channel :: kz_term:api_pid() | '$1' | '_'
+                            ,channel :: kz_term:api_pid() | '$1' | '_' % amqp_client channel PID
                             ,channel_ref :: kz_term:api_reference() | '$1' | '_'
                             ,reconnect_ref :: kz_term:api_reference() | '_'
                             ,available = 'false' :: boolean() | '_'
@@ -224,13 +224,13 @@
                             }).
 -type kz_amqp_connection() :: #kz_amqp_connection{}.
 
--record(kz_amqp_connections, {connection :: kz_term:api_pid() | '$1' | '_'
+-record(kz_amqp_connections, {connection :: kz_term:api_pid() | '$1' | '_' % kz_amqp_connection
                              ,connection_ref :: kz_term:api_reference() | '_'
-                             ,broker :: kz_term:ne_binary() | '$1' | '$2' | '_'
-                             ,available='false' :: boolean() | '$1' | '$2' | '_'
+                             ,broker :: kz_term:ne_binary() | '$1' | '$2' | '_' % AMQP URI
+                             ,available = 'false' :: boolean() | '$1' | '$2' | '_'
                              ,timestamp = kz_time:start_time() :: kz_time:start_time() | '_'
-                             ,zone='local' :: atom() | '$1' | '_'
-                             ,manager=self() :: pid() | '_'
+                             ,zone = 'local' :: atom() | '$1' | '_'
+                             ,manager = self() :: pid() | '_'
                              ,tags = [] :: list() | '_'
                              ,hidden = 'false' :: boolean() | '$3' | '_'
                              }).
@@ -242,6 +242,23 @@
 -type amqp_msg() :: #'amqp_msg'{}.
 -type amqp_basic() :: #'P_basic'{}.
 -type amqp_deliver() :: {basic_deliver(), amqp_msg()}.
+
+%% 'arguments' keys can be <<"x-max-priority">>, <<"x-max-length">>, or <<"x-message-ttl">>
+-type queue_option() :: {'arguments', kz_term:proplist()} |
+                        {'auto_delete', boolean()} |
+                        {'durable', boolean()} |
+                        {'exclusive', boolean()} |
+                        {'federated_queue_name_is_global', boolean()} | % whether to append zone name to queue name
+                        {'nowait', boolean()} |
+                        {'passive', boolean()} |
+                        {'return_field', 'queue' | 'message_count' | 'consumer_count', 'all'}.
+-type queue_options() :: [queue_option()].
+
+-type consume_option() :: {'exclusive', boolean()} |
+                          {'no_ack', boolean()} |
+                          {'no_local', boolean()} |
+                          {'nowait', boolean()}.
+-type consume_options() :: [consume_option()].
 
 -define(AMQP_HIDDEN_TAG, <<"hidden">>).
 

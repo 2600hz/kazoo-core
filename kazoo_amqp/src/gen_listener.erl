@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Behaviour for setting up an AMQP listener.
 %%% Add/remove responders for `Event-Cat'/`Event-Name' pairs. Each responder
 %%% corresponds to a module that has defined a `handle/1' function, receiving
@@ -128,6 +128,10 @@
 -type federator_listener() :: {kz_term:ne_binary(), {pid(), reference()}}.
 -type federator_listeners() :: [federator_listener()].
 
+%% {QueueName, {Bindings, QueueProps}}
+-type other_queue() :: {kz_term:ne_binary(), {bindings(), kz_term:proplist()}}.
+-type other_queues() :: [other_queue()].
+
 -record(state, {queue :: kz_term:api_binary()
                ,is_consuming = 'false' :: boolean()
                ,consuming_requests = [] :: [{kz_term:pid_ref(), reference()}] % [{From, TRef}]
@@ -137,9 +141,9 @@
                ,module :: atom()
                ,module_state :: module_state()
                ,module_timeout_ref :: kz_term:api_reference() % when the client sets a timeout, gen_listener calls shouldn't negate it, only calls that pass through to the client
-               ,other_queues = [] :: [{kz_term:ne_binary(), {bindings(), kz_term:proplist()}}] %% {QueueName, {Bindings, QueueProps}}
+               ,other_queues = [] :: other_queues()
                ,federators = [] :: federator_listeners()
-               ,waiting_federators = [] :: list()
+               ,waiting_federators = [] :: kz_term:ne_binaries()
                ,self = self() :: pid()
                ,consumer_key = kz_amqp_channel:consumer_pid()
                ,consumer_tags = [] :: kz_term:binaries()
@@ -308,11 +312,11 @@ reply(From, Msg) -> gen_server:reply(From, Msg).
 
 -type server_name() :: {'global' | 'local', atom()} | pid().
 
--spec enter_loop(atom(), list(), any()) -> no_return().
+-spec enter_loop(atom(), start_params(), any()) -> no_return().
 enter_loop(Module, Options, ModuleState) ->
     enter_loop(Module, Options, ModuleState, self(), 'infinity').
 
--spec enter_loop(atom(), list(), any(), timeout() | server_name()) -> no_return().
+-spec enter_loop(atom(), start_params(), any(), timeout() | server_name()) -> no_return().
 enter_loop(Module, Options, ModuleState, {Scope, _Name}=ServerName)
   when Scope =:= 'local'
        orelse Scope =:= 'global' ->
@@ -320,7 +324,7 @@ enter_loop(Module, Options, ModuleState, {Scope, _Name}=ServerName)
 enter_loop(Module, Option, ModuleState, Timeout) ->
     enter_loop(Module, Option, ModuleState, self(), Timeout).
 
--spec enter_loop(atom(), list(), any(), server_name(), timeout()) -> no_return().
+-spec enter_loop(atom(), start_params(), any(), server_name(), timeout()) -> no_return().
 enter_loop(Module, Options, ModuleState, ServerName, Timeout) ->
     {'ok', MyState} = init_state([Module, Options, ModuleState]),
     gen_server:enter_loop(?MODULE, [], MyState, ServerName, Timeout).
@@ -452,25 +456,31 @@ execute(Srv, Function) when is_function(Function) ->
           'ignore'.
 init_state([Module, Params, ModuleState]) ->
     process_flag('trap_exit', 'true'),
-    put('callid', Module),
-    lager:debug("continuing as a gen_listener proc : ~s", [Module]),
+    kz_log:put_callid(Module),
+
+    Application = kz_process:get_application(),
+    kz_process:put_application(Application),
+
+    lager:debug("continuing as a gen_listener proc : ~s ~s", [Application, Module]),
     init(Module, Params, ModuleState, 'undefined').
 
--spec init([atom() | kz_term:proplist(),...]) ->
+-spec init([atom() | start_params() | kz_term:proplist(),...]) ->
           {'ok', state()} |
           {'stop', any()} |
           'ignore'.
 init([Module, Params, InitArgs]) ->
     process_flag('trap_exit', 'true'),
-    put('callid', Module),
+    kz_log:put_callid(Module),
+
     Application = kz_process:get_application(),
     kz_process:put_application(Application),
+
     lager:debug("starting new gen_listener proc : ~s ~s"
                ,[Application, Module]
                ),
-    case erlang:function_exported(Module, 'init', 1)
-        andalso Module:init(InitArgs)
-    of
+
+    'true' = erlang:function_exported(Module, 'init', 1),
+    case Module:init(InitArgs) of
         {'ok', MS} -> init(Module, Params, MS, 'undefined');
         {'ok', MS, 'hibernate'} -> init(Module, Params, MS, 'undefined');
         {'ok', MS, Timeout} -> init(Module, Params, MS, start_timer(Timeout));
@@ -478,7 +488,7 @@ init([Module, Params, InitArgs]) ->
         'ignore' -> 'ignore'
     end.
 
--spec init(atom(), kz_term:proplist(), module_state(), kz_term:api_reference()) ->
+-spec init(atom(), start_params(), module_state(), kz_term:api_reference()) ->
           {'ok', state()}.
 init(Module, Params, ModuleState, TimeoutRef) ->
     _ = channel_requisition(Params),
@@ -493,7 +503,7 @@ init(Module, Params, ModuleState, TimeoutRef) ->
                  ,auto_ack = props:is_true('auto_ack', Params, 'false')
                  }}.
 
--spec maybe_set_queue_name(atom(), kz_term:proplist()) -> kz_term:proplist().
+-spec maybe_set_queue_name(atom(), start_params()) -> start_params().
 maybe_set_queue_name(Module, Params) ->
     case props:is_false('queue_name_always_generate', Params, 'true')
         andalso props:get_value('queue_name', Params) =:= <<>>
@@ -593,45 +603,23 @@ handle_cast({'federated_event', JObj, Props}, #state{params=Params}=State) ->
             {'noreply', State};
         'false' -> distribute_event(JObj, {Deliver, Basic}, State)
     end;
-handle_cast({'$execute', Module, Function, Args}
-           ,#state{federators=[]}=State
-           ) ->
-    erlang:apply(Module, Function, Args),
-    {'noreply', State};
-handle_cast({'$execute', Function, Args}
-           ,#state{federators=[]}=State
-           ) ->
-    erlang:apply(Function, Args),
-    {'noreply', State};
-handle_cast({'$execute', Function}
-           ,#state{federators=[]}=State
-           ) ->
-    Function(),
-    {'noreply', State};
-handle_cast({'$execute', Module, Function, Args}=Msg
+
+handle_cast({'$execute', _Module, _Function, _Args}=ExecMsg
            ,#state{federators=Federators}=State
            ) ->
-    erlang:apply(Module, Function, Args),
-    _ = [?MODULE:cast(Federator, Msg)
-         || {_Broker, {Federator, _Ref}} <- Federators
-        ],
+    _ = exec_mfa(ExecMsg, Federators),
     {'noreply', State};
-handle_cast({'$execute', Function, Args}=Msg
+handle_cast({'$execute', _Function, _Args}=ExecMsg
            ,#state{federators=Federators}=State
            ) ->
-    erlang:apply(Function, Args),
-    _ = [?MODULE:cast(Federator, Msg)
-         || {_Broker, {Federator, _Ref}} <- Federators
-        ],
+    _ = exec_mfa(ExecMsg, Federators),
     {'noreply', State};
-handle_cast({'$execute', Function}=Msg
+handle_cast({'$execute', _Function}=ExecMsg
            ,#state{federators=Federators}=State
            ) ->
-    Function(),
-    _ = [?MODULE:cast(Federator, Msg)
-         || {_Broker, {Federator, _Ref}} <- Federators
-        ],
+    _ = exec_mfa(ExecMsg, Federators),
     {'noreply', State};
+
 handle_cast({'$client_cast', Message}, State) ->
     handle_module_cast(Message, State);
 handle_cast({'start_listener', Params}
@@ -653,6 +641,7 @@ handle_cast({'start_listener', _Params}, State) ->
 handle_cast({'pause_consumers'}, #state{is_consuming='true', consumer_tags=Tags}=State) ->
     lists:foreach(fun kz_amqp_util:basic_cancel/1, Tags),
     {'noreply', State};
+
 handle_cast({'resume_consumers'}, #state{queue='undefined'}=State) ->
     {'noreply', State};
 handle_cast({'resume_consumers'}
@@ -663,29 +652,32 @@ handle_cast({'resume_consumers'}
                   ,auto_ack=AutoAck
                   }=State
            ) ->
-    ConsumeOptions = props:get_value('consume_options', Params, []),
-    _ = start_consumer(Q, maybe_configure_auto_ack(ConsumeOptions, AutoAck)),
-    _ = [start_consumer(Q1, maybe_configure_auto_ack(props:get_value('consume_options', P, []), AutoAck))
-         || {Q1, {_, P}} <- OtherQueues
-        ],
+
+    resume_consumers([{Q, {[], Params}} | OtherQueues], AutoAck),
     {'noreply', State};
-handle_cast({'federator_is_consuming', Broker, 'true'}
+
+handle_cast({'federator_is_consuming', _ListenerFederator, Broker, 'true'}
            ,#state{waiting_federators=WaitingFederators}=State
            ) ->
-    Filter = fun(X) ->
-                     kz_amqp_connections:broker_available_connections(X) > 0
-             end,
-
-    Waiting = lists:filter(Filter, WaitingFederators),
+    Waiting = lists:filter(fun has_available_connections/1, WaitingFederators),
 
     case lists:subtract(Waiting, [Broker]) of
         [] ->
-            lager:info("federator for ~s is consuming, all waiting federators are available!", [Broker]),
+            lager:info("federator ~p for ~s is consuming, all waiting federators are available!"
+                      ,[_ListenerFederator, Broker]
+                      ),
             handle_module_cast({?MODULE, {'federators_consuming', 'true'}}, State);
         Remaining ->
-            lager:info("federator for ~s is consuming, still waiting for federators: ~p", [Broker, Remaining]),
+            lager:info("federator ~p for ~s is consuming, still waiting for federators: ~p"
+                      ,[_ListenerFederator, Broker, Remaining]
+                      ),
             {'noreply', State#state{waiting_federators = Remaining}}
     end;
+handle_cast({'federator_is_consuming', _ListenerFederator, _Broker, 'false'}
+           ,#state{}=State
+           ) ->
+    lager:info("federator ~p on broker ~s is no longer consuming", [_ListenerFederator, _Broker]),
+    handle_module_cast({?MODULE, {'federators_consuming', 'false'}}, State);
 handle_cast({'federator_listener', {Broker, Pid}}, #state{federators=Fs}=State) ->
     case lists:keytake(Pid, 2, Fs) of
         'false' ->
@@ -748,10 +740,8 @@ handle_info({#'basic.deliver'{}=BD
            ,#state{params=Params, auto_ack=AutoAck}=State
            ) ->
 
-    _ = case AutoAck of
-            'true' -> (catch kz_amqp_util:basic_ack(BD));
-            'false' -> 'ok'
-        end,
+    maybe_autoack(AutoAck, BD),
+
     case props:is_true('spawn_handle_event', Params, 'false') of
         'false' ->
             CallId = kz_log:get_callid(),
@@ -1036,7 +1026,7 @@ distribute_event(CallbackData, JObj, Deliver, #state{responders=Responders
         ],
     {'noreply', State}.
 
--spec client_handle_event(kz_json:object(), pid() | kz_amqp_channel:consumer_channel(), kz_amqp_channel:consumer_pid(), responder_mfa(), callback_data(), deliver()) -> any().
+-spec client_handle_event(kz_json:object(), kz_term:api_pid() | kz_amqp_channel:consumer_channel(), kz_amqp_channel:consumer_pid(), responder_mfa(), callback_data(), deliver()) -> any().
 client_handle_event(JObj, 'undefined', ConsumerKey, Callback, CallbackData, Deliver) ->
     lager:warning("no consumer channel to provide to spawned process"),
     _ = kz_log:put_callid(JObj),
@@ -1056,7 +1046,7 @@ client_handle_event(JObj, Channel, ConsumerKey, Callback, CallbackData, Deliver)
     _ = is_process_alive(Channel)
         andalso kz_amqp_channel:consumer_channel(Channel),
     client_handle_event(JObj, Callback, CallbackData, Deliver);
-client_handle_event(JObj, _, ConsumerKey, Callback, CallbackData, Deliver) ->
+client_handle_event(JObj, _Channel, ConsumerKey, Callback, CallbackData, Deliver) ->
     lager:warning("no usable consumer channel to provide to spawned process"),
     _ = kz_log:put_callid(JObj),
     _ = kz_amqp_channel:consumer_pid(ConsumerKey),
@@ -1201,9 +1191,18 @@ set_qos(_QueueName, N) when is_integer(N), N >= 0 ->
     lager:debug("applying QoS prefetch of ~p", [N]),
     kz_amqp_util:basic_qos(N).
 
--spec start_consumer(kz_term:ne_binary(), kz_term:proplist()) -> command_ret().
+-spec start_consumer(kz_term:ne_binary(), kz_term:api_proplist()) -> command_ret().
 start_consumer(Q, 'undefined') -> kz_amqp_util:basic_consume(Q, []);
 start_consumer(Q, ConsumeProps) -> kz_amqp_util:basic_consume(Q, ConsumeProps).
+
+resume_consumers(Queues, AutoAck) ->
+    _ = [resume_consumer(Queue, props:get_value('consume_options', Params, []), AutoAck)
+         || {Queue, {_Bindings, Params}} <- Queues
+        ],
+    lager:info("resumed consumers for queues").
+
+resume_consumer(Queue, ConsumeOptions, AutoAck) ->
+    start_consumer(Queue, maybe_configure_auto_ack(ConsumeOptions, AutoAck)).
 
 -spec remove_binding(binding_module(), kz_term:proplist(), kz_term:api_binary()) -> 'ok'.
 remove_binding(Binding, Props, Q) ->
@@ -1491,7 +1490,7 @@ create_federated_params(FederateBindings, Params) ->
     ,{'consume_options', props:get_value('consume_options', Params, [])}
     ].
 
--spec federated_queue_name(kz_term:proplist(), kz_term:proplist()) -> kz_term:api_binary().
+-spec federated_queue_name(kz_term:proplist(), queue_options()) -> kz_term:api_binary().
 federated_queue_name(Params, Options) ->
     QueueName = props:get_value('queue_name', Params, <<>>),
     IsGlobalQueue = props:is_true('federated_queue_name_is_global', Options, 'false'),
@@ -1613,7 +1612,7 @@ start_initial_bindings(State, Params) ->
                ,props:get_value('bindings', Params, [])
                ).
 
--spec channel_requisition(kz_term:proplist()) -> boolean().
+-spec channel_requisition(start_params()) -> boolean().
 channel_requisition([]) -> 'false';
 channel_requisition(Params) ->
     case props:get_value('broker_tag', Params) of
@@ -1645,6 +1644,41 @@ maybe_add_broker_connection(Broker, _Count) ->
 maybe_configure_auto_ack(Props, 'false') -> Props;
 maybe_configure_auto_ack(Props, 'true') ->
     [{'no_ack', 'false'} | props:delete('no_ack', Props)].
+
+-spec exec_mfa(tuple(), federator_listeners()) -> ['ok'].
+exec_mfa({'$execute', Function}=ExecMsg, Federators) ->
+    Function(),
+    cast_mfa(ExecMsg, Federators);
+exec_mfa({'$execute', Function, Args}=ExecMsg, Federators) ->
+    erlang:apply(Function, Args),
+    cast_mfa(ExecMsg, Federators);
+exec_mfa({'$execute', Module, Function, Args}=ExecMsg, Federators) ->
+    erlang:apply(Module, Function, Args),
+    cast_mfa(ExecMsg, Federators).
+
+-spec cast_mfa(tuple(), federator_listeners()) -> ['ok'].
+cast_mfa(ExecMsg, Federators) ->
+    [?MODULE:cast(Federator, ExecMsg)
+     || {_Broker, {Federator, _Ref}} <- Federators
+    ].
+
+-spec maybe_autoack(boolean(), basic_deliver()) -> 'ok'.
+maybe_autoack('true', BD) -> catch kz_amqp_util:basic_ack(BD), 'ok';
+maybe_autoack('false', _BD) -> 'ok'.
+
+-spec has_available_connections(kz_term:ne_binary()) -> boolean().
+has_available_connections(Broker) ->
+    kz_amqp_connections:broker_available_connections(Broker) > 0.
+
+-spec handle_consuming_requests([{kz_term:pid_ref(), reference()}]) -> 'ok'.
+handle_consuming_requests(Requests) ->
+    _ = [reply_to_request(Request) || Request <- Requests],
+    'ok'.
+
+-spec reply_to_request({kz_term:pid_ref(), reference()}) -> 'ok'.
+reply_to_request({From, TRef}) ->
+    _ = reply(From, 'ok'),
+    'ok' = erlang:cancel_timer(TRef, [{'async', 'true'}, {'info', 'false'}]).
 
 %% @doc force GC of process if total_heap_size exceeds 10K
 %%
@@ -1678,13 +1712,3 @@ maybe_gc(Heap, Max) when Heap > Max ->
     NewHeap = kz_term:words_to_bytes(NewHeapWords),
     amqp:debug("new heap size ~p (delta ~p)", [NewHeap, Heap-NewHeap]);
 maybe_gc(_Heap, _Max) -> 'ok'.
-
--spec handle_consuming_requests([{kz_term:pid_ref(), reference()}]) -> 'ok'.
-handle_consuming_requests(Requests) ->
-    _ = [reply_to_request(Request) || Request <- Requests],
-    'ok'.
-
--spec reply_to_request({kz_term:pid_ref(), reference()}) -> 'ok'.
-reply_to_request({From, TRef}) ->
-    _ = reply(From, 'ok'),
-    'ok' = erlang:cancel_timer(TRef, [{'async', 'true'}, {'info', 'false'}]).
