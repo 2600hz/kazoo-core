@@ -256,7 +256,7 @@
 
 -type consume_option() :: {'exclusive', boolean()} |
                           {'no_ack', boolean()} |
-                          {'nop_local', boolean()} |
+                          {'no_local', boolean()} |
                           {'nowait', boolean()}.
 -type consume_options() :: [consume_option()].
 
