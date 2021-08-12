@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,6 +16,8 @@
 -export([from/1, from/2, set_from/2]).
 -export([subject/1, subject/2, set_subject/2]).
 -export([to/1, to/2, set_to/2]).
+-export([to_number/1, to_number/2, set_to_number/2]).
+-export([to_numbers/1, to_numbers/2, set_to_numbers/2]).
 -export([account_id/1, account_id/2, set_account_id/2]).
 -export([application_id/1, application_id/2]).
 -export([route_id/1, route_id/2, set_route_id/2]).
@@ -41,7 +43,6 @@
 -export_type([payload/0]).
 
 -define(SCHEMA, <<"im">>).
--define(TYPE, <<"im">>).
 
 -spec new() -> payload().
 new() ->
@@ -71,17 +72,52 @@ from(Payload, Default) ->
 set_from(Payload, From) ->
     kz_json:set_value([<<"From">>], From, Payload).
 
--spec to(payload()) -> kz_term:api_binary().
+-spec to(payload()) -> kz_term:api_ne_binaries().
 to(Payload) ->
     to(Payload, 'undefined').
 
--spec to(payload(), Default) -> binary() | Default.
+-spec to(payload(), Default) -> kz_term:ne_binaries() | Default.
 to(Payload, Default) ->
-    kz_json:get_binary_value([<<"To">>], Payload, Default).
+    case kz_json:get_value([<<"To">>], Payload, Default) of
+        To when is_binary(To) -> [To];
+        [] -> Default;
+        To when is_list(To) -> To;
+        _ -> Default
+    end.
 
--spec set_to(payload(), binary()) -> payload().
-set_to(Payload, To) ->
+-spec set_to(payload(), kz_term:ne_binary_or_binaries()) -> payload().
+set_to(Payload, To)
+  when is_binary(To) ->
+    kz_json:set_value([<<"To">>], [To], Payload);
+set_to(Payload, []) ->
+    kz_json:set_value([<<"To">>], null, Payload);
+set_to(Payload, To)
+  when is_list(To) ->
     kz_json:set_value([<<"To">>], To, Payload).
+
+-spec to_numbers(payload()) -> kz_term:api_ne_binaries().
+to_numbers(Payload) ->
+    to_numbers(Payload, 'undefined').
+
+-spec to_numbers(payload(), Default) -> kz_term:ne_binary_or_binaries() | Default.
+to_numbers(Payload, Default) ->
+    kz_json:get_list_value([<<"To-Numbers">>], Payload, Default).
+
+-spec set_to_numbers(payload(), kz_term:ne_binaries()) -> payload().
+set_to_numbers(Payload, To) ->
+    kz_json:set_value([<<"To-Numbers">>], To, Payload).
+
+-spec to_number(payload()) -> kz_term:api_ne_binary().
+to_number(Payload) ->
+    to_number(Payload, 'undefined').
+
+-spec to_number(payload(), Default) -> kz_term:ne_binary() | Default.
+to_number(Payload, Default) ->
+    kz_json:get_binary_value([<<"To-Number">>], Payload, Default).
+
+-spec set_to_number(payload(), kz_term:ne_binary()) -> payload().
+set_to_number(Payload, To) ->
+    kz_json:set_value([<<"To-Number">>], To, Payload).
 
 -spec account_id(payload()) -> kz_term:api_binary().
 account_id(Payload) ->

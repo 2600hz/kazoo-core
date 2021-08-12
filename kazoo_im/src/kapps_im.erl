@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -33,6 +33,8 @@
 
 -export([set_from/2, from/1]).
 -export([set_to/2, to/1]).
+-export([set_to_number/2, to_number/1]).
+-export([set_to_numbers/2, to_numbers/1]).
 
 -export([set_account_id/2, account_id/1]).
 -export([account_db/1, account_realm/1]).
@@ -94,7 +96,9 @@
                   ,context :: kz_term:api_ne_binary()
                   ,controller_q :: kz_term:api_binary()
                   ,from :: kz_term:api_ne_binary()
-                  ,to :: kz_term:api_ne_binary()
+                  ,to :: kz_term:api_ne_binary_or_binaries()
+                  ,to_number :: kz_term:api_ne_binary()
+                  ,to_numbers :: kz_term:api_ne_binaries()
                   ,inception :: kz_term:api_binary()
                   ,account_id :: kz_term:api_binary()
                   ,reseller_id :: kz_term:api_binary()
@@ -213,14 +217,29 @@ set_from(From, #kapps_im{}=Im)
 from(#kapps_im{from=From}) ->
     From.
 
--spec set_to(kz_term:ne_binary(), im()) -> im().
-set_to(To, #kapps_im{}=Im)
-  when is_binary(To) ->
+-spec set_to(kz_term:ne_binary_or_binaries(), im()) -> im().
+set_to(To, #kapps_im{}=Im) ->
     Im#kapps_im{to=To}.
 
--spec to(im()) -> kz_term:ne_binary().
+-spec to(im()) -> kz_term:api_ne_binary_or_binaries().
 to(#kapps_im{to=To}) ->
     To.
+
+-spec set_to_number(kz_term:ne_binary(), im()) -> im().
+set_to_number(ToNumber, #kapps_im{}=Im) ->
+    Im#kapps_im{to_number=ToNumber}.
+
+-spec to_number(im()) -> kz_term:ne_binary().
+to_number(#kapps_im{to_number=ToNumber}) ->
+    ToNumber.
+
+-spec set_to_numbers(kz_term:ne_binaries(), im()) -> im().
+set_to_numbers(ToNumbers, #kapps_im{}=Im) ->
+    Im#kapps_im{to_numbers=ToNumbers}.
+
+-spec to_numbers(im()) -> kz_term:ne_binaries().
+to_numbers(#kapps_im{to_numbers=ToNumbers}) ->
+    ToNumbers.
 
 -spec set_inception(kz_term:api_binary(), im()) -> im().
 set_inception('undefined', #kapps_im{}=Im) ->
@@ -555,6 +574,8 @@ to_payload(IM) ->
     ,{<<"Body">>, body(IM)}
     ,{<<"From">>, from(IM)}
     ,{<<"To">>, to(IM)}
+    ,{<<"To-Number">>, to_number(IM)}
+    ,{<<"To-Numbers">>, to_numbers(IM)}
     ,{<<"Route-Type">>, kz_term:to_binary(route_type(IM))}
     ,{<<"Route-ID">>, kz_term:to_api_binary(route_id(IM))}
     ,{<<"Custom-Vars">>, custom_vars(IM)}
@@ -576,6 +597,8 @@ from_payload(JObj) ->
                ,{fun set_custom_vars/2, CCVs}
                ,{fun set_from/2, kz_im:from(JObj)}
                ,{fun set_to/2, kz_im:to(JObj)}
+               ,{fun set_to_number/2, kz_im:to_number(JObj)}
+               ,{fun set_to_numbers/2, kz_im:to_numbers(JObj)}
                ,{fun set_application_name/2, default(kz_api:app_name(JObj), ?APP_NAME)}
                ,{fun set_application_version/2, default(kz_api:app_version(JObj), ?APP_VERSION)}
                ,{fun set_body/2, kz_im:body(JObj)}

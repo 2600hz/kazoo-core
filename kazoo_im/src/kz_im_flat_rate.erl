@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -43,6 +43,7 @@ create_ledger(IM, AccountId) ->
 -spec create_ledger(kapps_im:im(), kz_term:api_ne_binary(), number()) -> ledger_result().
 create_ledger(IM, AccountId, Rate)
   when Rate > 0 ->
+    Quantity = quantity(IM),
     Setters =
         props:filter_empty(
           [{fun kz_ledger:set_account/2, AccountId}
@@ -50,15 +51,21 @@ create_ledger(IM, AccountId, Rate)
           ,{fun kz_ledger:set_source_id/2, kapps_im:message_id(IM)}
           ,{fun kz_ledger:set_description/2, description(IM)}
           ,{fun kz_ledger:set_usage_type/2, kz_term:to_binary(kapps_im:type(IM))}
-          ,{fun kz_ledger:set_usage_quantity/2, 1}
+          ,{fun kz_ledger:set_usage_quantity/2, Quantity}
           ,{fun kz_ledger:set_usage_unit/2, <<"message">>}
           ,{fun kz_ledger:set_period_start/2, kz_time:now_s()}
           ,{fun kz_ledger:set_metadata/2, metadata(IM, AccountId)}
-          ,{fun kz_ledger:set_dollar_amount/2, Rate}
+          ,{fun kz_ledger:set_dollar_amount/2, Rate * Quantity}
           ]
          ),
     kz_ledger:debit(kz_ledger:setters(Setters), AccountId);
 create_ledger(_IM, _AccountId, _Rate) -> 'ok'.
+
+quantity(IM) ->
+    case kapps_im:direction(IM) of
+        inbound -> length(kapps_im:to_numbers(IM));
+        outbound -> length(kapps_im:to(IM))
+    end.
 
 -spec description(kapps_im:im()) -> kz_term:ne_binary().
 description(IM) ->

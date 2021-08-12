@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -214,7 +214,6 @@ ack(Props) ->
 handle_outbound_route(JObj, Props) ->
     IM = kapps_im:from_payload(JObj),
     Funs = [fun account/1
-           ,fun trusted_application/1
            ,fun account_fetch/1
            ,fun reseller_fetch/1
            ,fun account_is_enabled/1
@@ -223,6 +222,7 @@ handle_outbound_route(JObj, Props) ->
            ,fun reseller_has_im/1
            ,fun account_standing_is_acceptable/1
            ,fun reseller_standing_is_acceptable/1
+           ,fun trusted_application/1
            ,fun number/1
            ],
     route_offnet(kz_maps:exec(Funs
