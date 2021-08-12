@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2020, 2600Hz
+%%% @copyright (C) 2013-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -224,154 +224,236 @@ handle_inbound(JObj, Srv, Deliver) ->
 
 -spec maybe_relay_request(kz_json:object()) -> 'ack' | 'nack'.
 maybe_relay_request(JObj) ->
-    Number = knm_converters:normalize(kz_im:to(JObj)),
+    Numbers = [{knm_converters:normalize(Number), #{}} || Number <- kz_im:to_numbers(JObj)],
     IM = kapps_im:from_payload(JObj),
-    Map = #{number => Number
+    Map = #{accounts => #{}
+           ,resellers => #{}
+           ,numbers => maps:from_list(Numbers)
            ,inception => <<"offnet">>
            ,request => JObj
            ,route_id => kz_im:route_id(JObj)
            ,route_type => kz_im:route_type(JObj)
            ,im => IM
            },
-    Routines = [fun lookup_number/1
-               ,fun number_has_im_enabled/1
-               ,fun account_from_number/1
-               ,fun account_fetch/1
-               ,fun reseller_fetch/1
-               ,fun account_enabled/1
-               ,fun reseller_enabled/1
-               ,fun account_has_im_enabled/1
-               ,fun reseller_has_im_enabled/1
-               ,fun account_standing_is_acceptable/1
-               ,fun reseller_standing_is_acceptable/1
-               ,fun set_rate/1
+    Routines = [fun lookup_numbers/1
+               ,fun numbers_have_im_enabled/1
+               ,fun accounts_from_numbers/1
+               ,fun accounts/1
+               ,fun resellers/1
+               ,fun accounts_fetch/1
+               ,fun resellers_fetch/1
+               ,fun accounts_enabled/1
+               ,fun resellers_enabled/1
+               ,fun accounts_have_im_enabled/1
+               ,fun resellers_have_im_enabled/1
+               ,fun accounts_standing_are_acceptable/1
+               ,fun resellers_standing_are_acceptable/1
+               ,fun set_accounts_rate/1
+               ,fun set_errors_from_resellers/1
+               ,fun set_errors_from_accounts/1
+               ,fun route_onnet/1
                ],
-    case kz_maps:exec(Routines, Map) of
-        #{account_id := AccountId, error := Error} ->
-            lager:warning("external ~s request for number ~s validation failed  in account ~s : ~p", [kapps_im:type(IM), Number, AccountId, Error]),
-            'nack';
-        #{error := Error} ->
-            lager:warning("validation failed in external ~s request for number ~s : ~p", [kapps_im:type(IM), Number, Error]),
-            'nack';
-        #{account_id := AccountId, request := Payload, rate := Rate} ->
-            lager:info("accepted external ~s request ~s for account ~s", [kapps_im:type(IM), Number, AccountId]),
-            Values = [{<<"Account-ID">>, AccountId}
-                     ,{<<"Charges">>, Rate}
-                     ],
-            API = kz_json:set_values(Values, Payload),
-            case kz_im_onnet:route(API) of
-                'ok' -> 'ack';
-                {'error', _Error} ->
-                    lager:warning("onnet rejected request for account ~s : ~p", [AccountId, _Error]),
-                    'ack'
-            end;
-        M ->
-            lager:debug("unable to determine account for ~s => ~p", [Number, M]),
-            'nack'
+    Result = kz_maps:exec(Routines, Map),
+    log_errors(Result),
+    case route_errors(Result) of
+        true -> 'nack';
+        false -> 'ack'
     end.
 
-lookup_number(#{account_id := _AccountId} = Map) -> Map;
-lookup_number(#{number := Number} = Map) ->
+lookup_numbers(#{numbers := Numbers} = Map) ->
+    Map#{numbers => maps:map(fun lookup_number/2, Numbers)}.
+
+lookup_number(Number, Map) ->
     case knm_phone_number:fetch(Number) of
-        {'error', _R} -> Map;
+        {'error', Error} -> Map#{error => io_lib:format("number not found : ~p", [kz_term:to_binary(Error)])};
         {'ok', KNumber} -> Map#{phone_number => KNumber}
-    end;
-lookup_number(Map) -> Map.
+    end.
 
-number_has_im_enabled(#{phone_number := PN, im := IM} = Map) ->
-    case knm_im:enabled(PN, kapps_im:type(IM)) of
+numbers_have_im_enabled(#{numbers := Numbers, im := IM} = Map) ->
+    Map#{numbers => maps:map(fun(K,V) -> number_has_im_enabled(K, V, kapps_im:type(IM)) end, Numbers)}.
+
+number_has_im_enabled(_Number, #{error := _} = Map, _) -> Map;
+number_has_im_enabled(_Number, #{phone_number := PN} = Map, Type) ->
+    case knm_im:enabled(PN, Type) of
         'true' -> Map;
-        'false' -> maps:without([account_id, account, phone_number]
-                               ,Map#{error => io_lib:format("number does not have ~s enabled", [kapps_im:type(IM)])}
-                               )
-    end;
-number_has_im_enabled(Map) -> Map.
+        'false' -> Map#{error => io_lib:format("number does not have ~s enabled", [Type])}
+    end.
 
-account_from_number(#{account_id := _AccountId} = Map) -> Map;
-account_from_number(#{phone_number := PN, im := IM} = Map) ->
+accounts_from_numbers(#{numbers := Numbers} = Map) ->
+    Map#{numbers => maps:map(fun account_from_number/2, Numbers)}.
+
+account_from_number(_Number, #{error := _} = Map) -> Map;
+account_from_number(_Number, #{phone_number := PN} = Map) ->
     case knm_phone_number:assigned_to(PN) of
-        'undefined' -> Map;
+        'undefined' -> Map#{error => <<"number not assigned to an account">>};
         AccountId -> Map#{account_id => AccountId
                          ,reseller_id => kz_services_reseller:get_id(AccountId)
-                         ,im => kapps_im:set_account_id(AccountId, IM)
                          }
-    end;
-account_from_number(Map) -> Map.
+    end.
 
-account_fetch(#{account_id := AccountId} = Map) ->
+accounts(#{numbers := Numbers} = Map) ->
+    Map#{accounts => maps:fold(fun account/3, #{}, Numbers)}.
+
+account(_Number, #{error := _}, Acc) -> Acc;
+account(Number, #{account_id := AccountId, reseller_id := ResellerId}, Acc) ->
+    case maps:get(AccountId, Acc, undefined) of
+        undefined -> maps:put(AccountId, #{numbers => [Number], reseller_id => ResellerId}, Acc);
+        #{numbers := Numbers} = V -> maps:put(AccountId, V#{numbers => [Number | Numbers]}, Acc)
+    end.
+
+resellers(#{numbers := Numbers} = Map) ->
+    Map#{resellers => maps:fold(fun reseller/3, #{}, Numbers)}.
+
+reseller(_Number, #{error := _}, Acc) -> Acc;
+reseller(Number, #{reseller_id := ResellerId, account_id := AccountId}, Acc) ->
+    case maps:get(ResellerId, Acc, undefined) of
+        undefined -> maps:put(ResellerId, #{numbers => [Number], accounts => [AccountId]}, Acc);
+        #{numbers := Numbers, accounts := Accounts} = V -> maps:put(ResellerId, V#{numbers => [Number | Numbers], accoounts => [AccountId | Accounts]}, Acc)
+    end.
+
+accounts_fetch(#{accounts := Accounts} = Map) ->
+    Map#{accounts => maps:map(fun account_fetch/2, Accounts)}.
+
+account_fetch(AccountId, Map) ->
     case kzd_accounts:fetch(AccountId) of
-        {'error', Error} -> maps:without([account_id], Map#{error => Error});
+        {'error', Error} -> Map#{error => Error};
         {'ok', Account} -> Map#{account => Account}
-    end;
-account_fetch(Map) -> Map.
+    end.
 
-reseller_fetch(#{reseller_id := ResellerId} = Map) ->
+resellers_fetch(#{resellers := Resellers} = Map) ->
+    Map#{resellers => maps:map(fun reseller_fetch/2, Resellers)}.
+
+reseller_fetch(ResellerId, Map) ->
     case kzd_accounts:fetch(ResellerId) of
-        {'error', Error} -> maps:without([reseller_id], Map#{error => Error});
+        {'error', Error} -> Map#{error => Error};
         {'ok', Reseller} -> Map#{reseller => Reseller}
-    end;
-reseller_fetch(Map) -> Map.
+    end.
 
-account_enabled(#{account := Account} = Map) ->
+accounts_enabled(#{accounts := Accounts} = Map) ->
+    Map#{accounts => maps:map(fun account_enabled/2, Accounts)}.
+
+account_enabled(_AccountId, #{error := _} = Map) -> Map;
+account_enabled(_AccountId, #{account := Account} = Map) ->
     case kzd_accounts:enabled(Account) of
         'true' -> Map;
-        'false' -> maps:without([account_id, account]
-                               ,Map#{error => <<"account is disabled">>}
-                               )
-    end;
-account_enabled(Map) -> Map.
+        'false' -> Map#{error => <<"account is disabled">>}
+    end.
 
-reseller_enabled(#{reseller := Reseller} = Map) ->
+resellers_enabled(#{resellers := Resellers} = Map) ->
+    Map#{resellers => maps:map(fun reseller_enabled/2, Resellers)}.
+
+reseller_enabled(_ResellerId, #{error := _} = Map) -> Map;
+reseller_enabled(_ResellerId, #{reseller := Reseller} = Map) ->
     case kzd_accounts:enabled(Reseller) of
         'true' -> Map;
-        'false' -> maps:without([account_id, account, reseller_id, reseller]
-                               ,Map#{error => <<"reseller is disabled">>}
-                               )
-    end;
-reseller_enabled(Map) -> Map.
+        'false' -> Map#{error => <<"reseller is disabled">>}
+    end.
 
-account_has_im_enabled(#{account_id := AccountId, im := IM} = Map) ->
-    case kz_services_im:is_enabled(AccountId, kapps_im:type(IM)) of
+accounts_have_im_enabled(#{accounts := Accounts, im := IM} = Map) ->
+    Map#{accounts => maps:map(fun(K,V) -> account_has_im_enabled(K, V, kapps_im:type(IM)) end, Accounts)}.
+
+account_has_im_enabled(_AccountId, #{error := _} = Map, _) -> Map;
+account_has_im_enabled(AccountId, Map, Type) ->
+    case kz_services_im:is_enabled(AccountId, Type) of
         'true' -> Map;
-        'false' -> maps:without([account_id, account]
-                               ,Map#{error => io_lib:format("account does not have ~s enabled", [kapps_im:type(IM)])}
-                               )
-    end;
-account_has_im_enabled(Map) -> Map.
+        'false' -> Map#{error => io_lib:format("account does not have ~s enabled", [Type])}
+    end.
 
-reseller_has_im_enabled(#{reseller_id := ResellerId, im := IM} = Map) ->
-    case kz_services_im:is_enabled(ResellerId, kapps_im:type(IM)) of
+resellers_have_im_enabled(#{resellers := Resellers, im := IM} = Map) ->
+    Map#{resellers => maps:map(fun(K,V) -> reseller_has_im_enabled(K, V, kapps_im:type(IM)) end, Resellers)}.
+
+reseller_has_im_enabled(_ResellerId, #{error := _} = Map, _) -> Map;
+reseller_has_im_enabled(ResellerId, Map, Type) ->
+    case kz_services_im:is_enabled(ResellerId, Type) of
         'true' -> Map;
-        'false' -> maps:without([account_id, account, reseller_id, reseller]
-                               ,Map#{error => kz_term:to_binary(io_lib:format("reseller ~s does not have ~s enabled", [ResellerId, kapps_im:type(IM)]))}
-                               )
-    end;
-reseller_has_im_enabled(Map) -> Map.
+        'false' -> Map#{error => io_lib:format("reseller ~s does not have ~s enabled", [ResellerId, Type])}
+    end.
 
-account_standing_is_acceptable(#{account_id := AccountId} = Map) ->
+accounts_standing_are_acceptable(#{accounts := Accounts} = Map) ->
+    Map#{accounts => maps:map(fun account_standing_is_acceptable/2, Accounts)}.
+
+account_standing_is_acceptable(_AccountId, #{error := _} = Map) -> Map;
+account_standing_is_acceptable(AccountId, Map) ->
     case kz_services_standing:acceptable(AccountId) of
         {'true', _} -> Map;
-        {'false', Error} -> maps:without([account_id, account]
-                                        ,Map#{error => maps:get(reason, Error)}
-                                        )
-    end;
-account_standing_is_acceptable(Map) -> Map.
+        {'false', Error} -> Map#{error => maps:get(reason, Error)}
+    end.
 
-reseller_standing_is_acceptable(#{reseller_id := ResellerId} = Map) ->
+resellers_standing_are_acceptable(#{resellers := Resellers} = Map) ->
+    Map#{resellers => maps:map(fun reseller_standing_is_acceptable/2, Resellers)}.
+
+reseller_standing_is_acceptable(_ResellerId, #{error := _} = Map) -> Map;
+reseller_standing_is_acceptable(ResellerId, Map) ->
     case kz_services_standing:acceptable(ResellerId) of
         {'true', _} -> Map;
-        {'false', Error} -> maps:without([account_id, account, reseller_id, reseller]
-                                        ,Map#{error => maps:get(reason, Error)}
-                                        )
-    end;
-reseller_standing_is_acceptable(Map) -> Map.
+        {'false', Error} -> Map#{error => maps:get(reason, Error)}
+    end.
 
-set_rate(#{account_id := AccountId
-          ,im := IM
-          } = Map) ->
+set_accounts_rate(#{accounts := Accounts, im := IM} = Map) ->
+    Map#{accounts => maps:map(fun(K,V) -> set_account_rate(K, V, IM) end, Accounts)}.
+
+set_account_rate(_AccountId, #{error := _} = Map, _IM) -> Map;
+set_account_rate(AccountId, Map, IM) ->
     Rate = kz_services_im:flat_rate(AccountId, kapps_im:type(IM), kapps_im:direction(IM)),
-    Map#{rate => Rate};
-set_rate(Map) -> Map.
+    Map#{rate => Rate}.
+
+set_errors_from_accounts(#{numbers := Numbers, accounts := Accounts} = Map) ->
+    Map#{numbers => maps:map(fun(K, V) -> set_error_from_account(K, V, Accounts) end, Numbers)}.
+
+set_error_from_account(_Number, #{error := _} = Map, _) -> Map;
+set_error_from_account(_Number, #{account_id := AccountId} = Map, Accounts) ->
+    case maps:get(AccountId, Accounts) of
+        #{error := Error} -> Map#{error => Error};
+        _ -> Map
+    end.
+
+set_errors_from_resellers(#{numbers := Numbers, accounts := Accounts, resellers := Resellers} = Map) ->
+    Map#{numbers => maps:map(fun(K, V) -> set_error_from_reseller(K, V, Resellers) end, Numbers)
+        ,accounts => maps:map(fun(K, V) -> set_error_from_reseller(K, V, Resellers) end, Accounts)
+        }.
+
+set_error_from_reseller(_Key, #{error := _} = Map, _) -> Map;
+set_error_from_reseller(_Key, #{reseller_id := ResellerId} = Map, Resellers) ->
+    case maps:get(ResellerId, Resellers) of
+        #{error := Error} -> Map#{error => Error};
+        _ -> Map
+    end.
+
+log_errors(#{numbers := Numbers, im := IM}) ->
+    lists:foreach(fun({K, V}) -> log_error(K, V, IM) end, maps:to_list(Numbers)).
+
+log_error(Number, #{error := Error, account_id := AccountId}, IM) ->
+    lager:warning("external ~s request for number ~s validation failed  in account ~s : ~p", [kapps_im:type(IM), Number, AccountId, Error]);
+log_error(Number, #{error := Error}, IM) ->
+    lager:warning("validation failed in external ~s request for number ~s : ~p", [kapps_im:type(IM), Number, Error]);
+log_error(_Number, _Map, _IM) -> ok.
+
+route_errors(#{accounts := Accounts}) ->
+    lists:any(fun route_error/1, maps:to_list(Accounts)).
+
+route_error({_AccountId, #{error := _}}) -> false;
+route_error({_AccountId, #{route_error := _}}) -> true;
+route_error({_AccountId, _Map}) -> false.
+
+
+route_onnet(#{accounts := Accounts} = Map) ->
+    Map#{accounts => maps:map(fun(K,V) -> route_onnet(K, V, Map) end, Accounts)}.
+
+route_onnet(_AccountId, #{error := _} = Map, _) -> Map;
+route_onnet(AccountId, #{numbers := Numbers, rate := Rate} = Map, #{request := Payload, im:= IM}) ->
+    lager:info("accepted external ~s request ~s for account ~s", [kapps_im:type(IM), kz_binary:join(Numbers), AccountId]),
+    Values = [{<<"Account-ID">>, AccountId}
+             ,{<<"Rate">>, Rate}
+             ,{<<"Charges">>, Rate * length(Numbers)}
+             ,{<<"To-Numbers">>, Numbers}
+             ],
+    API = kz_json:set_values(Values, Payload),
+    case kz_im_onnet:route(API) of
+        'ok' -> Map#{payload => API, result => 'ack'};
+        {'error', Error} ->
+            lager:warning("onnet rejected request for account ~s : ~p", [AccountId, Error]),
+            Map#{payload => API, result => 'nack', route_error => Error}
+    end.
 
 handle_confirm(#'basic.ack'{delivery_tag = Idx, multiple = 'true'}
               ,#state{confirms = #{pids := Pids} = Confirms} = State

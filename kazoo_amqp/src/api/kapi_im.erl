@@ -32,9 +32,10 @@
 -define(INBOUND_HEADERS, [<<"Body">>
                          ,<<"From">>
                          ,<<"Message-ID">>
-                         ,<<"To">>
+                         ,<<"To-Numbers">>
                          ]).
 -define(OPTIONAL_INBOUND_HEADERS, [<<"Account-ID">>
+                                  ,<<"Rate">>
                                   ,<<"Charges">>
                                   ,<<"Custom-SIP-Headers">>
                                   ,<<"Custom-Vars">>
@@ -43,6 +44,7 @@
                                   ,<<"Route-Type">>
                                   ,<<"System-ID">>
                                   ,<<"Transaction-ID">>
+                                  ,<<"To">>
                                   ]).
 
 -define(INBOUND_TYPES, [{<<"Body">>, fun erlang:is_binary/1}
@@ -51,7 +53,8 @@
                        ,{<<"Message-ID">>, fun erlang:is_binary/1}
                        ,{<<"Request">>, fun erlang:is_binary/1}
                        ,{<<"System-ID">>, fun erlang:is_binary/1}
-                       ,{<<"To">>, fun erlang:is_binary/1}
+                       ,{<<"To-Numbers">>, fun kz_term:is_ne_binaries/1}
+                       ,{<<"To">>, fun kz_term:is_ne_binary_or_binaries/1}
                        ]).
 -define(INBOUND_REQ_VALUES, [{<<"Event-Category">>, ?EVENT_CATEGORIES}
                             ,{<<"Event-Name">>, ?INBOUND_REQ_EVENT_NAME}
@@ -90,7 +93,7 @@
                                    ,<<"Endpoints">>
                                    ,<<"Transaction-ID">>
                                    ]).
--define(OUTBOUND_TYPES, [{<<"To">>, fun is_binary/1}
+-define(OUTBOUND_TYPES, [{<<"To">>, fun kz_term:is_ne_binary_or_binaries/1}
                         ,{<<"From">>, fun is_binary/1}
                         ,{<<"Request">>, fun is_binary/1}
                         ,{<<"Message-ID">>, fun is_binary/1}

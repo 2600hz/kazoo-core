@@ -10,7 +10,7 @@
             "type": "string"
         },
         "Charges": {
-            "type": "string"
+            "type": "number"
         },
         "Custom-SIP-Headers": {
             "type": "object"
@@ -35,6 +35,9 @@
         "Message-ID": {
             "type": "string"
         },
+        "Rate": {
+            "type": "number"
+        },
         "Request": {
             "type": "string"
         },
@@ -52,7 +55,19 @@
             "type": "string"
         },
         "To": {
-            "type": "string"
+            "items": {
+                "type": "string"
+            },
+            "type": [
+                "string",
+                "array"
+            ]
+        },
+        "To-Numbers": {
+            "items": {
+                "type": "string"
+            },
+            "type": "array"
         },
         "Transaction-ID": {
             "type": "string"
