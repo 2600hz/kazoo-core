@@ -67,12 +67,24 @@ normalize(Num, 'undefined', _Id) ->
 normalize(Num, AccountId, 'undefined') ->
     normalize(Num, AccountId);
 normalize(Num, AccountId, <<Id/binary>>) ->
-    {'ok', Endpoint} = kz_endpoint:get(Id, AccountId),
-    DialPlan = kz_json:get_json_value([<<"dial_plan">>], Endpoint),
-    normalize(Num, AccountId, DialPlan);
+    normalize(Num, AccountId, dialplan(AccountId, Id));
 normalize(<<Num/binary>>, AccountId, DialPlan) ->
     lager:debug("normalize(~p, ~p, ~p)", [Num, AccountId, DialPlan]),
     to_e164_from_account_dialplan(Num, AccountId, DialPlan).
+
+-spec dialplan(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:api_object().
+dialplan(AccountId, EndpointId) ->
+    case kz_endpoint:get(EndpointId, AccountId) of
+        {'ok', Endpoint} -> kz_json:get_json_value([<<"dial_plan">>], Endpoint);
+        _NoEndpoint -> dialplan_from_doc(AccountId, EndpointId)
+    end.
+
+-spec dialplan_from_doc(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:api_object().
+dialplan_from_doc(AccountId, Id) ->
+    case kz_datamgr:open_cache_doc(AccountId, Id) of
+        {'ok', Doc} -> kz_json:get_json_value([<<"dial_plan">>], Doc);
+        _NoDoc -> undefined
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
