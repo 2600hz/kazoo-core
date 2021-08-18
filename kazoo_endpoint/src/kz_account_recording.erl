@@ -36,7 +36,7 @@ maybe_record_inbound(FromNetwork, _Endpoint, Call, Data) ->
         'true' ->
             LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_INBOUND_RECORDING_LABEL(FromNetwork), Data),
             {'true'
-            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'false', Call))
+            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'true', Call))
             }
     end.
 
@@ -55,6 +55,6 @@ maybe_record_outbound(ToNetwork, _Endpoint, Call, Data) ->
         'true' ->
             LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
             {'true'
-            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'false', Call))
+            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'true', Call))
             }
     end.
