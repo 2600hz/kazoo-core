@@ -207,7 +207,7 @@ nodes_publish(Payload) ->
 
 -spec nodes_publish(amqp_payload(), kz_term:ne_binary()) -> 'ok'.
 nodes_publish(Payload, ContentType) ->
-    basic_publish(?EXCHANGE_NODES, <<>>, Payload, ContentType, ['maybe_publish']).
+    basic_publish(?EXCHANGE_NODES, kz_term:to_binary(node()), Payload, ContentType, ['maybe_publish']).
 
 -spec kapps_publish(kz_term:ne_binary(), amqp_payload()) -> 'ok'.
 kapps_publish(Routing, Payload) ->
