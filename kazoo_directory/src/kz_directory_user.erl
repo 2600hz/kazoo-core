@@ -85,9 +85,9 @@ cache_origin(EndpointId, AccountId, Profile) ->
     lists:foldl(fun(F, P) -> F(P) end, [], Routines).
 
 -spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-build(EndpointId, AccountId, Endpoint, _Options) ->
-    CCVs = generate_ccvs(EndpointId, AccountId, Endpoint),
-    SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint),
+build(EndpointId, AccountId, Endpoint, Options) ->
+    CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options),
+    SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Options),
 
     {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
     {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
@@ -118,8 +118,8 @@ build(EndpointId, AccountId, Endpoint, _Options) ->
               ],
     {'ok', kz_json:from_list(Profile)}.
 
--spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
-generate_ccvs(_EndpointId, AccountId, Endpoint) ->
+-spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> kz_json:object().
+generate_ccvs(EndpointId, AccountId, Endpoint, Options) ->
     Realm = kz_json:get_ne_binary_value(<<"realm">>, Endpoint),
     Props = [{<<"Account-ID">>, AccountId}
             ,{<<"Reseller-ID">>, kz_services_reseller:get_id(AccountId)}
@@ -133,6 +133,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint) ->
     CCVFuns = [{fun owner_id/2, Endpoint}
               ,{fun presence_id/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
+              ,{fun relay_id/3, EndpointId, Options}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
@@ -154,8 +155,8 @@ owner_id(Endpoint, CCVs) ->
 hold_music(Endpoint, CCVs) ->
     kz_json:set_value(<<"Hold-Media">>, kzd_endpoint:moh_url(Endpoint), CCVs).
 
--spec generate_sip_headers(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
-generate_sip_headers(_EndpointId, _AccountId, Endpoint) ->
+-spec generate_sip_headers(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> kz_json:object().
+generate_sip_headers(_EndpointId, _AccountId, Endpoint, _Options) ->
     Headers = kz_json:new(),
     HeaderFuns = [{fun add_sip_headers/2, Endpoint}],
     kz_json:exec(HeaderFuns, Headers).
@@ -179,3 +180,32 @@ owned_by_query(OwnerId, AccountId) ->
 -spec dnd(kz_json:object()) -> boolean().
 dnd(Endpoint) ->
     kz_json:is_true([<<"do_not_disturb">>, <<"enabled">>], Endpoint).
+
+-spec relay_id(kz_term:ne_binary(), kz_term:proplist(), kz_json:object()) -> kz_json:object().
+relay_id(EndpointId, Options, CCVs) ->
+    case props:get_value(claims, Options) of
+        'undefined' -> relay_id_from_endpoint_info(EndpointId, Options, CCVs);
+        Claims -> relay_id_from_claims(Claims, CCVs)
+    end.
+
+relay_id_from_endpoint_info(EndpointId, Options, CCVs) ->
+    case props:get_value('endpoint', Options) of
+        undefined -> CCVs;
+        EndpointInfo -> relay_id_from_endpoint_meta_id(EndpointId, EndpointInfo, CCVs)
+    end.
+
+relay_id_from_endpoint_meta_id(EndpointId, EndpointInfo, CCVs) ->
+    case kz_json:is_valid_json_object(EndpointInfo)
+        andalso kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, EndpointInfo)
+    of
+        false -> CCVs;
+        undefined -> CCVs;
+        _EndpointMetaId -> kz_json:set_value(<<"Relay-ID">>, EndpointId, CCVs)
+    end.
+
+relay_id_from_claims(Claims, CCVs) ->
+    kz_json:set_value(<<"Relay-ID">>, id_claim(Claims), CCVs).
+
+-spec id_claim(kz_json:object()) -> kz_json:json_term().
+id_claim(Claims) ->
+    kz_json:get_ne_binary_value(<<"id">>, Claims, null).
