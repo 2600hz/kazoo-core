@@ -108,10 +108,27 @@ maybe_fetch_endpoint(EndpointId, AccountDb) ->
           {'error', any()}.
 maybe_fetch_endpoint(EndpointId, AccountDb, Options) ->
     AltJObj = props:get_value('endpoint', Options),
+    case kz_json:is_valid_json_object(AltJObj)
+        andalso kz_doc:id(AltJObj)
+    of
+        false -> fetch_endpoint(EndpointId, AccountDb, Options);
+        undefined -> fetch_endpoint(EndpointId, AccountDb, Options);
+        DocId -> fetch_endpoint(DocId, AccountDb, Options)
+    end.
+
+-spec fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+fetch_endpoint(EndpointId, AccountDb, Options) ->
+    AltJObj = props:get_value('endpoint', Options),
     case kz_datamgr:open_cache_doc(AccountDb, EndpointId) of
-        {'ok', JObj} ->
+        {'ok', JObj} when AltJObj =:= 'undefined' ->
             lager:debug("fetched endpoint ~s: ~s", [EndpointId, kz_doc:revision(JObj)]),
             check_endpoint_type(JObj, EndpointId, AccountDb);
+        {'ok', JObj} ->
+            lager:debug("merging with endpoint ~s: ~s", [EndpointId, kz_doc:revision(JObj)]),
+            Endpoint = kz_json:merge(JObj, AltJObj),
+            check_endpoint_type(Endpoint, kz_doc:id(Endpoint), AccountDb);
         {'error', _R}=E when AltJObj =:= 'undefined' ->
             lager:info("unable to fetch endpoint ~s: ~p", [EndpointId, _R]),
             E;
@@ -1078,7 +1095,7 @@ create_endpoint(Endpoint, Properties, #clid{}=Clid, Call) ->
                     ,{<<"Endpoint-Timeout">>, get_timeout(Properties)}
                     ,{<<"Endpoint-Delay">>, get_delay(Properties)}
                     ,{<<"Account-ID">>, kapps_call:account_id(Call)}
-                    ,{<<"Endpoint-ID">>, kz_json:get_ne_binary_value(<<"Endpoint-ID">>, Endpoint)}
+                    ,{<<"Endpoint-ID">>, kzd_endpoint:id(Endpoint)}
                     ,{<<"Endpoint-URI">>, endpoint_uri(Endpoint, Call)}
                     ,{<<"Presence-ID">>, kz_attributes:presence_id(Endpoint, Call)}
                     ,{<<"Custom-Channel-Vars">>, generate_ccvs(Endpoint, Call)}
