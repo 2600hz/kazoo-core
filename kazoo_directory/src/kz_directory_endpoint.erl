@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -31,20 +31,28 @@ profile(EndpointId, AccountId, Options) ->
         {'ok', Endpoint} ->
             profile(EndpointId, AccountId, Options, kz_doc:type(Endpoint));
         _Error ->
+            maybe_from_endpoint(EndpointId, AccountId, Options)
+    end.
+
+maybe_from_endpoint(EndpointId, AccountId, Options) ->
+    case kz_endpoint:get(EndpointId, AccountId) of
+        {'ok', Endpoint} ->
+            profile(EndpointId, AccountId, Options, kzd_endpoint:type(Endpoint));
+        _Error ->
             maybe_from_options(EndpointId, AccountId, Options)
     end.
 
 maybe_from_options(EndpointId, AccountId, Options) ->
-    {Endpoint, Without} = props:take_value('endpoint', Options),
+    Endpoint = props:get_value('endpoint', Options),
     case kz_json:is_valid_json_object(Endpoint) of
         'false' -> {'error', 'not_found'};
         'true' ->
-            case kz_json:get_ne_binary_value(<<"endpoint_id">>, Endpoint) of
+            case kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, Endpoint) of
                 undefined ->
                     profile(EndpointId, AccountId, Options, kz_doc:type(Endpoint));
-                NewId ->
-                    lager:info("found endpoint ~s in options for ~s", [NewId, EndpointId]),
-                    profile(NewId, AccountId, Without, kz_doc:type(Endpoint))
+                _NewId ->
+                    lager:info("found endpoint ~s in options for ~s", [_NewId, EndpointId]),
+                    profile(EndpointId, AccountId, Options, kz_doc:type(Endpoint))
             end
     end.
 
