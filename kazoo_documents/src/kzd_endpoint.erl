@@ -17,6 +17,7 @@
 -export([get_prompt/2, get_prompt_url/2]).
 -export([moh/1, moh_media_path/1, moh_url/1]).
 -export([presence_id/1]).
+-export([build_options/1]).
 
 -type endpoint() :: kz_json:object().
 -export_type([endpoint/0]).
@@ -73,3 +74,7 @@ moh_url(Endpoint) ->
 -spec presence_id(endpoint()) -> kz_term:api_ne_binary().
 presence_id(Endpoint) ->
     kz_json:get_ne_binary_value(<<"presence_id">>, Endpoint).
+
+-spec build_options(endpoint()) -> kz_term:api_object().
+build_options(Endpoint) ->
+    kz_json:get_json_value(<<"Endpoint-Build-Options">>, Endpoint).
