@@ -460,13 +460,12 @@ from_originate_resp(OriginateResp, #kapps_call{account_id=OldAccountId
     [RequestUser, RequestRealm] = binary:split(Request, <<"@">>),
 
     AuthorizingId = kz_json:get_ne_binary_value(<<"Authorizing-ID">>, CCVs, authorizing_id(Call)),
-    EndpointId = endpoint_id(OriginateResp, endpoint_id(Call)),
 
     Call#kapps_call{call_id=CallId
                    ,origination_call_id=kz_json:get_ne_binary_value(<<"Origination-Call-ID">>, OriginateResp, origination_call_id(Call))
                    ,context=kz_json:get_ne_binary_value(<<"Context">>, OriginateResp, context(Call))
                    ,request=Request
-                   ,request_user=to_e164(RequestUser, AccountId, EndpointId)
+                   ,request_user=RequestUser
                    ,request_realm=RequestRealm
                    ,from=From
                    ,from_user=FromUser
@@ -499,7 +498,6 @@ from_originate_resp(OriginateResp, #kapps_call{account_id=OldAccountId
                    ,direction = kz_json:get_ne_binary_value(<<"Call-Direction">>, OriginateResp, direction(Call))
                    ,is_call_forward = kz_json:is_true(<<"Call-Forward">>, CCVs, is_call_forward(Call))
                    ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, OriginateResp, is_transfer(Call))
-                   ,endpoint_id = EndpointId
                    ,control_q = kz_json:get_ne_binary_value(<<"Control-Queue">>, OriginateResp)
                    ,language = kz_media_util:prompt_language(AccountId, language(Call))
                    }.

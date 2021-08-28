@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc Wrapper around #kz_node{} record
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -278,7 +278,10 @@ print_proxy({<<"Listeners">>, Data}) ->
             print_address_info(Address, Info, Fmt),
             _ = lists:foreach(fun(A) -> print_address(A, Fmt) end, Addresses),
             'ok'
-    end.
+    end;
+print_proxy({<<"proxy-default-uri">>, Data}) ->
+    format(?HEADER_COL ++ ": ~s~n", [<<"Default Proxy">>, Data]);
+print_proxy(_Ignore) -> ok.
 
 -spec print_address_format(pos_integer()) -> kz_term:ne_binary().
 print_address_format(S) ->

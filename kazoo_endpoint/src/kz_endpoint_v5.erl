@@ -81,7 +81,7 @@ get(<<EndpointId/binary>>, Call) ->
     get(EndpointId, kapps_call:account_db(Call));
 get(Endpoint, Call) ->
     lager:info("checking endpoint ~s", [kz_doc:id(Endpoint)]),
-    check_endpoint_type(Endpoint, kz_doc:id(Endpoint), kapps_call:account_db(Call)).
+    check_endpoint_type(Endpoint, kz_doc:id(Endpoint), kapps_call:account_db(Call), []).
 
 -spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call(), kz_term:proplist()) -> std_return().
 get(EndpointId, ?MATCH_ACCOUNT_RAW(AccountId), Options) ->
@@ -108,21 +108,38 @@ maybe_fetch_endpoint(EndpointId, AccountDb) ->
           {'error', any()}.
 maybe_fetch_endpoint(EndpointId, AccountDb, Options) ->
     AltJObj = props:get_value('endpoint', Options),
+    case kz_json:is_valid_json_object(AltJObj)
+        andalso kz_doc:id(AltJObj)
+    of
+        'false' -> fetch_endpoint(EndpointId, AccountDb, Options);
+        'undefined' -> fetch_endpoint(EndpointId, AccountDb, Options);
+        DocId -> fetch_endpoint(DocId, AccountDb, Options)
+    end.
+
+-spec fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+fetch_endpoint(EndpointId, AccountDb, Options) ->
+    AltJObj = props:get_value('endpoint', Options),
     case kz_datamgr:open_cache_doc(AccountDb, EndpointId) of
-        {'ok', JObj} ->
+        {'ok', JObj} when AltJObj =:= 'undefined' ->
             lager:debug("fetched endpoint ~s: ~s", [EndpointId, kz_doc:revision(JObj)]),
-            check_endpoint_type(JObj, EndpointId, AccountDb);
+            check_endpoint_type(JObj, EndpointId, AccountDb, Options);
+        {'ok', JObj} ->
+            lager:debug("merging with endpoint ~s: ~s", [EndpointId, kz_doc:revision(JObj)]),
+            Endpoint = kz_json:merge(JObj, AltJObj),
+            check_endpoint_type(Endpoint, kz_doc:id(Endpoint), AccountDb, Options);
         {'error', _R}=E when AltJObj =:= 'undefined' ->
             lager:info("unable to fetch endpoint ~s: ~p", [EndpointId, _R]),
             E;
         {'error', _} ->
-            check_endpoint_type(AltJObj, EndpointId, AccountDb)
+            check_endpoint_type(AltJObj, EndpointId, AccountDb, Options)
     end.
 
--spec check_endpoint_type(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+-spec check_endpoint_type(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
-check_endpoint_type(JObj, EndpointId, AccountDb) ->
+check_endpoint_type(JObj, EndpointId, AccountDb, Options) ->
     EndpointTypes = [<<"device">>, <<"user">>, <<"account">>],
     EndpointType = endpoint_type_as(kz_doc:type(JObj)),
     case lists:member(EndpointType, EndpointTypes) of
@@ -130,7 +147,7 @@ check_endpoint_type(JObj, EndpointId, AccountDb) ->
             lager:info("endpoint module does not manage document type ~s", [EndpointType]),
             {'error', 'not_device_nor_user'};
         'true' ->
-            check_endpoint_enabled(JObj, EndpointId, AccountDb, EndpointType)
+            check_endpoint_enabled(JObj, EndpointId, AccountDb, EndpointType, Options)
     end.
 
 -spec endpoint_type_as(kz_term:api_binary()) -> kz_term:api_binary().
@@ -138,10 +155,10 @@ endpoint_type_as(<<"click2call">>) -> <<"device">>;
 endpoint_type_as(<<"conference">>) -> <<"device">>;
 endpoint_type_as(Type) -> Type.
 
--spec check_endpoint_enabled(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+-spec check_endpoint_enabled(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
-check_endpoint_enabled(JObj, EndpointId, AccountDb, EndpointType) ->
+check_endpoint_enabled(JObj, EndpointId, AccountDb, EndpointType, Options) ->
     case {kz_doc:is_soft_deleted(JObj)
           orelse kz_doc:is_deleted(JObj)
          ,is_endpoint_enabled(JObj, EndpointType)
@@ -154,7 +171,7 @@ check_endpoint_enabled(JObj, EndpointId, AccountDb, EndpointType) ->
             lager:info("not handling disabled endpoint ~s", [EndpointId]),
             {'error', 'endpoint_disabled'};
         {'false', 'true'} ->
-            cache_store_endpoint(JObj, EndpointId, AccountDb, EndpointType)
+            cache_store_endpoint(JObj, EndpointId, AccountDb, EndpointType, Options)
     end.
 
 -spec is_endpoint_enabled(kz_json:object(), kz_term:ne_binary()) -> boolean().
@@ -167,46 +184,75 @@ is_endpoint_enabled(JObj, <<"device">>) ->
 is_endpoint_enabled(JObj, _) ->
     kz_json:is_true(<<"enabled">>, JObj, 'true').
 
--spec cache_store_endpoint(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+-spec cache_store_endpoint(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object()}.
-cache_store_endpoint(JObj, EndpointId, AccountDb, EndpointType) ->
+cache_store_endpoint(JObj, EndpointId, AccountDb, EndpointType, Options) ->
     Values = [{<<"Endpoint-ID">>, EndpointId}
              ,{<<"Endpoint-Type">>, EndpointType}
+             ,{<<"Endpoint-Build-Options">>, cache_build_options(Options)}
              ],
     Endpoint = kz_json:set_values(Values, merge_attributes(JObj, EndpointType)),
-    CacheProps = [{'origin', cache_origin(JObj, EndpointId, AccountDb)}],
+    CacheProps = [{'origin', cache_origin(JObj, EndpointId, AccountDb, Options)}],
     catch kz_cache:store_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}, Endpoint, CacheProps),
     lager:debug("cached endpoint: ~s _rev: ~s", [EndpointId, kz_doc:revision(Endpoint)]),
     {'ok', Endpoint}.
 
--spec cache_origin(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) -> list().
-cache_origin(JObj, EndpointId, AccountDb) ->
+cache_build_options(Options) ->
+    case lists:filtermap(fun cache_option/1, Options) of
+        [] -> 'null';
+        Filtered -> kz_json:from_list(Filtered)
+    end.
+
+-spec cache_option(tuple()) -> {'true', {kz_json:key(), kz_json:object()}} | 'false'.
+cache_option({endpoint = Key, Endpoint}) -> {'true', {kz_term:to_binary(Key), Endpoint}};
+cache_option({claims = Key, Claims}) -> {'true', {kz_term:to_binary(Key), Claims}};
+cache_option(_) -> 'false'.
+
+-spec cache_origin(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> list().
+cache_origin(JObj, EndpointId, AccountDb, Options) ->
     Routines = [fun(P) -> [{'db', AccountDb, EndpointId} | P] end
                ,fun(P) ->
                         [{'db', AccountDb, kzs_util:format_account_id(AccountDb)}
                         | P
                         ]
                 end
-               ,fun(P) -> maybe_cached_owner_id(P, JObj, AccountDb) end
-               ,fun(P) -> maybe_cached_hotdesk_ids(P, JObj, AccountDb) end
+               ,fun(P) -> maybe_owner_id_cache_origin(P, JObj, AccountDb) end
+               ,fun(P) -> maybe_hotdesk_ids_cache_origin(P, JObj, AccountDb) end
+               ,fun(P) -> maybe_options_cache_origin(P, JObj, AccountDb, Options) end
                ],
     lists:foldl(fun(F, P) -> F(P) end, [], Routines).
 
--spec maybe_cached_owner_id(kz_term:proplist(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
-maybe_cached_owner_id(Props, JObj, AccountDb) ->
+-spec maybe_owner_id_cache_origin(kz_term:proplist(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
+maybe_owner_id_cache_origin(Props, JObj, AccountDb) ->
     case kz_json:get_ne_binary_value(<<"owner_id">>, JObj) of
         'undefined' -> Props;
         OwnerId -> [{'db', AccountDb, OwnerId}|Props]
     end.
 
--spec maybe_cached_hotdesk_ids(kz_term:proplist(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
-maybe_cached_hotdesk_ids(Props, JObj, AccountDb) ->
+-spec maybe_hotdesk_ids_cache_origin(kz_term:proplist(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
+maybe_hotdesk_ids_cache_origin(Props, JObj, AccountDb) ->
     case kz_json:get_keys([<<"hotdesk">>, <<"users">>], JObj) of
         [] -> Props;
-        OwnerIds ->
-            lists:foldl(fun(Id, P) ->
-                                [{'db', AccountDb, Id}|P]
-                        end, Props, OwnerIds)
+        OwnerIds -> hotdesk_ids_cache_origin(Props, AccountDb, OwnerIds)
+    end.
+
+-spec hotdesk_ids_cache_origin(kz_term:proplist(), kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_term:proplist().
+hotdesk_ids_cache_origin(Props, AccountDb, OwnerIds) ->
+    lists:foldl(hotdesk_ids_cache_origin_fun(AccountDb), Props, OwnerIds).
+
+-spec hotdesk_ids_cache_origin_fun(kz_term:ne_binary()) -> fun((kz_term:ne_binary(), kz_term:proplist()) -> kz_term:proplist()).
+hotdesk_ids_cache_origin_fun(AccountDb) ->
+    fun(Id, P) -> [{'db', AccountDb, Id}|P] end.
+
+-spec maybe_options_cache_origin(kz_term:proplist(), kz_json:object(), kz_term:ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+maybe_options_cache_origin(Props, _JObj, AccountDb, Options) ->
+    AltJObj = props:get_value('endpoint', Options),
+    case kz_json:is_valid_json_object(AltJObj)
+        andalso kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, AltJObj)
+    of
+        'false' -> Props;
+        'undefined' -> Props;
+        EndpointMetaId -> [{'db', AccountDb, EndpointMetaId}|Props]
     end.
 
 -spec maybe_format_endpoint(kz_json:object(), kz_term:api_object()) -> kz_json:object().
@@ -602,8 +648,8 @@ get_users(AccountDb, OwnerIds) ->
     _ = kz_datamgr:open_cache_docs(AccountDb, OwnerIds),
     F = fun (UserId, UsersAcc) ->
                 case kzd_users:fetch(AccountDb, UserId) of
-                    {ok, UserJObj} -> [UserJObj|UsersAcc];
-                    {error, _R} ->
+                    {'ok', UserJObj} -> [UserJObj|UsersAcc];
+                    {'error', _R} ->
                         lager:warning("failed to load endpoint owner ~s: ~p", [UserId, _R]),
                         UsersAcc
                 end
@@ -963,8 +1009,8 @@ maybe_start_metaflow(Call, Endpoint) ->
           kz_json:objects().
 try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call) when is_function(Routine, 3) ->
     try Routine(Endpoint, Properties, Call) of
-                                                % {'error', 'call_forward_not_appropriate'} -> Endpoints;
-                                                % {'error', 'call_forward_substitute'} -> Endpoints;
+        %% {'error', 'call_forward_not_appropriate'} -> Endpoints;
+        %% {'error', 'call_forward_substitute'} -> Endpoints;
         {'error', _R} ->
             lager:warning("failed to create endpoint: ~p", [_R]),
             Endpoints;
@@ -1061,7 +1107,7 @@ create_endpoint(Endpoint, Properties, #clid{}=Clid, Call) ->
                     ,{<<"Endpoint-Timeout">>, get_timeout(Properties)}
                     ,{<<"Endpoint-Delay">>, get_delay(Properties)}
                     ,{<<"Account-ID">>, kapps_call:account_id(Call)}
-                    ,{<<"Endpoint-ID">>, kz_json:get_ne_binary_value(<<"Endpoint-ID">>, Endpoint)}
+                    ,{<<"Endpoint-ID">>, kzd_endpoint:id(Endpoint)}
                     ,{<<"Endpoint-URI">>, endpoint_uri(Endpoint, Call)}
                     ,{<<"Presence-ID">>, kz_attributes:presence_id(Endpoint, Call)}
                     ,{<<"Custom-Channel-Vars">>, generate_ccvs(Endpoint, Call)}
@@ -1315,7 +1361,7 @@ maybe_set_call_forward({_Endpoint, _Call, CallFwd, _CCVs} = Acc) ->
     maybe_set_call_forward(Acc, Number).
 
 -spec maybe_set_call_forward(ccv_acc(), kz_term:api_ne_binary()) -> ccv_acc().
-maybe_set_call_forward(Acc, undefined) -> Acc;
+maybe_set_call_forward(Acc, 'undefined') -> Acc;
 maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
     LoopBackUri = list_to_binary(["sip:"
                                  ,Number
