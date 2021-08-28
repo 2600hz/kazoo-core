@@ -48,7 +48,7 @@ maybe_from_options(EndpointId, AccountId, Options) ->
         'false' -> {'error', 'not_found'};
         'true' ->
             case kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, Endpoint) of
-                undefined ->
+                'undefined' ->
                     profile(EndpointId, AccountId, Options, kz_doc:type(Endpoint));
                 _NewId ->
                     lager:info("found endpoint ~s in options for ~s", [_NewId, EndpointId]),

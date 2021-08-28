@@ -163,9 +163,9 @@ get_device_module(Endpoint) ->
 -spec ensure_device_module(kz_term:ne_binary()) -> atom().
 ensure_device_module(Name) ->
     Module = kz_term:to_atom(<<"kz_directory_device_", Name/binary>>, 'true'),
-    case kz_module:has_behaviour(Module, kz_directory_device_spec) of
-        true -> Module;
-        false -> undefined
+    case kz_module:has_behaviour(Module, 'kz_directory_device_spec') of
+        'true' -> Module;
+        'false' -> 'undefined'
     end.
 
 -spec get_endpoint_type(kz_json:object()) -> kz_term:ne_binary().
@@ -428,14 +428,14 @@ maybe_add_aor(Username, Endpoint, Headers) ->
     kz_json:set_value(<<"X-KAZOO-AOR">>, AOR, Headers).
 
 -spec maybe_add_invite_format(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
-maybe_add_invite_format(undefined, _Endpoint, Headers) ->
+maybe_add_invite_format('undefined', _Endpoint, Headers) ->
     Headers;
 maybe_add_invite_format(Module, Endpoint, Headers) ->
     Format = Module:invite_format(Endpoint),
     kz_json:set_value(<<"X-KAZOO-INVITE-FORMAT">>, Format, Headers).
 
 -spec maybe_add_specific_headers(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
-maybe_add_specific_headers(undefined, _Endpoint, Headers) ->
+maybe_add_specific_headers('undefined', _Endpoint, Headers) ->
     Headers;
 maybe_add_specific_headers(Module, Endpoint, Headers) ->
     Module:sip_headers(Endpoint, Headers).
@@ -446,7 +446,7 @@ dnd(Endpoint) ->
 
 -spec relay_id(kz_term:ne_binary(), kz_term:proplist(), kz_json:object()) -> kz_json:object().
 relay_id(EndpointId, Options, CCVs) ->
-    case props:get_value(claims, Options) of
+    case props:get_value('claims', Options) of
         'undefined' -> relay_id_from_endpoint_info(EndpointId, Options, CCVs);
         Claims -> relay_id_from_claims(Claims, CCVs)
     end.
@@ -461,8 +461,8 @@ relay_id_from_endpoint_meta_id(EndpointId, EndpointInfo, CCVs) ->
     case kz_json:is_valid_json_object(EndpointInfo)
         andalso kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, EndpointInfo)
     of
-        false -> CCVs;
-        undefined -> CCVs;
+        'false' -> CCVs;
+        'undefined' -> CCVs;
         _EndpointMetaId -> kz_json:set_value(<<"Relay-ID">>, EndpointId, CCVs)
     end.
 
@@ -471,4 +471,4 @@ relay_id_from_claims(Claims, CCVs) ->
 
 -spec id_claim(kz_json:object()) -> kz_json:json_term().
 id_claim(Claims) ->
-    kz_json:get_ne_binary_value(<<"id">>, Claims, null).
+    kz_json:get_ne_binary_value(<<"id">>, Claims, 'null').

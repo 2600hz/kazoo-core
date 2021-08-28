@@ -111,8 +111,8 @@ maybe_fetch_endpoint(EndpointId, AccountDb, Options) ->
     case kz_json:is_valid_json_object(AltJObj)
         andalso kz_doc:id(AltJObj)
     of
-        false -> fetch_endpoint(EndpointId, AccountDb, Options);
-        undefined -> fetch_endpoint(EndpointId, AccountDb, Options);
+        'false' -> fetch_endpoint(EndpointId, AccountDb, Options);
+        'undefined' -> fetch_endpoint(EndpointId, AccountDb, Options);
         DocId -> fetch_endpoint(DocId, AccountDb, Options)
     end.
 
@@ -199,14 +199,14 @@ cache_store_endpoint(JObj, EndpointId, AccountDb, EndpointType, Options) ->
 
 cache_build_options(Options) ->
     case lists:filtermap(fun cache_option/1, Options) of
-        [] -> null;
+        [] -> 'null';
         Filtered -> kz_json:from_list(Filtered)
     end.
 
--spec cache_option(tuple()) -> {true, {kz_json:key(), kz_json:object()}} | false.
-cache_option({endpoint = Key, Endpoint}) -> {true, {kz_term:to_binary(Key), Endpoint}};
-cache_option({claims = Key, Claims}) -> {true, {kz_term:to_binary(Key), Claims}};
-cache_option(_) -> false.
+-spec cache_option(tuple()) -> {'true', {kz_json:key(), kz_json:object()}} | 'false'.
+cache_option({endpoint = Key, Endpoint}) -> {'true', {kz_term:to_binary(Key), Endpoint}};
+cache_option({claims = Key, Claims}) -> {'true', {kz_term:to_binary(Key), Claims}};
+cache_option(_) -> 'false'.
 
 -spec cache_origin(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> list().
 cache_origin(JObj, EndpointId, AccountDb, Options) ->
@@ -250,8 +250,8 @@ maybe_options_cache_origin(Props, _JObj, AccountDb, Options) ->
     case kz_json:is_valid_json_object(AltJObj)
         andalso kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, AltJObj)
     of
-        false -> Props;
-        undefined -> Props;
+        'false' -> Props;
+        'undefined' -> Props;
         EndpointMetaId -> [{'db', AccountDb, EndpointMetaId}|Props]
     end.
 
@@ -665,8 +665,8 @@ get_users(AccountDb, OwnerIds) ->
     _ = kz_datamgr:open_cache_docs(AccountDb, OwnerIds),
     F = fun (UserId, UsersAcc) ->
                 case kzd_users:fetch(AccountDb, UserId) of
-                    {ok, UserJObj} -> [UserJObj|UsersAcc];
-                    {error, _R} ->
+                    {'ok', UserJObj} -> [UserJObj|UsersAcc];
+                    {'error', _R} ->
                         lager:warning("failed to load endpoint owner ~s: ~p", [UserId, _R]),
                         UsersAcc
                 end
@@ -1026,8 +1026,8 @@ maybe_start_metaflow(Call, Endpoint) ->
           kz_json:objects().
 try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call) when is_function(Routine, 3) ->
     try Routine(Endpoint, Properties, Call) of
-                                                % {'error', 'call_forward_not_appropriate'} -> Endpoints;
-                                                % {'error', 'call_forward_substitute'} -> Endpoints;
+        %% {'error', 'call_forward_not_appropriate'} -> Endpoints;
+        %% {'error', 'call_forward_substitute'} -> Endpoints;
         {'error', _R} ->
             lager:warning("failed to create endpoint: ~p", [_R]),
             Endpoints;
@@ -1378,7 +1378,7 @@ maybe_set_call_forward({_Endpoint, _Call, CallFwd, _CCVs} = Acc) ->
     maybe_set_call_forward(Acc, Number).
 
 -spec maybe_set_call_forward(ccv_acc(), kz_term:api_ne_binary()) -> ccv_acc().
-maybe_set_call_forward(Acc, undefined) -> Acc;
+maybe_set_call_forward(Acc, 'undefined') -> Acc;
 maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
     LoopBackUri = list_to_binary(["sip:"
                                  ,Number

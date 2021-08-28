@@ -33,15 +33,15 @@ profile(EndpointId, AccountId, Endpoint, Options) ->
     case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
         <<"user">> ->
             case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
-                {ok, Profile} -> {ok, Profile};
-                {error, not_found} -> build_and_cache(EndpointId, AccountId, Endpoint, Options)
+                {'ok', Profile} -> {'ok', Profile};
+                {'error', 'not_found'} -> build_and_cache(EndpointId, AccountId, Endpoint, Options)
             end;
         _ -> {'error', 'not_user'}
     end.
 
 -spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
 build_and_cache(EndpointId, AccountId, Endpoint, Options) ->
-    {ok, Profile} = build(EndpointId, AccountId, Endpoint, Options),
+    {'ok', Profile} = build(EndpointId, AccountId, Endpoint, Options),
     cache(EndpointId, AccountId, Profile).
 
 -spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> {'ok', kz_json:object()}.
@@ -51,24 +51,24 @@ cache(EndpointId, AccountId, Profile) ->
                  ,{'callback', fun cache_callback/3}
                  ],
     kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, Profile, CacheProps),
-    {ok, Profile}.
+    {'ok', Profile}.
 
--spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> ok.
+-spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> 'ok'.
 cache_callback({EndpointId, AccountId}, CachedValue, 'erase') ->
     lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
     timer:sleep(kz_term:to_integer(?MILLISECONDS_IN_SECOND * 0.15)),
     case kz_endpoint:get(EndpointId, AccountId) of
         {'ok', Endpoint} ->
-            {ok, NewProfile} = build(EndpointId, AccountId, Endpoint, []),
+            {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, []),
             maybe_notify(EndpointId, AccountId, kz_json:are_equal(NewProfile, CachedValue)),
             cache(EndpointId, AccountId, NewProfile);
         _Error -> notify(EndpointId, AccountId)
     end;
-cache_callback(_, _, _) -> ok.
+cache_callback(_, _, _) -> 'ok'.
 
-maybe_notify(EndpointId, AccountId, true) ->
+maybe_notify(EndpointId, AccountId, 'true') ->
     lager:debug("directory cache erased key hasn't changed (~s / ~s)", [EndpointId, AccountId]);
-maybe_notify(EndpointId, AccountId, false) -> notify(EndpointId, AccountId).
+maybe_notify(EndpointId, AccountId, 'false') -> notify(EndpointId, AccountId).
 
 notify(EndpointId, AccountId) ->
     kz_directory_cache:clear(<<EndpointId/binary, "@", AccountId/binary>>),
@@ -190,7 +190,7 @@ relay_id(EndpointId, Options, CCVs) ->
 
 relay_id_from_endpoint_info(EndpointId, Options, CCVs) ->
     case props:get_value('endpoint', Options) of
-        undefined -> CCVs;
+        'undefined' -> CCVs;
         EndpointInfo -> relay_id_from_endpoint_meta_id(EndpointId, EndpointInfo, CCVs)
     end.
 
@@ -198,8 +198,8 @@ relay_id_from_endpoint_meta_id(EndpointId, EndpointInfo, CCVs) ->
     case kz_json:is_valid_json_object(EndpointInfo)
         andalso kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, EndpointInfo)
     of
-        false -> CCVs;
-        undefined -> CCVs;
+        'false' -> CCVs;
+        'undefined' -> CCVs;
         _EndpointMetaId -> kz_json:set_value(<<"Relay-ID">>, EndpointId, CCVs)
     end.
 
@@ -208,4 +208,4 @@ relay_id_from_claims(Claims, CCVs) ->
 
 -spec id_claim(kz_json:object()) -> kz_json:json_term().
 id_claim(Claims) ->
-    kz_json:get_ne_binary_value(<<"id">>, Claims, null).
+    kz_json:get_ne_binary_value(<<"id">>, Claims, 'null').

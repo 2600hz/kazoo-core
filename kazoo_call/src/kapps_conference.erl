@@ -380,10 +380,10 @@ update_fold(Fun, Conference) when is_function(Fun, 1) ->
     Fun(Conference).
 
 -spec id(conference()) -> kz_term:api_ne_binary().
-id(#kapps_conference{} = Conference) -> id(Conference, undefined).
+id(#kapps_conference{} = Conference) -> id(Conference, 'undefined').
 
 -spec id(conference(), Default) -> kz_term:ne_binary() | Default.
-id(#kapps_conference{id=undefined}, Default) -> Default;
+id(#kapps_conference{id='undefined'}, Default) -> Default;
 id(#kapps_conference{id=Id}, _Default) -> Id.
 
 -spec set_id(kz_term:api_ne_binary(), conference()) -> conference().
@@ -417,7 +417,7 @@ account_id(#kapps_conference{account_id=AccountId}) ->
 -spec controls(conference(), kz_term:ne_binary()) -> kz_json:objects().
 controls(#kapps_conference{controls=Controls}=Conference, ControlsName)
   when Controls =/= 'undefined' ->
-    Default = controls(Conference#kapps_conference{controls=undefined}, ControlsName),
+    Default = controls(Conference#kapps_conference{controls='undefined'}, ControlsName),
     kz_json:get_list_value(ControlsName, Controls, Default);
 controls(#kapps_conference{account_id='undefined'}, ?DEFAULT_CONTROLS_NAME) ->
     kapps_config:get(?CONFERENCE_CONFIG_CAT, [<<"controls">>, ?DEFAULT_CONTROLS_NAME], ?DEFAULT_CONTROLS);
@@ -428,7 +428,7 @@ controls(#kapps_conference{account_id=AccountId}=Conference, ?DEFAULT_CONTROLS_N
     end;
 controls(#kapps_conference{account_id='undefined'}, ?PAGE_CONTROLS_NAME) ->
     case kapps_config:get(?CONFERENCE_CONFIG_CAT, [<<"controls">>, ?PAGE_CONTROLS_NAME]) of
-        undefined -> [];
+        'undefined' -> [];
         Controls -> Controls
     end;
 controls(#kapps_conference{account_id=AccountId}=Conference, ?PAGE_CONTROLS_NAME) ->
@@ -445,12 +445,12 @@ controls(#kapps_conference{account_id=AccountId}=Conference, ?VIDEO_CONTROLS_NAM
     end;
 controls(#kapps_conference{account_id='undefined'}, <<"video", _/binary>> = ControlsName) ->
     case kapps_config:get(?CONFERENCE_CONFIG_CAT, [<<"controls">>, ControlsName]) of
-        undefined -> ?VIDEO_CONTROLS;
+        'undefined' -> ?VIDEO_CONTROLS;
         Controls -> Controls
     end;
 controls(#kapps_conference{account_id='undefined'}, ControlsName) ->
     case kapps_config:get(?CONFERENCE_CONFIG_CAT, [<<"controls">>, ControlsName]) of
-        undefined -> ?DEFAULT_CONTROLS;
+        'undefined' -> ?DEFAULT_CONTROLS;
         Controls -> Controls
     end;
 controls(#kapps_conference{account_id=AccountId}=Conference, ControlsName) ->
@@ -605,10 +605,10 @@ build_system_page_profile(Conference) ->
     end.
 
 -spec raw_profile(conference()) -> kz_term:api_object().
-raw_profile(#kapps_conference{}=Conference) -> raw_profile(Conference, undefined).
+raw_profile(#kapps_conference{}=Conference) -> raw_profile(Conference, 'undefined').
 
 -spec raw_profile(conference(), Default) -> kz_term:object() | Default.
-raw_profile(#kapps_conference{profile=undefined}, Default) -> Default;
+raw_profile(#kapps_conference{profile='undefined'}, Default) -> Default;
 raw_profile(#kapps_conference{profile=Profile}, _Default) -> Profile.
 
 -spec set_profile(kz_term:api_object(), conference()) -> conference().
@@ -880,10 +880,10 @@ set_play_welcome(ShouldPlay, Conference) when is_boolean(ShouldPlay) ->
     Conference#kapps_conference{play_welcome=ShouldPlay}.
 
 -spec conference_doc(conference()) -> kz_term:api_object().
-conference_doc(#kapps_conference{}=Conference) -> conference_doc(Conference, undefined).
+conference_doc(#kapps_conference{}=Conference) -> conference_doc(Conference, 'undefined').
 
 -spec conference_doc(conference(), Default) -> kz_term:object() | Default.
-conference_doc(#kapps_conference{conference_doc=undefined}, Default) -> Default;
+conference_doc(#kapps_conference{conference_doc='undefined'}, Default) -> Default;
 conference_doc(#kapps_conference{conference_doc=JObj}, _Default) -> JObj.
 
 -spec set_conference_doc(kz_json:object(), conference()) -> conference().
@@ -1026,7 +1026,7 @@ get_tone(Thing) ->
     end.
 
 -spec extra_settings(conference()) -> kz_term:api_object().
-extra_settings(#kapps_conference{conference_doc=undefined}) -> undefined;
+extra_settings(#kapps_conference{conference_doc='undefined'}) -> 'undefined';
 extra_settings(#kapps_conference{conference_doc=Doc}) ->
     kz_json:get_ne_json_value(<<"extra-settings">>, Doc).
 
