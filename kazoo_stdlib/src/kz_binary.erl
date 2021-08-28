@@ -15,6 +15,7 @@
 
 -export([rand_hex/1
         ,hexencode/1
+        ,rand_uuid/0
         ,from_hex/1
         ,from_hex_string/1
         ,to_utf8/1
@@ -232,6 +233,11 @@ rand_hex(Size) when not is_integer(Size) ->
 rand_hex(Size) when is_integer(Size)
                     andalso Size > 0 ->
     kz_term:to_hex_binary(crypto:strong_rand_bytes(Size)).
+
+-spec rand_uuid() -> binary().
+rand_uuid() ->
+    <<S1:8/binary ,S2:4/binary, S3:4/binary, S4:4/binary, S5:12/binary>> = rand_hex(16),
+    list_to_binary([S1, $-, S2, $-, S3, $-, S4, $-, S5]).
 
 -spec ucfirst(kz_term:ne_binary()) -> kz_term:ne_binary().
 ucfirst(<<F:8, Bin/binary>>) -> <<(kz_term:to_upper_char(F)):8, Bin/binary>>.
