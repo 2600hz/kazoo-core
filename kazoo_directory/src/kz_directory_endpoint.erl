@@ -35,7 +35,7 @@ profile(EndpointId, AccountId, Options) ->
     end.
 
 maybe_from_endpoint(EndpointId, AccountId, Options) ->
-    case kz_endpoint:get(EndpointId, AccountId) of
+    case kz_endpoint:get(EndpointId, AccountId, Options) of
         {'ok', Endpoint} ->
             profile(EndpointId, AccountId, Options, kzd_endpoint:type(Endpoint));
         _Error ->

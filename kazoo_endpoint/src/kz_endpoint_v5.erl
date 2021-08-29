@@ -87,10 +87,14 @@ get(Endpoint, Call) ->
 get(EndpointId, ?MATCH_ACCOUNT_RAW(AccountId), Options) ->
     get(EndpointId, kzs_util:format_account_db(AccountId), Options);
 get(EndpointId, AccountDb, Options) when is_binary(AccountDb) ->
+    AltJObj = props:get_value('endpoint', Options),
     case kz_cache:peek_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
-        {'ok', _Endpoint}=Ok ->
+        {'ok', _Endpoint}=Ok when AltJObj =:= 'undefined' ->
             lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
             Ok;
+        {'ok', Endpoint} ->
+            lager:debug("loading cached endpoint ~s: ~s and merging", [EndpointId, kz_doc:revision(Endpoint)]),
+            {ok, kz_json:merge(Endpoint, AltJObj)};
         {'error', 'not_found'} ->
             maybe_fetch_endpoint(EndpointId, AccountDb, Options)
     end;
