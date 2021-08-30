@@ -31,6 +31,7 @@
 -export([get_string_value/2, get_string_value/3
         ,get_list_value/2, get_list_value/3
         ,get_ne_binaries/2, get_ne_binaries/3
+        ,get_ne_binary_or_binaries/2, get_ne_binary_or_binaries/3
         ]).
 -export([get_json_value/2, get_json_value/3
         ,get_ne_json_value/2, get_ne_json_value/3
@@ -1312,6 +1313,23 @@ get_ne_binaries(Key, JObj, Default) ->
                 [] -> Default;
                 Filtered -> Filtered
             end;
+        _Else -> Default
+    end.
+
+-spec get_ne_binary_or_binaries(get_key(), object() | objects()) -> kz_term:api_ne_binary_or_binaries().
+get_ne_binary_or_binaries(Key, JObj) ->
+    get_ne_binary_or_binaries(Key, JObj, 'undefined').
+
+-spec get_ne_binary_or_binaries(get_key(), object() | objects(), Default) -> Default | kz_term:ne_binary_or_binaries().
+get_ne_binary_or_binaries(Key, JObj, Default) ->
+    case get_value(Key, JObj) of
+        'undefined' -> Default;
+        List when is_list(List) ->
+            case lists:filter(fun kz_term:is_ne_binary/1, List) of
+                [] -> Default;
+                Filtered -> Filtered
+            end;
+        Value when is_binary(Value) -> Value;
         _Else -> Default
     end.
 
