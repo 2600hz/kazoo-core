@@ -25,6 +25,9 @@
             ],
             "type": "string"
         },
+        "Token-ID": {
+            "type": "string"
+        },
         "Username": {
             "type": "string"
         }
