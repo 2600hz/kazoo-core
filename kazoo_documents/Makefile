@@ -45,8 +45,9 @@ apply-diff: $(APPLY_FILES)
 clean-patch:
 	$(if $(wildcard src/*.patch), rm src/*.patch)
 	$(if $(wildcard src/*.orig), rm src/*.orig)
+	$(if $(wildcard src/*.orig), rm src/*.rej)
 
 patch-%:
 	@echo "patching $(basename $*)"
-	@git diff $(BASE_BRANCH) -- $(ROOT)/$* > $(ROOT)/$*.patch
-	@patch -p1 $(ROOT)/$(basename $*) $(ROOT)/$*.patch
+	@git diff $(BASE_BRANCH) -- $(ROOT)/core/$* > $(ROOT)/core/$*.patch
+	@patch -p1 $(ROOT)/core/$(basename $*) $(ROOT)/core/$*.patch

@@ -271,15 +271,15 @@ notifications_inbound_email(Doc, Default) ->
 set_notifications_inbound_email(Doc, NotificationsInboundEmail) ->
     kz_json:set_value([<<"notifications">>, <<"inbound">>, <<"email">>], NotificationsInboundEmail, Doc).
 
--spec notifications_inbound_email_send_to(doc()) -> any().
+-spec notifications_inbound_email_send_to(doc()) -> kz_term:api_ne_binary_or_binaries().
 notifications_inbound_email_send_to(Doc) ->
     notifications_inbound_email_send_to(Doc, 'undefined').
 
--spec notifications_inbound_email_send_to(doc(), Default) -> any() | Default.
+-spec notifications_inbound_email_send_to(doc(), Default) -> kz_term:ne_binary_or_binaries() | Default.
 notifications_inbound_email_send_to(Doc, Default) ->
-    kz_json:get_value([<<"notifications">>, <<"inbound">>, <<"email">>, <<"send_to">>], Doc, Default).
+    kz_json:get_ne_binary_or_binaries([<<"notifications">>, <<"inbound">>, <<"email">>, <<"send_to">>], Doc, Default).
 
--spec set_notifications_inbound_email_send_to(doc(), any()) -> doc().
+-spec set_notifications_inbound_email_send_to(doc(), kz_term:ne_binary_or_binaries()) -> doc().
 set_notifications_inbound_email_send_to(Doc, NotificationsInboundEmailSendTo) ->
     kz_json:set_value([<<"notifications">>, <<"inbound">>, <<"email">>, <<"send_to">>], NotificationsInboundEmailSendTo, Doc).
 
@@ -295,15 +295,15 @@ notifications_inbound_sms(Doc, Default) ->
 set_notifications_inbound_sms(Doc, NotificationsInboundSms) ->
     kz_json:set_value([<<"notifications">>, <<"inbound">>, <<"sms">>], NotificationsInboundSms, Doc).
 
--spec notifications_inbound_sms_send_to(doc()) -> any().
+-spec notifications_inbound_sms_send_to(doc()) -> kz_term:api_ne_binary_or_binaries().
 notifications_inbound_sms_send_to(Doc) ->
     notifications_inbound_sms_send_to(Doc, 'undefined').
 
--spec notifications_inbound_sms_send_to(doc(), Default) -> any() | Default.
+-spec notifications_inbound_sms_send_to(doc(), Default) -> kz_term:ne_binary_or_binaries() | Default.
 notifications_inbound_sms_send_to(Doc, Default) ->
-    kz_json:get_value([<<"notifications">>, <<"inbound">>, <<"sms">>, <<"send_to">>], Doc, Default).
+    kz_json:get_ne_binary_or_binaries([<<"notifications">>, <<"inbound">>, <<"sms">>, <<"send_to">>], Doc, Default).
 
--spec set_notifications_inbound_sms_send_to(doc(), any()) -> doc().
+-spec set_notifications_inbound_sms_send_to(doc(), kz_term:ne_binary_or_binaries()) -> doc().
 set_notifications_inbound_sms_send_to(Doc, NotificationsInboundSmsSendTo) ->
     kz_json:set_value([<<"notifications">>, <<"inbound">>, <<"sms">>, <<"send_to">>], NotificationsInboundSmsSendTo, Doc).
 
@@ -379,15 +379,15 @@ notifications_outbound_email(Doc, Default) ->
 set_notifications_outbound_email(Doc, NotificationsOutboundEmail) ->
     kz_json:set_value([<<"notifications">>, <<"outbound">>, <<"email">>], NotificationsOutboundEmail, Doc).
 
--spec notifications_outbound_email_send_to(doc()) -> any().
+-spec notifications_outbound_email_send_to(doc()) -> kz_term:api_ne_binary_or_binaries().
 notifications_outbound_email_send_to(Doc) ->
     notifications_outbound_email_send_to(Doc, 'undefined').
 
--spec notifications_outbound_email_send_to(doc(), Default) -> any() | Default.
+-spec notifications_outbound_email_send_to(doc(), Default) -> kz_term:ne_binary_or_binaries() | Default.
 notifications_outbound_email_send_to(Doc, Default) ->
-    kz_json:get_value([<<"notifications">>, <<"outbound">>, <<"email">>, <<"send_to">>], Doc, Default).
+    kz_json:get_ne_binary_or_binaries([<<"notifications">>, <<"outbound">>, <<"email">>, <<"send_to">>], Doc, Default).
 
--spec set_notifications_outbound_email_send_to(doc(), any()) -> doc().
+-spec set_notifications_outbound_email_send_to(doc(), kz_term:ne_binary_or_binaries()) -> doc().
 set_notifications_outbound_email_send_to(Doc, NotificationsOutboundEmailSendTo) ->
     kz_json:set_value([<<"notifications">>, <<"outbound">>, <<"email">>, <<"send_to">>], NotificationsOutboundEmailSendTo, Doc).
 
@@ -403,15 +403,15 @@ notifications_outbound_sms(Doc, Default) ->
 set_notifications_outbound_sms(Doc, NotificationsOutboundSms) ->
     kz_json:set_value([<<"notifications">>, <<"outbound">>, <<"sms">>], NotificationsOutboundSms, Doc).
 
--spec notifications_outbound_sms_send_to(doc()) -> any().
+-spec notifications_outbound_sms_send_to(doc()) -> kz_term:api_ne_binary_or_binaries().
 notifications_outbound_sms_send_to(Doc) ->
     notifications_outbound_sms_send_to(Doc, 'undefined').
 
--spec notifications_outbound_sms_send_to(doc(), Default) -> any() | Default.
+-spec notifications_outbound_sms_send_to(doc(), Default) -> kz_term:ne_binary_or_binaries() | Default.
 notifications_outbound_sms_send_to(Doc, Default) ->
-    kz_json:get_value([<<"notifications">>, <<"outbound">>, <<"sms">>, <<"send_to">>], Doc, Default).
+    kz_json:get_ne_binary_or_binaries([<<"notifications">>, <<"outbound">>, <<"sms">>, <<"send_to">>], Doc, Default).
 
--spec set_notifications_outbound_sms_send_to(doc(), any()) -> doc().
+-spec set_notifications_outbound_sms_send_to(doc(), kz_term:ne_binary_or_binaries()) -> doc().
 set_notifications_outbound_sms_send_to(Doc, NotificationsOutboundSmsSendTo) ->
     kz_json:set_value([<<"notifications">>, <<"outbound">>, <<"sms">>, <<"send_to">>], NotificationsOutboundSmsSendTo, Doc).
 
