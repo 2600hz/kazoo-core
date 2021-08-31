@@ -280,15 +280,15 @@ notifications_email(Doc, Default) ->
 set_notifications_email(Doc, NotificationsEmail) ->
     kz_json:set_value([<<"notifications">>, <<"email">>], NotificationsEmail, Doc).
 
--spec notifications_email_send_to(doc()) -> any().
+-spec notifications_email_send_to(doc()) -> kz_term:api_ne_binary_or_binaries().
 notifications_email_send_to(Doc) ->
     notifications_email_send_to(Doc, 'undefined').
 
--spec notifications_email_send_to(doc(), Default) -> any() | Default.
+-spec notifications_email_send_to(doc(), Default) -> kz_term:ne_binary_or_binaries() | Default.
 notifications_email_send_to(Doc, Default) ->
-    kz_json:get_value([<<"notifications">>, <<"email">>, <<"send_to">>], Doc, Default).
+    kz_json:get_ne_binary_or_binaries([<<"notifications">>, <<"email">>, <<"send_to">>], Doc, Default).
 
--spec set_notifications_email_send_to(doc(), any()) -> doc().
+-spec set_notifications_email_send_to(doc(), kz_term:ne_binary_or_binaries()) -> doc().
 set_notifications_email_send_to(Doc, NotificationsEmailSendTo) ->
     kz_json:set_value([<<"notifications">>, <<"email">>, <<"send_to">>], NotificationsEmailSendTo, Doc).
 
