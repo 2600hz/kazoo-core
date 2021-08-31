@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2020, 2600Hz
+%%% @copyright (C) 2018-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,7 +28,7 @@
 -type fax_converted() :: {'ok', any()}|
                          {'error', any()}.
 
--type fax_convert_funs() :: [fun((kz_term:ne_binary(), map()) -> fax_converted())].
+-type fax_convert_funs() :: [fun((kz_term:ne_binary(), map(), kz_term:ne_binary()) -> fax_converted())].
 
 %%------------------------------------------------------------------------------
 %% @doc Converts the data or file specified in `Content' from the `From' mime-type to the
@@ -229,10 +229,11 @@ format_response(Format, Content, Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec eval_format(kz_term:ne_binary(), kz_term:ne_binary()) -> fax_convert_funs() | {'error', kz_term:ne_binary()}.
+-spec eval_format(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          fax_convert_funs() |
+          {'error', kz_term:ne_binary()}.
 eval_format(_FromFormat, ?PDF_MIME) ->
-    [fun convert_to_pdf/3
-    ];
+    [fun convert_to_pdf/3];
 eval_format(_FromFormat, ?TIFF_MIME) ->
     [fun convert_to_pdf/3
     ,fun pdf_to_tiff/3

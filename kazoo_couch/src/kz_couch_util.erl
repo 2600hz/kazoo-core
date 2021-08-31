@@ -330,26 +330,27 @@ format_error(E) ->
     E.
 
 -spec maybe_add_rev(couchbeam_db(), kz_term:ne_binary(), kz_term:proplist()) -> kz_term:proplist().
-maybe_add_rev(#db{name=_Name}=Db, DocId, Options) ->
-    case props:get_value('rev', Options) =:= 'undefined'
-        andalso do_fetch_rev(Db, DocId)
-    of
-        <<_/binary>> = Rev ->
-            lager:debug("adding rev ~s to options", [Rev]),
-            [{'rev', Rev} | Options];
-        'false' ->
-            lager:debug("rev is in options list: ~p", [Options]),
-            Options;
-        {'error', 'not_found'} ->
-            lager:debug("failed to find rev of ~s in ~p, not_found in db", [DocId, _Name]),
-            Options;
-        {'error', 'empty_doc_id'} ->
-            lager:debug("failed to find doc id ~p", [DocId]),
-            Options;
-        _Else ->
-            lager:debug("unknown rev format for ~p: ~p", [DocId, _Else]),
-            Options
-    end.
+maybe_add_rev(#db{}=Db, DocId, Options) ->
+    maybe_add_rev(Db, DocId, Options, props:get_value('rev', Options)).
+
+maybe_add_rev(Db, DocId, Options, 'undefined') ->
+    maybe_add_fetched_rev(Db, DocId, Options, do_fetch_rev(Db, DocId));
+maybe_add_rev(_Db, _DocId, Options, _Rev) ->
+    lager:debug("rev is in options list: ~p", [_Rev]),
+    Options.
+
+maybe_add_fetched_rev(_Db, _DocId, Options, <<Rev/binary>>) ->
+    lager:debug("adding rev ~s to options", [Rev]),
+    [{'rev', Rev} | Options];
+maybe_add_fetched_rev(#db{name=_Name}, _DocId, Options, {'error', 'not_found'}) ->
+    lager:debug("failed to find rev of ~s in ~p, not_found in db", [_DocId, _Name]),
+    Options;
+maybe_add_fetched_rev(_Db, _DocId, Options, {'error', 'empty_doc_id'}) ->
+    lager:debug("failed to find doc id ~p", [_DocId]),
+    Options;
+maybe_add_fetched_rev(_Db, _DocId, Options, _Else) ->
+    lager:debug("unknown rev format for ~p: ~p", [_DocId, _Else]),
+    Options.
 
 -spec do_fetch_rev(couchbeam_db(), kz_term:ne_binary()) ->
           kz_term:ne_binary() |

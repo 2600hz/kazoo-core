@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2020, 2600Hz
+%%% @copyright (C) 2017-2021, 2600Hz
 %%% @doc S3 Storage for attachments.
 %%% @author Luis Azedo
 %%%
@@ -27,10 +27,9 @@
 -define(AMAZON_S3_HTTP_DEFAULT_CLIENT, 'lhttpc').
 %% httpc seems broken in otp 21.2.5
 
--type s3_error() :: {'aws_error'
-                    ,{'socket_error', binary()} |
-                     {'http_error', pos_integer(), string(), binary()}
-                    }.
+-type s3_error() :: {'aws_error', {'socket_error', binary()}} |
+                    {'aws_error', {'http_error', pos_integer(), string(), binary()}} |
+                    {'s3_error', string(), string()}.
 
 %%%=============================================================================
 %%% gen_attachment behaviour callbacks (API)

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Util functions used by kazoo_couch
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -42,7 +42,7 @@ stream_attachment(#server{}=Conn, DbName, DocId, AName, Caller) ->
 put_attachment(#server{}=Conn, DbName, DocId, AName, Contents) ->
     put_attachment(#server{}=Conn, DbName, DocId, AName, Contents, []).
 
--spec put_attachment(server(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), iodata(), kz_term:proplist()) ->
+-spec put_attachment(kz_data:connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), iodata(), kz_data:options()) ->
           {'ok', kz_json:object()} |
           couchbeam_error().
 put_attachment(#server{}=Conn, DbName, DocId, AName, Contents, Options) ->
@@ -113,17 +113,28 @@ relay_stream_attachment(Caller, Ref, Msg) ->
     Caller ! {Ref, Msg},
     relay_stream_attachment(Caller, Ref, couchbeam:stream_attachment(Ref)).
 
--spec do_put_attachment(couchbeam_db(), kz_term:ne_binary(), kz_term:ne_binary(), iodata(), kz_term:proplist()) ->
+-spec do_put_attachment(couchbeam_db(), kz_term:ne_binary(), kz_term:ne_binary(), iodata(), kz_data:options()) ->
           {'ok', kz_json:object()} |
           couchbeam_error().
-do_put_attachment(#db{}=Db, DocId, AttName, Contents, Options0) ->
-    %% At the time of this change, couchbeam is striping "/" from attachment name when put_attachment only.
+do_put_attachment(#db{}=Db, DocId, AttName, Contents, Options) ->
+    %% At the time of this change, couchbeam is stripping "/" from attachment name when put_attachment only.
     %% Fetch and delete are encoding properly
+
     AName = kz_http_util:urlencode(AttName),
-    Options = case props:get_value('content_type', Options0) of
-                  'undefined' -> [{'content_type', kz_mime:from_filename(AName)} | Options0];
-                  _CT -> Options0
-              end,
+    do_put_attachment_1(Db
+                       ,DocId
+                       ,AName
+                       ,Contents
+                       ,maybe_add_content_type(AName, Options)
+                       ).
+
+maybe_add_content_type(AName, Options) ->
+    case props:get_value('content_type', Options) of
+        'undefined' -> [{'content_type', kz_mime:from_filename(AName)} | Options];
+        _CT -> Options
+    end.
+
+do_put_attachment_1(Db, DocId, AName, Contents, Options) ->
     ?RETRY_504(couchbeam:put_attachment(Db, DocId, AName, Contents, Options)).
 
 -spec do_del_attachment(couchbeam_db(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -252,7 +252,9 @@ fetch_attachment(Server, DbName, DocId, AName) ->
 stream_attachment(Server, DbName, DocId, AName, Caller) ->
     kz_couch_attachments:stream_attachment(Server, DbName, DocId, AName, Caller).
 
--spec put_attachment(kz_data:connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), iodata(), kz_data:options()) -> any().
+-spec put_attachment(kz_data:connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), iodata(), kz_data:options()) ->
+          {'ok', kz_json:object()} |
+          couchbeam_error().
 put_attachment(Server, DbName, DocId, AName, Contents, Options) ->
     kz_couch_attachments:put_attachment(Server, DbName, DocId, AName, Contents, Options).
 
