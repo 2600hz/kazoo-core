@@ -17,7 +17,7 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?SUPER('kz_event_listener_sup')]).
+-define(CHILDREN, [?SUPER('kz_event_listeners_sup')]).
 
 %%==============================================================================
 %% API functions
