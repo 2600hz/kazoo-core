@@ -13,6 +13,8 @@
 
 -export([print_node_status/2
         ,to_json/1
+        ,node_info/0
+        ,pool_states/0
         ]).
 
 -include("kazoo_nodes.hrl").
@@ -84,32 +86,37 @@ apps() ->
 
 -spec node_info() -> kz_json:object().
 node_info() ->
-    AMQP = [{<<"connections">>, kz_json:from_list(amqp_status())}
+    AMQP = [{<<"connections">>, amqp_status()}
            ,{<<"pools">>, kz_json:from_list(pool_states())}
            ],
     Info = kazoo_bindings:map(kz_nodes_bindings:binding_node_info(), []),
     NodeInfo = [{<<"amqp">>, kz_json:from_list(AMQP)}
-               | [{Key, Value} || {Key, Value} <- Info] % only use 2-tuples from Info
+               | [{Key, Value} ||
+                     {Key, Value} <- Info,
+                     'EXIT' =/= Key
+                 ] % only use 2-tuples from Info
                ],
     kz_json:from_list(NodeInfo).
 
--spec amqp_status() -> [{kz_term:ne_binary(), kz_json:object()}].
+-spec amqp_status() -> kz_json:object().
 amqp_status() ->
     Connections = kz_amqp_connections:connections(),
-    [amqp_status_connection(Connection) || Connection <- Connections].
+    lists:foldl(fun amqp_status_connection/2, kz_json:new(), Connections).
 
--spec amqp_status_connection(kz_amqp_connections:kz_amqp_connections()) ->
-          {kz_term:ne_binary(), kz_json:object()}.
-amqp_status_connection(Connection) ->
+-spec amqp_status_connection(kz_amqp_connections:kz_amqp_connections(), kz_json:object()) ->
+          kz_json:object().
+amqp_status_connection(Connection, JObj) ->
     Count = kz_amqp_assignments:channel_count(Connection),
     Broker = kz_amqp_connection:broker(Connection),
     BrokerZone = kz_amqp_connection:zone(Connection),
 
-    {Broker
-    ,kz_json:from_list([{<<"channel_count">>, Count}
-                       ,{<<"zone">>, BrokerZone}
-                       ])
-    }.
+    ConnStatus = kz_json:from_list([{<<"channel_count">>, Count}
+                                   ,{<<"zone">>, BrokerZone}
+                                   ]),
+
+    Status = kz_json:get_list_value(Broker, JObj, []),
+
+    kz_json:set_value(Broker, [ConnStatus | Status], JObj).
 
 -spec pool_states() -> kz_term:proplist().
 pool_states() ->
@@ -394,10 +401,13 @@ print_node_info({<<"pools">>, Info}) ->
 print_node_info(_Info) ->
     format("~n").
 
--spec print_amqp_info(kz_term:ne_binary(), term(), iodata()) -> iodata().
-print_amqp_info(Broker, Info, Acc) ->
-    ChannelCount = kz_json:get_integer_value(<<"channel_count">>, Info, 0),
-    [io_lib:format("~s (~B)", [format_broker(Broker), ChannelCount]) | Acc].
+-spec print_amqp_info(kz_term:ne_binary(), kz_json:objects(), iodata()) -> iodata().
+print_amqp_info(Broker, Data, Acc) ->
+    ChannelCounts = [kz_json:get_integer_value(<<"channel_count">>, Datum, 0)
+                     || Datum <- Data
+                    ],
+    ChannelCountsBin = kz_binary:join(ChannelCounts, <<"/">>),
+    [io_lib:format("~s (~s)", [format_broker(Broker), ChannelCountsBin]) | Acc].
 
 -spec format_broker(kz_term:ne_binary()) -> string().
 format_broker(Broker) ->

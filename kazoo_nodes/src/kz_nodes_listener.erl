@@ -395,7 +395,7 @@ advertise_payload(#kz_node{expires=Expires
       ,{<<"Registrations">>, Registrations}
       ,{<<"Zone">>, kz_term:to_binary(Zone)}
       ,{<<"Globals">>, kz_json:from_list(Globals)}
-      ,{<<"Node-Info">>, node_info()}
+      ,{<<"Node-Info">>, kz_node:node_info()}
       | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
       ]).
 
@@ -541,38 +541,6 @@ maybe_add_zone(#kz_node{zone=Zone, broker=B}, #state{zones=Zones}=State) ->
         _ -> State
     end.
 
--spec node_info() -> kz_json:object().
-node_info() ->
-    AMQP = [{<<"connections">>, kz_json:from_list(amqp_status())}
-           ,{<<"pools">>, kz_json:from_list(pool_states())}
-           ],
-    Info = kazoo_bindings:map(kz_nodes_bindings:binding_node_info(), []),
-    NodeInfo = [{<<"amqp">>, kz_json:from_list(AMQP)}
-               | [{Key, Value} ||
-                     {Key, Value} <- Info,
-                     'EXIT' =/= Key
-                 ] % only use 2-tuples from Info
-               ],
-    kz_json:from_list(NodeInfo).
-
--spec amqp_status() -> [{kz_term:ne_binary(), kz_json:object()}].
-amqp_status() ->
-    Connections = kz_amqp_connections:connections(),
-    [amqp_status_connection(Connection) || Connection <- Connections].
-
--spec amqp_status_connection(kz_amqp_connections:kz_amqp_connections()) ->
-          {kz_term:ne_binary(), kz_json:object()}.
-amqp_status_connection(Connection) ->
-    Count = kz_amqp_assignments:channel_count(Connection),
-    Broker = kz_amqp_connection:broker(Connection),
-    BrokerZone = kz_amqp_connection:zone(Connection),
-
-    {Broker
-    ,kz_json:from_list([{<<"channel_count">>, Count}
-                       ,{<<"zone">>, BrokerZone}
-                       ])
-    }.
-
 -spec is_ready() -> boolean().
 is_ready() ->
     try
@@ -601,24 +569,3 @@ version() ->
     {_, _, Version} = kz_application:get_app(?APP),
     OTPRelease = kz_term:to_binary(erlang:system_info('otp_release')),
     list_to_binary([Version, " - ", OTPRelease]).
-
--spec pool_states() -> kz_term:proplist().
-pool_states() ->
-    AppPools = kazoo_bindings:map(kz_nodes_bindings:pool_state_binding(), []),
-    lists:keysort(1, [pool_state(Pool)
-                      || Pools <- AppPools,
-                         {Pool, _Pid} <- Pools
-                     ]).
-
--spec pool_state(atom()) -> {kz_term:ne_binary(), kz_term:ne_binary()}.
-pool_state(Name) ->
-    {PoolState, Workers, OverFlow, Monitors} = poolboy:status(Name),
-    pool_state(Name, PoolState, Workers, OverFlow, Monitors).
-
--spec pool_state(atom(), atom(), integer(), integer(), integer()) -> {kz_term:ne_binary(), kz_term:ne_binary()}.
-pool_state(Name, State, Workers, Overflow, Monitors) ->
-    {kz_term:to_binary(Name)
-    ,iolist_to_binary(
-       io_lib:format("~p/~p/~p (~p)", [Workers, Monitors, Overflow, State])
-      )
-    }.
