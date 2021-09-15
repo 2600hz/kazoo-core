@@ -160,6 +160,8 @@
 
 -export([normalize_amqp_uri/1]).
 
+-export_type([declare_exchange_options/0]).
+
 -define(KEY_SAFE(C), ((C >= $a
                        andalso C =< $z
                       )
@@ -183,6 +185,14 @@
 
 -type amqp_property() :: {kz_term:ne_binary(), atom(), any()}.
 -type amqp_properties() :: [amqp_property()].
+
+-type declare_exchange_option() :: {'passive', boolean()} |
+                                   {'durable', boolean()} |
+                                   {'auto_delete', boolean()} |
+                                   {'internal', boolean()} |
+                                   {'nowait', boolean()} |
+                                   {'arguments', list()}.
+-type declare_exchange_options() :: [declare_exchange_option()].
 
 %%------------------------------------------------------------------------------
 %% @doc Publish AMQP messages.
@@ -651,7 +661,7 @@ tasks_exchange() ->
 new_exchange(Exchange, Type) ->
     new_exchange(Exchange, Type, []).
 
--spec new_exchange(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec new_exchange(kz_term:ne_binary(), kz_term:ne_binary(), declare_exchange_options()) -> 'ok'.
 new_exchange(Exchange, Type, Options) ->
     ED = #'exchange.declare'{exchange = Exchange
                             ,type = Type
@@ -668,7 +678,8 @@ new_exchange(Exchange, Type, Options) ->
 declare_exchange(Exchange, Type) ->
     declare_exchange(Exchange, Type, []).
 
--spec declare_exchange(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> kz_amqp_exchange().
+-spec declare_exchange(kz_term:ne_binary(), kz_term:ne_binary(), declare_exchange_options()) ->
+          kz_amqp_exchange().
 declare_exchange(Exchange, Type, Options) ->
     #'exchange.declare'{exchange = Exchange
                        ,type = Type

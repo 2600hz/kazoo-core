@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc For `gen_listeners' that bind to targeted for direct messaging.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,14 +15,24 @@
 
 -include_lib("kz_amqp_util.hrl").
 
--spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-type exchange_option() :: {'name', kz_term:ne_binary()} |
+                           {'type', kz_term:ne_binary()} |
+                           {'options', kz_amqp_util:declare_exchange_options()} |
+                           {'bindings', gen_listener:bindings()}.
+-type exchange_options() :: [exchange_option()].
+
+-type bind_option() :: {'exchange', exchange_options()} |
+                       {'routing', kz_term:ne_binary()}.
+-type bind_options() :: [bind_option()].
+
+-spec bind_q(kz_term:ne_binary(), bind_options()) -> 'ok'.
 bind_q(Q, Props) ->
     declare_exchange(Props),
     Exchange = exchange_name(exchange(Props)),
     Routing = props:get_value('routing', Props),
     kz_amqp_util:bind_q_to_exchange(Q, Routing, Exchange).
 
--spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec unbind_q(kz_term:ne_binary(), bind_options()) -> 'ok'.
 unbind_q(Q, Props) ->
     Exchange = exchange_name(exchange(Props)),
     Routing = props:get_value('routing', Props),
@@ -39,13 +49,16 @@ declare_exchanges() -> 'ok'.
 %% @doc Declare the Exchange defined in bind.
 %% @end
 %%------------------------------------------------------------------------------
--spec declare_exchange(kz_term:proplist()) -> 'ok'.
+-spec declare_exchange(bind_options()) -> 'ok'.
 declare_exchange(Props) ->
     Exchange = exchange(Props),
-    kz_amqp_util:new_exchange(exchange_name(Exchange), exchange_type(Exchange), exchange_options(Exchange)),
+    kz_amqp_util:new_exchange(exchange_name(Exchange)
+                             ,exchange_type(Exchange)
+                             ,exchange_options(Exchange)
+                             ),
     bind_exchange(Props).
 
--spec bind_exchange(kz_term:proplist()) -> 'ok'.
+-spec bind_exchange(bind_options()) -> 'ok'.
 bind_exchange(Props) ->
     Exchange = exchange(Props),
     ExchangeName = exchange_name(Exchange),
@@ -62,10 +75,10 @@ bind_kapi(KAPI, Exchange, Props) ->
     Source = props:get_value(source, Props, kz_term:to_binary(KAPI)),
     bind_cmd(Exchange, Source, props:get_ne_binary_value(routing, Props)),
     Fun = fun(RK) -> bind_cmd(Exchange, Source, RK) end,
-    lists:foreach(Fun, props:get_value(routings, Props, [])).
+    lists:foreach(Fun, props:get_value('routings', Props, [])).
 
 -spec bind_cmd(binary(), binary(), kz_term:api_binary()) -> 'ok'.
-bind_cmd(_Exchange, _Source, undefined) -> ok;
+bind_cmd(_Exchange, _Source, 'undefined') -> 'ok';
 bind_cmd(Exchange, Source, Routing) ->
     BindCmd = #'exchange.bind'{destination=Exchange
                               ,source = Source
@@ -75,17 +88,22 @@ bind_cmd(Exchange, Source, Routing) ->
                               },
     kz_amqp_channel:command(BindCmd).
 
+-spec exchange(bind_options()) -> exchange_options().
 exchange(Props) ->
-    props:get_value(exchange, Props).
+    props:get_value('exchange', Props).
 
+-spec exchange_name(exchange_options()) -> kz_term:ne_binary().
 exchange_name(Props) ->
-    props:get_value(name, Props).
+    props:get_value('name', Props).
 
+-spec exchange_type(exchange_options()) -> kz_term:ne_binary().
 exchange_type(Props) ->
-    props:get_value(type, Props).
+    props:get_value('type', Props).
 
+-spec exchange_options(exchange_options()) -> kz_amqp_util:declare_exchange_options().
 exchange_options(Props) ->
-    props:get_value(options, Props, []).
+    props:get_value('options', Props, []).
 
+-spec bindings(exchange_options()) -> gen_listener:bindings().
 bindings(Props) ->
-    props:get_value(bindings, Props, []).
+    props:get_value('bindings', Props, []).
