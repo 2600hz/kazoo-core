@@ -16,8 +16,8 @@
 -define(SERVER, ?MODULE).
 
 -export([start_link/1
-        ,start_workers/0
-        ,stop_workers/0
+        ,start_workers/1
+        ,stop_workers/1
         ,server_name/1
         ]).
 -export([init/1]).
@@ -34,10 +34,12 @@
 %%------------------------------------------------------------------------------
 -spec start_link(atom()) -> kz_types:startlink_ret().
 start_link(Name) ->
-    handle_started(supervisor:start_link({'local', server_name(Name)}, ?MODULE, [Name])).
+    Server = server_name(Name),
+    lager:info("starting server ~p", [Server]),
+    handle_started(supervisor:start_link({'local', Server}, ?MODULE, [Name])).
 
 handle_started({'ok', Pid}) ->
-    _ = start_workers(),
+    _ = start_workers(Pid),
     {'ok', Pid};
 handle_started(Error) -> Error.
 
@@ -62,12 +64,14 @@ init([Name]) ->
     MaxRestarts = 0,
     MaxSecondsBetweenRestarts = 1,
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
+    lager:info("starting for pool ~p", [Name]),
     {'ok', {SupFlags, ?CHILDREN(Name)}}.
 
--spec start_workers() -> 'ok'.
-start_workers() ->
+-spec start_workers(pid()) -> 'ok'.
+start_workers(Super) ->
     Workers = kz_app_config:get_integer(?APP, <<"event_listeners">>, 5),
-    {Pid, Ref} = kz_process:spawn_monitor(fun start_workers/1, [Workers]),
+    lager:info("starting ~p workers", [Workers]),
+    {Pid, Ref} = kz_process:spawn_monitor(fun start_workers/2, [Super, Workers]),
     wait_for_workers(Pid, Ref).
 
 wait_for_workers(Pid, Ref) ->
@@ -80,19 +84,19 @@ wait_for_workers(Pid, Ref) ->
             lager:info("timed out waiting for workers in ~p", [Pid])
     end.
 
-start_workers(Workers) ->
-    [start_worker()
+start_workers(Super, Workers) ->
+    [start_worker(Super)
      || _N <- lists:seq(1, Workers)
     ].
 
-start_worker() ->
-    _ = supervisor:start_child(?SERVER, []),
+start_worker(Super) ->
+    _ = supervisor:start_child(Super, []),
     timer:sleep(500).
 
--spec stop_workers() -> ['ok' | {'error', atom()}].
-stop_workers() ->
-    [stop_worker(Child) || {_Id, Child, _Type, _Modules} <- supervisor:which_children(?SERVER)].
+-spec stop_workers(pid()) -> ['ok' | {'error', atom()}].
+stop_workers(Super) ->
+    [stop_worker(Super, Child) || {_Id, Child, _Type, _Modules} <- supervisor:which_children(Super)].
 
--spec stop_worker(pid()) -> 'ok' | {'error', atom()}.
-stop_worker(Child) ->
-    supervisor:terminate_child(?SERVER, Child).
+-spec stop_worker(pid(), pid()) -> 'ok' | {'error', atom()}.
+stop_worker(Super, Child) ->
+    supervisor:terminate_child(Super, Child).
