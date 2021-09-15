@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,10 +15,14 @@
 
 -define(SERVER, ?MODULE).
 
--export([start_link/0]).
+-export([start_link/1
+        ,start_workers/1
+        ,stop_workers/1
+        ,server_name/1
+        ]).
 -export([init/1]).
 
--define(CHILDREN, [?WORKER_ARGS_TYPE('kz_event_listener', [], 'temporary')]).
+-define(CHILDREN(Name), [?WORKER_ARGS_TYPE('kz_event_listener', [Name], 'temporary')]).
 
 %% ===================================================================
 %% API functions
@@ -28,11 +32,20 @@
 %% @doc Starts the supervisor
 %% @end
 %%------------------------------------------------------------------------------
--spec start_link() -> kz_types:startlink_ret().
-start_link() ->
-    {'ok', Pid} = supervisor:start_link({'local', ?SERVER}, ?MODULE, []),
-    _ = init_workers(Pid),
-    {'ok', Pid}.
+-spec start_link(atom()) -> kz_types:startlink_ret().
+start_link(Name) ->
+    Server = server_name(Name),
+    lager:info("starting server ~p", [Server]),
+    handle_started(supervisor:start_link({'local', Server}, ?MODULE, [Name])).
+
+handle_started({'ok', Pid}) ->
+    _ = start_workers(Pid),
+    {'ok', Pid};
+handle_started(Error) -> Error.
+
+-spec server_name(event_type()) -> atom().
+server_name(Name) ->
+    kz_term:to_atom(?MODULE_STRING ++ [$_ | kz_term:to_list(Name)], 'true').
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -46,19 +59,44 @@ start_link() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec init(list()) -> kz_types:sup_init_ret().
-init([]) ->
+init([Name]) ->
     RestartStrategy = 'simple_one_for_one',
     MaxRestarts = 0,
     MaxSecondsBetweenRestarts = 1,
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-    {'ok', {SupFlags, ?CHILDREN}}.
+    lager:info("starting for pool ~p", [Name]),
+    {'ok', {SupFlags, ?CHILDREN(Name)}}.
 
-init_workers(Pid) ->
+-spec start_workers(pid()) -> 'ok'.
+start_workers(Super) ->
     Workers = kz_app_config:get_integer(?APP, <<"event_listeners">>, 5),
-    _ = kz_process:spawn(fun() -> [begin
-                                       _ = supervisor:start_child(Pid, []),
-                                       timer:sleep(500)
-                                   end
-                                   || _N <- lists:seq(1, Workers)
-                                  ]
-                         end).
+    lager:info("starting ~p workers", [Workers]),
+    {Pid, Ref} = kz_process:spawn_monitor(fun start_workers/2, [Super, Workers]),
+    wait_for_workers(Pid, Ref).
+
+wait_for_workers(Pid, Ref) ->
+    receive
+        {'DOWN', Ref, 'process', Pid, 'normal'} -> 'ok';
+        {'DOWN', Ref, 'process', Pid, _Reason} ->
+            lager:info("starting workers in ~p failed: ~p", [Pid, _Reason])
+    after
+        5 * ?MILLISECONDS_IN_SECOND ->
+            lager:info("timed out waiting for workers in ~p", [Pid])
+    end.
+
+start_workers(Super, Workers) ->
+    [start_worker(Super)
+     || _N <- lists:seq(1, Workers)
+    ].
+
+start_worker(Super) ->
+    _ = supervisor:start_child(Super, []),
+    timer:sleep(500).
+
+-spec stop_workers(pid()) -> ['ok' | {'error', atom()}].
+stop_workers(Super) ->
+    [stop_worker(Super, Child) || {_Id, Child, _Type, _Modules} <- supervisor:which_children(Super)].
+
+-spec stop_worker(pid(), pid()) -> 'ok' | {'error', atom()}.
+stop_worker(Super, Child) ->
+    supervisor:terminate_child(Super, Child).

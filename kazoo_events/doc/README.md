@@ -1,11 +1,26 @@
 # Kazoo Events
 
-## Hooks
+Provides a way for the KAZOO node to bind for common AMQP events and distribute locally versus every app or process bindings for them.
 
-Kazoo provides a mechanism, `kz_hooks`, for Kazoo applications to receive call events without needing to setup an AMQP queue and binding. This reduces AMQP usage by establishing a single AMQP queue and bindings and using internal VM message passing and function calling to distribute to the interested processes.
+For instance, call events are used by many apps, each of which may be running on the same VM together. Rather than having a `CHANNEL_CREATE` delivered N times to the node, have it be delivered once from the broker and use internal Erlang messaging (via gproc) to distribute the payload.
 
-There are three ways to ask for call events from `kz_hooks`:
+This limits using up AMQP channels, which have a hard-coded limit of 2047, by allowing apps to not instantiate dynamic `gen_listener` processes (say per-call or per-agent) which would approach the limit.
 
-1. `kz_hooks:register` will register the calling PID to receive a copy of the message from the "unique" hooks AMQP queue (all VMs will receive the payloads)
-2. `kz_hooks:register_rr` will register using the "named" AMQP queue which will effectively round-robin the payloads within the zone.
-3. `kz_hooks:bind` will allow the caller to specify the `M:F/A` or a local function to be called on event reception from the "unique" AMQP queue.
+## Erlang Architecture
+
+### Runtime
+
+```
+kazoo_events_sup
+      |
+      --> kz_event_listeners_sup
+                 |
+                 --> [kz_event_listener_sup
+                              |
+                              --> [kz_event_listener,...]
+                     ]
+```
+
+Simple supervisor tree where the `kz_event_listeners_sup` starts as a SOFO supervisor with `kz_event_listener_sup` as its childspec. Once a KAZOO app (or process) uses a `kz_events:bind*` function, the `kz_events_listeners_sup` will start a `kz_event_listener_sup` supervisor to then start the `gen_listener` pool.
+
+Apps can programmatically start the pool of listeners at startup as well.
