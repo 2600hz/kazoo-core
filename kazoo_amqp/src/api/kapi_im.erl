@@ -32,7 +32,7 @@
 -define(INBOUND_HEADERS, [<<"Body">>
                          ,<<"From">>
                          ,<<"Message-ID">>
-                         ,<<"To-Numbers">>
+                         ,<<"To">>
                          ]).
 -define(OPTIONAL_INBOUND_HEADERS, [<<"Account-ID">>
                                   ,<<"Rate">>
@@ -44,7 +44,7 @@
                                   ,<<"Route-Type">>
                                   ,<<"System-ID">>
                                   ,<<"Transaction-ID">>
-                                  ,<<"To">>
+                                  ,<<"To-Numbers">>
                                   ]).
 
 -define(INBOUND_TYPES, [{<<"Body">>, fun erlang:is_binary/1}

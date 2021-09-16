@@ -251,10 +251,10 @@ maybe_relay_request(JObj) ->
                ,fun set_accounts_rate/1
                ,fun set_errors_from_resellers/1
                ,fun set_errors_from_accounts/1
+               ,fun log_errors/1
                ,fun route_onnet/1
                ],
     Result = kz_maps:exec(Routines, Map),
-    log_errors(Result),
     case route_errors(Result) of
         true -> 'nack';
         false -> 'ack'
@@ -419,8 +419,9 @@ set_error_from_reseller(_Key, #{reseller_id := ResellerId} = Map, Resellers) ->
         _ -> Map
     end.
 
-log_errors(#{numbers := Numbers, im := IM}) ->
-    lists:foreach(fun({K, V}) -> log_error(K, V, IM) end, maps:to_list(Numbers)).
+log_errors(#{numbers := Numbers, im := IM} = Ctx) ->
+    lists:foreach(fun({K, V}) -> log_error(K, V, IM) end, maps:to_list(Numbers)),
+    Ctx.
 
 log_error(Number, #{error := Error, account_id := AccountId}, IM) ->
     lager:warning("external ~s request for number ~s validation failed  in account ~s : ~p", [kapps_im:type(IM), Number, AccountId, Error]);

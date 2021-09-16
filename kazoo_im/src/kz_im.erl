@@ -99,7 +99,7 @@ set_to(Payload, To)
 to_numbers(Payload) ->
     to_numbers(Payload, 'undefined').
 
--spec to_numbers(payload(), Default) -> kz_term:ne_binary_or_binaries() | Default.
+-spec to_numbers(payload(), Default) -> kz_term:ne_binaries() | Default.
 to_numbers(Payload, Default) ->
     kz_json:get_list_value([<<"To-Numbers">>], Payload, Default).
 
