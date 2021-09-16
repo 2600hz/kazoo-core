@@ -66,5 +66,11 @@ moh_media_path(Endpoint) ->
 moh_url(Endpoint) ->
     case moh_media_path(Endpoint) of
         undefined -> undefined;
-        MediaPath -> kz_media_url:playback(MediaPath)
+        MediaPath -> moh_playback_url(MediaPath)
+    end.
+
+moh_playback_url(MediaPath) ->
+    case kz_media_url:playback(MediaPath) of
+        {error, _} -> undefined;
+        URL -> URL
     end.
