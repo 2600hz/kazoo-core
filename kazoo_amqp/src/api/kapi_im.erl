@@ -33,7 +33,7 @@
                          ,<<"Body">>
                          ,<<"From">>
                          ,<<"Message-ID">>
-                         ,<<"To-Numbers">>
+                         ,<<"To">>
                          ]).
 -define(OPTIONAL_INBOUND_HEADERS, [<<"Account-ID">>
                                   ,<<"Rate">>
@@ -45,7 +45,7 @@
                                   ,<<"System-ID">>
                                   ,<<"Route-ID">>
                                   ,<<"Transaction-ID">>
-                                  ,<<"To">>
+                                  ,<<"To-Numbers">>
                                   ]).
 -define(INBOUND_TYPES, [{<<"Body">>, fun erlang:is_binary/1}
                        ,{<<"Custom-Vars">>, fun kz_json:is_json_object/1}
