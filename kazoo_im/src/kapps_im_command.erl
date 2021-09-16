@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -117,9 +117,8 @@ create_sms_endpoints([Endpoint | Others], Endpoints) ->
 
 -spec create_sms_endpoint(kz_json:object()) -> kz_term:api_object().
 create_sms_endpoint(Endpoint) ->
-    Realm = kz_json:get_value(<<"To-Realm">>, Endpoint),
-    Username = kz_json:get_value(<<"To-Username">>, Endpoint),
-    case lookup_reg(Username, Realm) of
+    TokenId = list_to_binary([kzd_endpoint:id(Endpoint), "@", kzd_endpoint:account_id(Endpoint)]),
+    case lookup_reg(TokenId) of
         {'ok', Node} ->
             Options = kz_json:get_value(<<"Endpoint-Options">>, Endpoint, []),
             kz_json:set_values(
@@ -129,48 +128,20 @@ create_sms_endpoint(Endpoint) ->
         {'error', _E} -> 'undefined'
     end.
 
--spec lookup_reg(kz_term:ne_binary(), kz_term:ne_binary()) ->
+-spec lookup_reg(kz_term:ne_binary()) ->
           {'error', any()} |
           {'ok', kz_term:ne_binary()}.
-lookup_reg('undefined', _Realm) -> {'error', 'invalid_user'};
-lookup_reg(_Username, 'undefined') -> {'error', 'invalid_realm'};
-lookup_reg(Username, Realm) ->
-    Req = [{<<"Realm">>, Realm}
-          ,{<<"Username">>, Username}
-          ,{<<"Fields">>, [<<"Registrar-Node">>]}
+lookup_reg(TokenId) ->
+    Req = [{<<"Token-ID">>, TokenId}
+          ,{<<"Search-Type">>, <<"token">>}
           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
           ],
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_registration:publish_query_req/1
-                                    ,{'ecallmgr', 'true'}
-                                    )
+    case kz_amqp_worker:call(Req, fun kapi_registration:publish_search_req/1)
     of
         {'error', _E}=E ->
             lager:debug("error getting registration: ~p", [_E]),
             E;
-        {_, JObjs} ->
-            case extract_device_registrations(JObjs) of
-                [] -> {'error', 'not_registered'};
-                [FirstNode | _Others] -> {'ok', FirstNode}
-            end
-    end.
-
--spec extract_device_registrations(kz_json:objects()) -> kz_term:ne_binaries().
-extract_device_registrations(JObjs) ->
-    sets:to_list(extract_device_registrations(JObjs, sets:new())).
-
--spec extract_device_registrations(kz_json:objects(), sets:set()) -> sets:set().
-extract_device_registrations([], Set) -> Set;
-extract_device_registrations([JObj|JObjs], Set) ->
-    Fields = kz_json:get_value(<<"Fields">>, JObj, []),
-    S = lists:foldl(fun extract_device_registrar_fold/2, Set, Fields),
-    extract_device_registrations(JObjs, S).
-
--spec extract_device_registrar_fold(kz_json:object(), sets:set()) -> sets:set().
-extract_device_registrar_fold(JObj, Set) ->
-    case kz_json:get_ne_value(<<"Registrar-Node">>, JObj) of
-        'undefined' -> Set;
-        AuthId -> sets:add_element(AuthId, Set)
+        {_, JObj} -> {ok, kz_api:node(JObj)}
     end.
 
 -spec get_correlated_msg_type(kz_json:object()) ->
