@@ -486,11 +486,11 @@ cshs(Doc) ->
 
 -spec cshs(doc(), Default) -> kz_json:object() | Default.
 cshs(Doc, Default) ->
-    kz_json:get_json_value([<<"custom_channel_vars">>], Doc, Default).
+    kz_json:get_json_value([<<"custom_sip_headers">>], Doc, Default).
 
 -spec set_cshs(doc(), kz_json:object()) -> doc().
-set_cshs(Doc, cshs) ->
-    kz_json:set_value([<<"custom_channel_vars">>], cshs, Doc).
+set_cshs(Doc, CSHs) ->
+    kz_json:set_value([<<"custom_sip_headers">>], CSHs, Doc).
 
 -spec csh(doc(), kz_term:ne_binary()) -> kz_json:json_term() | undefined.
 csh(Doc, Key) ->
