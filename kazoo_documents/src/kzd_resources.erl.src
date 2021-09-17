@@ -10,6 +10,9 @@
 -export([cid_rules/1, cid_rules/2, set_cid_rules/2]).
 -export([classifiers/1, classifiers/2, set_classifiers/2]).
 -export([classifier/2, classifier/3, set_classifier/3]).
+-export([custom_channel_vars/1, custom_channel_vars/2, set_custom_channel_vars/2]).
+-export([custom_sip_headers/1, custom_sip_headers/2, set_custom_sip_headers/2]).
+-export([custom_sip_interface/1, custom_sip_interface/2, set_custom_sip_interface/2]).
 -export([emergency/1, emergency/2, set_emergency/2]).
 -export([enabled/1, enabled/2, set_enabled/2]).
 -export([flags/1, flags/2, set_flags/2]).
@@ -89,6 +92,42 @@ classifier(Doc, Classifier, Default) ->
 -spec set_classifier(doc(), kz_json:key(), kz_json:object()) -> doc().
 set_classifier(Doc, Classifier, Value) ->
     kz_json:set_value([<<"classifiers">>, Classifier], Value, Doc).
+
+-spec custom_channel_vars(doc()) -> kz_term:api_object().
+custom_channel_vars(Doc) ->
+    custom_channel_vars(Doc, 'undefined').
+
+-spec custom_channel_vars(doc(), Default) -> kz_json:object() | Default.
+custom_channel_vars(Doc, Default) ->
+    kz_json:get_json_value([<<"custom_channel_vars">>], Doc, Default).
+
+-spec set_custom_channel_vars(doc(), kz_json:object()) -> doc().
+set_custom_channel_vars(Doc, CustomChannelVars) ->
+    kz_json:set_value([<<"custom_channel_vars">>], CustomChannelVars, Doc).
+
+-spec custom_sip_headers(doc()) -> kz_term:api_object().
+custom_sip_headers(Doc) ->
+    custom_sip_headers(Doc, 'undefined').
+
+-spec custom_sip_headers(doc(), Default) -> kz_json:object() | Default.
+custom_sip_headers(Doc, Default) ->
+    kz_json:get_json_value([<<"custom_sip_headers">>], Doc, Default).
+
+-spec set_custom_sip_headers(doc(), kz_json:object()) -> doc().
+set_custom_sip_headers(Doc, CustomSipHeaders) ->
+    kz_json:set_value([<<"custom_sip_headers">>], CustomSipHeaders, Doc).
+
+-spec custom_sip_interface(doc()) -> kz_term:api_binary().
+custom_sip_interface(Doc) ->
+    custom_sip_interface(Doc, 'undefined').
+
+-spec custom_sip_interface(doc(), Default) -> binary() | Default.
+custom_sip_interface(Doc, Default) ->
+    kz_json:get_binary_value([<<"custom_sip_interface">>], Doc, Default).
+
+-spec set_custom_sip_interface(doc(), binary()) -> doc().
+set_custom_sip_interface(Doc, CustomSipInterface) ->
+    kz_json:set_value([<<"custom_sip_interface">>], CustomSipInterface, Doc).
 
 -spec emergency(doc()) -> boolean().
 emergency(Doc) ->
