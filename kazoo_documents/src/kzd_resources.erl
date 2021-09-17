@@ -48,6 +48,14 @@
         ,media_video_codecs/1, media_video_codecs/2
         ]).
 
+-export([ccvs/1, ccvs/2, set_ccvs/2
+        ,ccv/2, ccv/3, set_ccv/3
+        ,cshs/1, cshs/2, set_cshs/2
+        ,csh/2, csh/3, set_csh/3
+        ]).
+
+-export([custom_sip_interface/1, custom_sip_interface/2, set_custom_sip_interface/2]).
+
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().
@@ -447,3 +455,63 @@ media_video_codecs(Doc) ->
 -spec media_video_codecs(doc(), Default) -> kz_term:ne_binaries() | Default.
 media_video_codecs(Doc, Default) ->
     kz_json:get_list_value([<<"media">>, <<"video">>, <<"codecs">>], Doc, Default).
+
+-spec ccvs(doc()) -> kz_term:api_object().
+ccvs(Doc) ->
+    ccvs(Doc, undefined).
+
+-spec ccvs(doc(), Default) -> kz_json:object() | Default.
+ccvs(Doc, Default) ->
+    kz_json:get_json_value([<<"custom_channel_vars">>], Doc, Default).
+
+-spec set_ccvs(doc(), kz_json:object()) -> doc().
+set_ccvs(Doc, CCVs) ->
+    kz_json:set_value([<<"custom_channel_vars">>], CCVs, Doc).
+
+-spec ccv(doc(), kz_term:ne_binary()) -> kz_json:json_term() | undefined.
+ccv(Doc, Key) ->
+    ccv(Doc, Key, undefined).
+
+-spec ccv(doc(), kz_term:ne_binary(), Default) -> kz_json:json_term() | Default.
+ccv(Doc, Key, Default) ->
+    kz_json:get_value(Key, ccvs(Doc, kz_json:new()), Default).
+
+-spec set_ccv(doc(), kz_term:ne_binary(), kz_json:json_term()) -> doc().
+set_ccv(Doc, Key, Value) ->
+    set_ccvs(Doc, kz_json:set_value(Key, Value, ccvs(Doc, kz_json:new()))).
+
+-spec cshs(doc()) -> kz_term:api_object().
+cshs(Doc) ->
+    cshs(Doc, undefined).
+
+-spec cshs(doc(), Default) -> kz_json:object() | Default.
+cshs(Doc, Default) ->
+    kz_json:get_json_value([<<"custom_channel_vars">>], Doc, Default).
+
+-spec set_cshs(doc(), kz_json:object()) -> doc().
+set_cshs(Doc, cshs) ->
+    kz_json:set_value([<<"custom_channel_vars">>], cshs, Doc).
+
+-spec csh(doc(), kz_term:ne_binary()) -> kz_json:json_term() | undefined.
+csh(Doc, Key) ->
+    csh(Doc, Key, undefined).
+
+-spec csh(doc(), kz_term:ne_binary(), Default) -> kz_json:json_term() | Default.
+csh(Doc, Key, Default) ->
+    kz_json:get_value(Key, cshs(Doc, kz_json:new()), Default).
+
+-spec set_csh(doc(), kz_term:api_ne_binary(), kz_json:json_term()) -> doc().
+set_csh(Doc, Key, Value) ->
+    set_cshs(Doc, kz_json:set_value(Key, Value, cshs(Doc, kz_json:new()))).
+
+-spec custom_sip_interface(doc()) -> kz_term:api_ne_binary().
+custom_sip_interface(Doc) ->
+    custom_sip_interface(Doc, 'undefined').
+
+-spec custom_sip_interface(doc(), Default) -> kz_term:ne_binary() | Default.
+custom_sip_interface(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"custom_sip_interface">>], Doc, Default).
+
+-spec set_custom_sip_interface(doc(), kz_term:ne_binary()) -> doc().
+set_custom_sip_interface(Doc, Name) ->
+    kz_json:set_value([<<"custom_sip_interface">>], Name, Doc).
