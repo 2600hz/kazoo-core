@@ -11,10 +11,14 @@
 
 -export([running_listeners/0]).
 
+-include("kazoo_events.hrl").
+
 -spec running_listeners() -> 'ok'.
 running_listeners() ->
-    Listeners = [Pid || {_, Pid, _, _} <- supervisor:which_children(kz_event_listeners_sup)],
+    Listeners = kz_event_listeners_sup:running_listeners(),
+    io:format("~-15s | ~s~n", ["Event Type","Supervisor"]),
     lists:foreach(fun print_listener/1, Listeners).
 
-print_listener(Listener) ->
-    io:format("~p~n", [Listener]).
+-spec print_listener({pid(), event_type()}) -> 'ok'.
+print_listener({Pid, EventType}) ->
+    io:format("~-15s | ~p~n", [EventType, Pid]).

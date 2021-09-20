@@ -12,7 +12,7 @@
 
 -define(KZ_CALL_EVENTS_EXCHANGE, list_to_binary(["kz_events_", kz_term:to_binary(node())])).
 
--type event_type() :: 'call_events'.
+-type event_type() :: 'call_events' | 'presence'.
 
 -define(KAZOO_EVENTS_HRL, 'true').
 -endif.

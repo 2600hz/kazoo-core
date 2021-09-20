@@ -6,6 +6,11 @@ For instance, call events are used by many apps, each of which may be running on
 
 This limits using up AMQP channels, which have a hard-coded limit of 2047, by allowing apps to not instantiate dynamic `gen_listener` processes (say per-call or per-agent) which would approach the limit.
 
+## Event bindings
+
+There are two event bindings currently: call events and presence (updates and dialog events).
+
+
 ## Erlang Architecture
 
 ### Runtime

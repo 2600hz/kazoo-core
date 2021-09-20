@@ -18,7 +18,7 @@
 -export([start_link/1
         ,start_workers/1
         ,stop_workers/1
-        ,server_name/1
+        ,server_name/1, event_type/1
         ]).
 -export([init/1]).
 
@@ -46,6 +46,21 @@ handle_started(Error) -> Error.
 -spec server_name(event_type()) -> atom().
 server_name(Name) ->
     kz_term:to_atom(?MODULE_STRING ++ [$_ | kz_term:to_list(Name)], 'true').
+
+-spec event_type(pid() | atom()) -> event_type() | 'undefined'.
+event_type(Pid) when is_pid(Pid) ->
+    event_type_from_pid(process_info(Pid, ['registered_name']));
+event_type(RegisteredName) when is_atom(RegisteredName) ->
+    event_type_from_binary(kz_term:to_binary(RegisteredName)).
+
+event_type_from_pid('undefined') ->
+    'undefined';
+event_type_from_pid([{'registered_name', Name}]) ->
+    event_type(Name).
+
+event_type_from_binary(<<?MODULE_STRING, $_, Event/binary>>) ->
+    kz_term:to_atom(Event);
+event_type_from_binary(_Name) -> 'undefined'.
 
 %% ===================================================================
 %% Supervisor callbacks

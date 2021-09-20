@@ -19,6 +19,8 @@
         ,start_pool/1
         ,stop_pool/1
         ,pool_exists/1
+
+        ,running_listeners/0
         ]).
 -export([init/1]).
 
@@ -35,6 +37,12 @@
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
     supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
+
+-spec running_listeners() -> [{pid(), event_type()}].
+running_listeners() ->
+    [{Pid, kz_event_listener_sup:event_type(Pid)}
+     || {_, Pid, _, _} <- supervisor:which_children('kz_event_listeners_sup')
+    ].
 
 %% ===================================================================
 %% Supervisor callbacks

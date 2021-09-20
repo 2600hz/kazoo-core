@@ -646,7 +646,7 @@ publish_event(Event, ContentType) when is_list(Event) ->
     kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))(EventName, CallId)
                                 ,Payload
                                 ,ContentType
-                                ,[{'headers', [{<<"call-id">>, binary, CallId}]}]
+                                ,[{'headers', [{<<"call-id">>, 'binary', CallId}]}]
                                 );
 publish_event(Event, ContentType) ->
     publish_event(kz_json:to_proplist(Event), ContentType).
