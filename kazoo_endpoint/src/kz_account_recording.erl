@@ -25,7 +25,13 @@
 -spec maybe_record_inbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
           {'true', kapps_call:call()} | 'false'.
 maybe_record_inbound(FromNetwork, Endpoint, Call) ->
-    maybe_record_inbound(FromNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_INBOUND_RECORDING(FromNetwork), Endpoint)).
+    case kapps_call:is_recording(Call) of
+        'true' ->
+            lager:debug("from: ~s endpoint: ~s this call is already being recorded", [FromNetwork, kzd_endpoint:id(Endpoint)]),
+            'false';
+        _ ->
+            maybe_record_inbound(FromNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_INBOUND_RECORDING(FromNetwork), Endpoint))
+    end.
 
 -spec maybe_record_inbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call(), kz_term:api_object()) ->
           {'true', kapps_call:call()} | 'false'.
@@ -44,7 +50,13 @@ maybe_record_inbound(FromNetwork, _Endpoint, Call, Data) ->
 -spec maybe_record_outbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
           {'true', kapps_call:call()} | 'false'.
 maybe_record_outbound(ToNetwork, Endpoint, Call) ->
-    maybe_record_outbound(ToNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_OUTBOUND_RECORDING(ToNetwork), Endpoint)).
+    case kapps_call:is_recording(Call) of
+        'true' ->
+            lager:debug("to: ~s endpoint: ~s this call is already being recorded", [ToNetwork, kzd_endpoint:id(Endpoint)]),
+            'false';
+        _ ->
+            maybe_record_outbound(ToNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_OUTBOUND_RECORDING(ToNetwork), Endpoint))
+    end.
 
 -spec maybe_record_outbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call(), kz_term:api_object()) ->
           {'true', kapps_call:call()} | 'false'.

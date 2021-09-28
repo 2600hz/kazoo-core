@@ -1658,6 +1658,9 @@ start_recording(Call) ->
 
 -spec start_recording(kz_term:api_object(), call()) -> call().
 start_recording('undefined', Call) -> Call;
+start_recording(Data0, #kapps_call{is_recording='true'}=Call) ->
+    lager:debug("call is already being recorded ~p", [Data0]),
+    Call;
 start_recording(Data0, Call) ->
     Data = update_recording_id(Data0),
     Command = kapps_call_recording:record_call_command(Data, Call),
