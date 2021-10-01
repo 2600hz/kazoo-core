@@ -10,7 +10,6 @@ This limits using up AMQP channels, which have a hard-coded limit of 2047, by al
 
 There are two event bindings currently: call events and presence (updates and dialog events).
 
-
 ## Erlang Architecture
 
 ### Runtime
@@ -29,3 +28,28 @@ kazoo_events_sup
 Simple supervisor tree where the `kz_event_listeners_sup` starts as a SOFO supervisor with `kz_event_listener_sup` as its childspec. Once a KAZOO app (or process) uses a `kz_events:bind*` function, the `kz_events_listeners_sup` will start a `kz_event_listener_sup` supervisor to then start the `gen_listener` pool.
 
 Apps can programmatically start the pool of listeners at startup as well.
+
+### Worker count
+
+You can configure how many `gen_listener` workers are started in two ways: per-event-type or single default count. Check the `kazoo_events` `system_config` document:
+
+```json
+%% default count
+{"_id":"kazoo_events"
+ ,"default":{
+   "event_listeners":5
+ }
+}
+
+%% per-event-type count
+{"_id":"kazoo_events"
+ ,"default":{
+   "call_events":{
+     "event_listeners":5
+   }
+   ,"presences":{
+     "event_listeners":5
+   }
+ }
+}
+```
