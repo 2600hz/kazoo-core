@@ -144,7 +144,7 @@ bindings('call_events') ->
      }
     ];
 bindings('presence') ->
-    UpdateRoutingKey = kapi_presence:dialog_routing_key(<<"*">>, <<"*">>),
+    UpdateRoutingKey = kapi_presence:update_routing_key(<<"*">>, <<"*">>),
     DialogRoutingKey = kapi_presence:dialog_routing_key(<<"*">>, <<"*">>),
 
     [{'bind', [{'exchange', [{'name', ?KZ_CALL_EVENTS_EXCHANGE}
