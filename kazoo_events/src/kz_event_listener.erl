@@ -147,7 +147,7 @@ bindings('presence') ->
     UpdateRoutingKey = kapi_presence:update_routing_key(<<"*">>, <<"*">>),
     DialogRoutingKey = kapi_presence:dialog_routing_key(<<"*">>, <<"*">>),
 
-    [{'bind', [{'exchange', [{'name', ?KZ_CALL_EVENTS_EXCHANGE}
+    [{'bind', [{'exchange', [{'name', ?KZ_PRESENCE_EVENTS_EXCHANGE}
                             ,{'type', <<"x-consistent-hash">>}
                             ,{'options', [{'auto_delete', 'true'}
                                          ,{'arguments', [{<<"hash-header">>, 'longstr', <<"presence-id">>}]}
