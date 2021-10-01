@@ -259,7 +259,8 @@ fetch_value(App, Key, Fun) ->
     end.
 
 get_env(App, [Key | Keys]) ->
-    case application:get_env(App, kz_term:to_atom(Key, 'true')) of
+    AppAtom = kz_term:to_atom(App),
+    case application:get_env(AppAtom, kz_term:to_atom(Key, 'true')) of
         'undefined' -> io:format("nothing at ~p in env~n", [Key]), 'undefined';
         {'ok', Value} -> get_value(Value, Keys)
     end.
