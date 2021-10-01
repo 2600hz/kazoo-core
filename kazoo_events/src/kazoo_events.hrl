@@ -10,7 +10,9 @@
 -define(APP, 'kazoo_events').
 -define(CONFIG_CAT, <<"kazoo_events">>).
 
--define(KZ_CALL_EVENTS_EXCHANGE, list_to_binary(["kz_events_", kz_term:to_binary(node())])).
+-define(KZ_EXCHANGE(Name), list_to_binary(["kz_", Name, "_", kz_term:to_binary(node())])).
+-define(KZ_CALL_EVENTS_EXCHANGE, ?KZ_EXCHANGE("call_events")).
+-define(KZ_PRESENCE_EVENTS_EXCHANGE, ?KZ_EXCHANGE("presence")).
 
 -type event_type() :: 'call_events' | 'presence'.
 
