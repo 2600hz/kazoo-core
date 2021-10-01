@@ -18,6 +18,7 @@
 -export([start_link/1
         ,start_workers/1
         ,stop_workers/1
+        ,workers/1
         ,server_name/1, event_type/1
         ]).
 -export([init/1]).
@@ -82,12 +83,28 @@ init([Name]) ->
     lager:info("starting for pool ~p", [Name]),
     {'ok', {SupFlags, ?CHILDREN(Name)}}.
 
+-spec workers(pid()) -> [pid()].
+workers(Super) ->
+    [W || {_, W, _, _} <- supervisor:which_children(Super)].
+
 -spec start_workers(pid()) -> 'ok'.
 start_workers(Super) ->
-    Workers = kz_app_config:get_integer(?APP, <<"event_listeners">>, 5),
+    EventType = event_type(Super),
+
+    Workers = worker_count(EventType),
+
     lager:info("starting ~p workers", [Workers]),
     {Pid, Ref} = kz_process:spawn_monitor(fun start_workers/2, [Super, Workers]),
     wait_for_workers(Pid, Ref).
+
+worker_count(EventType) ->
+    case kz_app_config:get_integer(?APP, [kz_term:to_binary(EventType), <<"event_listeners">>]) of
+        'undefined' -> default_worker_count();
+        Count -> Count
+    end.
+
+default_worker_count() ->
+    kz_app_config:get_integer(?APP, <<"event_listeners">>, 5).
 
 wait_for_workers(Pid, Ref) ->
     receive
