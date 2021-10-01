@@ -28,7 +28,7 @@
 
 -compile({no_auto_import, [get/1]}).
 
--type app() :: atom().
+-type app() :: atom() | kz_term:ne_binary().
 -type app_key() :: binary() | kz_term:binaries().
 
 -spec get_pos_integer(app(), app_key()) -> kz_term:api_pos_integer().
@@ -201,7 +201,7 @@ is_false(App, Key) ->
 is_false(App, Key, Default) ->
     get_is_false(App, Key, Default).
 
--spec get(atom(), app_key()) -> 'undefined' | {'ok', any()}.
+-spec get(app(), app_key()) -> 'undefined' | {'ok', any()}.
 get(App, <<_/binary>>=Key) ->
     get(App, binary:split(Key, <<".">>, ['global']));
 get(App, Keys) ->
@@ -244,8 +244,8 @@ as_boolean(Value, _Default)
   when is_boolean(Value) -> Value;
 as_boolean(_Value, Default) -> Default.
 
--spec fetch_value(atom(), app_key()) -> 'undefined' | {'ok', term()}.
-fetch_value(App, Key) ->
+-spec fetch_value(app(), app_key()) -> 'undefined' | {'ok', term()}.
+fetch_value(App, Key) when is_atom(App) ->
     %% default getter is to fetch Key from the app's environment
     Default = persistent_term:get('kz_config', fun get_env/2),
     Fun = persistent_term:get({'kz_config', App}, Default),
