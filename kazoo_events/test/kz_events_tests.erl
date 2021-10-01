@@ -1,7 +1,8 @@
 -module(kz_events_tests).
 
--include_lib("eunit/include/eunit.hrl").
+-export([do_test/0]).
 
+-spec do_test() -> 'ok'.
 do_test() ->
     {'ok', _} = application:ensure_all_started('kazoo_events'),
 
