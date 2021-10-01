@@ -5,6 +5,7 @@
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%%
+%%% @doc Fetches config values from the Erlang application's environment
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kz_app_config).
@@ -25,7 +26,7 @@
 -export([get_ne_binary/2, get_ne_binary/3]).
 -export([get_ne_binaries/2, get_ne_binaries/3]).
 
--compile({no_auto_import,[get/1]}).
+-compile({no_auto_import, [get/1]}).
 
 -type app() :: atom().
 -type app_key() :: binary() | kz_term:binaries().
@@ -107,8 +108,8 @@ get_ne_binary(App, Key, Default) ->
         'undefined' -> Default;
         {'ok', Value} ->
             case kz_term:is_ne_binary(Value) of
-                true -> Value;
-                false -> Default
+                'true' -> Value;
+                'false' -> Default
             end
     end.
 
@@ -122,8 +123,8 @@ get_ne_binaries(App, Key, Default) ->
         'undefined' -> Default;
         {'ok', Value} ->
             case kz_term:is_ne_binaries(Value) of
-                true -> Value;
-                false -> Default
+                'true' -> Value;
+                'false' -> Default
             end
     end.
 
@@ -202,11 +203,11 @@ is_false(App, Key, Default) ->
 
 -spec get(atom(), app_key()) -> 'undefined' | {'ok', any()}.
 get(App, <<_/binary>>=Key) ->
-    get(App, binary:split(Key, <<".">>, [global]));
+    get(App, binary:split(Key, <<".">>, ['global']));
 get(App, Keys) ->
     case kz_term:is_ne_binaries(Keys) of
-        true -> fetch_value(App, Keys);
-        false -> undefined
+        'true' -> fetch_value(App, Keys);
+        'false' -> 'undefined'
     end.
 
 -spec as_integer(any(), Default, fun((integer()) -> boolean())) -> integer() | Default.
@@ -243,29 +244,30 @@ as_boolean(Value, _Default)
   when is_boolean(Value) -> Value;
 as_boolean(_Value, Default) -> Default.
 
--spec fetch_value(atom(), app_key()) -> undefined | {ok, term()}.
+-spec fetch_value(atom(), app_key()) -> 'undefined' | {'ok', term()}.
 fetch_value(App, Key) ->
-    Default = persistent_term:get(kz_config, fun get_env/2),
-    Fun = persistent_term:get({kz_config, App}, Default),
+    %% default getter is to fetch Key from the app's environment
+    Default = persistent_term:get('kz_config', fun get_env/2),
+    Fun = persistent_term:get({'kz_config', App}, Default),
     fetch_value(App, Key, Fun).
 
 fetch_value(App, Key, Fun) ->
     case Fun(App, Key) of
-        undefined -> undefined;
-        {ok, Value} -> {ok, Value};
-        Value -> {ok, Value}
+        'undefined' -> io:format("nothing at ~p in ~p~n", [Key, Fun]), 'undefined';
+        {'ok', Value} -> {'ok', Value};
+        Value -> {'ok', Value}
     end.
 
 get_env(App, [Key | Keys]) ->
     case application:get_env(App, kz_term:to_atom(Key, 'true')) of
-        undefined -> undefined;
-        {ok, Value} -> get_value(Value, Keys)
+        'undefined' -> io:format("nothing at ~p in env~n", [Key]), 'undefined';
+        {'ok', Value} -> get_value(Value, Keys)
     end.
 
-get_value(Value, []) -> {ok, Value};
+get_value(Value, []) -> {'ok', Value};
 get_value([{_, _} | _] = Value, [Key | Keys]) ->
     case props:get_value(Key, Value) of
-        undefined -> undefined;
+        'undefined' -> 'undefined';
         V -> get_value(V, Keys)
     end;
-get_value(_NotList, _) -> undefined.
+get_value(_NotList, _) -> 'undefined'.
