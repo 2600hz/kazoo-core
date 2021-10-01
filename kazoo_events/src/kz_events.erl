@@ -45,9 +45,8 @@ call_event_binding(CallId) ->
 %% @doc starts pool of listeners for call events
 -spec start_call_events() -> 'ok'.
 start_call_events() ->
-    {'ok', Pid} = kz_event_listeners_sup:start_pool('call_events'),
-    Ref = erlang:monitor('process', Pid),
-    wait_for_workers(Pid, Ref).
+    {'ok', _Pid} = kz_event_listeners_sup:start_pool('call_events'),
+    'ok'.
 
 maybe_start_call_events() ->
     case kz_event_listeners_sup:pool_exists('call_events') of
@@ -58,11 +57,13 @@ maybe_start_call_events() ->
 -spec bind_call_id(kz_term:ne_binary()) -> 'ok'.
 bind_call_id(CallId) ->
     maybe_start_call_events(),
-    reg_property(call_event_binding(CallId), self()).
+    reg_property(call_event_binding(CallId), self()),
+    'ok'.
 
 -spec unbind_call_id(kz_term:ne_binary()) -> 'ok'.
 unbind_call_id(CallId) ->
-    unreg_property(call_event_binding(CallId)).
+    unreg_property(call_event_binding(CallId)),
+    'ok'.
 
 -spec presence_event_binding(presence_id()) -> binding_presence_id().
 presence_event_binding(PresenceId) ->
@@ -71,9 +72,8 @@ presence_event_binding(PresenceId) ->
 %% @doc starts pool of listeners for call events
 -spec start_presence_events() -> 'ok'.
 start_presence_events() ->
-    {'ok', Pid} = kz_event_listeners_sup:start_pool('presence'),
-    Ref = erlang:monitor('process', Pid),
-    wait_for_workers(Pid, Ref).
+    {'ok', _} = kz_event_listeners_sup:start_pool('presence'),
+    'ok'.
 
 maybe_start_presence() ->
     case kz_event_listeners_sup:pool_exists('presence') of
@@ -84,25 +84,21 @@ maybe_start_presence() ->
 -spec bind_presence_id(kz_term:ne_binary()) -> 'ok'.
 bind_presence_id(PresenceId) ->
     maybe_start_presence(),
-    reg_property(presence_event_binding(PresenceId), self()).
+    reg_property(presence_event_binding(PresenceId), self()),
+    'ok'.
 
 -spec unbind_presence_id(kz_term:ne_binary()) -> 'ok'.
 unbind_presence_id(PresenceId) ->
-    unreg_property(presence_event_binding(PresenceId)).
-
-wait_for_workers(Pid, Ref) ->
-    receive
-        {'DOWN', Ref, 'process', Pid, 'normal'} -> 'ok';
-        {'DOWN', Ref, 'process', Pid, _Reason} ->
-            lager:info("worker init ~p died with reason ~p", [Pid, _Reason])
-    after
-        5 * ?MILLISECONDS_IN_SECOND ->
-            lager:info("timed out waiting for worker init in ~p", [Pid])
-    end.
+    unreg_property(presence_event_binding(PresenceId)),
+    'ok'.
 
 -spec publish_event(kz_json:object(), kz_term:proplist(), event_type()) -> 'ok'.
 publish_event(JObj, Props, 'call_events') ->
     Binding = call_event_binding(kz_call_event:call_id(JObj)),
+    _ = send_event(Binding, {'kapi', kapi:delivery_message(JObj, Props)}),
+    'ok';
+publish_event(JObj, Props, 'presence') ->
+    Binding = presence_event_binding(kz_json:get_ne_binary_value(<<"Presence-ID">>, JObj)),
     _ = send_event(Binding, {'kapi', kapi:delivery_message(JObj, Props)}),
     'ok'.
 
