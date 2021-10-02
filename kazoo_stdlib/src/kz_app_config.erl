@@ -253,7 +253,7 @@ fetch_value(App, Key) when is_atom(App) ->
 
 fetch_value(App, Key, Fun) ->
     case Fun(App, Key) of
-        'undefined' -> io:format("nothing at ~p in ~p~n", [Key, Fun]), 'undefined';
+        'undefined' -> 'undefined';
         {'ok', Value} -> {'ok', Value};
         Value -> {'ok', Value}
     end.
