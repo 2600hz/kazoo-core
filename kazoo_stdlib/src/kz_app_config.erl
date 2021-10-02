@@ -245,7 +245,7 @@ as_boolean(Value, _Default)
 as_boolean(_Value, Default) -> Default.
 
 -spec fetch_value(app(), app_key()) -> 'undefined' | {'ok', term()}.
-fetch_value(App, Key) when is_atom(App) ->
+fetch_value(App, Key) ->
     %% default getter is to fetch Key from the app's environment
     Default = persistent_term:get('kz_config', fun get_env/2),
     Fun = persistent_term:get({'kz_config', App}, Default),
