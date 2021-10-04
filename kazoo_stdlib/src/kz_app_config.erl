@@ -28,7 +28,7 @@
 
 -compile({no_auto_import, [get/1]}).
 
--type app() :: atom() | kz_term:ne_binary().
+-type app() :: atom().
 -type app_key() :: binary() | kz_term:binaries().
 
 -spec get_pos_integer(app(), app_key()) -> kz_term:api_pos_integer().
