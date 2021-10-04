@@ -32,7 +32,7 @@ wait_for_events({CallId, _, 0}
                ,{PresenceId, _, 0}
                ) ->
     io:format(user, "done for call ~s and presence ~s~n", [CallId, PresenceId]),
-    ?assert('true');
+    'true';
 wait_for_events({CallId, {CPid, CRef}=PidRefCallIds, CallCount}=C
                ,{PresenceId, {PPid, PRef}=PidRefPresenceIds, PresCount}=P
                ) ->
@@ -64,13 +64,13 @@ wait_for_events({CallId, {CPid, CRef}=PidRefCallIds, CallCount}=C
             wait_for_events(C, P)
     after 1000 ->
             io:format(user, "timed out:~n~p~n~p~n", [C, P]),
-            ?assert('false')
+            'false'
     end.
 
 handle_call_event(CallId, PidRef, Count, Event) ->
     case kz_call_event:call_id(Event) of
         CallId ->
-            ?assertEqual(Count, kz_term:to_integer(kz_api:app_version(Event))),
+            Count = kz_term:to_integer(kz_api:app_version(Event)),
             {CallId, PidRef, Count-1};
         _OtherCallId ->
             {CallId, PidRef, Count}
@@ -79,7 +79,7 @@ handle_call_event(CallId, PidRef, Count, Event) ->
 handle_presence_event(PresenceId, PidRef, Count, Event) ->
     case kz_json:get_ne_binary_value(<<"Presence-ID">>, Event) of
         PresenceId ->
-            ?assertEqual(Count, kz_term:to_integer(kz_api:app_version(Event))),
+            Count = kz_term:to_integer(kz_api:app_version(Event)),
             {PresenceId, PidRef, Count-1};
         _OtherPresenceId ->
             {PresenceId, PidRef, Count}
