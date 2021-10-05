@@ -1,9 +1,9 @@
 -module(kz_events_tests).
 
--export([do_test/0]).
+-export([check_events/0]).
 
--spec do_test() -> 'ok'.
-do_test() ->
+-spec check_events() -> 'ok'.
+check_events() ->
     {'ok', _} = application:ensure_all_started('kazoo_events'),
 
     CallId = kz_binary:rand_hex(6),
