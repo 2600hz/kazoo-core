@@ -22,6 +22,7 @@
         ,code_change/3
         ]).
 
+-include("kz_amqp.hrl").
 -include("kazoo_events.hrl").
 
 -type state() :: event_type().

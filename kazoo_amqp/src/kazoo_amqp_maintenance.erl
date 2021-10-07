@@ -28,7 +28,10 @@
 
 -export([gc_pool/1]).
 
+-export([event_pools/0]).
+
 -include("kz_amqp_util.hrl").
+-include("kazoo_events.hrl").
 
 -define(ASSIGNMENTS, 'kz_amqp_assignments').
 -define(CONNECTIONS, 'kz_amqp_connections').
@@ -576,4 +579,20 @@ print_gc_result({W, Diff, Before, After}) ->
               ,kz_term:pretty_print_bytes(kz_term:words_to_bytes(Before), 'truncated')
               ,kz_term:pretty_print_bytes(kz_term:words_to_bytes(After), 'truncated')
               ]
+             ).
+
+-define(FMT_LISTENER, "~-15s | ~-12s | ~s~n").
+
+-spec event_pools() -> 'ok'.
+event_pools() ->
+    Listeners = kz_event_listeners_sup:running_listeners(),
+    io:format(?FMT_LISTENER, ["Event Type","Supervisor", "Worker PIDs"]),
+    lists:foreach(fun print_listener/1, Listeners).
+
+-spec print_listener({pid(), event_type()}) -> 'ok'.
+print_listener({Pid, EventType}) ->
+    Workers = kz_event_listener_sup:workers(Pid),
+    WorkersBin = kz_binary:join(Workers),
+    io:format(?FMT_LISTENER
+             ,[EventType, kz_term:to_binary(Pid), WorkersBin]
              ).

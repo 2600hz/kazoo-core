@@ -1,4 +1,4 @@
-# Kazoo Events
+# KAZOO AMQP Event Pools
 
 Provides a way for the KAZOO node to bind for common AMQP events and distribute locally versus every app or process bindings for them.
 

@@ -38,6 +38,7 @@
                   ,?SUPER('kz_amqp_federated_listeners_sup')
                   ,?WORKER('kz_amqp_assignments')
                   ,?WORKER('kz_amqp_bootstrap')
+                  ,?SUPER('kazoo_events_sup')
                   ]).
 
 %%==============================================================================
