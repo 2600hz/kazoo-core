@@ -142,4 +142,30 @@ bindings('call_events') ->
               ,{'routing', <<"20">>}
               ]
      }
+    ];
+bindings('presence') ->
+    UpdateRoutingKey = kapi_presence:update_routing_key(<<"*">>, <<"*">>),
+    DialogRoutingKey = kapi_presence:dialog_routing_key(<<"*">>, <<"*">>),
+
+    [{'bind', [{'exchange', [{'name', ?KZ_PRESENCE_EVENTS_EXCHANGE}
+                            ,{'type', <<"x-consistent-hash">>}
+                            ,{'options', [{'auto_delete', 'true'}
+                                         ,{'arguments', [{<<"hash-header">>, 'longstr', <<"presence-id">>}]}
+                                         ]
+                             }
+                            ,{'bindings', [{'presence', [{'source', ?EXCHANGE_PRESENCE}
+                                                        ,{'routing', UpdateRoutingKey} % presence updates
+                                                        ]
+                                           }
+                                          ,{'presence', [{'source', ?EXCHANGE_PRESENCE}
+                                                        ,{'routing', DialogRoutingKey} % dialog updates
+                                                        ]
+                                           }
+                                          ]
+                             }
+                            ]
+               }
+              ,{'routing', <<"20">>}
+              ]
+     }
     ].
