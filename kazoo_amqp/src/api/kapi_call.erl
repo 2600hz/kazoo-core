@@ -1014,7 +1014,16 @@ publish_usurp_publisher(CallId, JObj, ContentType) ->
 bind_q(Queue, Props) ->
     CallId = props:get_value('callid', Props, <<"*">>),
     Events = props:get_value('restrict_to', Props, [<<"*">>]),
-    bind_q(Queue, Events, CallId).
+    maybe_bind_q(Queue, Events, CallId, props:is_true('pooled', Props, 'false')).
+
+maybe_bind_q(Queue, Events, CallId, 'false') ->
+    bind_q(Queue, Events, CallId);
+maybe_bind_q(_Queue, <<"*">>, CallId, 'true') ->
+    lager:info("using pooled events for call ~s", [CallId]),
+    kz_events:bind_call_id(CallId);
+maybe_bind_q(_Queue, _Events, _CallId, 'true') ->
+    lager:error("using the pooled flag with an events filter is not allowed"),
+    throw({'error', 'badarg'}).
 
 bind_q(Q, [Event|T], CallId) ->
     _ = kz_amqp_util:bind_q_to_callevt(Q, call_routing_key(Event, CallId)),
@@ -1025,7 +1034,13 @@ bind_q(_Q, [], _CallId) -> 'ok'.
 unbind_q(Queue, Props) ->
     CallId = props:get_value('callid', Props, <<"*">>),
     Events = props:get_value('restrict_to', Props, [<<"*">>]),
-    unbind_q(Queue, Events, CallId).
+    maybe_unbind_q(Queue, Events, CallId, props:is_true('pooled', Props, 'false')).
+
+maybe_unbind_q(Queue, Events, CallId, 'false') ->
+    unbind_q(Queue, Events, CallId);
+maybe_unbind_q(_Queue, <<"*">>, CallId, 'true') ->
+    lager:info("removing from pooled events for ~s", [CallId]),
+    kz_events:unbind_call_id(CallId).
 
 unbind_q(Q, [Event|T], CallId) ->
     _ = kz_amqp_util:unbind_q_from_callevt(Q, call_routing_key(Event, CallId)),
