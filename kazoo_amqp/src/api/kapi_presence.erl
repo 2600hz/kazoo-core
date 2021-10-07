@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -80,7 +80,10 @@
         ,publish_reset/1
         ]).
 
--export([subscribe_routing_key/1]).
+-export([subscribe_routing_key/1
+        ,dialog_routing_key/2
+        ,update_routing_key/2
+        ]).
 -export([presence_states/0]).
 
 -export([bind_q/2
@@ -98,8 +101,6 @@
 
 -ifdef(TEST).
 -export([search_req_routing_key/1
-        ,dialog_routing_key/2
-        ,update_routing_key/2
         ,probe_routing_key/1
         ,mwi_update_routing_key/2
         ,mwi_unsolicited_update_routing_key/1
@@ -718,15 +719,18 @@ publish_dialog(JObj) ->
 
 -spec publish_dialog(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_dialog(Req, ContentType) ->
+    PresenceId = get_value(<<"Presence-ID">>, Req),
     Definition = dialog_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(Req
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     RoutingKey = (kapi_definition:binding(Definition))(get_value(<<"Call-ID">>, Req)
-                                                      ,get_value(<<"Presence-ID">>, Req)
+                                                      ,PresenceId
                                                       ),
-    kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType).
+    kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType
+                                 ,[{'headers', [{<<"presence-id">>, 'binary', PresenceId}]}]
+                                 ).
 
 -spec dialog_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
 dialog_routing_key(CallId, PresenceID) ->
@@ -754,15 +758,19 @@ publish_update(JObj) ->
 
 -spec publish_update(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_update(Req, ContentType) ->
+    PresenceId = get_value(<<"Presence-ID">>, Req),
+
     Definition = update_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(Req
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     RoutingKey = (kapi_definition:binding(Definition))(get_value(<<"Call-ID">>, Req)
-                                                      ,get_value(<<"Presence-ID">>, Req)
+                                                      ,PresenceId
                                                       ),
-    kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType).
+    kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType
+                                 ,[{'headers', [{<<"presence-id">>, 'binary', PresenceId}]}]
+                                 ).
 
 -spec update_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
 update_routing_key(CallId, PresenceID) ->

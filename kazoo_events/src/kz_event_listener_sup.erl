@@ -18,7 +18,8 @@
 -export([start_link/1
         ,start_workers/1
         ,stop_workers/1
-        ,server_name/1
+        ,workers/1
+        ,server_name/1, event_type/1
         ]).
 -export([init/1]).
 
@@ -47,6 +48,21 @@ handle_started(Error) -> Error.
 server_name(Name) ->
     kz_term:to_atom(?MODULE_STRING ++ [$_ | kz_term:to_list(Name)], 'true').
 
+-spec event_type(pid() | atom()) -> event_type() | 'undefined'.
+event_type(Pid) when is_pid(Pid) ->
+    event_type_from_pid(process_info(Pid, ['registered_name']));
+event_type(RegisteredName) when is_atom(RegisteredName) ->
+    event_type_from_binary(kz_term:to_binary(RegisteredName)).
+
+event_type_from_pid('undefined') ->
+    'undefined';
+event_type_from_pid([{'registered_name', Name}]) ->
+    event_type(Name).
+
+event_type_from_binary(<<?MODULE_STRING, $_, Event/binary>>) ->
+    kz_term:to_atom(Event);
+event_type_from_binary(_Name) -> 'undefined'.
+
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
@@ -67,12 +83,28 @@ init([Name]) ->
     lager:info("starting for pool ~p", [Name]),
     {'ok', {SupFlags, ?CHILDREN(Name)}}.
 
+-spec workers(pid()) -> [pid()].
+workers(Super) ->
+    [W || {_, W, _, _} <- supervisor:which_children(Super)].
+
 -spec start_workers(pid()) -> 'ok'.
 start_workers(Super) ->
-    Workers = kz_app_config:get_integer(?APP, <<"event_listeners">>, 5),
+    EventType = event_type(Super),
+
+    Workers = worker_count(EventType),
+
     lager:info("starting ~p workers", [Workers]),
     {Pid, Ref} = kz_process:spawn_monitor(fun start_workers/2, [Super, Workers]),
     wait_for_workers(Pid, Ref).
+
+worker_count(EventType) ->
+    case kz_app_config:get_integer(?APP, [kz_term:to_binary(EventType), <<"event_listeners">>]) of
+        'undefined' -> default_worker_count();
+        Count -> Count
+    end.
+
+default_worker_count() ->
+    kz_app_config:get_integer(?APP, <<"event_listeners">>, 5).
 
 wait_for_workers(Pid, Ref) ->
     receive

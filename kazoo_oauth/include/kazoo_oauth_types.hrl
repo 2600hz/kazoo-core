@@ -36,7 +36,7 @@
                            ,email :: kz_term:ne_binary()
                            ,public_key_fingerprints :: kz_term:ne_binary()
                            ,public_key :: any()
-                           ,private_key :: public_key:private_key()
+                           ,private_key :: public_key:private_key() | 'undefined'
                            ,provider :: oauth_provider()
                            }).
 -type oauth_service_app() :: #oauth_service_app{}.

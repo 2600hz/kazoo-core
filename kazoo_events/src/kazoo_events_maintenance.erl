@@ -11,10 +11,20 @@
 
 -export([running_listeners/0]).
 
+-include("kazoo_events.hrl").
+
+-define(FMT_LISTENER, "~-15s | ~-12s | ~s~n").
+
 -spec running_listeners() -> 'ok'.
 running_listeners() ->
-    Listeners = [Pid || {_, Pid, _, _} <- supervisor:which_children(kz_event_listeners_sup)],
+    Listeners = kz_event_listeners_sup:running_listeners(),
+    io:format(?FMT_LISTENER, ["Event Type","Supervisor", "Worker PIDs"]),
     lists:foreach(fun print_listener/1, Listeners).
 
-print_listener(Listener) ->
-    io:format("~p~n", [Listener]).
+-spec print_listener({pid(), event_type()}) -> 'ok'.
+print_listener({Pid, EventType}) ->
+    Workers = kz_event_listener_sup:workers(Pid),
+    WorkersBin = kz_binary:join(Workers),
+    io:format(?FMT_LISTENER
+             ,[EventType, kz_term:to_binary(Pid), WorkersBin]
+             ).
