@@ -1018,7 +1018,7 @@ bind_q(Queue, Props) ->
 
 maybe_bind_q(Queue, Events, CallId, 'false') ->
     bind_q(Queue, Events, CallId);
-maybe_bind_q(_Queue, <<"*">>, CallId, 'true') ->
+maybe_bind_q(_Queue, [<<"*">>], CallId, 'true') ->
     lager:info("using pooled events for call ~s", [CallId]),
     kz_events:bind_call_id(CallId);
 maybe_bind_q(_Queue, _Events, _CallId, 'true') ->
