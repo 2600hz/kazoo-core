@@ -164,7 +164,7 @@ presence_bindings() ->
 
 presence_binding(API, Acc) ->
     RKFun = kz_term:to_atom(list_to_binary([kz_term:to_binary(API), "_routing_key"])),
-    RK = RKFun(<<"*">>, <<"*">>),
+    RK = kapi_presence:RKFun(<<"*">>, <<"*">>),
 
     [{'presence', [{'source', ?EXCHANGE_PRESENCE}
                   ,{'routing', RK}
