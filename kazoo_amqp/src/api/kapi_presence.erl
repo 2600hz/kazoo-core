@@ -1076,7 +1076,11 @@ maybe_bind_q(Queue, RestrictTo, Props, 'false') ->
 maybe_bind_q(Queue, RestrictTo, Props, 'true') when is_list(RestrictTo) ->
     PresenceId = props:get_value('presence-id', Props),
     kz_events:bind_presence_id(PresenceId),
-    bind_q(Queue, RestrictTo -- pooled_apis(), Props).
+    bind_q(Queue, RestrictTo -- pooled_apis(), Props);
+maybe_bind_q(_Queue, 'undefined', Props, 'true') ->
+    PresenceId = props:get_value('presence-id', Props),
+    lager:info("binding for pooled presence events only for ~s", [PresenceId]),
+    kz_events:bind_presence_id(PresenceId).
 
 -spec bind_q(kz_term:ne_binary(), kz_term:api_binaries(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, 'undefined', _) ->
@@ -1157,7 +1161,7 @@ maybe_unbind_q(Queue, RestrictTo, Props, 'true') when is_list(RestrictTo) ->
     kz_events:unbind_presence_id(PresenceId),
     unbind_q(Queue, RestrictTo -- pooled_apis(), Props).
 
--spec unbind_q(kz_term:ne_binary(), kz_term:api_binary(), kz_term:proplist()) -> 'ok'.
+-spec unbind_q(kz_term:ne_binary(), kz_term:api_ne_binaries(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, 'undefined', _) ->
     kz_amqp_util:unbind_q_from_presence(Queue, <<"#">>);
 unbind_q(Queue, ['search_req'|Restrict], Props) ->
