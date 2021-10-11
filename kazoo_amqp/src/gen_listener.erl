@@ -815,6 +815,20 @@ handle_info({'request_timeout', From}, #state{consuming_requests=Requests}=State
     lager:info("timed out waiting for request ~p", [From]),
     _ = reply(From, {'error', 'timeout'}),
     {'noreply', State#state{consuming_requests=lists:keydelete(From, 1, Requests)}};
+handle_info({'kapi'
+            ,{{_Exchange, _RK, {#'P_basic'{content_type=CT
+                                          ,content_encoding=CE
+                                          }=Basic
+                               ,Deliver
+                               }
+              }
+             ,{_EventCategory, _EventName}
+             ,Payload
+             }
+            }
+           ,State
+           ) ->
+    handle_event(Payload, {CT, CE}, {Deliver, Basic}, State);
 handle_info(Message, State) ->
     handle_callback_info(Message, State).
 
@@ -823,22 +837,26 @@ handle_info(Message, State) ->
 %% Allows listeners to pass options to handlers.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_event(kz_term:ne_binary(), content(), deliver(), state()) ->  kz_types:handle_info_ret().
-handle_event(Payload, {<<"application/json">>, <<"gzip">>}, Deliver, State) ->
+-spec handle_event(kz_term:ne_binary() | kz_json:object(), content(), deliver(), state()) ->
+          kz_types:handle_info_ret().
+handle_event(<<Payload/binary>>, {<<"application/json">>, <<"gzip">>}, Deliver, State) ->
     JObj = kz_json:decode(zlib:gunzip(Payload)),
     _ = kz_log:put_callid(JObj),
     distribute_event(JObj, Deliver, State);
-handle_event(Payload, {<<"application/json">>, _}, Deliver, State) ->
+handle_event(<<Payload/binary>>, {<<"application/json">>, _}, Deliver, State) ->
     JObj = kz_json:decode(Payload),
     _ = kz_log:put_callid(JObj),
     distribute_event(JObj, Deliver, State);
-handle_event(Payload,  {<<"application/erlang">>, <<"gzip">>}, Deliver, State) ->
+handle_event(<<Payload/binary>>, {<<"application/erlang">>, <<"gzip">>}, Deliver, State) ->
     JObj = binary_to_term(zlib:gunzip(Payload)),
     _ = kz_log:put_callid(JObj),
     distribute_event(JObj, Deliver, State);
-handle_event(Payload,  {<<"application/erlang">>, _}, Deliver, State) ->
+handle_event(<<Payload/binary>>, {<<"application/erlang">>, _}, Deliver, State) ->
     JObj = binary_to_term(Payload),
     _ = kz_log:put_callid(JObj),
+    distribute_event(JObj, Deliver, State);
+handle_event(JObj, {<<"application/json">>, _}, Deliver, State) ->
+    kz_log:put_callid(JObj),
     distribute_event(JObj, Deliver, State).
 
 %%------------------------------------------------------------------------------
