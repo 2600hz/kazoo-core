@@ -1010,7 +1010,7 @@ publish_usurp_publisher(CallId, JObj, ContentType) ->
                                 ,ContentType
                                 ).
 
--spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, Props) ->
     CallId = props:get_value('callid', Props, <<"*">>),
     Events = props:get_value('restrict_to', Props, [<<"*">>]),
@@ -1030,7 +1030,7 @@ bind_q(Q, [Event|T], CallId) ->
     bind_q(Q, T, CallId);
 bind_q(_Q, [], _CallId) -> 'ok'.
 
--spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec unbind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, Props) ->
     CallId = props:get_value('callid', Props, <<"*">>),
     Events = props:get_value('restrict_to', Props, [<<"*">>]),

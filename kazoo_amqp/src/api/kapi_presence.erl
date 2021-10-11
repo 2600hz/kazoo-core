@@ -1066,7 +1066,7 @@ pooled_apis() ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, Props) ->
     RestrictTo = props:get_value('restrict_to', Props),
     maybe_bind_q(Queue, RestrictTo, Props, props:is_true('pooled', Props, 'false')).
@@ -1149,7 +1149,7 @@ bind_q(Queue, [_|Restrict], Props) ->
     bind_q(Queue, Restrict, Props);
 bind_q(_, [], _) -> 'ok'.
 
--spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec unbind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, Props) ->
     RestrictTo = props:get_value('restrict_to', Props),
     maybe_unbind_q(Queue, RestrictTo, Props, props:is_true('pooled', Props, 'false')).
