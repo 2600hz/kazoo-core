@@ -481,17 +481,17 @@ init([Module, Params, InitArgs]) ->
 -spec init(atom(), kz_term:proplist(), module_state(), kz_term:api_reference()) ->
           {'ok', state()}.
 init(Module, Params, ModuleState, TimeoutRef) ->
-    _ = channel_requisition(Params),
     _ = [add_responder(self(), Mod, Events)
          || {Mod, Events} <- props:get_value('responders', Params, [])
         ],
-    {'ok', #state{module=Module
-                 ,module_state=ModuleState
-                 ,module_timeout_ref=TimeoutRef
-                 ,params=maybe_set_queue_name(Module, Params)
-                 ,handle_event_mfa = listener_utils:responder_mfa(Module, 'handle_event')
-                 ,auto_ack = props:is_true('auto_ack', Params, 'false')
-                 }}.
+    State = #state{module=Module
+                  ,module_state=ModuleState
+                  ,module_timeout_ref=TimeoutRef
+                  ,params=maybe_set_queue_name(Module, Params)
+                  ,handle_event_mfa = listener_utils:responder_mfa(Module, 'handle_event')
+                  ,auto_ack = props:is_true('auto_ack', Params, 'false')
+                  },
+    {'ok', start_initial_bindings(State)}.
 
 -spec maybe_set_queue_name(atom(), kz_term:proplist()) -> kz_term:proplist().
 maybe_set_queue_name(Module, Params) ->
@@ -574,12 +574,6 @@ handle_cast({'rm_responder', Responder, Keys}, #state{responders=Responders}=Sta
     {'noreply'
     ,State#state{responders=listener_utils:rm_responder(Responders, Responder, Keys)}
     };
-handle_cast({'add_binding', _, _}=AddBinding, #state{is_consuming='false'}=State) ->
-    %% wait 100 + [100,200) ms before replaying the binding request
-    Time = ?BIND_WAIT + 100 + rand:uniform(100),
-    lager:debug("not consuming yet, put binding to end of message queue after ~b ms", [Time]),
-    delayed_cast(self(), AddBinding, Time),
-    {'noreply', State};
 handle_cast({'add_binding', Binding, Props}, State) ->
     {'noreply', handle_add_binding(Binding, Props, State)};
 handle_cast({'rm_binding', Binding, Props}, State) ->
@@ -825,6 +819,20 @@ handle_info({'request_timeout', From}, #state{consuming_requests=Requests}=State
     lager:info("timed out waiting for request ~p", [From]),
     _ = reply(From, {'error', 'timeout'}),
     {'noreply', State#state{consuming_requests=lists:keydelete(From, 1, Requests)}};
+handle_info({'kapi'
+            ,{{_Exchange, _RK, {#'P_basic'{content_type=CT
+                                          ,content_encoding=CE
+                                          }=Basic
+                               ,Deliver
+                               }
+              }
+             ,{_EventCategory, _EventName}
+             ,Payload
+             }
+            }
+           ,State
+           ) ->
+    handle_event(Payload, {CT, CE}, {Deliver, Basic}, State);
 handle_info(Message, State) ->
     handle_callback_info(Message, State).
 
@@ -833,22 +841,26 @@ handle_info(Message, State) ->
 %% Allows listeners to pass options to handlers.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_event(kz_term:ne_binary(), content(), deliver(), state()) ->  kz_types:handle_info_ret().
-handle_event(Payload, {<<"application/json">>, <<"gzip">>}, Deliver, State) ->
+-spec handle_event(kz_term:ne_binary() | kz_json:object(), content(), deliver(), state()) ->
+          kz_types:handle_info_ret().
+handle_event(<<Payload/binary>>, {<<"application/json">>, <<"gzip">>}, Deliver, State) ->
     JObj = kz_json:decode(zlib:gunzip(Payload)),
     _ = kz_log:put_callid(JObj),
     distribute_event(JObj, Deliver, State);
-handle_event(Payload, {<<"application/json">>, _}, Deliver, State) ->
+handle_event(<<Payload/binary>>, {<<"application/json">>, _}, Deliver, State) ->
     JObj = kz_json:decode(Payload),
     _ = kz_log:put_callid(JObj),
     distribute_event(JObj, Deliver, State);
-handle_event(Payload,  {<<"application/erlang">>, <<"gzip">>}, Deliver, State) ->
+handle_event(<<Payload/binary>>, {<<"application/erlang">>, <<"gzip">>}, Deliver, State) ->
     JObj = binary_to_term(zlib:gunzip(Payload)),
     _ = kz_log:put_callid(JObj),
     distribute_event(JObj, Deliver, State);
-handle_event(Payload,  {<<"application/erlang">>, _}, Deliver, State) ->
+handle_event(<<Payload/binary>>, {<<"application/erlang">>, _}, Deliver, State) ->
     JObj = binary_to_term(Payload),
     _ = kz_log:put_callid(JObj),
+    distribute_event(JObj, Deliver, State);
+handle_event(JObj, {<<"application/json">>, _}, Deliver, State) ->
+    kz_log:put_callid(JObj),
     distribute_event(JObj, Deliver, State).
 
 %%------------------------------------------------------------------------------
@@ -1215,7 +1227,7 @@ remove_binding(Binding, Props, Q) ->
             erlang:error({'api_module_undefined', Wapi})
     end.
 
--spec create_binding(kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binary()) -> any().
+-spec create_binding(kz_term:ne_binary(), kz_term:proplist(), kz_term:api_ne_binary()) -> any().
 create_binding(Binding, Props, QueueName) when not is_binary(Binding) ->
     create_binding(kz_term:to_binary(Binding), Props, QueueName);
 create_binding(Binding, Props, QueueName) ->
@@ -1354,6 +1366,9 @@ handle_rm_binding(Binding, Props, #state{queue=Q
 
 -spec handle_add_binding(binding_module(), kz_term:proplist(), state()) ->
           state().
+handle_add_binding(Binding, Props, #state{is_consuming='false'}=State) ->
+    lager:info("not consuming yet, checking binding for pooled flag"),
+    handle_add_binding_not_consuming(Binding, Props, State, kz_amqp_channel:has_channel());
 handle_add_binding(Binding, Props, #state{queue=Q
                                          ,bindings=Bs
                                          }=State) ->
@@ -1365,6 +1380,30 @@ handle_add_binding(Binding, Props, #state{queue=Q
         {Binding, ExistingProps} ->
             handle_existing_binding(Binding, Props, State, Q, ExistingProps, Bs)
     end.
+
+handle_add_binding_not_consuming(Binding, Props, State, 'false') ->
+    handle_add_binding_pooled(Binding, Props, State, props:is_true('pooled', Props, 'false'));
+handle_add_binding_not_consuming(Binding, Props, State, 'true') ->
+    lager:info("have channel, not consuming yet, delaying binding ~p", [Binding]),
+    delayed_add_binding(Binding, Props),
+    State.
+
+handle_add_binding_pooled(Binding, Props, #state{params=Params}=State, 'false') ->
+    lager:info("binding ~p is not pooled: ~p", [Binding, Props]),
+    _ = channel_requisition(Params),
+    delayed_add_binding(Binding, Props),
+    State;
+handle_add_binding_pooled(Binding, Props, State, 'true') ->
+    lager:info("creating pooled binding in ~p: ~p", [Binding, Props]),
+    create_binding(Binding, Props, 'undefined'),
+    gen_server:cast(self(), {?MODULE, {'pooled_binding', kz_term:to_atom(Binding)}}),
+    State.
+
+delayed_add_binding(Binding, Props) ->
+    %% wait 100 + [100,200) ms before replaying the binding request
+    Time = ?BIND_WAIT + 100 + rand:uniform(100),
+    lager:debug("not consuming yet, put binding to end of message queue after ~b ms", [Time]),
+    delayed_cast(self(), {'add_binding', Binding, Props}, Time).
 
 -spec handle_existing_binding(binding_module(), kz_term:proplist(), state(), kz_term:ne_binary(), kz_term:proplist(), bindings()) ->
           state().
@@ -1557,7 +1596,7 @@ start_other_queue_fold({QueueName, {Bindings, QueueParams}}, State) ->
 
 -spec handle_amqp_started(state(), kz_term:ne_binary()) -> state().
 handle_amqp_started(#state{params=Params}=State, Q) ->
-    State1 = start_initial_bindings(State#state{queue=Q}, Params),
+    State1 = start_initial_bindings(State#state{queue=Q}),
 
     gen_server:cast(self(), {?MODULE, {'created_queue', Q}}),
 
@@ -1604,8 +1643,8 @@ declare_exchange({Ex, Type}) ->
     ExchangeCmd = kz_amqp_util:declare_exchange(Ex, Type),
     kz_amqp_channel:command(ExchangeCmd).
 
--spec start_initial_bindings(state(), kz_term:proplist()) -> state().
-start_initial_bindings(State, Params) ->
+-spec start_initial_bindings(state()) -> state().
+start_initial_bindings(#state{params=Params}=State) ->
     lists:foldl(fun({Binding, Props}, StateAcc) ->
                         handle_add_binding(kz_term:to_binary(Binding), Props, StateAcc)
                 end

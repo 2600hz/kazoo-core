@@ -7,7 +7,10 @@
 -type binding_module() :: atom() | kz_term:ne_binary().
 
 -type binding_property() :: {'restrict_to', list()} |
-                            {'callid', kz_term:ne_binary()}.
+                            {'callid', kz_term:ne_binary()} |
+                            'federate' | % binds a queue in all zones
+                            'pooled' | % uses event pool if possible
+                            atom().
 -type binding_properties() :: [binding_property()].
 
 -type binding() :: {binding_module(), binding_properties()}.

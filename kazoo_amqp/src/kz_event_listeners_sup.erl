@@ -11,10 +11,6 @@
 
 -behaviour(supervisor).
 
--include("kazoo_events.hrl").
-
--define(SERVER, ?MODULE).
-
 -export([start_link/0
         ,start_pool/1
         ,stop_pool/1
@@ -23,6 +19,11 @@
         ,running_listeners/0
         ]).
 -export([init/1]).
+
+-include("kz_amqp_util.hrl").
+-include("kazoo_events.hrl").
+
+-define(SERVER, ?MODULE).
 
 -define(CHILDREN, [?WORKER_ARGS_TYPE('kz_event_listener_sup', [], 'temporary')]).
 
