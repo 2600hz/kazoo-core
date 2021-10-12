@@ -1,6 +1,7 @@
 {application,kazoo_amqp,
-             [{applications,[amqp_client,crypto,kazoo_config,
-                             kazoo_stdlib,kernel,lager,rabbit_common,stdlib]},
+             [{applications,[amqp_client,crypto,gproc,kazoo_config,
+                             kazoo_stdlib,kernel,lager,
+                             rabbit_common,stdlib]},
               {description,"AMQP client helpers for interacting with a AMQP server"},
               {vsn,"4.0.0"},
               {modules,[]},
@@ -8,4 +9,4 @@
                            kz_amqp_sup,kz_amqp_connection_sup,
                            kz_amqp_bootstrap]},
               {mod,{kazoo_amqp_app,[]}},
-              {env, [{schemas_to_priv,true}]}]}.
+              {env,[{schemas_to_priv,true}]}]}.

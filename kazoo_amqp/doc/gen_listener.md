@@ -67,7 +67,7 @@ Supposing `QueueName = <<"global_notices">>`, `gen_listener` would call `kapi_ro
 Most kapi modules can be found in `core/kazoo_amqp/src/api/`.
 
 
-### Federated Bindings
+#### Federated Bindings
 
 KAZOO manages AMQP connections to all configured brokers, in the local zone and in remote zones.
 
@@ -87,6 +87,18 @@ When the binding is added to the `gen_listener`, federated bindings cause severa
 2.  Start new "sub `gen_listener`" processes a. No responders are configured; the sub-process will relay received AMQP messages to the "parent" `gen_listener` b. The binding module + options, minus `'federate'` will be used c. The queue\_name will be appended with "-{ZONE}" where `{ZONE}` is the process' local zonename d. The `kz_amqp_federated_listeners_sup` starts a child `gen_listener` process to manage the bindings e. `listener_federator:handle_event/3` receives AMQP messages and relays them to the parent `gen_listener` via `gen_listener:federated_event/3`
 3.  If there are existing `listener_federator` processes, they are informed of the new bindings to add
 
+
+#### Pooled Bindings
+
+If you want to use the `gen_listener` behaviour but also make use of [AMQP event pools](./event_pools.md), you can include the `'pooled'` parameter in your binding params:
+
+```erlang
+[{'call', [{'callid', CallId}, 'pooled']}]
+```
+
+This would bind your `gen_listener` process into the `kz_events` call event pool.
+
+If all of your bindings are pooled, your process will not receive a `{'gen_listener', {'is_consuming', boolean()}}` casted message. You will, however, receive a `{'gen_listener', {'pooled_binding', 'call'}}` casted message for each pooled binding, which serves the same purpose of telling your handling module that the binding is ready (if you need to trigger functionality only after you're ready to receive the events you're interested in).
 
 ### Responders
 

@@ -167,7 +167,7 @@ call_id(JObj, Default) ->
 
 -spec routing_key(kz_term:api_terms()) -> kz_term:api_binary().
 routing_key(Props) ->
-    routing_key(Props, undefined).
+    routing_key(Props, 'undefined').
 
 -spec routing_key(kz_term:api_terms(), Default) -> kz_term:ne_binary() | Default.
 routing_key(Props, Default) when is_list(Props) ->
@@ -177,7 +177,7 @@ routing_key(JObj, Default) ->
 
 -spec routing_key_prefix(kz_term:api_terms()) -> kz_term:api_binary().
 routing_key_prefix(Props) ->
-    routing_key_prefix(Props, undefined).
+    routing_key_prefix(Props, 'undefined').
 
 -spec routing_key_prefix(kz_term:api_terms(), Default) -> kz_term:ne_binary() | Default.
 routing_key_prefix(Props, Default) when is_list(Props) ->

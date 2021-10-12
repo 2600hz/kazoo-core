@@ -20,6 +20,7 @@
         ]).
 -export([consumer_channel/0
         ,consumer_channel/1
+        ,has_channel/0
         ,remove_consumer_channel/0
         ,is_consumer_channel_valid/0
         ]).
@@ -74,6 +75,11 @@ is_consumer_pid_valid() ->
         'undefined' -> 'false';
         Channel -> is_process_alive(Channel)
     end.
+
+%% @doc does the calling process have an AMQP channel assigned
+-spec has_channel() -> boolean().
+has_channel() ->
+    'undefined' =/= get('$kz_amqp_consumer_channel').
 
 -spec consumer_channel() -> pid() | kz_amqp_assignment() | {'error', 'timeout'}.
 consumer_channel() ->

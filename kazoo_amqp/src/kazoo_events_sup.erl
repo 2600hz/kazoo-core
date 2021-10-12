@@ -13,6 +13,7 @@
 -export([start_link/0]).
 -export([init/1]).
 
+-include("kz_amqp_util.hrl").
 -include("kazoo_events.hrl").
 
 -define(SERVER, ?MODULE).
