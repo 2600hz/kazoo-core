@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,10 +23,12 @@
 -define(ALG_RS256, <<"RS256">>).
 -define(ALG_RS384, <<"RS384">>).
 -define(ALG_RS512, <<"RS512">>).
+-define(ALG_HS256, <<"HS256">>).
 
 -define(ALGORITHMS, [?ALG_RS256
                     ,?ALG_RS384
                     ,?ALG_RS512
+                    ,?ALG_HS256
                     ]).
 
 -define(DEFAULT_ALGORITHM, ?ALG_RS256).
@@ -145,6 +147,7 @@ verify_identity(Token) ->
 alg_2_digest_type(<<"RS256">>) -> 'sha256';
 alg_2_digest_type(<<"RS384">>) -> 'sha384';
 alg_2_digest_type(<<"RS512">>) -> 'sha512';
+alg_2_digest_type(<<"HS256">>) -> 'hs256';
 alg_2_digest_type(_)           -> 'undefined'.
 
 -spec epoch() -> integer().
@@ -261,11 +264,19 @@ add_payload(#{jwt := #{claims := ClaimsSet
 sign(#{digest := Digest
       ,key := Key
       ,jwt := #{payload := Payload} = JWT
-      } = Map) ->
-    Signature = kz_base64url:encode(public_key:sign(Payload, Digest, Key)),
+      } = Map
+    ) ->
+    Signature = build_signature(Digest, Payload, Key),
     Map#{jwt => JWT#{signature => Signature
                     ,token => <<Payload/binary, ".", Signature/binary>>
-                    }}.
+                    }
+        }.
+
+-spec build_signature(atom(), binary() | {digest, binary()}, any()) -> binary().
+build_signature('hs256', Payload, Key) ->
+    kz_base64url:encode(crypto:mac('hmac', 'sha256', Key, Payload));
+build_signature(Digest, Payload, Key) ->
+    kz_base64url:encode(public_key:sign(Payload, Digest, Key)).
 
 -spec set_provider(map()) -> map().
 set_provider(#{payload := #{<<"iss">> := Issuer}}=Token) ->
