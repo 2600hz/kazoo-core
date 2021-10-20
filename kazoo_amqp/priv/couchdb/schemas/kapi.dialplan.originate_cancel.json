@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.dialplan.originate_cancel",
+    "description": "AMQP API for dialplan.originate_cancel",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "dialplan"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "originate_cancel"
+            ]
+        },
+        "Originate-UUID": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Originate-UUID"
+    ],
+    "type": "object"
+}
