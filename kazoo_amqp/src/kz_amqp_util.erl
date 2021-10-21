@@ -1276,7 +1276,7 @@ unbind_q_from_exchange(Queue, Routing, Exchange) ->
 basic_consume(Queue) -> basic_consume(Queue, []).
 
 -spec basic_consume(kz_term:ne_binary(), kz_term:proplist()) -> 'ok' | {'error', any()}.
-basic_consume(Queue, Options) ->
+basic_consume(<<Queue/binary>>, Options) ->
     BC = #'basic.consume'{queue = Queue
                          ,consumer_tag = <<>>
                          ,no_local = ?P_GET('no_local', Options, 'false')

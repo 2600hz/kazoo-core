@@ -696,13 +696,6 @@ handle_cast({'federator_listener', {Broker, Pid}}, #state{federators=Fs}=State) 
 handle_cast(Message, State) ->
     handle_module_cast(Message, State).
 
--spec maybe_remove_binding(binding(), binding_module(), kz_term:proplist(), kz_term:ne_binary()) -> boolean().
-maybe_remove_binding({B, P}, B, P, Q) ->
-    lager:debug("removing ~s: ~p", [B, P]),
-    remove_binding(B, P, Q),
-    'false';
-maybe_remove_binding(_BP, _B, _P, _Q) -> 'true'.
-
 %%------------------------------------------------------------------------------
 %% @doc Handling all non call/cast messages.
 %% @end
@@ -1182,17 +1175,17 @@ maybe_event_matches_key(_A, _B) -> 'false'.
           {'error', _}.
 start_amqp(Props, AutoAck) ->
     QueueProps = props:get_value('queue_options', Props, []),
-    QueueName = props:get_value('queue_name', Props, <<>>),
+    QueueName0 = props:get_value('queue_name', Props, <<>>),
     ConsumeOptions = props:get_value('consume_options', Props, []),
 
-    case kz_amqp_util:new_queue(QueueName, QueueProps) of
+    case kz_amqp_util:new_queue(QueueName0, QueueProps) of
         {'error', _}=E -> E;
-        Q ->
-            set_qos(QueueName, props:get_value('basic_qos', Props)),
-            case start_consumer(Q, maybe_configure_auto_ack(ConsumeOptions, AutoAck)) of
+        QueueName1 ->
+            set_qos(QueueName0, props:get_value('basic_qos', Props)),
+            case start_consumer(QueueName1, maybe_configure_auto_ack(ConsumeOptions, AutoAck)) of
                 'ok' ->
-                    lager:debug("queue started: ~s", [Q]),
-                    {'ok', Q};
+                    lager:debug("queue started: ~s", [QueueName1]),
+                    {'ok', QueueName1};
                 {'error', _}=E -> E
             end
     end.
@@ -1213,9 +1206,9 @@ set_qos(_QueueName, N) when is_integer(N), N >= 0 ->
     lager:debug("applying QoS prefetch of ~p", [N]),
     kz_amqp_util:basic_qos(N).
 
--spec start_consumer(kz_term:ne_binary(), kz_term:proplist()) -> command_ret().
-start_consumer(Q, 'undefined') -> kz_amqp_util:basic_consume(Q, []);
-start_consumer(Q, ConsumeProps) -> kz_amqp_util:basic_consume(Q, ConsumeProps).
+-spec start_consumer(kz_term:ne_binary(), kz_term:api_proplist()) -> command_ret().
+start_consumer(QueueName, 'undefined') -> kz_amqp_util:basic_consume(QueueName, []);
+start_consumer(QueueName, ConsumeProps) -> kz_amqp_util:basic_consume(QueueName, ConsumeProps).
 
 -spec remove_binding(binding_module(), kz_term:proplist(), kz_term:api_binary()) -> 'ok'.
 remove_binding(Binding, Props, Q) ->
@@ -1257,22 +1250,24 @@ start_timer(Timeout) when is_integer(Timeout)
 start_timer(_) -> 'undefined'.
 
 -spec add_other_queue(binary(), kz_term:proplist(), kz_term:proplist(), state()) -> {kz_term:ne_binary(), state()}.
-add_other_queue(<<>>, QueueProps, Bindings, #state{other_queues=OtherQueues, auto_ack=AutoAck}=State) ->
-    {'ok', Q} = start_amqp(QueueProps, AutoAck),
-    gen_server:cast(self(), {?MODULE, {'created_queue', Q}}),
+add_other_queue(<<>>, QueueProps, Bindings, #state{other_queues=OtherQueues
+                                                  ,auto_ack=AutoAck
+                                                  }=State) ->
+    {'ok', QueueName} = start_amqp(QueueProps, AutoAck),
+    gen_server:cast(self(), {?MODULE, {'created_queue', QueueName}}),
 
-    _ = [create_binding(Type, BindProps, Q) || {Type, BindProps} <- Bindings],
-    {Q, State#state{other_queues=[{Q, {Bindings, QueueProps}}|OtherQueues]}};
-add_other_queue(QueueName, QueueProps, Bindings, #state{other_queues=OtherQueues, auto_ack=AutoAck}=State) ->
-    {'ok', Q} = start_amqp([{'queue_name', QueueName} | QueueProps], AutoAck),
-    gen_server:cast(self(), {?MODULE, {'created_queue', Q}}),
-    _ = [create_binding(Type, BindProps, Q) || {Type, BindProps} <- Bindings],
-    case props:get_value(QueueName, OtherQueues) of
+    _ = [create_binding(Type, BindProps, QueueName) || {Type, BindProps} <- Bindings],
+    {QueueName, State#state{other_queues=[{QueueName, {Bindings, QueueProps}}|OtherQueues]}};
+add_other_queue(QueueName0, QueueProps, Bindings, #state{other_queues=OtherQueues, auto_ack=AutoAck}=State) ->
+    {'ok', QueueName1} = start_amqp([{'queue_name', QueueName0} | QueueProps], AutoAck),
+    gen_server:cast(self(), {?MODULE, {'created_queue', QueueName1}}),
+    _ = [create_binding(Type, BindProps, QueueName1) || {Type, BindProps} <- Bindings],
+    case props:get_value(QueueName0, OtherQueues) of
         'undefined' ->
-            {Q, State#state{other_queues=[{Q, {Bindings, QueueProps}}|OtherQueues]}};
+            {QueueName1, State#state{other_queues=[{QueueName1, {Bindings, QueueProps}}|OtherQueues]}};
         OldBindings ->
-            {Q, State#state{other_queues=[{Q, {Bindings ++ OldBindings, QueueProps}}
-                                         | props:delete(QueueName, OtherQueues)
+            {QueueName1, State#state{other_queues=[{QueueName1, {Bindings ++ OldBindings, QueueProps}}
+                                         | props:delete(QueueName0, OtherQueues)
                                          ]}}
     end.
 
@@ -1352,33 +1347,42 @@ handle_module_cast(Msg, #state{module=Module
         end.
 
 -spec handle_rm_binding(binding(), kz_term:proplist(), state()) -> state().
-handle_rm_binding(Binding, Props, #state{queue=Q
-                                        ,bindings=Bs
+handle_rm_binding(Binding, Props, #state{queue=QueueName
+                                        ,bindings=Bindings
                                         }=State) ->
-    KeepBs = [BP || BP <- Bs,
-                    maybe_remove_binding(BP
-                                        ,kz_term:to_binary(Binding)
-                                        ,Props
-                                        ,Q
-                                        )],
+    KeepBindings =
+        lists:foldl(fun(BP, Acc) ->
+                            maybe_remove_binding(BP, kz_term:to_binary(Binding), Props, QueueName, Acc)
+                    end
+                   ,[]
+                   ,Bindings
+                   ),
     maybe_remove_federated_binding(Binding, Props, State),
-    State#state{bindings=KeepBs}.
+    State#state{bindings=KeepBindings}.
+
+-spec maybe_remove_binding(binding(), binding_module(), kz_term:proplist(), kz_term:ne_binary(), bindings()) -> bindings().
+maybe_remove_binding({Binding, Props}, Binding, Props, QueueName, KeepBindings) ->
+    lager:debug("removing ~s: ~p", [Binding, Props]),
+    remove_binding(Binding, Props, QueueName),
+    KeepBindings;
+maybe_remove_binding(BindingProps, _B, _P, _Q, KeepBindings) ->
+    [BindingProps | KeepBindings].
 
 -spec handle_add_binding(binding_module(), kz_term:proplist(), state()) ->
           state().
 handle_add_binding(Binding, Props, #state{is_consuming='false'}=State) ->
     lager:info("not consuming yet, checking binding for pooled flag"),
     handle_add_binding_not_consuming(Binding, Props, State, kz_amqp_channel:has_channel());
-handle_add_binding(Binding, Props, #state{queue=Q
-                                         ,bindings=Bs
+handle_add_binding(Binding, Props, #state{queue=QueueName
+                                         ,bindings=Bindings
                                          }=State) ->
-    case lists:keyfind(Binding, 1, Bs) of
+    case lists:keyfind(Binding, 1, Bindings) of
         'false' ->
             lager:debug("creating new binding: '~s'", [Binding]),
-            create_binding(Binding, Props, Q),
-            maybe_update_federated_bindings(State#state{bindings=[{Binding, Props}|Bs]});
+            create_binding(Binding, Props, QueueName),
+            maybe_update_federated_bindings(State#state{bindings=[{Binding, Props}|Bindings]});
         {Binding, ExistingProps} ->
-            handle_existing_binding(Binding, Props, State, Q, ExistingProps, Bs)
+            handle_existing_binding(Binding, Props, State, QueueName, ExistingProps, Bindings)
     end.
 
 handle_add_binding_not_consuming(Binding, Props, State, 'false') ->
