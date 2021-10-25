@@ -1271,8 +1271,10 @@ add_other_queue(QueueName0, QueueProps, Bindings, #state{other_queues=OtherQueue
             {QueueName1, State#state{other_queues=[{QueueName1, {Bindings, QueueProps}}|OtherQueues]}};
         OldBindings ->
             {QueueName1, State#state{other_queues=[{QueueName1, {Bindings ++ OldBindings, QueueProps}}
-                                         | props:delete(QueueName0, OtherQueues)
-                                         ]}}
+                                                  | props:delete(QueueName0, OtherQueues)
+                                                  ]
+                                    }
+            }
     end.
 
 -spec handle_module_call(any(), kz_term:pid_ref(), state()) -> handle_call_return().
