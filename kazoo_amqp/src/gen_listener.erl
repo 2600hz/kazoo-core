@@ -1176,17 +1176,17 @@ maybe_event_matches_key(_A, _B) -> 'false'.
           {'error', _}.
 start_amqp(Props, AutoAck) ->
     QueueProps = props:get_value('queue_options', Props, []),
-    QueueName = props:get_value('queue_name', Props, <<>>),
+    QueueName0 = props:get_value('queue_name', Props, <<>>),
     ConsumeOptions = props:get_value('consume_options', Props, []),
 
-    case kz_amqp_util:new_queue(QueueName, QueueProps) of
+    case kz_amqp_util:new_queue(QueueName0, QueueProps) of
         {'error', _}=E -> E;
-        Q ->
-            set_qos(QueueName, props:get_value('basic_qos', Props)),
-            case start_consumer(Q, maybe_configure_auto_ack(ConsumeOptions, AutoAck)) of
+        QueueName1 ->
+            set_qos(QueueName0, props:get_value('basic_qos', Props)),
+            case start_consumer(QueueName1, maybe_configure_auto_ack(ConsumeOptions, AutoAck)) of
                 'ok' ->
-                    lager:debug("queue started: ~s", [Q]),
-                    {'ok', Q};
+                    lager:debug("queue started: ~s", [QueueName1]),
+                    {'ok', QueueName1};
                 {'error', _}=E -> E
             end
     end.
@@ -1575,8 +1575,15 @@ handle_exchanges_ready(#state{params=Params
                              }=State
                       ) ->
     case start_amqp(Params, AutoAck) of
-        {'ok', Q} ->
-            State1 = handle_amqp_started(State, Q),
+        {'ok', QueueName} ->
+            %% part of starting the consumer is that
+            %% basic.consume is sent and basic.consume_ok is
+            %% received (blocking call) so we know we are consuming
+
+            State1 = handle_amqp_started(State#state{is_consuming='true'
+                                                    ,queue=QueueName
+                                                    }
+                                        ),
             maybe_start_other_queues(State1);
         {'error', Reason} ->
             lager:warning("start amqp error ~p", [Reason]),
@@ -1598,17 +1605,19 @@ start_other_queue_fold({QueueName, {Bindings, QueueParams}}, State) ->
     lager:debug("started other queue ~s as ~s", [QueueName, _Q]),
     State1.
 
--spec handle_amqp_started(state(), kz_term:ne_binary()) -> state().
-handle_amqp_started(#state{params=Params}=State, Q) ->
-    State1 = start_initial_bindings(State#state{queue=Q}),
+-spec handle_amqp_started(state()) -> state().
+handle_amqp_started(#state{params=Params
+                          ,queue=QueueName
+                          }=State) ->
+    State1 = start_initial_bindings(State),
 
-    gen_server:cast(self(), {?MODULE, {'created_queue', Q}}),
+    gen_server:cast(self(), {?MODULE, {'created_queue', QueueName}}),
 
     maybe_server_confirms(props:get_value('server_confirms', Params, 'false')),
 
     maybe_channel_flow(props:get_value('channel_flow', Params, 'false')),
 
-    State1#state{is_consuming='false'}.
+    State1.
 
 -spec handle_amqp_errored(state()) -> state().
 handle_amqp_errored(State) ->
