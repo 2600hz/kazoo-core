@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,7 +10,9 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_presence).
 
--export([api_definitions/0, api_definition/1]).
+-export([api_definitions/0, api_definition/1
+        ,pooled_apis/0
+        ]).
 
 -export([search_req/1
         ,search_req_v/1
@@ -80,7 +82,10 @@
         ,publish_reset/1
         ]).
 
--export([subscribe_routing_key/1]).
+-export([subscribe_routing_key/1
+        ,dialog_routing_key/2
+        ,update_routing_key/2
+        ]).
 -export([presence_states/0]).
 
 -export([bind_q/2
@@ -98,8 +103,6 @@
 
 -ifdef(TEST).
 -export([search_req_routing_key/1
-        ,dialog_routing_key/2
-        ,update_routing_key/2
         ,probe_routing_key/1
         ,mwi_update_routing_key/2
         ,mwi_unsolicited_update_routing_key/1
@@ -718,15 +721,18 @@ publish_dialog(JObj) ->
 
 -spec publish_dialog(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_dialog(Req, ContentType) ->
+    PresenceId = get_value(<<"Presence-ID">>, Req),
     Definition = dialog_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(Req
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     RoutingKey = (kapi_definition:binding(Definition))(get_value(<<"Call-ID">>, Req)
-                                                      ,get_value(<<"Presence-ID">>, Req)
+                                                      ,PresenceId
                                                       ),
-    kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType).
+    kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType
+                                 ,[{'headers', [{<<"presence-id">>, 'binary', PresenceId}]}]
+                                 ).
 
 -spec dialog_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
 dialog_routing_key(CallId, PresenceID) ->
@@ -754,15 +760,19 @@ publish_update(JObj) ->
 
 -spec publish_update(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_update(Req, ContentType) ->
+    PresenceId = get_value(<<"Presence-ID">>, Req),
+
     Definition = update_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(Req
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     RoutingKey = (kapi_definition:binding(Definition))(get_value(<<"Call-ID">>, Req)
-                                                      ,get_value(<<"Presence-ID">>, Req)
+                                                      ,PresenceId
                                                       ),
-    kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType).
+    kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType
+                                 ,[{'headers', [{<<"presence-id">>, 'binary', PresenceId}]}]
+                                 ).
 
 -spec update_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
 update_routing_key(CallId, PresenceID) ->
@@ -1047,14 +1057,30 @@ reset_routing_key(Realm, Username) ->
                    ,kz_amqp_util:encode(Username)
                    ]).
 
+%% @doc list of APIs that are pool-eligible
+-spec pooled_apis() -> ['update' | 'dialog'].
+pooled_apis() ->
+    ['update', 'dialog'].
+
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, Props) ->
     RestrictTo = props:get_value('restrict_to', Props),
-    bind_q(Queue, RestrictTo, Props).
+    maybe_bind_q(Queue, RestrictTo, Props, props:is_true('pooled', Props, 'false')).
+
+maybe_bind_q(Queue, RestrictTo, Props, 'false') ->
+    bind_q(Queue, RestrictTo, Props);
+maybe_bind_q(Queue, RestrictTo, Props, 'true') when is_list(RestrictTo) ->
+    PresenceId = props:get_value('presence-id', Props),
+    kz_events:bind_presence_id(PresenceId),
+    bind_q(Queue, RestrictTo -- pooled_apis(), Props);
+maybe_bind_q(_Queue, 'undefined', Props, 'true') ->
+    PresenceId = props:get_value('presence-id', Props),
+    lager:info("binding for pooled presence events only for ~s", [PresenceId]),
+    kz_events:bind_presence_id(PresenceId).
 
 -spec bind_q(kz_term:ne_binary(), kz_term:api_binaries(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, 'undefined', _) ->
@@ -1123,12 +1149,19 @@ bind_q(Queue, [_|Restrict], Props) ->
     bind_q(Queue, Restrict, Props);
 bind_q(_, [], _) -> 'ok'.
 
--spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec unbind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, Props) ->
     RestrictTo = props:get_value('restrict_to', Props),
-    unbind_q(Queue, RestrictTo, Props).
+    maybe_unbind_q(Queue, RestrictTo, Props, props:is_true('pooled', Props, 'false')).
 
--spec unbind_q(kz_term:ne_binary(), kz_term:api_binary(), kz_term:proplist()) -> 'ok'.
+maybe_unbind_q(Queue, RestrictTo, Props, 'false') ->
+    unbind_q(Queue, RestrictTo, Props);
+maybe_unbind_q(Queue, RestrictTo, Props, 'true') when is_list(RestrictTo) ->
+    PresenceId = props:get_value('presence-id', Props),
+    kz_events:unbind_presence_id(PresenceId),
+    unbind_q(Queue, RestrictTo -- pooled_apis(), Props).
+
+-spec unbind_q(kz_term:ne_binary(), kz_term:api_ne_binaries(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, 'undefined', _) ->
     kz_amqp_util:unbind_q_from_presence(Queue, <<"#">>);
 unbind_q(Queue, ['search_req'|Restrict], Props) ->

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Listener for route requests that can be fulfilled by Callflows.
 %%% @author Karl Anderson
 %%%
@@ -12,7 +12,7 @@
 -module(kz_event_listener).
 -behaviour(gen_listener).
 
--export([start_link/0]).
+-export([start_link/1]).
 -export([init/1
         ,handle_call/3
         ,handle_cast/2
@@ -22,31 +22,14 @@
         ,code_change/3
         ]).
 
+-include("kz_amqp.hrl").
 -include("kazoo_events.hrl").
 
--type state() :: map().
+-type state() :: event_type().
 
 -define(SERVER, ?MODULE).
 
 -define(RESPONDERS, []).
--define(BINDINGS, [{'bind', [{'exchange', [{'name', ?KZ_CALL_EVENTS_EXCHANGE}
-                                          ,{'type', <<"x-consistent-hash">>}
-                                          ,{'options', [{'auto_delete', 'true'}
-                                                       ,{'arguments', [{<<"hash-header">>, 'longstr', <<"call-id">>}]}
-                                                       ]
-                                           }
-                                          ,{'bindings', [{'call', [{'source', ?EXCHANGE_CALLEVT}
-                                                                  ,{'routing', <<"call.#">>}
-                                                                  ]
-                                                         }
-                                                        ]
-                                           }
-                                          ]
-                             }
-                            ,{'routing', <<"20">>}
-                            ]
-                   }
-                  ]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
@@ -59,14 +42,17 @@
 %% @doc Starts the server.
 %% @end
 %%------------------------------------------------------------------------------
--spec start_link() -> kz_types:startlink_ret().
-start_link() ->
-    gen_listener:start_link(?SERVER, [{'responders', ?RESPONDERS}
-                                     ,{'bindings', ?BINDINGS}
-                                     ,{'queue_name', ?QUEUE_NAME}
-                                     ,{'queue_options', ?QUEUE_OPTIONS}
-                                     ,{'consume_options', ?CONSUME_OPTIONS}
-                                     ], []).
+-spec start_link(event_type()) -> kz_types:startlink_ret().
+start_link(Name) ->
+    gen_listener:start_link(?SERVER
+                           ,[{'responders', ?RESPONDERS}
+                            ,{'bindings', bindings(Name)}
+                            ,{'queue_name', ?QUEUE_NAME}
+                            ,{'queue_options', ?QUEUE_OPTIONS}
+                            ,{'consume_options', ?CONSUME_OPTIONS}
+                            ]
+                           ,[Name]
+                           ).
 
 %%%=============================================================================
 %%% gen_listener callbacks
@@ -76,9 +62,9 @@ start_link() ->
 %% @doc Initializes the server.
 %% @end
 %%------------------------------------------------------------------------------
--spec init(map()) -> {'ok', state()}.
-init(State) ->
-    {'ok', State}.
+-spec init([event_type()]) -> {'ok', state()}.
+init([Name]) ->
+    {'ok', Name}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -113,10 +99,9 @@ handle_info(_Info, State) ->
 %% @doc Handling AMQP event objects
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_event(kz_json:object(), kz_term:proplist(), state()) -> gen_listener:handle_event_return().
-handle_event(JObj, Props, _State) ->
-    CallId = kz_call_event:call_id(JObj),
-    gproc:send({'p', 'l', {'call_event', CallId}}, {'kapi', kapi:delivery_message(JObj, Props)}),
+-spec handle_event(kz_json:object(), kz_term:proplist(), event_type()) -> 'ignore'.
+handle_event(JObj, Props, Name) ->
+    _ = kz_events:publish_event(JObj, Props, Name),
     'ignore'.
 
 %%------------------------------------------------------------------------------
@@ -138,3 +123,52 @@ terminate(_Reason, _State) ->
 -spec code_change(any(), state(), any()) -> {'ok', state()}.
 code_change(_OldVsn, State, _Extra) ->
     {'ok', State}.
+
+-spec bindings(event_type()) -> gen_listener:bindings().
+bindings('call_events') ->
+    [{'bind', [{'exchange', [{'name', ?KZ_CALL_EVENTS_EXCHANGE}
+                            ,{'type', <<"x-consistent-hash">>}
+                            ,{'options', [{'auto_delete', 'true'}
+                                         ,{'arguments', [{<<"hash-header">>, 'longstr', <<"call-id">>}]}
+                                         ]
+                             }
+                            ,{'bindings', [{'call', [{'source', ?EXCHANGE_CALLEVT}
+                                                    ,{'routing', <<"call.#">>}
+                                                    ]
+                                           }
+                                          ]
+                             }
+                            ]
+               }
+              ,{'routing', <<"20">>}
+              ]
+     }
+    ];
+bindings('presence') ->
+    [{'bind', [{'exchange', [{'name', ?KZ_PRESENCE_EVENTS_EXCHANGE}
+                            ,{'type', <<"x-consistent-hash">>}
+                            ,{'options', [{'auto_delete', 'true'}
+                                         ,{'arguments', [{<<"hash-header">>, 'longstr', <<"presence-id">>}]}
+                                         ]
+                             }
+                            ,{'bindings', presence_bindings()}
+                            ]
+               }
+              ,{'routing', <<"20">>}
+              ]
+     }
+    ].
+
+presence_bindings() ->
+    lists:foldl(fun presence_binding/2, [], kapi_presence:pooled_apis()).
+
+presence_binding(API, Acc) ->
+    RKFun = kz_term:to_atom(list_to_binary([kz_term:to_binary(API), "_routing_key"])),
+    RK = kapi_presence:RKFun(<<"*">>, <<"*">>),
+
+    [{'presence', [{'source', ?EXCHANGE_PRESENCE}
+                  ,{'routing', RK}
+                  ]
+     }
+    | Acc
+    ].

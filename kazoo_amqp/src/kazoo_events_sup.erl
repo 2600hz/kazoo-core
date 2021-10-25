@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,11 +13,12 @@
 -export([start_link/0]).
 -export([init/1]).
 
+-include("kz_amqp_util.hrl").
 -include("kazoo_events.hrl").
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?SUPER('kz_event_listener_sup')]).
+-define(CHILDREN, [?SUPER('kz_event_listeners_sup')]).
 
 %%==============================================================================
 %% API functions

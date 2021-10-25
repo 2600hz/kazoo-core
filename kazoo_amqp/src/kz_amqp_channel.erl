@@ -20,6 +20,7 @@
         ]).
 -export([consumer_channel/0
         ,consumer_channel/1
+        ,has_channel/0
         ,remove_consumer_channel/0
         ,is_consumer_channel_valid/0
         ]).
@@ -74,6 +75,11 @@ is_consumer_pid_valid() ->
         'undefined' -> 'false';
         Channel -> is_process_alive(Channel)
     end.
+
+%% @doc does the calling process have an AMQP channel assigned
+-spec has_channel() -> boolean().
+has_channel() ->
+    'undefined' =/= get('$kz_amqp_consumer_channel').
 
 -spec consumer_channel() -> pid() | kz_amqp_assignment() | {'error', 'timeout'}.
 consumer_channel() ->
@@ -367,7 +373,7 @@ exec_command(#kz_amqp_assignment{consumer=Consumer
     C = Command#'basic.consume'{consumer_tag = <<>>},
     case amqp_channel:subscribe(Channel, C, Consumer) of
         #'basic.consume_ok'{consumer_tag=_NewTag} ->
-            lager:debug("~p consuming on tag ~p", [Consumer, _NewTag]);
+            lager:debug("consumer ~p consuming on tag ~p", [Consumer, _NewTag]);
         _Else ->
             lager:warning("failed to re-establish consumer for ~p: ~p"
                          ,[Consumer, _Else]
@@ -381,8 +387,7 @@ exec_command(#kz_amqp_assignment{consumer=Consumer
     Result = amqp_channel:subscribe(Channel, Command, Consumer),
     lager:debug("consuming for ~p on ~p returned ~p", [Consumer, Channel, Result]),
     handle_command_result(Result, Command, Assignment);
-exec_command(#kz_amqp_assignment{channel=Channel
-                                }=Assignment
+exec_command(#kz_amqp_assignment{channel=Channel}=Assignment
             ,#'exchange.bind'{}=Command
             ) ->
     Result = amqp_channel:call(Channel, Command),

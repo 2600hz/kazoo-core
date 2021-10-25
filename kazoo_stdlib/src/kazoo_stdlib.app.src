@@ -1,6 +1,6 @@
 {application,kazoo_stdlib,
              [{applications,[crypto,erlang_localtime,inet_cidr,jiffy,kernel,
-                             lager,stdlib]},
+                             lager,stdlib,yamerl]},
               {description,"Erlang Term handlers"},
               {vsn,"4.0.0"},
               {modules,[]},

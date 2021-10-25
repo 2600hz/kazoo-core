@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,18 +7,25 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(kz_event_listener_sup).
+-module(kz_event_listeners_sup).
 
 -behaviour(supervisor).
 
+-export([start_link/0
+        ,start_pool/1
+        ,stop_pool/1
+        ,pool_exists/1
+
+        ,running_listeners/0
+        ]).
+-export([init/1]).
+
+-include("kz_amqp_util.hrl").
 -include("kazoo_events.hrl").
 
 -define(SERVER, ?MODULE).
 
--export([start_link/0]).
--export([init/1]).
-
--define(CHILDREN, [?WORKER_ARGS_TYPE('kz_event_listener', [], 'temporary')]).
+-define(CHILDREN, [?WORKER_ARGS_TYPE('kz_event_listener_sup', [], 'temporary')]).
 
 %% ===================================================================
 %% API functions
@@ -30,9 +37,13 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    {'ok', Pid} = supervisor:start_link({'local', ?SERVER}, ?MODULE, []),
-    _ = init_workers(Pid),
-    {'ok', Pid}.
+    supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
+
+-spec running_listeners() -> [{pid(), event_type()}].
+running_listeners() ->
+    [{Pid, kz_event_listener_sup:event_type(Pid)}
+     || {_, Pid, _, _} <- supervisor:which_children('kz_event_listeners_sup')
+    ].
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -53,12 +64,19 @@ init([]) ->
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
     {'ok', {SupFlags, ?CHILDREN}}.
 
-init_workers(Pid) ->
-    Workers = kz_app_config:get_integer(?APP, <<"event_listeners">>, 5),
-    _ = kz_process:spawn(fun() -> [begin
-                                       _ = supervisor:start_child(Pid, []),
-                                       timer:sleep(500)
-                                   end
-                                   || _N <- lists:seq(1, Workers)
-                                  ]
-                         end).
+-spec start_pool(event_type()) -> kz_types:sup_startchild_ret().
+start_pool(Name) ->
+    supervisor:start_child(?SERVER, [Name]).
+
+-spec stop_pool(event_type()) -> 'ok' | {'error', atom()}.
+stop_pool(Name) ->
+    case whereis(kz_event_listener_sup:server_name(Name)) of
+        Pid when is_pid(Pid) ->
+            supervisor:terminate_child(?SERVER, Pid);
+        _ ->
+            {'error', 'not_found'}
+    end.
+
+-spec pool_exists(event_type()) -> boolean().
+pool_exists(Name) ->
+    is_pid(whereis(kz_event_listener_sup:server_name(Name))).
