@@ -1011,7 +1011,10 @@ distribute_event(JObj, {Deliver, #'P_basic'{headers=Headers}=Basic}=BasicDeliver
             Props = [{'basic', Basic}
                     ,{'deliver', Deliver}
                     ],
-            kz_term:to_pid(Pid) ! {'kapi', kapi:delivery_message(JObj, Props)},
+            Msg = kapi:delivery_message(JObj, Props),
+            {{Exchange, RK, _}, {Category, Event}, _} = Msg,
+            lager:debug("delivering ~s/~s ~s/~s to pid ~s", [Exchange, RK, Category, Event, Pid]),
+            kz_term:to_pid(Pid) ! {'kapi', Msg},
             {'noreply', State};
         'false' ->
             case callback_handle_event(JObj, BasicDeliver, State) of
