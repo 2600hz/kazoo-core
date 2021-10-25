@@ -135,8 +135,9 @@
 -record(state, {queue :: kz_term:api_binary()
                ,is_consuming = 'false' :: boolean()
                ,consuming_requests = [] :: [{kz_term:pid_ref(), reference()}] % [{From, TRef}]
-               ,responders = [] :: listener_utils:responders() %% {{EvtCat, EvtName}, Module}
-               ,bindings = [] :: bindings() %% {authentication, [{key, value},...]}
+               ,responders = [] :: listener_utils:responders() % {{EvtCat, EvtName}, Module}
+               ,bindings = [] :: bindings() % {authentication, [{key, value},...]}
+               ,delayed_bindings = [] :: bindings() % for when AMQP channel isn't quite ready
                ,params = [] :: kz_term:proplist()
                ,module :: atom()
                ,module_state :: module_state()
@@ -764,16 +765,19 @@ handle_info(#'basic.consume_ok'{consumer_tag=CTag}
 handle_info(#'basic.consume_ok'{consumer_tag=CTag}
            ,#state{consuming_requests=Requests
                   ,consumer_tags=CTags
+                  ,delayed_bindings=DelayedBindings
                   }=State
            ) ->
     lager:debug("received consume ok (~s) for queue : ~p", [CTag, CTags]),
     gen_server:cast(self(), {?MODULE, {'is_consuming', 'true'}}),
 
     handle_consuming_requests(Requests),
+    handle_delayed_bindings(DelayedBindings),
 
     {'noreply', State#state{is_consuming='true'
                            ,consuming_requests=[]
                            ,consumer_tags=[CTag | CTags]
+                           ,delayed_bindings=[]
                            }};
 handle_info(#'basic.cancel_ok'{consumer_tag=CTag}, #state{consumer_tags=CTags}=State) ->
     lager:debug("recv a basic.cancel_ok for tag ~s", [CTag]),
@@ -1172,17 +1176,17 @@ maybe_event_matches_key(_A, _B) -> 'false'.
           {'error', _}.
 start_amqp(Props, AutoAck) ->
     QueueProps = props:get_value('queue_options', Props, []),
-    QueueName = props:get_value('queue_name', Props, <<>>),
+    QueueName0 = props:get_value('queue_name', Props, <<>>),
     ConsumeOptions = props:get_value('consume_options', Props, []),
 
-    case kz_amqp_util:new_queue(QueueName, QueueProps) of
+    case kz_amqp_util:new_queue(QueueName0, QueueProps) of
         {'error', _}=E -> E;
-        Q ->
-            set_qos(QueueName, props:get_value('basic_qos', Props)),
-            case start_consumer(Q, maybe_configure_auto_ack(ConsumeOptions, AutoAck)) of
+        QueueName1 ->
+            set_qos(QueueName0, props:get_value('basic_qos', Props)),
+            case start_consumer(QueueName1, maybe_configure_auto_ack(ConsumeOptions, AutoAck)) of
                 'ok' ->
-                    lager:debug("queue started: ~s", [Q]),
-                    {'ok', Q};
+                    lager:debug("queue started: ~s", [QueueName1]),
+                    {'ok', QueueName1};
                 {'error', _}=E -> E
             end
     end.
@@ -1368,41 +1372,42 @@ handle_rm_binding(Binding, Props, #state{queue=Q
 handle_add_binding(Binding, Props, #state{is_consuming='false'}=State) ->
     lager:info("not consuming yet, checking binding for pooled flag"),
     handle_add_binding_not_consuming(Binding, Props, State, kz_amqp_channel:has_channel());
-handle_add_binding(Binding, Props, #state{queue=Q
-                                         ,bindings=Bs
+handle_add_binding(Binding, Props, #state{queue=QueueName
+                                         ,bindings=Bindings
                                          }=State) ->
-    case lists:keyfind(Binding, 1, Bs) of
+    case lists:keyfind(Binding, 1, Bindings) of
         'false' ->
             lager:debug("creating new binding: '~s'", [Binding]),
-            create_binding(Binding, Props, Q),
-            maybe_update_federated_bindings(State#state{bindings=[{Binding, Props}|Bs]});
+            create_binding(Binding, Props, QueueName),
+            maybe_update_federated_bindings(State#state{bindings=[{Binding, Props}|Bindings]});
         {Binding, ExistingProps} ->
-            handle_existing_binding(Binding, Props, State, Q, ExistingProps, Bs)
+            handle_existing_binding(Binding, Props, State, QueueName, ExistingProps, Bindings)
     end.
 
 handle_add_binding_not_consuming(Binding, Props, State, 'false') ->
     handle_add_binding_pooled(Binding, Props, State, props:is_true('pooled', Props, 'false'));
 handle_add_binding_not_consuming(Binding, Props, State, 'true') ->
     lager:info("have channel, not consuming yet, delaying binding ~p", [Binding]),
-    delayed_add_binding(Binding, Props),
-    State.
+    delayed_add_binding(Binding, Props, State).
 
 handle_add_binding_pooled(Binding, Props, #state{params=Params}=State, 'false') ->
     lager:info("binding ~p is not pooled: ~p", [Binding, Props]),
     _ = channel_requisition(Params),
-    delayed_add_binding(Binding, Props),
-    State;
+    delayed_add_binding(Binding, Props, State);
 handle_add_binding_pooled(Binding, Props, State, 'true') ->
     lager:info("creating pooled binding in ~p: ~p", [Binding, Props]),
     create_binding(Binding, Props, 'undefined'),
     gen_server:cast(self(), {?MODULE, {'pooled_binding', kz_term:to_atom(Binding)}}),
     State.
 
-delayed_add_binding(Binding, Props) ->
-    %% wait 100 + [100,200) ms before replaying the binding request
-    Time = ?BIND_WAIT + 100 + rand:uniform(100),
-    lager:debug("not consuming yet, put binding to end of message queue after ~b ms", [Time]),
-    delayed_cast(self(), {'add_binding', Binding, Props}, Time).
+delayed_add_binding(Binding, Props, #state{delayed_bindings=DelayedBindings}=State) ->
+    lager:debug("not consuming yet, delaying binding ~p", [Binding]),
+    State#state{delayed_bindings=[{Binding, Props} | DelayedBindings]}.
+
+-spec handle_delayed_bindings(bindings()) -> 'ok'.
+handle_delayed_bindings(DelayedBindings) ->
+    _ = [add_binding(self(), Binding, Props) || {Binding, Props} <- DelayedBindings],
+    'ok'.
 
 -spec handle_existing_binding(binding_module(), kz_term:proplist(), state(), kz_term:ne_binary(), kz_term:proplist(), bindings()) ->
           state().
@@ -1570,8 +1575,15 @@ handle_exchanges_ready(#state{params=Params
                              }=State
                       ) ->
     case start_amqp(Params, AutoAck) of
-        {'ok', Q} ->
-            State1 = handle_amqp_started(State, Q),
+        {'ok', QueueName} ->
+            %% part of starting the consumer is that
+            %% basic.consume is sent and basic.consume_ok is
+            %% received (blocking call) so we know we are consuming
+
+            State1 = handle_amqp_started(State#state{is_consuming='true'
+                                                    ,queue=QueueName
+                                                    }
+                                        ),
             maybe_start_other_queues(State1);
         {'error', Reason} ->
             lager:warning("start amqp error ~p", [Reason]),
@@ -1593,17 +1605,19 @@ start_other_queue_fold({QueueName, {Bindings, QueueParams}}, State) ->
     lager:debug("started other queue ~s as ~s", [QueueName, _Q]),
     State1.
 
--spec handle_amqp_started(state(), kz_term:ne_binary()) -> state().
-handle_amqp_started(#state{params=Params}=State, Q) ->
-    State1 = start_initial_bindings(State#state{queue=Q}),
+-spec handle_amqp_started(state()) -> state().
+handle_amqp_started(#state{params=Params
+                          ,queue=QueueName
+                          }=State) ->
+    State1 = start_initial_bindings(State),
 
-    gen_server:cast(self(), {?MODULE, {'created_queue', Q}}),
+    gen_server:cast(self(), {?MODULE, {'created_queue', QueueName}}),
 
     maybe_server_confirms(props:get_value('server_confirms', Params, 'false')),
 
     maybe_channel_flow(props:get_value('channel_flow', Params, 'false')),
 
-    State1#state{is_consuming='false'}.
+    State1.
 
 -spec handle_amqp_errored(state()) -> state().
 handle_amqp_errored(State) ->
