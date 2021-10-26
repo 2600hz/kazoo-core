@@ -12,6 +12,7 @@
 -export([current_tstamp/0, current_unix_tstamp/0
         ,gregorian_seconds_to_unix_seconds/1, unix_seconds_to_gregorian_seconds/1
         ,unix_timestamp_to_gregorian_seconds/1
+        ,unix_us_to_gregorian_us/1
         ,to_gregorian_seconds/2
         ,pretty_print_datetime/1, pretty_print_datetime/2
         ,pretty_print_datetime_legacy/1
@@ -720,6 +721,7 @@ now_ms({_,_,_}=Now) ->
 now_s({_,_,_}=Now) ->
     now_us(Now) div ?MICROSECONDS_IN_SECOND.
 
+-spec unix_us_to_gregorian_us(pos_integer()) -> pos_integer().
 unix_us_to_gregorian_us(UnixUS) ->
     UnixUS + (?UNIX_EPOCH_IN_GREGORIAN * ?MICROSECONDS_IN_SECOND).
 
