@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Util functions used by kazoo_couch
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -759,7 +759,7 @@ fetch_more(Cursor, Bookmark, Rows) ->
     case get_results(Server, Db, View, ViewOptions) of
         {'error', 'not_found'} when [] =:= RestDbs ->
             ?MAYBE_LOG("either the db ~s or view ~s does not exists", [Db, View]),
-            {'error', 'not_found'};
+            {'ok', {Cursor, []}};
         {'error', 'not_found'} ->
             ?MAYBE_LOG("either the db ~s or view ~s does not exists, querying next db...", [Db, View]),
             fetch_more(NewCursor#{'databases' => RestDbs}, Bookmark, Rows);
