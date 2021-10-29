@@ -79,6 +79,13 @@
 -export([unbind_q_from_callmgr/2]).
 -export([callmgr_publish/3, callmgr_publish/4]).
 
+-export([channels_exchange/0]).
+-export([new_channels_queue/1]).
+-export([delete_channels_queue/1]).
+-export([bind_q_to_channels/1, bind_q_to_channels/2]).
+-export([unbind_q_from_channels/2]).
+-export([channels_publish/2, channels_publish/3, channels_publish/4]).
+
 -export([resource_exchange/0]).
 -export([new_resource_queue/0, new_resource_queue/1]).
 -export([delete_resource_queue/1]).
@@ -390,6 +397,18 @@ callevt_publish(RoutingKey, Payload, ContentType) ->
 callevt_publish(RoutingKey, Payload, ContentType, Prop) ->
     basic_publish(?EXCHANGE_CALLEVT, RoutingKey, Payload, ContentType, Prop).
 
+-spec channels_publish(kz_term:ne_binary(), amqp_payload()) -> 'ok'.
+channels_publish(RoutingKey, Payload) ->
+    channels_publish(RoutingKey, Payload, ?DEFAULT_CONTENT_TYPE).
+
+-spec channels_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary()) -> 'ok'.
+channels_publish(RoutingKey, Payload, ContentType) ->
+    channels_publish(RoutingKey, Payload, ContentType, []).
+
+-spec channels_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+channels_publish(RoutingKey, Payload, ContentType, Prop) ->
+    basic_publish(?EXCHANGE_CHANNELS, RoutingKey, Payload, ContentType, Prop).
+
 -spec originate_resource_publish(amqp_payload()) -> 'ok'.
 originate_resource_publish(Payload) ->
     originate_resource_publish(Payload, ?DEFAULT_CONTENT_TYPE).
@@ -619,6 +638,10 @@ callctl_exchange() ->
 callevt_exchange() ->
     new_exchange(?EXCHANGE_CALLEVT, ?TYPE_CALLEVT).
 
+-spec channels_exchange() -> 'ok'.
+channels_exchange() ->
+    new_exchange(?EXCHANGE_CHANNELS, ?TYPE_CHANNELS).
+
 -spec resource_exchange() -> 'ok'.
 resource_exchange() ->
     new_exchange(?EXCHANGE_RESOURCE, ?TYPE_RESOURCE).
@@ -752,6 +775,19 @@ new_callevt_queue(<<>>) ->
                     ]);
 new_callevt_queue(CallID) ->
     new_queue(list_to_binary([?EXCHANGE_CALLEVT, ".", encode(CallID)])
+             ,[{'exclusive', 'false'}
+              ,{'auto_delete', 'true'}
+              ,{'nowait', 'false'}
+              ]).
+
+-spec new_channels_queue(binary()) -> kz_term:ne_binary() | {'error', any()}.
+new_channels_queue(<<>>) ->
+    new_queue(<<>>, [{'exclusive', 'false'}
+                    ,{'auto_delete', 'true'}
+                    ,{'nowait', 'false'}
+                    ]);
+new_channels_queue(Name) ->
+    new_queue(list_to_binary([?EXCHANGE_CHANNELS, ".", encode(Name)])
              ,[{'exclusive', 'false'}
               ,{'auto_delete', 'true'}
               ,{'nowait', 'false'}
@@ -970,6 +1006,11 @@ delete_callevt_queue(CallID) -> delete_callevt_queue(CallID, []).
 delete_callevt_queue(CallID, Prop) ->
     queue_delete(list_to_binary([?EXCHANGE_CALLEVT, ".", encode(CallID)]), Prop).
 
+-spec delete_channels_queue(kz_term:ne_binary()) -> command_ret().
+delete_channels_queue(Name) -> delete_channels_queue(Name, []).
+delete_channels_queue(Name, Prop) ->
+    queue_delete(list_to_binary([?EXCHANGE_CHANNELS, ".", encode(Name)]), Prop).
+
 -spec delete_callctl_queue(kz_term:ne_binary()) -> command_ret().
 delete_callctl_queue(CallID) -> delete_callctl_queue(CallID, []).
 delete_callctl_queue(CallID, Prop) ->
@@ -1073,6 +1114,14 @@ bind_q_to_callevt(Queue) ->
 -spec bind_q_to_callevt(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 bind_q_to_callevt(Queue, Routing) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_CALLEVT).
+
+-spec bind_q_to_channels(kz_term:ne_binary()) -> 'ok'.
+bind_q_to_channels(Queue) ->
+    bind_q_to_channels(Queue, Queue).
+
+-spec bind_q_to_channels(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+bind_q_to_channels(Queue, Routing) ->
+    bind_q_to_exchange(Queue, Routing, ?EXCHANGE_CHANNELS).
 
 -spec bind_q_to_resource(kz_term:ne_binary()) -> 'ok'.
 bind_q_to_resource(Queue) -> bind_q_to_resource(Queue, <<"#">>).
@@ -1214,6 +1263,11 @@ unbind_q_from_resource(Queue, Routing) ->
           'ok' | {'error', any()}.
 unbind_q_from_callevt(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_CALLEVT).
+
+-spec unbind_q_from_channels(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          'ok' | {'error', any()}.
+unbind_q_from_channels(Queue, Routing) ->
+    unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_CHANNELS).
 
 -spec unbind_q_from_callmgr(kz_term:ne_binary(), kz_term:ne_binary()) ->
           'ok' | {'error', any()}.
