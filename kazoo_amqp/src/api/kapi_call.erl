@@ -93,7 +93,6 @@
 -export_type([event/0]).
 
 -include_lib("kazoo_amqp/src/kz_amqp_util.hrl").
--include_lib("kazoo_amqp/include/kz_api_literals.hrl"). % ?KEY_EVENT_NAME
 
 -type event() :: kz_json:object().
 
@@ -284,7 +283,7 @@ event_definition() ->
 -spec channel_status_req_definition() -> kapi_definition:api().
 channel_status_req_definition() ->
     EventName = <<"channel_status_req">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Channel Status Request">>}
               ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a channel">>}
@@ -292,7 +291,7 @@ channel_status_req_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun channel_status_req/1}
               ,{fun kapi_definition:set_validate_fun/2, fun channel_status_req_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_channel_status_req/1}
-              ,{fun kapi_definition:set_binding/2, fun call_routing_key/2}
+              ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Call-ID">>]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Active-Only">>]}
               ,{fun kapi_definition:set_values/2
@@ -305,7 +304,7 @@ channel_status_req_definition() ->
 -spec channel_status_resp_definition() -> kapi_definition:api().
 channel_status_resp_definition() ->
     EventName = <<"channel_status_resp">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Channel Status Response">>}
               ,{fun kapi_definition:set_description/2
@@ -371,7 +370,7 @@ channel_status_extended_headers() ->
 -spec query_auth_id_req_definition() -> kapi_definition:api().
 query_auth_id_req_definition() ->
     EventName = <<"query_auth_id_req">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Auth ID Req">>}
               ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
@@ -379,7 +378,7 @@ query_auth_id_req_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun query_auth_id_req/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_auth_id_req_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_query_auth_id_req/1}
-              ,{fun kapi_definition:set_binding/2, fun call_routing_key/2}
+              ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Auth-ID">>]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
@@ -392,7 +391,7 @@ query_auth_id_req_definition() ->
 -spec query_auth_id_resp_definition() -> kapi_definition:api().
 query_auth_id_resp_definition() ->
     EventName = <<"query_auth_id_resp">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Auth ID Resp">>}
               ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
@@ -412,7 +411,7 @@ query_auth_id_resp_definition() ->
 -spec query_user_channels_req_definition() -> kapi_definition:api().
 query_user_channels_req_definition() ->
     EventName = <<"query_user_channels_req">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query User Channels Req">>}
               ,{fun kapi_definition:set_description/2, <<>>}
@@ -420,7 +419,7 @@ query_user_channels_req_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun query_user_channels_req/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_user_channels_req_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_query_user_channels_req/1}
-              ,{fun kapi_definition:set_binding/2, fun call_routing_key/2}
+              ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
               ,{fun kapi_definition:set_required_headers/2, []}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Active-Only">>
                                                             ,<<"Authorizing-IDs">>
@@ -444,7 +443,7 @@ query_user_channels_req_definition() ->
 -spec query_user_channels_resp_definition() -> kapi_definition:api().
 query_user_channels_resp_definition() ->
     EventName = <<"query_user_channels_resp">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query User Channels Resp">>}
               ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
@@ -464,7 +463,7 @@ query_user_channels_resp_definition() ->
 -spec query_account_channels_req_definition() -> kapi_definition:api().
 query_account_channels_req_definition() ->
     EventName = <<"query_account_channels_req">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Account Channels Req">>}
               ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
@@ -472,7 +471,7 @@ query_account_channels_req_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun query_account_channels_req/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_account_channels_req_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_query_account_channels_req/1}
-              ,{fun kapi_definition:set_binding/2, fun call_routing_key/2}
+              ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Active-Only">>
                                                             ,<<"Username">>
@@ -493,7 +492,7 @@ query_account_channels_req_definition() ->
 -spec query_account_channels_resp_definition() -> kapi_definition:api().
 query_account_channels_resp_definition() ->
     EventName = <<"query_account_channels_resp">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Account Channels Resp">>}
               ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
@@ -513,7 +512,7 @@ query_account_channels_resp_definition() ->
 -spec query_channels_req_definition() -> kapi_definition:api().
 query_channels_req_definition() ->
     EventName = <<"query_channels_req">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Channels Req">>}
               ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
@@ -521,7 +520,7 @@ query_channels_req_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun query_channels_req/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_channels_req_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_query_channels_req/1}
-              ,{fun kapi_definition:set_binding/2, fun call_routing_key/2}
+              ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
               ,{fun kapi_definition:set_required_headers/2, []}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Active-Only">>
                                                             ,<<"Call-ID">>
@@ -539,7 +538,7 @@ query_channels_req_definition() ->
 -spec query_channels_resp_definition() -> kapi_definition:api().
 query_channels_resp_definition() ->
     EventName = <<"query_channels_resp">>,
-    Category = <<"call_event">>,
+    Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Channels Resp">>}
               ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
@@ -676,10 +675,10 @@ publish_channel_status_req(Req, CallId, ContentType) ->
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
-    kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('status_req', CallId)
-                                ,Payload
-                                ,ContentType
-                                ).
+    kz_amqp_util:channels_publish((kapi_definition:binding(Definition))('status_req', CallId)
+                                 ,Payload
+                                 ,ContentType
+                                 ).
 
 %%------------------------------------------------------------------------------
 %% @doc Respond with status of a channel, either active or nonexistent.
@@ -735,10 +734,10 @@ publish_query_auth_id_req(Req, AuthId, ContentType) ->
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
-    kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('status_req', AuthId)
-                                ,Payload
-                                ,ContentType
-                                ).
+    kz_amqp_util:channels_publish((kapi_definition:binding(Definition))('status_req', AuthId)
+                                 ,Payload
+                                 ,ContentType
+                                 ).
 
 %%------------------------------------------------------------------------------
 %% @doc Inquire into the status of a call.
@@ -790,10 +789,10 @@ publish_query_user_channels_req(Req, 'undefined', 'undefined', ContentType) ->
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
-    kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('status_req', <<>>)
-                                ,Payload
-                                ,ContentType
-                                );
+    kz_amqp_util:channels_publish((kapi_definition:binding(Definition))('status_req', <<>>)
+                                 ,Payload
+                                 ,ContentType
+                                 );
 publish_query_user_channels_req(Req, 'undefined', Realm, ContentType) ->
     Username = first_username(Req),
     publish_query_user_channels_req(Req, Username, Realm, ContentType);
@@ -804,10 +803,10 @@ publish_query_user_channels_req(Req, Username, Realm, ContentType) ->
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     User = <<Username/binary, ":", Realm/binary>>,
-    kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('status_req', User)
-                                ,Payload
-                                ,ContentType
-                                ).
+    kz_amqp_util:channels_publish((kapi_definition:binding(Definition))('status_req', User)
+                                 ,Payload
+                                 ,ContentType
+                                 ).
 
 %%------------------------------------------------------------------------------
 %% @doc Inquire into the status of a call.
@@ -859,10 +858,10 @@ publish_query_account_channels_req(Req, AccountId, ContentType) ->
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
-    kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('status_req', AccountId)
-                                ,Payload
-                                ,ContentType
-                                ).
+    kz_amqp_util:channels_publish((kapi_definition:binding(Definition))('status_req', AccountId)
+                                 ,Payload
+                                 ,ContentType
+                                 ).
 
 %%------------------------------------------------------------------------------
 %% @doc Inquire into the status of a call.
@@ -914,10 +913,10 @@ publish_query_channels_req(APIProps, ContentType) when is_list(APIProps) ->
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
-    kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('status_req', <<"channels">>)
-                                ,Payload
-                                ,ContentType
-                                );
+    kz_amqp_util:channels_publish((kapi_definition:binding(Definition))('status_req', <<"channels">>)
+                                 ,Payload
+                                 ,ContentType
+                                 );
 publish_query_channels_req(JObj, ContentType) ->
     publish_query_channels_req(kz_json:to_proplist(JObj), ContentType).
 
@@ -1022,6 +1021,9 @@ maybe_bind_q(_Queue, _Events, _CallId, 'true') ->
     lager:error("using the pooled flag with an events filter is not allowed"),
     throw({'error', 'badarg'}).
 
+bind_q(Q, ['status_req' = Event|T], CallId) ->
+    _ = kz_amqp_util:bind_q_to_channels(Q, query_routing_key(Event, CallId)),
+    bind_q(Q, T, CallId);
 bind_q(Q, [Event|T], CallId) ->
     _ = kz_amqp_util:bind_q_to_callevt(Q, call_routing_key(Event, CallId)),
     bind_q(Q, T, CallId);
@@ -1039,6 +1041,9 @@ maybe_unbind_q(_Queue, <<"*">>, CallId, 'true') ->
     lager:info("removing from pooled events for ~s", [CallId]),
     kz_events:unbind_call_id(CallId).
 
+unbind_q(Q, ['status_req' = Event|T], CallId) ->
+    _ = kz_amqp_util:unbind_q_from_channels(Q, query_routing_key(Event, CallId)),
+    unbind_q(Q, T, CallId);
 unbind_q(Q, [Event|T], CallId) ->
     _ = kz_amqp_util:unbind_q_from_callevt(Q, call_routing_key(Event, CallId)),
     unbind_q(Q, T, CallId);
@@ -1050,6 +1055,7 @@ unbind_q(_Q, [], _CallId) -> 'ok'.
 %%------------------------------------------------------------------------------
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->
+    kz_amqp_util:channels_exchange(),
     kz_amqp_util:callevt_exchange(),
     kz_amqp_util:callmgr_exchange().
 
@@ -1102,6 +1108,10 @@ call_routing_key(Event, CallId) ->
                    ,"."
                    ,kz_amqp_util:encode(CallId)
                    ]).
+
+-spec query_routing_key(kz_term:ne_binary() | atom(), kz_term:ne_binary()) -> kz_term:ne_binary().
+query_routing_key(_Event, _CallId) ->
+    <<"query.status">>.
 
 %% Helpers
 -spec update_name_and_values(kapi_definition:api(), kz_term:api_terms()) -> kapi_definition:api().

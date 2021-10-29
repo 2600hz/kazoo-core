@@ -61,6 +61,11 @@
 -define(EXCHANGE_CALLEVT, <<"callevt">>).
 -define(TYPE_CALLEVT, <<"topic">>).
 
+%% Channels Exchange
+%% - managing channels
+-define(EXCHANGE_CHANNELS, <<"channels">>).
+-define(TYPE_CHANNELS, <<"topic">>).
+
 %% Resource Exchange
 %% - Request for resources are published and consumed from this queue.  Topics are used to
 %%   distinguish the types of resource
