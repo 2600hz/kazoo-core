@@ -67,7 +67,7 @@
 -export([voicemail_notify/1, voicemail_notify/2, set_voicemail_notify/2]).
 -export([voicemail_notify_callback/1, voicemail_notify_callback/2, set_voicemail_notify_callback/2]).
 -export([md5_auth/1, sha1_auth/1, signature_secret/1]).
-
+-export([avatar/1, set_avatar/2]).
 
 -export([fetch/2
         ,to_vcard/1
@@ -123,6 +123,8 @@
 
 -define(SCHEMA, <<"users">>).
 -define(PVT_TYPE, <<"user">>).
+
+-define(PHOTO, <<"photo">>).
 
 -define(LIST_BY_USERNAME, <<"users/list_by_username">>).
 -define(LIST_BY_HOTDESK_ID, <<"users/list_by_hotdesk_id">>).
@@ -582,6 +584,20 @@ last_name(Doc, Default) ->
 -spec set_last_name(doc(), kz_term:ne_binary()) -> doc().
 set_last_name(Doc, LastName) ->
     kz_json:set_value([<<"last_name">>], LastName, Doc).
+
+-spec avatar(doc()) -> kz_term:api_ne_binary().
+avatar(Doc) ->
+    avatar(kz_doc:attachment(Doc, ?PHOTO), 'false').
+
+-spec avatar(kz_json:object() | 'undefined', Default) -> kz_term:ne_binary() | Default.
+avatar('undefined', Default) ->
+    Default;
+avatar(_Photo, _Default) ->
+    'true'.
+
+-spec set_avatar(doc(), boolean()) -> doc().
+set_avatar(Doc, Avatar) ->
+    kz_json:set_value(<<"has_avatar">>, Avatar, Doc).
 
 -spec media(doc()) -> kz_term:api_object().
 media(Doc) ->
