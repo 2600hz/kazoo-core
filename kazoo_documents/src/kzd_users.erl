@@ -589,7 +589,7 @@ set_last_name(Doc, LastName) ->
 has_avatar(Doc) ->
     has_avatar(kz_doc:attachment(Doc, ?PHOTO), 'false').
 
--spec has_avatar(kz_json:object() | 'undefined', Default) ->boolean().
+-spec has_avatar(kz_json:object() | 'undefined', boolean()) -> boolean().
 has_avatar('undefined', Default) ->
     Default;
 has_avatar(_Photo, _Default) ->
