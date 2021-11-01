@@ -45,14 +45,18 @@ call_event_binding(CallId) ->
 %% @doc starts pool of listeners for call events
 -spec start_call_events() -> 'ok'.
 start_call_events() ->
-    {'ok', _Pid} = kz_event_listeners_sup:start_pool('call_events'),
-    'ok'.
+    maybe_start_call_events(is_call_events_started()).
+
+is_call_events_started() ->
+    kz_event_listeners_sup:pool_exists('call_events').
 
 maybe_start_call_events() ->
-    case kz_event_listeners_sup:pool_exists('call_events') of
-        'false' -> start_call_events();
-        'true' -> 'ok'
-    end.
+    maybe_start_call_events(is_call_events_started()).
+
+maybe_start_call_events(false) ->
+    _ = kz_event_listeners_sup:start_pool('call_events'),
+    'ok';
+maybe_start_call_events(true) -> ok.
 
 -spec bind_call_id(kz_term:ne_binary()) -> 'ok'.
 bind_call_id(CallId) ->
