@@ -388,26 +388,26 @@ bind_q(Queue, Props) ->
 
 -spec bind_q(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, AccountId, FaxId, StartId, 'undefined') ->
-    kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(req_definition())),
-    kz_amqp_util:bind_q_to_exchange(Queue, fax_start_key(StartId), ?FAX_EXCHANGE),
-    kz_amqp_util:bind_q_to_exchange(Queue
-                                   ,(kapi_definition:binding(status_definition()))(AccountId, FaxId)
-                                   ,?FAX_EXCHANGE
-                                   );
+    'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(req_definition())),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue, fax_start_key(StartId), ?FAX_EXCHANGE),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue
+                                          ,(kapi_definition:binding(status_definition()))(AccountId, FaxId)
+                                          ,?FAX_EXCHANGE
+                                          );
 bind_q(Queue, AccountId, FaxId, StartId, ['status'|Restrict]) ->
-    kz_amqp_util:bind_q_to_exchange(Queue
-                                   ,(kapi_definition:binding(status_definition()))(AccountId, FaxId)
-                                   ,?FAX_EXCHANGE
-                                   ),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue
+                                          ,(kapi_definition:binding(status_definition()))(AccountId, FaxId)
+                                          ,?FAX_EXCHANGE
+                                          ),
     bind_q(Queue, AccountId, FaxId, StartId, Restrict);
 bind_q(Queue, AccountId, FaxId, StartId, ['query_status'|Restrict]) ->
-    kz_amqp_util:bind_q_to_targeted(Queue),
+    'ok' = kz_amqp_util:bind_q_to_targeted(Queue),
     bind_q(Queue, AccountId, FaxId, StartId, Restrict);
 bind_q(Queue, AccountId, FaxId, StartId, ['req'|Restrict]) ->
-    kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(req_definition())),
+    'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(req_definition())),
     bind_q(Queue, AccountId, FaxId, StartId, Restrict);
 bind_q(Queue, AccountId, FaxId, StartId, ['start'|Restrict]) ->
-    kz_amqp_util:bind_q_to_exchange(Queue, fax_start_key(StartId), ?FAX_EXCHANGE),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue, fax_start_key(StartId), ?FAX_EXCHANGE),
     bind_q(Queue, AccountId, FaxId, StartId, Restrict);
 bind_q(_, _, _, _, []) -> 'ok'.
 

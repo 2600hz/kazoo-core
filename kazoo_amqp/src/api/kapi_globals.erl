@@ -653,10 +653,10 @@ bind_q(Queue, Props) ->
     bind_q(Queue, Events, Name).
 
 bind_q(Q, [Event|T], Name) ->
-    _ = kz_amqp_util:bind_q_to_exchange(Q
-                                       ,(kapi_definition:binding(query_definition()))(Event, Name)
-                                       ,?GLOBALS_EXCHANGE
-                                       ),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Q
+                                          ,(kapi_definition:binding(query_definition()))(Event, Name)
+                                          ,?GLOBALS_EXCHANGE
+                                          ),
     bind_q(Q, T, Name);
 bind_q(_Q, [], _Name) -> 'ok'.
 

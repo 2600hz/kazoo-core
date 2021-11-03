@@ -161,10 +161,12 @@ add(Broker, Zone, Tags) ->
 -spec remove(kz_term:pids() | pid() | kz_term:text()) -> 'ok'.
 remove([]) -> 'ok';
 remove([Connection|Connections]) when is_pid(Connection) ->
-    _ = kz_amqp_connection_sup:remove(Connection),
+    remove(Connection),
     remove(Connections);
 remove(Connection) when is_pid(Connection) ->
-    kz_amqp_connection_sup:remove(Connection);
+    _R = kz_amqp_connection_sup:remove(Connection),
+    gen_server:cast(?SERVER, {'connection_removed', Connection}),
+    lager:info("removed conn ~p: ~p", [Connection, _R]);
 remove(Broker) when not is_binary(Broker) ->
     remove(kz_term:to_binary(Broker));
 remove(Broker=?NE_BINARY) ->
@@ -172,7 +174,9 @@ remove(Broker=?NE_BINARY) ->
                                   ,connection='$1'
                                   ,_='_'
                                   },
-    remove([Connection || [Connection] <- ets:match(?TAB, Pattern)]).
+    Conns = ets:match(?TAB, Pattern),
+    lager:info("removing broker ~s in conns ~p", [Broker, Conns]),
+    remove([Connection || [Connection] <- Conns]).
 
 %% @doc Change a connection's availability to 'true'
 -spec available(pid()) -> 'ok'.
@@ -395,6 +399,10 @@ handle_cast({'connection_unavailable', Connection}, State) ->
     Props = [{#kz_amqp_connections.available, 'false'}],
     _ = ets:update_element(?TAB, Connection, Props),
     {'noreply', State, 'hibernate'};
+handle_cast({'connection_removed', Connection}, State) ->
+    ets:delete(?TAB, Connection),
+    lager:info("removed connection ~p", [Connection]),
+    {'noreply', State, 'hibernate'};
 handle_cast({'add_watcher', Fun, Watcher}, State) ->
     case Fun() of
         'false' -> {'noreply', add_watcher(Watcher, State), 'hibernate'};
@@ -410,7 +418,7 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'DOWN', _Ref, 'process', _Connection, shutdown}, State) ->
+handle_info({'DOWN', _Ref, 'process', _Connection, 'shutdown'}, State) ->
     {'noreply', State, 'hibernate'};
 handle_info({'DOWN', Ref, 'process', Connection, _Reason}, State) ->
     lager:warning("connection ~p went down: ~p", [Connection, _Reason]),

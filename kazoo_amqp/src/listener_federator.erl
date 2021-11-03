@@ -15,6 +15,7 @@
         ,stop/1
         ,broker/1
         ]).
+
 -export([init/1
         ,handle_call/3
         ,handle_cast/2
@@ -45,9 +46,16 @@
 %% @doc Starts the server.
 %% @end
 %%------------------------------------------------------------------------------
--spec start_link(pid(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> kz_types:startlink_ret().
-start_link(Parent, ParentCallId, Broker, Params) ->
-    gen_listener:start_link(?SERVER, Params, [Parent, ParentCallId, Broker]).
+-spec start_link(pid(), kz_term:ne_binary(), kz_term:ne_binary(), gen_listener:start_params()) ->
+          kz_types:startlink_ret().
+start_link(Parent, ParentCallId, Broker, StartParams) ->
+    gen_listener:start_link(?SERVER
+                           ,props:set_value('queue_name'
+                                           ,federated_queue_name(Broker, StartParams)
+                                           ,StartParams
+                                           )
+                           ,[Parent, ParentCallId, Broker]
+                           ).
 
 -spec broker(kz_types:server_ref()) -> kz_term:ne_binary().
 broker(Pid) ->
@@ -68,7 +76,10 @@ stop(Pid) ->
 -spec init([pid() | kz_term:ne_binary()]) -> {'ok', state()}.
 init([Parent, ParentCallId, Broker]=L) ->
     _ = kz_amqp_channel:consumer_broker(Broker),
+    lager:info("put consumer broker to ~s", [Broker]),
+
     Zone = kz_term:to_binary(kz_amqp_connections:broker_zone(Broker)),
+    lager:info("our zone: ~s", [Zone]),
 
     CallId = kz_binary:join([ParentCallId, Zone], <<"-">>),
     kz_log:put_callid(CallId),
@@ -194,7 +205,28 @@ remote_server_id(JObj, Self) ->
 %%------------------------------------------------------------------------------
 -spec remote_queue_id(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary() | null.
 remote_queue_id(JObj, Self) ->
-    case kz_api:queue_id(JObj, undefined) of
-        undefined -> null;
+    case kz_api:queue_id(JObj, 'undefined') of
+        'undefined' -> 'null';
         QueueId -> list_to_binary(["consumer://", Self, "/", QueueId])
+    end.
+
+-spec federated_queue_name(kz_term:ne_binary(), gen_listener:start_params()) ->
+          kz_term:ne_binary().
+federated_queue_name(Broker, StartParams) ->
+    federated_queue_name(Broker, StartParams, props:get_value('queue_options', StartParams, [])).
+
+-spec federated_queue_name(kz_term:ne_binary(), gen_listener:start_params(), queue_options()) ->
+          kz_term:ne_binary().
+federated_queue_name(Broker, StartParams, Options) ->
+    QueueName = props:get_value('queue_name', StartParams, <<>>),
+    IsGlobalQueue = props:is_true('federated_queue_name_is_global', Options, 'false'),
+    case kz_term:is_empty(QueueName) of
+        'true' -> QueueName;
+        'false' when IsGlobalQueue -> QueueName;
+        'false' ->
+            Zone = kz_term:to_binary(kz_amqp_connections:broker_zone(Broker)),
+            case binary:split(QueueName, <<"-", Zone/binary>>) of
+                [QueueName] ->  <<QueueName/binary, "-", Zone/binary>>;
+                [_, <<>>] -> QueueName
+            end
     end.
