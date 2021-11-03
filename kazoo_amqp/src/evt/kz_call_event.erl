@@ -12,6 +12,8 @@
 
 -export([account_id/1, account_id/2
         ,application_data/1
+        ,application_error_code/1, application_error_code/2
+        ,application_error_message/1, application_error_message/2
         ,application_event/1
         ,application_name/1
         ,application_response/1, application_response/2
@@ -221,6 +223,22 @@ application_response(JObj) ->
 -spec application_response(payload(), Default) -> kz_term:ne_binary() | Default.
 application_response(JObj, Default) ->
     kz_json:get_ne_binary_value(<<"Application-Response">>, JObj, Default).
+
+-spec application_error_code(payload()) -> kz_term:api_ne_binary().
+application_error_code(JObj) ->
+    application_error_code(JObj, undefined).
+
+-spec application_error_code(payload(), Default) -> kz_term:ne_binary() | Default.
+application_error_code(JObj, Default) ->
+    kz_json:get_ne_binary_value(<<"Application-Error-Code">>, JObj, Default).
+
+-spec application_error_message(payload()) -> kz_term:api_ne_binary().
+application_error_message(JObj) ->
+    application_error_message(JObj, undefined).
+
+-spec application_error_message(payload(), Default) -> kz_term:ne_binary() | Default.
+application_error_message(JObj, Default) ->
+    kz_json:get_ne_binary_value(<<"Application-Error-Msg">>, JObj, Default).
 
 -spec response_message(payload()) -> kz_term:api_ne_binary().
 response_message(JObj) ->
