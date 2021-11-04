@@ -959,67 +959,67 @@ message_ttl(Args, Acc) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec delete_targeted_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_targeted_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_targeted_queue(Queue) -> queue_delete(Queue).
 
--spec delete_nodes_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_nodes_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_nodes_queue(Queue) -> queue_delete(Queue).
 
--spec delete_kapps_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_kapps_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_kapps_queue(Queue) -> queue_delete(Queue).
 
--spec delete_presence_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_presence_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_presence_queue(Queue) -> queue_delete(Queue).
 
--spec delete_notifications_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_notifications_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_notifications_queue(Queue) -> queue_delete(Queue).
 
--spec delete_sysconf_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_sysconf_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_sysconf_queue(Queue) -> queue_delete(Queue).
 
--spec delete_bookkeepers_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_bookkeepers_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_bookkeepers_queue(Queue) -> queue_delete(Queue).
 
--spec delete_callmgr_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_callmgr_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_callmgr_queue(Queue) -> queue_delete(Queue).
 
--spec delete_resource_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_resource_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_resource_queue(Queue) -> queue_delete(Queue).
 
--spec delete_configuration_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_configuration_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_configuration_queue(Queue) -> queue_delete(Queue).
 
--spec delete_conference_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_conference_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_conference_queue(Queue) -> queue_delete(Queue).
 
--spec delete_monitor_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_monitor_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_monitor_queue(Queue) -> queue_delete(Queue).
 
--spec delete_registrar_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_registrar_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_registrar_queue(Queue) -> queue_delete(Queue).
 
--spec delete_tasks_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_tasks_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_tasks_queue(Queue) -> queue_delete(Queue).
 
--spec delete_callevt_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_callevt_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_callevt_queue(CallID) -> delete_callevt_queue(CallID, []).
 delete_callevt_queue(CallID, Prop) ->
     queue_delete(list_to_binary([?EXCHANGE_CALLEVT, ".", encode(CallID)]), Prop).
 
--spec delete_channels_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_channels_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_channels_queue(Name) -> delete_channels_queue(Name, []).
 delete_channels_queue(Name, Prop) ->
     queue_delete(list_to_binary([?EXCHANGE_CHANNELS, ".", encode(Name)]), Prop).
 
--spec delete_callctl_queue(kz_term:ne_binary()) -> command_ret().
+-spec delete_callctl_queue(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 delete_callctl_queue(CallID) -> delete_callctl_queue(CallID, []).
 delete_callctl_queue(CallID, Prop) ->
     queue_delete(list_to_binary([?EXCHANGE_CALLCTL, ".", encode(CallID)]), Prop).
 
--spec queue_delete(kz_term:ne_binary()) -> command_ret().
+-spec queue_delete(kz_term:ne_binary()) -> kz_amqp_channel:command_ret().
 queue_delete(Queue) -> queue_delete(Queue, []).
 
--spec queue_delete(kz_term:ne_binary(), kz_term:proplist()) -> command_ret().
+-spec queue_delete(kz_term:ne_binary(), kz_term:proplist()) -> kz_amqp_channel:command_ret().
 queue_delete(Queue, _Prop) when not is_binary(Queue) ->
     {'error', 'invalid_queue_name'};
 queue_delete(Queue, Prop) ->
@@ -1035,109 +1035,136 @@ queue_delete(Queue, Prop) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec bind_q_to_targeted(kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_targeted(kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_targeted(Queue) ->
     bind_q_to_exchange(Queue, Queue, ?EXCHANGE_TARGETED).
 
--spec bind_q_to_targeted(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_targeted(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_targeted(Queue, Routing) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_TARGETED).
 
--spec bind_q_to_nodes(kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_nodes(kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_nodes(Queue) ->
     bind_q_to_exchange(Queue, Queue, ?EXCHANGE_NODES).
 
--spec bind_q_to_nodes(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_nodes(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_nodes(Queue, Routing) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_NODES).
 
--spec bind_q_to_kapps(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_kapps(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_kapps(Queue, Routing) ->
     bind_q_to_kapps(Queue, Routing, []).
 
--spec bind_q_to_kapps(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q_to_kapps(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_kapps(Queue, Routing, Options) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_KAPPS, Options).
 
--spec bind_q_to_presence(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_presence(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_presence(Queue, Routing) ->
     bind_q_to_presence(Queue, Routing, []).
 
--spec bind_q_to_presence(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q_to_presence(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_presence(Queue, Routing, Options) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_PRESENCE, Options).
 
--spec bind_q_to_registrar(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_registrar(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_registrar(Queue, Routing) ->
     bind_q_to_registrar(Queue, Routing, []).
 
--spec bind_q_to_registrar(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q_to_registrar(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_registrar(Queue, Routing, Options) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_REGISTRAR, Options).
 
--spec bind_q_to_notifications(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_notifications(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_notifications(Queue, Routing) ->
     bind_q_to_notifications(Queue, Routing, []).
 
--spec bind_q_to_notifications(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q_to_notifications(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_notifications(Queue, Routing, Options) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_NOTIFICATIONS, Options).
 
--spec bind_q_to_sysconf(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_sysconf(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_sysconf(Queue, Routing) ->
     bind_q_to_sysconf(Queue, Routing, []).
 
--spec bind_q_to_sysconf(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q_to_sysconf(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_sysconf(Queue, Routing, Options) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_SYSCONF, Options).
 
--spec bind_q_to_bookkeepers(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_bookkeepers(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_bookkeepers(Queue, Routing) ->
     bind_q_to_bookkeepers(Queue, Routing, []).
 
--spec bind_q_to_bookkeepers(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q_to_bookkeepers(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_bookkeepers(Queue, Routing, Options) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_BOOKKEEPERS, Options).
 
--spec bind_q_to_callctl(kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_callctl(kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_callctl(Queue) ->
     bind_q_to_callctl(Queue, Queue).
 
--spec bind_q_to_callctl(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_callctl(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_callctl(Queue, Routing) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_CALLCTL).
 
--spec bind_q_to_callevt(kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_callevt(kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_callevt(Queue) ->
     bind_q_to_callevt(Queue, Queue).
 
--spec bind_q_to_callevt(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_callevt(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_callevt(Queue, Routing) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_CALLEVT).
 
--spec bind_q_to_channels(kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_channels(kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_channels(Queue) ->
     bind_q_to_channels(Queue, Queue).
 
--spec bind_q_to_channels(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_channels(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_channels(Queue, Routing) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_CHANNELS).
 
--spec bind_q_to_resource(kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_resource(kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_resource(Queue) -> bind_q_to_resource(Queue, <<"#">>).
 
--spec bind_q_to_resource(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_resource(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_resource(Queue, Routing) -> bind_q_to_exchange(Queue, Routing, ?EXCHANGE_RESOURCE).
 
--spec bind_q_to_callmgr(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_callmgr(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_callmgr(Queue, Routing) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_CALLMGR).
 
--spec bind_q_to_configuration(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_configuration(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_configuration(Queue, Routing) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_CONFIGURATION).
 
--spec bind_q_to_monitor(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_monitor(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_monitor(Queue, Routing) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_MONITOR).
 
@@ -1145,8 +1172,8 @@ bind_q_to_monitor(Queue, Routing) ->
 unbind_q_from_monitor(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_MONITOR).
 
-
--spec bind_q_to_conference(kz_term:ne_binary(), conf_routing_type()) -> 'ok'.
+-spec bind_q_to_conference(kz_term:ne_binary(), conf_routing_type()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_conference(Queue, 'discovery') ->
     bind_q_to_conference(Queue, 'discovery', 'undefined');
 bind_q_to_conference(Queue, 'command') ->
@@ -1156,7 +1183,8 @@ bind_q_to_conference(Queue, 'event') ->
 bind_q_to_conference(Queue, 'config') ->
     bind_q_to_conference(Queue, 'config', <<"*">>).
 
--spec bind_q_to_conference(kz_term:ne_binary(), conf_routing_type(), kz_term:api_binary()) -> 'ok'.
+-spec bind_q_to_conference(kz_term:ne_binary(), conf_routing_type(), kz_term:api_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_conference(Queue, 'discovery', _) ->
     bind_q_to_exchange(Queue, ?KEY_CONFERENCE_DISCOVERY, ?EXCHANGE_CONFERENCE);
 bind_q_to_conference(Queue, 'event', EventKey) ->
@@ -1170,7 +1198,8 @@ bind_q_to_conference(Queue, 'config', ConfProfile) ->
 conference_command_binding(ConferenceId) ->
     <<?KEY_CONFERENCE_COMMAND_L, ConferenceId/binary>>.
 
--spec bind_q_to_leader(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_leader(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_leader(Queue, Bind) ->
     bind_q_to_exchange(Queue, Bind, ?EXCHANGE_LEADER).
 
@@ -1178,21 +1207,25 @@ bind_q_to_leader(Queue, Bind) ->
 unbind_q_from_leader(Queue, Bind) ->
     unbind_q_from_exchange(Queue, Bind, ?EXCHANGE_LEADER).
 
--spec bind_q_to_tasks(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_tasks(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_tasks(Queue, Routing) ->
     bind_q_to_tasks(Queue, Routing, []).
 
--spec bind_q_to_tasks(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q_to_tasks(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_tasks(Queue, Routing, Options) ->
     bind_q_to_exchange(Queue, Routing, ?EXCHANGE_TASKS, Options).
 
--spec bind_q_to_exchange(kz_term:ne_binary(), binary(), kz_term:ne_binary()) -> 'ok'.
+-spec bind_q_to_exchange(kz_term:ne_binary(), binary(), kz_term:ne_binary()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_exchange(Queue, _Routing, _Exchange) when not is_binary(Queue) ->
     {'error', 'invalid_queue_name'};
 bind_q_to_exchange(Queue, Routing, Exchange) ->
     bind_q_to_exchange(Queue, Routing, Exchange, []).
 
--spec bind_q_to_exchange(kz_term:ne_binary(), binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q_to_exchange(kz_term:ne_binary(), binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          kz_amqp_channel:command_ret().
 bind_q_to_exchange(Queue, Routing, Exchange, Options) ->
     QB = #'queue.bind'{queue = Queue %% what queue does the binding attach to?
                       ,exchange = Exchange %% what exchange does the binding attach to?

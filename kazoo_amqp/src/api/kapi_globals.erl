@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Globals API.
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -653,10 +653,10 @@ bind_q(Queue, Props) ->
     bind_q(Queue, Events, Name).
 
 bind_q(Q, [Event|T], Name) ->
-    _ = kz_amqp_util:bind_q_to_exchange(Q
-                                       ,(kapi_definition:binding(query_definition()))(Event, Name)
-                                       ,?GLOBALS_EXCHANGE
-                                       ),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Q
+                                          ,(kapi_definition:binding(query_definition()))(Event, Name)
+                                          ,?GLOBALS_EXCHANGE
+                                          ),
     bind_q(Q, T, Name);
 bind_q(_Q, [], _Name) -> 'ok'.
 

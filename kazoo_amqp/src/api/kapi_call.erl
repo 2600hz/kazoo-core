@@ -1022,10 +1022,10 @@ maybe_bind_q(_Queue, _Events, _CallId, 'true') ->
     throw({'error', 'badarg'}).
 
 bind_q(Q, ['status_req' = Event|T], CallId) ->
-    _ = kz_amqp_util:bind_q_to_channels(Q, query_routing_key(Event, CallId)),
+    'ok' = kz_amqp_util:bind_q_to_channels(Q, query_routing_key(Event, CallId)),
     bind_q(Q, T, CallId);
 bind_q(Q, [Event|T], CallId) ->
-    _ = kz_amqp_util:bind_q_to_callevt(Q, call_routing_key(Event, CallId)),
+    'ok' = kz_amqp_util:bind_q_to_callevt(Q, call_routing_key(Event, CallId)),
     bind_q(Q, T, CallId);
 bind_q(_Q, [], _CallId) -> 'ok'.
 

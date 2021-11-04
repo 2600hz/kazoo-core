@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Handle a host's connection/channels.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -111,7 +111,8 @@ init([#kz_amqp_connection{}=Connection]) ->
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
 handle_call('get_connection', _, Connection) ->
     {'reply', Connection, Connection};
-handle_call('stop', _, Connection) ->
+handle_call('stop', _From, Connection) ->
+    lager:info("stopping from ~p", [_From]),
     {'stop', 'normal', 'ok', disconnected(Connection)};
 handle_call({'declare_exchange', _Exchange}
            ,_From
