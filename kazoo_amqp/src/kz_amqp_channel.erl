@@ -52,7 +52,11 @@
 -type consumer_channel() :: pid().
 -type publish_method() :: 'call' | 'cast'.
 
--export_type([consumer_pid/0, consumer_channel/0, publish_method/0]).
+-export_type([consumer_pid/0
+             ,consumer_channel/0
+             ,publish_method/0
+             ,command_ret/0
+             ]).
 
 -spec consumer_pid() -> pid().
 consumer_pid() ->

@@ -179,9 +179,9 @@ bind_q(Q, Props) ->
 
 -spec bind_q(binary(), kz_term:proplist(), kz_term:api_atoms()) -> 'ok'.
 bind_q(Q, _Props, 'undefined') ->
-    kz_amqp_util:bind_q_to_exchange(Q, <<"cdr.report.*.*">>, ?CDR_EXCHANGE);
+    'ok' = kz_amqp_util:bind_q_to_exchange(Q, <<"cdr.report.*.*">>, ?CDR_EXCHANGE);
 bind_q(Q, Props, ['report'|Restrict]) ->
-    kz_amqp_util:bind_q_to_exchange(Q, <<"cdr.report.*.*">>, ?CDR_EXCHANGE),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Q, <<"cdr.report.*.*">>, ?CDR_EXCHANGE),
     bind_q(Q, Props, Restrict);
 bind_q(Q, Props, [_|Restrict]) ->
     bind_q(Q, Props, Restrict);

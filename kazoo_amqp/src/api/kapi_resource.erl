@@ -530,11 +530,11 @@ bind_q(Queue, Prop) ->
 
 bind_q(Queue, _Prop, 'undefined') ->
     'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(originate_req_definition())),
-    kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(eavesdrop_req_definition()));
+    'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(eavesdrop_req_definition()));
 bind_q(Queue, Prop, ['originate'|T]) ->
     RK = kapi_definition:binding(originate_req_definition()),
     Node = props:get_ne_binary_value('node', Prop),
-    kz_amqp_util:bind_q_to_callmgr(Queue, bind_key(RK, Node)),
+    'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, bind_key(RK, Node)),
     bind_q(Queue, Prop, T);
 bind_q(Queue, Prop, ['eavesdrop'|T]) ->
     'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, kapi_definition:binding(eavesdrop_req_definition())),

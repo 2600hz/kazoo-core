@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Expose system configuration data.
 %%% System configuration data is stored as key/values in a namespace
 %%% (a doc) in `system_config' DB.
@@ -352,13 +352,13 @@ bind_q(Q, Prop) ->
 add_bindings(Q, 'undefined') ->
     add_bindings(Q, ['get', 'set', 'flush']);
 add_bindings(Q, ['get'|T]) ->
-    _ = kz_amqp_util:bind_q_to_sysconf(Q, kapi_definition:binding(get_req_definition())),
+    'ok' = kz_amqp_util:bind_q_to_sysconf(Q, kapi_definition:binding(get_req_definition())),
     add_bindings(Q, T);
 add_bindings(Q, ['set'|T]) ->
-    _ = kz_amqp_util:bind_q_to_sysconf(Q, kapi_definition:binding(set_req_definition())),
+    'ok' = kz_amqp_util:bind_q_to_sysconf(Q, kapi_definition:binding(set_req_definition())),
     add_bindings(Q, T);
 add_bindings(Q, ['flush'|T]) ->
-    _ = kz_amqp_util:bind_q_to_sysconf(Q, kapi_definition:binding(flush_req_definition())),
+    'ok' = kz_amqp_util:bind_q_to_sysconf(Q, kapi_definition:binding(flush_req_definition())),
     add_bindings(Q, T);
 add_bindings(Q, [_|T]) ->
     add_bindings(Q, T);
