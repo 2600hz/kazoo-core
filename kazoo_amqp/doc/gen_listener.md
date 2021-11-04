@@ -176,14 +176,3 @@ The underlying `gen_listener` will send some internal messages to the callback m
 | {gen\_listener,{created\_queue,QueueName}}          | Queue name assigned to the AMQP queue (or predefined in the options)                                            |
 | {gen\_listener,{is\_consuming,IsConsuming}}         | Is the consumer ready? Messages be expected when 'true'                                                         |
 | {gen\_listener,{federators\_consuming,IsConsuming}} | If bindings are federated, this message indicates when all remote brokers are being consumed from (when 'true') |
-
-# Debugging
-
-1. gen_listener starts up
-2. fed_listener starts up
-3. dyn bindings added to gen_listener
-  3a. dyn bindings added to fed_listener
-4. fed_listener's connection dies
-
-fed_listener restarts? or loses all bindings
-do dyn bindings re-add to fed_listener?

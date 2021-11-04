@@ -76,10 +76,7 @@ stop(Pid) ->
 -spec init([pid() | kz_term:ne_binary()]) -> {'ok', state()}.
 init([Parent, ParentCallId, Broker]=L) ->
     _ = kz_amqp_channel:consumer_broker(Broker),
-    lager:info("put consumer broker to ~s", [Broker]),
-
     Zone = kz_term:to_binary(kz_amqp_connections:broker_zone(Broker)),
-    lager:info("our zone: ~s", [Zone]),
 
     CallId = kz_binary:join([ParentCallId, Zone], <<"-">>),
     kz_log:put_callid(CallId),
@@ -225,6 +222,7 @@ federated_queue_name(Broker, StartParams, Options) ->
         'false' when IsGlobalQueue -> QueueName;
         'false' ->
             Zone = kz_term:to_binary(kz_amqp_connections:broker_zone(Broker)),
+            %% avoids -Zone-Zone-Zone-... on restarts
             case binary:split(QueueName, <<"-", Zone/binary>>) of
                 [QueueName] ->  <<QueueName/binary, "-", Zone/binary>>;
                 [_, <<>>] -> QueueName

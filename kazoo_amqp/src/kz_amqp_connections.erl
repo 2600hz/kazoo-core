@@ -165,8 +165,7 @@ remove([Connection|Connections]) when is_pid(Connection) ->
     remove(Connections);
 remove(Connection) when is_pid(Connection) ->
     _R = kz_amqp_connection_sup:remove(Connection),
-    gen_server:cast(?SERVER, {'connection_removed', Connection}),
-    lager:info("removed conn ~p: ~p", [Connection, _R]);
+    gen_server:cast(?SERVER, {'connection_removed', Connection});
 remove(Broker) when not is_binary(Broker) ->
     remove(kz_term:to_binary(Broker));
 remove(Broker=?NE_BINARY) ->
@@ -174,9 +173,7 @@ remove(Broker=?NE_BINARY) ->
                                   ,connection='$1'
                                   ,_='_'
                                   },
-    Conns = ets:match(?TAB, Pattern),
-    lager:info("removing broker ~s in conns ~p", [Broker, Conns]),
-    remove([Connection || [Connection] <- Conns]).
+    remove([Connection || [Connection] <- ets:match(?TAB, Pattern)]).
 
 %% @doc Change a connection's availability to 'true'
 -spec available(pid()) -> 'ok'.

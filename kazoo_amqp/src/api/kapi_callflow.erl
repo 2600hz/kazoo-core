@@ -268,9 +268,9 @@ bind_q(Q, Props) ->
 
 -spec bind_q(kz_term:ne_binary(), kz_term:api_atoms(), kz_term:proplist()) -> 'ok'.
 bind_q(Q, 'undefined', _) ->
-    kz_amqp_util:bind_q_to_kapps(Q, kapi_definition:binding(resume_definition()));
+    'ok' = kz_amqp_util:bind_q_to_kapps(Q, kapi_definition:binding(resume_definition()));
 bind_q(Q, ['resume'|Restrict], Props) ->
-    kz_amqp_util:bind_q_to_kapps(Q, kapi_definition:binding(resume_definition())),
+    'ok' = kz_amqp_util:bind_q_to_kapps(Q, kapi_definition:binding(resume_definition())),
     bind_q(Q, Restrict, Props);
 bind_q(Q, ['actions'|Restrict], Props) ->
     Actions = props:get_value('actions', Props, []),

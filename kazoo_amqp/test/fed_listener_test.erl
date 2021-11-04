@@ -7,7 +7,12 @@
 %%% listener is restarted, all bindings of the parent gen_listener are
 %%% re-bound.
 %%%
-%%% P = fed_listener_test:start().
+%%% `make compile-test-direct`
+%%% l(fed_listener_test), fed_listener_test:start().
+%%% Should return 'ok' or an error with the exit reason
+%%%
+%%% Assumes localhost has a broker and differs from default connection
+%%% (note: I used localhost and NAT IP as two brokers)
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,7 +40,7 @@
 
 -define(FED_BROKER, <<"amqp://guest:guest@127.0.0.1:5672">>).
 
--spec start() -> pid().
+-spec start() -> 'ok' | {'error', any()}.
 start() ->
     PidRef = spawn_monitor(fun start_it/0),
     wait(PidRef).
@@ -187,7 +192,7 @@ handle_info(Msg, TestPid) ->
     lager:info("info: ~p state: ~p", [Msg, TestPid]),
     {'noreply', TestPid}.
 
--spec handle_event(kz_json:object(), state()) -> {'ignore', state()}.
+-spec handle_event(kz_json:object(), state()) -> 'ignore'.
 handle_event(_JObj, _TestPid) ->
     'ignore'.
 
