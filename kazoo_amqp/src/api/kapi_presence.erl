@@ -1088,62 +1088,62 @@ bind_q(Queue, 'undefined', _) ->
 bind_q(Queue, ['search_req'|Restrict], Props) ->
     Realm = props:get_value('realm', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(search_req_definition()))(Realm),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['sync'|Restrict], Props) ->
-    kz_amqp_util:bind_q_to_presence(Queue, <<"sync">>),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, <<"sync">>),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['subscribe'|Restrict], Props) ->
     User = props:get_value('user', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(subscribe_definition()))(User),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['update'|Restrict], Props) ->
     PresenceId = props:get_value('presence-id', Props, <<"*@*">>),
     CallId = props:get_value('call', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(update_definition()))(CallId, PresenceId),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['dialog'|Restrict], Props) ->
     PresenceId = props:get_value('presence-id', Props, <<"*@*">>),
     CallId = props:get_value('call', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(dialog_definition()))(CallId, PresenceId),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['probe'|Restrict], Props) ->
     ProbeType = props:get_value('probe_type', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(probe_definition()))(ProbeType),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['mwi_update'|Restrict], Props) ->
     User = props:get_value('user', Props, <<"*">>),
     Realm = props:get_value('realm', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(mwi_update_definition()))(User, Realm),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['mwi_unsolicited_update'|Restrict], Props) ->
     User = props:get_value('user', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(mwi_unsolicited_update_definition()))(User),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['mwi_query'|Restrict], Props) ->
     User = props:get_value('user', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(mwi_query_definition()))(User),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['register_overwrite'|Restrict], Props) ->
     Realm = props:get_value('realm', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(register_overwrite_definition()))(Realm),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['flush'|Restrict], Props) ->
-    kz_amqp_util:bind_q_to_presence(Queue, <<"flush">>),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, <<"flush">>),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, ['reset'|Restrict], Props) ->
     Username = props:get_value('username', Props, <<"*">>),
     Realm = props:get_value('realm', Props, <<"*">>),
     RoutingKey = (kapi_definition:binding(reset_definition()))(Realm, Username),
-    kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
+    'ok' = kz_amqp_util:bind_q_to_presence(Queue, RoutingKey),
     bind_q(Queue, Restrict, Props);
 bind_q(Queue, [_|Restrict], Props) ->
     bind_q(Queue, Restrict, Props);

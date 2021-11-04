@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Handle registration-related APIs, like `reg_success' and `reg_lookup'.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -642,20 +642,20 @@ bind_q(Q, Props) ->
     bind_q(Q, props:get_value('restrict_to', Props), Props).
 
 bind_q(Q, 'undefined', Props) ->
-    _ = kz_amqp_util:bind_q_to_registrar(Q, get_success_binding(Props)),
+    'ok' = kz_amqp_util:bind_q_to_registrar(Q, get_success_binding(Props)),
     kz_amqp_util:bind_q_to_registrar(Q, get_query_binding(Props));
 bind_q(Q, ['reg_success'|T], Props) ->
-    _ = kz_amqp_util:bind_q_to_registrar(Q, get_success_binding(Props)),
+    'ok' = kz_amqp_util:bind_q_to_registrar(Q, get_success_binding(Props)),
     bind_q(Q, T, Props);
 bind_q(Q, ['reg_query'|T], Props) ->
-    _ = kz_amqp_util:bind_q_to_registrar(Q, get_query_binding(Props)),
+    'ok' = kz_amqp_util:bind_q_to_registrar(Q, get_query_binding(Props)),
     bind_q(Q, T, Props);
 bind_q(Q, ['reg_flush'|T], Props) ->
     Realm = props:get_value('realm', Props, <<"*">>),
-    _ = kz_amqp_util:bind_q_to_registrar(Q, (kapi_definition:binding(flush_definition()))(Realm)),
+    'ok' = kz_amqp_util:bind_q_to_registrar(Q, (kapi_definition:binding(flush_definition()))(Realm)),
     bind_q(Q, T, Props);
 bind_q(Q, ['search_req'|T], Props) ->
-    _ = kz_amqp_util:bind_q_to_registrar(Q, (kapi_definition:binding(search_req_definition()))(Props)),
+    'ok' = kz_amqp_util:bind_q_to_registrar(Q, (kapi_definition:binding(search_req_definition()))(Props)),
     bind_q(Q, T, Props);
 bind_q(Q, [_|T], Props) -> bind_q(Q, T, Props);
 bind_q(_, [], _) -> 'ok'.

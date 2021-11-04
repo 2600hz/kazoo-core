@@ -450,13 +450,13 @@ bind_q(Q, Props, ['authn_routes'|RestrictTo]) ->
     lists:foreach(fun({Restriction, Routing}) -> bind_q(Q, Props ++ Routing, [Restriction]) end, Routes),
     bind_q(Q, Props, RestrictTo);
 bind_q(Q, Props, ['authn_reg'|RestrictTo]) ->
-    kz_amqp_util:bind_q_to_registrar(Q, get_authn_req_bind_routing(Props)),
+    'ok' = kz_amqp_util:bind_q_to_registrar(Q, get_authn_req_bind_routing(Props)),
     bind_q(Q, Props, RestrictTo);
 bind_q(Q, Props, ['authn_req'|RestrictTo]) ->
-    kz_amqp_util:bind_q_to_callmgr(Q, get_authn_req_bind_routing(Props)),
+    'ok' = kz_amqp_util:bind_q_to_callmgr(Q, get_authn_req_bind_routing(Props)),
     bind_q(Q, Props, RestrictTo);
 bind_q(Q, Props, ['token_req'|RestrictTo]) ->
-    kz_amqp_util:bind_q_to_callmgr(Q, get_authn_token_req_bind_routing(Props)),
+    'ok' = kz_amqp_util:bind_q_to_callmgr(Q, get_authn_token_req_bind_routing(Props)),
     bind_q(Q, Props, RestrictTo);
 bind_q(_Q, _Props, []) -> 'ok'.
 

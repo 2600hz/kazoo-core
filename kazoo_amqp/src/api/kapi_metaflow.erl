@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Metaflow requests, responses, and errors.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -344,33 +344,33 @@ bind_q(Queue, Props) ->
 -spec bind_q(kz_term:ne_binary(), kz_term:proplist(), list()) -> 'ok'.
 bind_q(Queue, Props, ['bind_req' | T]) ->
     AccountId = props:get_value('account_id', Props, <<"*">>),
-    kz_amqp_util:bind_q_to_exchange(Queue
-                                   ,(kapi_definition:binding(bind_req_definition()))(AccountId)
-                                   ,?METAFLOW_EXCHANGE
-                                   ),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue
+                                          ,(kapi_definition:binding(bind_req_definition()))(AccountId)
+                                          ,?METAFLOW_EXCHANGE
+                                          ),
     bind_q(Queue, Props, T);
 bind_q(Queue, Props, ['action' | T]) ->
     CallId = props:get_value('callid', Props, <<"*">>),
     Action = props:get_value('action', Props, <<"*">>),
-    kz_amqp_util:bind_q_to_exchange(Queue
-                                   ,(kapi_definition:binding(action_definition()))(CallId, Action)
-                                   ,?METAFLOW_EXCHANGE
-                                   ),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue
+                                          ,(kapi_definition:binding(action_definition()))(CallId, Action)
+                                          ,?METAFLOW_EXCHANGE
+                                          ),
     bind_q(Queue, Props, T);
 bind_q(Queue, Props, ['flow' | T]) ->
     CallId = props:get_value('callid', Props, <<"*">>),
-    kz_amqp_util:bind_q_to_exchange(Queue
-                                   ,(kapi_definition:binding(flow_definition()))(CallId)
-                                   ,?METAFLOW_EXCHANGE
-                                   ),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue
+                                          ,(kapi_definition:binding(flow_definition()))(CallId)
+                                          ,?METAFLOW_EXCHANGE
+                                          ),
     bind_q(Queue, Props, T);
 bind_q(Queue, Props, ['bindings' | T]) ->
     AccountId = props:get_value('account_id', Props, <<"*">>),
     CallId = props:get_value('callid', Props, <<"*">>),
-    kz_amqp_util:bind_q_to_exchange(Queue
-                                   ,(kapi_definition:binding(binding_definition()))(AccountId, CallId)
-                                   ,?METAFLOW_EXCHANGE
-                                   ),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue
+                                          ,(kapi_definition:binding(binding_definition()))(AccountId, CallId)
+                                          ,?METAFLOW_EXCHANGE
+                                          ),
     bind_q(Queue, Props, T);
 bind_q(Queue, Props, [_U | T]) ->
     lager:debug("unknown restriction ~p in metaflow bind", [_U]),

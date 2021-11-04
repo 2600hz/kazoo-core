@@ -249,6 +249,17 @@
 -type amqp_basic() :: #'P_basic'{}.
 -type amqp_deliver() :: {basic_deliver(), amqp_msg()}.
 
+%% 'arguments' keys can be <<"x-max-priority">>, <<"x-max-length">>, or <<"x-message-ttl">>
+-type queue_option() :: {'arguments', kz_term:proplist()} |
+                        {'auto_delete', boolean()} |
+                        {'durable', boolean()} |
+                        {'exclusive', boolean()} |
+                        {'federated_queue_name_is_global', boolean()} | % whether to append zone name to queue name
+                        {'nowait', boolean()} |
+                        {'passive', boolean()} |
+                        {'return_field', 'queue' | 'message_count' | 'consumer_count', 'all'}.
+-type queue_options() :: [queue_option()].
+
 -define(AMQP_HIDDEN_TAG, <<"hidden">>).
 
 -define(DEFAULT_PREFETCH, 50).
