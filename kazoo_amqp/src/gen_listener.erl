@@ -72,6 +72,7 @@
 -export([init/1
         ,handle_call/3
         ,handle_cast/2
+        ,handle_continue/2
         ,handle_info/2
         ,terminate/2
         ,code_change/3
@@ -463,10 +464,20 @@ execute(Srv, Function) when is_function(Function) ->
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-type init_args() :: [atom() | start_params() | kz_term:proplist(),...].
+-spec init(init_args()) ->
+          {'ok', 'null', {'continue', init_args()}}.
+init(Args) ->
+    {'ok', 'null', {'continue', Args}}.
+
+%%------------------------------------------------------------------------------
 %% @doc Takes an existing process and turns it into a `gen_listener'.
 %% @end
 %%------------------------------------------------------------------------------
--spec init_state(list()) -> {'ok', state()} |
+-spec init_state(init_args()) -> {'ok', state()} |
           {'stop', any()} |
           'ignore'.
 init_state([Module, Params, ModuleState]) ->
@@ -479,11 +490,11 @@ init_state([Module, Params, ModuleState]) ->
     lager:debug("continuing as a gen_listener proc : ~s ~s", [Application, Module]),
     init(Module, Params, ModuleState, 'undefined').
 
--spec init([atom() | start_params() | kz_term:proplist(),...]) ->
+-spec do_init(init_args()) ->
           {'ok', state()} |
           {'stop', any()} |
           'ignore'.
-init([Module, Params, InitArgs]) ->
+do_init([Module, Params, InitArgs]) ->
     process_flag('trap_exit', 'true'),
     kz_log:put_callid(Module),
 
@@ -573,6 +584,14 @@ handle_call({'wait_until_consuming', Timeout}
     {'noreply', State#state{consuming_requests=[{From, TRef} | Requests]}};
 handle_call(Request, From, State) ->
     handle_module_call(Request, From, State).
+
+-spec handle_continue(init_args(), 'null') -> {'noreply', state()} | {'stop', any(), 'null'}.
+handle_continue(Args, 'null') ->
+    case do_init(Args) of
+        {'ok', State} -> {'noreply', State};
+        {'stop', Reason} -> {'stop', Reason, 'null'};
+        'ignore' -> {'stop', 'normal', 'null'}
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling cast messages.
@@ -933,7 +952,8 @@ handle_confirm(Confirm, State) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec terminate(any(), state()) -> 'ok'.
+-spec terminate(any(), state() | 'null') -> 'ok'.
+terminate(_Reason, 'null') -> 'ok';
 terminate(Reason, #state{module=Module
                         ,module_state=ModuleState
                         ,federators=Fs
