@@ -78,6 +78,8 @@
         ,format_status/2
         ]).
 
+-export([init_ack/4]).
+
 %% gen_server API
 -export([call/2
         ,call/3
@@ -238,7 +240,7 @@ start_link(Module, Params, InitArgs) when is_atom(Module),
                                           is_list(Params),
                                           is_list(InitArgs)
                                           ->
-    gen_server:start_link(?SERVER, [Module, Params, InitArgs], []).
+    proc_lib:start_link(?MODULE, 'init_ack', [self(), ?SERVER, [], [Module, Params, InitArgs]]).
 
 -spec start_link(kz_types:gen_server_name() | atom(), atom() | start_params(), start_params() | list(), kz_types:gen_server_options() | list()) -> kz_types:startlink_ret().
 start_link(Module, Params, InitArgs, Options) when is_atom(Module),
@@ -246,12 +248,12 @@ start_link(Module, Params, InitArgs, Options) when is_atom(Module),
                                                    is_list(InitArgs),
                                                    is_list(Options)
                                                    ->
-    gen_server:start_link(?MODULE, [Module, Params, InitArgs], Options);
+    proc_lib:start_link(?MODULE, 'init_ack', [self(), ?SERVER, Options, [Module, Params, InitArgs]]);
 start_link(Name, Module, Params, InitArgs) when is_atom(Module),
                                                 is_list(Params),
                                                 is_list(InitArgs)
                                                 ->
-    gen_server:start_link(Name, ?MODULE, [Module, Params, InitArgs], []).
+    proc_lib:start_link(?MODULE, 'init_ack', [self(), Name, [], [Module, Params, InitArgs]]).
 
 -spec start_link(kz_types:gen_server_name(), atom(), start_params(), list(), kz_types:gen_server_options()) -> kz_types:startlink_ret().
 start_link(Name, Module, Params, InitArgs, Options) when is_atom(Module),
@@ -259,7 +261,7 @@ start_link(Name, Module, Params, InitArgs, Options) when is_atom(Module),
                                                          is_list(InitArgs),
                                                          is_list(Options)
                                                          ->
-    gen_server:start_link(Name, ?MODULE, [Module, Params, InitArgs], Options).
+    proc_lib:start_link(?MODULE, 'init_ack', [self(), Name, Options, [Module, Params, InitArgs]]).
 
 -spec stop(kz_types:server_ref()) -> 'ok'.
 stop(Server) ->
@@ -478,6 +480,47 @@ init_state([Module, Params, ModuleState]) ->
 
     lager:debug("continuing as a gen_listener proc : ~s ~s", [Application, Module]),
     init(Module, Params, ModuleState, 'undefined').
+
+-spec init_ack(pid(), any(), list(), [atom() | start_params() | kz_term:proplist(),...]) -> 'ok'.
+init_ack(Pid, Name, Options, Args) ->
+    proc_lib:init_ack(Pid, {'ok', self()}),
+    case init(Args) of
+        ignore -> ok;
+        {stop, _Err} -> ok;
+        {ok, State} ->
+            case is_atom(Name) of
+                true ->
+                    gen_server:enter_loop(?MODULE, Options, State);
+                false ->
+                    register_name(Name),
+                    gen_server:enter_loop(?MODULE, Options, State, Name)
+            end
+    end.
+
+%% Copied fron gen.erl couldn't find something dealing with this and fun is not public
+where({global, Name}) -> global:whereis_name(Name);
+where({via, Module, Name}) -> Module:whereis_name(Name);
+where({local, Name})  -> erlang:whereis(Name).
+
+register_name({local, Name} = LN) ->
+    try register(Name, self()) of
+        true -> true
+    catch
+        error:_ ->
+            {false, where(LN)}
+    end;
+register_name({global, Name} = GN) ->
+    case global:register_name(Name, self()) of
+        yes -> true;
+        no -> {false, where(GN)}
+    end;
+register_name({via, Module, Name} = GN) ->
+    case Module:register_name(Name, self()) of
+        yes ->
+            true;
+        no ->
+            {false, where(GN)}
+    end.
 
 -spec init([atom() | start_params() | kz_term:proplist(),...]) ->
           {'ok', state()} |
