@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2021, 2600Hz
 %%% @doc HTTP helper functions for Kazoo
 %%% @author Mark Magnusson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -755,10 +755,10 @@ get_resp_header(RespHeader, RespHeaders) ->
 
 -spec get_resp_header(kz_http:field(), kz_http:headers(), Default) -> kz_http:value() | Default.
 get_resp_header(RespHeader, RespHeaders, Default) ->
-    case lists:keyfind(RespHeader, 1, RespHeaders) of
-        {_, Value} -> Value;
-        'false' -> Default
-    end.
+    props:get_value(kz_term:to_lower_string(RespHeader)
+                   ,[{kz_term:to_lower_string(K), V} || {K, V} <- RespHeaders]
+                   ,Default
+                   ).
 
 -type part() :: {binary(), kz_term:proplist()}.
 -type parts() :: [part()].
