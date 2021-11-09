@@ -72,6 +72,7 @@
 -export([init/1
         ,handle_call/3
         ,handle_cast/2
+        ,handle_continue/2
         ,handle_info/2
         ,terminate/2
         ,code_change/3
@@ -459,33 +460,49 @@ execute(Srv, Function) when is_function(Function) ->
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-type init_args() :: [atom() | start_params() | kz_term:proplist(),...].
+-spec init(init_args()) ->
+          {'ok', 'null', {'continue', init_args()}}.
+init(Args) ->
+    {'ok', 'null', {'continue', Args}}.
+
+%%------------------------------------------------------------------------------
 %% @doc Takes an existing process and turns it into a `gen_listener'.
 %% @end
 %%------------------------------------------------------------------------------
--spec init_state(list()) -> {'ok', state()} |
+-spec init_state(init_args()) -> {'ok', state()} |
           {'stop', any()} |
           'ignore'.
 init_state([Module, Params, ModuleState]) ->
     process_flag('trap_exit', 'true'),
-    put('callid', Module),
-    lager:debug("continuing as a gen_listener proc : ~s", [Module]),
+    kz_log:put_callid(Module),
+
+    Application = kz_process:get_application(),
+    kz_process:put_application(Application),
+
+    lager:debug("continuing as a gen_listener proc : ~s ~s", [Application, Module]),
     init(Module, Params, ModuleState, 'undefined').
 
--spec init([atom() | kz_term:proplist(),...]) ->
+-spec do_init(init_args()) ->
           {'ok', state()} |
           {'stop', any()} |
           'ignore'.
-init([Module, Params, InitArgs]) ->
+do_init([Module, Params, InitArgs]) ->
     process_flag('trap_exit', 'true'),
-    put('callid', Module),
+    kz_log:put_callid(Module),
+
     Application = kz_process:get_application(),
     kz_process:put_application(Application),
+
     lager:debug("starting new gen_listener proc : ~s ~s"
                ,[Application, Module]
                ),
-    case erlang:function_exported(Module, 'init', 1)
-        andalso Module:init(InitArgs)
-    of
+
+    'true' = erlang:function_exported(Module, 'init', 1),
+    case Module:init(InitArgs) of
         {'ok', MS} -> init(Module, Params, MS, 'undefined');
         {'ok', MS, 'hibernate'} -> init(Module, Params, MS, 'undefined');
         {'ok', MS, Timeout} -> init(Module, Params, MS, start_timer(Timeout));
@@ -563,6 +580,14 @@ handle_call({'wait_until_consuming', Timeout}
     {'noreply', State#state{consuming_requests=[{From, TRef} | Requests]}};
 handle_call(Request, From, State) ->
     handle_module_call(Request, From, State).
+
+-spec handle_continue(init_args(), 'null') -> {'noreply', state()} | {'stop', any(), 'null'}.
+handle_continue(Args, 'null') ->
+    case do_init(Args) of
+        {'ok', State} -> {'noreply', State};
+        {'stop', Reason} -> {'stop', Reason, 'null'};
+        'ignore' -> {'stop', 'normal', 'null'}
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling cast messages.
@@ -945,7 +970,8 @@ handle_confirm(Confirm, State) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec terminate(any(), state()) -> 'ok'.
+-spec terminate(any(), state() | 'null') -> 'ok'.
+terminate(_Reason, 'null') -> 'ok';
 terminate(Reason, #state{module=Module
                         ,module_state=ModuleState
                         ,federators=Fs
