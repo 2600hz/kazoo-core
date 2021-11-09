@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,7 +36,7 @@ maybe_record_inbound(FromNetwork, _Endpoint, Call, Data) ->
         'true' ->
             LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_INBOUND_RECORDING_LABEL(FromNetwork), Data),
             {'true'
-            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'false', Call))
+            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'true', Call))
             }
     end.
 
@@ -55,6 +55,6 @@ maybe_record_outbound(ToNetwork, _Endpoint, Call, Data) ->
         'true' ->
             LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
             {'true'
-            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'false', Call))
+            ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'true', Call))
             }
     end.
