@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -439,7 +439,7 @@ fetch_url(Url, FetchRequest) ->
     case kz_http:req(Method, Url, Headers, Body) of
         {'ok', 200, RespHeaders, Contents} ->
             DefaultCt = kz_mime:from_filename(Url),
-            CT = props:get_value("Content-Type", RespHeaders, DefaultCt),
+            CT = kz_http_util:get_resp_header("Content-Type", RespHeaders, DefaultCt),
             ContentType = kz_mime:normalize_content_type(CT),
             {'ok', Contents, ContentType};
         {'ok', Status, _, _} ->
