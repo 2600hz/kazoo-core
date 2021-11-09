@@ -53,15 +53,15 @@ is_call_events_started() ->
 maybe_start_call_events() ->
     maybe_start_call_events(is_call_events_started()).
 
-maybe_start_call_events(false) ->
+maybe_start_call_events('false') ->
     _ = kz_event_listeners_sup:start_pool('call_events'),
     'ok';
-maybe_start_call_events(true) -> ok.
+maybe_start_call_events('true') -> 'ok'.
 
 -spec bind_call_id(kz_term:ne_binary()) -> 'ok'.
 bind_call_id(CallId) ->
     maybe_start_call_events(),
-    reg_property(call_event_binding(CallId), self()),
+    _ = reg_property(call_event_binding(CallId), self()),
     'ok'.
 
 -spec unbind_call_id(kz_term:ne_binary()) -> 'ok'.
@@ -88,7 +88,7 @@ maybe_start_presence() ->
 -spec bind_presence_id(kz_term:ne_binary()) -> 'ok'.
 bind_presence_id(PresenceId) ->
     maybe_start_presence(),
-    reg_property(presence_event_binding(PresenceId), self()),
+    _ = reg_property(presence_event_binding(PresenceId), self()),
     'ok'.
 
 -spec unbind_presence_id(kz_term:ne_binary()) -> 'ok'.
@@ -110,7 +110,7 @@ send_event(Binding, Payload) ->
     gproc:send({'p', 'l', Binding}, Payload).
 
 reg_property(Binding, Value) ->
-    gproc:reg({'p', 'l', Binding}, Value).
+    gproc:ensure_reg({'p', 'l', Binding}, Value).
 
 unreg_property(Binding) ->
     gproc:unreg({'p', 'l', Binding}).
