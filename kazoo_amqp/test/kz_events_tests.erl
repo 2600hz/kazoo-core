@@ -3,7 +3,7 @@
 -export([check_events/0]).
 
 -export([check_events_genl/0
-        ,genl/1
+        ,genl/2
         ,init/1
         ,handle_call/3
         ,handle_cast/2
@@ -42,7 +42,7 @@ check_events() ->
 wait_for_events({CallId, _, 0}
                ,{PresenceId, _, 0}
                ) ->
-    io:format(user, "done for call ~s and presence ~s~n", [CallId, PresenceId]),
+    io:format('user', "done for call ~s and presence ~s~n", [CallId, PresenceId]),
     'true';
 wait_for_events({CallId, {CPid, CRef}=PidRefCallIds, CallCount}=C
                ,{PresenceId, {PPid, PRef}=PidRefPresenceIds, PresCount}=P
@@ -132,7 +132,17 @@ publish_presence_id(PresenceId, PublishCount) ->
 
 -spec check_events_genl() -> 'ok'.
 check_events_genl() ->
-    PidRef = proc_lib:spawn_opt(?MODULE, 'genl', [self()], ['monitor']),
+    CallId = kz_binary:rand_hex(6),
+    {Pid, _}=PidRef = proc_lib:spawn_opt(?MODULE, 'genl', [self(), CallId], ['monitor']),
+
+    %% ensure two gen_listeners can use pooled events for the CallId
+    _ = proc_lib:spawn_opt(?MODULE, 'genl', [self(), CallId], ['monitor']),
+
+    gen_listener:add_binding(Pid, 'call', [{'callid', CallId}, 'pooled']),
+
+    kz_events:bind_call_id(CallId),
+    kz_events:bind_call_id(CallId),
+
     wait_for_pid(PidRef).
 
 wait_for_pid({Pid, Ref}) ->
@@ -144,11 +154,10 @@ wait_for_pid({Pid, Ref}) ->
             exit(Pid, 'normal')
     end.
 
--spec genl(pid()) -> no_return().
-genl(Parent) ->
+-spec genl(pid(), kz_term:ne_binary()) -> no_return().
+genl(Parent, CallId) ->
     {'ok', _} = application:ensure_all_started('kazoo_amqp'),
 
-    CallId = kz_binary:rand_hex(6),
     PresenceId = list_to_binary([kz_binary:rand_hex(6), "@", kz_binary:rand_hex(6)]),
     PublishCount = 10,
 
