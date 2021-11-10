@@ -109,20 +109,12 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'gen_listener', {'created_queue', _}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener', {'is_consuming', 'true'}}
+handle_cast({'gen_listener', {'is_consuming', IsConsuming}}
            ,#state{parent={Parent, _Ref}
                   ,broker=Broker
                   }=State
            ) ->
-    gen_server:cast(Parent, {'federator_is_consuming', self(), Broker, 'true'}),
-    {'noreply', State};
-handle_cast({'gen_listener', {'is_consuming', 'false'}}
-           ,#state{parent={Parent, _Ref}
-                  ,broker=Broker
-                  }=State
-           ) ->
-    lager:info("federator no longer consuming on broker ~s", [Broker]),
-    gen_server:cast(Parent, {'federator_is_consuming', self(), Broker, 'false'}),
+    gen_listener:notify_of_federator_consuming(Parent, Broker, IsConsuming),
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),
