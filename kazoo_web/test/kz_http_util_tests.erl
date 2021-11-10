@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -131,6 +131,14 @@ urlencode_test_() ->
                   ,kz_http_util:urlunsplit({<<"http">>, <<"host:port">>, <<"/foo">>, QS, <<>>})
                   )
     ].
+
+get_resp_header_test_() ->
+    Tests = [{[{"content-type", "application/pdf"}], "application/pdf"}
+            ,{[{"Content-Type", "application/pdf"}], "application/pdf"}
+            ,{[{"CONTENT-TYPE", "application/pdf"}], "application/pdf"}
+            ,{[{"CONTENT", "application/pdf"}], 'undefined'}
+            ],
+    [?_assertEqual(QS, kz_http_util:get_resp_header("Content-Type", Props)) || {Props, QS} <- Tests].
 
 -define(ENC(I), uri_string:compose_query(uri_string:dissect_query(I))).
 
