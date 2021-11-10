@@ -111,6 +111,7 @@
 
 -export([federated_event/3
         ,notify_of_federator_listener/2
+        ,notify_of_federator_consuming/3
         ]).
 -export([delayed_cast/3]).
 -export([distribute_event/3]).
@@ -447,6 +448,13 @@ federated_event(Srv, JObj, Props) ->
 notify_of_federator_listener(Srv, {_Broker, _Pid}=Child) ->
     gen_server:cast(Srv, {'federator_listener', Child}).
 
+-spec notify_of_federator_consuming(pid(), kz_term:ne_binary(), boolean()) -> 'ok'.
+notify_of_federator_consuming(Srv, <<Broker/binary>>, IsConsuming)
+  when is_pid(Srv),
+       is_boolean(IsConsuming)
+       ->
+    gen_server:cast(Srv, {'federator_is_consuming', self(), Broker, IsConsuming}).
+
 -spec execute(kz_types:server_ref(), module(), atom(), [any()]) -> 'ok'.
 execute(Srv, Module, Function, Args) ->
     gen_server:cast(Srv, {'$execute', Module, Function, Args}).
@@ -704,10 +712,10 @@ handle_cast({'federator_is_consuming', ListenerFederatorPid, Broker, 'true'}
                       ),
             {'noreply', State#state{waiting_federators = Remaining}}
     end;
-handle_cast({'federator_is_consuming', _ListenerFederator, _Broker, 'false'}
+handle_cast({'federator_is_consuming', _ListenerFederatorPid, _Broker, 'false'}
            ,#state{}=State
            ) ->
-    lager:info("federator ~p on broker ~s is no longer consuming", [_ListenerFederator, _Broker]),
+    lager:info("federator ~p on broker ~s is no longer consuming", [_ListenerFederatorPid, _Broker]),
     handle_module_cast({?MODULE, {'federators_consuming', 'false'}}, State);
 handle_cast({'federator_listener', {Broker, Pid}}
            ,#state{federators=Fs
