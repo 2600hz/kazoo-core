@@ -116,6 +116,7 @@ req_definition() ->
                                                             ,<<"Cost-Parameters">>
                                                             ,<<"Custom-Application-Vars">>
                                                             ,<<"Custom-Channel-Vars">>
+                                                            ,<<"Custom-AUTH-Headers">>
                                                             ,<<"Custom-Routing-Headers">>
                                                             ,<<"Custom-SIP-Headers">>
                                                             ,<<"Context">>
@@ -163,6 +164,7 @@ req_definition() ->
                 ,{<<"Cost-Parameters">>, fun has_cost_parameters/1}
                 ,{<<"Custom-Application-Vars">>, fun kz_json:is_json_object/1}
                 ,{<<"Custom-Channel-Vars">>, fun kz_json:is_json_object/1}
+                ,{<<"Custom-AUTH-Headers">>, fun kz_json:is_json_object/1}
                 ,{<<"Custom-SIP-Headers">>, fun kz_json:is_json_object/1}
                 ,{<<"Event-Queue">>, fun erlang:is_binary/1}
                 ,{<<"From">>, fun erlang:is_binary/1}

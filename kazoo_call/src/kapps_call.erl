@@ -113,6 +113,13 @@
         ,custom_sip_headers/1
         ]).
 
+-export([set_custom_auth_header/3
+        ,set_custom_auth_headers/2
+        ,custom_auth_header/2, custom_auth_header/3
+        ,custom_auth_headers/1
+        ,remote_bridge_auth_headers/1
+        ]).
+
 -export([set_custom_publish_function/2, clear_custom_publish_function/1
         ,custom_publish_function/1
         ]).
@@ -214,6 +221,7 @@
                     ,ccvs = kz_json:new() :: kz_json:object()           %% Any custom channel vars that where provided with the route request
                     ,cavs = kz_json:new() :: kz_json:object()           %% Any custom application vars that where provided with the route request
                     ,sip_headers = kz_json:new() :: kz_json:object()    %% Custom SIP Headers
+                    ,auth_headers = kz_json:new() :: kz_json:object()   %% Custom AUTH Headers
                     ,kvs = orddict:new() :: orddict:orddict()           %% allows callflows to set values that propagate to children
                     ,other_leg_call_id :: kz_term:api_binary()
                     ,resource_type :: kz_term:api_binary()                      %% from route_req
@@ -276,16 +284,19 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                                     ,ccvs=OldCCVs
                                     ,cavs=OldCAVs
                                     ,sip_headers=OldSHs
+                                    ,auth_headers=OldAHs
                                     ,request=OldRequest
                                     ,from=OldFrom
                                     ,to=OldTo
                                     }=Call) ->
+    lager:warning_unsafe("ROUTE_REQ => ~s", [kz_json:encode(RouteReq)]),
     CallId = kz_api:call_id(RouteReq, OldCallId),
     kz_log:put_callid(CallId),
 
     CCVs = merge(OldCCVs, kz_json:get_json_value(<<"Custom-Channel-Vars">>, RouteReq)),
     CAVs = merge(OldCAVs, kz_json:get_json_value(<<"Custom-Application-Vars">>, RouteReq)),
     SHs = merge(OldSHs, kz_json:get_json_value(<<"Custom-SIP-Headers">>, RouteReq)),
+    AHs = merge(OldAHs, kz_json:get_json_value(<<"Custom-AUTH-Headers">>, RouteReq)),
 
     Request = kz_json:get_ne_binary_value(<<"Request">>, RouteReq, OldRequest),
     From = kz_json:get_ne_binary_value(<<"From">>, RouteReq, OldFrom),
@@ -340,6 +351,7 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                     ,ccvs = CCVs
                     ,cavs = CAVs
                     ,sip_headers = SHs
+                    ,auth_headers = AHs
                     ,resource_type = kz_json:get_ne_binary_value(<<"Resource-Type">>, RouteReq, resource_type(Call))
                     ,to_tag = kz_json:get_ne_binary_value(<<"To-Tag">>, RouteReq, to_tag(Call))
                     ,from_tag = kz_json:get_ne_binary_value(<<"From-Tag">>, RouteReq, from_tag(Call))
@@ -529,10 +541,12 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                            ,cavs=OldCAVs
                            ,kvs=Kvs
                            ,sip_headers=OldSHs
+                           ,auth_headers=OldAHs
                            }=Call) ->
     CCVs = kz_json:merge(OldCCVs, kz_json:get_json_value(<<"Custom-Channel-Vars">>, JObj, kz_json:new())),
     CAVs = kz_json:merge(OldCAVs, kz_json:get_json_value(<<"Custom-Application-Vars">>, JObj, kz_json:new())),
     SHs = kz_json:merge(OldSHs, kz_json:get_value(<<"Custom-SIP-Headers">>, JObj, kz_json:new())),
+    AHs = kz_json:merge(OldAHs, kz_json:get_value(<<"Custom-AUTH-Headers">>, JObj, kz_json:new())),
     KVS = orddict:from_list(kz_json:to_proplist(kz_json:get_value(<<"Key-Value-Store">>, JObj, kz_json:new()))),
     Call#kapps_call{call_id = kz_json:get_ne_binary_value(<<"Call-ID">>, JObj, call_id_direct(Call))
                    ,origination_call_id = kz_json:get_ne_binary_value(<<"Origination-Call-ID">>, JObj, origination_call_id(Call))
@@ -570,6 +584,7 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                    ,ccvs = CCVs
                    ,cavs = CAVs
                    ,sip_headers = SHs
+                   ,auth_headers = AHs
                    ,kvs = orddict:merge(fun(_, _, V2) -> V2 end, Kvs, KVS)
                    ,other_leg_call_id = kz_json:get_ne_binary_value(<<"Other-Leg-Call-ID">>, JObj, other_leg_call_id(Call))
                    ,resource_type = kz_json:get_ne_binary_value(<<"Resource-Type">>, JObj, resource_type(Call))
@@ -637,6 +652,7 @@ to_proplist(#kapps_call{}=Call) ->
     ,{<<"Custom-Application-Vars">>, custom_application_vars(Call)}
     ,{<<"Custom-Channel-Vars">>, custom_channel_vars(Call)}
     ,{<<"Custom-SIP-Headers">>, custom_sip_headers(Call)}
+    ,{<<"Custom-AUTH-Headers">>, custom_auth_headers(Call)}
     ,{<<"Endpoint-ID">>, endpoint_id(Call)}
     ,{<<"Fetch-ID">>, fetch_id(Call)}
     ,{<<"From">>, from(Call)}
@@ -1465,6 +1481,25 @@ set_custom_sip_headers(Headers, #kapps_call{sip_headers=SHs}=Call) ->
 -spec custom_sip_headers(call()) -> kz_json:object().
 custom_sip_headers(#kapps_call{sip_headers=SHs}) -> SHs.
 
+-spec set_custom_auth_header(kz_json:path(), kz_json:json_term(), call()) -> call().
+set_custom_auth_header(Key, Value, #kapps_call{auth_headers=AHs}=Call) ->
+    Call#kapps_call{auth_headers=kz_json:set_value(Key, Value, AHs)}.
+
+-spec custom_auth_header(kz_json:get_key(), call()) -> kz_json:api_json_term().
+custom_auth_header(Key, #kapps_call{}=Call) ->
+    custom_auth_header(Key, 'undefined', Call).
+
+-spec custom_auth_header(kz_json:get_key(), Default, call()) -> kz_json:json_term() | Default.
+custom_auth_header(Key, Default, #kapps_call{auth_headers=AHs}) ->
+    kz_json:get_value(Key, AHs, Default).
+
+-spec set_custom_auth_headers(kz_term:proplist(), call()) -> call().
+set_custom_auth_headers(Headers, #kapps_call{auth_headers=AHs}=Call) ->
+    Call#kapps_call{auth_headers=kz_json:set_values(Headers, AHs)}.
+
+-spec custom_auth_headers(call()) -> kz_json:object().
+custom_auth_headers(#kapps_call{auth_headers=AHs}) -> AHs.
+
 -spec handle_ccvs_update(kz_json:object(), call()) -> call().
 handle_ccvs_update(CCVs, #kapps_call{}=Call) ->
     lists:foldl(fun({Var, Index}, C) ->
@@ -1902,3 +1937,15 @@ routing_context_direct_call_flag(Call) ->
         'true' -> [<<"direct_call">>];
         'false' -> [<<"non_direct_call">>]
     end.
+
+-spec remote_bridge_auth_headers(call()) -> kz_term:proplist().
+remote_bridge_auth_headers(Call) ->
+    kz_json:foldl(fun remote_bridge_auth_header/3, [], custom_auth_headers(Call)).
+
+-spec remote_bridge_auth_header(kz_term:ne_binary(), kz_json:json_term(), kz_term:proplist()) -> kz_term:proplist().
+remote_bridge_auth_header(<<"Token">>, Value, Acc) ->
+    [{<<"X-FS-Auth-Token">>, Value} | Acc];
+remote_bridge_auth_header(<<"IP">>, _Value, Acc) -> Acc;
+remote_bridge_auth_header(<<"PORT">>, _Value, Acc) -> Acc;
+remote_bridge_auth_header(Key, Value, Acc) ->
+    [{<<"X-AUTH-", Key/binary>>, Value} | Acc].
