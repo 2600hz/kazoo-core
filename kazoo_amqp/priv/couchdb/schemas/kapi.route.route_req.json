@@ -44,6 +44,9 @@
             },
             "type": "object"
         },
+        "Custom-AUTH-Headers": {
+            "type": "object"
+        },
         "Custom-Application-Vars": {
             "type": "object"
         },
