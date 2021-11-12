@@ -731,7 +731,7 @@ publish_dialog(Req, ContentType) ->
                                                       ,PresenceId
                                                       ),
     kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType
-                                 ,[{'headers', [{<<"presence-id">>, 'binary', PresenceId}]}]
+                                 ,[{'headers', [{<<"presence-id">>, 'longstr', PresenceId}]}]
                                  ).
 
 -spec dialog_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
@@ -771,7 +771,7 @@ publish_update(Req, ContentType) ->
                                                       ,PresenceId
                                                       ),
     kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType
-                                 ,[{'headers', [{<<"presence-id">>, 'binary', PresenceId}]}]
+                                 ,[{'headers', [{<<"presence-id">>, 'longstr', PresenceId}]}]
                                  ).
 
 -spec update_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
