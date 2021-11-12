@@ -99,15 +99,19 @@ unbind_presence_id(PresenceId) ->
 -spec publish_event(kz_json:object(), kz_term:proplist(), event_type()) -> 'ok'.
 publish_event(JObj, Props, 'call_events') ->
     Binding = call_event_binding(kz_call_event:call_id(JObj)),
-    _ = send_event(Binding, {'kapi', kapi:delivery_message(JObj, Props)}),
-    'ok';
+    send_event(Binding, {'kapi', kapi:delivery_message(JObj, Props)});
 publish_event(JObj, Props, 'presence') ->
     Binding = presence_event_binding(kz_json:get_ne_binary_value(<<"Presence-ID">>, JObj)),
-    _ = send_event(Binding, {'kapi', kapi:delivery_message(JObj, Props)}),
-    'ok'.
+    send_event(Binding, {'kapi', kapi:delivery_message(JObj, Props)}).
 
 send_event(Binding, Payload) ->
-    gproc:send({'p', 'l', Binding}, Payload).
+    Pids = gproc:lookup_pids({'p', 'l', Binding}),
+    log(Pids, Payload),
+    lists:foreach(fun(Pid) -> Pid ! Payload end, Pids).
+
+log([], _) -> ok;
+log(Pids, {kapi, {{Exchange, RK, _}, {Category, Event}, _}}) ->
+    lager:debug("sending ~s/~s/~s (~s) to ~p", [Exchange, Category, Event, RK, Pids]).
 
 reg_property(Binding, Value) ->
     gproc:ensure_reg({'p', 'l', Binding}, Value).
