@@ -289,7 +289,6 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                                     ,from=OldFrom
                                     ,to=OldTo
                                     }=Call) ->
-    lager:warning_unsafe("ROUTE_REQ => ~s", [kz_json:encode(RouteReq)]),
     CallId = kz_api:call_id(RouteReq, OldCallId),
     kz_log:put_callid(CallId),
 
