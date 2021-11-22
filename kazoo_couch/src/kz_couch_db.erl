@@ -247,6 +247,8 @@ do_db_compact(#db{}=Db) ->
 -spec do_db_view_cleanup(db()) -> boolean().
 do_db_view_cleanup(#db{}=Db) ->
     case ?RETRY_504(couchbeam:view_cleanup(Db)) of
+        'ok' ->
+            'true';
         {'ok', JObj} ->
             kz_json:is_true(<<"ok">>, JObj);
         {'error', {'conn_failed', {'error', 'timeout'}}} ->
