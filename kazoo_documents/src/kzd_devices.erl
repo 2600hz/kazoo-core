@@ -781,7 +781,7 @@ provision_endpoint_brand(Doc) ->
 
 -spec provision_endpoint_brand(doc(), Default) -> binary() | Default.
 provision_endpoint_brand(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"provision">>, <<"endpoint_brand">>], Doc, Default).
+    kz_term:to_lower_binary(kz_json:get_ne_binary_value([<<"provision">>, <<"endpoint_brand">>], Doc, Default)).
 
 -spec set_provision_endpoint_brand(doc(), binary()) -> doc().
 set_provision_endpoint_brand(Doc, ProvisionEndpointBrand) ->
