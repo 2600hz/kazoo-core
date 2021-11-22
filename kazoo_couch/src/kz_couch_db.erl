@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Util functions used by kazoo_couch
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -247,6 +247,8 @@ do_db_compact(#db{}=Db) ->
 -spec do_db_view_cleanup(db()) -> boolean().
 do_db_view_cleanup(#db{}=Db) ->
     case ?RETRY_504(couchbeam:view_cleanup(Db)) of
+        'ok' ->
+            'true';
         {'ok', JObj} ->
             kz_json:is_true(<<"ok">>, JObj);
         {'error', {'conn_failed', {'error', 'timeout'}}} ->
