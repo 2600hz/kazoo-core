@@ -32,11 +32,11 @@ type(Endpoint) ->
 
 -spec account_id(endpoint()) -> kz_term:ne_binary().
 account_id(Endpoint) ->
-    kz_doc:account_id(Endpoint).
+    kz_json:get_ne_binary_value(<<"Account-ID">>, Endpoint, kz_doc:account_id(Endpoint)).
 
 -spec owner_id(endpoint()) -> kz_term:api_ne_binary().
 owner_id(Endpoint) ->
-    kz_json:get_ne_binary_value([<<"owner_id">>], Endpoint, id(Endpoint)).
+    kz_json:get_ne_binary_value([<<"owner_id">>], Endpoint).
 
 -spec language(endpoint()) -> kz_term:api_binary().
 language(Endpoint) ->
