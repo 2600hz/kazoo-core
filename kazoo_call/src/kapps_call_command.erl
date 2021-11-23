@@ -2906,6 +2906,7 @@ check_for_bridge(Timeout, OnBridgeFun, Call, Start, _EventJObj, _OurCallId, _Oth
 
 bridge_result(<<"SUCCESS">>, _Cause, _Code) -> 'ok';
 bridge_result(_Disposition, <<"SUCCESS">>, _Code) -> 'ok';
+bridge_result(_Disposition, <<"NORMAL_CLEARING">>, undefined) -> 'ok';
 bridge_result(_Disposition, _Cause, <<"sip:200">>) -> 'ok';
 bridge_result(_Disposition, _Cause, _Code) -> 'fail'.
 
