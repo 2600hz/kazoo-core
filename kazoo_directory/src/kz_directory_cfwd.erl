@@ -64,7 +64,7 @@ call_forward_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable)
     ,{<<"Direct-Calls-Only">>, kzd_call_forward:direct_calls_only(CallForward)}
     ,{<<"Require-Ignore-Early-Media">>, 'true'}
     ,{<<"Ignore-Early-Media">>, 'true'}
-    ,{<<"Loopback-Bowout">>, 'true'}
+    ,{<<"Loopback-Bowout">>, 'false'}
     ,{<<"Call-Forward-From">>, <<"${kz_ctx_Inception}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
     ].
