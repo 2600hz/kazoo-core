@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2020, 2600Hz
+%%% @copyright (C) 2018-2021, 2600Hz
 %%% @doc This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -79,7 +79,7 @@ exec_freeform(Content, ContentType, _Locale, Options) ->
     lager:debug("sending request to ~s with headers ~p", [URL, Headers]),
     handle_response(make_request(URL, Headers, Content, OptionsWithAuth)).
 
--spec build_url() -> kz_term:binary().
+-spec build_url() -> kz_term:ne_binary().
 build_url() ->
     URL = <<(?IBM_ASR_URL)/binary, "/v1/recognize">>,
     case kz_http_util:props_to_querystring(

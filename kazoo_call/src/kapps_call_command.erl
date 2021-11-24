@@ -922,7 +922,7 @@ b_fetch(FromOtherLeg, Call) ->
     fetch(FromOtherLeg, Call),
     case wait_for_message(Call, <<"fetch">>) of
         {'ok', JObj} ->
-            {'ok', kz_json:get_value(<<"Custom-Channel-Vars">>, JObj, kz_json:new())};
+            {'ok', kz_call_event:custom_channel_vars(JObj, kz_json:new())};
         {'error', _}=E -> E
     end.
 
@@ -2604,10 +2604,10 @@ handle_collect_digit_event(_JObj, _NoopId, {<<"call_event">>, <<"CHANNEL_DESTROY
     lager:debug("channel was hungup while collecting digits"),
     {'error', 'channel_hungup'};
 handle_collect_digit_event(JObj, NoopId, {<<"error">>, _, <<"noop">>}) ->
-    case kz_json:get_value([<<"Request">>, <<"Msg-ID">>], JObj, NoopId) of
+    case kz_api:msg_id(kz_call_event:request(JObj), NoopId) of
         NoopId when is_binary(NoopId), NoopId =/= <<>> ->
             lager:debug("channel execution error while collecting digits: ~s"
-                       ,[kz_json:get_value(<<"Error-Message">>, JObj)]
+                       ,[kz_call_event:error_message(JObj)]
                        ),
             {'error', JObj};
         _NID when is_binary(NoopId), NoopId =/= <<>> ->
@@ -2620,7 +2620,7 @@ handle_collect_digit_event(JObj, NoopId, {<<"error">>, _, <<"noop">>}) ->
     end;
 handle_collect_digit_event(JObj, NoopId, {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"noop">>}) ->
     %% Playback completed start timeout
-    case kz_json:get_value(<<"Application-Response">>, JObj) of
+    case kz_call_event:application_response(JObj) of
         NoopId when is_binary(NoopId), NoopId =/= <<>> ->
             {'noop_complete'};
         _NID when is_binary(NoopId), NoopId =/= <<>> ->
@@ -2629,7 +2629,7 @@ handle_collect_digit_event(JObj, NoopId, {<<"call_event">>, <<"CHANNEL_EXECUTE_C
             {'noop_complete'}
     end;
 handle_collect_digit_event(JObj, _NoopId, {<<"call_event">>, <<"DTMF">>, _}) ->
-    {'dtmf', kz_json:get_value(<<"DTMF-Digit">>, JObj, <<>>)};
+    {'dtmf', kz_call_event:dtmf_digit(JObj, <<>>)};
 handle_collect_digit_event(_JObj, _NoopId, _EventType) ->
     {'decrement'}.
 
@@ -2840,7 +2840,7 @@ wait_for_dtmf(Timeout) ->
                     lager:debug("channel execution error while waiting for DTMF: ~s", [kz_json:encode(JObj)]),
                     {'error', JObj};
                 {<<"call_event">>, <<"DTMF">>} ->
-                    {'ok', kz_json:get_value(<<"DTMF-Digit">>, JObj)};
+                    {'ok', kz_call_event:dtmf_digit(JObj)};
                 _ ->
                     wait_for_dtmf(kz_time:decr_timeout(Timeout, Start))
             end;
@@ -2861,14 +2861,16 @@ wait_for_bridge(0, Call) ->
 wait_for_bridge(Timeout, Call) ->
     wait_for_bridge(Timeout, 'undefined', Call).
 
--spec wait_for_bridge(timeout(), 'undefined' | fun((kz_json:object()) -> any()), kapps_call:call()) ->
+-type relay_bridge_fun() :: 'undefined' | fun((kz_call_event:payload()) -> any()).
+
+-spec wait_for_bridge(timeout(), relay_bridge_fun(), kapps_call:call()) ->
           kapps_api_bridge_return().
 wait_for_bridge(Timeout, _, _) when Timeout < 0 ->
     {'error', 'timeout'};
-wait_for_bridge(Timeout, Fun, Call) ->
+wait_for_bridge(Timeout, OnBridgeFun, Call) ->
     Start = kz_time:start_time(),
     lager:info("waiting for bridge for ~p ms", [Timeout]),
-    wait_for_bridge(Timeout, Fun, Call, Start, receive_event(Timeout)).
+    wait_for_bridge(Timeout, OnBridgeFun, Call, Start, receive_event(Timeout)).
 
 bridge_cause(JObj) ->
     Keys = [<<"Application-Response">>
@@ -2879,86 +2881,126 @@ bridge_cause(JObj) ->
 bridge_hangup_cause(JObj) ->
     kz_term:to_upper_binary(kz_json:get_ne_binary_value(<<"Bridge-Hangup-Cause">>, JObj, <<"UNSPECIFIED">>)).
 
+-spec bridge_disposition(kz_call_event:payload()) -> kz_term:api_ne_binary().
 bridge_disposition(JObj) ->
-    kz_term:to_upper_binary(kz_json:get_value(<<"Disposition">>, JObj)).
+    kz_term:to_upper_binary(kz_call_event:disposition(JObj)).
 
--spec wait_for_bridge(timeout(), 'undefined' | fun((kz_json:object()) -> any()), kapps_call:call(), kz_time:start_time(), received_event()) ->
+-spec wait_for_bridge(timeout(), relay_bridge_fun(), kapps_call:call(), kz_time:start_time(), received_event()) ->
           kapps_api_bridge_return().
-wait_for_bridge(_Timeout, _Fun, _Call, _Start, {'error', 'timeout'}=E) -> E;
-wait_for_bridge(Timeout, Fun, Call, Start, {'ok', JObj}) ->
-    ThisCallId = kapps_call:call_id_direct(Call),
-    EvtCallId = kz_call_event:call_id(JObj),
-    Disposition = bridge_disposition(JObj),
-    Cause = bridge_cause(JObj),
-    Code = kz_json:get_value(<<"Hangup-Code">>, JObj),
-    Result = case Disposition =:= <<"SUCCESS">>
-                 orelse Cause =:= <<"SUCCESS">>
-                 orelse Code =:= <<"sip:200">>
-             of
-                 'true' -> 'ok';
-                 'false' -> 'fail'
-             end,
-    BridgeHangupCause = bridge_hangup_cause(JObj),
-    case ThisCallId =:= EvtCallId
-        andalso get_event_type(JObj)
-    of
-        'false' ->
-            NewTimeout = kz_time:decr_timeout(Timeout, Start),
-            NewStart = kz_time:start_time(),
-            wait_for_bridge(NewTimeout, Fun, Call, NewStart, receive_event(NewTimeout));
-        {<<"error">>, _, <<"bridge">>} ->
-            lager:debug("channel execution error while waiting for bridge"),
-            {'error', JObj};
-        {<<"call_event">>, <<"CHANNEL_BRIDGE">>, _} ->
-            CallId = kz_json:get_value(<<"Other-Leg-Call-ID">>, JObj),
-            lager:info("channel bridged to ~s", [CallId]),
-            case is_function(Fun, 1) of
-                'false' -> 'ok';
-                'true' -> Fun(JObj)
-            end,
-            wait_for_bridge('infinity', Fun, Call);
-        {<<"call_event">>, <<"CHANNEL_REPLACED">>, _} ->
-            CallId = kz_json:get_value(<<"Replaced-By">>, JObj),
-            _ = kz_log:put_callid(CallId),
-            NewTimeout = kz_time:decr_timeout(Timeout, Start),
-            NewStart = kz_time:start_time(),
-            lager:info("bridge channel replaced ~s for ~s", [EvtCallId, CallId]),
-            wait_for_bridge(NewTimeout, Fun, kapps_call:set_call_id(CallId, Call), NewStart, receive_event(NewTimeout));
-        {<<"call_event">>, <<"CHANNEL_DIRECT">>, _} ->
-            CallId = kz_json:get_value(<<"Connecting-Leg-B-UUID">>, JObj),
-            _ = kz_log:put_callid(CallId),
-            NewTimeout = kz_time:decr_timeout(Timeout, Start),
-            NewStart = kz_time:start_time(),
-            lager:info("bridge channel replaced ~s for ~s", [EvtCallId, CallId]),
-            wait_for_bridge(NewTimeout, Fun, kapps_call:set_call_id(CallId, Call), NewStart, receive_event(NewTimeout));
-        {<<"call_event">>, <<"CHANNEL_DESTROY">>, _} ->
-            %% TODO: reduce log level if no issue is found with
-            %%    basing the Result on Disposition
-            lager:info("bridge channel destroy completed with result ~s/~s/~s => ~s", [Disposition, Cause, Code, Result]),
-            {Result, JObj};
-        {<<"call_event">>, <<"CHANNEL_DISCONNECTED">>, _} ->
-            lager:info("channel disconnected while waiting for bridge"),
-            {'ok', JObj};
-        {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"bridge">>}
-          when BridgeHangupCause =:= <<"PICKED_OFF">> ->
-            lager:info("bridge was intercepted, waiting for new bridge"),
-            NewTimeout = kz_time:decr_timeout(Timeout, Start),
-            NewStart = kz_time:start_time(),
-            wait_for_bridge(NewTimeout, Fun, Call, NewStart, receive_event(NewTimeout));
-        {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"bridge">>}
-          when BridgeHangupCause =:= <<"BOWOUT">> ->
-            lager:info("bridge bowout, waiting for new bridge"),
-            NewTimeout = kz_time:decr_timeout(Timeout, Start),
-            NewStart = kz_time:start_time(),
-            wait_for_bridge(NewTimeout, Fun, Call, NewStart, receive_event(NewTimeout));
-        {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"bridge">>} ->
-            lager:info("bridge execute completed with result ~s/~s/~s => ~s", [Disposition, Cause, Code, Result]),
-            {Result, JObj};
-        _E ->
-            NewTimeout = kz_time:decr_timeout(Timeout, Start),
-            NewStart = kz_time:start_time(),
-            wait_for_bridge(NewTimeout, Fun, Call, NewStart, receive_event(NewTimeout))
-    end.
+wait_for_bridge(_Timeout, _OnBridgeFun, _Call, _Start, {'error', 'timeout'}=E) -> E;
+wait_for_bridge(Timeout, OnBridgeFun, Call, Start, {'ok', EventJObj}) ->
+    check_for_bridge(Timeout, OnBridgeFun, Call, Start
+                    ,EventJObj
+                    ,kapps_call:call_id_direct(Call)
+                    ,kz_call_event:call_id(EventJObj)
+                    ).
+
+-spec check_for_bridge(timeout(), relay_bridge_fun(), kapps_call:call(), kz_time:start_time(), kz_call_event:payload(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kapps_api_bridge_return().
+check_for_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj, OurCallId, OurCallId) ->
+    check_for_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj);
+check_for_bridge(Timeout, OnBridgeFun, Call, Start, _EventJObj, _OurCallId, _OtherCallId) ->
+    NewTimeout = kz_time:decr_timeout(Timeout, Start),
+    NewStart = kz_time:start_time(),
+    wait_for_bridge(NewTimeout, OnBridgeFun, Call, NewStart, receive_event(NewTimeout)).
+
+bridge_result(<<"SUCCESS">>, _Cause, _Code) -> 'ok';
+bridge_result(_Disposition, <<"SUCCESS">>, _Code) -> 'ok';
+bridge_result(_Disposition, <<"NORMAL_CLEARING">>, undefined) -> 'ok';
+bridge_result(_Disposition, _Cause, <<"sip:200">>) -> 'ok';
+bridge_result(_Disposition, _Cause, _Code) -> 'fail'.
+
+-spec check_for_bridge(timeout(), relay_bridge_fun(), kapps_call:call(), kz_time:start_time(), kz_call_event:payload()) ->
+          kapps_api_bridge_return().
+check_for_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj) ->
+    check_for_bridge_event(Timeout, OnBridgeFun, Call, Start, EventJObj
+                          ,get_event_type(EventJObj)
+                          ).
+
+check_for_bridge_event(_Timeout, _OnBridgeFun, _Call, _Start, EventJObj, {<<"error">>, _, <<"bridge">>}) ->
+    lager:debug("channel execution error while waiting for bridge"),
+    {'error', EventJObj};
+check_for_bridge_event(_Timeout, OnBridgeFun, Call, _Start, EventJObj, {<<"call_event">>, <<"CHANNEL_BRIDGE">>, _}) ->
+    CallId = kz_call_event:other_leg_call_id(EventJObj),
+    lager:info("channel bridged to ~s", [CallId]),
+    maybe_relay_bridge_event(OnBridgeFun, EventJObj),
+    wait_for_bridge('infinity', OnBridgeFun, Call);
+check_for_bridge_event(Timeout, OnBridgeFun, Call, Start, EventJObj, {<<"call_event">>, <<"CHANNEL_REPLACED">>, _}) ->
+    CallId = kz_call_event:replaced_by(EventJObj),
+    _ = kz_log:put_callid(CallId),
+    NewTimeout = kz_time:decr_timeout(Timeout, Start),
+    NewStart = kz_time:start_time(),
+    lager:info("bridge channel replaced ~s for ~s", [kz_call_event:call_id(EventJObj), CallId]),
+    wait_for_bridge(NewTimeout, OnBridgeFun
+                   ,kapps_call:set_call_id(CallId, Call)
+                   ,NewStart
+                   ,receive_event(NewTimeout)
+                   );
+check_for_bridge_event(Timeout, OnBridgeFun, Call, Start, EventJObj, {<<"call_event">>, <<"CHANNEL_DIRECT">>, _}) ->
+    CallId = kz_call_event:connecting_b_leg_id(EventJObj),
+    _ = kz_log:put_callid(CallId),
+    NewTimeout = kz_time:decr_timeout(Timeout, Start),
+    NewStart = kz_time:start_time(),
+    lager:info("bridge channel replaced ~s for ~s", [kz_call_event:call_id(EventJObj), CallId]),
+    wait_for_bridge(NewTimeout, OnBridgeFun
+                   ,kapps_call:set_call_id(CallId, Call)
+                   ,NewStart
+                   ,receive_event(NewTimeout)
+                   );
+check_for_bridge_event(_Timeout, _OnBridgeFun, _Call, _Start, EventJObj, {<<"call_event">>, <<"CHANNEL_DESTROY">>, _}) ->
+    %% TODO: reduce log level if no issue is found with
+    %%    basing the Result on Disposition
+    Result = bridge_result(bridge_disposition(EventJObj)
+                          ,bridge_cause(EventJObj)
+                          ,kz_call_event:hangup_code(EventJObj)
+                          ),
+    lager:info("bridge channel destroy completed with result ~s/~s/~s => ~s"
+              ,[bridge_disposition(EventJObj)
+               ,bridge_cause(EventJObj)
+               ,kz_call_event:hangup_code(EventJObj)
+               ,Result
+               ]
+              ),
+    {Result, EventJObj};
+check_for_bridge_event(_Timeout, _OnBridgeFun, _Call, _Start, EventJObj, {<<"call_event">>, <<"CHANNEL_DISCONNECTED">>, _}) ->
+    lager:info("channel disconnected while waiting for bridge"),
+    {'ok', EventJObj};
+check_for_bridge_event(Timeout, OnBridgeFun, Call, Start, EventJObj, {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"bridge">>}) ->
+    check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj, bridge_hangup_cause(EventJObj));
+check_for_bridge_event(Timeout, OnBridgeFun, Call, Start, _EventJObj, _E) ->
+    NewTimeout = kz_time:decr_timeout(Timeout, Start),
+    NewStart = kz_time:start_time(),
+    wait_for_bridge(NewTimeout, OnBridgeFun, Call, NewStart, receive_event(NewTimeout)).
+
+-spec maybe_relay_bridge_event(relay_bridge_fun(), kz_call_event:payload()) -> 'ok'.
+maybe_relay_bridge_event(OnBridgeFun, EventJObj) when is_function(OnBridgeFun, 1) ->
+    catch(OnBridgeFun(EventJObj)),
+    'ok';
+maybe_relay_bridge_event(_, _) -> 'ok'.
+
+check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, _EventJObj, <<"PICKED_OFF">>) ->
+    lager:info("bridge was intercepted, waiting for new bridge"),
+    NewTimeout = kz_time:decr_timeout(Timeout, Start),
+    NewStart = kz_time:start_time(),
+    wait_for_bridge(NewTimeout, OnBridgeFun, Call, NewStart, receive_event(NewTimeout));
+check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, _EventJObj, <<"BOWOUT">>) ->
+    lager:info("bridge bowout, waiting for new bridge"),
+    NewTimeout = kz_time:decr_timeout(Timeout, Start),
+    NewStart = kz_time:start_time(),
+    wait_for_bridge(NewTimeout, OnBridgeFun, Call, NewStart, receive_event(NewTimeout));
+check_end_of_bridge(_Timeout, _OnBridgeFun, _Call, _Start, EventJObj, _BridgeHangupCause) ->
+    Result = bridge_result(bridge_disposition(EventJObj)
+                          ,bridge_cause(EventJObj)
+                          ,kz_call_event:hangup_code(EventJObj)
+                          ),
+    lager:info("bridge execute completed with result ~s/~s/~s => ~s"
+              ,[bridge_disposition(EventJObj)
+               ,bridge_cause(EventJObj)
+               ,kz_call_event:hangup_code(EventJObj)
+               ,Result
+               ]
+              ),
+    {Result, EventJObj}.
 
 %%------------------------------------------------------------------------------
 %% @doc Wait for a `noop' or a specific `noop' to occur.
@@ -2972,7 +3014,7 @@ wait_for_noop(Call, NoopId) ->
 wait_for_noop(Call, NoopId, Timeout) ->
     case wait_for_message(Call, <<"noop">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, Timeout) of
         {'ok', JObj}=OK ->
-            case kz_json:get_ne_binary_value(<<"Application-Response">>, JObj) of
+            case kz_call_event:application_response(JObj) of
                 NoopId when is_binary(NoopId), NoopId =/= <<>> -> OK;
                 _No when is_binary(NoopId), NoopId =/= <<>> -> wait_for_noop(Call, NoopId);
                 _ -> OK
@@ -3085,7 +3127,7 @@ wait_for_application_or_dtmf(Application, Timeout) ->
                     lager:debug("channel execution error while waiting ~s or DTMF: ~s", [Application, kz_json:encode(JObj)]),
                     {'error', JObj};
                 {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, Application} -> Ok;
-                {<<"call_event">>, <<"DTMF">>, _} -> {'dtmf', kz_json:get_value(<<"DTMF-Digit">>, JObj)};
+                {<<"call_event">>, <<"DTMF">>, _} -> {'dtmf', kz_call_event:dtmf_digit(JObj)};
                 _ ->
                     wait_for_application_or_dtmf(Application, kz_time:decr_timeout(Timeout, Start))
             end
@@ -3125,16 +3167,19 @@ wait_for_fax(Timeout) ->
 %% @doc Retrieves event category, type, application from AMQP payload.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_event_type(kz_json:object()) -> {kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()}.
+-spec get_event_type(kz_call_event:payload()) ->
+          {kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()}.
 get_event_type(JObj) ->
     {C, N} = kz_api:event_type(JObj),
     {C, N, get_app(C, JObj)}.
 
--spec get_app(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_binary().
-get_app(<<"error">>, JObj) ->
-    kz_json:get_value([<<"Request">>, <<"Application-Name">>], JObj);
-get_app(_EvtCategory, JObj) ->
-    kz_json:get_value(<<"Application-Name">>, JObj).
+-spec get_app(kz_term:ne_binary(), kz_call_event:payload()) -> kz_term:api_ne_binary().
+get_app(<<"error">>, EventJObj) ->
+    kz_call_event:application_name(
+      kz_call_event:request(EventJObj)
+     );
+get_app(_EvtCategory, EventJObj) ->
+    kz_call_event:application_name(EventJObj).
 
 %%------------------------------------------------------------------------------
 %% @doc Sends call commands to the appropriate call control process.
