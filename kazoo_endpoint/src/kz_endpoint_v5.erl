@@ -75,10 +75,12 @@ get(<<EndpointId/binary>>, AccountDb) when is_binary(AccountDb) ->
             lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
             Ok;
         {'error', 'not_found'} ->
-            maybe_fetch_endpoint(EndpointId, AccountDb)
+            fetch_endpoint(EndpointId, AccountDb)
     end;
 get(<<EndpointId/binary>>, Call) ->
-    get(EndpointId, kapps_call:account_db(Call));
+    AccountDb = kapps_call:account_db(Call),
+    Options = props:filter_undefined([{token, kapps_call:custom_auth_header(<<"JWT-Token">>, Call)}]),
+    get(EndpointId, AccountDb, Options);
 get(Endpoint, Call) ->
     lager:info("checking endpoint ~s", [kz_doc:id(Endpoint)]),
     check_endpoint_type(Endpoint, kz_doc:id(Endpoint), kapps_call:account_db(Call), []).
@@ -87,57 +89,92 @@ get(Endpoint, Call) ->
 get(EndpointId, ?MATCH_ACCOUNT_RAW(AccountId), Options) ->
     get(EndpointId, kzs_util:format_account_db(AccountId), Options);
 get(EndpointId, AccountDb, Options) when is_binary(AccountDb) ->
-    AltJObj = props:get_value('endpoint', Options),
     case kz_cache:peek_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
-        {'ok', _Endpoint}=Ok when AltJObj =:= 'undefined' ->
+        {'ok', _Endpoint}=Ok ->
             lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
             Ok;
-        {'ok', Endpoint} ->
-            lager:debug("loading cached endpoint ~s: ~s and merging", [EndpointId, kz_doc:revision(Endpoint)]),
-            {ok, kz_json:merge(Endpoint, AltJObj)};
         {'error', 'not_found'} ->
-            maybe_fetch_endpoint(EndpointId, AccountDb, Options)
+            fetch_endpoint(EndpointId, AccountDb, Options)
     end;
 get(EndpointId, Call, Options) ->
     get(EndpointId, kapps_call:account_db(Call), Options).
 
--spec maybe_fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary()) ->
+-spec fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
-maybe_fetch_endpoint(EndpointId, AccountDb) ->
-    maybe_fetch_endpoint(EndpointId, AccountDb, []).
-
--spec maybe_fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
-maybe_fetch_endpoint(EndpointId, AccountDb, Options) ->
-    AltJObj = props:get_value('endpoint', Options),
-    case kz_json:is_valid_json_object(AltJObj)
-        andalso kz_doc:id(AltJObj)
-    of
-        'false' -> fetch_endpoint(EndpointId, AccountDb, Options);
-        'undefined' -> fetch_endpoint(EndpointId, AccountDb, Options);
-        DocId -> fetch_endpoint(DocId, AccountDb, Options)
-    end.
+fetch_endpoint(EndpointId, AccountDb) ->
+    fetch_endpoint(EndpointId, AccountDb, []).
 
 -spec fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 fetch_endpoint(EndpointId, AccountDb, Options) ->
-    AltJObj = props:get_value('endpoint', Options),
     case kz_datamgr:open_cache_doc(AccountDb, EndpointId) of
-        {'ok', JObj} when AltJObj =:= 'undefined' ->
+        {'ok', JObj} ->
             lager:debug("fetched endpoint ~s: ~s", [EndpointId, kz_doc:revision(JObj)]),
             check_endpoint_type(JObj, EndpointId, AccountDb, Options);
-        {'ok', JObj} ->
-            lager:debug("merging with endpoint ~s: ~s", [EndpointId, kz_doc:revision(JObj)]),
-            Endpoint = kz_json:merge(JObj, AltJObj),
-            check_endpoint_type(Endpoint, kz_doc:id(Endpoint), AccountDb, Options);
-        {'error', _R}=E when AltJObj =:= 'undefined' ->
-            lager:info("unable to fetch endpoint ~s: ~p", [EndpointId, _R]),
-            E;
         {'error', _} ->
-            check_endpoint_type(AltJObj, EndpointId, AccountDb, Options)
+            maybe_fetch_from_token(EndpointId, AccountDb, Options)
+    end.
+
+-spec maybe_fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+maybe_fetch_from_token(EndpointId, AccountDb, Options) ->
+    case props:get_value(token, Options) of
+        undefined -> {error, not_found};
+        Token -> fetch_from_token(EndpointId, AccountDb, kz_auth:validate_token(Token))
+    end.
+
+-type validate_token_result() :: {'ok', kz_json:object()} | {'error', any()}.
+
+-spec fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), validate_token_result()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+fetch_from_token(_EndpointId, _AccountDb, {error, _Error} = Error) -> Error;
+fetch_from_token(EndpointId, AccountDb, {'ok', Claims}) ->
+    lager:debug("fetching endpoint ~s / ~s from token", [EndpointId, AccountDb]),
+    MetaId = kz_auth_claims:meta_id(Claims),
+    Endpoint = token_endpoint(EndpointId, Claims),
+    Options = [{'claims', Claims}
+              ,{'endpoint', Endpoint}
+              ,{'meta_id', MetaId}
+              ],
+    maybe_fetch_meta_endpoint(EndpointId, AccountDb, props:filter_undefined(Options)).
+
+token_endpoint(EndpointId, Claims) ->
+    SIPInfo = kz_json:normalize(kz_json:get_json_value(<<"SIP-Info">>, Claims)),
+    Props = [{<<"_id">>, EndpointId}
+            ,{<<"_rev">>, kz_auth_claims:identity_sig(Claims)}
+            ,{<<"pvt_type">>, <<"device">>}
+            ,{<<"device_type">>, <<"smartphone">>}
+            ,{<<"owner_id">>, kz_auth_claims:owner_id(Claims)}
+            ,{<<"sip">>, kz_json:from_list(kz_json:to_proplist(<<"user_agent">>, SIPInfo))}
+            | kz_json:to_proplist(kz_json:normalize(kz_json:delete_keys([<<"user_agent">>], SIPInfo)))
+            ],
+    props:filter_undefined(Props).
+
+-spec maybe_fetch_meta_endpoint(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+maybe_fetch_meta_endpoint(EndpointId, AccountDb, Options) ->
+    case props:get_value(meta_id, Options) of
+        undefined -> {error, not_found};
+        MetaId -> fetch_meta_endpoint(MetaId, EndpointId, AccountDb, Options)
+    end.
+
+-spec fetch_meta_endpoint(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+fetch_meta_endpoint(MetaId, EndpointId, AccountDb, Options) ->
+    lager:debug("fetching endpoint ~s / ~s from meta_id ~s ", [EndpointId, AccountDb, MetaId]),
+    case kz_datamgr:open_cache_doc(AccountDb, MetaId) of
+        {error, _} = Error -> Error;
+        {'ok', MetaJObj} ->
+            lager:debug("fetched meta endpoint ~s: ~s", [MetaId, kz_doc:revision(MetaJObj)]),
+            KVs = props:get_value(endpoint, Options, []),
+            JObj = kz_json:set_values(KVs, MetaJObj),
+            check_endpoint_type(JObj, EndpointId, AccountDb, Options)
     end.
 
 -spec check_endpoint_type(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
@@ -295,6 +332,8 @@ attributes_keys() ->
     ,<<"presence_id">>
     ,<<"record_call">>
     ,<<"ringtones">>
+    ,<<"account_name">>
+    ,<<"account_realm">>
     ,?ATTR_LOWER_KEY
     ].
 
@@ -364,6 +403,10 @@ merge_attribute(?ATTR_LOWER_KEY, _Account, Endpoint, Owner) ->
         'true' -> Endpoint;
         'false' -> kz_json:set_value(FullKey, OwnerAttr, Endpoint)
     end;
+merge_attribute(<<"account_name">> = Key, Account, Endpoint, _Owner) ->
+    kz_json:set_value(Key, kzd_accounts:name(Account), Endpoint);
+merge_attribute(<<"account_realm">> = Key, Account, Endpoint, _Owner) ->
+    kz_json:set_value(Key, kzd_accounts:realm(Account), Endpoint);
 merge_attribute(<<"call_restriction">>, Account, Endpoint, Owner) ->
     Classifiers = kz_json:get_keys(knm_converters:available_classifiers()),
     merge_call_restrictions(Classifiers, Account, Endpoint, Owner);

@@ -12,7 +12,7 @@
 -export([id/1]).
 -export([type/1]).
 -export([owner_id/1]).
--export([account_id/1]).
+-export([account_id/1, account_name/1, account_realm/1]).
 -export([language/1]).
 -export([get_prompt/2, get_prompt_url/2]).
 -export([moh/1, moh_media_path/1, moh_url/1]).
@@ -33,6 +33,14 @@ type(Endpoint) ->
 -spec account_id(endpoint()) -> kz_term:ne_binary().
 account_id(Endpoint) ->
     kz_json:get_ne_binary_value(<<"Account-ID">>, Endpoint, kz_doc:account_id(Endpoint)).
+
+-spec account_name(endpoint()) -> kz_term:ne_binary().
+account_name(Endpoint) ->
+    kz_json:get_ne_binary_value(<<"account_name">>, Endpoint).
+
+-spec account_realm(endpoint()) -> kz_term:ne_binary().
+account_realm(Endpoint) ->
+    kz_json:get_ne_binary_value(<<"account_realm">>, Endpoint).
 
 -spec owner_id(endpoint()) -> kz_term:api_ne_binary().
 owner_id(Endpoint) ->
