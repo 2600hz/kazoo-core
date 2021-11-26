@@ -13,6 +13,7 @@
 
 -export([account_id/1
         ,owner_id/1
+        ,meta_id/1
         ,identity_sig/1
         ]).
 
@@ -31,11 +32,15 @@ id(Endpoint) ->
 
 -spec account_id(claims()) -> kz_term:ne_binary().
 account_id(Claims) ->
-    kz_doc:account_id(Claims).
+    kz_json:get_ne_binary_value([<<"account_id">>], Claims).
 
 -spec owner_id(claims()) -> kz_term:api_ne_binary().
 owner_id(Claims) ->
     kz_json:get_ne_binary_value([<<"owner_id">>], Claims).
+
+-spec meta_id(claims()) -> kz_term:api_ne_binary().
+meta_id(Claims) ->
+    kz_json:get_ne_binary_value([<<"SIP-Info">>, <<"Endpoint-Meta-ID">>], Claims).
 
 -spec identity_sig(claims()) -> kz_term:api_ne_binary().
 identity_sig(Claims) ->

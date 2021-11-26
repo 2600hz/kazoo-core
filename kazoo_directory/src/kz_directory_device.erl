@@ -358,7 +358,7 @@ add_alert_info(Endpoint, CCVs) ->
     kz_json:set_values(AlertInfo, CCVs).
 
 -spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), module()) -> kz_json:object().
-generate_ccvs(EndpointId, AccountId, Endpoint, Options, _Module) ->
+generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, _Module) ->
     Realm = kzd_devices:sip_realm(Endpoint, kz_json:get_ne_binary_value(<<"realm">>, Endpoint)),
     Props = [{<<"Account-ID">>, AccountId}
             ,{<<"Reseller-ID">>, kz_services_reseller:get_id(AccountId)}
@@ -373,7 +373,7 @@ generate_ccvs(EndpointId, AccountId, Endpoint, Options, _Module) ->
               ,{fun hold_music/2, Endpoint}
               ,{fun add_alert_info/2, Endpoint}
               ,{fun presence_id/2, Endpoint}
-              ,{fun relay_id/3, EndpointId, Options}
+              ,{fun relay_id/2, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
@@ -444,26 +444,11 @@ maybe_add_specific_headers(Module, Endpoint, Headers) ->
 dnd(Endpoint) ->
     kz_json:is_true([<<"do_not_disturb">>, <<"enabled">>], Endpoint).
 
--spec relay_id(kz_term:ne_binary(), kz_term:proplist(), kz_json:object()) -> kz_json:object().
-relay_id(EndpointId, Options, CCVs) ->
-    case props:get_value('claims', Options) of
-        'undefined' -> relay_id_from_endpoint_info(EndpointId, Options, CCVs);
-        Claims -> relay_id_from_claims(Claims, CCVs)
-    end.
-
-relay_id_from_endpoint_info(EndpointId, Options, CCVs) ->
-    case props:get_value('endpoint', Options) of
-        undefined -> CCVs;
-        EndpointInfo -> relay_id_from_endpoint_meta_id(EndpointId, EndpointInfo, CCVs)
-    end.
-
-relay_id_from_endpoint_meta_id(EndpointId, EndpointInfo, CCVs) ->
-    case kz_json:is_valid_json_object(EndpointInfo)
-        andalso kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, EndpointInfo)
-    of
-        'false' -> CCVs;
+-spec relay_id(kz_json:object(), kz_json:object()) -> kz_json:object().
+relay_id(Endpoint, CCVs) ->
+    case kz_json:get_json_value([<<"Endpoint-Build-Options">>, <<"claims">>], Endpoint) of
         'undefined' -> CCVs;
-        _EndpointMetaId -> kz_json:set_value(<<"Relay-ID">>, EndpointId, CCVs)
+        Claims -> relay_id_from_claims(Claims, CCVs)
     end.
 
 relay_id_from_claims(Claims, CCVs) ->
