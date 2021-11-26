@@ -467,8 +467,8 @@ create_control_channel(#kz_amqp_connection{broker=Broker}=Connection) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec initialize_prechannels(kz_amqp_connection()) -> kz_amqp_connection().
-initialize_prechannels(#kz_amqp_connection{}=Connection) ->
-    initialize_prechannels(Connection, 10).
+initialize_prechannels(#kz_amqp_connection{prechannels=Count}=Connection) ->
+    initialize_prechannels(Connection, Count).
 
 -spec initialize_prechannels(kz_amqp_connection(), non_neg_integer()) -> kz_amqp_connection().
 initialize_prechannels(#kz_amqp_connection{}=Connection, 0) ->

@@ -221,6 +221,7 @@
                             ,channel_ref :: kz_term:api_reference() | '$1' | '_'
                             ,reconnect_ref :: kz_term:api_reference() | '_'
                             ,available = 'false' :: boolean() | '_'
+                            ,prechannels = 10 :: integer() | '_'
                             ,prechannels_initialized = 'false' :: boolean() | '_'
                             ,tags = [] :: list() | '_'
                             ,hidden = 'false' :: boolean() | '_'

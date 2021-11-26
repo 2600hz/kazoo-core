@@ -140,6 +140,7 @@ add(Broker, Zone, Tags) ->
                                    ,params=Params#amqp_params_network{connection_timeout=500}
                                    ,tags=Tags
                                    ,hidden=is_hidden_broker(Tags)
+                                   ,prechannels=prechannels_from_zone_config(zone_config_name(Zone))
                                    }
                ,Zone
                );
@@ -156,6 +157,20 @@ add(Broker, Zone, Tags) ->
         _E:_R ->
             lager:error("failed to parse AMQP URI '~s': ~s ~p", [Broker, _E, _R]),
             {'error', 'invalid_uri'}
+    end.
+
+zone_config_name('local') -> kz_config:zone();
+zone_config_name(Zone) -> Zone.
+
+prechannels_from_zone_config(Zone) ->
+    DefaultPrechannels = kz_app_config:get_integer('amqp', <<"number_of_prechannels">>, 10),
+    Brokers = configured_brokers(),
+    lists:foldl(fun(Item, Acc) -> prechannels_from_zone_config(Item, Acc, Zone) end, DefaultPrechannels, Brokers).
+
+prechannels_from_zone_config({_, Props}, Acc, Zone) ->
+    case props:get_value(<<"zone">>, Props, 'local') of
+        Zone -> props:get_integer_value(<<"prechannels">>, Props, Acc);
+        _OtherZone -> Acc
     end.
 
 -spec remove(kz_term:pids() | pid() | kz_term:text()) -> 'ok'.
