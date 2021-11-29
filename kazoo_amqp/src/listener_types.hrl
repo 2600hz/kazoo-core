@@ -23,6 +23,7 @@
 -type declare_exchanges() :: [declare_exchange()].
 
 -type start_params() :: [{'auto_ack', boolean()} |
+                         {'auto_gc', boolean()} |
                          {'basic_qos', non_neg_integer()} |
                          {'bindings', bindings()} |
                          {'broker' | 'broker_tag', kz_term:ne_binary()} |
