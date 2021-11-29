@@ -34,6 +34,9 @@
 %%%
 %%%   <dt>`{declare_exchanges, declare_exchanges()}'</dt>
 %%%   <dd>Optional, for declaring dynamic exchanges used only in this connection.</dd>
+%%
+%%%   <dt>`{auto_gc, boolean()}'</dt>
+%%%   <dd>Optional, defaults to 'true', toggles whether to gc process after handle_event is processed</dd>
 %%% </dl>
 %%%
 %%% @author James Aimonetti
@@ -814,7 +817,8 @@ handle_info({#'basic.deliver'{}=BD
             CallId = kz_log:get_callid(),
             Reply = handle_event(binary:copy(Payload), {CT, CE}, {BD, Basic}, State),
             kz_log:put_callid(CallId),
-            maybe_gc(Reply);
+            maybe_gc(props:is_true('auto_gc', Params, 'true')),
+            Reply;
         'true'  ->
             kz_process:spawn(fun handle_event/4, [Payload, {CT, CE}, {BD, Basic}, State]),
             {'noreply', State}
@@ -1790,21 +1794,21 @@ maybe_configure_auto_ack(Props, 'true') ->
 %% It is possible that apps may load more memory into their state
 %% which would cause gen_listener's state to exceed 10K in the steady
 %% state. We advise app developers to not do this :)
--spec maybe_gc(Reply) -> Reply.
-maybe_gc(Reply) ->
-    maybe_gc(process_info(self(), ['total_heap_size'])
-            ,100 * ?BYTES_K
-            ),
-    Reply.
+-spec maybe_gc(boolean()) -> 'ok'.
+maybe_gc('false') -> 'ok';
+maybe_gc('true') ->
+    maybe_gc_process(process_info(self(), ['total_heap_size'])
+                    ,100 * ?BYTES_K
+                    ).
 
-maybe_gc([{'total_heap_size', Words}], MaxBytes) ->
-    maybe_gc(kz_term:words_to_bytes(Words), MaxBytes);
-maybe_gc(Heap, Max) when Heap > Max ->
+maybe_gc_process([{'total_heap_size', Words}], MaxBytes) ->
+    maybe_gc_process(kz_term:words_to_bytes(Words), MaxBytes);
+maybe_gc_process(Heap, Max) when Heap > Max ->
     erlang:garbage_collect(self()),
     [{'total_heap_size', NewHeapWords}] = process_info(self(), ['total_heap_size']),
     NewHeap = kz_term:words_to_bytes(NewHeapWords),
     amqp:debug("new heap size ~p (delta ~p)", [NewHeap, Heap-NewHeap]);
-maybe_gc(_Heap, _Max) -> 'ok'.
+maybe_gc_process(_Heap, _Max) -> 'ok'.
 
 -spec handle_consuming_requests([{kz_term:pid_ref(), reference()}]) -> 'ok'.
 handle_consuming_requests(Requests) ->

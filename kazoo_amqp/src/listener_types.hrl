@@ -22,17 +22,20 @@
 %% `ExchangeName, ExchangeType[, ExchangeOptions]'
 -type declare_exchanges() :: [declare_exchange()].
 
--type start_params() :: [{'responders', responder_start_params()} |
+-type start_params() :: [{'auto_ack', boolean()} |
+                         {'auto_ack', boolean()} |
+                         {'auto_gc', boolean()} |
+                         {'basic_qos', non_neg_integer()} |
+                         {'basic_qos', non_neg_integer()} |
                          {'bindings', bindings()} |
+                         {'broker' | 'broker_tag', kz_term:ne_binary()} |
+                         {'channel_flow', boolean()} |
+                         {'consume_options', kz_term:proplist()} |
+                         {'declare_exchanges', declare_exchanges()} |
                          {'queue_name', binary()} |
                          {'queue_options', kz_term:proplist()} |
-                         {'consume_options', kz_term:proplist()} |
-                         {'basic_qos', non_neg_integer()} |
-                         {'broker' | 'broker_tag', kz_term:ne_binary()} |
-                         {'declare_exchanges', declare_exchanges()} |
-                         {'auto_ack', boolean()} |
-                         {'server_confirms', boolean()} |
-                         {'channel_flow', boolean()}
+                         {'responders', responder_start_params()} |
+                         {'server_confirms', boolean()}
                         ].
 
 -type responder_callback_fun2() :: fun((kz_json:object(), kz_term:proplist()) -> any()).
