@@ -52,7 +52,7 @@ maybe_proxy(JObj, #media_store_path{db = Db
             lager:debug("no attachment URL found"),
             <<>>;
         {'proxy', Proxy} ->
-            lager:debug("building proxy URI: ~p", [kz_log:redactor(Proxy)]),
+            lager:debug("building proxy URI: ~p", [Proxy]),
             proxy_uri(Store, StreamType);
         <<URI/binary>> ->
             lager:debug("using URI ~s", [kz_log:redactor(URI)]),
