@@ -150,9 +150,7 @@ expire_objects(_Name, _Tables, []) ->
 expire_objects(Name, Tables, Objects) ->
     _ = exec_expired_callbacks(Objects),
     Keys = [K || {_, K, _} <- Objects],
-    lager:debug("expiring keys from ~s:", [Name]),
-
-    lager:debug("  ~p", [Keys]),
+    lager:debug("expiring ~p keys from ~s", [length(Keys), Name]),
     lists:foreach(fun(Table) -> maybe_remove_objects(Table, Keys) end
                  ,[Name | Tables]
                  ),
