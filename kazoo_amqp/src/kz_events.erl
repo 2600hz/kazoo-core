@@ -76,18 +76,22 @@ presence_event_binding(PresenceId) ->
 %% @doc starts pool of listeners for call events
 -spec start_presence_events() -> 'ok'.
 start_presence_events() ->
-    {'ok', _} = kz_event_listeners_sup:start_pool('presence'),
-    'ok'.
+    maybe_start_presence_events(is_presence_events_started()).
 
-maybe_start_presence() ->
-    case kz_event_listeners_sup:pool_exists('presence') of
-        'false' -> start_presence_events();
-        'true' -> 'ok'
-    end.
+is_presence_events_started() ->
+    kz_event_listeners_sup:pool_exists('presence').
+
+maybe_start_presence_events() ->
+    maybe_start_presence_events(is_presence_events_started()).
+
+maybe_start_presence_events('false') ->
+    _ = kz_event_listeners_sup:start_pool('presence'),
+    'ok';
+maybe_start_presence_events('true') -> 'ok'.
 
 -spec bind_presence_id(kz_term:ne_binary()) -> 'ok'.
 bind_presence_id(PresenceId) ->
-    maybe_start_presence(),
+    maybe_start_presence_events(),
     _ = reg_property(presence_event_binding(PresenceId), self()),
     'ok'.
 
