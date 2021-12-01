@@ -238,6 +238,7 @@ kz_log_md_clear() ->
 redactor(Line) ->
     Routines = [fun redact_json_password/1
                ,fun redact_json_credit_card_number/1
+               ,fun redact_basic_auth/1
                ],
     lists:foldl(fun apply_redactor/2, Line, Routines).
 
@@ -251,7 +252,15 @@ redact_json_password(Line) ->
 redact_json_credit_card_number(Line) ->
     re:replace(Line, <<"(([\'\"])credit_card\\2\\s*:\\s*{\\s*\\2number\\2\\s*:\\s*\\2)((?:.(?!(?<![\\\\])\\2))*.?)\\2">>, "\\1" ++ ?REDACTED_REPLACEMENT ++ "\\2", [{'return', 'binary'}]).
 
--spec format(lager_msg:lager_msg(),list(),list()) -> any().
+-spec redact_basic_auth(kz_term:text()) -> kz_term:ne_binary().
+redact_basic_auth(Line) ->
+    case re:run(Line, <<"(https?://)([^:]+:[^@]+@)(.+)">>, [{'capture', 'all_but_first', 'binary'}]) of
+        {'match', [Scheme, _Creds, URL]} ->
+            <<Scheme/binary, URL/binary>>;
+        _ -> Line
+    end.
+
+-spec format(lager_msg:lager_msg(), list(), list()) -> any().
 format(Message, Config, Colors) ->
     lager_default_formatter:format(Message, lists:foldr(fun log_format/2, [], Config), Colors).
 
@@ -259,10 +268,10 @@ format(Message, Config, Colors) ->
 format(Msg, Config) ->
     format(Msg, Config, []).
 
-log_format(rfc3339, Acc) ->
-    Now = os:system_time(nanosecond),
-    RFC3339Options = [{unit, nanosecond}
-                     ,{offset, "Z"}
+log_format('rfc3339', Acc) ->
+    Now = os:system_time('nanosecond'),
+    RFC3339Options = [{'unit', 'nanosecond'}
+                     ,{'offset', "Z"}
                      ],
     RFC3339 = calendar:system_time_to_rfc3339(Now, RFC3339Options),
     [RFC3339 | Acc];

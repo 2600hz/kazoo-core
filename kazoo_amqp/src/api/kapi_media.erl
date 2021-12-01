@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2021, 2600Hz
 %%% @doc Media requests, responses, and errors.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,7 +10,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_media).
 
--compile({no_auto_import, [error/1]}).
+-compile({'no_auto_import', [error/1]}).
 
 -export([api_definitions/0, api_definition/1]).
 
@@ -33,7 +33,16 @@
 -export([bind_q/2, unbind_q/2]).
 -export([declare_exchanges/0]).
 
+-export_type([req/0
+             ,resp/0
+             ,error/0
+             ]).
+
 -include_lib("kz_amqp_util.hrl").
+
+-type req() :: kz_json:object().
+-type resp() :: kz_json:object().
+-type error() :: kz_json:object().
 
 -define(MEDIA_REQ_ROUTING_KEY, <<"media_req">>).
 

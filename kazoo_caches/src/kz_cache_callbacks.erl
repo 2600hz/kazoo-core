@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2020, 2600Hz
+%%% @copyright (C) 2018-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -150,9 +150,7 @@ expire_objects(_Name, _Tables, []) ->
 expire_objects(Name, Tables, Objects) ->
     _ = exec_expired_callbacks(Objects),
     Keys = [K || {_, K, _} <- Objects],
-    lager:debug("expiring keys from ~s:", [Name]),
-
-    lager:debug("  ~p", [Keys]),
+    lager:debug("expiring ~p keys from ~s", [length(Keys), Name]),
     lists:foreach(fun(Table) -> maybe_remove_objects(Table, Keys) end
                  ,[Name | Tables]
                  ),

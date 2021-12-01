@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%%
@@ -47,15 +47,15 @@ maybe_proxy(JObj, #media_store_path{db = Db
                                    }=Store) ->
     lager:debug("fetching attachment url for '~p' , '~p', '~p'", [Db, Id, Attachment]),
     StreamType = kz_media_util:convert_stream_type(kz_json:get_value(<<"Stream-Type">>, JObj)),
-    case kz_datamgr:attachment_url(Db, Id, Attachment, [{'stream_type',StreamType} | Options]) of
+    case kz_datamgr:attachment_url(Db, Id, Attachment, [{'stream_type', StreamType} | Options]) of
         {'error', 'not_found'} ->
             lager:debug("no attachment URL found"),
             <<>>;
-        {'proxy', _Proxy} ->
-            lager:debug("building proxy URI: ~p", [_Proxy]),
+        {'proxy', Proxy} ->
+            lager:debug("building proxy URI: ~p", [Proxy]),
             proxy_uri(Store, StreamType);
-        <<_/binary>> = URI ->
-            lager:debug("using URI ~s", [URI]),
+        <<URI/binary>> ->
+            lager:debug("using URI ~s", [kz_log:redactor(URI)]),
             URI
     end.
 
