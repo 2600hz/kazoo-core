@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc Kazoo API Helpers.
 %%% Most API functions take a proplist, filter it against required headers
 %%% and optional headers, and return either the JSON string if all
@@ -24,7 +24,7 @@
 %% API
 -export([delivery_message/2
         ,encode_pid/1, encode_pid/2
-        ,decode_pid/1
+        ,decode_pid/1, decode_queue/1
         ]).
 
 -include_lib("kz_amqp_util.hrl").
@@ -66,3 +66,11 @@ decode_pid(<<"pid://", QPid/binary>>) ->
         _ -> 'undefined'
     end;
 decode_pid(_Queue) -> 'undefined'.
+
+-spec decode_queue(kz_term:ne_binary()) -> kz_term:ne_binary().
+decode_queue(<<"pid://", QPid/binary>>) ->
+    case binary:split(QPid, <<"/">>) of
+        [_Pid, Q] -> Q;
+        _ -> throw(<<"pid with no queue">>)
+    end;
+decode_queue(Queue) -> Queue.
