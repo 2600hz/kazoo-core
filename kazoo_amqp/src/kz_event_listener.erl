@@ -128,10 +128,7 @@ code_change(_OldVsn, State, _Extra) ->
 bindings('call_events') ->
     [{'bind', [{'exchange', [{'name', ?KZ_CALL_EVENTS_EXCHANGE}
                             ,{'type', <<"x-consistent-hash">>}
-                            ,{'options', [{'auto_delete', 'true'}
-                                         ,{'arguments', [{<<"hash-header">>, 'longstr', <<"call-id">>}]}
-                                         ]
-                             }
+                            ,{'options', [{'arguments', [{<<"hash-header">>, 'longstr', <<"call-id">>}]}]}
                             ,{'bindings', [{'call', [{'source', ?EXCHANGE_CALLEVT}
                                                     ,{'routing', <<"call.#">>}
                                                     ]
@@ -147,10 +144,7 @@ bindings('call_events') ->
 bindings('presence') ->
     [{'bind', [{'exchange', [{'name', ?KZ_PRESENCE_EVENTS_EXCHANGE}
                             ,{'type', <<"x-consistent-hash">>}
-                            ,{'options', [{'auto_delete', 'true'}
-                                         ,{'arguments', [{<<"hash-header">>, 'longstr', <<"presence-id">>}]}
-                                         ]
-                             }
+                            ,{'options', [{'arguments', [{<<"hash-header">>, 'longstr', <<"presence-id">>}]}]}
                             ,{'bindings', presence_bindings()}
                             ]
                }
