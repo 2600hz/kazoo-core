@@ -34,6 +34,7 @@ maybe_record_inbound(FromNetwork, _Endpoint, Call, Data) ->
     case kz_json:is_true(<<"enabled">>, Data) of
         'false' -> 'false';
         'true' ->
+            lager:debug("starting account inbound recording"),
             LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_INBOUND_RECORDING_LABEL(FromNetwork), Data),
             {'true'
             ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'true', Call))
@@ -53,6 +54,7 @@ maybe_record_outbound(ToNetwork, _Endpoint, Call, Data) ->
     case kz_json:is_true(<<"enabled">>, Data) of
         'false' -> 'false';
         'true' ->
+            lager:debug("starting account outbound recording"),
             LabeledData = kz_json:set_value(<<"origin">>, ?ACCOUNT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
             {'true'
             ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'true', Call))
