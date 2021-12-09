@@ -558,7 +558,6 @@ amqp_declare_exchange(#kz_amqp_connection{channel=Channel}=Connection
 -spec amqp_declare_exchange(kz_amqp_connection(), pid(), kz_amqp_exchange()) -> kz_amqp_connection() | 'ok' | {'error', any()}.
 amqp_declare_exchange(#kz_amqp_connection{broker=_Broker
                                          ,exchanges=ExchangeMap
-                                         ,bindings=BindingsMap
                                          }=Connection
                      ,Channel
                      ,Exchange
@@ -576,11 +575,7 @@ amqp_declare_exchange(#kz_amqp_connection{broker=_Broker
                         ,_Broker
                         ,Channel
                         ]),
-            Bindings = maps:get(ExchangeName, BindingsMap, []),
-            C = Connection#kz_amqp_connection{exchanges=ExchangeMap#{ExchangeName => Exchange}
-                                             ,bindings=maps:without([ExchangeName], BindingsMap)
-                                             },
-            amqp_exchange_bindings(C, Bindings);
+            maybe_cache_exchange(Exchange, Connection);
         _Else when Exchange#'exchange.declare'.passive ->
             lager:debug("failed to declare ~s passive exchange ~s on ~s via ~p: ~p"
                        ,[Exchange#'exchange.declare'.type
@@ -615,6 +610,21 @@ amqp_declare_exchange(#kz_amqp_connection{broker=_Broker
     end;
 amqp_declare_exchange(#kz_amqp_connection{}, _, _) ->
     {'error', 'no_channel_for_command'}.
+
+maybe_cache_exchange(#'exchange.declare'{auto_delete = 'true'}, Connection) ->
+    Connection;
+maybe_cache_exchange(#'exchange.declare'{exchange = Name
+                                        ,auto_delete = 'false'
+                                        } = Exchange
+                    ,#kz_amqp_connection{exchanges = ExchangeMap
+                                        ,bindings = BindingsMap
+                                        }=Connection
+                    ) ->
+    Bindings = maps:get(Name, BindingsMap, []),
+    C = Connection#kz_amqp_connection{exchanges=ExchangeMap#{Name => Exchange}
+                                     ,bindings=maps:without([Name], BindingsMap)
+                                     },
+    amqp_exchange_bindings(C, Bindings).
 
 %%------------------------------------------------------------------------------
 %% @doc
