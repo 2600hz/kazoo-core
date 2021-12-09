@@ -14,7 +14,7 @@
 -export([get_app/1]).
 -export([hotload/1]).
 -export([running_apps/0, is_kapp/1]).
-
+-export([version/1]).
 -export([application_version/1]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -57,7 +57,7 @@ calling_app() ->
     end.
 
 -spec calling_app(pid()) -> kz_term:ne_binary().
-calling_app(Pid) ->
+calling_app(Pid) when is_pid(Pid) ->
     case application:get_application(Pid) of
         {'ok', App} -> App;
         _Other -> calling_app()
@@ -93,14 +93,14 @@ calling_process() ->
 -spec get_app(atom() | kz_term:ne_binary()) -> {atom(), string(), string()} | 'undefined'.
 get_app(<<AppName/binary>>) ->
     get_app(kz_term:to_atom(AppName));
-get_app(AppName) ->
+get_app(AppName) when is_atom(AppName) ->
     case [App || {Name, _, _}=App <- application:loaded_applications(), Name =:= AppName] of
         [] -> 'undefined';
         [Ret | _] -> Ret
     end.
 
 -spec application_version(atom()) -> kz_term:ne_binary().
-application_version(Application) ->
+application_version(Application) when is_atom(Application) ->
     case application:get_key(Application, 'vsn') of
         {'ok', Vsn} -> kz_term:to_binary(Vsn);
         'undefined' -> <<"unknown">>
@@ -120,7 +120,7 @@ hotload(App) ->
     hotload(kz_term:to_atom(App, 'true')).
 
 -spec is_kapp(atom()) -> boolean().
-is_kapp(App) ->
+is_kapp(App) when is_atom(App) ->
     {'ok', 'true'} =:= application:get_env(App, 'is_kazoo_app').
 
 -spec running_apps() -> [{atom(), string(), _}].
@@ -129,3 +129,10 @@ running_apps() ->
      || {App, _Desc, _Vsn}=AppData <- application:which_applications(),
         is_kapp(App)
     ].
+
+-spec version(atom()) -> kz_term:api_ne_binary().
+version(Application) when is_atom(Application) ->
+    case application:get_key(Application, 'vsn') of
+        {'ok', Version} -> kz_term:to_binary(Version);
+        _Else -> 'undefined'
+    end.
