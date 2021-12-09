@@ -12,5 +12,5 @@
 
 calling_app_test_() ->
     [?_assertEqual('eunit_test', maps:get('app', kz_application:calling_process()))
-    ,?_assertMatch('undefined', kz_application:get_app("kazoo_apps"))
+    ,?_assertMatch('undefined', kz_application:get_app('some_kazoo_app'))
     ].
