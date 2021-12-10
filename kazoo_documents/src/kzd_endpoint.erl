@@ -13,7 +13,7 @@
 -export([type/1]).
 -export([owner_id/1]).
 -export([account_id/1]).
--export([language/1]).
+-export([language/1, language/2]).
 -export([get_prompt/2, get_prompt_url/2]).
 -export([moh/1, moh_media_path/1, moh_url/1]).
 
@@ -36,9 +36,20 @@ account_id(Endpoint) ->
 owner_id(Endpoint) ->
     kz_json:get_ne_binary_value([<<"owner_id">>], Endpoint).
 
--spec language(endpoint()) -> kz_term:api_binary().
+-spec language(endpoint()) -> kz_term:ne_binary().
 language(Endpoint) ->
-    kz_json:get_ne_binary_value([<<"language">>], Endpoint).
+    language(Endpoint, default_endpoint_language()).
+
+-spec language(endpoint(), kz_term:api_ne_binary()) -> kz_term:ne_binary().
+language(Endpoint, Default) ->
+    endpoint_language(kz_json:get_ne_binary_value([<<"language">>], Endpoint, Default)).
+
+-spec endpoint_language(kz_term:api_binary()) -> kz_term:ne_binary().
+endpoint_language(undefined) -> default_endpoint_language();
+endpoint_language(Lang) -> kz_term:to_lower_binary(Lang).
+
+-spec default_endpoint_language() -> kz_term:ne_binary().
+default_endpoint_language() -> <<"en-us">>.
 
 -spec get_prompt(endpoint(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 get_prompt(Endpoint, PromptId) ->

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -524,7 +524,7 @@ get_prompt(PromptId, Lang, _AccountId, 'false') ->
           kz_term:api_ne_binary().
 maybe_prompt_path(PromptId, Lang, AccountId, {'error', _}=Err) ->
     lager:debug("building system prompt path, account ~s does not have custom prompt ~s: ~p ", [AccountId, PromptId, Err]),
-    kz_binary:join([<<"prompt:/">>, AccountId, PromptId, Lang], <<"/">>);
+    kz_binary:join([<<"prompt:/">>, ?KZ_MEDIA_DB, PromptId, Lang], <<"/">>);
 maybe_prompt_path(PromptId, _Lang, AccountId, {'ok', _}) ->
     lager:debug("using account override for prompt ~s in account ~s ", [PromptId, AccountId]),
     prompt_path(AccountId, PromptId).
