@@ -41,7 +41,7 @@
         andalso file:write_file(?BW2_DEBUG_FILE, io_lib:format(Format, Args), ['append'])
        ).
 
--define(BW2_BASE_URL, "https://api.inetwork.com/v1.0").
+-define(BW2_BASE_URL, "https://dashboard.bandwidth.com/api").
 
 -define(BW2_ACCOUNT_ID
        ,kapps_config:get_string(?KNM_BW2_CONFIG_CAT, <<"account_id">>, "")
@@ -289,7 +289,7 @@ process_site(Site) ->
 
 -spec peers(binary()) -> 'ok'.
 peers(SiteId) ->
-    {'ok', Xml} = api_get(url(["sippeers"])),
+    {'ok', Xml} = api_get(url(["sites/", ?BW2_SITE_ID, "/sippeers"])),
     io:format("listing all peers for account ~p, site ~p~n", [?BW2_ACCOUNT_ID, SiteId]),
     Peers = xmerl_xpath:string("SipPeers/SipPeer", Xml),
     lists:foreach(fun process_peer/1, Peers),
@@ -346,18 +346,18 @@ api_post(Url, Body) ->
     handle_response(Response).
 -else.
 -spec api_get(nonempty_string()) -> api_res().
-api_get("https://api.inetwork.com/v1.0/accounts//availableNumbers?areaCode="++_) ->
+api_get("https://dashboard.bandwidth.com/api/accounts//availableNumbers?areaCode="++_) ->
     Resp = knm_util:fixture("bandwidth2_find_by_npa_no_detail.xml"),
     handle_response({'ok', 200, [], Resp});
-api_get("https://api.inetwork.com/v1.0/accounts//availableNumbers?tollFreeWildCardPattern="++_) ->
+api_get("https://dashboard.bandwidth.com/api/accounts//availableNumbers?tollFreeWildCardPattern="++_) ->
     Resp = knm_util:fixture("bandwidth2_find_tollfree.xml"),
     handle_response({'ok', 200, [], Resp});
-api_get("https://api.inetwork.com/v1.0/accounts//orders/" ++ _) ->
+api_get("https://dashboard.bandwidth.com/api/accounts//orders/" ++ _) ->
     Resp = knm_util:fixture("bandwidth2_check_order.xml"),
     handle_response({'ok', 200, [], Resp}).
 
 -spec api_post(nonempty_string(), binary()) -> api_res().
-api_post("https://api.inetwork.com/v1.0/accounts//orders", Body) ->
+api_post("https://dashboard.bandwidth.com/api/accounts//orders", Body) ->
     _UnicodeBody = unicode:characters_to_binary(Body),
     Resp = knm_util:fixture("bandwidth2_buy_a_number.xml"),
     handle_response({'ok', 200, [], Resp}).
