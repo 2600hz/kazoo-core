@@ -172,10 +172,25 @@ fetch_meta_endpoint(MetaId, EndpointId, AccountDb, Options) ->
         {error, _} = Error -> Error;
         {'ok', MetaJObj} ->
             lager:debug("fetched meta endpoint ~s: ~s", [MetaId, kz_doc:revision(MetaJObj)]),
-            KVs = props:get_value(endpoint, Options, []),
-            JObj = kz_json:set_values(KVs, MetaJObj),
-            check_endpoint_type(JObj, EndpointId, AccountDb, Options)
+            Endpoint = build_meta_endpoint(MetaJObj, Options),
+            check_endpoint_type(Endpoint, EndpointId, AccountDb, Options)
     end.
+
+-spec build_meta_endpoint(kz_json:object(), kz_term:proplist()) -> kz_json:object().
+build_meta_endpoint(MetaJObj, Options) ->
+    Funs = [fun meta_endpoint_owner_id/1
+           ],
+    KVs = props:get_value(endpoint, Options, []),
+    kz_json:set_values(KVs, kz_json:exec(Funs, MetaJObj)).
+
+-spec meta_endpoint_owner_id(kz_json:object()) -> kz_json:object().
+meta_endpoint_owner_id(MetaJObj) ->
+    meta_endpoint_owner_id(MetaJObj, kz_doc:type(MetaJObj)).
+
+-spec meta_endpoint_owner_id(kz_json:object(), kz_term:api_ne_binary()) -> kz_json:object().
+meta_endpoint_owner_id(MetaJObj, <<"user">>) ->
+    kzd_devices:set_owner_id(MetaJObj, kz_doc:id(MetaJObj));
+meta_endpoint_owner_id(MetaJObj, _Other) -> MetaJObj.
 
 -spec check_endpoint_type(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object()} |
