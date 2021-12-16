@@ -1384,7 +1384,7 @@ hold_command(Call) ->
 hold_command(MOH, CallId=?NE_BINARY) ->
     kz_json:from_list(
       [{<<"Application-Name">>, <<"hold">>}
-      ,{<<"Insert-At">>, <<"now">>}
+      ,{<<"Insert-At">>, <<"flush">>}
       ,{<<"Hold-Media">>, MOH}
       ,{<<"Call-ID">>, CallId}
       ]);
