@@ -47,9 +47,7 @@ db_create(#server{}=Conn, DbName) ->
 db_create(#server{}=Conn, DbName, Options) ->
     case do_db_create_db(Conn, DbName, Options, []) of
         {'ok', _} -> 'true';
-        {'error', 'db_exists'} ->
-            lager:warning("db ~s already exists", [DbName]),
-            'true';
+        {'error', 'db_exists'} -> 'true';
         {'error', _Error} ->
             lager:error("failed to create database ~s: ~p", [DbName, _Error]),
             'false'
@@ -59,20 +57,40 @@ do_db_create_db(#server{url=ServerUrl, options=Opts}=Server, DbName, Options, Pa
     Options1 = couchbeam_util:propmerge1(Options, Opts),
     Url = hackney_url:make_url(ServerUrl, DbName, Params),
     Resp = couchbeam_httpc:db_request('put', Url, [], <<>>, Options1, [201, 202]),
-    case Resp of
-        {'ok', _Status, _Headers, Ref} ->
-            _ = hackney:skip_body(Ref),
-            {'ok', #db{server=Server, name=DbName, options=Options1}};
-        {'error', 'precondition_failed'} ->
-            {'error', 'db_exists'};
-        {'error', {'bad_response', {500, _Headers, Body}}}=Error ->
-            Reason = kz_json:get_value(<<"reason">>, kz_json:decode(Body)),
-            case check_db_create_error(Server, DbName, Reason) of
-                'true' -> {'error', 'db_exists'};
-                'false' -> Error
-            end;
-        Error ->
-            Error
+
+    handle_db_create_resp(Server, DbName, Options1, Resp).
+
+handle_db_create_resp(Server, DbName, Options, {'ok', 202, _Headers, Ref}) ->
+    _ = hackney:skip_body(Ref),
+    wait_for_db_confirmation(Server, DbName, Options);
+handle_db_create_resp(Server, DbName, Options, {'ok', _Status, _Headers, Ref}) ->
+    _ = hackney:skip_body(Ref),
+    {'ok', #db{server=Server, name=DbName, options=Options}};
+handle_db_create_resp(_Server, _DbName, _Options, {'error', 'precondition_failed'}) ->
+    {'error', 'db_exists'};
+handle_db_create_resp(Server, DbName, _Options, {'error', {'bad_response', {500, _Headers, Body}}}=Error) ->
+    Reason = kz_json:get_value(<<"reason">>, kz_json:decode(Body)),
+    case check_db_create_error(Server, DbName, Reason) of
+        'true' -> {'error', 'db_exists'};
+        'false' -> Error
+    end;
+handle_db_create_resp(_Server, _DbName, _Options, Error) ->
+    Error.
+
+wait_for_db_confirmation(Server, DbName, Options) ->
+    wait_for_db_confirmation(Server, DbName, Options, 5 * ?MILLISECONDS_IN_SECOND).
+
+wait_for_db_confirmation(_Server, _DbName, _Options, Timeout) when Timeout =< 0 ->
+    lager:warning("failed to see created db ~s exist", [_DbName]),
+    throw({'error', 'db_create_failed'});
+wait_for_db_confirmation(Server, DbName, Options, Timeout) ->
+    StartTime = kz_time:start_time(),
+    case db_exists(Server, DbName) of
+        'true' ->
+            {'ok', #db{server=Server, name=DbName, options=Options}};
+        'false' ->
+            timer:sleep(100),
+            wait_for_db_confirmation(Server, DbName, Options, kz_time:decr_timeout(Timeout, StartTime))
     end.
 
 -spec check_db_create_error(server(), kz_term:ne_binary(), any()) -> boolean().
