@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -1456,21 +1456,10 @@ maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
                         ,{<<"Require-Ignore-Early-Media">>, <<"true">>}
                         ,{<<"Loopback-Request-URI">>, LoopBackUri}
                         ,{<<"Ignore-Early-Media">>, <<"true">>}
-                        | bowout_settings('undefined' =:= kapps_call:call_id_direct(Call))
                         ]
                        ,CCVs
                        )
     }.
-
--spec bowout_settings(boolean()) -> kz_term:proplist().
-bowout_settings('true') ->
-    [{<<"Simplify-Loopback">>, <<"false">>}
-    ,{<<"Loopback-Bowout">>, <<"true">>}
-    ];
-bowout_settings('false') ->
-    [{<<"Simplify-Loopback">>, <<"false">>}
-    ,{<<"Loopback-Bowout">>, <<"true">>}
-    ].
 
 -spec maybe_auto_answer(ccv_acc()) -> ccv_acc().
 maybe_auto_answer({Endpoint, Call, CallFwd, CCVs}=Acc) ->
