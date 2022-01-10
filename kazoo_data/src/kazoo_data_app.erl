@@ -17,7 +17,7 @@
 -export([start/2, stop/1]).
 
 %% kz_nodes info binding
--export([request/1]).
+-export([request/0]).
 
 %%==============================================================================
 %% Application callbacks
@@ -29,7 +29,7 @@
 %%------------------------------------------------------------------------------
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_StartType, _StartArgs) ->
-    _ = kz_nodes_bindings:bind('kazoo_data', ?MODULE),
+    _ = kz_nodes_bindings:bind_info('kazoo_data_app', 'request'),
     kazoo_data_sup:start_link().
 
 %%------------------------------------------------------------------------------
@@ -38,17 +38,10 @@ start(_StartType, _StartArgs) ->
 %%------------------------------------------------------------------------------
 -spec stop(any()) -> any().
 stop(_State) ->
-    _ = kz_nodes_bindings:unbind('kazoo_data', ?MODULE),
-    'ok'.
+    kz_nodes_bindings:unbind_info('kazoo_data_app', 'request').
 
--spec request(kazoo_bindings:fold_results()) -> kazoo_bindings:fold_results().
-request(Acc) ->
+-spec request() -> {kz_json:key(), kz_json:object()}.
+request() ->
     Membership = kz_datamgr:membership(),
-    AllNodes = props:get_value('all_nodes', Membership),
-    ClusterNodes = props:get_value('cluster_nodes', Membership),
-
-    case ClusterNodes -- AllNodes of
-        [] -> Acc;
-        MissingNodes ->
-            [{'missing_db_servers', MissingNodes} | Acc]
-    end.
+    JObj = kz_json:from_list([{kz_term:to_binary(K), V} || {K, V} <- Membership]),
+    {<<"couch">>, JObj}.

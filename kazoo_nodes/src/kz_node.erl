@@ -392,6 +392,21 @@ print_node_info({<<"telemetry">>, Info}) ->
     format(?HEADER_COL ++ ": Leader is ~s~n", [<<"Telemetry">>, Leader]);
 print_node_info({<<"amqp">>, Info}) ->
     kz_json:foreach(fun print_node_info/1, Info);
+print_node_info({<<"couch">>, Info}) ->
+    AllNodes = kz_json:get_list_value(<<"all_nodes">>, Info, []),
+    ClusterNodes = kz_json:get_list_value(<<"cluster_nodes">>, Info, []),
+
+    case ClusterNodes -- AllNodes of
+        [] -> 'ok';
+        [MissingNode] ->
+            format(?HEADER_COL ++ ": Missing COUCH Node: '~s'~n"
+                  ,[<<"CouchDB">>, MissingNode]
+                  );
+        MissingNodes ->
+            format(?HEADER_COL ++ ": Missing COUCH Nodes: '~s'~n"
+                  ,[<<"CouchDB">>, kz_binary:join(lists:sort(MissingNodes), <<"' '">>)]
+                  )
+    end;
 print_node_info({<<"connections">>, Info}) ->
     format(?HEADER_COL ++ ": ", [<<"AMQP Channels">>]),
     simple_list(kz_json:foldr(fun print_amqp_info/3, [], Info), 2);
