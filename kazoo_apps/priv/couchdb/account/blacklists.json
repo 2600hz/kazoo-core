@@ -20,6 +20,24 @@
                 "  });",
                 "}"
             ]
+        },
+        "listing_by_number": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'blacklist' || doc.pvt_deleted) return;",
+                "  for (var i in doc.numbers) {",
+                "    emit(doc.numbers[i], doc.should_block_anonymous);",
+                "  }",
+                "}"
+            ]
+        },
+        "should_block_anonymous": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'blacklist' || doc.pvt_deleted) return;",
+                "  emit(doc.should_block_anonymous);",
+                "}"
+            ]
         }
     }
 }
