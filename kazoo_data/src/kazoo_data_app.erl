@@ -16,6 +16,9 @@
 %% Application callbacks
 -export([start/2, stop/1]).
 
+%% kz_nodes info binding
+-export([request/1]).
+
 %%==============================================================================
 %% Application callbacks
 %%==============================================================================
@@ -26,6 +29,7 @@
 %%------------------------------------------------------------------------------
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_StartType, _StartArgs) ->
+    _ = kz_nodes_bindings:bind('kazoo_data', ?MODULE),
     kazoo_data_sup:start_link().
 
 %%------------------------------------------------------------------------------
@@ -34,4 +38,17 @@ start(_StartType, _StartArgs) ->
 %%------------------------------------------------------------------------------
 -spec stop(any()) -> any().
 stop(_State) ->
+    _ = kz_nodes_bindings:unbind('kazoo_data', ?MODULE),
     'ok'.
+
+-spec request(kazoo_bindings:fold_results()) -> kazoo_bindings:fold_results().
+request(Acc) ->
+    Membership = kz_datamgr:membership(),
+    AllNodes = props:get_value('all_nodes', Membership),
+    ClusterNodes = props:get_value('cluster_nodes', Membership),
+
+    case ClusterNodes -- AllNodes of
+        [] -> Acc;
+        MissingNodes ->
+            [{'missing_db_servers', MissingNodes} | Acc]
+    end.
