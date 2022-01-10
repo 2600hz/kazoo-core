@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc Util functions used by kazoo_couch.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,6 +18,7 @@
         ,server_url/1
         ,db_url/2
         ,server_info/1
+        ,membership/1
         ,connection_info/1
         ,format_error/1
         ,is_couchdb/1
@@ -190,9 +191,21 @@ add_couch_version(_Version, 'undefined', #server{options=Options}=Conn) ->
 add_couch_version(_, _, #server{options=Options}=Conn) ->
     Conn#server{options = props:set_value('driver_version', 'bigcouch', Options)}.
 
--spec server_info(server()) -> {'ok', kz_json:object()} |
+-spec server_info(server()) ->
+          {'ok', kz_json:object()} |
           {'error', any()}.
 server_info(#server{}=Conn) -> couchbeam:server_info(Conn).
+
+-spec membership(server()) -> kz_json:object().
+membership(#server{url=ServerUrl}) ->
+    URL = hackney_url:make_url(ServerUrl, <<"_membership">>, []),
+    case kz_http:get(URL) of
+        {'ok', 200, _, Body} ->
+            kz_json:decode(Body);
+        {'error', _E} ->
+            lager:warning("error fetching membership: ~p", [_E]),
+            kz_json:new()
+    end.
 
 -spec server_url(server()) -> kz_term:ne_binary().
 server_url(#server{url=Url}) -> Url.

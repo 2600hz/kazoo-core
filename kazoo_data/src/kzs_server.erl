@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,10 +15,15 @@
         ,server_url/1
         ,db_url/2
         ,server_info/1
+        ,membership/1
         ,format_error/1
         ]).
 
 -include("kz_data.hrl").
+
+-spec membership(map() | server()) -> kz_datamgr:membership_items().
+membership(#{server := {App, Conn}}) -> App:membership(Conn);
+membership({App, Conn}) -> App:membership(Conn).
 
 -spec server_info(map() | server()) -> {'ok', kz_json:object()} |
           {'error', any()}.
