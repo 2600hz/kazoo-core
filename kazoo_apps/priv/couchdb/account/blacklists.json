@@ -25,8 +25,9 @@
             "map": [
                 "function(doc) {",
                 "  if (doc.pvt_type != 'blacklist' || doc.pvt_deleted) return;",
-                "  for (var i in doc.numbers) {",
-                "    emit(doc.numbers[i], doc.should_block_anonymous);",
+                "  for (var num in doc.numbers) {",
+                "    if (!doc.numbers.hasOwnProperty(num)) continue;",
+                "    emit(num, doc.should_block_anonymous);",
                 "  }",
                 "}"
             ]
