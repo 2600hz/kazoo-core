@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2021, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -233,6 +233,11 @@
 
 -export([detect_speech_command/2, start_detect_speech/2, stop_detect_speech/1]).
 
+-export([eavesdrop_command/1, eavesdrop_command/2
+        ,eavesdrop/2, eavesdrop/3
+        ,b_eavesdrop/2, b_eavesdrop/3
+        ]).
+
 -include("kapps_call_command.hrl").
 
 -type audio_macro_prompt() ::
@@ -260,11 +265,15 @@
         {'tts', kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()} |
         {'tts', kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()}.
 -type audio_macro_prompts() :: [audio_macro_prompt()].
+
+-type command_result() :: wait_for_application_return().
+
 -export_type([audio_macro_prompt/0
              ,audio_macro_prompts/0
              ,store_fun/0
              ,collect_digits_return/0
              ,received_event/0
+             ,command_result/0
              ]).
 
 -type store_fun() :: kz_term:ne_binary() | fun(() -> kz_term:ne_binary()).
@@ -1131,38 +1140,31 @@ page(Endpoints, Timeout, CIDName, CIDNumber, SIPHeaders, CCVs, Options, Call) ->
               ],
     send_command(Command, Call).
 
--spec b_page(kz_json:objects(), kapps_call:call()) ->
-          wait_for_application_return().
+-spec b_page(kz_json:objects(), kapps_call:call()) -> command_result().
 b_page(Endpoints, Call) ->
     b_page(Endpoints, ?DEFAULT_TIMEOUT_S, Call).
 
--spec b_page(kz_json:objects(), integer(), kapps_call:call()) ->
-          wait_for_application_return().
+-spec b_page(kz_json:objects(), integer(), kapps_call:call()) -> command_result().
 b_page(Endpoints, Timeout, Call) ->
     b_page(Endpoints, Timeout, 'undefined', Call).
 
--spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kapps_call:call()) ->
-          wait_for_application_return().
+-spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kapps_call:call()) -> command_result().
 b_page(Endpoints, Timeout, CIDName, Call) ->
     b_page(Endpoints, Timeout, CIDName, 'undefined', Call).
 
--spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) ->
-          wait_for_application_return().
+-spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kapps_call:call()) -> command_result().
 b_page(Endpoints, Timeout, CIDName, CIDNumber, Call) ->
     b_page(Endpoints, Timeout, CIDName, CIDNumber, 'undefined', Call).
 
--spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kapps_call:call()) ->
-          wait_for_application_return().
+-spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kapps_call:call()) -> command_result().
 b_page(Endpoints, Timeout, CIDName, CIDNumber, SIPHeaders, Call) ->
     b_page(Endpoints, Timeout, CIDName, CIDNumber, SIPHeaders, 'undefined', Call).
 
--spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_object(), kapps_call:call()) ->
-          wait_for_application_return().
+-spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_object(), kapps_call:call()) -> command_result().
 b_page(Endpoints, Timeout, CIDName, CIDNumber, SIPHeaders, CCVs, Call) ->
     b_page(Endpoints, Timeout, CIDName, CIDNumber, SIPHeaders, CCVs, 'undefined', Call).
 
--spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_object(), kz_term:api_object(), kapps_call:call()) ->
-          wait_for_application_return().
+-spec b_page(kz_json:objects(), integer(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_object(), kz_term:api_object(), kz_term:api_object(), kapps_call:call()) -> command_result().
 b_page(Endpoints, Timeout, CIDName, CIDNumber, SIPHeaders, CCVs, Options, Call) ->
     page(Endpoints, Timeout, CIDName, CIDNumber, SIPHeaders, CCVs, Options, Call),
     wait_for_application(Call, <<"page">>).
@@ -2685,7 +2687,7 @@ wait_for_message(Call, Application, Event, Type, Timeout) ->
 %% is only interested in events for the application.
 %% @end
 %%------------------------------------------------------------------------------
--type wait_for_application_return() :: {'error', 'timeout' | kz_json:object()} |
+-type wait_for_application_return() :: {'error', 'timeout' | 'channel_hungup' | kz_json:object()} |
                                        {'ok', kz_json:object()}.
 
 -spec wait_for_application(kapps_call:call(), kz_term:ne_binary()) ->
@@ -2701,7 +2703,7 @@ wait_for_application(Call, Application, Event) ->
 -spec wait_for_application(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           wait_for_application_return().
 wait_for_application(Call, Application, Event, Type) ->
-    wait_for_application(Call, Application, Event, Type, ?DEFAULT_APPLICATION_TIMEOUT).
+    wait_for_application(Call, Application, Event, Type, ?MAX_WAIT_MS).
 
 -spec wait_for_application(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), timeout()) ->
           wait_for_application_return().
@@ -3657,7 +3659,7 @@ media_macro(Media, Call) ->
     Command = media_macro_command(Media, Call),
     send_command(Command, Call).
 
--spec sound_touch_command(kz_term:proplist(), kapps_call:call()) ->kz_term:api_terms().
+-spec sound_touch_command(kz_term:proplist(), kapps_call:call()) -> kz_term:api_terms().
 sound_touch_command(Options, Call) ->
     kz_json:from_list(
       [{<<"Application-Name">>, <<"sound_touch">>}
@@ -3708,3 +3710,32 @@ start_detect_speech(Options, Call) ->
 stop_detect_speech(Call) ->
     Command = detect_speech_command([{<<"Action">>, <<"stop">>}], Call),
     send_command(Command, Call).
+
+-spec eavesdrop_command(kz_term:ne_binary()) -> kz_term:proplist().
+eavesdrop_command(TargetCallId) ->
+    eavesdrop_command(TargetCallId, true).
+
+-spec eavesdrop_command(kz_term:ne_binary(), boolean()) -> kz_term:proplist().
+eavesdrop_command(TargetCallId, EnableDTMF) ->
+    [{<<"Application-Name">>, <<"eavesdrop">>}
+    ,{<<"Target-Call-ID">>, TargetCallId}
+    ,{<<"Enable-DTMF">>, EnableDTMF}
+    ].
+
+-spec eavesdrop(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+eavesdrop(TargetCallId, Call) ->
+    eavesdrop(TargetCallId, true, Call).
+
+-spec eavesdrop(kz_term:ne_binary(), boolean(), kapps_call:call()) -> 'ok'.
+eavesdrop(TargetCallId, EnableDTMF, Call) ->
+    Command = eavesdrop_command(TargetCallId, EnableDTMF),
+    send_command(Command, Call).
+
+-spec b_eavesdrop(kz_term:ne_binary(), kapps_call:call()) -> command_result().
+b_eavesdrop(TargetCallId, Call) ->
+    b_eavesdrop(TargetCallId, true, Call).
+
+-spec b_eavesdrop(kz_term:ne_binary(), boolean(), kapps_call:call()) -> command_result().
+b_eavesdrop(TargetCallId, EnableDTMF, Call) ->
+    eavesdrop(TargetCallId, EnableDTMF, Call),
+    wait_for_application(Call, <<"eavesdrop">>).
