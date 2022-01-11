@@ -555,7 +555,7 @@
                 "      for (var num in doc.numbers) {",
                 "        if (!doc.numbers.hasOwnProperty(num)) continue;",
                 "        additionalEmitList.push({",
-                "          'key': [doc.pvt_type, num]",
+                "          'key': [doc.pvt_type, num],",
                 "          'value': {",
                 "            'should_block_anonymous' : doc.should_block_anonymous",
                 "          }",
