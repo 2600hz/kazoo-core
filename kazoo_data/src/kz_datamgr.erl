@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Manage data connections.
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -19,6 +19,8 @@
 -export([init_dbs/1]).
 %% format
 -export([format_error/1]).
+
+-export([membership/0]).
 
 %% System manipulation
 -export([db_exists/1, db_exists/2, db_exists_all/1
@@ -118,6 +120,7 @@
              ,view_listing/0, views_listing/0
              ,view_option/0, view_options/0
              ,open_doc_options/0
+             ,membership_items/0
              ]).
 
 -deprecated({'ensure_saved', '_', 'eventually'}).
@@ -376,7 +379,8 @@ db_exists_all(DbName) ->
 %% @doc Retrieve information regarding all databases.
 %% @end
 %%------------------------------------------------------------------------------
--spec db_info() -> {'ok', kz_term:ne_binaries()} |
+-spec db_info() ->
+          {'ok', kz_term:ne_binaries()} |
           data_error().
 db_info() ->
     kzs_db:db_info(kzs_plan:plan()).
@@ -385,7 +389,8 @@ db_info() ->
 %% @doc Retrieve information regarding a database.
 %% @end
 %%------------------------------------------------------------------------------
--spec db_info(database_name()) -> {'ok', kz_json:object()} |
+-spec db_info(database_name()) ->
+          {'ok', kz_json:object()} |
           data_error().
 db_info(DbName) ->
     Database = kzs_util:to_database(DbName),
@@ -1614,6 +1619,17 @@ init_db(Server, DbName) ->
             lager:info("creating database ~s", [Database]),
             kzs_db:db_create(Server, Database, [])
     end.
+
+%% @doc Return all_nodes (nodes connected) and cluster_nodes (nodes configured)
+-type membership_item() :: {'cluster_nodes', kz_term:ne_binaries()} |
+                           {'all_nodes', kz_term:ne_binaries()}.
+-type membership_items() :: [membership_item()].
+-spec membership() -> membership_items().
+membership() ->
+    Membership = kzs_server:membership(kzs_plan:plan()),
+    [{'all_nodes', kz_json:get_list_value(<<"all_nodes">>, Membership)}
+    ,{'cluster_nodes', kz_json:get_list_value(<<"cluster_nodes">>, Membership)}
+    ].
 
 %%------------------------------------------------------------------------------
 %% @doc

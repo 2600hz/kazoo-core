@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,6 +23,7 @@
         ,get_admin_dbs/0, get_admin_dbs/1
         ,get_admin_nodes/0, get_admin_nodes/1
         ,db_url/2
+        ,membership/1
         ]).
 
 
@@ -125,6 +126,11 @@ db_url(Server, DbName) ->
           {'error', any()}.
 server_info(Server) ->
     kz_couch_util:server_info(Server).
+
+-spec membership(kz_data:connection()) ->
+          kz_json:object().
+membership(Server) ->
+    kz_couch_util:membership(Server).
 
 %% DB operations
 -spec db_create(kz_data:connection(), kz_term:ne_binary(), kz_data:options()) -> boolean().
