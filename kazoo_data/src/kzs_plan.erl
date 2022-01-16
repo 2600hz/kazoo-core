@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc data plan
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -586,7 +586,7 @@ init() ->
 
 -spec onload() -> 'ok'.
 onload() ->
-    onload(kazoo_bindings:is_running()).
+    onload(persistent_term:get(kz_datamgr_bootstrap, false)).
 
 -spec onload(boolean()) -> 'ok'.
 onload('false') -> 'ok';
