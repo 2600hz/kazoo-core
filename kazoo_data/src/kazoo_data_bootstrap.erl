@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,5 +30,6 @@ start_link() ->
 
     Server = #{tag => Tag, server => kz_dataconnections:get_server(Tag)},
     kz_datamgr:init_dbs(Server),
+    persistent_term:put(kz_datamgr_bootstrap, true),
     kzs_plan:init(),
     'ignore'.
