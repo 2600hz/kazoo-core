@@ -80,6 +80,9 @@
 | `set_float/3` | `(Category,Key,Value)` | |
 | `set_integer/3` | `(Category,Key,Value)` | |
 | `set_json/3` | `(Category,Key,Value)` | |
+| `set_list_string/3` | `(Category,Key,Values)` | |
+| `set_list_string_append/3` | `(Category,Key,Value)` | |
+| `set_list_string_remove/3` | `(Category,Key,Value)` | |
 | `set_node/4` | `(Category,Key,Value,Node) | (Category,_,_,undefined)` | |
 | `set_string/3` | `(Category,Key,Value)` | |
 | `update_default/3` | `(Category,Key,Value)` | |

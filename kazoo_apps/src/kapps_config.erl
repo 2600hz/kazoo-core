@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -47,6 +47,9 @@
         ,set_float/3
         ,set_boolean/3
         ,set_json/3
+        ,set_list_string/3
+        ,set_list_string_append/3
+        ,set_list_string_remove/3
         ]).
 -export([set/3, set/4, set_default/3, set_node/4
         ,update_default/3, update_default/4
@@ -598,6 +601,21 @@ set_boolean(Category, Key, Value) ->
 -spec set_json(config_category(), config_key(), kz_term:text() | kz_json:object()) -> set_return().
 set_json(Category, Key, Value) ->
     set(Category, Key, kz_json:decode(Value)).
+
+-spec set_list_string(config_category(), config_key(), kz_term:text()) -> set_return().
+set_list_string(Category, Key, Values) ->
+    BinList = binary:split(kz_term:to_binary(Values), <<",">>, ['global', 'trim_all']),
+    set(Category, Key, BinList).
+
+-spec set_list_string_append(config_category(), config_key(), kz_term:text()) -> set_return().
+set_list_string_append(Category, Key, Value) ->
+    Existing = get(Category, Key, []),
+    set(Category, Key, Existing ++ [kz_term:to_binary(Value)]).
+
+-spec set_list_string_remove(config_category(), config_key(), kz_term:text()) -> set_return().
+set_list_string_remove(Category, Key, Value) ->
+    Existing = get(Category, Key, []),
+    set(Category, Key, lists:delete(kz_term:to_binary(Value), Existing)).
 
 %%------------------------------------------------------------------------------
 %% @doc Set the key to the value in the given category but specific to this node.
