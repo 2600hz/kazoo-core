@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -334,7 +334,7 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                     ,to_realm=ToRealm
                     ,account_id=AccountId
                     ,account_db=AccountDb
-                    ,inception = kz_json:get_ne_binary_value(<<"Inception">>, CCVs, inception(Call))
+                    ,inception = inception_route(CCVs, Call)
                     ,switch_hostname = kz_json:get_ne_binary_value(<<"Switch-Hostname">>, RouteReq, switch_hostname(Call))
                     ,switch_nodename = kz_json:get_ne_binary_value(<<"Switch-Nodename">>, RouteReq, switch_nodename(Call))
                     ,switch_url = kz_json:get_ne_binary_value(<<"Switch-URL">>, RouteReq, switch_url(Call))
@@ -370,7 +370,6 @@ from_route_win(RouteWin, #kapps_call{call_id=OldCallId
                                     ,ccvs=OldCCVs
                                     ,cavs=OldCAVs
                                     ,sip_headers=OldSHs
-                                    ,inception=OldInception
                                     ,account_id=OldAccountId
                                     ,account_db=OldAccountDb
                                     ,authorizing_id=OldAuthzId
@@ -397,7 +396,7 @@ from_route_win(RouteWin, #kapps_call{call_id=OldCallId
                    ,cavs=CAVs
                    ,sip_headers=SHs
                    ,control_q = kz_json:get_ne_binary_value(<<"Control-Queue">>, RouteWin)
-                   ,inception = kz_json:get_ne_binary_value(<<"Inception">>, CCVs, OldInception)
+                   ,inception = inception_route(CCVs, Call)
                    ,authorizing_id = kz_json:get_ne_binary_value(<<"Authorizing-ID">>, CCVs, OldAuthzId)
                    ,authorizing_type = kz_json:get_ne_binary_value(<<"Authorizing-Type">>, CCVs, OldAuthzType)
                    ,owner_id = kz_json:get_ne_binary_value(<<"Owner-ID">>, CCVs, OldOwnerId)
@@ -487,7 +486,7 @@ from_originate_resp(OriginateResp, #kapps_call{account_id=OldAccountId
                    ,to_realm=ToRealm
                    ,account_id=AccountId
                    ,account_db=AccountDb
-                   ,inception = kz_json:get_ne_binary_value(<<"Inception">>, CCVs, inception(Call))
+                   ,inception = inception_route(CCVs, Call)
                    ,switch_hostname = kz_json:get_ne_binary_value(<<"Switch-Hostname">>, OriginateResp, switch_hostname(Call))
                    ,switch_nodename = kz_json:get_ne_binary_value(<<"Switch-Nodename">>, OriginateResp, switch_nodename(Call))
                    ,switch_url = kz_json:get_ne_binary_value(<<"Switch-URL">>, OriginateResp, switch_url(Call))
@@ -568,7 +567,7 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                    ,switch_nodename = kz_json:get_ne_binary_value(<<"Switch-Nodename">>, JObj, switch_nodename(Call))
                    ,switch_url = kz_json:get_ne_binary_value(<<"Switch-URL">>, JObj, switch_url(Call))
                    ,switch_uri = kz_json:get_ne_binary_value(<<"Switch-URI">>, JObj, switch_uri(Call))
-                   ,inception = kz_json:get_ne_binary_value(<<"Inception">>, JObj, inception(Call))
+                   ,inception = inception_route(JObj, Call)
                    ,account_db = kz_json:get_ne_binary_value(<<"Account-DB">>, JObj, account_db(Call))
                    ,account_id = kz_json:get_ne_binary_value(<<"Account-ID">>, JObj, account_id(Call))
                    ,authorizing_id = kz_json:get_ne_binary_value(<<"Authorizing-ID">>, JObj, authorizing_id(Call))
@@ -1968,3 +1967,18 @@ remote_bridge_auth_header(<<"IP">>, _Value, Acc) -> Acc;
 remote_bridge_auth_header(<<"PORT">>, _Value, Acc) -> Acc;
 remote_bridge_auth_header(Key, Value, Acc) ->
     [{<<"X-AUTH-", Key/binary>>, Value} | Acc].
+
+-spec inception_route(kz_json:object(), call()) -> kz_term:api_ne_binary().
+inception_route(CCVs, Call) ->
+    case inception_route_forwarded(CCVs) of
+        'undefined' -> kz_json:get_ne_binary_value(<<"Inception">>, CCVs, inception(Call));
+        Value -> Value
+    end.
+
+-spec inception_route_forwarded(kz_json:object()) -> kz_term:api_ne_binary().
+inception_route_forwarded(CCVs) ->
+    case kz_json:get_ne_binary_value(<<"Call-Forward-From">>, CCVs) of
+        'undefined' -> 'undefined';
+        <<"onnet">> -> 'undefined';
+        <<"offnet">> -> <<"call-forward-from-offnet">>
+    end.
