@@ -1900,6 +1900,7 @@ api_definitions() ->
     ,system_alert_definition()
     ,topup_definition()
     ,transaction_definition()
+    ,voicemail_deleted_definition()
     ,voicemail_full_definition()
     ,voicemail_new_definition()
     ,voicemail_saved_definition()
