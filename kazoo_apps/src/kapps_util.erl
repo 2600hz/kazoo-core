@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc Utilities shared by a subset of `kapps'.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -65,6 +65,11 @@
 -export([bin_usage/0
         ,mem_usage/0
         ,kazoo_version/0
+        ,otp_release/0
+        ,otp_version/0
+        ,monsterui_version/0
+        ,commland_version/0
+        ,meta_kazoo_version/0
         ,write_pid/1
         ]).
 
@@ -730,6 +735,73 @@ mem_usage() ->
 kazoo_version() ->
     {_, _, Version} = kz_application:get_app('kazoo_apps'),
     kz_term:to_binary(Version).
+
+-spec meta_kazoo_version() -> kz_term:ne_binary().
+meta_kazoo_version() ->
+    VersionFile = "/etc/kazoo/versions/kazoo/VERSION",
+    case file:read_file(VersionFile) of
+        {'ok', Bin} ->
+            %% VERSION is Major.Minor-Release: 5.0-63
+            [VersionRaw|_] = string:split(string:trim(Bin), <<$\n>>),
+            case kz_term:from_centos_version(VersionRaw) of
+                {'ok', Version} -> Version;
+                {'error', _Reason} ->
+                    lager:debug("invalid kazoo version '~p': ~p", [VersionRaw, _Reason]),
+                    'undefined'
+            end;
+        {'error', _Reason} ->
+            %% lager:debug("can not find ~s (~p), is kazoo package installed?", [VersionFile, _Reason]),
+            'undefined'
+    end.
+
+-spec otp_release() -> kz_term:ne_binary().
+otp_release() ->
+    kz_term:to_binary(erlang:system_info('otp_release')).
+
+-spec otp_version() -> kz_term:ne_binary().
+otp_version() ->
+    case file:read_file(filename:join([code:root_dir(), "releases", "OTP_VERSION"])) of
+        {'ok', VersionStr} ->
+            kz_term:to_binary(string:trim(VersionStr));
+        {'error', _} ->
+            otp_release()
+    end.
+
+-spec monsterui_version() -> kz_term:api_ne_binary().
+monsterui_version() ->
+    VersionFile = "/var/www/html/monster-ui/VERSION",
+    case file:read_file(VersionFile) of
+        {'ok', Bin} ->
+            %% VERSION is Major.Minor-Release: 5.0-63
+            [VersionRaw|_] = string:split(string:trim(Bin), <<$\n>>),
+            case kz_term:from_centos_version(VersionRaw) of
+                {'ok', Version} -> Version;
+                {'error', _Reason} ->
+                    lager:debug("invalid monster ui version '~p': ~p", [VersionRaw, _Reason]),
+                    'undefined'
+            end;
+        {'error', _Reason} ->
+            %% lager:debug("can not find ~s (~p), is monster-ui-core package installed?", [VersionFile, _Reason]),
+            'undefined'
+    end.
+
+-spec commland_version() -> kz_term:api_ne_binary().
+commland_version() ->
+    VersionFile = "/var/www/html/commland/VERSION",
+    case file:read_file(VersionFile) of
+        {'ok', Bin} ->
+            %% VERSION is Major.Minor-Release: 5.0-63
+            [VersionRaw|_] = string:split(string:trim(Bin), <<$\n>>),
+            case kz_term:from_centos_version(VersionRaw) of
+                {'ok', Version} -> Version;
+                {'error', _Reason} ->
+                    lager:debug("invalid commland core version '~p': ~p", [VersionRaw, _Reason]),
+                    'undefined'
+            end;
+        {'error', _Reason} ->
+            %% lager:debug("can not find ~s (~p), is commland-core package installed?", [VersionFile, _Reason]),
+            'undefined'
+    end.
 
 -spec write_pid(file:filename_all()) -> 'ok' | {'error', atom()}.
 write_pid(FileName) ->

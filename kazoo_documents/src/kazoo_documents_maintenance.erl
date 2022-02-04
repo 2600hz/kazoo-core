@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2021, 2600Hz
+%%% @copyright (C) 2022, 2600Hz
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -9,7 +9,7 @@
 -module(kazoo_documents_maintenance).
 
 -export([init_apps/1, init_apps/2
-        ,init_app/1, init_app/2
+        ,init_app/1, init_app/2, init_app/3
         ,refresh_apps/1, refresh_apps/2
         ,refresh_app/1, refresh_app/2
         ,rename_and_refresh_app/2, rename_and_refresh_app/3
@@ -36,6 +36,7 @@
                                   ,<<"screenshots">>
                                   ,<<"api_url">>
                                   ,<<"phase">>
+                                  ,<<"source_url">>
                                   ]
        ).
 
@@ -52,9 +53,9 @@ init_apps(AppsPath) ->
     init_apps(AppsPath, 'undefined').
 
 -spec init_apps(file:name(), kz_term:api_binary()) -> 'ok'.
-init_apps(AppsPath, AppUrl) ->
+init_apps(AppsPath, ApiUrl) ->
     Apps = find_apps(AppsPath),
-    InitApp = fun(App) -> init_app(App, AppUrl) end,
+    InitApp = fun(App) -> init_app(App, ApiUrl) end,
     lists:foreach(InitApp, Apps).
 
 -spec init_app(file:filename_all()) -> 'ok'.
@@ -62,19 +63,23 @@ init_app(AppPath) ->
     init_app(AppPath, 'undefined').
 
 -spec init_app(file:filename_all(), kz_term:api_binary()) -> 'ok'.
-init_app(AppPath, AppUrl) ->
+init_app(AppPath, ApiUrl) ->
     Keys = [<<"api_url">>],
+    init_app(AppPath, ApiUrl, Keys).
+
+-spec init_app(file:filename_all(), kz_term:api_binary(), kz_term:ne_binaries()) -> 'ok'.
+init_app(AppPath, ApiUrl, Keys) ->
     ?SUP_LOG_INFO("trying to init app from ~s~n", [AppPath]),
-    maybe_update_app(AppPath, AppUrl, Keys).
+    maybe_update_app(AppPath, ApiUrl, Keys).
 
 -spec refresh_apps(file:name()) -> 'ok'.
 refresh_apps(AppsPath) ->
     refresh_apps(AppsPath, 'undefined').
 
 -spec refresh_apps(file:name(), kz_term:api_binary()) -> 'ok'.
-refresh_apps(AppsPath, AppUrl) ->
+refresh_apps(AppsPath, ApiUrl) ->
     Apps = find_apps(AppsPath),
-    InitApp = fun(App) -> refresh_app(App, AppUrl) end,
+    InitApp = fun(App) -> refresh_app(App, ApiUrl) end,
     lists:foreach(InitApp, Apps).
 
 -spec refresh_app(file:filename_all()) -> 'ok'.
@@ -82,9 +87,9 @@ refresh_app(AppPath) ->
     refresh_app(AppPath, 'undefined').
 
 -spec refresh_app(file:filename_all(), kz_term:api_binary()) -> 'ok'.
-refresh_app(AppPath, AppUrl) ->
+refresh_app(AppPath, ApiUrl) ->
     ?SUP_LOG_INFO("trying to refresh app from ~s~n", [AppPath]),
-    maybe_update_app(AppPath, AppUrl, ?REFRESH_APP_KEYS).
+    maybe_update_app(AppPath, ApiUrl, ?REFRESH_APP_KEYS).
 
 %%------------------------------------------------------------------------------
 %% @doc Takes care of updating the given (`PrevName') application's metadata
@@ -100,14 +105,14 @@ rename_and_refresh_app(AppPath, PrevName) ->
     rename_and_refresh_app(AppPath, PrevName, 'undefined').
 
 -spec rename_and_refresh_app(file:filename_all(), kz_term:ne_binary(), kz_term:api_binary()) -> 'ok'.
-rename_and_refresh_app(AppPath, PrevName, AppUrl) ->
+rename_and_refresh_app(AppPath, PrevName, ApiUrl) ->
     ?SUP_LOG_INFO("renaming and refreshing ~s app from ~s~n", [PrevName, AppPath]),
     {'ok', MasterAccountDb} = kapps_util:get_master_account_db(),
     {'ok', MetaData} = find_metadata(AppPath),
     case kzd_app:find_by_name(MasterAccountDb, PrevName) of
         {'ok', AppDoc} ->
             maybe_update_app(AppPath
-                            ,maybe_set_api_url(AppUrl, MetaData)
+                            ,maybe_set_api_url(ApiUrl, MetaData)
                             ,?REFRESH_APP_KEYS
                             ,MasterAccountDb
                             ,AppDoc
@@ -217,10 +222,10 @@ find_apps(AppsPath) ->
     filelib:fold_files(AppsPath, "app\\.json", 'true', AccFun, []).
 
 -spec maybe_update_app(file:filename_all(), kz_term:api_binary(), kz_term:ne_binaries()) -> 'ok'.
-maybe_update_app(AppPath, AppUrl, Keys) ->
+maybe_update_app(AppPath, ApiUrl, Keys) ->
     try find_metadata(AppPath) of
         {'ok', MetaData} ->
-            maybe_create_app(AppPath, maybe_set_api_url(AppUrl, MetaData), Keys);
+            maybe_create_app(AppPath, maybe_set_api_url(ApiUrl, MetaData), Keys);
         {'invalid_data', _E} ->
             ?SUP_LOG_INFO("  failed to validate app data ~s: ~p~n", [AppPath, _E])
     catch
@@ -235,8 +240,8 @@ maybe_update_app(AppPath, AppUrl, Keys) ->
 -spec maybe_set_api_url(kz_term:api_binary(), kz_json:object()) -> kz_json:object().
 maybe_set_api_url('undefined', MetaData) ->
     kz_json:delete_key(<<"api_url">>, MetaData);
-maybe_set_api_url(AppUrl, MetaData) ->
-    kz_json:set_value(<<"api_url">>, AppUrl, MetaData).
+maybe_set_api_url(ApiUrl, MetaData) ->
+    kz_json:set_value(<<"api_url">>, ApiUrl, MetaData).
 
 -spec maybe_create_app(file:filename_all(), kz_json:object(), kz_term:ne_binaries()) -> 'ok'.
 maybe_create_app(AppPath, MetaData, Keys) ->
