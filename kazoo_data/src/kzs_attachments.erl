@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -213,13 +213,52 @@ external_attachment(Map, DbName, JObj, Att, Props) ->
 -spec delete_attachment(map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object()} |
           data_error().
-delete_attachment(#{server := {App, Conn}}=Map, DbName, DocId, AName, Options) ->
+delete_attachment(#{}=Server, DbName, DocId, AName, Options) ->
+    case kzs_cache:open_cache_doc(Server, DbName, DocId, []) of
+        {'ok', Doc} ->
+            kzs_cache:flush_cache_doc(DbName, DocId),
+            case kz_doc:attachment(Doc, AName) of
+                'undefined' -> {'ok', kz_json:new()};
+                Att -> do_delete_attachment(Server, DbName, DocId, AName, Att, Options)
+            end;
+        {'error', _}=E -> E
+    end.
+
+do_delete_attachment(#{}=Server, DbName, DocId, AName, Att, Options) ->
+    AttHandler = maps:get('att_handler', Server, 'undefined'),
+
+    case kz_json:get_value(<<"handler">>, Att) of
+        'undefined' ->
+            delete_attachment_from_app(Server, DbName, DocId, AName, Options);
+        Handler ->
+            HandlerPL = kz_json:to_proplist(Handler),
+            case delete_attachment_from_handler(HandlerPL, AttHandler, DbName, DocId, AName) of
+                {'error', _Reason, _ExtendedError} = Error ->
+                    handle_attachment_handler_error(Error, Options);
+                Resp ->
+                    Resp
+            end
+    end.
+
+delete_attachment_from_app(#{server := {App, Conn}}=Map, DbName, DocId, AName, Options) ->
     case App:delete_attachment(Conn, DbName, DocId, AName, Options) of
         {'ok', _}=Result ->
             publish_doc(Map, DbName, DocId),
             kzs_cache:flush_cache_doc(DbName, DocId),
             Result;
         Result -> Result
+    end.
+
+delete_attachment_from_handler([{Handler, Props}], 'undefined', DbName, DocId, AName) ->
+    Module = kz_term:to_atom(Handler, 'true'),
+    Module:delete_attachment(Props, DbName, DocId, AName);
+delete_attachment_from_handler([{Handler, HandlerProps}], {Module, ModuleProps}, DbName, DocId, AName) ->
+    Props = kz_json:set_value(<<"handler_props">>, ModuleProps, HandlerProps),
+    case kz_term:to_atom(Handler, 'true') of
+        Module ->
+            Module:delete_attachment(Props, DbName, DocId, AName);
+        DiffModule ->
+            DiffModule:delete_attachment(HandlerProps, DbName, DocId, AName)
     end.
 
 -spec publish_doc(map(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.

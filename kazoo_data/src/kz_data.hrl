@@ -82,7 +82,7 @@
                               {'endkey', key_range()} |
                               {'group_level', 'exact' | integer()} |
                               {'key', binary()} |
-                              {'keys', [binary()]} |
+                              {'keys', kz_json:paths()} |
                               {'limit', integer()} |
                               {'list', binary()} |
                               {'reduce', boolean()} |
@@ -146,6 +146,10 @@
 
 -type get_results_return() :: {'ok', kz_json:json_terms()} |
                               data_error().
+
+%% for open/save operations
+-type data_return() :: {'ok', kz_json:object()} |
+                       data_error().
 
 -define(DEFAULT_DATA_SECTION, [{<<"local">>, <<"bigcouch">>}]).
 -define(MERGE_PROPS, [{'driver', 'kazoo_couch'}

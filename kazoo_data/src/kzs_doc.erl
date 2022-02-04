@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -32,14 +32,12 @@
 
 %% Document related functions --------------------------------------------------
 
--spec open_doc(map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          data_error().
+-spec open_doc(map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> data_return().
 open_doc(#{server := {App, Conn}}, DbName, DocId, Options) ->
     handle_opened_doc(App:open_doc(Conn, DbName, DocId, Options), Options).
 
 -spec handle_opened_doc({'ok', kz_json:object()}|data_error(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} | data_error().
+          data_return().
 handle_opened_doc({'error', _}=Error, _Options) -> Error;
 handle_opened_doc({'ok', Doc}, Options) ->
     handle_opened_doc(Doc, kz_doc:is_soft_deleted(Doc), props:get_is_true('deleted', Options, 'false')).
@@ -54,8 +52,7 @@ handle_opened_doc(Doc, 'true', 'false') ->
     {'error', 'not_found'}.
 
 -spec save_doc(map(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          data_error().
+          data_return().
 save_doc(#{server := {App, Conn}}, DbName, Doc, Options) ->
     {PreparedDoc, PublishDoc} = prepare_doc_for_save(DbName, Doc),
     try App:save_doc(Conn, DbName, PreparedDoc, Options) of
@@ -106,8 +103,7 @@ lookup_doc_rev(#{server := {App, Conn}}, DbName, DocId) ->
     App:lookup_doc_rev(Conn, DbName, DocId).
 
 -spec ensure_saved(map(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          data_error().
+          data_return().
 ensure_saved(#{server := {App, Conn}}=Map, DbName, Doc, Options) ->
     {PreparedDoc, PublishDoc} = prepare_doc_for_save(DbName, Doc),
     try App:ensure_saved(Conn, DbName, PreparedDoc, Options) of
@@ -136,8 +132,7 @@ maybe_ensure_saved_others(_, _, _, _, _) -> 'ok'.
 
 
 -spec del_doc(map(), kz_term:ne_binary(), kz_json:object() | kz_term:ne_binary(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          data_error().
+          data_return().
 del_doc(Server, DbName, ?NE_BINARY=DocId, Options) ->
     case open_doc(Server, DbName, DocId, Options) of
         {'error', _}=Err -> Err;
@@ -246,12 +241,14 @@ prepare_doc_for_del(Server, DbName, Doc) ->
 %% PublishDoc is a JObj containing a defined set of key value pairs (?PUBLISH_FIELDS + doc rev).
 %% @end
 %%------------------------------------------------------------------------------
--spec prepare_doc_for_save(kz_term:ne_binary(), kz_json:object()) -> {kz_json:object(), kz_json:object()}.
+-spec prepare_doc_for_save(kz_term:ne_binary(), kz_json:object()) ->
+          {kz_json:object(), kz_json:object()}.
 prepare_doc_for_save(Db, JObj) ->
     Doc = kz_json:delete_key(<<"id">>, JObj),
     prepare_doc_for_save(Db, Doc, kz_term:is_empty(kz_doc:id(Doc))).
 
--spec prepare_doc_for_save(kz_term:ne_binary(), kz_json:object(), boolean()) -> {kz_json:object(), kz_json:object()}.
+-spec prepare_doc_for_save(kz_term:ne_binary(), kz_json:object(), boolean()) ->
+          {kz_json:object(), kz_json:object()}.
 prepare_doc_for_save(_Db, JObj, 'true') ->
     prepare_publish(maybe_set_docid(JObj));
 prepare_doc_for_save(Db, JObj, 'false') ->
@@ -291,15 +288,13 @@ default_copy_function('true') -> fun ensure_saved/4;
 default_copy_function('false') -> fun save_doc/4.
 
 -spec copy_doc(map(), map(), copy_doc(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          data_error().
+          data_return().
 copy_doc(Src, Dst, CopySpec, Options) ->
     SaveFun = default_copy_function(props:is_defined(?COPY_DOC_OVERRIDE_PROPERTY, Options)),
     copy_doc(Src, Dst, CopySpec, SaveFun, props:delete(?COPY_DOC_OVERRIDE_PROPERTY, Options)).
 
 -spec copy_doc(map(), map(), copy_doc(), copy_function(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          data_error().
+          data_return().
 copy_doc(Src, Dst, CopySpec, CopyFun, Opts) ->
     #copy_doc{source_dbname = SourceDbName
              ,source_doc_id = SourceDocId
@@ -381,9 +376,7 @@ handle_copy_conflict(Src, Dst
         _Else -> {'error', 'conflict'}
     end.
 
--spec move_doc(map(), map(), copy_doc(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          data_error().
+-spec move_doc(map(), map(), copy_doc(), kz_term:proplist()) -> data_return().
 move_doc(Src, Dst, CopySpec, Options) ->
     #copy_doc{source_dbname = SourceDbName
              ,source_doc_id = SourceDocId

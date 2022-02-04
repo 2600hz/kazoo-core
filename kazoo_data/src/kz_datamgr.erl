@@ -1175,15 +1175,15 @@ add_required_option({Key, Fun}, {JObj, Options}=Acc) ->
 %% Returns `{Total, Offset, Meta, Rows}'
 %% @end
 %%------------------------------------------------------------------------------
--spec get_all_results(database_name(), 'all_docs' | kz_term:ne_binary()) -> get_results_return().
+-spec get_all_results(database_name(), ddoc()) -> get_results_return().
 get_all_results(DbName, DesignDoc) ->
     get_results(DbName, DesignDoc, []).
 
--spec get_results(database_name(), 'all_docs' | kz_term:ne_binary()) -> get_results_return().
+-spec get_results(database_name(), ddoc()) -> get_results_return().
 get_results(DbName, DesignDoc) ->
     get_results(DbName, DesignDoc, []).
 
--spec get_results(database_name(), 'all_docs' | kz_term:ne_binary(), view_options()) -> get_results_return().
+-spec get_results(database_name(), ddoc(), view_options()) -> get_results_return().
 get_results(DbName, DesignDoc, Options) ->
     Database = kzs_util:to_database(DbName),
     ?GET_RESULTS(Database, DesignDoc, Options),
@@ -1229,7 +1229,7 @@ get_results_count(DbName, DesignDoc, Options) ->
     Opts = maybe_add_doc_type_from_view(DesignDoc, Options),
     kzs_view:get_results_count(kzs_plan:plan(Database, Opts), Database, DesignDoc, Options).
 
--spec get_registered_view(map(), database_name(), 'all_docs' | kz_term:ne_binary()) ->
+-spec get_registered_view(map(), database_name(), ddoc()) ->
           'not_registered' | kz_json:object().
 get_registered_view(Plan, DbName, DesignDoc) ->
     Database = kzs_util:to_database(DbName),
@@ -1251,28 +1251,35 @@ get_registered_view(Plan, DbName, DesignDoc) ->
 query_registered_views(Plan, Options) ->
     kzs_view:get_results(Plan, ?KZ_DATA_DB, <<"views/registered">>, Options).
 
--spec registration_options([[kz_term:ne_binary()]]) -> view_options().
+-spec registration_options(kz_json:paths()) -> view_options().
 registration_options(Keys) ->
     ['include_docs'
     ,{'keys', Keys}
     ].
 
--spec registration_keys(database_name(), 'all_docs' | kz_term:ne_binary(), kz_term:ne_binary()) ->
-          [[kz_term:ne_binary()]].
-registration_keys(Database, DesignDoc, Classification) ->
+-spec registration_keys(database_name(), ddoc(), kz_term:ne_binary()) -> kz_json:paths().
+registration_keys(Database, <<DesignDoc/binary>>, Classification) ->
     [[Classification, DesignDoc]
     ,[Database, DesignDoc]
-    ].
+    ];
+registration_keys(Database, 'all_docs', Classification) ->
+    registration_keys(Database, <<"all_docs">>, Classification).
 
--spec maybe_create_view(map(), database_name(), 'all_docs' | kz_term:ne_binary(), view_options()) ->
-          get_results_return().
+-spec maybe_create_view(map(), database_name(), ddoc(), view_options()) ->
+          data_return().
 maybe_create_view(Plan, Database, DesignDoc, Options) ->
-    case should_create_view(Options)
-        andalso kzs_db:db_exists(Plan, Database)
-        andalso get_registered_view(Plan, Database, DesignDoc)
-    of
-        'false' ->
-            {'error', 'not_found'};
+    maybe_create_view(Plan, Database, DesignDoc, Options, should_create_view(Options)).
+
+maybe_create_view(_Plan, _Database, _DesignDoc, _Options, 'false') ->
+    {'error', 'not_found'};
+maybe_create_view(Plan, Database, DesignDoc, Options, 'true') ->
+    create_view_if_db_exists(Plan, Database, DesignDoc, Options, kzs_db:db_exists(Plan, Database)).
+
+create_view_if_db_exists(_Plan, _Database, _DesignDoc, _Options, 'false') ->
+    lager:debug("database ~s does not exist, not creating view ~s", [_Database, _DesignDoc]),
+    {'error', 'not_found'};
+create_view_if_db_exists(Plan, Database, DesignDoc, Options, 'true') ->
+    case get_registered_view(Plan, Database, DesignDoc) of
         'not_registered' ->
             {'error', 'not_found'};
         ViewJObj ->
@@ -1283,22 +1290,29 @@ maybe_create_view(Plan, Database, DesignDoc, Options) ->
 should_create_view(Options) ->
     not props:is_true('no_create_view', Options, 'false').
 
--spec create_registered_view(map(), database_name(), 'all_docs' | kz_term:ne_binary(), view_options(), kz_json:object()) ->
-          get_results_return().
+-spec create_registered_view(map(), database_name(), ddoc(), view_options(), kz_json:object()) ->
+          data_return().
 create_registered_view(Plan, Database, DesignDoc, _Options, ViewJObj) ->
     ViewDoc = kz_json:get_json_value(<<"view_definition">>, ViewJObj),
-    case kzs_doc:save_doc(Plan, Database, ViewDoc, []) of
-        {'ok', _}=OK -> OK;
-        {'error', 'conflict'} ->
-            lager:info("conflict saving to ~s / ~s", [Database, kz_doc:id(ViewDoc)]),
-            _ = maybe_update_view(Plan, Database, DesignDoc, ViewDoc),
-            kzs_doc:open_doc(Plan, Database, kz_doc:id(ViewDoc), []);
-        {'error', _Err} ->
-            lager:error("error saving registered view ~s to database ~s : ~p", [DesignDoc, Database, _Err]),
-            {'error', 'not_found'}
-    end.
+    SaveResult = kzs_doc:save_doc(Plan, Database, ViewDoc, []),
+    handle_saved_view(Plan, Database, DesignDoc, ViewDoc, SaveResult).
 
--spec maybe_update_view(map(), database_name(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
+-spec handle_saved_view(map(), database_name(), ddoc(), kz_json:object(), data_return()) ->
+          data_return().
+handle_saved_view(_Plan, _Database, _DesignDoc, _ViewDoc, {'ok', _}=OK) -> OK;
+handle_saved_view(Plan, Database, DesignDoc, ViewDoc
+                 ,{'error','conflict'}
+                 ) ->
+    lager:info("conflict saving to ~s / ~s", [Database, kz_doc:id(ViewDoc)]),
+    _ = maybe_update_view(Plan, Database, DesignDoc, ViewDoc),
+    kzs_doc:open_doc(Plan, Database, kz_doc:id(ViewDoc), []);
+handle_saved_view(_Plan, _Database, _DesignDoc, _ViewDoc
+                 ,{'error', _Err}
+                 ) ->
+    lager:error("error saving registered view ~s to database ~s : ~p", [_DesignDoc, _Database, _Err]),
+    {'error', 'not_found'}.
+
+-spec maybe_update_view(map(), database_name(), ddoc(), kz_json:object()) -> 'ok'.
 maybe_update_view(Plan, Database, DesignDoc, ViewDoc) ->
     case binary:split(DesignDoc, <<$/>>) of
         [_, View] ->
@@ -1333,7 +1347,7 @@ maybe_update_view(_Plan, _Database, _DesignDoc, _ViewDoc, _Error) -> 'ok'.
 get_result_keys(DbName, DesignDoc) ->
     get_result_keys(DbName, DesignDoc, []).
 
--spec get_result_keys(database_name(), 'all_docs' | kz_term:ne_binary(), view_options()) ->
+-spec get_result_keys(database_name(), ddoc(), view_options()) ->
           {'ok', kz_json:path() | kz_json:paths()} | data_error().
 get_result_keys(DbName, DesignDoc, Options) ->
     Database = kzs_util:to_database(DbName),
@@ -1431,7 +1445,7 @@ get_result_docs(DbName, DesignDoc, Keys) ->
 -type paginated_results() :: {'ok', kz_json:objects(), kz_json:api_json_term()} |
                              data_error().
 
--spec paginate_results(database_name(), 'all_docs' | kz_term:ne_binary(), paginate_options()) ->
+-spec paginate_results(database_name(), ddoc(), paginate_options()) ->
           paginated_results().
 paginate_results(DbName, DesignDoc, Options) ->
     {PageSize, ViewOptions} = props:take_value('page_size', Options, 50),
@@ -1582,16 +1596,16 @@ maybe_add_doc_type(DocType, Options) ->
         _ -> Options
     end.
 
--spec maybe_add_doc_type_from_view('all_docs' | kz_term:ne_binary(), view_options()) -> view_options().
+-spec maybe_add_doc_type_from_view(ddoc(), view_options()) -> view_options().
 maybe_add_doc_type_from_view(ViewName, Options) ->
     case props:get_value('doc_type', Options) of
         'undefined' -> add_doc_type_from_view(ViewName, Options);
         _ -> Options
     end.
 
--spec add_doc_type_from_view(kz_term:ne_binary() | 'all_docs', view_options()) -> view_options().
+-spec add_doc_type_from_view(ddoc(), view_options()) -> view_options().
 add_doc_type_from_view('all_docs', Options) -> Options;
-add_doc_type_from_view(View, Options) ->
+add_doc_type_from_view(<<View/binary>>, Options) ->
     case binary:split(View, <<"/">>, ['global']) of
         [ViewType, ViewName] ->
             DocType = kzs_view:doc_type_from_view(ViewType, ViewName),

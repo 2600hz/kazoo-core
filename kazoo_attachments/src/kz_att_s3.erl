@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2021, 2600Hz
+%%% @copyright (C) 2017-2022, 2600Hz
 %%% @doc S3 Storage for attachments.
 %%% @author Luis Azedo
 %%%
@@ -18,6 +18,7 @@
 %% gen_attachment behaviour callbacks (API)
 -export([put_attachment/6]).
 -export([fetch_attachment/4]).
+-export([delete_attachment/4]).
 
 -export([aws_default_fields/0]).
 
@@ -80,6 +81,32 @@ fetch_attachment(Conn, DbName, DocId, AName) ->
         S3 ->
             {Bucket, FilePath, Config} = aws_bpc(S3, HandlerProps, {DbName, DocId, AName}),
             case get_object(Bucket, FilePath, Config) of
+                {'ok', RespHeaders} ->
+                    {'ok', props:get_value('content', RespHeaders)};
+                {'error', FilePath, Error} ->
+                    NewRoutines = [{fun kz_att_error:set_req_url/2, FilePath}
+                                  | Routines
+                                  ],
+                    handle_s3_error(Error, NewRoutines)
+            end
+    end.
+
+-spec delete_attachment(gen_attachment:handler_props()
+                       ,gen_attachment:db_name()
+                       ,gen_attachment:doc_id()
+                       ,gen_attachment:att_name()
+                       ) -> gen_attachment:fetch_response().
+delete_attachment(Conn, DbName, DocId, AName) ->
+    HandlerProps = kz_json:get_value(<<"handler_props">>, Conn, 'undefined'),
+    Routines = kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName),
+    S3 = kz_json:get_value(<<"S3">>, Conn),
+    case kz_att_util:should_del_att(HandlerProps) of
+        'false' -> {'ok', kz_json:new()};
+        'undefined' ->
+            kz_att_error:new('invalid_data', Routines);
+        'true' ->
+            {Bucket, FilePath, Config} = aws_bpc(S3, HandlerProps, {DbName, DocId, AName}),
+            case del_object(Bucket, FilePath, Config) of
                 {'ok', RespHeaders} ->
                     {'ok', props:get_value('content', RespHeaders)};
                 {'error', FilePath, Error} ->
@@ -285,6 +312,19 @@ get_object(Bucket, FilePath, #aws_config{s3_host=Host} = Config) ->
     Options = [],
     try erlcloud_s3:get_object(Bucket, kz_term:to_list(FilePath), Options, Config) of
         RespHeaders -> {'ok', RespHeaders}
+    catch
+        'error':Error -> {'error', FilePath, Error}
+    end.
+
+-spec del_object(string(), kz_term:ne_binary(), aws_config()) ->
+          {'ok', kz_term:proplist()} |
+          {'error', kz_term:ne_binary(), s3_error()}.
+del_object(Bucket, FilePath, #aws_config{s3_host=Host} = Config) ->
+    lager:info("deleting ~p from ~p on ~p", [FilePath, Bucket, Host]),
+    try erlcloud_s3:delete_object(Bucket, kz_term:to_list(FilePath), Config) of
+        RespHeaders ->
+            lager:info("the attachment is deleted with: ~p", [RespHeaders]),
+            {'ok', RespHeaders}
     catch
         'error':Error -> {'error', FilePath, Error}
     end.

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2020, 2600Hz
+%%% @copyright (C) 2017-2022, 2600Hz
 %%% @doc Dropbox for attachments.
 %%% @author Luis Azedo
 %%%
@@ -18,12 +18,14 @@
 %% `gen_attachment' behaviour callbacks (API)
 -export([put_attachment/6]).
 -export([fetch_attachment/4]).
+-export([delete_attachment/4]).
 
 -export([dropbox_default_fields/0]).
 
 -define(DRV_UPLOAD_URL, <<"https://content.dropboxapi.com/2/files/upload">>).
 -define(DRV_FETCH_URL, <<"https://content.dropboxapi.com/2/files/download">>).
 -define(DRV_DROPBOX_HEADER(I), {<<"Dropbox-API-Arg">>, kz_json:encode(kz_json:from_list([{<<"path">>, I}]))}).
+-define(DRV_DELETE_URL, <<"https://api.dropboxapi.com/2/files/delete_v2">>).
 
 %%%=============================================================================
 %%% gen_attachment behaviour callbacks (API)
@@ -125,6 +127,56 @@ do_fetch_attachment({'ok', #{'token' := #{'authorization' := Authorization}}}
             handle_http_error_response(Resp, Routines)
     end;
 do_fetch_attachment({'error', _}, _, HandlerProps, DbName, DocId, AName) ->
+    Routines = kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName),
+    kz_att_error:new('oauth_failure', Routines).
+
+-spec delete_attachment(gen_attachment:handler_props()
+                       ,gen_attachment:db_name()
+                       ,gen_attachment:doc_id()
+                       ,gen_attachment:att_name()
+                       ) -> gen_attachment:fetch_response().
+delete_attachment(Conn, DbName, DocId, AName) ->
+    HandlerProps = kz_json:get_value(<<"handler_props">>, Conn, 'undefined'),
+    DropBoxData = kz_json:get_value(<<"dropbox">>, Conn),
+    case kz_att_util:should_del_att(HandlerProps) of
+        'false' -> {'ok', kz_json:new()};
+        'undefined' ->
+            Routines = kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName),
+            kz_att_error:new('invalid_data', Routines);
+        'true' ->
+            {#{'oauth_doc_id' := TokenDocId}, _ContentId} = binary_to_term(base64:decode(DropBoxData)),
+            Authorization = kz_auth_client:token_for_auth_id(TokenDocId),
+            do_delete_attachment(Authorization, HandlerProps, DbName, DocId, AName)
+    end.
+
+-spec do_delete_attachment(kz_auth_client:token()
+                          ,gen_attachment:handler_props()
+                          ,gen_attachment:db_name()
+                          ,gen_attachment:doc_id()
+                          ,gen_attachment:att_name()
+                          ) -> gen_attachment:fetch_response().
+do_delete_attachment({'ok', #{'token' := #{'authorization' := Authorization}}}
+                    ,HandlerProps, DbName, DocId, AName) ->
+    Headers = [{<<"Authorization">>, Authorization}
+              ,{<<"Content-Type">>, <<"application/json">>}
+              ,{<<"TE">>, <<"trailers">>}
+              ],
+    %% 'TE' header is necessary here to avoid an error on the Dropbox side.
+    %% By default, erlang httpc sends an empty 'te' header in request (at least in POST),
+    %% which leads to an internal error on the Dropbox side (503,"Service Unavailable").
+    %% The best solution here would be to remove this header from 'httpc' erlang module.
+    FilePath = kz_json:get_value([<<"metadata">>, <<"body">>, <<"path_lower">>], HandlerProps),
+    Body = kz_json:encode(kz_json:from_list([{<<"path">>, FilePath}])),
+    case kz_http:post(?DRV_DELETE_URL, Headers, Body) of
+        {'ok', 200, _ResponseHeaders, ResponseBody} ->
+            {'ok', ResponseBody};
+        Resp ->
+            Routines = [{fun kz_att_error:set_req_url/2, ?DRV_DELETE_URL}
+                       | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
+                       ],
+            handle_http_error_response(Resp, Routines)
+    end;
+do_delete_attachment({'error', _}, HandlerProps, DbName, DocId, AName) ->
     Routines = kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName),
     kz_att_error:new('oauth_failure', Routines).
 

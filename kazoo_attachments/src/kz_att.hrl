@@ -5,6 +5,9 @@
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 
 -define(CONFIG_CAT, <<"attachments">>).
+-define(KZ_ATT_DELETE_ENABLED
+       ,kapps_config:get_is_true(<<"system_data">>, <<"attachment_delete_enabled">>, 'false')
+       ).
 
 %% {Db, DocId, AttachmentName}
 -type attachment_info() :: {kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()}.

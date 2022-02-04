@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% @author Hesaam Farhang
 %%%
@@ -497,14 +497,14 @@ apply_fields_fun(_, JObjs) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_doc_type_from_view('all_docs' | kz_term:ne_binary(), view_options()) -> kz_term:api_ne_binary().
+-spec maybe_doc_type_from_view(ddoc(), view_options()) -> kz_term:api_ne_binary().
 maybe_doc_type_from_view(ViewName, Options) ->
     case props:get_value('doc_type', Options) of
         'undefined' -> doc_type_from_view(ViewName);
         _ -> 'undefined'
     end.
 
--spec doc_type_from_view(kz_term:ne_binary() | 'all_docs') -> kz_term:api_ne_binary().
+-spec doc_type_from_view(ddoc()) -> kz_term:api_ne_binary().
 doc_type_from_view('all_docs') -> 'undefined';
 doc_type_from_view(View) ->
     case binary:split(View, <<"/">>, ['global']) of

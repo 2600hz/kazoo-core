@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2020, 2600Hz
+%%% @copyright (C) 2016-2022, 2600Hz
 %%% @doc Some utilities to work with attachment.
 %%% @author Luis Azedo
 %%%
@@ -17,6 +17,7 @@
         ,combined_path/2
         ,path_from_settings/1
         ,headers_as_binaries/1
+        ,should_del_att/1
         ]).
 
 -export([default_format_url_fields/0]).
@@ -150,3 +151,8 @@ path_from_settings(Map) ->
 -spec headers_as_binaries(kz_term:proplist()) -> kz_term:proplist().
 headers_as_binaries(Headers) ->
     [{kz_term:to_binary(K), kz_term:to_binary(V)} || {K,V} <- Headers].
+
+-spec should_del_att('undefined' | map()) -> kz_term:api_boolean().
+should_del_att(#{delete_enabled := Enabled}) -> Enabled;
+should_del_att(#{} = _Map) -> ?KZ_ATT_DELETE_ENABLED;
+should_del_att('undefined') -> 'false'.
