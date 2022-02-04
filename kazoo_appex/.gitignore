@@ -1,0 +1,8 @@
+src/function_signatures.erl
+priv/assets
+priv/certs
+
+*.bluepak
+*.zip
+*.ez
+*.tar
