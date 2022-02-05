@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,6 +25,7 @@
 -export([name/1, name/2, set_name/2]).
 -export([record_pin/1, record_pin/2, set_record_pin/2]).
 -export([retries/1, retries/2, set_retries/2]).
+-export([stop_after_extension/1, stop_after_extension/2, set_stop_after_extension/2]).
 -export([timeout/1, timeout/2, set_timeout/2]).
 
 -export([schema_name/0
@@ -69,7 +70,7 @@ set_flags(Doc, Flags) ->
 
 -spec hunt(doc()) -> boolean().
 hunt(Doc) ->
-    hunt(Doc, true).
+    hunt(Doc, false).
 
 -spec hunt(doc(), Default) -> boolean() | Default.
 hunt(Doc, Default) ->
@@ -222,6 +223,18 @@ retries(Doc, Default) ->
 -spec set_retries(doc(), integer()) -> doc().
 set_retries(Doc, Retries) ->
     kz_json:set_value([<<"retries">>], Retries, Doc).
+
+-spec stop_after_extension(doc()) -> boolean().
+stop_after_extension(Doc) ->
+    stop_after_extension(Doc, false).
+
+-spec stop_after_extension(doc(), Default) -> boolean() | Default.
+stop_after_extension(Doc, Default) ->
+    kz_json:get_boolean_value([<<"stop_after_extension">>], Doc, Default).
+
+-spec set_stop_after_extension(doc(), boolean()) -> doc().
+set_stop_after_extension(Doc, StopAfterExtension) ->
+    kz_json:set_value([<<"stop_after_extension">>], StopAfterExtension, Doc).
 
 -spec timeout(doc()) -> kz_term:api_integer().
 timeout(Doc) ->
