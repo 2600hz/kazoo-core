@@ -70,7 +70,7 @@ set_flags(Doc, Flags) ->
 
 -spec hunt(doc()) -> boolean().
 hunt(Doc) ->
-    hunt(Doc, false).
+    hunt(Doc, true).
 
 -spec hunt(doc(), Default) -> boolean() | Default.
 hunt(Doc, Default) ->
