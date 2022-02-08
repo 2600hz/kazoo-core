@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -401,16 +401,24 @@ routing_ccvs(Mod, Endpoint, CCVs) ->
 
 -spec generate_sip_headers(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), module()) -> kz_json:object().
 generate_sip_headers(_EndpointId, _AccountId, Endpoint, _Options, Module) ->
-    HeaderFuns = [{fun add_sip_headers/2, Endpoint}
+    HeaderFuns = [{fun add_routing_sip_headers/2, Endpoint}
+                 ,{fun add_inbound_sip_headers/2, Endpoint}
                  ,{fun maybe_add_aor/2, Endpoint}
                  ,{fun maybe_add_invite_format/3, Module, Endpoint}
                  ,{fun maybe_add_specific_headers/3, Module, Endpoint}
                  ],
     kz_json:exec(HeaderFuns, kz_json:new()).
 
--spec add_sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
-add_sip_headers(Endpoint, Headers) ->
+-spec add_routing_sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
+add_routing_sip_headers(Endpoint, Headers) ->
     case kzd_devices:custom_sip_headers_routing(Endpoint) of
+        'undefined' -> Headers;
+        CustomHeaders -> kz_json:merge_jobjs(CustomHeaders, Headers)
+    end.
+
+-spec add_inbound_sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
+add_inbound_sip_headers(Endpoint, Headers) ->
+    case kzd_devices:custom_sip_headers_inbound(Endpoint) of
         'undefined' -> Headers;
         CustomHeaders -> kz_json:merge_jobjs(CustomHeaders, Headers)
     end.

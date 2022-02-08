@@ -1190,6 +1190,7 @@ create_endpoint(Endpoint, Properties, #clid{}=Clid, Call) ->
                     ,{<<"Endpoint-URI">>, endpoint_uri(Endpoint, Call)}
                     ,{<<"Presence-ID">>, kz_attributes:presence_id(Endpoint, Call)}
                     ,{<<"Custom-Channel-Vars">>, generate_ccvs(Endpoint, Call)}
+                    ,{<<"Custom-SIP-Headers">>, get_authorizing_id_sip_headers(Call)}
                     ,{<<"Flags">>, get_outbound_flags(Endpoint)}
                     ,{<<"Metaflows">>, kz_json:get_json_value(<<"metaflows">>, Endpoint)}
                     ,{<<"Endpoint-Actions">>, endpoint_actions(Endpoint, Call)}
@@ -1308,13 +1309,15 @@ maybe_add_sip_headers(JObj, Endpoint, Call) ->
 
 -spec get_sip_headers(kz_json:object(), kapps_call:call()) -> kz_json:objects().
 get_sip_headers(Endpoint, Call) ->
+    [kzd_devices:custom_sip_headers_inbound(Endpoint)
+    ,get_authorizing_id_sip_headers(Call)
+    ].
+
+-spec get_authorizing_id_sip_headers(kapps_call:call()) -> kz_term:api_object().
+get_authorizing_id_sip_headers(Call) ->
     case ?MODULE:get(Call) of
-        {'error', _E} ->
-            [kzd_devices:custom_sip_headers_inbound(Endpoint)];
-        {'ok', AuthorizingEndpoint} ->
-            [kzd_devices:custom_sip_headers_inbound(Endpoint)
-            ,kzd_devices:custom_sip_headers_outbound(AuthorizingEndpoint)
-            ]
+        {'error', _E} -> undefined;
+        {'ok', Endpoint} -> kzd_devices:custom_sip_headers_outbound(Endpoint)
     end.
 
 -spec merge_custom_sip_headers(kz_term:api_object(), kz_json:object()) -> kz_json:object().
