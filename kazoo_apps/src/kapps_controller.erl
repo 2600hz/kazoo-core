@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -110,9 +110,9 @@ start_app(App) when is_atom(App) ->
             lager:info("started ~s in ~pms", [App, kz_time:elapsed_ms(StartTime)]),
             _ = [kz_nodes_bindings:bind(A) || A <- [App | Started], is_kapp(A)],
             OK;
-        {'error', {App, {"no such file or directory", DotApp}}} ->
+        {'error', {_App, {"no such file or directory", DotApp}}} ->
             lager:info("app ~s (~s) not found, asking around", [App, DotApp]),
-            maybe_load_external_app(App);
+            maybe_start_external_app(App);
         {'error', _E}=E ->
             lager:error("~s could not start: ~p", [App, _E]),
             E
@@ -120,15 +120,47 @@ start_app(App) when is_atom(App) ->
 start_app(App) ->
     start_app(kz_term:to_atom(App, 'true')).
 
--spec maybe_load_external_app(atom()) -> {'ok', kz_term:atoms()} |
+-spec maybe_start_external_app(atom()) -> {'ok', kz_term:atoms()} |
           {'error', any()}.
-maybe_load_external_app(App) ->
-    case lists:any(fun kz_term:is_true/1, kazoo_bindings:map(<<"app.fetch">>, App)) of
-        'true' -> start_app(App);
+maybe_start_external_app(App) ->
+    case load_external_app(App) of
+        'true' -> start_external_app(App);
         'false' ->
             lager:info("failed to find app ~s in external sources", [App]),
             {'error', 'not_found'}
     end.
+
+-spec start_external_app(atom()) ->
+          {'ok', kz_term:atoms()} |
+          {'error', any()}.
+start_external_app(App) ->
+    StartTime = kz_time:start_time(),
+    case application:ensure_all_started(App) of
+        {'ok', Started}=OK ->
+            lager:info("started ~s in ~pms", [App, kz_time:elapsed_ms(StartTime)]),
+            _ = [kz_nodes_bindings:bind(A) || A <- [App | Started], is_kapp(A)],
+            OK;
+        {'error', {App, {"no such file or directory", DotApp}}}=Error ->
+            lager:info("app ~s (~s) not found in external sources", [App, DotApp]),
+            Error;
+        {'error', {Depenedency, {"no such file or directory", DotApp}}}=Error ->
+            lager:info("app ~s dependency ~s (~s) not found, asking around", [App, Depenedency, DotApp]),
+            case load_external_app({App, Depenedency}) of
+                'true' ->
+                    lager:info("dependency ~s resolved, trying to start ~s again", [Depenedency, App]),
+                    start_external_app(App);
+                'false' ->
+                    lager:info("app ~s dependency ~s not found in external sources", [App, Depenedency]),
+                    Error
+            end;
+        {'error', _E}=E ->
+            lager:error("~s could not start: ~p", [App, _E]),
+            E
+    end.
+
+-spec load_external_app(atom() | {atom(), atom()}) -> boolean().
+load_external_app(ExternalApp) ->
+    lists:any(fun kz_term:is_true/1, kazoo_bindings:map(<<"app.fetch">>, ExternalApp)).
 
 -spec stop_app(atom() | nonempty_string() | kz_term:ne_binary()) -> 'ok' | {'error', any()}.
 stop_app(App) when is_atom(App) ->
