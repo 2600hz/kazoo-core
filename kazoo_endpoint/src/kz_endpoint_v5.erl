@@ -1190,7 +1190,7 @@ create_endpoint(Endpoint, Properties, #clid{}=Clid, Call) ->
                     ,{<<"Endpoint-URI">>, endpoint_uri(Endpoint, Call)}
                     ,{<<"Presence-ID">>, kz_attributes:presence_id(Endpoint, Call)}
                     ,{<<"Custom-Channel-Vars">>, generate_ccvs(Endpoint, Call)}
-                    ,{<<"Custom-SIP-Headers">>, get_authorizing_id_sip_headers(Call)}
+                    ,{<<"Custom-SIP-Headers">>, generate_sip_headers(Endpoint, <<"endpoint">>, Call)}
                     ,{<<"Flags">>, get_outbound_flags(Endpoint)}
                     ,{<<"Metaflows">>, kz_json:get_json_value(<<"metaflows">>, Endpoint)}
                     ,{<<"Endpoint-Actions">>, endpoint_actions(Endpoint, Call)}
@@ -1278,14 +1278,19 @@ generate_sip_headers(Endpoint, Type, Call) ->
 
 -spec generate_sip_headers(kz_json:object(), kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
-generate_sip_headers(Endpoint, Type, Acc, Call) ->
+generate_sip_headers(Endpoint, <<"forward">>, Acc, Call) ->
     Inception = kapps_call:inception(Call),
 
-    HeaderFuns = [fun(J) -> maybe_add_sip_headers(J, Endpoint, Call) end
-                 ,fun(J) -> maybe_add_alert_info(J, Endpoint, Type, Call) end
+    HeaderFuns = [fun(J) -> add_sip_inbound_headers(J, Endpoint) end
+                 ,fun(J) -> add_sip_outbound_headers(J, Call) end
                  ,fun(J) -> maybe_add_aor(J, Endpoint, Call) end
                  ,fun(J) -> maybe_add_invite_format(J, Endpoint, Call) end
                  ,fun(J) -> maybe_add_diversion(J, Endpoint, Inception, Call) end
+                 ],
+    lists:foldr(fun(F, JObj) -> F(JObj) end, Acc, HeaderFuns);
+generate_sip_headers(_Endpoint, <<"endpoint">>, Acc, Call) ->
+    HeaderFuns = [fun(J) -> add_sip_outbound_headers(J, Call) end
+                 ,fun(J) -> maybe_add_alert_info(J, Call) end
                  ],
     lists:foldr(fun(F, JObj) -> F(JObj) end, Acc, HeaderFuns).
 
@@ -1303,53 +1308,40 @@ maybe_add_diversion(JObj, Endpoint, _Inception, Call) ->
         'false' -> JObj
     end.
 
--spec maybe_add_sip_headers(kz_json:object(), kz_json:object(), kapps_call:call()) -> kz_json:object().
-maybe_add_sip_headers(JObj, Endpoint, Call) ->
-    lists:foldl(fun merge_custom_sip_headers/2, JObj, get_sip_headers(Endpoint, Call)).
+-spec add_sip_inbound_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
+add_sip_inbound_headers(JObj, Endpoint) ->
+    merge_custom_sip_headers(get_sip_inbound_headers(Endpoint), JObj).
 
--spec get_sip_headers(kz_json:object(), kapps_call:call()) -> kz_json:objects().
-get_sip_headers(Endpoint, Call) ->
-    [kzd_devices:custom_sip_headers_inbound(Endpoint)
-    ,get_authorizing_id_sip_headers(Call)
-    ].
+-spec get_sip_inbound_headers(kz_json:object()) -> kz_term:api_object().
+get_sip_inbound_headers(Endpoint) ->
+    kzd_devices:custom_sip_headers_inbound(Endpoint).
 
--spec get_authorizing_id_sip_headers(kapps_call:call()) -> kz_term:api_object().
-get_authorizing_id_sip_headers(Call) ->
+-spec get_sip_outbound_headers(kapps_call:call()) -> kz_term:api_object().
+get_sip_outbound_headers(Call) ->
     case ?MODULE:get(Call) of
         {'error', _E} -> undefined;
         {'ok', Endpoint} -> kzd_devices:custom_sip_headers_outbound(Endpoint)
     end.
 
+-spec add_sip_outbound_headers(kz_json:object(), kapps_call:call()) -> kz_json:object().
+add_sip_outbound_headers(JObj, Call) ->
+    merge_custom_sip_headers(get_sip_outbound_headers(Call), JObj).
+
 -spec merge_custom_sip_headers(kz_term:api_object(), kz_json:object()) -> kz_json:object().
-merge_custom_sip_headers('undefined', JObj) ->
-    JObj;
+merge_custom_sip_headers('undefined', JObj) -> JObj;
 merge_custom_sip_headers(CustomHeaders, JObj) ->
     kz_json:merge_jobjs(CustomHeaders, JObj).
 
--spec maybe_add_alert_info(kz_json:object(), kz_json:object(), kz_term:ne_binary(), kapps_call:call()) -> kz_json:object().
-maybe_add_alert_info(JObj, _Endpoint, <<"forward">>, _Call) ->
-    JObj;
-maybe_add_alert_info(JObj, Endpoint, _, Call) ->
+-spec maybe_add_alert_info(kz_json:object(), kapps_call:call()) -> kz_json:object().
+maybe_add_alert_info(JObj, Call) ->
     case kapps_call:kvs_fetch(<<"Override-Ringtone">>, Call) of
-        'undefined' -> maybe_add_alert_info_from_endpoint(JObj, Endpoint, kapps_call:inception(Call));
+        'undefined' -> JObj;
         Ringtone -> set_alert_info(Ringtone, JObj)
     end.
 
 -spec set_alert_info(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 set_alert_info(Info, JObj) ->
     kz_json:set_value(<<"Alert-Info">>, Info, JObj).
-
--spec maybe_add_alert_info_from_endpoint(kz_json:object(), kz_json:object(), kz_term:api_binary()) -> kz_json:object().
-maybe_add_alert_info_from_endpoint(JObj, Endpoint, 'undefined') ->
-    case kz_json:get_value([<<"ringtones">>, <<"internal">>], Endpoint) of
-        'undefined' -> JObj;
-        Ringtone -> set_alert_info(Ringtone, JObj)
-    end;
-maybe_add_alert_info_from_endpoint(JObj, Endpoint, _Inception) ->
-    case kz_json:get_value([<<"ringtones">>, <<"external">>], Endpoint) of
-        'undefined' -> JObj;
-        Ringtone -> set_alert_info(Ringtone, JObj)
-    end.
 
 -spec maybe_add_invite_format(kz_json:object(), kz_json:object(), kapps_call:call()) -> kz_json:object().
 maybe_add_invite_format(JObj, Endpoint, Call) ->
