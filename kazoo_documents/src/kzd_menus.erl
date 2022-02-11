@@ -11,6 +11,7 @@
 
 -export([new/0]).
 -export([allow_record_from_offnet/1, allow_record_from_offnet/2, set_allow_record_from_offnet/2]).
+-export([branch_extension/1, branch_extension/2, set_branch_extension/2]).
 -export([flags/1, flags/2, set_flags/2]).
 -export([hunt/1, hunt/2, set_hunt/2]).
 -export([hunt_allow/1, hunt_allow/2, set_hunt_allow/2]).
@@ -25,7 +26,6 @@
 -export([name/1, name/2, set_name/2]).
 -export([record_pin/1, record_pin/2, set_record_pin/2]).
 -export([retries/1, retries/2, set_retries/2]).
--export([stop_after_extension/1, stop_after_extension/2, set_stop_after_extension/2]).
 -export([timeout/1, timeout/2, set_timeout/2]).
 
 -export([schema_name/0
@@ -55,6 +55,18 @@ allow_record_from_offnet(Doc, Default) ->
 -spec set_allow_record_from_offnet(doc(), boolean()) -> doc().
 set_allow_record_from_offnet(Doc, AllowRecordFromOffnet) ->
     kz_json:set_value([<<"allow_record_from_offnet">>], AllowRecordFromOffnet, Doc).
+
+-spec branch_extension(doc()) -> boolean().
+branch_extension(Doc) ->
+    branch_extension(Doc, false).
+
+-spec branch_extension(doc(), Default) -> boolean() | Default.
+branch_extension(Doc, Default) ->
+    kz_json:get_boolean_value([<<"branch_extension">>], Doc, Default).
+
+-spec set_branch_extension(doc(), boolean()) -> doc().
+set_branch_extension(Doc, BranchExtension) ->
+    kz_json:set_value([<<"branch_extension">>], BranchExtension, Doc).
 
 -spec flags(doc()) -> kz_term:api_ne_binaries().
 flags(Doc) ->
@@ -223,18 +235,6 @@ retries(Doc, Default) ->
 -spec set_retries(doc(), integer()) -> doc().
 set_retries(Doc, Retries) ->
     kz_json:set_value([<<"retries">>], Retries, Doc).
-
--spec stop_after_extension(doc()) -> boolean().
-stop_after_extension(Doc) ->
-    stop_after_extension(Doc, false).
-
--spec stop_after_extension(doc(), Default) -> boolean() | Default.
-stop_after_extension(Doc, Default) ->
-    kz_json:get_boolean_value([<<"stop_after_extension">>], Doc, Default).
-
--spec set_stop_after_extension(doc(), boolean()) -> doc().
-set_stop_after_extension(Doc, StopAfterExtension) ->
-    kz_json:set_value([<<"stop_after_extension">>], StopAfterExtension, Doc).
 
 -spec timeout(doc()) -> kz_term:api_integer().
 timeout(Doc) ->
