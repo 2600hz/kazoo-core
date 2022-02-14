@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,6 +11,7 @@
 
 -export([new/0]).
 -export([allow_record_from_offnet/1, allow_record_from_offnet/2, set_allow_record_from_offnet/2]).
+-export([branch_extension/1, branch_extension/2, set_branch_extension/2]).
 -export([flags/1, flags/2, set_flags/2]).
 -export([hunt/1, hunt/2, set_hunt/2]).
 -export([hunt_allow/1, hunt_allow/2, set_hunt_allow/2]).
@@ -54,6 +55,18 @@ allow_record_from_offnet(Doc, Default) ->
 -spec set_allow_record_from_offnet(doc(), boolean()) -> doc().
 set_allow_record_from_offnet(Doc, AllowRecordFromOffnet) ->
     kz_json:set_value([<<"allow_record_from_offnet">>], AllowRecordFromOffnet, Doc).
+
+-spec branch_extension(doc()) -> boolean().
+branch_extension(Doc) ->
+    branch_extension(Doc, false).
+
+-spec branch_extension(doc(), Default) -> boolean() | Default.
+branch_extension(Doc, Default) ->
+    kz_json:get_boolean_value([<<"branch_extension">>], Doc, Default).
+
+-spec set_branch_extension(doc(), boolean()) -> doc().
+set_branch_extension(Doc, BranchExtension) ->
+    kz_json:set_value([<<"branch_extension">>], BranchExtension, Doc).
 
 -spec flags(doc()) -> kz_term:api_ne_binaries().
 flags(Doc) ->
