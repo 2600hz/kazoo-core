@@ -13,6 +13,8 @@ clean: lex-clean
 
 compile: $(LEX_FILES)
 
+compile-test: $(LEX_FILES)
+
 lex-clean:
 	@rm -f $(LEX_FILES)
 
