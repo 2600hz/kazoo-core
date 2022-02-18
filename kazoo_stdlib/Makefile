@@ -15,11 +15,12 @@ compile: $(LEX_FILES)
 
 compile-test: $(LEX_FILES)
 
+compile-test-direct: $(LEX_FILES)
+
 lex-clean:
 	@rm -f $(LEX_FILES)
 
 $(LEX_FILES): $(LEX_SOURCES)
 	@erlc -W0 -o src/ $?
-
 
 include $(ROOT)/make/kz.mk
