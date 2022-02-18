@@ -51,7 +51,7 @@ set_allow_record_from_offnet(Doc, AllowRecordFromOffnet) ->
 
 -spec branch_extension(doc()) -> boolean().
 branch_extension(Doc) ->
-    branch_extension(Doc, true).
+    branch_extension(Doc, false).
 
 -spec branch_extension(doc(), Default) -> boolean() | Default.
 branch_extension(Doc, Default) ->
