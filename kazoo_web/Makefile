@@ -16,6 +16,8 @@ compile: $(GEN_ERL)
 
 compile-test: $(GEN_ERL)
 
+compile-test-direct: $(GEN_ERL)
+
 include $(ROOT)/make/kz.mk
 
 clean-generated:
