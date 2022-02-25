@@ -96,13 +96,17 @@ do_format_url(Fields, JObj, Args, Separator) ->
     Reversed = lists:reverse(FormattedFields),
     kz_binary:join(Reversed, Separator).
 
--spec format_url_field(kz_json:object(), kz_term:proplist(), url_field(), kz_term:ne_binaries()) ->
+-spec format_url_field(kz_json:object(), kz_term:proplist(), url_field() | map(), kz_term:ne_binaries()) ->
           kz_term:ne_binaries().
 format_url_field(JObj, Args, #{<<"group">> := Arg}, Acc) ->
+    format_url_field(JObj, Args, {'group', Arg}, Acc);
+format_url_field(JObj, Args, #{group := Arg}, Acc) ->
     format_url_field(JObj, Args, {'group', Arg}, Acc);
 format_url_field(JObj, Args, {'group', Arg}, Acc) ->
     [do_format_url(Arg, JObj, Args, <<>>) | Acc];
 format_url_field(JObj, Args, #{<<"arg">> := Arg}, Fields) ->
+    format_url_field(JObj, Args, {'arg', Arg}, Fields);
+format_url_field(JObj, Args, #{arg := Arg}, Fields) ->
     format_url_field(JObj, Args, {'arg', Arg}, Fields);
 format_url_field(_JObj, Args, {'arg', Arg}, Fields) ->
     case props:get_value(Arg, Args) of
@@ -111,12 +115,16 @@ format_url_field(_JObj, Args, {'arg', Arg}, Fields) ->
     end;
 format_url_field(JObj, Args, #{<<"field">> := Field}, Fields) ->
     format_url_field(JObj, Args, {'field', Field}, Fields);
+format_url_field(JObj, Args, #{field := Field}, Fields) ->
+    format_url_field(JObj, Args, {'field', Field}, Fields);
 format_url_field(JObj, _Args, {'field', Field}, Fields) ->
     case kz_json:get_ne_binary_value(Field, JObj) of
         'undefined' -> Fields;
         V -> [kz_http_util:urlencode(V) | Fields]
     end;
 format_url_field(JObj, Args, #{<<"const">> := Field}, Fields) ->
+    format_url_field(JObj, Args, {'const', Field}, Fields);
+format_url_field(JObj, Args, #{const := Field}, Fields) ->
     format_url_field(JObj, Args, {'const', Field}, Fields);
 format_url_field(_JObj, _Args, {'const', Const}, Fields) ->
     [Const | Fields];
