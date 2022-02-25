@@ -107,9 +107,14 @@ keys_to_atoms(Map, 'false') ->
 
 -spec keys_to_atoms_fold(term(), any(), map()) -> map().
 keys_to_atoms_fold(K, V, Acc) when is_map(V) ->
-    Acc#{kz_term:to_atom(K, 'true') => keys_to_atoms(V)};
+    Acc#{kz_term:to_atom(K, 'true') => keys_to_atoms(V, true)};
+keys_to_atoms_fold(K, V, Acc) when is_list(V) ->
+    Acc#{kz_term:to_atom(K, 'true') => lists:map(fun keys_to_atoms_list_item_value/1, V)};
 keys_to_atoms_fold(K, V, Acc) ->
     Acc#{kz_term:to_atom(K, 'true') => V}.
+
+keys_to_atoms_list_item_value(Map) when is_map(Map) -> keys_to_atoms(Map, true);
+keys_to_atoms_list_item_value(V) -> V.
 
 -spec exec(list(), map()) -> map().
 exec(Routines, Map) ->
