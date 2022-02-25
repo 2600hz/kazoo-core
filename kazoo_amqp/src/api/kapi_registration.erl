@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc Handle registration-related APIs, like `reg_success' and `reg_lookup'.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -326,7 +326,7 @@ search_req_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun search_req_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_search_req/1}
               ,{fun kapi_definition:set_binding/2, fun search_req_routing_key/1}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Realm">>
+              ,{fun kapi_definition:set_required_headers/2, [[<<"Realm">>, <<"Token-ID">>]
                                                             ,<<"Search-Type">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Username">>
@@ -334,6 +334,7 @@ search_req_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Search-Type">>, [<<"detail">>
                                      ,<<"summary">>
+                                     ,<<"token">>
                                      ]
                  }
                 |kapi_definition:event_type_headers(Category, EventName)
@@ -736,9 +737,9 @@ get_query_routing(Realm, User) ->
 
 -spec search_req_routing_key(kz_term:api_terms()) -> kz_term:ne_binary().
 search_req_routing_key(Prop) when is_list(Prop) ->
-    search_req_routing_key1(props:get_value(<<"Realm">>, Prop));
+    search_req_routing_key1(props:get_first_defined([<<"Realm">>, <<"Token-ID">>], Prop));
 search_req_routing_key(JObj) ->
-    search_req_routing_key1(kz_json:get_value(<<"Realm">>, JObj)).
+    search_req_routing_key1(kz_json:get_first_defined([<<"Realm">>, <<"Token-ID">>], JObj)).
 
 search_req_routing_key1(Realm) ->
     list_to_binary([<<"registration.search_req.">>, kz_amqp_util:encode(Realm)]).

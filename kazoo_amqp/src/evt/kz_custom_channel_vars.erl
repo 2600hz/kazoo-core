@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,13 +21,21 @@
 -define(OUT, <<"out">>).
 -define(ROUTING, <<"routing">>).
 
+-spec filter_ccv({kz_term:ne_binary(), any()}) -> boolean().
+filter_ccv({?IN, _}) -> 'false';
+filter_ccv({?OUT, _}) -> 'false';
+filter_ccv({?ROUTING, _}) -> 'false';
+filter_ccv(_) -> 'true'.
+
 -spec inbound(kz_json:object()) -> kz_term:api_object().
 inbound(CCVs) ->
     inbound(CCVs, 'undefined').
 
 -spec inbound(kz_json:object(), Default) -> kz_json:object() | Default.
 inbound(CCVs, Default) ->
-    CustomVars = kz_json:get_json_value(?IN, CCVs, kz_json:new()),
+    LegacyCCVs = kz_json:filter(fun filter_ccv/1, CCVs),
+    InboundCCVs = kz_json:get_json_value(?IN, CCVs, kz_json:new()),
+    CustomVars = kz_json:merge(LegacyCCVs, InboundCCVs),
     case kz_json:is_empty(CustomVars) of
         'false' -> CustomVars;
         'true' -> Default
@@ -56,7 +64,9 @@ outbound(CCVs) ->
 
 -spec outbound(kz_json:object(), Default) -> kz_json:object() | Default.
 outbound(CCVs, Default) ->
-    CustomVars = kz_json:get_json_value(?OUT, CCVs, kz_json:new()),
+    LegacyCCVs = kz_json:filter(fun filter_ccv/1, CCVs),
+    OutboundCCVs = kz_json:get_json_value(?OUT, CCVs, kz_json:new()),
+    CustomVars = kz_json:merge(LegacyCCVs, OutboundCCVs),
     case kz_json:is_empty(CustomVars) of
         'false' -> CustomVars;
         'true' -> Default
