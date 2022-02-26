@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2021, 2600Hz
+%%% @copyright (C) 2017-2022, 2600Hz
 %%% @doc FreeSWITCH fetch request accessor module
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -43,6 +43,9 @@
         ,user_agent/1
         ,resource/1, resource/2
         ,formatters/1, formatters/2
+        ,hunt_context/1, hunt_context/2
+        ,hunt_extension/1, hunt_extension/2
+        ,hunt_destination_number/1, hunt_destination_number/2
         ]).
 
 -include("kz_documents.hrl").
@@ -151,66 +154,90 @@ controller_queue(JObj) ->
 controller_pid(JObj) ->
     kz_json:get_ne_binary_value(<<"Controller-PID">>, JObj).
 
--spec node(kz_json:object()) -> kz_term:api_binary().
+-spec node(data()) -> kz_term:api_binary().
 node(JObj) ->
     kz_json:get_atom_value(<<"Node">>, JObj).
 
--spec from_network_ip(kz_json:object()) -> kz_term:api_binary().
+-spec from_network_ip(data()) -> kz_term:api_binary().
 from_network_ip(JObj) ->
     kz_json:get_ne_binary_value(<<"Network-IP">>, JObj).
 
--spec from_network_port(kz_json:object()) -> kz_term:api_binary().
+-spec from_network_port(data()) -> kz_term:api_binary().
 from_network_port(JObj) ->
     kz_json:get_ne_binary_value(<<"Network-Port">>, JObj).
 
--spec user_agent(kz_json:object()) -> kz_term:api_binary().
+-spec user_agent(data()) -> kz_term:api_binary().
 user_agent(JObj) ->
     kz_json:get_ne_binary_value(<<"User-Agent">>, JObj).
 
--spec auth_expires(kz_json:object()) -> kz_term:api_binary().
+-spec auth_expires(data()) -> kz_term:api_binary().
 auth_expires(JObj) ->
     kz_json:get_ne_binary_value(<<"Expires">>, JObj).
 
--spec auth_nonce(kz_json:object()) -> kz_term:api_binary().
+-spec auth_nonce(data()) -> kz_term:api_binary().
 auth_nonce(JObj) ->
     kz_json:get_ne_binary_value(<<"Auth-Nonce">>, JObj).
 
--spec auth_response(kz_json:object()) -> kz_term:api_binary().
+-spec auth_response(data()) -> kz_term:api_binary().
 auth_response(JObj) ->
     kz_json:get_ne_binary_value(<<"Auth-Response">>, JObj).
 
--spec cshs(kz_json:object()) -> kz_json:object().
+-spec cshs(data()) -> kz_json:object().
 cshs(JObj) ->
     kz_json:get_json_value(<<"Custom-SIP-Headers">>, JObj, kz_json:new()).
 
--spec cauth(kz_json:object()) -> kz_json:object().
+-spec cauth(data()) -> kz_json:object().
 cauth(JObj) ->
     kz_json:get_json_value(<<"Custom-AUTH-Headers">>, JObj, kz_json:new()).
 
--spec auth_from(kz_json:object()) -> kz_term:api_binary().
+-spec auth_from(data()) -> kz_term:api_binary().
 auth_from(JObj) ->
     kz_json:get_ne_binary_value(<<"Auth-From">>, JObj).
 
--spec auth_to(kz_json:object()) -> kz_term:api_binary().
+-spec auth_to(data()) -> kz_term:api_binary().
 auth_to(JObj) ->
     kz_json:get_ne_binary_value(<<"Auth-To">>, JObj).
 
--spec server_id(kz_json:object()) -> kz_term:api_binary().
+-spec server_id(data()) -> kz_term:api_binary().
 server_id(JObj) ->
     kz_json:get_ne_binary_value(<<"Server-ID">>, JObj).
 
--spec resource(kz_json:object()) -> kz_term:api_object().
+-spec resource(data()) -> kz_term:api_object().
 resource(JObj) ->
     resource(JObj, 'undefined').
 
--spec resource(kz_json:object(), Default) -> kz_term:api_object() | Default.
+-spec resource(data(), Default) -> kz_term:api_object() | Default.
 resource(JObj, Default) ->
     kz_json:get_json_value(<<"Resource">>, JObj, Default).
 
--spec formatters(kz_json:object()) -> kz_term:api_object().
+-spec formatters(data()) -> kz_term:api_object().
 formatters(JObj) ->
     formatters(JObj, 'undefined').
 
--spec formatters(kz_json:object(), Default) -> kz_term:api_object() | Default.
+-spec formatters(data(), Default) -> kz_term:api_object() | Default.
 formatters(JObj, Default) ->
     kz_json:get_json_value(<<"Formatters">>, resource(JObj, kz_json:new()), Default).
+
+-spec hunt_destination_number(data()) -> kz_term:api_binary().
+hunt_destination_number(JObj) ->
+    hunt_destination_number(JObj, undefined).
+
+-spec hunt_destination_number(data(), Default) -> kz_term:ne_binary() | Default.
+hunt_destination_number(JObj, Default) ->
+    kz_json:get_ne_binary_value(<<"Hunt-Destination-Number">>, JObj, Default).
+
+-spec hunt_context(data()) -> kz_term:api_binary().
+hunt_context(JObj) ->
+    hunt_context(JObj, undefined).
+
+-spec hunt_context(data(), Default) -> kz_term:ne_binary() | Default.
+hunt_context(JObj, Default) ->
+    kz_json:get_ne_binary_value(<<"Hunt-Context">>, JObj, Default).
+
+-spec hunt_extension(data()) -> kz_term:api_binary().
+hunt_extension(JObj) ->
+    hunt_extension(JObj, undefined).
+
+-spec hunt_extension(data(), Default) -> kz_term:ne_binary() | Default.
+hunt_extension(JObj, Default) ->
+    kz_json:get_ne_binary_value(<<"Hunt-Extension">>, JObj, Default).
