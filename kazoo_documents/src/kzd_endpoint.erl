@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,10 +12,12 @@
 -export([id/1]).
 -export([type/1]).
 -export([owner_id/1]).
--export([account_id/1]).
+-export([account_id/1, account_name/1, account_realm/1]).
 -export([language/1, language/2]).
 -export([get_prompt/2, get_prompt_url/2]).
 -export([moh/1, moh_media_path/1, moh_url/1]).
+-export([presence_id/1]).
+-export([build_options/1]).
 
 -type endpoint() :: kz_json:object().
 -export_type([endpoint/0]).
@@ -31,6 +33,14 @@ type(Endpoint) ->
 -spec account_id(endpoint()) -> kz_term:ne_binary().
 account_id(Endpoint) ->
     kz_json:get_ne_binary_value(<<"Account-ID">>, Endpoint, kz_doc:account_id(Endpoint)).
+
+-spec account_name(endpoint()) -> kz_term:ne_binary().
+account_name(Endpoint) ->
+    kz_json:get_ne_binary_value(<<"account_name">>, Endpoint).
+
+-spec account_realm(endpoint()) -> kz_term:ne_binary().
+account_realm(Endpoint) ->
+    kz_json:get_ne_binary_value(<<"account_realm">>, Endpoint).
 
 -spec owner_id(endpoint()) -> kz_term:api_ne_binary().
 owner_id(Endpoint) ->
@@ -85,3 +95,11 @@ moh_playback_url(MediaPath) ->
         {error, _} -> undefined;
         URL -> URL
     end.
+
+-spec presence_id(endpoint()) -> kz_term:api_ne_binary().
+presence_id(Endpoint) ->
+    kz_json:get_ne_binary_value(<<"presence_id">>, Endpoint).
+
+-spec build_options(endpoint()) -> kz_term:api_object().
+build_options(Endpoint) ->
+    kz_json:get_json_value(<<"Endpoint-Build-Options">>, Endpoint).
