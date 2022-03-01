@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -73,11 +73,11 @@ codecs(JObj) ->
 
 -spec audio_codecs(kz_json:object()) -> kz_term:ne_binaries().
 audio_codecs(JObj) ->
-    kz_json:get_ne_binaries([<<"media">>, <<"audio">>, <<"codecs">>], JObj, []).
+    kz_codecs:audio_codecs(JObj, []).
 
 -spec video_codecs(kz_json:object()) -> kz_term:ne_binaries().
 video_codecs(JObj) ->
-    kz_json:get_ne_binaries([<<"media">>, <<"video">>, <<"codecs">>], JObj, []).
+    kz_codecs:video_codecs(JObj, []).
 
 -spec routing_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
 routing_ccvs(Endpoint, CCVs) ->
