@@ -1387,7 +1387,7 @@ find_value(Key, Value, [JObj|JObjs], Default) ->
         'error':'badarg' -> find_value(Key, Value, JObjs, Default)
     end.
 
--spec get_first_defined(keys() | paths(), object()) -> json_term() | 'undefined'.
+-spec get_first_defined(keys() | paths(), object()) -> api_json_term().
 get_first_defined(Keys, JObj) ->
     get_first_defined(Keys, JObj, 'undefined').
 

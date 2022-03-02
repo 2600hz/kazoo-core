@@ -6,6 +6,7 @@
 -module(kzd_user_auth).
 
 -export([new/0]).
+-export([account_id/1, account_id/2, set_account_id/2]).
 -export([account_name/1, account_name/2, set_account_name/2]).
 -export([account_realm/1, account_realm/2, set_account_realm/2]).
 -export([credentials/1, credentials/2, set_credentials/2]).
@@ -23,6 +24,18 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec account_id(doc()) -> kz_term:api_ne_binary().
+account_id(Doc) ->
+    account_id(Doc, 'undefined').
+
+-spec account_id(doc(), Default) -> kz_term:ne_binary() | Default.
+account_id(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"account_id">>], Doc, Default).
+
+-spec set_account_id(doc(), kz_term:ne_binary()) -> doc().
+set_account_id(Doc, AccountId) ->
+    kz_json:set_value([<<"account_id">>], AccountId, Doc).
 
 -spec account_name(doc()) -> kz_term:api_ne_binary().
 account_name(Doc) ->

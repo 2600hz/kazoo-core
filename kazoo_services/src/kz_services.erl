@@ -855,7 +855,7 @@ summary_billing_cycle(_Services) ->
 %% or create a new (in memory) if not present.
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch(kz_term:ne_binary()) -> services().
+-spec fetch(kz_term:api_ne_binary()) -> services().
 fetch(Account) ->
     fetch(Account, []).
 

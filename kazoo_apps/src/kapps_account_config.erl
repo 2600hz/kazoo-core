@@ -178,7 +178,7 @@ get_hierarchy(Account, Category, Key) ->
 
 %% @equiv get_with_strategy(<<"hierarchy_merge">>, Account, Category, Key, Default)
 
--spec get_hierarchy(api_account(), kz_term:ne_binary(), config_key(), kz_json:api_json_term()) -> kz_json:json_term().
+-spec get_hierarchy(api_account(), kz_term:ne_binary(), config_key(), kz_json:api_json_term()) -> kz_json:api_json_term().
 get_hierarchy(Account, Category, Key, Default) ->
     get_with_strategy(<<"hierarchy_merge">>, Account, Category, Key, Default).
 
