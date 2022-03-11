@@ -99,7 +99,7 @@ user_passcode(AccountId, AccountPasscode, UserJObj, 'undefined') ->
 
     PasscodeBase32.
 
--spec user_email(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
+-spec user_email(kz_term:ne_binary(), kzd_users:doc() | kz_term:ne_binary()) -> kz_term:api_ne_binary().
 user_email(<<AccountId/binary>>, <<UserId/binary>>) ->
     {'ok', UserJObj} = kz_datamgr:open_cache_doc(AccountId, UserId),
     user_email(AccountId, UserJObj);
