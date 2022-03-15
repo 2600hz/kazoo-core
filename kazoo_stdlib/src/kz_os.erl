@@ -72,10 +72,10 @@ cmd(Command, Args) ->
 %% Examples:
 %% ```
 %%    {'ok', <<"10\n">>} = kz_os:cmd(<<"echo 10">>).
-%%    {'ok', <<"10\n">>} = kz_os:cmd(<<"echo -n $ARG">>, [{<<"ARG">>, 10}]).
-%%    {'error', 'timeout', <<>>} = kz_os:cmd(<<"sleep 1;echo -n $ARG">>, [{<<"ARG">>, 10}], [{<<"timeout">>, 100}]).
-%%    {'ok', 10} = kz_os:cmd(<<"echo -n $ARG">>, [{<<"ARG">>, 10}], [{<<"read_mode">>, 'stream'}]).
-%% '''
+%%    {'ok', <<"10\n">>} = kz_os:cmd(<<"echo $ARG">>, [{<<"ARG">>, 10}]).
+%%    {'error', 'timeout', <<>>} = kz_os:cmd(<<"sleep 1;echo $ARG">>, [{<<"ARG">>, 10}], [{<<"timeout">>, 100}]).
+%%    {'ok', 10} = kz_os:cmd(<<"echo $ARG">>, [{<<"ARG">>, 10}], [{<<"read_mode">>, 'stream'}]).
+                                                % '''
 %%
 %% <ul>
 %%    <li><strong>`timeout', value</strong>The time the command will wait in milliseconds with no output before the process is killed. The default is 10 seconds</li>
@@ -165,9 +165,9 @@ cmd_read({Port, _MaxSize, Timeout, OwnerRef}=LoopParams, Acc) ->
         {Port, {'data', {'eol', Data}}} ->
             cmd_read_data(LoopParams, kz_binary:join([Acc, Data, <<"\n">>], <<>>));
         {Port, {'data', {'noeol', Data}}} ->
-            cmd_read_data(LoopParams, <<Acc/binary,Data/binary>>);
+            cmd_read_data(LoopParams, <<Acc/binary, Data/binary>>);
         {Port, {'data', Data}} ->
-            cmd_read_data(LoopParams, <<Acc/binary,Data/binary>>);
+            cmd_read_data(LoopParams, <<Acc/binary, Data/binary>>);
         {Port, {'exit_status', 0}} ->
             {'ok', Acc};
         {Port, {'exit_status', Status}} ->
