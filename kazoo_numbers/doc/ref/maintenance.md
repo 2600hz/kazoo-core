@@ -38,6 +38,7 @@
 | `feature_permissions_on_number/1` | `(Num)` | |
 | `feature_permissions_on_reseller_of/1` | `(_)` | |
 | `feature_permissions_on_system_config/0` |  | |
+| `feature_provider_on_reseller_of/2` | `(Feature,_)` | |
 | `fix_account_db_numbers/1` | `(Account)` | |
 | `fix_apps_for_account_dbs/0` |  | |
 | `fix_apps_for_account_dbs/1` | `(AccountDbs)` | |
@@ -75,4 +76,5 @@
 | `remove_wrong_assigned_from_accounts/0` |  | |
 | `remove_wrong_assigned_from_single_accountdb/1` | `(Account)` | |
 | `reset_allowed_features_to_defaults_on_system_config/0` |  | |
+| `set_feature_provider_on_reseller_of/3` | `(Feature,_,Provider)` | |
 | `update_number_services_view/1` | `(_)` | |

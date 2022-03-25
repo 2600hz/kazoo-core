@@ -651,7 +651,7 @@ set(Category, Key, Value, Node) ->
     update_category(Category, Key, Value, Node, []).
 
 -spec set_default(config_category(), config_key(), kz_json:json_term()) ->
-          set_return().
+          'ok' | set_return().
 set_default(Category, Key, Value) ->
     update_category(Category, Key, Value, ?KEY_DEFAULT, []).
 
@@ -675,8 +675,7 @@ set_node(Category, Key, Value, Node) ->
     update_category(Category, Key, Value, Node, [{'node_specific', 'true'}]).
 
 -spec update_category(config_category(), config_key(), kz_json:json_term(), kz_term:ne_binary() | atom(), update_options()) ->
-          {'ok', kz_json:object()} |
-          kz_datamgr:data_error().
+          'ok' | set_return().
 -ifdef(TEST).
 update_category(Category, _, _, _, _) -> {'ok', Category}.
 -else.
