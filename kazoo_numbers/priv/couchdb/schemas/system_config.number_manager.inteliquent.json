@@ -1,0 +1,55 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "system_config.number_manager.inteliquent",
+    "description": "Schema for number_manager.inteliquent system_config",
+    "properties": {
+        "auto_provision_e911": {
+            "default": false,
+            "description": "number_manager inteliquent auto_provision_e911",
+            "type": "boolean"
+        },
+        "enable_messaging_on_phone_numbers": {
+            "default": false,
+            "description": "number_manager inteliquent enable_messaging_on_phone_numbers",
+            "type": "boolean"
+        },
+        "key": {
+            "description": "number_manager inteliquent key",
+            "type": "string"
+        },
+        "messaging_class": {
+            "default": "P2P",
+            "description": "number_manager inteliquent messaging_class",
+            "type": "string"
+        },
+        "messaging_type": {
+            "default": "SMSMMS",
+            "description": "number_manager inteliquent messaging_type",
+            "type": "string"
+        },
+        "release_phone_numbers_on_disconnect": {
+            "default": false,
+            "description": "number_manager inteliquent release_phone_numbers_on_disconnect",
+            "type": "boolean"
+        },
+        "release_toll_free_numbers_on_disconnect": {
+            "default": false,
+            "description": "number_manager inteliquent release_toll_free_numbers_on_disconnect",
+            "type": "boolean"
+        },
+        "secret": {
+            "description": "number_manager inteliquent secret",
+            "type": "string"
+        },
+        "trunk": {
+            "description": "inteliquent trunk id",
+            "type": "string"
+        },
+        "use_production": {
+            "default": false,
+            "description": "number_manager inteliquent use_production",
+            "type": "boolean"
+        }
+    },
+    "type": "object"
+}

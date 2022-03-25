@@ -108,6 +108,8 @@
         ,remove_allowed_feature_on_reseller_of/2
         ,add_denied_feature_on_reseller_of/2
         ,remove_denied_feature_on_reseller_of/2
+        ,feature_provider_on_reseller_of/2
+        ,set_feature_provider_on_reseller_of/3
         ]).
 -export([feature_permissions_on_system_config/0]).
 -export([add_allowed_feature_on_system_config/1
@@ -2032,6 +2034,54 @@ add_denied_feature_on_reseller_of(?NE_BINARY=Feature, ?MATCH_ACCOUNT_RAW(Account
 -spec remove_denied_feature_on_reseller_of(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
 remove_denied_feature_on_reseller_of(?NE_BINARY=Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
     edit_denied_feature_permissions_on_reseller_of(AccountId, fun lists:delete/2, Feature).
+
+-spec set_feature_provider_on_reseller_of(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
+set_feature_provider_on_reseller_of(Feature, ?MATCH_ACCOUNT_RAW(AccountId), Provider) ->
+    IsValidFun = fun() ->
+                         case is_feature_valid(Feature) of
+                             'false' ->
+                                 invalid_feature(Feature),
+                                 'false';
+                             'true' ->
+                                 'true'
+                         end
+                 end,
+    IsAvailableFun = fun() ->
+                             FullFeature = iolist_to_ne_binary([Provider, $_, Feature]),
+                             case knm_gen_provider:available(FullFeature, Provider, <<"state?">>, AccountId) of
+                                 'false' ->
+                                     io:format("we do not support using ~s as a provider for feature ~s~n", [Provider, Feature]),
+                                     'false';
+                                 'true' ->
+                                     'true'
+                             end
+                     end,
+    Checks = [ IsValidFun, IsAvailableFun],
+    ChecksPassed = lists:all(fun(F) -> F() end, Checks),
+    case ChecksPassed of
+        'false' -> 'no_return';
+        'true' ->
+            ResellerId = kz_services_reseller:get_id(AccountId),
+            FullProviderEntry = iolist_to_binary([<<"knm_">>, Provider, $_, Feature]),
+            _ = kapps_account_config:set(ResellerId, ?KNM_CONFIG_CAT, <<"e911_provider">>, FullProviderEntry),
+            io:format("set provider to ~s for feature ~s~n", [Provider, Feature]),
+            'no_return'
+    end.
+
+-spec iolist_to_ne_binary(iodata()) -> kz_term:ne_binary().
+iolist_to_ne_binary(IoData) ->
+    case iolist_to_binary(IoData) of
+        <<>> -> throw('empty_binary');
+        Bin -> Bin
+    end.
+
+-spec feature_provider_on_reseller_of(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
+feature_provider_on_reseller_of(Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
+    FeatureKey = iolist_to_binary([Feature, <<"_provider">>]),
+    ResellerId = kz_services_reseller:get_id(AccountId),
+    Config = kapps_account_config:get(ResellerId, ?KNM_CONFIG_CAT, FeatureKey),
+    'ok' = io:format("~s~n", [Config]),
+    'no_return'.
 
 -spec feature_permissions_on_system_config() -> 'no_return'.
 feature_permissions_on_system_config() ->

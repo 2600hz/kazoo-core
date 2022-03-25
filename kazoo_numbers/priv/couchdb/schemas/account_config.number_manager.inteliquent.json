@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "account_config.number_manager.inteliquent",
+    "description": "Schema for number_manager.inteliquent account_config",
+    "properties": {
+        "auto_provision_e911": {
+            "default": false,
+            "description": "number_manager inteliquent auto_provision_e911",
+            "type": "boolean"
+        },
+        "use_production": {
+            "default": false,
+            "description": "number_manager inteliquent use_production",
+            "type": "boolean"
+        }
+    },
+    "type": "object"
+}
