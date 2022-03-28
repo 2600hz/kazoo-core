@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc Dialplan API commands.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -545,6 +545,7 @@ bridge_endpoint_definition() ->
                                                             ,<<"Auth-Realm">>
                                                             ,<<"Auth-User">>
                                                             ,<<"Bypass-Media">>
+                                                            ,<<"Bypass-Proxy">>
                                                             ,<<"Call-Context">>
                                                             ,<<"Callee-ID-Name">>
                                                             ,<<"Callee-ID-Number">>
