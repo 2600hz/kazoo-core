@@ -18,6 +18,9 @@
         "Bypass-Media": {
             "type": "string"
         },
+        "Bypass-Proxy": {
+            "type": "string"
+        },
         "CDR-URI-From": {
             "type": "string"
         },
