@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2020, 2600Hz
+%%% @copyright (C) 2017-2022, 2600Hz
 %%% @doc Module to authenticate a user with a multi factor provider.
 %%% @author Hesaam Farhang
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -76,17 +76,28 @@ get_configs(JObj) ->
 get_account_configs('undefined', _ConfigId) -> get_system_configs();
 get_account_configs(_AccountId, 'undefined') -> get_system_configs();
 get_account_configs(AccountId, ConfigId) ->
-    AccountDb = kzs_util:format_account_db(AccountId),
-    case kz_datamgr:open_cache_doc(AccountDb, ConfigId) of
+    case kz_datamgr:open_cache_doc(AccountId, ConfigId) of
         {'ok', JObj} ->
             lager:debug("fetched authentication factor config from ~s/~s"
-                       ,[AccountDb, ConfigId]
+                       ,[AccountId, ConfigId]
                        ),
             kz_json:set_value(<<"from">>, AccountId, JObj);
         {'error', _Reason} ->
             lager:debug("failed to open authentication factor configuration from ~s/~s : ~p"
-                       ,[AccountDb, ConfigId, _Reason]
+                       ,[AccountId, ConfigId, _Reason]
                        ),
+            maybe_from_auth_db(AccountId, ConfigId)
+    end.
+
+maybe_from_auth_db(AccountId, ConfigId) ->
+    case kz_datamgr:open_cache_doc(?KZ_AUTH_DB, ConfigId) of
+        {'ok', JObj} ->
+            lager:debug("fetched account ~s authentication factor config from ~s/~s"
+                       ,[AccountId, ?KZ_AUTH_DB, ConfigId]
+                       ),
+            kz_json:set_value(<<"from">>, AccountId, JObj);
+        {'error', _E} ->
+            lager:debug("failed to find config ~s in ~s: ~p", [ConfigId, ?KZ_AUTH_DB, _E]),
             'undefined'
     end.
 

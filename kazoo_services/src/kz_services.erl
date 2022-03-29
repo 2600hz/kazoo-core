@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2021, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -855,7 +855,7 @@ summary_billing_cycle(_Services) ->
 %% or create a new (in memory) if not present.
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch(kz_term:ne_binary()) -> services().
+-spec fetch(kz_term:api_ne_binary()) -> services().
 fetch(Account) ->
     fetch(Account, []).
 

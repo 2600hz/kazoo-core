@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Functions for interacting with the underlying system (assumes Linux).
 %%% @author Sean Wysor
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -70,12 +70,12 @@ cmd(Command, Args) ->
 %% assumed in processing the command.
 %%
 %% Examples:
-%% ```
-%%    {'ok', <<"10\n">>} = kz_os:cmd(<<"echo 10">>).
-%%    {'ok', <<"10\n">>} = kz_os:cmd(<<"echo -n $ARG">>, [{<<"ARG">>, 10}]).
-%%    {'error', 'timeout', <<>>} = kz_os:cmd(<<"sleep 1;echo -n $ARG">>, [{<<"ARG">>, 10}], [{<<"timeout">>, 100}]).
-%%    {'ok', 10} = kz_os:cmd(<<"echo -n $ARG">>, [{<<"ARG">>, 10}], [{<<"read_mode">>, 'stream'}]).
-%% '''
+%% <pre>
+%%    {'ok', &lt;%lt;"10\n"&gt;&gt;} = kz_os:cmd(&lt;&lt;"echo 10"&gt;&gt;).
+%%    {'ok', &lt;&lt;"10\n"&gt;&gt;} = kz_os:cmd(&lt;&lt;"echo $ARG"&gt;&gt;, [{&lt;&lt;"ARG"&gt;&gt;, 10}]).
+%%    {'error', 'timeout', &lt;&lt;&gt;&gt;} = kz_os:cmd(&lt;&lt;"sleep 1;echo $ARG"&gt;&gt;, [{&lt;&lt;"ARG"&gt;&gt;, 10}], [{&lt;&lt;"timeout"&gt;&gt;, 100}]).
+%%    {'ok', 10} = kz_os:cmd(&lt;&lt;"echo $ARG"&gt;&gt;, [{&lt;&lt;"ARG"&gt;&gt;, 10}], [{&lt;&lt;"read_mode"&gt;&gt;, 'stream'}]).
+%% </pre>
 %%
 %% <ul>
 %%    <li><strong>`timeout', value</strong>The time the command will wait in milliseconds with no output before the process is killed. The default is 10 seconds</li>
@@ -165,9 +165,9 @@ cmd_read({Port, _MaxSize, Timeout, OwnerRef}=LoopParams, Acc) ->
         {Port, {'data', {'eol', Data}}} ->
             cmd_read_data(LoopParams, kz_binary:join([Acc, Data, <<"\n">>], <<>>));
         {Port, {'data', {'noeol', Data}}} ->
-            cmd_read_data(LoopParams, <<Acc/binary,Data/binary>>);
+            cmd_read_data(LoopParams, <<Acc/binary, Data/binary>>);
         {Port, {'data', Data}} ->
-            cmd_read_data(LoopParams, <<Acc/binary,Data/binary>>);
+            cmd_read_data(LoopParams, <<Acc/binary, Data/binary>>);
         {Port, {'exit_status', 0}} ->
             {'ok', Acc};
         {Port, {'exit_status', Status}} ->
