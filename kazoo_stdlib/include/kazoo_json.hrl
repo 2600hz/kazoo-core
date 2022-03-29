@@ -19,7 +19,7 @@
                               | json_array().
 
 -type non_null_json_term() :: non_object_json_term()
-                            | object().
+                            | object() | ?EMPTY_JSON_OBJECT.
 
 %% Denotes term definitions for JSON.
 
@@ -36,7 +36,7 @@
 %% PropEr will blow up the atom table if running this in an interactive shell
 -type json_string() :: kz_term:ne_binary().
 
--type json_term() :: non_null_json_term().
+-type json_term() :: non_object_json_term() | object().
 
 %% We want non-empty keys when generating objects
 -type keys() :: [key(),...].
