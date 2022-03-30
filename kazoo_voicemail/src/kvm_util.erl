@@ -22,7 +22,11 @@
         ,retention_seconds/0, retention_seconds/1
         ,enforce_retention/1, enforce_retention/2, is_prior_to_retention/2
 
-        ,publish_saved_notify/5, publish_voicemail_saved/5, publish_voicemail_deleted/3
+        ,publish_saved_notify/5
+        ,publish_voicemail_saved/5
+        ,publish_voicemail_deleted/3
+        ,publish_voicemail_moved/4
+
         ,get_caller_id_name/1, get_caller_id_number/1
 
         ,transcribe_default/0
@@ -391,6 +395,41 @@ publish_voicemail_deleted(BoxId, Msg, Reason) ->
             _ = kz_amqp_worker:cast(Prop, fun kapi_notifications:publish_voicemail_deleted/1),
             lager:debug("published voicemail_deleted for ~s", [BoxId])
     end.
+
+%%------------------------------------------------------------------------------
+%% @doc Publishes `voicemail_moved' notification.
+%% @end
+%%------------------------------------------------------------------------------
+-spec publish_voicemail_moved(kz_term:ne_binary(), kz_json:object(), vm_move_reason(), kz_term:ne_binary()) -> 'ok'.
+publish_voicemail_moved(BoxId, Msg, Reason, NewFolder) ->
+    Metadata = kzd_box_message:metadata(Msg),
+    From = kz_json:get_ne_binary_value(<<"from">>, Metadata),
+    To = kz_json:get_ne_binary_value(<<"to">>, Metadata),
+
+    [FromUser, FromRealm] = binary:split(From, <<"@">>),
+    [ToUser, ToRealm] = binary:split(To, <<"@">>),
+
+    Prop = [{<<"From-User">>, FromUser}
+           ,{<<"From-Realm">>, FromRealm}
+           ,{<<"To-User">>, ToUser}
+           ,{<<"To-Realm">>, ToRealm}
+           ,{<<"Reason">>, kz_term:to_binary(Reason)}
+           ,{<<"Old-Folder">>, kz_json:get_ne_binary_value(<<"folder">>, Metadata)}
+           ,{<<"New-Folder">>, NewFolder}
+           ,{<<"Account-DB">>, kz_json:get_ne_binary_value(<<"pvt_account_db">>, Msg)}
+           ,{<<"Account-ID">>, kz_json:get_ne_binary_value(<<"pvt_account_id">>, Msg)}
+           ,{<<"Voicemail-Box">>, BoxId}
+           ,{<<"Voicemail-ID">>, kz_json:get_ne_binary_value(<<"media_id">>, Metadata)}
+           ,{<<"Caller-ID-Number">>, kz_json:get_ne_binary_value(<<"caller_id_number">>, Metadata)}
+           ,{<<"Caller-ID-Name">>, kz_json:get_ne_binary_value(<<"caller_id_name">>, Metadata)}
+           ,{<<"Voicemail-Timestamp">>, kz_json:get_ne_binary_value(<<"timestamp">>, Metadata)}
+           ,{<<"Voicemail-Length">>, kz_json:get_ne_binary_value(<<"length">>, Metadata)}
+           ,{<<"Call-ID">>, kz_json:get_ne_binary_value(<<"call_id">>, Metadata)}
+           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+           ],
+
+    _ = kz_amqp_worker:cast(Prop, fun kapi_notifications:publish_voicemail_moved/1),
+    lager:debug("published voicemail_moved for ~s", [BoxId]).
 
 %%%=============================================================================
 %%% Internal functions

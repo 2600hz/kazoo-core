@@ -926,6 +926,7 @@ maybe_update_meta(Length, Action, Call, MediaId, BoxId) ->
         'save' ->
             lager:debug("attachment was sent out via notification, set folder to saved"),
             Fun = [fun(JObj) ->
+                           'ok' = kvm_util:publish_voicemail_moved(BoxId, JObj, 'save_after_notify', ?VM_FOLDER_SAVED),
                            kzd_box_message:apply_folder(?VM_FOLDER_SAVED, JObj)
                    end
                   ],
