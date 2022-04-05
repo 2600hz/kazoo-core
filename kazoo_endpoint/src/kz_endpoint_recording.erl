@@ -17,6 +17,7 @@
 
 -define(ENDPOINT_INBOUND_RECORDING(Network), [<<"call_recording">>, <<"endpoint">>, <<"inbound">>, Network]).
 -define(ENDPOINT_OUTBOUND_RECORDING(Network), [<<"call_recording">>, <<"endpoint">>, <<"outbound">>, Network]).
+-define(ENDPOINT_INBOUND_RECORDING_LABEL(Network), <<"inbound from ", Network/binary, " to endpoint">>).
 -define(ENDPOINT_OUTBOUND_RECORDING_LABEL(Network), <<"outbound to ", Network/binary, " from endpoint">>).
 
 %% @doc should recording be started on call TO the endpoint
@@ -32,7 +33,7 @@ maybe_record_inbound(FromNetwork, Endpoint, Call, Data) ->
     case kz_account_recording:should_record_call(Call, Data) of
         'false' -> 'false';
         'true' ->
-            Values = [{<<"origin">>, <<"inbound from ", FromNetwork/binary, " to endpoint">>}
+            Values = [{<<"origin">>, ?ENDPOINT_INBOUND_RECORDING_LABEL(FromNetwork)}
                      ,{<<"endpoint_id">>, kz_doc:id(Endpoint)}
                      ],
             App = kapps_call_recording:record_call_command(kz_json:set_values(Values, Data), Call),
@@ -53,6 +54,7 @@ maybe_record_outbound(ToNetwork, _Endpoint, Call, Data) ->
     case kz_account_recording:should_record_call(Call, Data) of
         'false' -> 'false';
         'true' ->
+            lager:debug("starting endpoint recording (~s outbound)", [ToNetwork]),
             LabeledData = kz_json:set_value(<<"origin">>, ?ENDPOINT_OUTBOUND_RECORDING_LABEL(ToNetwork), Data),
             {'true'
             ,kapps_call:start_recording(LabeledData, kapps_call:kvs_store('recording_follow_transfer', 'false', Call))
