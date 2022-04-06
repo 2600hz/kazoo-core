@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -68,7 +68,6 @@ call_failover_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable
     ,{<<"Direct-Calls-Only">>, kzd_call_failover:direct_calls_only(Failover)}
     ,{<<"Require-Ignore-Early-Media">>, 'true'}
     ,{<<"Ignore-Early-Media">>, 'true'}
-    ,{<<"Loopback-Bowout">>, 'true'}
     ,{<<"Call-Forward-From">>, <<"${kz_ctx_Inception}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
     ,{<<"Failover-Reasons">>, cfw_failover_reasons()}
