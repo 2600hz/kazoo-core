@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2021, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -76,32 +76,50 @@ send_sms(EndpointList, Strategy, Im) -> send_sms(EndpointList, Strategy, default
 send_sms(EndpointList, Strategy, Timeout, Im) ->
     Endpoints = create_sms_endpoints(EndpointList, []),
     API = create_sms(Im),
-    send_and_wait(Strategy, API, Endpoints, Timeout).
+    send(Strategy, API, Endpoints, Timeout).
 
--spec send_and_wait(binary(), kz_term:proplist(), kz_json:objects(), integer()) -> kapps_api_std_return().
-send_and_wait(<<"single">>, _API, [], _Timeout) ->
+-spec send(binary(), kz_term:proplist(), kz_json:objects(), integer()) -> kapps_api_std_return().
+send(_ , _API, [], _Timeout) ->
     {'error', 'no endpoints available'};
-send_and_wait(<<"single">>, API, [Endpoint| Others], Timeout) ->
+send(<<"single">>, API, [Endpoint| Others], Timeout) ->
     case send_and_wait(API, Endpoint, Timeout) of
         {'error', _R}=Err when Others =:= [] ->
             Err;
         {'error', _R} ->
-            send_and_wait(<<"single">>, API, Others, Timeout);
+            send(<<"single">>, API, Others, Timeout);
         {_, JObj} = Ret ->
             lager:info("received ~s ~s", [kz_api:event_category(JObj), kz_api:event_name(JObj)]),
             Ret
     end;
-send_and_wait(_Strategy, _API, _Endpoints, _Timeout) ->
+send(<<"all">>, API, Endpoints, _Timeout) ->
+    lists:foreach(fun(Endpoint) -> send(API, Endpoint) end, Endpoints);
+send(_Strategy, _API, _Endpoints, _Timeout) ->
     {'error', 'strategy_not_implemented'}.
+
+-spec send(kz_term:proplist(), kz_json:object()) -> kapps_api_std_return().
+send(API, Endpoint) ->
+    Payload = create_payload(API, Endpoint),
+    send(Payload).
+
+-spec send(kz_json:object()) -> ok.
+send(Payload) ->
+    kapi_im:publish_outbound(Payload).
 
 -spec send_and_wait(kz_term:proplist(), kz_json:object(), integer()) -> kapps_api_std_return().
 send_and_wait(API, Endpoint, Timeout) ->
-    Options = kz_json:to_proplist(kz_json:get_value(<<"Endpoint-Options">>, Endpoint, [])),
-    Payload = props:set_values( [{<<"Endpoints">>, [Endpoint]} | Options], API),
-    MsgId = props:get_value(<<"Message-ID">>, Payload),
+    Payload = create_payload(API, Endpoint),
+    send_and_wait(Payload, Timeout).
+
+-spec send_and_wait(kz_json:object(), integer()) -> kapps_api_std_return().
+send_and_wait(Payload, Timeout) ->
     lager:info("sending sms and waiting for response"),
-    _ = kapi_im:publish_outbound(Payload),
+    send(Payload),
+    MsgId = props:get_value(<<"Message-ID">>, Payload),
     wait_for_correlated_message(MsgId, <<"delivery">>, <<"message">>, Timeout).
+
+create_payload(API, Endpoint) ->
+    Options = kz_json:to_proplist(kz_json:get_value(<<"Endpoint-Options">>, Endpoint, [])),
+    props:set_values( [{<<"Endpoints">>, [Endpoint]} | Options], API).
 
 -spec create_sms(im()) -> kz_term:proplist().
 create_sms(Im) ->
