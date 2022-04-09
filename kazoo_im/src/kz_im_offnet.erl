@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2021, 2600Hz
+%%% @copyright (C) 2013-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -265,7 +265,7 @@ lookup_numbers(#{numbers := Numbers} = Map) ->
 
 lookup_number(Number, Map) ->
     case knm_phone_number:fetch(Number) of
-        {'error', Error} -> Map#{error => io_lib:format("number not found : ~p", [kz_term:to_binary(Error)])};
+        {'error', Error} -> Map#{error => io_lib:format("number not found : ~s", [kz_term:to_binary(Error)])};
         {'ok', KNumber} -> Map#{phone_number => KNumber}
     end.
 
