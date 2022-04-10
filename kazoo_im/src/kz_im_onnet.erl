@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -213,6 +213,11 @@ ack(Props) ->
 -spec handle_outbound_route(kz_json:object(), kz_term:proplist()) -> 'ack' | 'nack'.
 handle_outbound_route(JObj, Props) ->
     IM = kapps_im:from_payload(JObj),
+    Map = #{payload => JObj
+           ,route => kz_im:route_id(JObj)
+           ,props => Props
+           ,im => IM
+           },
     Funs = [fun account/1
            ,fun account_fetch/1
            ,fun reseller_fetch/1
@@ -224,22 +229,24 @@ handle_outbound_route(JObj, Props) ->
            ,fun reseller_standing_is_acceptable/1
            ,fun trusted_application/1
            ,fun number/1
+           ,fun route_id/1
            ],
-    route_offnet(kz_maps:exec(Funs
-                             ,#{payload => JObj
-                               ,route => kz_im:route_id(JObj)
-                               ,props => Props
-                               ,im => IM
-                               }
-                             )).
+    try
+        route_offnet(kz_maps:exec(Funs, Map))
+    catch
+        _Exception:_Reason:_Stack ->
+            lager:warning("exception ~p / ~p handling outbound request", [_Exception, _Reason]),
+            kz_log:log_stacktrace(_Stack),
+            nack
+    end.
+
 
 -spec route_offnet(map()) -> 'ack' | 'nack'.
 route_offnet(#{enabled := 'true'
               ,payload := Payload
               ,account_id := AccountId
-              ,route := RouteId
               }) ->
-    case kz_im_offnet:route(kz_im:set_route_id(Payload, RouteId)) of
+    case kz_im_offnet:route(Payload) of
         'ok' -> 'ack';
         {'error', _Error} ->
             lager:warning("offnet rejected request for account ~s : ~p", [AccountId, _Error]),
@@ -365,6 +372,10 @@ config() ->
         {'ok', JObj} -> kz_json:get_json_value([<<"default">>, <<"connector">>], JObj, kz_json:new());
         _ -> kz_json:new()
     end.
+
+route_id(#{payload := Payload, route := RouteId} = Map) ->
+    Map#{payload => kz_im:set_route_id(Payload, RouteId)};
+route_id(Map) -> Map.
 
 %%%=============================================================================
 %%% Handle Confirms
