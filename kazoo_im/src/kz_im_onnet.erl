@@ -102,7 +102,7 @@ route(Pid, Payload) ->
 %%------------------------------------------------------------------------------
 -spec init([]) -> {'ok', state()}.
 init([]) ->
-    {'ok', #{count => 1, pids => #{}}}.
+    {'ok', #{count => 1, pids => #{}, registered => false}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -124,15 +124,19 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'gen_listener', {'created_queue', ?QUEUE_NAME}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener', {'is_consuming', 'false'}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', 'false'}}, #{registered := true} = State) ->
     lager:debug("deactivating onnet worker"),
     _ = gproc:unreg({'p', 'l', 'im_onnet'}),
+    {'noreply', State#{registered => false}};
+handle_cast({'gen_listener', {'is_consuming', 'false'}}, #{registered := false} = State) ->
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', 'true'}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'server_confirms', 'true'}}, State) ->
+handle_cast({'gen_listener',{'server_confirms', 'true'}}, #{registered := false} = State) ->
     lager:debug("broker can confirm deliveries, activating onnet worker"),
     'true' = gproc:reg({'p', 'l', 'im_onnet'}),
+    {'noreply', State#{registered => true}};
+handle_cast({'gen_listener',{'server_confirms', 'true'}}, #{registered := true} = State) ->
     {'noreply', State};
 handle_cast({'gen_listener',{'server_confirms', 'false'}}, State) ->
     lager:warning("broker can't confirm deliveries"),

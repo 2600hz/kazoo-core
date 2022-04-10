@@ -157,10 +157,12 @@ handle_cast({'gen_listener', {'is_consuming', 'false'}}, #state{registered = fal
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', 'true'}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'server_confirms', 'true'}}, State) ->
+handle_cast({'gen_listener',{'server_confirms', 'true'}}, #state{registered = false} = State) ->
     lager:debug("broker can confirm deliveries, activating offnet worker"),
     'true' = gproc:reg({'p', 'l', 'im_offnet'}),
     {'noreply', State#state{registered = true}};
+handle_cast({'gen_listener',{'server_confirms', 'true'}}, #state{registered = true} = State) ->
+    {'noreply', State};
 handle_cast({'gen_listener',{'server_confirms', 'false'}}, State) ->
     lager:warning("broker can't confirm deliveries"),
     {'stop', {'shutdown', 'no_confirms'}, State};
