@@ -254,10 +254,16 @@ maybe_relay_request(JObj) ->
                ,fun log_errors/1
                ,fun route_onnet/1
                ],
-    Result = kz_maps:exec(Routines, Map),
-    case route_errors(Result) of
-        true -> 'nack';
-        false -> 'ack'
+    try
+        case route_errors(kz_maps:exec(Routines, Map)) of
+            true -> 'nack';
+            false -> 'ack'
+        end
+    catch
+        _Exception:_Reason:_Stack ->
+            lager:warning("exception ~p / ~p handling inbound request", [_Exception, _Reason]),
+            kz_log:log_stacktrace(_Stack),
+            nack
     end.
 
 lookup_numbers(#{numbers := Numbers} = Map) ->
