@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -52,15 +52,15 @@ from(Doc, Default) ->
 set_from(Doc, From) ->
     kz_json:set_value([<<"from">>], From, Doc).
 
--spec to(doc()) -> kz_term:api_binary().
+-spec to(doc()) -> kz_term:api_ne_binary_or_binaries().
 to(Doc) ->
     to(Doc, 'undefined').
 
--spec to(doc(), Default) -> binary() | Default.
+-spec to(doc(), Default) -> kz_term:ne_binary_or_binaries() | Default.
 to(Doc, Default) ->
-    kz_json:get_binary_value([<<"to">>], Doc, Default).
+    kz_json:get_ne_binary_or_binaries([<<"to">>], Doc, Default).
 
--spec set_to(doc(), binary()) -> doc().
+-spec set_to(doc(), kz_term:ne_binary_or_binaries()) -> doc().
 set_to(Doc, To) ->
     kz_json:set_value([<<"to">>], To, Doc).
 

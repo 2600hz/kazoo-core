@@ -195,15 +195,15 @@ port(Doc, Default) ->
 set_port(Doc, Port) ->
     kz_json:set_value([<<"port">>], Port, Doc).
 
--spec port_authority(doc()) -> any().
+-spec port_authority(doc()) -> kz_term:api_binary().
 port_authority(Doc) ->
     port_authority(Doc, 'undefined').
 
--spec port_authority(doc(), Default) -> any() | Default.
+-spec port_authority(doc(), Default) -> binary() | Default.
 port_authority(Doc, Default) ->
-    kz_json:get_value([<<"port">>, <<"authority">>], Doc, Default).
+    kz_json:get_binary_value([<<"port">>, <<"authority">>], Doc, Default).
 
--spec set_port_authority(doc(), any()) -> doc().
+-spec set_port_authority(doc(), binary()) -> doc().
 set_port_authority(Doc, PortAuthority) ->
     kz_json:set_value([<<"port">>, <<"authority">>], PortAuthority, Doc).
 

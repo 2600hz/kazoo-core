@@ -68,7 +68,13 @@
             "type": "string"
         },
         "To": {
-            "type": "string"
+            "items": {
+                "type": "string"
+            },
+            "type": [
+                "string",
+                "array"
+            ]
         },
         "Transaction-ID": {
             "type": "string"

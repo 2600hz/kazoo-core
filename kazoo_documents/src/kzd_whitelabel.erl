@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -203,11 +203,11 @@ port(Doc, Default) ->
 set_port(Doc, Port) ->
     kz_json:set_value([<<"port">>], Port, Doc).
 
--spec port_authority(doc()) -> kz_term:api_ne_binary().
+-spec port_authority(doc()) -> kz_term:api_binary().
 port_authority(Doc) ->
     port_authority(Doc, 'undefined').
 
--spec port_authority(doc(), Default) -> kz_term:api_ne_binary() | Default.
+-spec port_authority(doc(), Default) -> binary() | Default.
 port_authority(Doc, Default) ->
     %% I'm not sure whether port.authority should be an account_id
     %% or email address or etc... but to be safe let's check if it
@@ -222,7 +222,7 @@ port_authority(Doc, Default) ->
         _ -> Default
     end.
 
--spec set_port_authority(doc(), any()) -> doc().
+-spec set_port_authority(doc(), binary()) -> doc().
 set_port_authority(Doc, PortAuthority) ->
     kz_json:set_value([<<"port">>, <<"authority">>], PortAuthority, Doc).
 
