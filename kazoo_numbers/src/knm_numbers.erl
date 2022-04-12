@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2021, 2600Hz
+%%% @copyright (C) 2015-2022, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% @author Pierre Fenoll
@@ -31,6 +31,7 @@
         ,emergency_enabled/1
         ,free/1
         ,validate_ownership/2
+        ,cache_key/1
         ]).
 
 -include("knm.hrl").
@@ -161,20 +162,25 @@ lookup_account('undefined') ->
     {'error', 'not_reconcilable'};
 lookup_account(<<Num/binary>>) ->
     NormalizedNum = knm_converters:normalize(Num),
-    Key = {'account_lookup', NormalizedNum},
-    case kz_cache:peek_local(?CACHE_NAME, Key) of
+    CacheKey = cache_key(Num),
+    case kz_cache:peek_local(?CACHE_NAME, CacheKey) of
         {'ok', Ok} -> Ok;
         {'error', 'not_found'} ->
             case fetch_account_from_number(NormalizedNum) of
                 {'ok', _, _}=Ok ->
                     NumberDb = knm_converters:to_db(NormalizedNum),
                     CacheProps = [{'origin', [{'db', NumberDb, NormalizedNum}]}],
-                    kz_cache:store_local(?CACHE_NAME, Key, Ok, CacheProps),
+                    kz_cache:store_local(?CACHE_NAME, CacheKey, Ok, CacheProps),
                     Ok;
                 Else -> Else
             end
     end.
 -endif.
+
+-spec cache_key(kz_term:ne_binary()) -> {'account_lookup', kz_term:ne_binary()}.
+cache_key(Number) ->
+    NormalizedNum = knm_converters:normalize(Number),
+    {'account_lookup', NormalizedNum}.
 
 %%------------------------------------------------------------------------------
 %% @doc

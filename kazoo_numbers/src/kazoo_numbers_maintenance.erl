@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2021, 2600Hz
+%%% @copyright (C) 2016-2022, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,8 +9,6 @@
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kazoo_numbers_maintenance).
-
--include("knm.hrl").
 
 -export([app_using/2]).
 -export([generate_js_classifiers/1]).
@@ -91,7 +89,10 @@
         ,migrate_unassigned_numbers/0, migrate_unassigned_numbers/1
         ]).
 -export([generate_numbers/4]).
--export([delete/1]).
+-export([delete/1
+        ,flush_numbers_cache/0
+        ,flush_number_from_cache/1
+        ]).
 -export([purge_discovery/0, purge_discovery/1]).
 -export([purge_deleted/0, purge_deleted/1]).
 -export([update_number_services_view/1]).
@@ -117,6 +118,10 @@
 -export([ensure_adminonly_features_are_reachable/0]).
 
 -export([migrate_port_requests/0]).
+
+-include("knm.hrl").
+
+-elvis([{elvis_style, no_debug_call, disable}]).
 
 -define(TIME_BETWEEN_ACCOUNTS_MS
        ,kapps_config:get_pos_integer(?KNM_CONFIG_CAT, <<"time_between_accounts_ms">>, ?MILLISECONDS_IN_SECOND)).
@@ -1855,6 +1860,18 @@ delete(Num) ->
     end,
     'no_return'.
 
+%% @doc flushes the numbers cache used in knm_numbers
+-spec flush_numbers_cache() -> 'ok'.
+flush_numbers_cache() ->
+    kz_cache:flush_local(?CACHE_NAME),
+    io:format("flushed ~s~n", [?CACHE_NAME]).
+
+%% @doc flushes the number from the numbers cache used in knm_numbers
+-spec flush_number_from_cache(kz_term:ne_binary()) -> 'ok'.
+flush_number_from_cache(Number) ->
+    CacheKey = knm_numbers:cache_key(Number),
+    kz_cache:erase_local(?CACHE_NAME, CacheKey),
+    io:format("erased ~s from ~s~n", [Number, CacheKey]).
 
 -spec purge_discovery() -> 'no_return'.
 purge_discovery() ->

@@ -49,6 +49,8 @@
 | `fix_numbers/2` | `(Account,Numbers)` | |
 | `fix_numbers_apps_in_accountdb/2` | `(Account,Numbers)` | |
 | `fix_numbers_apps_in_numbdb/1` | `(Numbers)` | |
+| `flush_number_from_cache/1` | `(Number)` | |
+| `flush_numbers_cache/0` |  | |
 | `generate_js_classifiers/1` | `(FunMatchBlock)` | |
 | `generate_numbers/4` | `(Type,AccountId,StartingNumber,Quantity)` | |
 | `init_dbs/0` |  | |
