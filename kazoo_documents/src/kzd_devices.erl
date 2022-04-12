@@ -106,6 +106,9 @@
         ,outbound_dynamic_flags/1, set_outbound_dynamic_flags/2
         ]).
 
+-export([ms_teams_device_defaults/0
+        ]).
+
 -deprecated([{'call_forward_direct_calls_only'     , 1, 'next_major_release'}
             ,{'call_forward_direct_calls_only'     , 2, 'next_major_release'}
             ,{'set_call_forward_direct_calls_only' , 2, 'next_major_release'}
@@ -1290,3 +1293,38 @@ outbound_dynamic_flags(JObj) ->
 set_outbound_dynamic_flags(JObj, Flags) when is_list(Flags) ->
     OutboundFlags = outbound_flags(JObj),
     set_outbound_flags(JObj, kz_json:set_value(?DYNAMIC_FLAGS, Flags, OutboundFlags)).
+
+%% -----------------------------------------------------------------------------
+%% MS Teams
+%% -----------------------------------------------------------------------------
+-spec ms_teams_device_defaults() -> kz_json:object().
+ms_teams_device_defaults() ->
+    Fns = [{fun ?MODULE:set_media/2, ms_teams_device_default_media()}
+          ,{fun ?MODULE:set_caller_id_options/2, ms_teams_device_default_caller_id_options()}
+          ,{fun ?MODULE:set_sip_ignore_completed_elsewhere/2, 'false'}
+          ,{fun ?MODULE:set_device_type/2, <<"teammate">>}
+          ],
+    kz_json:exec_first(Fns, kz_json:new()).
+
+-spec ms_teams_device_default_media() -> kz_json:object().
+ms_teams_device_default_media() ->
+    kz_json:from_list_recursive([{<<"audio">>
+                                 ,[{<<"codecs">>, [<<"PCMU">>, <<"PCMA">>]}]
+                                 }
+                                ,{<<"encryption">>
+                                 ,[{<<"enforce_security">>, 'true'}
+                                  ,{<<"methods">>, [<<"srtp">>]}
+                                  ]
+                                 }
+                                ,{<<"video">>
+                                 ,[{<<"codecs">>, []}]
+                                 }
+                                ,{<<"webrtc">>, 'false'}
+                                ]
+                               ,#{ascii_list_enforced => 'false'}
+                               ).
+
+-spec ms_teams_device_default_caller_id_options() -> kz_json:object().
+ms_teams_device_default_caller_id_options() ->
+    kz_json:from_list([{<<"outbound_privacy">>, <<"none">>}
+                      ]).
