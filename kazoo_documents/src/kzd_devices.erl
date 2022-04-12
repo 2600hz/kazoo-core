@@ -1294,9 +1294,9 @@ set_outbound_dynamic_flags(JObj, Flags) when is_list(Flags) ->
     OutboundFlags = outbound_flags(JObj),
     set_outbound_flags(JObj, kz_json:set_value(?DYNAMIC_FLAGS, Flags, OutboundFlags)).
 
-%% -----------------------------------------------------------------------------
+%%------------------------------------------------------------------------------
 %% MS Teams
-%% -----------------------------------------------------------------------------
+%%------------------------------------------------------------------------------
 -spec ms_teams_device_defaults() -> kz_json:object().
 ms_teams_device_defaults() ->
     Fns = [{fun ?MODULE:set_media/2, ms_teams_device_default_media()}
