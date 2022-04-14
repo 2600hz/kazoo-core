@@ -1,6 +1,6 @@
 ---
 name: kazoo
-base_branch: origin/5.1
+base_branch: 'origin/5.1'
 base_core:
 template: kazoo-core.spec.tmpl
 metapackage:
