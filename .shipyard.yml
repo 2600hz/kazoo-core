@@ -7,7 +7,7 @@ metapackage:
     -
       name: meta-kazoo-applications
       type: required
-      branch: master
+      branch: '5.1'
       package: kazoo-core
 package:
   centos7:
