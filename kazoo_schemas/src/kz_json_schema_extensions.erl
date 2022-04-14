@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2021, 2600Hz
+%%% @copyright (C) 2014-2022, 2600Hz
 %%% @doc Module for extending schema validation
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -114,6 +114,16 @@ extra_validation(<<"faxbox.notifications.outbound.callback.url">>, URL, State) -
     url_validation(URL, State);
 extra_validation(<<"storage.attachment.http.url">>, URL, State) ->
     url_validation(URL, State);
+extra_validation(<<"resources.server">>, URL, State) ->
+    case is_valid_host(URL) of
+        'true' -> State;
+        'false' -> url_error(URL, State)
+    end;
+extra_validation(<<"resources.realm">>, URL, State) ->
+    case is_valid_host(URL) of
+        'true' -> State;
+        'false' -> url_error(URL, State)
+    end;
 extra_validation(<<"storage.plan.database.document.connection">>, Value, State) ->
     JObj = jesse_state:get_current_value(State),
     Keys = kz_json:get_keys(<<"connections">>, JObj),
@@ -290,8 +300,7 @@ is_valid_host(Host, 'false') ->
 
 url_error(URL, State) ->
     lager:info("client URL '~s' not valid", [URL]),
-    UpdatedState = jesse_error:handle_data_invalid({'external_error', <<"invalid client URL">>}, URL, State),
-    UpdatedState.
+    jesse_error:handle_data_invalid({'external_error', <<"invalid client URL">>}, URL, State).
 
 -spec is_valid_host_value(kz_term:ne_binary(), boolean(), kz_term:api_ne_binaries()) -> boolean().
 is_valid_host_value(_Host, _IsIp, 'undefined') -> 'true';
