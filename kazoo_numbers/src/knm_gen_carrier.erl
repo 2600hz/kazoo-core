@@ -37,7 +37,25 @@
 
 -callback configuration() -> kz_json:object().
 
--optional_callbacks([configuration/0]).
+%%------------------------------------------------------------------------------
+%% @doc Check if the carrier says the given numbers are portable. Both sides of
+%% the okko are a proplist keyed by the phone number as given. The ko side's
+%% values are the reason the number is not portable. The ok side's values
+%% are an empty map.
+%%
+%% The return okko is expected to only be for the numbers the carrier was
+%% certain about. if a carrier states it is uncertain, do not add it to the
+%% return okko at all.
+%%
+%% The ok side of the okko is an empty map so we can possibly extend it in the
+%% future to allow callback modules to provide more data. callers of a modules
+%% callback %% _must not_ depend on any keys in the map not explicitly defined
+%% here.
+%% @end.
+%%------------------------------------------------------------------------------
+-callback check_portability([PhoneNumbers :: kz_term:ne_binaries() ]) -> kz_okko:okko({PhoneNumber, kz_term:ne_binary()}, {PhoneNumber, #{}}).
+
+-optional_callbacks([configuration/0, check_portability/1]).
 
 -type carrier() :: kz_term:api_ne_binary() | knm_phone_number:pn_record().
 

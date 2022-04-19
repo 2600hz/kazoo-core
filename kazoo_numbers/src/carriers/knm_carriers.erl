@@ -17,6 +17,7 @@
 -compile({'no_auto_import',[apply/3]}).
 
 -export([check/1
+        ,check_portability/1
         ,available_carriers/1, all_modules/0, info/3
         ,default_carriers/0, default_carrier/0
         ,acquire/1
@@ -110,6 +111,61 @@ check_numbers(Module, Nums) ->
         kz_log:log_stacktrace(ST),
         {#{}, maps:from_list([{Num, <<"error">>} || Num <- Nums])}
         end.
+
+%%------------------------------------------------------------------------------
+%% @doc Normalize then query the various providers for whether numbers are portable
+%% @end
+%%------------------------------------------------------------------------------
+-spec check_portability(kz_term:ne_binaries()) -> kz_json:object().
+check_portability(Numbers) ->
+    Nums = lists:usort([knm_converters:normalize(Num) || Num <- Numbers]),
+    lager:info("attempting to check portability for ~p", [Nums]),
+    Okkos = lists:map(fun(Carrier) -> check_number_portability(Carrier, Nums) end, available_carriers([])),
+                                                % Now that we have the carriers opnions, we try to sus out the truth.
+                                                % the differ promote indicates we want to keep successes, even if other
+                                                % carriers say it's not portable.
+    MergedOkko = kz_okko:merge_keyed(Okkos, kz_okko:build_conflict_resolver([{'differ', 'promote'}])),
+    AsResults = kz_okko:to_results(MergedOkko),
+    InexpliciteResults = lists:foldl(fun({_ResultTag, {PhoneNumber, _}}, NumberSet) ->
+                                             ordsets:del_element(PhoneNumber, NumberSet)
+                                     end, Nums, AsResults),
+    Mapper = fun
+                 ({ok, {PhoneNumber, _}}) ->
+                                   #{<<"phone_number">> => PhoneNumber
+                                    ,<<"portable">> => 'true'
+                                    ,<<"portability_status">> => <<"confirmed">>
+                                    ,<<"not_portable_reason">> => 'null'
+                                    };
+        ({error, {PhoneNumber, Why}}) ->
+                                   #{<<"phone_number">> => PhoneNumber
+                                    ,<<"portable">> =>'false'
+                                    ,<<"not_portable_reason">> => Why
+                                    }
+                           end,
+NumbersResults = lists:map(Mapper, AsResults),
+OutJson = #{ 'inexplicit_result' => InexpliciteResults, 'phone_numbers' => NumbersResults},
+kz_json:from_map(OutJson).
+
+%%------------------------------------------------------------------------------
+%% @doc Verify the carrier (Module) can run the portability check
+%% @end
+%%------------------------------------------------------------------------------
+-spec check_number_portability(module(), kz_term:ne_binaries()) -> kz_okko:okko({kz_term:ne_binary(), kz_term:ne_binary()}, {kz_term:ne_binary(), #{}}).
+check_number_portability(Module, Nums) ->
+    try apply(Module, 'check_portability', [Nums]) of
+        #{'ok' := Oks, 'ko' := Kos} = SomeOkko when is_list(Oks), is_list(Kos) ->
+            SomeOkko;
+        InvalidOkko ->
+            lager:info("carrier module ~p returned an invalid result for check_portability given numbers ~p: ~p", [Module, Nums, InvalidOkko]),
+            kz_okko:empty_okko()
+    catch
+        'error':'undef' ->
+            lager:debug("carrier ~s does not support portabilty check"),
+            kz_okko:empty_okko();
+        What:Why:Stacktrace ->
+            lager:error("carrier module ~s crashed; using an empty result to not impeede other work. crash: ~p:~p; Stack: ~p", [Module, What, Why, Stacktrace]),
+            kz_okko:empty_okko()
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Create a list of all carrier modules available to a subaccount.

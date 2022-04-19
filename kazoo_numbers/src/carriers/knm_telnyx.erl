@@ -19,6 +19,7 @@
 -export([is_number_billable/1]).
 -export([should_lookup_cnam/0]).
 -export([check_numbers/1]).
+-export([check_portability/1]).
 
 -include("knm.hrl").
 -include("knm_telnyx.hrl").
@@ -66,6 +67,33 @@ is_number_billable(_PN) -> 'true'.
           {'error', any()}.
 check_numbers(_Numbers) -> {'error', 'not_implemented'}.
 
+%%------------------------------------------------------------------------------
+%% @doc Check with carrier if these numbers are portable
+%% @end
+%%------------------------------------------------------------------------------
+-spec check_portability(kz_term:ne_binaries()) -> kz_okko:okko({kz_term:ne_binary(), kz_term:ne_binary()}, {kz_term:ne_binary(), #{}}).
+check_portability(Numbers) ->
+    Jobj = portability(Numbers),
+    case kz_json:to_map(Jobj) of
+        #{ <<"phone_numbers">> := PhoneNumbersRaw} when is_list(PhoneNumbersRaw) ->
+            PhoneNumbers = [ Map || Map <- PhoneNumbersRaw, maps:is_key(<<"phone_number">>, Map) ],
+            OkkoFun = fun partition_portabilty_result/1,
+            kz_okko:foldl(OkkoFun, PhoneNumbers);
+        _InvalidObj ->
+            lager:debug("expected a json object with a key of 'phone_numbers' that is a list, not: ~p", [Jobj]),
+            kz_okko:empty_okko()
+    end.
+
+partition_portabilty_result(Jobj) ->
+    PhoneNumber = maps:get(<<"phone_number">>, Jobj),
+    IsPortable = maps:get(<<"portable">>, Jobj, 'false'),
+    case IsPortable of
+        'false' ->
+            NotPortableReason = maps:get(<<"not_portable_reason">>, Jobj, 'null'),
+            {'error', {PhoneNumber, NotPortableReason}};
+        'true' ->
+            {'ok', {PhoneNumber, #{}}}
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Query the system for a quantity of available numbers in a rate center
@@ -218,5 +246,14 @@ search_prefix('npa', NPA, NXX) ->
 
 -spec should_keep_best_effort() -> {kz_term:ne_binary(), boolean()}.
 should_keep_best_effort() -> {<<"best_effort">>, ?SHOULD_KEEP_BEST_EFFORT}.
+
+-spec portability(kz_term:ne_binaries()) -> kz_json:object().
+portability(Numbers) ->
+    FormattedNumbers = lists:map(
+                         fun(Num) -> kz_json:set_value(<<"phone_number">>, Num, kz_json:new()) end
+                        ,Numbers
+                        ),
+    Req = kz_json:from_list([{<<"phone_numbers">>, FormattedNumbers}]),
+    knm_telnyx_util:req('post', ["porting/portability_checks"], Req).
 
 %%% End of Module
