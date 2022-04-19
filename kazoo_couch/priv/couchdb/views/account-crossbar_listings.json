@@ -261,6 +261,7 @@
                 "      defaultValue.member = doc.member;",
                 "      defaultValue.moderator = doc.moderator;",
                 "      defaultValue.ui_flags = doc.ui_flags;",
+                "      defaultValue.video = doc.video || false;",
                 "      break;",
                 "    case 'device':",
                 "      /* devices/crossbar_listing */",

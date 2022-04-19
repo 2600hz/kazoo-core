@@ -19,7 +19,7 @@ To see this in a big picture, take a single account database as example:
 * There are approximately around 40 design documents in account db.
 * If we have a 3 zone CouchDB cluster, that is at least 120 `couchjs` process in each server!
 * A huge amount of the design documents are a just a single `crossbar_listing` view, with one propose: emit the document Id for that specific document type.
-* If we move all those `crossbar_listing` to a single design document which emits by `[doc.pvt_type, doc._id]` we would get ride of at least 25 views and around 15 design documents.
+* If we move all those `crossbar_listing` to a single design document which emits by `[doc.pvt_type, doc._id]` we would get rid of at least 25 views and around 15 design documents.
 * We also can have other generic views which are emitting by numbers in documents, names, owner ids and etc.
 * Some views are doing the exact same thing
 * With that changes now there is a lot of single view design documents, which we can simply move them to that single design documents.
@@ -40,7 +40,7 @@ The downsize is the longer time to create the index file for the first time, and
 
 ## View Changes
 
-Most of he views are move the `crossbar_listings` design document. This is all in account db right now, but if it is successful we would considering doing the same for all other databases.
+Most of the views are move the `crossbar_listings` design document. This is all in account db right now, but if it is successful we would considering doing the same for all other databases.
 
 Also there were some unused views which has been remove.
 
