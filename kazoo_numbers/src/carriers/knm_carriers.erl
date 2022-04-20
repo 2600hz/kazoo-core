@@ -120,31 +120,46 @@ check_numbers(Module, Nums) ->
 check_portability(Numbers) ->
     Nums = lists:usort([knm_converters:normalize(Num) || Num <- Numbers]),
     lager:info("attempting to check portability for ~p", [Nums]),
-    Okkos = lists:map(fun(Carrier) -> check_number_portability(Carrier, Nums) end, available_carriers([])),
-                                                % Now that we have the carriers opnions, we try to sus out the truth.
-                                                % the differ promote indicates we want to keep successes, even if other
-                                                % carriers say it's not portable.
+    Okkos = [check_number_portability(Carrier, Nums) || Carrier <- available_carriers([])],
+    %% Now that we have the carriers opnions, we try to sus out the truth.
+    %% the differ promote indicates we want to keep successes, even if other
+    %% carriers say it's not portable.
     MergedOkko = kz_okko:merge_keyed(Okkos, kz_okko:build_conflict_resolver([{'differ', 'promote'}])),
     AsResults = kz_okko:to_results(MergedOkko),
-    InexpliciteResults = lists:foldl(fun({_ResultTag, {PhoneNumber, _}}, NumberSet) ->
-                                             ordsets:del_element(PhoneNumber, NumberSet)
-                                     end, Nums, AsResults),
-    Mapper = fun
-                 ({ok, {PhoneNumber, _}}) ->
-                                   #{<<"phone_number">> => PhoneNumber
-                                    ,<<"portable">> => 'true'
-                                    ,<<"portability_status">> => <<"confirmed">>
-                                    ,<<"not_portable_reason">> => 'null'
-                                    };
-        ({error, {PhoneNumber, Why}}) ->
-                                   #{<<"phone_number">> => PhoneNumber
-                                    ,<<"portable">> =>'false'
-                                    ,<<"not_portable_reason">> => Why
-                                    }
-                           end,
-NumbersResults = lists:map(Mapper, AsResults),
-OutJson = #{ 'inexplicit_result' => InexpliciteResults, 'phone_numbers' => NumbersResults},
-kz_json:from_map(OutJson).
+    InexpliciteResults = lists:foldl(fun remove_result_from_set/2, Nums, AsResults),
+    NumbersResults = [ portability_result_to_json(Result) || Result <- AsResults ],
+    OutJson =
+        #{'inexplicit_result' => InexpliciteResults,
+        'phone_numbers' => NumbersResults
+        },
+    kz_json:from_map(OutJson).
+
+%%------------------------------------------------------------------------------
+%% @doc Given a result with a 2uple as the value, remove the 1st element of the
+%% 2uple from the given ordered set.
+%% @end
+%%------------------------------------------------------------------------------
+-spec remove_result_from_set(kz_result:result({Element, _}, {Element, _}), ordsets:ordset(Element)) -> ordsets:ordset(Element).
+remove_result_from_set({_ResultTag, {Element, _}}, OrdSet) ->
+    ordsets:del_element(Element, OrdSet).
+
+%%------------------------------------------------------------------------------
+%% @doc Given a result for portabiltiy, turn it into a json object suitable for
+%% client consumption.
+%% @end
+%%------------------------------------------------------------------------------
+-spec portability_result_to_json(kz_result:result({kz_term:is_ne_binary(), kz_tem:ne_binary()}, {kz_term:ne_binary(), any()})) -> #{kz_term:ne_binary() := kz_json:json()}.
+portability_result_to_json({ok, {PhoneNumber, _}}) ->
+    #{<<"phone_number">> => PhoneNumber
+    ,<<"portable">> => 'true'
+    ,<<"portability_status">> => <<"confirmed">>
+    ,<<"not_portable_reason">> => 'null'
+    };
+portability_result_to_json({error, {PhoneNumber, Why}}) ->
+    #{<<"phone_number">> => PhoneNumber
+    ,<<"portable">> =>'false'
+    ,<<"not_portable_reason">> => Why
+    }.
 
 %%------------------------------------------------------------------------------
 %% @doc Verify the carrier (Module) can run the portability check

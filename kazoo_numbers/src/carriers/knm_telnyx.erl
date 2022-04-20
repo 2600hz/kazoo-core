@@ -73,23 +73,22 @@ check_numbers(_Numbers) -> {'error', 'not_implemented'}.
 %%------------------------------------------------------------------------------
 -spec check_portability(kz_term:ne_binaries()) -> kz_okko:okko({kz_term:ne_binary(), kz_term:ne_binary()}, {kz_term:ne_binary(), #{}}).
 check_portability(Numbers) ->
-    Jobj = portability(Numbers),
-    case kz_json:to_map(Jobj) of
+    JObj = portability(Numbers),
+    case kz_json:to_map(JObj) of
         #{ <<"phone_numbers">> := PhoneNumbersRaw} when is_list(PhoneNumbersRaw) ->
             PhoneNumbers = [ Map || Map <- PhoneNumbersRaw, maps:is_key(<<"phone_number">>, Map) ],
             OkkoFun = fun partition_portabilty_result/1,
             kz_okko:foldl(OkkoFun, PhoneNumbers);
         _InvalidObj ->
-            lager:debug("expected a json object with a key of 'phone_numbers' that is a list, not: ~p", [Jobj]),
+            lager:debug("expected a json object with a key of 'phone_numbers' that is a list, not: ~p", [JObj]),
             kz_okko:empty_okko()
     end.
 
-partition_portabilty_result(Jobj) ->
-    PhoneNumber = maps:get(<<"phone_number">>, Jobj),
-    IsPortable = maps:get(<<"portable">>, Jobj, 'false'),
-    case IsPortable of
+partition_portabilty_result(JObj) ->
+    PhoneNumber = maps:get(<<"phone_number">>, JObj),
+    case maps:get(<<"portable">>, JObj, 'false') of
         'false' ->
-            NotPortableReason = maps:get(<<"not_portable_reason">>, Jobj, 'null'),
+            NotPortableReason = maps:get(<<"not_portable_reason">>, JObj, 'null'),
             {'error', {PhoneNumber, NotPortableReason}};
         'true' ->
             {'ok', {PhoneNumber, #{}}}
@@ -249,10 +248,7 @@ should_keep_best_effort() -> {<<"best_effort">>, ?SHOULD_KEEP_BEST_EFFORT}.
 
 -spec portability(kz_term:ne_binaries()) -> kz_json:object().
 portability(Numbers) ->
-    FormattedNumbers = lists:map(
-                         fun(Num) -> kz_json:set_value(<<"phone_number">>, Num, kz_json:new()) end
-                        ,Numbers
-                        ),
+    FormattedNumbers = [ kz_json:set_value(<<"phone_number">>, Num, kz_json:new()) || Num <- Numbers ],
     Req = kz_json:from_list([{<<"phone_numbers">>, FormattedNumbers}]),
     knm_telnyx_util:req('post', ["porting/portability_checks"], Req).
 

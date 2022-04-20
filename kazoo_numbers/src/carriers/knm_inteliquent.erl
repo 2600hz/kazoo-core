@@ -141,24 +141,15 @@ check_portability(Numbers) ->
     %% inteliquent wants numbers normalized different from how kazoo normalizes
     %% them. So, we'll go ahead and do that. But to ensure we provide a valid
     %% response to kazoo, we need to map from the mutilated numbers.
-    StripNumber = fun(<<"+1", Number/binary>>) -> Number;
-                     (<<"+", Number/binary>>) -> Number;
-                     (Number) -> Number
-                  end,
-    StrippedToInputMap = lists:foldl(fun(OriginalNumber, InputMap) ->
-                                             maps:put(StripNumber(OriginalNumber), OriginalNumber, InputMap)
-                                     end, #{}, Numbers),
-                                                % now we can use the keys of our mutilated -> given number to send to intq.
+    StrippedToInputMap = build_input_map(Numbers),
     Stripped = maps:keys(StrippedToInputMap),
-    InnerMostList = lists:map(fun(Number) ->
-                                      kz_json:from_list([{<<"tn">>, Number}])
-                              end, Stripped),
+    InnerMostList = [kz_json:from_list([{<<"tn">>, Number}]) || Number <- Stripped ],
     TnItem = kz_json:from_list([{<<"tnItem">>, InnerMostList}]),
     Payload = kz_json:from_list([{<<"tnList">>, TnItem}]),
     Response = knm_inteliquent_util:safe_request('undefined', [<<"portInAvailability">>], Payload, 'true'),
-                                                % now we have gotten the data back, we need to run a bunch of sanity checks
-                                                % and build up the okko.
-                                                % so first up, did we get a valid json object back?
+    %% now we have gotten the data back, we need to run a bunch of sanity checks
+    %% and build up the okko.
+    %% so first up, did we get a valid json object back?
     ResponseAsMapFun = kz_result:and_then(fun(JObj) ->
                                                   case kz_json:to_map(JObj) of
                                                       Map when is_map(Map) ->
@@ -167,21 +158,50 @@ check_portability(Numbers) ->
                                                           {'error', {'malformed_return_body', [], JObj}}
                                                   end
                                           end),
-                                                % If the inteliquent response says it was a success, it it a success we can
-                                                % actually understand and map back to a number we were given?
+    %% If the inteliquent response says it was a success, is it a success we can
+    %% actually understand and map back to a number we were given?
     MappedSuccessFun = kz_result:map(fun(Success) ->
                                              process_check_portability_success(Success,StrippedToInputMap)
                                      end),
-                                                % If it wasn't a success, we can at least log the error.
-    MappedAndLoggedError = kz_result:map_error(fun(Error) ->
-                                                       process_check_portability_error(Error)
-                                               end),
+    %% If it wasn't a success, we can at least log the error.
+    MappedAndLoggedError = kz_result:map_error(fun process_check_portability_error/1),
     Flowed = kz_result:flow(Response
                             ,[ResponseAsMapFun
                              ,MappedSuccessFun
                              ,MappedAndLoggedError
                              ]),
     kz_result:with_default(Flowed, kz_okko:empty_okko()).
+
+%%------------------------------------------------------------------------------
+%% @doc inteliquent wants numbers normalized differently from how kazoo normalizes
+%% them for many api operations. This does the needful.
+%% @end
+%%------------------------------------------------------------------------------
+-spec kz_number_to_intq(kz_term:ne_binary()) -> kz_term:ne_binary().
+kz_number_to_intq(<<"+1", Number/binary>>) ->
+    Number;
+kz_number_to_intq(<<"+", Number/binary>>) ->
+    Number;
+kz_number_to_intq(Number) ->
+    Number.
+
+%%------------------------------------------------------------------------------
+%% @doc Given a list of kazoo formatted numbers, generate a map of the intq
+%% formatted numbers pointing to the orginal.
+%% @end
+%%------------------------------------------------------------------------------
+-spec build_input_map(kz_term:ne_binaries()) -> #{ kz_term:ne_binary() := kz_term:ne_binary()}.
+build_input_map(KazooNumbers) ->
+    lists:foldl(fun build_input_map_accumulator/2, #{}, KazooNumbers).
+
+%%------------------------------------------------------------------------------
+%% @doc Does the fold above.
+%% @end
+%%------------------------------------------------------------------------------
+-spec build_input_map_accumulator(kz_term:ne_binary(), #{ kz_term:ne_binary() := kz_term:ne_binary()}) -> #{ kz_term:ne_binary() := kz_term:ne_binary()}.
+build_input_map_accumulator(KazooNumber, InputMap) ->
+    StrippedNumber = kz_number_to_intq(KazooNumber),
+    maps:put(StrippedNumber, KazooNumber, InputMap).
 
 %%------------------------------------------------------------------------------
 %% @doc If inteliquent says the operation was successful, in theory we can
