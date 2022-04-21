@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,6 +20,8 @@
         ]).
 
 -export([set_startup/0, startup/0]).
+
+-export([flush_mailbox/0, flush_mailbox/1]).
 
 %%------------------------------------------------------------------------------
 %% @doc Gives `MaxTime' milliseconds to `Fun' of `Arguments' to apply.
@@ -126,3 +128,19 @@ set_startup() ->
 -spec startup() -> kz_time:api_seconds().
 startup() ->
     get('$startup').
+
+-spec flush_mailbox() -> 'ok'.
+flush_mailbox() ->
+    flush_mailbox('false').
+
+%% flush any messages from process' mailbox; log messages if 'true'
+-spec flush_mailbox(boolean()) -> 'ok'.
+flush_mailbox(LogMessage) ->
+    receive
+        Msg when LogMessage ->
+            lager:debug("message in mailbox ~p: ~p", [self(), Msg]),
+            flush_mailbox(LogMessage);
+        _Msg ->
+            flush_mailbox(LogMessage)
+    after 0 -> 'ok'
+    end.
