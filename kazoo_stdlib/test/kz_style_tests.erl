@@ -71,6 +71,10 @@ nested_atom_in_record_reassignemnt_test_() ->
 nested_atom_in_term_in_record_test_() ->
     ?_assertMatch([_, _], call_it(<<"the_function() -> #my_record{ rec_field1 = {bad_atom, 'good_atom'}, rec_field2 = ['good_atom', bad_atom] }.">>)).
 
+%% nested keys in map should be ignored
+nested_atom_in_map_test_() ->
+    ?_assertMatch([], call_it(<<"-type apps() :: #{atom() => #{pid => pid(), ref => reference()}}.">>)).
+
 map_atom_key_in_function_clause_test_() ->
     ?_assertEqual([], call_it(<<"the_function(#{key := Value}) -> Value.">>)).
 

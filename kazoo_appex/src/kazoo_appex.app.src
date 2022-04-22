@@ -1,5 +1,5 @@
 {application,kazoo_appex,
-             [{applications,[compiler,cowboy,crypto,kazoo_data,
+             [{applications,[compiler,cowboy,crypto,kazoo_apps,
                              kazoo_documents,kazoo_stdlib,kazoo_web,kernel,
                              lager,stdlib]},
               {env,[{api_url,undefined},

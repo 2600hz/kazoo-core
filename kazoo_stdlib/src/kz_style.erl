@@ -112,7 +112,7 @@ add_skippable_atoms(Node, SkipNodes, 'record_index') ->
 add_skippable_atoms(Node, SkipNodes, 'remote_type') ->
     add_module_and_function(Node, SkipNodes);
 add_skippable_atoms(Node, SkipNodes, 'type') ->
-    maybe_has_record_name(Node, SkipNodes);
+    handle_type_node(Node, SkipNodes);
 add_skippable_atoms(Node, SkipNodes, 'remote') ->
     add_module_and_function(Node, SkipNodes);
 add_skippable_atoms(Node, SkipNodes, 'call') ->
@@ -133,6 +133,14 @@ add_module_and_function(Node, SkipNodes) ->
     ModuleNode = ktn_code:node_attr('module', Node),
     sets:add_element(FuncNode, sets:add_element(ModuleNode, SkipNodes)).
 
+handle_type_node(Node, SkipNodes) ->
+    lists:foldl(fun(Fun, SN) -> Fun(Node, SN) end
+               ,SkipNodes
+               ,[fun maybe_has_record_name/2
+                ,fun add_skippable_map_keys/2
+                ]
+               ).
+
 maybe_has_record_name(Node, SkipNodes) ->
     maybe_has_record_name(Node, SkipNodes, ktn_code:attr('name', Node)).
 
@@ -148,8 +156,17 @@ add_skippable_map_keys(Node, SkipNodes) ->
     add_skippable_map_keys(Node, SkipNodes, ktn_code:node_attr('content', Node)).
 
 add_skippable_map_keys(Node, SkipNodes, 'undefined') ->
-    MapKey = ktn_code:node_attr('key', Node),
-    sets:add_element(MapKey, SkipNodes);
+    case ktn_code:content(Node) of
+        [MapKey, _Value] ->
+            sets:add_element(MapKey, SkipNodes);
+        _ ->
+            case ktn_code:node_attr('key', Node) of
+                'undefined' ->
+                    SkipNodes;
+                MapKey ->
+                    sets:add_element(MapKey, SkipNodes)
+            end
+    end;
 add_skippable_map_keys(_Node, SkipNodes, Content) ->
     %% 'content' is the internal content (between {...}) of the map syntax
     lists:foldl(fun(N, SNs) ->

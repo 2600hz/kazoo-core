@@ -34,7 +34,8 @@ is_enabled() ->
 
 -spec set_is_enabled(boolean()) -> boolean().
 set_is_enabled(Bool) ->
-    kapps_config:set_boolean(?CONFIG_CAT, <<"enabled">>, Bool).
+    {'ok', _} = kapps_config:set_boolean(?CONFIG_CAT, <<"enabled">>, Bool),
+    Bool.
 
 -spec cluster_id() -> kz_term:ne_binary().
 cluster_id() ->
@@ -46,9 +47,11 @@ cluster_secret() ->
 
 -spec set_cluster_secret(kz_term:ne_binary() | 'null') -> kz_term:api_ne_binary().
 set_cluster_secret('null') ->
-    kapps_config:set(?CONFIG_CAT, <<"cluster_secret">>, 'null');
+    {'ok', _} = kapps_config:set(?CONFIG_CAT, <<"cluster_secret">>, 'null'),
+    'undefined';
 set_cluster_secret(<<ClusterSecret/binary>>) ->
-    kapps_config:set_string(?CONFIG_CAT, <<"cluster_secret">>, ClusterSecret).
+    {'ok', _} = kapps_config:set_string(?CONFIG_CAT, <<"cluster_secret">>, ClusterSecret),
+    ClusterSecret.
 
 -spec app_exchange_url() -> kz_term:api_ne_binary().
 app_exchange_url() ->
@@ -56,9 +59,11 @@ app_exchange_url() ->
 
 -spec set_app_exchange_url(kz_term:ne_binary() | 'null') -> kz_term:api_ne_binary().
 set_app_exchange_url('null') ->
-    kapps_config:set(?CONFIG_CAT, <<"app_exchange_url">>, 'null');
+    {'ok', _} = kapps_config:set(?CONFIG_CAT, <<"app_exchange_url">>, 'null'),
+    'undefined';
 set_app_exchange_url(<<URL/binary>>) ->
-    kapps_config:set_string(?CONFIG_CAT, <<"app_exchange_url">>, URL).
+    {'ok', _} = kapps_config:set_string(?CONFIG_CAT, <<"app_exchange_url">>, URL),
+    URL.
 
 -spec api_url() -> kz_term:api_ne_binary().
 api_url() ->
@@ -66,7 +71,8 @@ api_url() ->
 
 -spec set_api_url(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
 set_api_url(URL) ->
-    kapps_config:set_string(?CONFIG_CAT, <<"api_url">>, URL).
+    {'ok', _} = kapps_config:set_string(?CONFIG_CAT, <<"api_url">>, URL),
+    URL.
 
 -spec marketplace_url() -> kz_term:api_ne_binary().
 marketplace_url() ->
@@ -74,7 +80,8 @@ marketplace_url() ->
 
 -spec set_marketplace_url(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
 set_marketplace_url(URL) ->
-    kapps_config:set_string(?CONFIG_CAT, <<"marketplace_url">>, URL).
+    {'ok', _} = kapps_config:set_string(?CONFIG_CAT, <<"marketplace_url">>, URL),
+    URL.
 
 -spec fetch_timer_s() -> pos_integer().
 fetch_timer_s() ->
@@ -82,7 +89,8 @@ fetch_timer_s() ->
 
 -spec set_fetch_timer_s(kz_term:ne_binary() | pos_integer()) -> pos_integer().
 set_fetch_timer_s(TimeoutS) ->
-    kapps_config:set_integer(?CONFIG_CAT, <<"fetch_timer_s">>, TimeoutS).
+    {'ok', _} = kapps_config:set_integer(?CONFIG_CAT, <<"fetch_timer_s">>, TimeoutS),
+    TimeoutS.
 
 -spec default_value(atom()) -> kz_term:api_ne_binary().
 default_value(Key) ->
