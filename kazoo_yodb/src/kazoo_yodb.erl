@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -579,15 +579,26 @@ get_range(AccountId, From, To) ->
 
 -spec get_range(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()) ->
           kz_term:ne_binaries().
-get_range(Type, AccountId, From, To) ->
+get_range(_Type, AccountId, From, To) ->
     {{FromYear, FromMonth, _}, _} = calendar:gregorian_seconds_to_datetime(From),
     {{ToYear,   ToMonth,   _}, _} = calendar:gregorian_seconds_to_datetime(To),
     [YODb
      || YODb <- get_year_month_sequence(AccountId
                                        ,{FromYear, FromMonth}
                                        ,{ToYear, ToMonth}
-                                       ),
-        kz_datamgr:db_exists(YODb, Type)
+                                       )
+        %% Commenting this out because of KCRO-134.
+        %% Checking for db existence is a side-effect and be better removed.
+        %% But more importantly this will potentially returns and empty list.
+        %% From that ticket it turns out the missing MODb (with no previous MODB since the account is new)
+        %% is causing empty list in crossbar_view which in return falls back and uses AccountDb (which is weird by itself).
+        %%
+        %% Removing this will erase the side-effect aspect of this function. All other places that use this function
+        %% can use get_results from this module to properly handle missing db (and by kz_datamgr proxy, missing views)
+        %% and get appropriate db_not_found error.
+        %%
+        %%
+        %% kz_datamgr:db_exists(YODb, Type)
     ].
 
 -type year_month_tuple() :: {kz_time:year(), kz_time:month()}.
