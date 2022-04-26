@@ -219,12 +219,33 @@ hide_number(JObj, _Method) ->
            ,<<"Caller-ID-Number">>
            ],
     AnonymousNumber = anonymous_caller_id_number(),
+    Ret =
     lists:foldl(fun(Key, J) ->
                         kz_json:set_value(Key, AnonymousNumber, J)
                 end
                ,JObj
                ,Keys
-               ).
+               ),
+    maybe_anonymize_ccv_from_uri(Ret).
+
+%%------------------------------------------------------------------------------
+%% @doc If CCV->From-URI is defined, anonymize it (replace number from URI).
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_anonymize_ccv_from_uri(kz_json:object()) -> kz_json:object().
+maybe_anonymize_ccv_from_uri(JObj) ->
+    Key = [<<"Custom-Channel-Vars">>, <<"From-URI">>],
+    case kz_json:get_binary_value(Key, JObj) of
+        'undefined' ->
+            JObj;
+        FromURI ->
+            [_, Realm] = binary:split(FromURI, <<"@">>),
+            kz_json:set_value(Key
+                             ,<<"sip:", (anonymous_caller_id_number())/binary, "@", Realm/binary>>
+                             ,JObj
+                             )
+    end.
+
 
 -spec maybe_endpoints(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
 maybe_endpoints(JObj, Method) ->
