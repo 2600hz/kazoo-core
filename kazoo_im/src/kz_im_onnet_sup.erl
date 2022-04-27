@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,7 +21,7 @@
 
 -export([init/1]).
 
--define(CHILDREN, [?WORKER_ARGS_TYPE('kz_im_onnet', [], 'temporary')]).
+-define(CHILDREN, [?WORKER('kz_im_onnet')]).
 
 %% ===================================================================
 %% API functions

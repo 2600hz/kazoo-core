@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -73,8 +73,15 @@ description(IM) ->
                    ," from "
                    ,kapps_im:from(IM)
                    ," to "
-                   ,kapps_im:to(IM)
+                   ,kz_binary:join(to(IM))
                    ]).
+
+-spec to(kapps_im:im()) -> kz_term:ne_binaries().
+to(IM) ->
+    case kapps_im:to(IM) of
+        To when is_binary(To) -> [To];
+        ToList when is_list(ToList) -> ToList
+    end.
 
 %%%------------------------------------------------------------------------------
 %%% @doc
