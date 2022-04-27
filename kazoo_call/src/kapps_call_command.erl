@@ -2822,7 +2822,7 @@ wait_for_headless_application(Application, Event, Type, Fun, Timeout) ->
                         'true' -> Ok;
                         'false' ->
                             lager:debug_unsafe("failed to validate received stop event ~s for ~s : ~s"
-                                              ,[Event, Application, kz_json:encode(JObj, ['pretty'])]
+                                              ,[Event, Application, kz_json:encode(JObj)]
                                               ),
                             wait_for_headless_application(Application, Event, Type, Fun, kz_time:decr_timeout(Timeout, Start))
                     end;
@@ -2978,8 +2978,9 @@ check_for_bridge_event(_Timeout, _OnBridgeFun, _Call, _Start, EventJObj, {<<"cal
     lager:info("channel disconnected while waiting for bridge"),
     {'ok', EventJObj};
 check_for_bridge_event(Timeout, OnBridgeFun, Call, Start, EventJObj, {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"bridge">>}) ->
-    check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj, bridge_hangup_cause(EventJObj));
+    check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj);
 check_for_bridge_event(Timeout, OnBridgeFun, Call, Start, _EventJObj, _E) ->
+    lager:info("unhandled event checking for bridge event ~p", [_E]),
     NewTimeout = kz_time:decr_timeout(Timeout, Start),
     NewStart = kz_time:start_time(),
     wait_for_bridge(NewTimeout, OnBridgeFun, Call, NewStart, receive_event(NewTimeout)).
@@ -2989,6 +2990,16 @@ maybe_relay_bridge_event(OnBridgeFun, EventJObj) when is_function(OnBridgeFun, 1
     catch(OnBridgeFun(EventJObj)),
     'ok';
 maybe_relay_bridge_event(_, _) -> 'ok'.
+
+check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj) ->
+    FetchId = kz_call_event:custom_channel_var(EventJObj, <<"Fetch-ID">>),
+    case kapps_call:fetch_id(Call) =:= FetchId of
+        true ->
+            check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj, bridge_hangup_cause(EventJObj));
+        false ->
+            lager:debug("bridge complete for different fetch-id ~s vs ~s", [kapps_call:fetch_id(Call), FetchId]),
+            wait_for_bridge(?MAX_WAIT_MS, OnBridgeFun, Call)
+    end.
 
 check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, _EventJObj, <<"PICKED_OFF">>) ->
     lager:info("bridge was intercepted, waiting for new bridge"),
