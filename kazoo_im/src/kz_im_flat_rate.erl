@@ -73,8 +73,15 @@ description(IM) ->
                    ," from "
                    ,kapps_im:from(IM)
                    ," to "
-                   ,kapps_im:to(IM)
+                   ,kz_binary:join(to(IM))
                    ]).
+
+-spec to(kapps_im:im()) -> kz_term:ne_binaries().
+to(IM) ->
+    case kapps_im:to(IM) of
+        To when is_binary(To) -> [To];
+        ToList when is_list(ToList) -> ToList
+    end.
 
 %%%------------------------------------------------------------------------------
 %%% @doc
