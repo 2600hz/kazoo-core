@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -42,6 +42,7 @@
 -export([play_welcome/1, play_welcome/2, set_play_welcome/2]).
 -export([profile/1, profile/2, set_profile/2]).
 -export([profile_name/1, profile_name/2, set_profile_name/2]).
+-export([base_profile_name/1, base_profile_name/2, set_base_profile_name/2]).
 -export([require_moderator/1, require_moderator/2, set_require_moderator/2]).
 -export([wait_for_moderator/1, wait_for_moderator/2, set_wait_for_moderator/2]).
 -export([on_enter_extension/1, set_on_enter_extension/2]).
@@ -442,6 +443,18 @@ profile_name(Doc, Default) ->
 -spec set_profile_name(doc(), binary()) -> doc().
 set_profile_name(Doc, ProfileName) ->
     kz_json:set_value([<<"profile_name">>], ProfileName, Doc).
+
+-spec base_profile_name(doc()) -> kz_term:api_binary().
+base_profile_name(Doc) ->
+    base_profile_name(Doc, 'undefined').
+
+-spec base_profile_name(doc(), Default) -> binary() | Default.
+base_profile_name(Doc, Default) ->
+    kz_json:get_binary_value([<<"base_profile_name">>], Doc, Default).
+
+-spec set_base_profile_name(doc(), binary()) -> doc().
+set_base_profile_name(Doc, ProfileName) ->
+    kz_json:set_value([<<"base_profile_name">>], ProfileName, Doc).
 
 -spec require_moderator(doc()) -> kz_term:api_boolean().
 require_moderator(Doc) ->
