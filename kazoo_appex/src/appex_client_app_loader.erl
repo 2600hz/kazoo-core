@@ -54,6 +54,7 @@ try_start_app(Type, {App, AppMod, StartArgs}, Counter) ->
 stop({?MODULE, {App, AppMod}, State}) ->
     appex_app_master:stop_app(App, {AppMod, State}).
 
+-spec try_fetch_license(atom()) -> boolean().
 try_fetch_license(App) ->
     case appex_client_client:fetch_license(App) of
         {'ok', JObj} ->
@@ -75,7 +76,7 @@ install_license(App, JObj, [Feature|Features]) ->
     _ = install_license(App, Feature, Expiration, Type, License),
     install_license(App, JObj, Features).
 
--spec install_license(atom(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec install_license(atom(), kz_term:ne_binary(), integer(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 install_license(App, Feature, Expiration, Type, License) ->
     AppName = kz_term:to_binary(App),
     _ = kapps_config:set_string(?LICENSES_CAT, [AppName, Feature, <<"license">>], License),
