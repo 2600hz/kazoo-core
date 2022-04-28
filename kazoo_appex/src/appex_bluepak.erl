@@ -303,7 +303,7 @@ api_url() ->
     end.
 
 extract(Archive) ->
-    try erl_tar:extract({binary, Archive}, [compressed, memory])
+    try erl_tar:extract({'binary', Archive}, ['compressed', 'memory'])
     catch
         _E:_T:_ST ->
             lager:debug("cannot extract the archive, bad archive?"),
@@ -435,7 +435,7 @@ minimal_app_sup(App) ->
 handle_dot_app_file(Bin, LoadApp) ->
     {'ok', Tokens, _EndLocation} = erl_scan:string(binary_to_list(Bin)),
     %% {'application', Module, ...}
-    {'ok', AppFileTerms = {application, App, AppConfig}} = erl_parse:parse_term(Tokens),
+    {'ok', AppFileTerms = {'application', App, AppConfig}} = erl_parse:parse_term(Tokens),
     NewLoad = LoadApp#load_app{app_spec=AppFileTerms
                               ,app_name=kz_term:to_binary(App)
                               },

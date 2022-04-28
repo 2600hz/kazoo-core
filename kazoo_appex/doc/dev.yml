@@ -1,0 +1,3 @@
+  - 'AppEx Client - Manages Kazoo apps from the App Exchange':
+    - 'core/kazoo_appex/doc/appex_client_maintenance.md'
+    - 'core/kazoo_appex/doc/architecture.md'

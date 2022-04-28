@@ -54,15 +54,15 @@
        ).
 -type fetch() :: #fetch{}.
 -type fetches() :: [fetch()].
--type apps() :: #{App::atom() => #{pid => pid()
-                                  ,ref => reference()
-                                  }
+-type apps() :: #{atom() => #{pid => pid()
+                             ,ref => reference()
+                             }
                  }.
--type running_pid_ref() :: #{{Pid::pid(), Ref::reference()} => App::atom()}.
+-type running_pid_ref() :: #{{pid(), reference()} => atom()}.
 -record(state, {list_fetch_timer :: kz_term:api_reference()
                ,list_fetch_pid_ref :: kz_term:api_pid_ref()
                ,fetchings = [] :: fetches()
-               ,listed = kz_json:new() :: kz_json:object()
+               ,listed = [] :: kz_json:objects()
                ,loaded = [] :: kz_term:atoms()
                ,running = #{} :: apps()
                ,running_pid_ref = #{} :: running_pid_ref()
@@ -81,7 +81,7 @@
 start_link() ->
     gen_server:start_link({'local', ?MODULE}, ?MODULE, [], []).
 
--spec listings() -> kz_json:object().
+-spec listings() -> kz_json:objects().
 listings() ->
     gen_server:call(?MODULE, 'listings').
 
@@ -419,7 +419,7 @@ handle_error(_E) ->
 -spec receive_response(reference(), map()) ->
           {'continue', map()} |
           {'finished', map()} |
-          {'redirect', string()} |
+          {'redirect', kz_term:api_string()} |
           {'error', any()}.
 receive_response(ReqId, #{resp_body := Body}=Listing) ->
     receive
@@ -468,7 +468,7 @@ receive_response(ReqId, #{resp_body := Body}=Listing) ->
     end.
 
 -spec receive_app(reference(), map()) ->
-          'ok' |
+          {'ok', atom()} |
           {'error', any()} |
           {'redirect', kz_term:api_string()}.
 receive_app(ReqId, Fetch) ->
@@ -596,7 +596,7 @@ fetch_app(ExternalApp, AppMeta) ->
     AppLink = app_link(ClusterId, ExternalApp),
 
     not kz_term:is_ne_binary(AppLink)
-        andalso throw({error, no_app_link}),
+        andalso throw({'error', 'no_app_link'}),
 
     Url = appex_server_url([<<"api/">>, AppLink]),
 
@@ -716,11 +716,13 @@ post_config_to_exchange() ->
 %% configs() ->
 %%     appex_client_config:system_configs('true').
 
--spec fetch_license(atom()) -> {'error', kz_json:object()} | {'ok', kz_json:object()}.
+-spec fetch_license(atom()) ->
+          {'ok', kz_json:object()} |
+          {'error', kz_term:ne_binary() | kz_json:object()}.
 fetch_license('undefined') ->
-    {'error', 'no_app_name'};
+    {'error', <<"no app name">>};
 fetch_license(App) ->
-    {ok, Vsn} = application:get_key(App, 'vsn'),
+    {'ok', Vsn} = application:get_key(App, 'vsn'),
     AppName = kz_term:to_binary(App),
     Headers = appex_server_authorization_header(),
     ClusterId = appex_client_config:cluster_id(),
@@ -737,20 +739,20 @@ fetch_license(App) ->
             case kz_json:get_value(<<"error">>, JObj) of
                 'undefined' ->
                     case kz_json:get_value(<<"data">>, JObj) of
-                        'null' -> {'error', "no license"};
-                        'undefined' -> {'error', "no license"};
+                        'null' -> {'error', <<"no license">>};
+                        'undefined' -> {'error', <<"no license">>};
                         Data -> {'ok', kz_json:get_json_value(AppName, Data, Data)}
                     end;
                 _Error ->
                     lager:info("can not get license for app ~p: ", [AppName, _Error]),
-                    {'error', "error to get license"}
+                    {'error', <<"error to get license">>}
             end;
         {'ok', _Code, _RespHeaders, RespBody} ->
             Err = kz_json:get_value(<<"error">>, RespBody, "InternalServerError"),
             lager:debug("unexpected code ~s when getting license for app ~s: ~p", [_Code, AppName, Err]),
-            {'error', "error to get license"};
+            {'error', <<"error to get license">>};
         {'error', _} ->
-            {'error', "can not connect to server"}
+            {'error', <<"can not connect to server">>}
     end.
 
 -spec link_cluster(kz_json:object()) ->
@@ -784,9 +786,6 @@ link_cluster(ReqData) ->
 process_link_cluster(ReqData, Body) ->
     ShouldRestart = kz_json:is_true(<<"restart_appex_client">>, ReqData),
     case kz_json:get_ne_json_value([<<"data">>, <<"attributes">>], Body) of
-        'null' ->
-            lager:debug("git bad response data from appex server: null"),
-            internal_server_error();
         'undefined' ->
             lager:debug("git bad response data from appex server: undefined"),
             internal_server_error();
@@ -862,9 +861,6 @@ unlink_cluster() ->
 
 process_unlink_cluster(Body) ->
     case kz_json:get_ne_json_value([<<"data">>, <<"attributes">>], Body) of
-        'null' ->
-            lager:debug("git bad response data from appex server: null"),
-            internal_server_error();
         'undefined' ->
             lager:debug("git bad response data from appex server: undefined"),
             internal_server_error();
