@@ -9,7 +9,7 @@
 %%%-----------------------------------------------------------------------------
 -module(appex_bluepak).
 
--export([load_app/3
+-export([load_app/4
 
         ,base_path/0
         ]).
@@ -18,6 +18,7 @@
 
 -record(load_app, {app_metadata :: kz_json:api_object()
                   ,app_name :: kz_term:api_ne_binary()
+                  ,parent_app :: kz_term:api_atom()
                   ,app_spec :: {'application', module(), kz_term:proplist()} | 'undefined'
                   ,app_type :: atom()
                   ,app :: atom()
@@ -31,9 +32,9 @@
                   }).
 -type load_app() :: #load_app{}.
 
--spec load_app(App::atom(), Archive::binary(), ContentType::string() | 'undefined') ->
+-spec load_app(ParentApp::atom(), App::atom(), Archive::binary(), ContentType::string() | 'undefined') ->
           {'ok', atom()} | {'error', any()}.
-load_app(App, Archive, ContentType) ->
+load_app(ParentApp, App, Archive, ContentType) ->
     case app_type(ContentType) of
         'unknown' ->
             lager:error("content-type not supported: ~s", [ContentType]),
@@ -47,7 +48,7 @@ load_app(App, Archive, ContentType) ->
                     lager:error("invalid erlang app, acrhive contained no .app"),
                     {'error', 'no_app_spec'};
                 {'ok', #load_app{app_spec={'application', App, _}}=LoadApp} ->
-                    load_app(LoadApp);
+                    load_app(LoadApp#load_app{parent_app = ParentApp});
                 {'ok', #load_app{app_spec={'application', OtherApp, _}}} ->
                     lager:error("invalid app, expected ~s got ~s", [App, OtherApp]),
                     {'error', 'bad_app'};
@@ -148,11 +149,16 @@ load_beams(Filename, Bin, {'ok', #load_app{loaded_mods=Loaded}=LoadApp}) ->
     end.
 
 -spec adjust_dot_app(load_app()) -> {'ok', load_app()}.
-adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}}=LoadApp) ->
+adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}, parent_app=ParentApp}=LoadApp) ->
     {AppMod, StartArgs} = props:get_value('mod', AppConfig),
     Env = props:get_value('env', AppConfig, []),
-    NewConfig = props:set_values([{'mod', {'appex_client_app_loader', {App, AppMod, StartArgs}}}
-                                 ,{'env', props:set_value('app_mod', AppMod, Env)}
+    NewConfig = props:set_values([{'mod', {'appex_client_app_loader', {ParentApp, App, AppMod, StartArgs}}}
+                                 ,{'env', props:set_values([{'app_mod', AppMod}
+                                                           ,{'parent_app', ParentApp}
+                                                           ]
+                                                          ,Env
+                                                          )
+                                  }
                                  ]
                                 ,AppConfig
                                 ),

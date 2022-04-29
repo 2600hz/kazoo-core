@@ -14,6 +14,7 @@
         ,cluster_secret/0, set_cluster_secret/1
         ,app_exchange_url/0, set_app_exchange_url/1
         ,fetch_timer_s/0, set_fetch_timer_s/1
+        ,http_timeout_s/0, set_http_timeout_s/1
         ,api_url/0, set_api_url/1
         ,marketplace_url/0, set_marketplace_url/1
 
@@ -90,6 +91,15 @@ fetch_timer_s() ->
 -spec set_fetch_timer_s(kz_term:ne_binary() | pos_integer()) -> pos_integer().
 set_fetch_timer_s(TimeoutS) ->
     {'ok', _} = kapps_config:set_integer(?CONFIG_CAT, <<"fetch_timer_s">>, TimeoutS),
+    TimeoutS.
+
+-spec http_timeout_s() -> pos_integer().
+http_timeout_s() ->
+    kapps_config:get_integer(?CONFIG_CAT, <<"http_timeout_s">>, ?SECONDS_IN_MINUTE).
+
+-spec set_http_timeout_s(pos_integer()) -> pos_integer().
+set_http_timeout_s(TimeoutS) ->
+    {'ok', _} = kapps_config:set_integer(?CONFIG_CAT, <<"http_timeout_s">>, TimeoutS),
     TimeoutS.
 
 -spec default_value(atom()) -> kz_term:api_ne_binary().
