@@ -71,6 +71,14 @@ assets_dir(BasePath, AppDir) ->
     filename:join([BasePath, AppDir, "priv", "assets"]).
 
 -spec asset_path(kz_term:ne_binary(), kz_term:ne_binary(), file:name_all()) -> kz_term:ne_binary().
+asset_path(BasePath, AppDir, "/priv/assets/"++AssetFile) ->
+    asset_path(BasePath, AppDir, AssetFile);
+asset_path(BasePath, AppDir, <<"/priv/assets/", AssetFile/binary>>) ->
+    asset_path(BasePath, AppDir, AssetFile);
+asset_path(BasePath, AppDir, "priv/assets/"++AssetFile) ->
+    asset_path(BasePath, AppDir, AssetFile);
+asset_path(BasePath, AppDir, <<"priv/assets/", AssetFile/binary>>) ->
+    asset_path(BasePath, AppDir, AssetFile);
 asset_path(BasePath, AppDir, AssetFile) ->
     filename:join([assets_dir(BasePath, AppDir), AssetFile]).
 

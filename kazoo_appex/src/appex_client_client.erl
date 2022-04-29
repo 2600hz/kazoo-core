@@ -39,7 +39,7 @@
 %% internal usage
 -export([controller_fetch_app/2
         ,post_config_to_exchange/0
-        ,fetch_license/1
+        ,fetch_license/2
         ]).
 
 -include("appex_client.hrl").
@@ -68,6 +68,8 @@
                ,running_pid_ref = #{} :: running_pid_ref()
                }).
 -type state() :: #state{}.
+
+-define(HTTP_FETCH_TIMEOUT, appex_client_config:http_timeout_s() * ?MILLISECONDS_IN_SECOND).
 
 %%%=============================================================================
 %%% API
@@ -104,7 +106,7 @@ stop_running(App) ->
 -spec controller_fetch_app(pid(), external_app()) -> boolean().
 controller_fetch_app(Pid, App) ->
     is_process_alive(Pid)
-        andalso gen_server:call(Pid, {'fetch_app', App}).
+        andalso gen_server:call(Pid, {'fetch_app', App}, ?HTTP_FETCH_TIMEOUT).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -344,11 +346,7 @@ appex_server_authorization_header() ->
     [{<<"authorization">>, <<"APPEX ", Secret/binary>>}].
 
 appex_server_url(Path) ->
-    kz_term:to_binary(
-      [appex_client_config:app_exchange_url()
-      | Path
-      ]
-     ).
+    uri_string:resolve(kz_term:to_binary(Path), appex_client_config:app_exchange_url()).
 
 -spec reply_to(pid(), listing_resp()) -> listing_resp() | {'listing', listing_resp()}.
 reply_to(Pid, Resp) -> Pid ! {'listing', Resp}.
@@ -422,6 +420,7 @@ handle_error(_E) ->
           {'redirect', kz_term:api_string()} |
           {'error', any()}.
 receive_response(ReqId, #{resp_body := Body}=Listing) ->
+    Timeout = ?HTTP_FETCH_TIMEOUT,
     receive
         {'error', Error} ->
             handle_error(Error);
@@ -445,7 +444,7 @@ receive_response(ReqId, #{resp_body := Body}=Listing) ->
                          }}} when 300 =< RespCode
                                   andalso RespCode < 400 ->
             note_request_id(RespHeaders),
-            lager:error("got redirect: ~p", [RespCode]),
+            lager:debug("got redirect url for app"),
             {'redirect', kz_http_util:get_resp_header("location", RespHeaders)};
         {'http', {ReqId, {'error', E}}} ->
             handle_error(E);
@@ -462,7 +461,7 @@ receive_response(ReqId, #{resp_body := Body}=Listing) ->
             lager:info("ignoring ~p", [_Msg]),
             receive_response(ReqId, Listing)
     after
-        5 * ?MILLISECONDS_IN_SECOND ->
+        Timeout ->
             lager:error("timed out waiting for http response"),
             {'error', 'timeout'}
     end.
@@ -475,23 +474,19 @@ receive_app(ReqId, Fetch) ->
     case receive_response(ReqId, Fetch) of
         {'continue', Fetch1} -> receive_response(ReqId, Fetch1);
         {'finished', Fetch1} -> handle_received_app(Fetch1);
-        {'redirect', _}=Redirect -> receive_redirect_app(ReqId, Fetch, Redirect);
+        {'redirect', _}=Redirect -> Redirect;
         {'error', _E}=Error -> Error
     end.
-
--spec receive_redirect_app(reference(), map(), {'redirect', kz_term:api_string()}) -> {'redirect', kz_term:api_string()}.
-receive_redirect_app(ReqId, Fetch, Redirect) ->
-    _ = receive_response(ReqId, Fetch),
-    Redirect.
 
 -spec handle_received_app(map()) -> {'ok', atom()} | {'error', any()}.
 handle_received_app(#{resp_body := Archive
                      ,resp_headers := RespHeaders
                      ,app_name := AppName
+                     ,parent_app := ParentApp
                      }) ->
     note_request_id(RespHeaders),
     CT = props:get_value("content-type", RespHeaders),
-    try appex_bluepak:load_app(AppName, Archive, CT) of
+    try appex_bluepak:load_app(ParentApp, AppName, Archive, CT) of
         {'ok', App} -> {'ok', App};
         {'error', _}=Error -> Error
     catch
@@ -601,19 +596,41 @@ fetch_app(ExternalApp, AppMeta) ->
     Url = appex_server_url([<<"api/">>, AppLink]),
 
     lager:debug("fetching app ~s (as dependency for ~s)", [App, ParentApp]),
-    case kz_http:async_req(self(), 'get', Url, Headers, <<>>, req_options()) of
+    case kz_http:async_req(self(), 'get', Url, Headers, <<>>, fetch_app_options()) of
         {'http_req_id', ReqId} ->
             FetchParams = #{cluster_id => ClusterId
                            ,resp_body => <<>>
                            ,start => kz_time:now()
                            ,app_name => external_app(ExternalApp)
                            ,app_meta => AppMeta
+                           ,parent_app => ParentApp
                            },
             maybe_redirect(receive_app(ReqId, FetchParams), FetchParams);
         {'error', _Reason}=Error ->
             lager:error("failed to query for ~s: ~p", [AppLink, _Reason]),
             Error
     end.
+
+-spec fetch_app_options() -> kz_term:proplist().
+fetch_app_options() ->
+    %% SSLOptions = lists:foldl(fun(F, Acc) -> F(Acc) end
+    %%                         ,[]
+    %%                         ,[fun cacert/1]
+    %%                         ),
+    %% [{'ssl', SSLOptions}
+    [{'timeout', ?HTTP_FETCH_TIMEOUT}
+    ,{'connect_timeout', 30 * ?MILLISECONDS_IN_SECOND}
+    ,{'autoredirect', 'false'}
+    ].
+
+%% -spec cacert(kz_term:proplist()) -> kz_term:proplist().
+%% cacert(Acc) ->
+%%     case application:get_env('appex_client', 'cacert') of
+%%         'undefined' -> Acc;
+%%         CACert ->
+%%             lager:debug("including server cert from .app"),
+%%             [{'cacerts', [CACert]} | Acc]
+%%     end.
 
 -spec maybe_redirect({'ok', atom()} | {'error', any()} | {'redirect', kz_term:api_string()}, map()) ->
           {'ok', atom()} |
@@ -669,25 +686,6 @@ internal_fetch_app_result({'error', _Reason}, App, From) ->
 internal_fetch_app_result({'ok', _App}, _, From) ->
     gen_server:reply(From, 'true').
 
--spec req_options() -> kz_term:proplist().
-req_options() ->
-    SSLOptions = lists:foldl(fun(F, Acc) -> F(Acc) end
-                            ,[]
-                            ,[fun cacert/1]
-                            ),
-    [{'ssl', SSLOptions}
-    ,{'autoredirect', 'true'}
-    ].
-
--spec cacert(kz_term:proplist()) -> kz_term:proplist().
-cacert(Acc) ->
-    case application:get_env('appex_client', 'cacert') of
-        'undefined' -> Acc;
-        CACert ->
-            lager:debug("including server cert from .app"),
-            [{'cacerts', [CACert]} | Acc]
-    end.
-
 -spec note_request_id(kz_term:proplist()) -> 'ok'.
 note_request_id(RespHeaders) ->
     RequestId = kz_http_util:get_resp_header("x-request-id", RespHeaders),
@@ -716,23 +714,16 @@ post_config_to_exchange() ->
 %% configs() ->
 %%     appex_client_config:system_configs('true').
 
--spec fetch_license(atom()) ->
+-spec fetch_license(atom(), atom()) ->
           {'ok', kz_json:object()} |
           {'error', kz_term:ne_binary() | kz_json:object()}.
-fetch_license('undefined') ->
+fetch_license(_, 'undefined') ->
     {'error', <<"no app name">>};
-fetch_license(App) ->
-    {'ok', Vsn} = application:get_key(App, 'vsn'),
+fetch_license(ParentApp, App) ->
     AppName = kz_term:to_binary(App),
     Headers = appex_server_authorization_header(),
     ClusterId = appex_client_config:cluster_id(),
-    URL = appex_server_url(
-            [kz_binary:join(
-               [<<"api/appex/license">>, ClusterId, <<"packages">>, AppName], <<"/">>
-              )
-            ,kz_binary:format("?version=~s", [Vsn])
-            ]
-           ),
+    URL = fetch_license_url(ClusterId, kz_term:to_binary(ParentApp), AppName),
     case kz_http:get(URL, Headers) of
         {'ok', Code, _RespHeaders, RespBody} when Code =< 400 ->
             JObj = kz_json:decode(RespBody, decode_error(Code)),
@@ -749,11 +740,16 @@ fetch_license(App) ->
             end;
         {'ok', _Code, _RespHeaders, RespBody} ->
             Err = kz_json:get_value(<<"error">>, RespBody, "InternalServerError"),
-            lager:debug("unexpected code ~s when getting license for app ~s: ~p", [_Code, AppName, Err]),
+            lager:debug("unexpected code ~b when getting license for app ~s: ~p", [_Code, AppName, Err]),
             {'error', <<"error to get license">>};
         {'error', _} ->
             {'error', <<"can not connect to server">>}
     end.
+
+fetch_license_url(ClusterId, AppName, AppName) ->
+    appex_server_url([kz_binary:join([<<"api/appex/license">>, ClusterId, <<"packages">>, AppName], <<"/">>)]);
+fetch_license_url(ClusterId, ParentApp, AppName) ->
+    appex_server_url([kz_binary:join([<<"api/appex/license">>, ClusterId, <<"packages">>, ParentApp, AppName], <<"/">>)]).
 
 -spec link_cluster(kz_json:object()) ->
           {'ok' | 'error', kz_json:object()}.

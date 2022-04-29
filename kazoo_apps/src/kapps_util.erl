@@ -743,7 +743,7 @@ meta_kazoo_version() ->
         {'ok', Bin} ->
             %% VERSION is Major.Minor-Release: 5.0-63
             [VersionRaw|_] = string:split(string:trim(Bin), <<$\n>>),
-            case kz_term:from_centos_version(VersionRaw) of
+            case kz_semver:from_centos_version(VersionRaw) of
                 {'ok', Version} -> Version;
                 {'error', _Reason} ->
                     lager:debug("invalid kazoo version '~p': ~p", [VersionRaw, _Reason]),
@@ -774,7 +774,7 @@ monsterui_version() ->
         {'ok', Bin} ->
             %% VERSION is Major.Minor-Release: 5.0-63
             [VersionRaw|_] = string:split(string:trim(Bin), <<$\n>>),
-            case kz_term:from_centos_version(VersionRaw) of
+            case kz_semver:from_centos_version(VersionRaw) of
                 {'ok', Version} -> Version;
                 {'error', _Reason} ->
                     lager:debug("invalid monster ui version '~p': ~p", [VersionRaw, _Reason]),
@@ -792,7 +792,7 @@ commland_version() ->
         {'ok', Bin} ->
             %% VERSION is Major.Minor-Release: 5.0-63
             [VersionRaw|_] = string:split(string:trim(Bin), <<$\n>>),
-            case kz_term:from_centos_version(VersionRaw) of
+            case kz_semver:from_centos_version(VersionRaw) of
                 {'ok', Version} -> Version;
                 {'error', _Reason} ->
                     lager:debug("invalid commland core version '~p': ~p", [VersionRaw, _Reason]),
