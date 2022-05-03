@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc map utilities
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,6 +15,7 @@
 
 -export([merge/2, merge/3]).
 -export([get/2, get/3]).
+-export([put/3, put/4]).
 -export([keys_to_atoms/1, keys_to_atoms/2]).
 -export([exec/2]).
 
@@ -92,6 +93,39 @@ get(NotAList, Value, Default)
     get([NotAList], Value, Default);
 get([], Value, _) -> Value.
 
+-spec put(term(), map(), term()) -> term().
+put(Key, Map, Value) ->
+    put(Key, Map, Value, #{}).
+
+-spec put(term(), map(), term(), map()) -> term().
+put(NotAList, Map, Value, Options)
+  when not is_list(NotAList) ->
+    put([NotAList], Map, Value, Options);
+put([Key|Rest], Map, Value, Options) ->
+    case maps:get(Key, Map, {?MODULE, undefined}) of
+        {?MODULE, undefined} ->
+            put_value(Map#{Key => put(Rest, maps:new(), Value, Options)}, Options);
+        NestedMap ->
+            put_value(Map#{Key => put(Rest, NestedMap, Value, Options)}, Options)
+    end;
+put([], Map, Value, Options)
+  when is_map(Value) ->
+    case maps:get(merge, Options, false) of
+        true -> put_value(merge(Map, Value), Options);
+        _Other -> put_value(Value, Options)
+    end;
+put([], _Map, Value, _Options) -> Value.
+
+put_value(Map, Options) ->
+    case maps:get(filter, Options, true) of
+        true -> maps:filter(fun put_filter/2, Map);
+        _Other -> Map
+    end.
+
+put_filter(_K, undefined) -> false;
+put_filter(_K, null) -> false;
+put_filter(_K, nil) -> false;
+put_filter(_K, _V) -> true.
 
 -spec keys_to_atoms(map()) -> map().
 keys_to_atoms(Map) ->
