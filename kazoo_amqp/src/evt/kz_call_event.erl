@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2021, 2600Hz
+%%% @copyright (C) 2015-2022, 2600Hz
 %%% @doc Call Event JSON Object
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -57,6 +57,11 @@
         ,callee_id/1, callee_id_number/1, callee_id_name/1
         ,recording_length/1
         ,fetch_id/1
+        ]).
+
+-export([transfer_disposition/1
+        ,transfer_leg/1
+        ,transfer_destination/1
         ]).
 
 -type payload() :: kz_json:object().
@@ -335,3 +340,15 @@ fetch_id(JObj) ->
 -spec endpoint_disposition(payload()) -> kz_term:api_ne_binary().
 endpoint_disposition(JObj) ->
     kz_json:get_ne_binary_value(<<"Endpoint-Disposition">>, JObj).
+
+-spec transfer_disposition(payload()) -> kz_term:api_ne_binary().
+transfer_disposition(JObj) ->
+    kz_json:get_ne_binary_value(<<"Transfer-Disposition">>, JObj).
+
+-spec transfer_leg(payload()) -> kz_term:api_ne_binary().
+transfer_leg(JObj) ->
+    kz_json:get_ne_binary_value(<<"Transfer-Leg">>, JObj).
+
+-spec transfer_destination(payload()) -> kz_term:api_ne_binary().
+transfer_destination(JObj) ->
+    kz_json:get_ne_binary_value(<<"Transfer-Destination">>, JObj).
