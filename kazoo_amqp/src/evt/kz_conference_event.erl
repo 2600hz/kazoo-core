@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2020, 2600Hz
+%%% @copyright (C) 2017-2022, 2600Hz
 %%% @doc FreeSWITCH proplists
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -20,6 +20,7 @@
         ,custom_channel_vars/1
         ,conference_channel_vars/1
         ,custom_application_vars/1
+        ,conference_vars/1
         ,join_time/1, join_time/2
         ,core_uuid/1
         ,switch_url/1, switch_uri/1, switch_hostname/1
@@ -52,6 +53,9 @@ conference_channel_vars(JObj) -> kz_json:get_json_value(<<"Conference-Channel-Va
 
 -spec custom_application_vars(payload()) -> payload().
 custom_application_vars(JObj) -> kz_json:get_json_value(<<"Custom-Application-Vars">>, JObj).
+
+-spec conference_vars(payload()) -> payload().
+conference_vars(JObj) -> kz_json:get_json_value(<<"Conference-Vars">>, JObj).
 
 -spec event(payload()) -> kz_term:api_binary().
 event(JObj) ->

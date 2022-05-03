@@ -17,39 +17,35 @@
 
 -include("kazoo_directory.hrl").
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId) ->
     profile(EndpointId, AccountId, []).
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
+    case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
+        {'ok', Profile} -> {'ok', Profile};
+        {'error', 'not_found'} -> fetch_profile(EndpointId, AccountId, Options)
+    end.
+
+-spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+fetch_profile(EndpointId, AccountId, Options) ->
     case kz_endpoint:get(EndpointId, AccountId, Options) of
-        {'ok', Endpoint} -> profile(EndpointId, AccountId, Endpoint, Options);
+        {'ok', Endpoint} -> fetch_profile(EndpointId, AccountId, Endpoint, Options);
         Error -> Error
     end.
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-profile(EndpointId, AccountId, Endpoint, Options) ->
+-spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
     case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
         <<"device">> ->
             case get_device_module(Endpoint) of
-                'undefined' -> {'error', 'not_device'};
-                Module -> profile(EndpointId, AccountId, Endpoint, Options, Module)
+                'undefined' -> {'error', 'no_device_module'};
+                Module -> build_and_cache(EndpointId, AccountId, Endpoint, Options, Module)
             end;
         _Type ->
             lager:debug("endpoint type ~s", [_Type]),
             {'error', 'not_device'}
-    end.
-
--spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
-profile(EndpointId, AccountId, Endpoint, Options, Module) ->
-    case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
-        {'ok', Profile} -> {'ok', Profile};
-        {'error', 'not_found'} -> build_and_cache(EndpointId, AccountId, Endpoint, Options, Module)
     end.
 
 -spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.

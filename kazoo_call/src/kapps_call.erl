@@ -1015,6 +1015,7 @@ set_request(<<Request/binary>>
 to_e164(Number, _AccountId, _DeviceId) -> Number.
 -else.
 to_e164(<<"*", _/binary>>=Number, _AccountId, _DeviceId) -> Number;
+to_e164(<<"+", _/binary>>=Number, _AccountId, _DeviceId) -> Number;
 to_e164(Number, 'undefined', _DeviceId) ->
     lager:debug("no account id, just normalizing ~s", [Number]),
     knm_converters:normalize(Number);
