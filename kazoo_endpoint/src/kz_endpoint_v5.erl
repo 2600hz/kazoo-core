@@ -121,8 +121,8 @@ fetch_endpoint(EndpointId, AccountDb, Options) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 maybe_fetch_from_token(EndpointId, AccountDb, Options) ->
-    case props:get_value(token, Options) of
-        undefined -> {error, not_found};
+    case props:get_value('token', Options) of
+        'undefined' -> {'error', 'not_found'};
         Token -> fetch_from_token(EndpointId, AccountDb, kz_auth:validate_token(Token))
     end.
 
@@ -131,7 +131,7 @@ maybe_fetch_from_token(EndpointId, AccountDb, Options) ->
 -spec fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), validate_token_result()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
-fetch_from_token(_EndpointId, _AccountDb, {error, _Error} = Error) -> Error;
+fetch_from_token(_EndpointId, _AccountDb, {'error', _Error} = Error) -> Error;
 fetch_from_token(EndpointId, AccountDb, {'ok', Claims}) ->
     lager:debug("fetching endpoint ~s / ~s from token", [EndpointId, AccountDb]),
     MetaId = kz_auth_claims:meta_id(Claims),
@@ -158,8 +158,8 @@ token_endpoint(EndpointId, Claims) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 maybe_fetch_meta_endpoint(EndpointId, AccountDb, Options) ->
-    case props:get_value(meta_id, Options) of
-        undefined -> {error, not_found};
+    case props:get_value('meta_id', Options) of
+        'undefined' -> {'error', 'not_found'};
         MetaId -> fetch_meta_endpoint(MetaId, EndpointId, AccountDb, Options)
     end.
 
@@ -169,7 +169,7 @@ maybe_fetch_meta_endpoint(EndpointId, AccountDb, Options) ->
 fetch_meta_endpoint(MetaId, EndpointId, AccountDb, Options) ->
     lager:debug("fetching endpoint ~s / ~s from meta_id ~s ", [EndpointId, AccountDb, MetaId]),
     case kz_datamgr:open_cache_doc(AccountDb, MetaId) of
-        {error, _} = Error -> Error;
+        {'error', _} = Error -> Error;
         {'ok', MetaJObj} ->
             lager:debug("fetched meta endpoint ~s: ~s", [MetaId, kz_doc:revision(MetaJObj)]),
             Endpoint = build_meta_endpoint(MetaJObj, Options),
@@ -178,9 +178,8 @@ fetch_meta_endpoint(MetaId, EndpointId, AccountDb, Options) ->
 
 -spec build_meta_endpoint(kz_json:object(), kz_term:proplist()) -> kz_json:object().
 build_meta_endpoint(MetaJObj, Options) ->
-    Funs = [fun meta_endpoint_owner_id/1
-           ],
-    KVs = props:get_value(endpoint, Options, []),
+    Funs = [fun meta_endpoint_owner_id/1],
+    KVs = props:get_value('endpoint', Options, []),
     kz_json:set_values(KVs, kz_json:exec(Funs, MetaJObj)).
 
 -spec meta_endpoint_owner_id(kz_json:object()) -> kz_json:object().
@@ -260,17 +259,15 @@ cache_build_options(Options) ->
     end.
 
 -spec cache_option(tuple()) -> {'true', {kz_json:key(), kz_json:object()}} | 'false'.
-cache_option({endpoint = Key, Endpoint}) -> {'true', {kz_term:to_binary(Key), Endpoint}};
-cache_option({claims = Key, Claims}) -> {'true', {kz_term:to_binary(Key), Claims}};
+cache_option({'endpoint' = Key, Endpoint}) -> {'true', {kz_term:to_binary(Key), Endpoint}};
+cache_option({'claims' = Key, Claims}) -> {'true', {kz_term:to_binary(Key), Claims}};
 cache_option(_) -> 'false'.
 
 -spec cache_origin(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> list().
 cache_origin(JObj, EndpointId, AccountDb, Options) ->
     Routines = [fun(P) -> [{'db', AccountDb, EndpointId} | P] end
                ,fun(P) ->
-                        [{'db', AccountDb, kzs_util:format_account_id(AccountDb)}
-                        | P
-                        ]
+                        [{'db', AccountDb, kzs_util:format_account_id(AccountDb)} | P]
                 end
                ,fun(P) -> maybe_owner_id_cache_origin(P, JObj, AccountDb) end
                ,fun(P) -> maybe_hotdesk_ids_cache_origin(P, JObj, AccountDb) end
@@ -1319,7 +1316,7 @@ get_sip_inbound_headers(Endpoint) ->
 -spec get_sip_outbound_headers(kapps_call:call()) -> kz_term:api_object().
 get_sip_outbound_headers(Call) ->
     case ?MODULE:get(Call) of
-        {'error', _E} -> undefined;
+        {'error', _E} -> 'undefined';
         {'ok', Endpoint} -> kzd_devices:custom_sip_headers_outbound(Endpoint)
     end.
 

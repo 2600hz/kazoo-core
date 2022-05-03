@@ -83,7 +83,7 @@ get_atom(App, Key) ->
 get_atom(App, Key, Default) ->
     case get(App, Key) of
         'undefined' -> Default;
-        {'ok', Value} -> kz_term:to_atom(Value, true)
+        {'ok', Value} -> kz_term:to_atom(Value, 'true')
     end.
 
 -spec get_binary(app(), app_key()) -> kz_term:api_binary().
@@ -260,8 +260,8 @@ fetch_value(App, Key, Fun) ->
 
 get_env(App, Keys) ->
     case from_app_env(App, Keys) of
-        undefined -> from_app_file(App, Keys);
-        {ok, Value} -> get_value(Value, Keys)
+        'undefined' -> from_app_file(App, Keys);
+        {'ok', Value} -> get_value(Value, Keys)
     end.
 
 from_app_env(App, [Key | Keys]) ->
@@ -273,9 +273,9 @@ from_app_env(App, [Key | Keys]) ->
 
 current_dir() ->
     case file:get_cwd() of
-        {ok, Dir} ->
+        {'ok', Dir} ->
             Dir;
-        {error, Reason} ->
+        {'error', Reason} ->
             lager:warning("error ~s getting current dir", [kz_term:to_binary(Reason)]),
             <<"/tmp">>
     end.
@@ -295,59 +295,58 @@ app_full_filename(App) ->
 app_file(App) ->
     File = app_full_filename(App),
     case filelib:is_regular(File) of
-        true -> File;
-        false -> undefined
+        'true' -> File;
+        'false' -> 'undefined'
     end.
 
 persisted_app_file_key(App) ->
-    kz_term:to_atom(list_to_binary(["app_settings_", kz_term:to_binary(App)]), true).
+    kz_term:to_atom(list_to_binary(["app_settings_", kz_term:to_binary(App)]), 'true').
 
 persisted_app_file(App) ->
-    persistent_term:get(persisted_app_file_key(App), undefined).
+    persistent_term:get(persisted_app_file_key(App), 'undefined').
 
-set_persisted_app_file(_App, undefined) -> undefined;
 set_persisted_app_file(App, JObj) ->
     persistent_term:put(persisted_app_file_key(App), JObj).
 
 decode_app_file(App, Bin) ->
-    JObj = kz_json:decode(Bin, [{default, undefined}]),
+    JObj = kz_json:decode(Bin, [{'default', 'undefined'}]),
     decode_app_file_result(App, JObj).
 
-decode_app_file_result(_App, undefined) -> undefined;
+decode_app_file_result(_App, 'undefined') -> 'undefined';
 decode_app_file_result(App, JObj) ->
     set_persisted_app_file(App, JObj),
     JObj.
 
-load_app_file(_App, undefined) -> undefined;
+load_app_file(_App, 'undefined') -> 'undefined';
 load_app_file(App, Filename) ->
     case file:read_file(Filename) of
-        {error, Reason} ->
+        {'error', Reason} ->
             lager:warning("error ~s opening file ~s", [kz_term:to_binary(Reason), Filename]),
-            undefined;
-        {ok, Bin} ->
+            'undefined';
+        {'ok', Bin} ->
             decode_app_file(App, Bin)
     end.
 
 app_file_json(App) ->
     case persisted_app_file(App) of
-        undefined -> load_app_file(App, app_file(App));
+        'undefined' -> load_app_file(App, app_file(App));
         JObj -> JObj
     end.
 
 from_app_file(App, Key) ->
     case app_file_json(App) of
-        undefined -> from_os_env(App, Key);
+        'undefined' -> from_os_env(App, Key);
         JObj -> kz_json:get_value(Key, JObj)
     end.
 
 env_key(App, Keys) ->
     Key = kz_binary:join([kz_term:to_binary(App) | Keys], <<"_">>),
-    kz_term:to_list(binary:replace(Key, [<<"-">>, <<".">>], <<"_">>, [global])).
+    kz_term:to_list(binary:replace(Key, [<<"-">>, <<".">>], <<"_">>, ['global'])).
 
 from_os_env(App, Keys) ->
     case os:getenv(env_key(App, Keys), "undefined") of
-        "undefined" -> undefined;
-        Value -> {ok, kz_term:to_binary(Value)}
+        "undefined" -> 'undefined';
+        Value -> {'ok', kz_term:to_binary(Value)}
     end.
 
 get_value(Value, []) -> {'ok', Value};

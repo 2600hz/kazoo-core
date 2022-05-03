@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,27 +16,27 @@
 -spec get_prompt(kz_term:ne_binary()) -> kz_term:api_ne_binary().
 get_prompt(Prompt) ->
     case is_valid_for_encode(Prompt) of
-        true -> format_prompt([Prompt]);
-        false -> Prompt
+        'true' -> format_prompt([Prompt]);
+        'false' -> Prompt
     end.
 
 -spec get_prompt(kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
 get_prompt(DB, Media) ->
     case is_valid_for_encode(Media) of
-        true -> format_prompt([DB, Media]);
-        false -> Media
+        'true' -> format_prompt([DB, Media]);
+        'false' -> Media
     end.
 
 -spec get_prompt(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
 get_prompt(DB, Media, Language) ->
     case is_valid_for_encode(Media) of
-        true -> format_prompt([DB, Media, Language]);
-        false -> Media
+        'true' -> format_prompt([DB, Media, Language]);
+        'false' -> Media
     end.
 
 format_prompt(Parts) ->
     case lists:filter(fun kz_term:is_not_empty/1, Parts) of
-        [] -> undefined;
+        [] -> 'undefined';
         Filtered -> list_to_binary([?PROMPT, kz_binary:join(Filtered, <<"/">>)])
     end.
 

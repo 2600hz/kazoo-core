@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2021, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -55,7 +55,7 @@ search(ConferenceId)
         {_, JObjs} ->
             case lists:filter(fun search_reply_filter/1, JObjs) of
                 [] -> {'error', 'not_found'};
-                [JObj | _] -> {ok, JObj}
+                [JObj | _] -> {'ok', JObj}
             end
     end;
 search(Conference) ->

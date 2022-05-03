@@ -231,7 +231,7 @@ application_response(JObj, Default) ->
 
 -spec application_error_code(payload()) -> kz_term:api_ne_binary().
 application_error_code(JObj) ->
-    application_error_code(JObj, undefined).
+    application_error_code(JObj, 'undefined').
 
 -spec application_error_code(payload(), Default) -> kz_term:ne_binary() | Default.
 application_error_code(JObj, Default) ->
@@ -239,7 +239,7 @@ application_error_code(JObj, Default) ->
 
 -spec application_error_message(payload()) -> kz_term:api_ne_binary().
 application_error_message(JObj) ->
-    application_error_message(JObj, undefined).
+    application_error_message(JObj, 'undefined').
 
 -spec application_error_message(payload(), Default) -> kz_term:ne_binary() | Default.
 application_error_message(JObj, Default) ->
