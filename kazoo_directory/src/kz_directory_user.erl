@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -23,19 +23,22 @@ profile(EndpointId, AccountId) ->
 
 -spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
+    case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
+        {'ok', Profile} -> {'ok', Profile};
+        {'error', 'not_found'} -> fetch_profile(EndpointId, AccountId, Options)
+    end.
+
+-spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+fetch_profile(EndpointId, AccountId, Options) ->
     case kz_endpoint:get(EndpointId, AccountId) of
-        {'ok', Endpoint} -> profile(EndpointId, AccountId, Endpoint, Options);
+        {'ok', Endpoint} -> fetch_profile(EndpointId, AccountId, Endpoint, Options);
         Error -> Error
     end.
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-profile(EndpointId, AccountId, Endpoint, Options) ->
+-spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
     case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
-        <<"user">> ->
-            case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
-                {'ok', Profile} -> {'ok', Profile};
-                {'error', 'not_found'} -> build_and_cache(EndpointId, AccountId, Endpoint, Options)
-            end;
+        <<"user">> -> build_and_cache(EndpointId, AccountId, Endpoint, Options);
         _ -> {'error', 'not_user'}
     end.
 
