@@ -46,10 +46,13 @@ merge(F, [{KX, VX}|Xs], [], Acc) ->
 merge(F, [], [{KY, VY}|Ys], Acc) ->
     merge(F, Ys, [], f(KY, F(KY, {'right', VY}), Acc));
 merge(F, [{KX, VX}|Xs]=Left, [{KY, VY}|Ys]=Right, Acc) ->
-    if
-        KX < KY -> merge(F, Xs, Right, f(KX, F(KX, {'left', VX}), Acc));
-        KX > KY -> merge(F, Left, Ys, f(KY, F(KY, {'right', VY}), Acc));
-        KX =:= KY -> merge(F, Xs, Ys, f(KX, F(KX, {'both', VX, VY}), Acc))
+    case {KX, KY} of
+        {Same, Same} ->
+            merge(F, Xs, Ys, f(KX, F(KX, {'both', VX, VY}), Acc));
+        {KX, KY} when KX < KY ->
+            merge(F, Xs, Right, f(KX, F(KX, {'left', VX}), Acc));
+        {KX, KY} ->
+            merge(F, Left, Ys, f(KY, F(KY, {'right', VY}), Acc))
     end.
 
 -spec f(term(), merge_fun_result(), list()) -> list().
@@ -78,7 +81,7 @@ merge_right(_K, {'both', _Left, Right}) -> {'ok', Right}.
 
 -spec get(term(), map()) -> term().
 get(Keys, Map) ->
-    get(Keys, Map, undefined).
+    get(Keys, Map, 'undefined').
 
 -spec get(term(), map(), term()) -> term().
 get([Key|Rest], Map, Default) ->
@@ -102,30 +105,30 @@ put(NotAList, Map, Value, Options)
   when not is_list(NotAList) ->
     put([NotAList], Map, Value, Options);
 put([Key|Rest], Map, Value, Options) ->
-    case maps:get(Key, Map, {?MODULE, undefined}) of
-        {?MODULE, undefined} ->
+    case maps:get(Key, Map, {?MODULE, 'undefined'}) of
+        {?MODULE, 'undefined'} ->
             put_value(Map#{Key => put(Rest, maps:new(), Value, Options)}, Options);
         NestedMap ->
             put_value(Map#{Key => put(Rest, NestedMap, Value, Options)}, Options)
     end;
 put([], Map, Value, Options)
   when is_map(Value) ->
-    case maps:get(merge, Options, false) of
-        true -> put_value(merge(Map, Value), Options);
+    case maps:get('merge', Options, 'false') of
+        'true' -> put_value(merge(Map, Value), Options);
         _Other -> put_value(Value, Options)
     end;
 put([], _Map, Value, _Options) -> Value.
 
 put_value(Map, Options) ->
-    case maps:get(filter, Options, true) of
-        true -> maps:filter(fun put_filter/2, Map);
+    case maps:get('filter', Options, 'true') of
+        'true' -> maps:filter(fun put_filter/2, Map);
         _Other -> Map
     end.
 
-put_filter(_K, undefined) -> false;
-put_filter(_K, null) -> false;
-put_filter(_K, nil) -> false;
-put_filter(_K, _V) -> true.
+put_filter(_K, 'undefined') -> 'false';
+put_filter(_K, 'null') -> 'false';
+put_filter(_K, 'nil') -> 'false';
+put_filter(_K, _V) -> 'true'.
 
 -spec keys_to_atoms(map()) -> map().
 keys_to_atoms(Map) ->
@@ -135,19 +138,20 @@ keys_to_atoms(Map) ->
 keys_to_atoms(Map, 'true') ->
     maps:fold(fun keys_to_atoms_fold/3, #{}, Map);
 keys_to_atoms(Map, 'false') ->
-    maps:fold(fun(K, V, Acc) ->
-                      Acc#{kz_term:to_atom(K, 'true') => V}
-              end, #{}, Map).
+    maps:fold(fun to_atom_fold/3, #{}, Map).
+
+to_atom_fold(K, V, Acc) -> Acc#{kz_term:to_atom(K, 'true') => V}.
 
 -spec keys_to_atoms_fold(term(), any(), map()) -> map().
 keys_to_atoms_fold(K, V, Acc) when is_map(V) ->
-    Acc#{kz_term:to_atom(K, 'true') => keys_to_atoms(V, true)};
+    Acc#{kz_term:to_atom(K, 'true') => keys_to_atoms(V, 'true')};
 keys_to_atoms_fold(K, V, Acc) when is_list(V) ->
     Acc#{kz_term:to_atom(K, 'true') => lists:map(fun keys_to_atoms_list_item_value/1, V)};
 keys_to_atoms_fold(K, V, Acc) ->
     Acc#{kz_term:to_atom(K, 'true') => V}.
 
-keys_to_atoms_list_item_value(Map) when is_map(Map) -> keys_to_atoms(Map, true);
+keys_to_atoms_list_item_value(Map) when is_map(Map) ->
+    keys_to_atoms(Map, 'true');
 keys_to_atoms_list_item_value(V) -> V.
 
 -spec exec(list(), map()) -> map().

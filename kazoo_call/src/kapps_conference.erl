@@ -89,6 +89,8 @@
 -include("kapps_call_command.hrl").
 -include("kapps_conference.hrl").
 
+-elvis([{elvis_style, god_modules, disable}]).
+
 -define(BRIDGE_USER, kapps_config:get_ne_binary(<<"conferences">>, <<"bridge_username">>, kz_binary:rand_hex(12))).
 -define(BRIDGE_PWD, kapps_config:get_ne_binary(<<"conferences">>, <<"bridge_password">>, kz_binary:rand_hex(12))).
 
@@ -306,18 +308,19 @@ is_conference(#kapps_conference{}) -> 'true';
 is_conference(_) -> 'false'.
 
 -spec reload(conference()) -> conference().
-reload(#kapps_conference{account_id=undefined}=Conference) -> Conference;
-reload(#kapps_conference{id=undefined}=Conference) -> Conference;
+reload(#kapps_conference{account_id='undefined'}=Conference) -> Conference;
+reload(#kapps_conference{id='undefined'}=Conference) -> Conference;
 reload(#kapps_conference{account_id=AccountId
                         ,id=ConferenceId
-                        }=Conference) ->
+                        }=Conference
+      ) ->
     AccountDB = kzs_util:format_account_db(AccountId),
 
     case kz_datamgr:open_cache_doc(AccountDB, ConferenceId) of
-        {ok, Doc} ->
+        {'ok', Doc} ->
             lager:debug("reloading conference from document ~s/~s", [AccountId, ConferenceId]),
             from_conference_doc(Doc, Conference);
-        {error, Error} ->
+        {'error', Error} ->
             lager:debug("conference document ~s/~s not found => ~p"
                        ,[AccountId
                         ,ConferenceId
@@ -512,7 +515,7 @@ build_conference_profile(#kapps_conference{} = Conference) ->
 -spec raw_profile(conference()) -> kz_term:api_object().
 raw_profile(#kapps_conference{}=Conference) -> raw_profile(Conference, 'undefined').
 
--spec raw_profile(conference(), Default) -> kz_term:object() | Default.
+-spec raw_profile(conference(), Default) -> kz_json:object() | Default.
 raw_profile(#kapps_conference{profile='undefined'}, Default) -> Default;
 raw_profile(#kapps_conference{profile=Profile}, _Default) -> Profile.
 
@@ -556,15 +559,15 @@ default_video_profile() ->
 
 -spec default_audio_profile(kz_term:ne_binary()) -> kz_json:object().
 default_audio_profile(Language) ->
-    default_audio_profile(Language, undefined).
+    default_audio_profile(Language, 'undefined').
 
 -spec default_page_profile(kz_term:ne_binary()) -> kz_json:object().
 default_page_profile(Language) ->
-    default_page_profile(Language, undefined).
+    default_page_profile(Language, 'undefined').
 
 -spec default_video_profile(kz_term:ne_binary()) -> kz_json:object().
 default_video_profile(Language) ->
-    default_video_profile(Language, undefined).
+    default_video_profile(Language, 'undefined').
 
 -spec update_profile_language(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
 update_profile_language(Language, AccountId, Profile) ->
@@ -618,7 +621,7 @@ default_language() -> kz_term:to_lower_binary(kz_media_util:default_prompt_langu
 
 -spec language(conference()) -> kz_term:api_ne_binary().
 language(#kapps_conference{language='undefined'
-                          ,account_id=undefined
+                          ,account_id='undefined'
                           }) ->
     default_language();
 language(#kapps_conference{language='undefined'
@@ -826,7 +829,7 @@ set_play_welcome(ShouldPlay, Conference) when is_boolean(ShouldPlay) ->
 -spec conference_doc(conference()) -> kz_term:api_object().
 conference_doc(#kapps_conference{}=Conference) -> conference_doc(Conference, 'undefined').
 
--spec conference_doc(conference(), Default) -> kz_term:object() | Default.
+-spec conference_doc(conference(), Default) -> kz_json:object() | Default.
 conference_doc(#kapps_conference{conference_doc='undefined'}, Default) -> Default;
 conference_doc(#kapps_conference{conference_doc=JObj}, _Default) -> JObj.
 
@@ -987,9 +990,10 @@ build_profile(#kapps_conference{} = Conference) ->
     DefaultProfiles = build_profiles(AccountId, ProfileNames),
     LanguageProfiles = language_profiles(Language, AccountId, ProfileNames),
 
-    MergeOptions = #{'keep_null' => 'false' ,'recursive' => 'true'},
+    MergeOptions = #{'keep_null' => 'false'
+                    ,'recursive' => 'true'
+                    },
     kz_json:merge(DefaultProfiles ++ LanguageProfiles, MergeOptions).
-
 
 build_profiles(AccountId, ProfileNames) ->
     Keys = [{AccountId, ProfileName} || ProfileName <- ProfileNames],
@@ -1003,11 +1007,11 @@ language_profiles(Language, AccountId, ProfileNames) ->
     lists:foldr(fun language_profile/2, [], Keys).
 
 language_profile({Language, AccountId, ProfileName}, Acc) ->
-    get_profile(AccountId, [<<"profiles">>, Language, ProfileName], undefined, Acc).
+    get_profile(AccountId, [<<"profiles">>, Language, ProfileName], 'undefined', Acc).
 
 get_profile(AccountId, Keys, Default, Acc) ->
     case kapps_merged_config:get_json(AccountId, ?CONFERENCE_CONFIG_CAT, Keys, Default) of
-        undefined -> Acc;
+        'undefined' -> Acc;
         Profile -> [Profile | Acc]
     end.
 
@@ -1019,8 +1023,7 @@ profile_default(_Other) -> kz_json:new().
 profile_names(AccountId, ProfileName) ->
     profile_names(AccountId, ProfileName, []).
 
-profile_names(_AccountId, undefined, Acc) -> Acc;
-profile_names(AccountId, ProfileName, Acc)
-  when is_binary(ProfileName) ->
+profile_names(_AccountId, 'undefined', Acc) -> Acc;
+profile_names(AccountId, <<ProfileName/binary>>, Acc) ->
     BaseProfileName = kapps_merged_config:get_ne_binary(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, ProfileName, <<"base_profile_name">>]),
     profile_names(AccountId, BaseProfileName, [ProfileName | Acc]).

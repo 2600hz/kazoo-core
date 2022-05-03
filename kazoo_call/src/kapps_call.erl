@@ -171,6 +171,8 @@
 -include("kapps_call_command.hrl").
 -include_lib("kazoo_sip/include/kzsip_uri.hrl").
 
+-elvis([{elvis_style, god_modules, disable}]).
+
 -define(CALL_CMD_CAT, <<"call_command">>).
 
 -define(NO_USER, <<"nouser">>).

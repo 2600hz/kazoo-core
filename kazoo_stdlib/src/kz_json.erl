@@ -213,7 +213,7 @@ decode(Thing) when is_list(Thing)
                    orelse is_binary(Thing) ->
     decode(Thing, []).
 
--spec decode(iolist() | kz_term:ne_binary(), decode_options()) -> json_term().
+-spec decode(iolist() | kz_term:ne_binary(), decode_options()) -> api_json_term().
 decode(JSON, Options) ->
     try unsafe_decode(JSON, Options)
     catch

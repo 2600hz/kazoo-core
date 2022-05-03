@@ -242,6 +242,8 @@
 
 -include("kapps_call_command.hrl").
 
+-elvis([{elvis_style, god_modules, disable}]).
+
 -type audio_macro_prompt() ::
         %% {'play', MediaName [, Terminators [, Leg]]}
         {'play', binary()} |
@@ -2549,90 +2551,104 @@ collect_digits(MaxDigits, Timeout, Interdigit, NoopId, Terminators, FlushOnDigit
                                          }).
 
 -spec do_collect_digits(wcc_collect_digits()) -> collect_digits_return().
-do_collect_digits(#wcc_collect_digits{max_digits=MaxDigits
-                                     ,timeout=Timeout
-                                     ,interdigit=Interdigit
-                                     ,noop_id=NoopId
-                                     ,call=Call
-                                     ,terminators=Terminators
-                                     ,digits_collected=Digits
+do_collect_digits(#wcc_collect_digits{digits_collected=Digits
                                      ,after_timeout=After
-                                     ,flush_on_digit=FlushOnDigit
                                      }=Collect) ->
-    Start = kz_time:start_time(),
+    StartTime = kz_time:start_time(),
     case receive_event(After) of
-        {'ok', JObj} ->
-            case handle_collect_digit_event(JObj, NoopId) of
-                {'error', _}=Error -> Error;
-                {'noop_complete'} ->
-                    %% if we were given the NoopId of the noop and this is it, then start the timer
-                    %% unless we have already started collecting digits when the noop came in
-                    T = case Digits of <<>> -> Timeout; _ -> After end,
-                    do_collect_digits(Collect#wcc_collect_digits{after_timeout=T});
-                {'continue'} ->
-                    %% if we were given the NoopId of the noop and this is not it, then keep waiting
-                    do_collect_digits(Collect);
-                {'decrement'} ->
-                    do_collect_digits(Collect#wcc_collect_digits{after_timeout=kz_time:decr_timeout(After, Start)});
-                {'dtmf', Digit} ->
-                    %% DTMF received, collect and start interdigit timeout
-                    _ = maybe_flash_on_digit(FlushOnDigit, Digits, Call),
-
-                    case lists:member(Digit, Terminators) of
-                        'true' ->
-                            lager:debug("collected digits ('~s') from caller, terminated with ~s", [Digits, Digit]),
-                            {'ok', Digits};
-                        'false' ->
-                            case <<Digits/binary, Digit/binary>> of
-                                D when byte_size(D) < MaxDigits ->
-                                    do_collect_digits(Collect#wcc_collect_digits{digits_collected=D
-                                                                                ,after_timeout=Interdigit
-                                                                                });
-                                D ->
-                                    lager:debug("collected maximum digits ('~s') from caller", [D]),
-                                    {'ok', D}
-                            end
-                    end
-            end;
+        {'ok', EventJObj} ->
+            do_collected_digits(Collect, StartTime, EventJObj);
         {'error', 'timeout'} -> {'ok', Digits}
     end.
 
--spec handle_collect_digit_event(kz_json:object(), kz_term:api_binary()) ->
-          {'dtmf', kz_term:ne_binary()} |
-          {'noop_complete'} |
-          {'continue'} |
-          {'decrement'} |
-          {'error', any()}.
-handle_collect_digit_event(JObj, NoopId) ->
-    handle_collect_digit_event(JObj, NoopId, get_event_type(JObj)).
+do_collected_digits(#wcc_collect_digits{timeout=Timeout
+                                       ,noop_id=NoopId
+                                       ,digits_collected=Digits
+                                       ,after_timeout=After
+                                       }=Collect
+                   ,StartTime
+                   ,EventJObj
+                   ) ->
+    case handle_collect_digit_event(EventJObj, NoopId) of
+        {'error', _}=Error -> Error;
+        {'noop_complete'} ->
+            %% if we were given the NoopId of the noop and this is it, then start the timer
+            %% unless we have already started collecting digits when the noop came in
+            T = case Digits of <<>> -> Timeout; _ -> After end,
+            do_collect_digits(Collect#wcc_collect_digits{after_timeout=T});
+        {'continue'} ->
+            %% if we were given the NoopId of the noop and this is not it, then keep waiting
+            do_collect_digits(Collect);
+        {'decrement'} ->
+            do_collect_digits(Collect#wcc_collect_digits{after_timeout=kz_time:decr_timeout(After, StartTime)});
+        {'dtmf', Digit} ->
+            do_collected_dtmf(Collect, Digit)
+    end.
 
--spec handle_collect_digit_event(kz_json:object(), kz_term:api_binary(), {kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()}) ->
+do_collected_dtmf(#wcc_collect_digits{max_digits=MaxDigits
+                                     ,interdigit=Interdigit
+                                     ,call=Call
+                                     ,terminators=Terminators
+                                     ,digits_collected=Digits
+                                     ,flush_on_digit=FlushOnDigit
+                                     }=Collect
+                 ,Digit
+                 ) ->
+    %% DTMF received, collect and start interdigit timeout
+    _ = maybe_flash_on_digit(FlushOnDigit, Digits, Call),
+
+    case lists:member(Digit, Terminators) of
+        'true' ->
+            lager:debug("collected digits ('~s') from caller, terminated with ~s", [Digits, Digit]),
+            {'ok', Digits};
+        'false' ->
+            case <<Digits/binary, Digit/binary>> of
+                D when byte_size(D) < MaxDigits ->
+                    do_collect_digits(Collect#wcc_collect_digits{digits_collected=D
+                                                                ,after_timeout=Interdigit
+                                                                });
+                D ->
+                    lager:debug("collected maximum digits ('~s') from caller", [D]),
+                    {'ok', D}
+            end
+    end.
+
+-spec handle_collect_digit_event(kz_call_event:payload(), kz_term:api_binary()) ->
           {'dtmf', kz_term:ne_binary()} |
           {'noop_complete'} |
           {'continue'} |
           {'decrement'} |
           {'error', any()}.
-handle_collect_digit_event(_JObj, _NoopId, {<<"call_event">>, <<"CHANNEL_DESTROY">>, _}) ->
+handle_collect_digit_event(EventJObj, NoopId) ->
+    handle_collect_digit_event(EventJObj, NoopId, get_event_type(EventJObj)).
+
+-spec handle_collect_digit_event(kz_call_event:payload(), kz_term:api_binary(), {kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()}) ->
+          {'dtmf', kz_term:ne_binary()} |
+          {'noop_complete'} |
+          {'continue'} |
+          {'decrement'} |
+          {'error', any()}.
+handle_collect_digit_event(_EventJObj, _NoopId, {<<"call_event">>, <<"CHANNEL_DESTROY">>, _}) ->
     lager:debug("channel was hungup while collecting digits"),
     {'error', 'channel_hungup'};
-handle_collect_digit_event(JObj, NoopId, {<<"error">>, _, <<"noop">>}) ->
-    case kz_api:msg_id(kz_call_event:request(JObj), NoopId) of
+handle_collect_digit_event(EventJObj, NoopId, {<<"error">>, _, <<"noop">>}) ->
+    case kz_api:msg_id(kz_call_event:request(EventJObj), NoopId) of
         NoopId when is_binary(NoopId), NoopId =/= <<>> ->
             lager:debug("channel execution error while collecting digits: ~s"
-                       ,[kz_call_event:error_message(JObj)]
+                       ,[kz_call_event:error_message(EventJObj)]
                        ),
-            {'error', JObj};
+            {'error', EventJObj};
         _NID when is_binary(NoopId), NoopId =/= <<>> ->
             {'continue'};
         _NID ->
             lager:debug("channel execution error while collecting digits with noop-id ~s: ~s"
-                       ,[NoopId, kz_json:encode(JObj)]
+                       ,[NoopId, kz_json:encode(EventJObj)]
                        ),
-            {'error', JObj}
+            {'error', EventJObj}
     end;
-handle_collect_digit_event(JObj, NoopId, {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"noop">>}) ->
+handle_collect_digit_event(EventJObj, NoopId, {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"noop">>}) ->
     %% Playback completed start timeout
-    case kz_call_event:application_response(JObj) of
+    case kz_call_event:application_response(EventJObj) of
         NoopId when is_binary(NoopId), NoopId =/= <<>> ->
             {'noop_complete'};
         _NID when is_binary(NoopId), NoopId =/= <<>> ->
@@ -2640,9 +2656,9 @@ handle_collect_digit_event(JObj, NoopId, {<<"call_event">>, <<"CHANNEL_EXECUTE_C
         _ ->
             {'noop_complete'}
     end;
-handle_collect_digit_event(JObj, _NoopId, {<<"call_event">>, <<"DTMF">>, _}) ->
-    {'dtmf', kz_call_event:dtmf_digit(JObj, <<>>)};
-handle_collect_digit_event(_JObj, _NoopId, _EventType) ->
+handle_collect_digit_event(EventJObj, _NoopId, {<<"call_event">>, <<"DTMF">>, _}) ->
+    {'dtmf', kz_call_event:dtmf_digit(EventJObj, <<>>)};
+handle_collect_digit_event(_EventJObj, _NoopId, _EventType) ->
     {'decrement'}.
 
 -spec maybe_flash_on_digit(boolean(), binary(), kapps_call:call()) ->
@@ -2918,7 +2934,7 @@ check_for_bridge(Timeout, OnBridgeFun, Call, Start, _EventJObj, _OurCallId, _Oth
 
 bridge_result(<<"SUCCESS">>, _Cause, _Code) -> 'ok';
 bridge_result(_Disposition, <<"SUCCESS">>, _Code) -> 'ok';
-bridge_result(_Disposition, <<"NORMAL_CLEARING">>, undefined) -> 'ok';
+bridge_result(_Disposition, <<"NORMAL_CLEARING">>, 'undefined') -> 'ok';
 bridge_result(_Disposition, _Cause, <<"sip:200">>) -> 'ok';
 bridge_result(_Disposition, _Cause, _Code) -> 'fail'.
 
@@ -2993,11 +3009,13 @@ maybe_relay_bridge_event(_, _) -> 'ok'.
 
 check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj) ->
     FetchId = kz_call_event:custom_channel_var(EventJObj, <<"Fetch-ID">>),
-    case kapps_call:fetch_id(Call) =:= FetchId of
-        true ->
+    case kapps_call:fetch_id(Call) of
+        FetchId ->
             check_end_of_bridge(Timeout, OnBridgeFun, Call, Start, EventJObj, bridge_hangup_cause(EventJObj));
-        false ->
-            lager:debug("bridge complete for different fetch-id ~s vs ~s", [kapps_call:fetch_id(Call), FetchId]),
+        _OtherFetchId ->
+            lager:debug("bridge complete for different fetch-id ~s vs ~s"
+                       ,[_OtherFetchId, FetchId]
+                       ),
             wait_for_bridge(?MAX_WAIT_MS, OnBridgeFun, Call)
     end.
 
@@ -3570,7 +3588,7 @@ retry_store_file(Tries, Timeout, API, Msg, Error, Call) ->
 -spec retry_store_file(integer(), timeout(), kz_term:proplist() | function()
                       ,kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), atom()) ->
           'ok' | {'error', any()}.
-retry_store_file(Tries, Timeout, API, Msg, Error, Call, undefined) ->
+retry_store_file(Tries, Timeout, API, Msg, Error, Call, 'undefined') ->
     retry_store_file(Tries, Timeout, API, Msg, Error, Call);
 retry_store_file(_Tries, _Timeout, _API, Msg, Error, Call, FileError) ->
     lager:critical("~s : ~s : ~s", [Msg, FileError, Error]),
@@ -3734,7 +3752,7 @@ stop_detect_speech(Call) ->
 
 -spec eavesdrop_command(kz_term:ne_binary()) -> kz_term:proplist().
 eavesdrop_command(TargetCallId) ->
-    eavesdrop_command(TargetCallId, true).
+    eavesdrop_command(TargetCallId, 'true').
 
 -spec eavesdrop_command(kz_term:ne_binary(), boolean()) -> kz_term:proplist().
 eavesdrop_command(TargetCallId, EnableDTMF) ->
@@ -3745,7 +3763,7 @@ eavesdrop_command(TargetCallId, EnableDTMF) ->
 
 -spec eavesdrop(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
 eavesdrop(TargetCallId, Call) ->
-    eavesdrop(TargetCallId, true, Call).
+    eavesdrop(TargetCallId, 'true', Call).
 
 -spec eavesdrop(kz_term:ne_binary(), boolean(), kapps_call:call()) -> 'ok'.
 eavesdrop(TargetCallId, EnableDTMF, Call) ->
@@ -3754,7 +3772,7 @@ eavesdrop(TargetCallId, EnableDTMF, Call) ->
 
 -spec b_eavesdrop(kz_term:ne_binary(), kapps_call:call()) -> command_result().
 b_eavesdrop(TargetCallId, Call) ->
-    b_eavesdrop(TargetCallId, true, Call).
+    b_eavesdrop(TargetCallId, 'true', Call).
 
 -spec b_eavesdrop(kz_term:ne_binary(), boolean(), kapps_call:call()) -> command_result().
 b_eavesdrop(TargetCallId, EnableDTMF, Call) ->
