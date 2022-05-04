@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2021, 2600Hz
+%%% @copyright (C) 2018-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -57,13 +57,18 @@ exec_flush_callbacks(Name, Fun) ->
 
 -spec erased(atom(), any()) -> 'ok'.
 erased(Name, Key) ->
-    exec_erase_callbacks(Name, Key),
+    CacheCallback = cache_callback(Name, Key),
+    CacheValue = ets:lookup_element(Name, Key, #cache_obj.value),
+
     _ = [maybe_remove_object(Table, Key)
          || Table <- [Name
                      ,{'pointer', kz_cache_ets:pointer_tab(Name)}
                      ,{'monitor', kz_cache_ets:monitor_tab(Name)}
                      ]
         ],
+    lager:debug("erased key ~p from table ~p", [Key, Name]),
+    kz_cache_processes:unmonitor_key(Name, Key),
+    exec_erase_callbacks(Name, Key, CacheCallback, CacheValue),
     'ok'.
 
 -spec erased_mitigation(atom(), any()) -> 'ok'.
@@ -77,22 +82,14 @@ maybe_log_unlock(Key, Type, {?MITIGATION, _Pid}) ->
     lager:debug("~s is unlocking key ~p (locked by ~p)", [Type, Key, _Pid]);
 maybe_log_unlock(_Key, _Type, _Peek) -> 'ok'.
 
--spec exec_erase_callbacks(atom(), any()) -> 'ok'.
-exec_erase_callbacks(Name, Key) ->
-    kz_cache_processes:unmonitor_key(Name, Key),
-    try ets:lookup_element(Name, Key, #cache_obj.callback) of
-        Fun when is_function(Fun, 3) ->
-            exec_erase_callbacks(Name, Key, Fun);
-        _Else -> 'ok'
-    catch
-        'error':'badarg' -> 'ok'
-    end.
+cache_callback(Name, Key) ->
+    ets:lookup_element(Name, Key, #cache_obj.callback).
 
--spec exec_erase_callbacks(atom(), any(), callback_fun()) -> 'ok'.
-exec_erase_callbacks(Name, Key, Fun) ->
-    Value = ets:lookup_element(Name, Key, #cache_obj.value),
+-spec exec_erase_callbacks(atom(), any(), callback_fun() | 'undefined', any()) -> 'ok'.
+exec_erase_callbacks(Name, Key, Fun, Value) when is_function(Fun, 3) ->
     _Callback = exec_callback(Fun, [Key, Value, 'erase']),
-    lager:debug("~s:~p exec erase callback in ~p", [Name, Key, _Callback]).
+    lager:debug("~s:~p exec erase callback in ~p", [Name, Key, _Callback]);
+exec_erase_callbacks(_Name, _Key, _Else, _Value) -> 'ok'.
 
 -spec timed_out(atom(), reference()) -> 'ok'.
 timed_out(MonitorName, MonitorRef) ->

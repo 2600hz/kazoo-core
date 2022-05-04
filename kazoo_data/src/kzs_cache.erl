@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,6 +24,8 @@
 
 -export([cache_strategy/0
         ,set_cache_strategy/1
+        ,cache_callback/3
+        ,bind_for_changes/4
         ]).
 
 -export_type([cache_strategy/0]).
@@ -235,6 +237,7 @@ add_to_doc_cache(DbName, DocId, CacheValue) ->
 add_to_doc_cache(DbName, DocId, CacheValue, CacheStrategy) ->
     CacheProps = [{'origin', {'db', DbName, DocId}}
                  ,{'expires', expires_policy_value(DbName, CacheValue)}
+                 ,{'callback', fun ?MODULE:cache_callback/3}
                  ],
     case kz_json:is_json_object(CacheValue) of
         'true' ->
@@ -247,6 +250,18 @@ add_to_doc_cache(DbName, DocId, CacheValue, CacheStrategy) ->
         'false' when CacheStrategy =:= 'stampede_async' ->
             maybe_cache(DbName, DocId, CacheValue, CacheProps)
     end.
+
+-spec cache_callback({atom(), kz_term:ne_binary(), kz_term:ne_binary()}, any(), atom()) -> 'ok'.
+cache_callback({_Module, DbName, DocId}, _CacheValue, Action) ->
+    RoutingKey = kz_amqp_util:document_routing_key(Action, DbName, DbName, DocId),
+    _ = kazoo_bindings:map(RoutingKey, {DbName, DocId}),
+    'ok'.
+
+-spec bind_for_changes(atom() | kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kazoo_bindings:responder_fun()) ->
+          'ok' | {'error', 'exists'}.
+bind_for_changes(Action, Db, Type, Function) ->
+    BindingKey = kz_amqp_util:document_routing_key(Action, Db, Type),
+    kazoo_bindings:bind(BindingKey, Function).
 
 -spec maybe_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object() | data_error(), kz_cache:store_options()) -> 'ok'.
 maybe_cache(DbName, DocId, CacheValue, CacheProps) ->
