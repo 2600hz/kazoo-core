@@ -422,8 +422,9 @@ set(Account, Category, Key, Value) ->
 maybe_set_account('no_account_id', _, Key, Value) ->
     kz_json:set_value(Key, Value, kz_json:new());
 maybe_set_account(AccountId, Category, Key, Value) ->
-    JObj = kz_json:set_value(Key, Value, get(AccountId, Category)),
-    Updates = [{Key, Value} | updates_for_saving(AccountId, JObj)],
+    Keys = key(Key),
+    JObj = kz_json:set_value(Keys, Value, get(AccountId, Category)),
+    Updates = [{Keys, Value} | updates_for_saving(AccountId, JObj)],
     AccountDb = kzs_util:format_account_db(AccountId),
     {'ok', JObj2} = kz_datamgr:update_doc(AccountDb
                                          ,kz_doc:id(JObj)
@@ -800,3 +801,11 @@ remove_config_setting(AccountDb, [{Id, Node, Setting} | Keys], JObj, Removed) ->
 %% NOTE: to support nested keys, update this merge function
 config_setting_key(Node, Setting) ->
     [Node, Setting].
+
+-spec key(term()) -> [binary()].
+key(Key) when is_binary(Key) ->
+    case erlang:get('is_sup_call') of
+        true -> binary:split(kz_term:to_binary(Key), <<".">>, [global]);
+        _ -> [kz_term:to_binary(Key)]
+    end;
+key(Key) -> Key.

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -62,6 +62,7 @@
 -export([type/0
         ,fetch/1, fetch/2
         ,fetch_name/1, fetch_realm/1
+        ,fetch_value/2
         ,save/1, save_accounts_doc/1
         ,update/2
 

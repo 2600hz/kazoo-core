@@ -25,7 +25,6 @@
 -export([caller_controls/1, set_caller_controls/2]).
 -export([controls/2, set_controls/2]).
 -export([profile_name/1, profile_name/2, set_profile_name/2]).
--export([base_profile_name/1, base_profile_name/2, set_base_profile_name/2]).
 -export([profile/1, set_profile/2]).
 -export([focus/1, set_focus/2]).
 -export([language/1, set_language/2]).
@@ -134,7 +133,6 @@
                           ,language :: kz_term:api_ne_binary()
                           ,domain :: kz_term:api_ne_binary()
                           ,profile_name = 'undefined' :: kz_term:api_ne_binary()
-                          ,base_profile_name = 'undefined' :: kz_term:api_ne_binary()
                           ,profile = 'undefined' :: kz_term:api_object()
                           ,controller_q :: kz_term:api_ne_binary()
                           ,bridge_username = ?BRIDGE_USER :: kz_term:ne_binary()
@@ -208,7 +206,6 @@ do_from_json(JObj, Conference) ->
     Conference#kapps_conference{id = ConferenceId
                                ,name = ConferenceName
                                ,profile_name = kz_json:get_ne_binary_value(<<"Profile-Name">>, JObj, profile_name(Conference))
-                               ,base_profile_name = kz_json:get_ne_binary_value(<<"Base-Profile-Name">>, JObj, base_profile_name(Conference))
                                ,profile = kz_json:get_json_value(<<"Profile">>, JObj, raw_profile(Conference))
                                ,focus = kz_json:get_ne_binary_value(<<"Conference-Focus">>, JObj, focus(Conference))
                                ,language = kz_json:get_ne_binary_value(<<"Language">>, JObj, raw_language(Conference))
@@ -300,7 +297,6 @@ to_proplist(#kapps_conference{}=Conference) ->
     ,{<<"Play-Welcome">>, play_welcome(Conference)}
     ,{<<"Profile">>, profile(Conference)}
     ,{<<"Profile-Name">>, profile_name(Conference)}
-    ,{<<"Base-Name">>, base_profile_name(Conference)}
     ,{<<"Require-Moderator">>, require_moderator(Conference)}
     ,{<<"Wait-For-Moderator">>, wait_for_moderator(Conference)}
     ].
@@ -346,7 +342,6 @@ from_conference_doc(JObj, Conference) ->
                                ,name = ConferenceName
                                ,account_id = kz_doc:account_id(JObj, account_id(Conference))
                                ,profile_name = kzd_conferences:profile_name(JObj, profile_name(Conference))
-                               ,base_profile_name = kzd_conferences:base_profile_name(JObj, base_profile_name(Conference))
                                ,profile = kzd_conferences:profile(JObj, raw_profile(Conference))
                                ,focus = kzd_conferences:focus(JObj, focus(Conference))
                                ,language = kzd_conferences:language(JObj, raw_language(Conference))
@@ -499,20 +494,9 @@ profile_name(Conference) -> profile_name(Conference, ?DEFAULT_PROFILE_NAME).
 profile_name(#kapps_conference{profile_name='undefined'}, Default) -> Default;
 profile_name(#kapps_conference{profile_name=Profile}, _Default) -> Profile.
 
--spec base_profile_name(conference()) -> kz_term:ne_binary().
-base_profile_name(Conference) -> base_profile_name(Conference, ?DEFAULT_PROFILE_NAME).
-
--spec base_profile_name(conference(), Default) -> kz_term:ne_binary() | Default.
-base_profile_name(#kapps_conference{profile_name='undefined'}, Default) -> Default;
-base_profile_name(#kapps_conference{profile_name=Profile}, _Default) -> Profile.
-
 -spec set_profile_name(kz_term:api_ne_binary(), conference()) -> conference().
 set_profile_name(P, Conference) when is_binary(P); P =:= 'undefined' ->
     Conference#kapps_conference{profile_name=P, profile='undefined'}.
-
--spec set_base_profile_name(kz_term:api_ne_binary(), conference()) -> conference().
-set_base_profile_name(P, Conference) when is_binary(P); P =:= 'undefined' ->
-    Conference#kapps_conference{base_profile_name=P, profile='undefined'}.
 
 -spec profile(conference()) -> {kz_term:ne_binary(), kz_json:object()}.
 profile(#kapps_conference{profile='undefined'}=Conference) ->
@@ -522,146 +506,8 @@ profile(#kapps_conference{profile=Profile}=Conference) ->
     {profile_name(Conference), Profile}.
 
 -spec build_conference_profile(conference()) -> {kz_term:ne_binary(), kz_json:object()}.
-build_conference_profile(#kapps_conference{profile_name=?DEFAULT_PROFILE_NAME
-                                          ,account_id='undefined'
-                                          }=Conference) ->
-    lager:debug("no account id for default profile, using system"),
-    build_system_audio_profile(Conference);
-build_conference_profile(#kapps_conference{profile_name=?DEFAULT_PROFILE_NAME
-                                          ,account_id=_AccountId
-                                          }=Conference) ->
-    lager:debug("using account '~s' for default profile", [_AccountId]),
-    build_account_audio_profile(Conference);
-
-build_conference_profile(#kapps_conference{profile_name=?PAGE_PROFILE_NAME
-                                          ,account_id='undefined'
-                                          }=Conference) ->
-    lager:debug("no account id for page profile ~s, using system"),
-    build_system_page_profile(Conference);
-build_conference_profile(#kapps_conference{profile_name=?PAGE_PROFILE_NAME
-                                          ,account_id=AccountId
-                                          }=Conference) ->
-    lager:debug("using account '~s' for page profile", [AccountId]),
-
-    Language = language(Conference),
-    DefaultPageProfile = default_page_profile(Language, AccountId),
-    case kapps_account_config:get_global(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, Language, ?PAGE_PROFILE_NAME]) of
-        'undefined' -> {?PAGE_PROFILE_NAME, DefaultPageProfile};
-        Profile -> {?PAGE_PROFILE_NAME, Profile}
-    end;
-
-build_conference_profile(#kapps_conference{profile_name=?VIDEO_PROFILE_NAME
-                                          ,account_id='undefined'
-                                          }=Conference) ->
-    lager:debug("no account id for video profile, using system"),
-    build_system_video_profile(Conference);
-build_conference_profile(#kapps_conference{profile_name=?VIDEO_PROFILE_NAME
-                                          ,account_id=AccountId
-                                          }=Conference) ->
-    lager:debug("using account '~s' for video profile", [AccountId]),
-
-    Language = language(Conference),
-    DefaultVideoProfile = default_video_profile(Language, AccountId),
-    case kapps_account_config:get_global(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, Language, ?VIDEO_PROFILE_NAME]) of
-        'undefined' -> {?VIDEO_PROFILE_NAME, DefaultVideoProfile};
-        Profile -> {?VIDEO_PROFILE_NAME, Profile}
-    end;
-
-build_conference_profile(#kapps_conference{profile_name='undefined'}=Conference) ->
-    build_conference_profile(Conference#kapps_conference{profile_name=?DEFAULT_PROFILE_NAME});
-
-build_conference_profile(#kapps_conference{profile_name=ProfileName
-                                          ,base_profile_name=BaseProfileName
-                                          ,account_id='undefined'
-                                          }=Conference) ->
-    lager:debug("no account id for profile ~s, building from defaults", [ProfileName]),
-
-    BaseProfile = profile(Conference#kapps_conference{profile_name=BaseProfileName, profile=undefined}),
-    Language = language(Conference),
-    case kapps_config:get_json(?CONFERENCE_CONFIG_CAT, [<<"profiles">>, Language, ProfileName]) of
-        'undefined' -> BaseProfile;
-        Profile -> {ProfileName, kz_json:merge(BaseProfile, Profile)}
-    end;
-build_conference_profile(#kapps_conference{profile_name=ProfileName
-                                          ,base_profile_name=BaseProfileName
-                                          ,account_id=AccountId
-                                          }=Conference) ->
-    lager:debug("using account '~s' to build profile ~s", [AccountId, ProfileName]),
-
-    BaseProfile = profile(Conference#kapps_conference{profile_name=BaseProfileName, profile=undefined}),
-    Language = language(Conference),
-    case kapps_account_config:get_global(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, Language, ProfileName]) of
-        'undefined' -> BaseProfile;
-        Profile -> {ProfileName, kz_json:merge(BaseProfile, Profile)}
-    end.
-
--spec build_account_audio_profile(conference()) -> {kz_term:ne_binary(), kz_json:object()}.
-build_account_audio_profile(Conference) ->
-    ProfileName = profile_name(Conference),
-    AccountId = account_id(Conference),
-    Language = language(Conference),
-
-    DefaultProfile = default_audio_profile(Language, AccountId),
-
-    LanguageProfile = kapps_account_config:get_global(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, Language, ProfileName]),
-    Profile = kapps_account_config:get_global(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, ProfileName]),
-
-    case {LanguageProfile, Profile} of
-        {'undefined', 'undefined'} -> {ProfileName, DefaultProfile};
-        {'undefined', Profile} -> {ProfileName, Profile};
-        {LanguageProfile, 'undefined'} -> {ProfileName, LanguageProfile};
-        {LanguageProfile, Profile} ->
-            {ProfileName, kz_json:merge(LanguageProfile, Profile)}
-    end.
-
--spec build_system_audio_profile(conference()) -> {kz_term:ne_binary(), kz_json:object()}.
-build_system_audio_profile(Conference) ->
-    ProfileName = profile_name(Conference),
-    Language = language(Conference),
-
-    LanguageProfile = kapps_config:get_json(?CONFERENCE_CONFIG_CAT
-                                           ,[<<"profiles">>, Language, ProfileName]
-                                           ,default_audio_profile(Language, 'undefined')
-                                           ),
-
-    case kapps_config:get_json(?CONFERENCE_CONFIG_CAT
-                              ,[<<"profiles">>, ProfileName]
-                              )
-    of
-        'undefined' -> {ProfileName, LanguageProfile};
-        Profile ->
-            {ProfileName, kz_json:merge(LanguageProfile, Profile)}
-    end.
-
--spec build_system_page_profile(conference()) -> {kz_term:ne_binary(), kz_json:object()}.
-build_system_page_profile(Conference) ->
-    Language = language(Conference),
-    LanguageProfile = kapps_config:get_json(?CONFERENCE_CONFIG_CAT
-                                           ,[<<"profiles">>, Language, ?PAGE_PROFILE_NAME]
-                                           ,default_page_profile(Language, 'undefined')
-                                           ),
-    case kapps_config:get_json(?CONFERENCE_CONFIG_CAT
-                              ,[<<"profiles">>, ?PAGE_PROFILE_NAME]
-                              )
-    of
-        'undefined' -> {?PAGE_PROFILE_NAME, LanguageProfile};
-        Profile -> {?PAGE_PROFILE_NAME, kz_json:merge(LanguageProfile, Profile)}
-    end.
-
--spec build_system_video_profile(conference()) -> {kz_term:ne_binary(), kz_json:object()}.
-build_system_video_profile(Conference) ->
-    Language = language(Conference),
-    LanguageProfile = kapps_config:get_json(?CONFERENCE_CONFIG_CAT
-                                           ,[<<"profiles">>, Language, ?VIDEO_PROFILE_NAME]
-                                           ,default_video_profile(Language, 'undefined')
-                                           ),
-    case kapps_config:get_json(?CONFERENCE_CONFIG_CAT
-                              ,[<<"profiles">>, ?VIDEO_PROFILE_NAME]
-                              )
-    of
-        'undefined' -> {?VIDEO_PROFILE_NAME, LanguageProfile};
-        Profile -> {?VIDEO_PROFILE_NAME, kz_json:merge(LanguageProfile, Profile)}
-    end.
+build_conference_profile(#kapps_conference{} = Conference) ->
+    {profile_name(Conference), build_profile(Conference)}.
 
 -spec raw_profile(conference()) -> kz_term:api_object().
 raw_profile(#kapps_conference{}=Conference) -> raw_profile(Conference, 'undefined').
@@ -1131,3 +977,50 @@ extra_settings(#kapps_conference{conference_doc=Doc}) ->
 -spec inter_conference_extension() -> kz_term:ne_binary().
 inter_conference_extension() ->
     kapps_config:get_ne_binary(<<"conferences">>, <<"inter_server_extension">>, <<"conference">>).
+
+build_profile(#kapps_conference{} = Conference) ->
+    AccountId = account_id(Conference),
+    Language = language(Conference),
+    ProfileName = profile_name(Conference),
+    ProfileNames = profile_names(AccountId, ProfileName),
+
+    DefaultProfiles = build_profiles(AccountId, ProfileNames),
+    LanguageProfiles = language_profiles(Language, AccountId, ProfileNames),
+
+    MergeOptions = #{'keep_null' => 'false' ,'recursive' => 'true'},
+    kz_json:merge(DefaultProfiles ++ LanguageProfiles, MergeOptions).
+
+
+build_profiles(AccountId, ProfileNames) ->
+    Keys = [{AccountId, ProfileName} || ProfileName <- ProfileNames],
+    lists:foldr(fun build_profile/2, [], Keys).
+
+build_profile({AccountId, ProfileName}, Acc) ->
+    get_profile(AccountId, [<<"profiles">>, ProfileName], profile_default(ProfileName), Acc).
+
+language_profiles(Language, AccountId, ProfileNames) ->
+    Keys = [{Language, AccountId, ProfileName} || ProfileName <- ProfileNames],
+    lists:foldr(fun language_profile/2, [], Keys).
+
+language_profile({Language, AccountId, ProfileName}, Acc) ->
+    get_profile(AccountId, [<<"profiles">>, Language, ProfileName], undefined, Acc).
+
+get_profile(AccountId, Keys, Default, Acc) ->
+    case kapps_merged_config:get_json(AccountId, ?CONFERENCE_CONFIG_CAT, Keys, Default) of
+        undefined -> Acc;
+        Profile -> [Profile | Acc]
+    end.
+
+profile_default(?DEFAULT_PROFILE_NAME) -> kz_json:from_list(?DEFAULT_PROFILE_CONFIG);
+profile_default(?PAGE_PROFILE_NAME) -> kz_json:from_list(?PAGE_PROFILE_CONFIG);
+profile_default(?VIDEO_PROFILE_NAME) -> kz_json:from_list(?VIDEO_PROFILE_CONFIG);
+profile_default(_Other) -> kz_json:new().
+
+profile_names(AccountId, ProfileName) ->
+    profile_names(AccountId, ProfileName, []).
+
+profile_names(_AccountId, undefined, Acc) -> Acc;
+profile_names(AccountId, ProfileName, Acc)
+  when is_binary(ProfileName) ->
+    BaseProfileName = kapps_merged_config:get_ne_binary(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, ProfileName, <<"base_profile_name">>]),
+    profile_names(AccountId, BaseProfileName, [ProfileName | Acc]).
