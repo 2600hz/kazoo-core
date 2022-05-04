@@ -219,13 +219,12 @@ hide_number(JObj, _Method) ->
            ,<<"Caller-ID-Number">>
            ],
     AnonymousNumber = anonymous_caller_id_number(),
-    Ret =
-    lists:foldl(fun(Key, J) ->
-                        kz_json:set_value(Key, AnonymousNumber, J)
-                end
-               ,JObj
-               ,Keys
-               ),
+    Ret = lists:foldl(fun(Key, J) ->
+                              kz_json:set_value(Key, AnonymousNumber, J)
+                      end
+                     ,JObj
+                     ,Keys
+                     ),
     maybe_anonymize_ccv_from_uri(Ret).
 
 %%------------------------------------------------------------------------------
