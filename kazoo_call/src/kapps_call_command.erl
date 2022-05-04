@@ -1596,16 +1596,16 @@ seek(Direction, Duration, Call) when Duration > 0 ->
 seek(_Direction, _NotPositive, _Call) -> 'undefined'.
 
 -spec seek_command(seek_direction(), pos_integer()) -> kz_json:object().
-seek_command(Direction, Duration) ->
+seek_command(Direction, Duration) when Duration > 0 ->
     kz_json:from_list([{<<"Application-Name">>, <<"playseek">>}
-                      ,{<<"Direction">>, seek_direction(Direction, Duration)}
+                      ,{<<"Direction">>, seek_direction(Direction)}
                       ,{<<"Duration">>, Duration}
                       ,{<<"Insert-At">>, <<"now">>}
                       ]).
 
--spec seek_direction(seek_direction(), integer()) -> kz_term:ne_binary().
-seek_direction('fastforward', Duration) when Duration > 0 -> <<"fastforward">>;
-seek_direction('rewind', Duration) when Duration < 0 -> <<"rewind">>.
+-spec seek_direction(seek_direction()) -> kz_term:ne_binary().
+seek_direction('fastforward') -> <<"fastforward">>;
+seek_direction('rewind') -> <<"rewind">>.
 
 %%------------------------------------------------------------------------------
 %% @doc requests the TTS engine to create an audio file to play the desired
