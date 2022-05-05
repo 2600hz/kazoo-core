@@ -137,7 +137,8 @@ all(?MATCH_ACCOUNT_RAW(AccountId)) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec read(id()) -> {'ok', kz_json:object()} |
+-spec read(id()) ->
+          {'ok', kz_json:object()} |
           {'error', 'not_found'}.
 read(TaskId=?NE_BINARY) ->
     case task_by_id(TaskId) of
@@ -165,38 +166,48 @@ new(?MATCH_ACCOUNT_RAW(AuthAccountId), ?MATCH_ACCOUNT_RAW(AccountId)
             lager:debug("checking task ~s ~s failed: ~p", [Category, Action, _R]),
             E;
         API ->
-            lager:debug("task ~s ~s matched api ~s", [Category, Action, kz_json:encode(API)]),
-            case find_input_errors(API, Input) of
-                Errors when Errors =/= #{} ->
-                    JObj = kz_json:from_list(props:filter_empty(maps:to_list(Errors))),
-                    {'error', JObj};
-                _ ->
-                    InputName = case kz_term:is_empty(CSVName) of
-                                    'true' -> 'undefined';
-                                    'false' -> kz_term:to_binary(CSVName)
-                                end,
-                    lager:debug("creating ~s.~s task (~p)", [Category, Action, TotalRows]),
-                    lager:debug("using auth ~s and account ~s", [AuthAccountId, AccountId]),
-                    TaskId = new_id(),
-                    Task = #{worker_pid => 'undefined'
-                            ,worker_node => 'undefined'
-                            ,account_id => AccountId
-                            ,auth_account_id => AuthAccountId
-                            ,id => TaskId
-                            ,category => Category
-                            ,action => Action
-                            ,file_name => InputName
-                            ,created => kz_time:now_s()
-                            ,started => 'undefined'
-                            ,finished => 'undefined'
-                            ,total_rows => TotalRows
-                            ,total_rows_failed => 'undefined'
-                            ,total_rows_succeeded => 'undefined'
-                            },
-                    {'ok', _JObj} = Ok = save_new_task(Task),
-                    lager:debug("task ~s created, rows: ~p", [TaskId, TotalRows]),
-                    Ok
-            end
+            new(AuthAccountId, AccountId, Category, Action
+               ,TotalRows, Input, CSVName, API
+               )
+    end.
+
+new(AuthAccountId, AccountId, Category, Action, TotalRows, Input, CSVName, API) ->
+    lager:debug("task ~s ~s matched api ~s", [Category, Action, kz_json:encode(API)]),
+    case find_input_errors(API, Input) of
+        {_, 0} ->
+            new_task(AuthAccountId, AccountId, Category, Action, TotalRows, CSVName);
+        {Errors, _} ->
+            JObj = kz_json:from_list(props:filter_empty(Errors)),
+            {'error', JObj}
+    end.
+
+new_task(AuthAccountId, AccountId, Category, Action, TotalRows, CSVName) ->
+    lager:debug("creating ~s.~s task (~p)", [Category, Action, TotalRows]),
+    lager:debug("using auth ~s and account ~s", [AuthAccountId, AccountId]),
+    TaskId = new_id(),
+    Task = #{worker_pid => 'undefined'
+            ,worker_node => 'undefined'
+            ,account_id => AccountId
+            ,auth_account_id => AuthAccountId
+            ,id => TaskId
+            ,category => Category
+            ,action => Action
+            ,file_name => input_filename(CSVName)
+            ,created => kz_time:now_s()
+            ,started => 'undefined'
+            ,finished => 'undefined'
+            ,total_rows => TotalRows
+            ,total_rows_failed => 'undefined'
+            ,total_rows_succeeded => 'undefined'
+            },
+    {'ok', _JObj} = Ok = save_new_task(Task),
+    lager:debug("task ~s created, rows: ~p", [TaskId, TotalRows]),
+    Ok.
+
+input_filename(CSVName) ->
+    case kz_term:is_empty(CSVName) of
+        'true' -> 'undefined';
+        'false' -> kz_term:to_binary(CSVName)
     end.
 
 -spec new_id() -> id().
@@ -241,79 +252,85 @@ help(Category, Action) ->
             {'error', 'unknown_category_action'}
     end.
 
--spec find_input_errors(kz_json:object(), input()) -> map().
+-spec find_input_errors(kz_json:object(), input()) -> {kz_term:proplist(), non_neg_integer()}.
 find_input_errors(API, 'undefined') ->
     find_API_errors(API, [], 'false');
-
 find_input_errors(API, Input=?NE_BINARY) ->
     {Fields, InputData} = kz_csv:take_row(Input),
-    Errors = find_API_errors(API, Fields, 'true'),
+    {Errors, N} = find_API_errors(API, Fields, 'true'),
     %% Stop here if there is no Mandatory fields to check against.
-    case mandatory(API) of
-        [] -> Errors;
-        Mandatory ->
-            IsMandatory = [lists:member(Field, Mandatory) || Field <- Fields],
-            Unsets =
-                fun (Row, Es) ->
-                        case are_mandatories_unset(IsMandatory, Row) of
-                            'false' -> Es;
-                            'true' -> [iolist_to_binary(kz_csv:row_to_iolist(Row)) | Es]
-                        end
-                end,
-            case kz_csv:fold(InputData, Unsets, []) of
-                [] -> Errors;
-                MMVs -> Errors#{?KZ_TASKS_INPUT_ERROR_MMV => lists:reverse(MMVs)}
-            end
-    end;
-
+    handle_mandatory_keys(Fields, InputData, {Errors, N}, mandatory(API));
 find_input_errors(API, InputRecord=[_|_]) ->
     %%NOTE: assumes first record has all the fields that all the other records will ever need set,
     %%NOTE: assumes all records have all the same fields defined.
     Fields = kz_json:get_keys(hd(InputRecord)),
     find_API_errors(API, Fields, 'true').
 
--spec find_API_errors(kz_json:object(), kz_term:ne_binaries(), boolean()) -> map().
+handle_mandatory_keys(_Fields, _InputData, {Errors, N}, []) ->
+    {Errors, N};
+handle_mandatory_keys(Fields, InputData, {Errors, N}, MandatoryKeys) ->
+    IsMandatory = [lists:member(Field, MandatoryKeys) || Field <- Fields],
+    Unsets =
+        fun (Row, Es) ->
+                case are_mandatories_unset(IsMandatory, Row) of
+                    'false' -> Es;
+                    'true' -> [iolist_to_binary(kz_csv:row_to_iolist(Row)) | Es]
+                end
+        end,
+    case kz_csv:fold(InputData, Unsets, []) of
+        [] -> [];
+        MMVs -> {[{?KZ_TASKS_INPUT_ERROR_MMV, lists:reverse(MMVs)} | Errors], N+1}
+    end.
+
+-spec find_API_errors(kz_json:object(), kz_term:ne_binaries(), boolean()) ->
+          {kz_term:proplist(), non_neg_integer()}.
 find_API_errors(API, Fields, HasInputData) ->
-    Mandatory = mandatory(API),
     Routines =
-        [fun (Errors) ->
-                 case Mandatory -- Fields of
-                     [] -> Errors;
-                     Missing -> Errors#{?KZ_TASKS_INPUT_ERROR_MMF => Missing}
-                 end
-         end
-        ,fun (Errors) ->
-                 RequestedMIME = input_mime(API),
-                 APIRequiresInputData = ?NIL_MIME /= RequestedMIME,
-                 case APIRequiresInputData xor HasInputData of
-                     'false' -> Errors;
-                     'true' ->  Errors#{?KZ_TASKS_INPUT_ERROR_MIME => RequestedMIME}
-                 end
-         end
+        [check_mandatory_fields_fun(API, Fields)
+        ,check_content_type_fun(API, HasInputData)
         ],
-    lists:foldl(fun (F, Errors) -> F(Errors) end, #{}, Routines).
+    lists:foldl(fun (F, Errors) -> F(Errors) end, {[], 0}, Routines).
+
+check_mandatory_fields_fun(API, Fields) ->
+    Mandatory = mandatory(API),
+    fun({Errors, N}) ->
+            case Mandatory -- Fields of
+                [] -> {Errors, N};
+                Missing -> {[{?KZ_TASKS_INPUT_ERROR_MMF, Missing} | Errors], N+1}
+            end
+    end.
+
+check_content_type_fun(API, HasInputData) ->
+    fun ({Errors, N}) ->
+            RequestedMIME = input_mime(API),
+            APIRequiresInputData = ?NIL_MIME =/= RequestedMIME,
+            case APIRequiresInputData xor HasInputData of
+                'false' -> {Errors, N};
+                'true' ->  {[{?KZ_TASKS_INPUT_ERROR_MIME, RequestedMIME} | Errors], N+1}
+            end
+    end.
 
 -spec are_mandatories_unset(nonempty_list(boolean()), nonempty_list(kz_term:ne_binary())) -> boolean().
 are_mandatories_unset(IsMandatory, Row) ->
-    MapF = fun (Mandatory, Value) ->
-                   Mandatory
-                       andalso 'undefined' == Value
-           end,
+    MapF = fun is_missing_mandatory/2,
     RedF = fun erlang:'or'/2,
     lists:foldl(RedF, 'false', lists:zipwith(MapF, IsMandatory, Row)).
 
+is_missing_mandatory('true', 'undefined') -> 'true';
+is_missing_mandatory(_Mandatory, _Value) -> 'false'.
 
 -spec view(list()) -> kz_json:objects().
 view(ViewOptions) ->
     case kz_datamgr:get_results(?KZ_TASKS_DB, ?KZ_TASKS_BY_CREATED, ViewOptions) of
         {'ok', []} -> [];
-        {'ok', JObjs} -> [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs];
+        {'ok', JObjs} -> [kz_json:get_json_value(<<"value">>, JObj) || JObj <- JObjs];
         {'error', _R} ->
             lager:debug("error viewing tasks (~p): ~p", [ViewOptions, _R]),
             []
     end.
 
--spec save_new_task(task()) -> {'ok', kz_json:object()} |
+-spec save_new_task(task()) ->
+          {'ok', kz_json:object()} |
           {'error', any()}.
 save_new_task(Task = #{id := _TaskId}) ->
     case kz_datamgr:save_doc(?KZ_TASKS_DB, to_json(Task)) of
@@ -331,7 +348,6 @@ task_by_id(TaskId) ->
             lager:error("failed to open ~s in ~s: ~p", [TaskId, ?KZ_TASKS_DB, _R]),
             []
     end.
-
 
 -spec from_json(kz_json:object()) -> task().
 from_json(Doc) ->
@@ -405,7 +421,6 @@ to_public_json(Task) ->
       ,{<<"success_count">>, kzd_task:success_count(Doc)}
       ,{<<"status">>, kzd_task:status(Doc)}
       ]).
-
 
 %%------------------------------------------------------------------------------
 %% @doc Whether task has been started and is still running.
