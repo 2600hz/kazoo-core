@@ -1,5 +1,5 @@
 {application,kazoo_nodes,
-             [{applications,[amqp_client,crypto,kazoo_amqp,kazoo_bindings,
+             [{applications,[amqp_client,crypto,gproc,kazoo_amqp,kazoo_bindings,
                              kazoo_config,kazoo_stdlib,kernel,lager,poolboy,
                              stdlib]},
               {description,"Register processes across the cluster"},
