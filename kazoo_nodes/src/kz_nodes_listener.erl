@@ -20,13 +20,8 @@
 -export([flush/0]).
 -export([handle_advertise/2]).
 -export([notify_new/0
-        ,notify_new/1
-        ]).
--export([notify_expire/0
-        ,notify_expire/1
-        ]).
--export([notify_heartbeat/0
-        ,notify_heartbeat/1
+        ,notify_expire/0
+        ,notify_heartbeat/0
         ]).
 
 -export([init/1
@@ -71,9 +66,6 @@
 -define(FUDGE_FACTOR, 1.25).
 
 -record(state, {heartbeat_ref = erlang:make_ref() :: reference()
-               ,notify_new = sets:new() :: sets:set()
-               ,notify_expire = sets:new() :: sets:set()
-               ,notify_heartbeat = sets:new() :: sets:set()
                ,node = node() :: atom()
                ,md5 :: kz_term:ne_binary()
                ,zone = 'local' :: atom()
@@ -113,27 +105,15 @@ flush() ->
 
 -spec notify_new() -> 'ok'.
 notify_new() ->
-    notify_new(self()).
-
--spec notify_new(pid()) -> 'ok'.
-notify_new(Pid) ->
-    gen_listener:cast(?SERVER, {'notify_new', Pid}).
+    kz_nodes_notify:notify_new().
 
 -spec notify_expire() -> 'ok'.
 notify_expire() ->
-    notify_expire(self()).
-
--spec notify_expire(pid()) -> 'ok'.
-notify_expire(Pid) ->
-    gen_listener:cast(?SERVER, {'notify_expire', Pid}).
+    kz_nodes_notify:notify_expire().
 
 -spec notify_heartbeat() -> 'ok'.
 notify_heartbeat() ->
-    notify_heartbeat(self()).
-
--spec notify_heartbeat(pid()) -> 'ok'.
-notify_heartbeat(Pid) ->
-    gen_listener:cast(?SERVER, {'notify_heartbeat', Pid}).
+    kz_nodes_notify:notify_heartbeat().
 
 -spec handle_advertise(kz_json:object(), kz_term:proplist()) -> 'ok'.
 handle_advertise(JObj, Props) ->
@@ -151,18 +131,19 @@ build_advertised_node(JObj, State) ->
     try
         from_json(JObj, State)
     catch
-        _E:_R ->
+        _E:_R:_ST ->
+            kz_log:log_stacktrace(_ST),
             lager:warning("error building advertised node : ~p", [{_E, _R}])
     end.
 
 -spec update_advertised_node(kz_types:kz_node(), nodes_state()) -> pid() | 'true'.
 update_advertised_node(_Node, #state{has_ets='false'}) -> 'true';
-update_advertised_node(Node, #state{has_ets='true'}=State) ->
+update_advertised_node(Node, #state{has_ets='true'}) ->
     case kz_nodes_ets:add_node(Node) of
         'new' ->
-            kz_process:spawn(fun notify_new/2, [Node, State]);
+            kz_process:spawn(fun notify_new/1, [Node]);
         'update' ->
-            kz_process:spawn(fun notify_heartbeat/2, [Node, State])
+            kz_process:spawn(fun notify_heartbeat/1, [Node])
     end.
 
 %%%=============================================================================
@@ -206,15 +187,6 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), nodes_state()) -> kz_types:handle_cast_ret_state(nodes_state()).
-handle_cast({'notify_new', Pid}, #state{notify_new=Set}=State) ->
-    _ = erlang:monitor('process', Pid),
-    {'noreply', State#state{notify_new=sets:add_element(Pid, Set)}};
-handle_cast({'notify_expire', Pid}, #state{notify_expire=Set}=State) ->
-    _ = erlang:monitor('process', Pid),
-    {'noreply', State#state{notify_expire=sets:add_element(Pid, Set)}};
-handle_cast({'notify_heartbeat', Pid}, #state{notify_heartbeat=Set}=State) ->
-    _ = erlang:monitor('process', Pid),
-    {'noreply', State#state{notify_heartbeat=sets:add_element(Pid, Set)}};
 handle_cast({'advertise', JObj}, State) ->
     case build_advertised_node(JObj, State) of
         #kz_node{}=Node ->
@@ -251,7 +223,7 @@ handle_cast(_Msg, State) ->
 -spec handle_info(any(), nodes_state()) -> kz_types:handle_info_ret_state(nodes_state()).
 handle_info('expire_nodes', #state{node=ThisNode, has_ets='true'}=State) ->
     ExpiredNodes = kz_nodes_ets:expire_nodes(ThisNode),
-    _ = kz_process:spawn(fun notify_expire/2, [ExpiredNodes, State]),
+    _ = kz_process:spawn(fun notify_expire/1, [ExpiredNodes]),
     _ = erlang:send_after(?EXPIRE_PERIOD, self(), 'expire_nodes'),
     {'noreply', State};
 
@@ -293,28 +265,14 @@ handle_info({'heartbeat', Ref}
             {'noreply', State#state{heartbeat_ref=Reference}, 'hibernate'}
     end;
 
-handle_info({'DOWN', Ref, 'process', Pid, _}
-           ,#state{notify_new=NewSet
-                  ,notify_expire=ExpireSet
-                  ,notify_heartbeat=HeartbeatSet
-                  }=State
-           ) ->
-    erlang:demonitor(Ref, ['flush']),
-    {'noreply', State#state{notify_new=sets:del_element(Pid, NewSet)
-                           ,notify_expire=sets:del_element(Pid, ExpireSet)
-                           ,notify_heartbeat=sets:del_element(Pid, HeartbeatSet)
-                           }};
-
-handle_info({'nodedown', Node, InfoList}, State) ->
-    lager:info("VM ~s is no longer connected:", [Node]),
-    _ = [lager:info(" ~p: ~p", [K, V]) || {K, V} <- InfoList],
+handle_info({'nodedown', Node, _InfoList}, State) ->
+    lager:info("~s is no longer connected:", [Node]),
     {'noreply', State};
 handle_info({'nodedown', Node}, State) ->
-    lager:info("VM ~s is no longer connected", [Node]),
+    lager:info("~s is no longer connected", [Node]),
     {'noreply', State};
-handle_info({'nodeup', Node, InfoList}, State) ->
-    lager:info("VM ~s is now connected:", [Node]),
-    _ = [lager:info(" ~p: ~p", [K, V]) || {K, V} <- InfoList],
+handle_info({'nodeup', Node, _InfoList}, State) ->
+    lager:info("~s is now connected", [Node]),
     {'noreply', State};
 handle_info({'nodeup', Node}, State) ->
     lager:info("VM ~s is now connected", [Node]),
@@ -501,36 +459,18 @@ get_amqp_broker(Broker) when is_binary(Broker) ->
 get_amqp_broker(JObj) ->
     get_amqp_broker(kz_json:get_ne_value(<<"AMQP-Broker">>, JObj)).
 
--spec notify_expire(kz_types:kz_nodes(), nodes_state() | kz_term:pids()) -> 'ok'.
-notify_expire([], _) -> 'ok';
-notify_expire(_, []) -> 'ok';
-notify_expire(Nodes, #state{notify_expire=Set}) ->
-    notify_expire(Nodes, sets:to_list(Set));
-notify_expire([#kz_node{node=NodeName}=Node|Nodes], Pids) ->
-    lager:warning("node ~s heartbeat has expired", [NodeName]),
-    _ = [gen_server:cast(Pid, {'kz_nodes', {'expire', Node}})
-         || Pid <- Pids
-        ],
-    notify_expire(Nodes, Pids).
+-spec notify_expire(kz_types:kz_nodes()) -> 'ok'.
+notify_expire(Nodes) ->
+    kz_nodes_notify:notify_expire(Nodes).
 
--spec notify_new(kz_types:kz_node(), nodes_state() | kz_term:pids()) -> 'ok'.
-notify_new(Node, #state{notify_new=Set}) ->
-    notify_new(Node, sets:to_list(Set));
-notify_new(#kz_node{node=NodeName}=Node, Pids) ->
+-spec notify_new(kz_types:kz_node()) -> 'ok'.
+notify_new(#kz_node{node=NodeName}=Node) ->
     lager:info("received heartbeat from new node ~s", [NodeName]),
-    _ = [gen_server:cast(Pid, {'kz_nodes', {'new', Node}})
-         || Pid <- Pids
-        ],
-    'ok'.
+    kz_nodes_notify:notify_new(Node).
 
--spec notify_heartbeat(kz_types:kz_node(), nodes_state() | kz_term:pids()) -> 'ok'.
-notify_heartbeat(Node, #state{notify_heartbeat=Set}) ->
-    notify_heartbeat(Node, sets:to_list(Set));
-notify_heartbeat(#kz_node{}=Node, Pids) ->
-    _ = [gen_server:cast(Pid, {'kz_nodes', {'heartbeat', Node}})
-         || Pid <- Pids
-        ],
-    'ok'.
+-spec notify_heartbeat(kz_types:kz_node()) -> 'ok'.
+notify_heartbeat(#kz_node{}=Node) ->
+    kz_nodes_notify:notify_heartbeat(Node).
 
 -spec maybe_add_zone(kz_types:kz_node(), nodes_state()) -> nodes_state().
 maybe_add_zone(#kz_node{zone='undefined'}, #state{}=State) -> State;
