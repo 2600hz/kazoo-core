@@ -1060,8 +1060,6 @@ break(Call) ->
 %% This request will execute immediately.
 %% @end
 %%------------------------------------------------------------------------------
-
-
 -spec hangup(kapps_call:call()) -> 'ok'.
 hangup(Call) ->
     Command = [{<<"Application-Name">>, <<"hangup">>}
