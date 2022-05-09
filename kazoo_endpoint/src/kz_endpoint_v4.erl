@@ -114,7 +114,7 @@ get('undefined', _Call) ->
 get(<<EndpointId/binary>>, ?MATCH_ACCOUNT_RAW(AccountId)) ->
     get(EndpointId, kzs_util:format_account_db(AccountId));
 get(<<EndpointId/binary>>, AccountDb) when is_binary(AccountDb) ->
-    case kz_cache:peek_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
+    case kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
         {'ok', _Endpoint}=Ok ->
             lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
             Ok;
@@ -200,7 +200,7 @@ cache_store_endpoint(JObj, EndpointId, AccountDb, EndpointType) ->
              ],
     Endpoint = kz_json:set_values(Values, merge_attributes(JObj, EndpointType)),
     CacheProps = [{'origin', cache_origin(JObj, EndpointId, AccountDb)}],
-    catch kz_cache:store_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}, Endpoint, CacheProps),
+    catch kz_cache:store_local_async(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}, Endpoint, CacheProps),
     lager:debug("cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(Endpoint)]),
     {'ok', Endpoint}.
 

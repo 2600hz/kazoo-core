@@ -12,27 +12,19 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_endpoints).
 
--export([by_owner_id/3
+-export([by_owner_id/2, by_owner_id/3
         ,ignore_early_media/1
         ]).
 
 -include("kazoo_endpoint.hrl").
 
--spec by_owner_id(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
-          kz_endpoint:endpoints().
-by_owner_id(OwnerId, Data, Call) ->
-    by_owner_id(OwnerId, Data, Call, ?MODNAME).
+-spec by_owner_id(kz_term:ne_binary(), kapps_call:call()) -> kz_endpoint:endpoints().
+by_owner_id(OwnerId, Call) ->
+    by_owner_id(OwnerId, kz_json:new(), Call).
 
-by_owner_id(OwnerId, Data, Call, Mod) ->
-    lists:foldr(fun(EndpointId, Acc) ->
-                        case Mod:build(EndpointId, Data, Call) of
-                            {'ok', Endpoint} -> Endpoint ++ Acc;
-                            {'error', _E} -> Acc
-                        end
-                end
-               ,[]
-               ,kz_attributes:owned_by(OwnerId, <<"device">>, Call)
-               ).
+-spec by_owner_id(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) -> kz_endpoint:endpoints().
+by_owner_id(OwnerId, Data, Call) ->
+    ?MOD(Data):by_owner_id(OwnerId, Data, Call).
 
 -spec ignore_early_media(kz_endpoint:endpoints()) -> boolean().
 ignore_early_media(Endpoints) ->

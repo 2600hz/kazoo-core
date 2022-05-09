@@ -106,13 +106,13 @@ build(EndpointId, Call) -> ?MOD:build(EndpointId, Call).
 -spec build(kz_term:api_ne_binary() | kz_json:object(), kz_term:api_object(), kapps_call:call()) ->
           {'ok', kz_json:objects()} |
           {'error', build_errors()}.
-build(EndpointId, Properties, Call) -> ?MOD:build(EndpointId, Properties, Call).
+build(EndpointId, Properties, Call) -> ?MOD(Properties):build(EndpointId, Properties, Call).
 
 -spec build(kz_term:api_ne_binary() | kz_json:object(), kz_term:api_object(), kapps_call:call(), kz_term:proplist()) ->
           {'ok', kz_json:objects()} |
           {'error', build_errors()}.
 build(EndpointId, Properties, Call, Options) ->
-    case ?MOD:get(EndpointId, Call, Options) of
+    case ?MOD(Properties):get(EndpointId, Call, Options) of
         {'ok', Endpoint} -> build(Endpoint, Properties, Call);
         {'error', _}=E -> E
     end.
