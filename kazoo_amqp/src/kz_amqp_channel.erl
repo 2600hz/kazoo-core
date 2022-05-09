@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -320,8 +320,17 @@ maybe_split_routing_key(<<"consumer://", _/binary>> = RoutingKey) ->
 maybe_split_routing_key(RoutingKey) ->
     {'undefined', RoutingKey}.
 
--spec command(kz_amqp_command()) -> command_ret().
-command(#'exchange.declare'{} = Command) ->
+-spec connection_command_enabled() -> boolean().
+connection_command_enabled() ->
+    kz_app_config:is_true(?APP, <<"enable_connection_commands">>, false)
+        orelse not is_consumer_channel_valid().
+
+-spec maybe_connection_command(kz_amqp_command()) -> command_ret().
+maybe_connection_command(Cmd) ->
+    maybe_connection_command(connection_command_enabled(), Cmd).
+
+-spec maybe_connection_command(boolean(), kz_amqp_command()) -> command_ret().
+maybe_connection_command(true, #'exchange.declare'{} = Command) ->
     case kz_amqp_connections:managers(consumer_broker()) of
         [] -> {'error', 'not_available'};
         [Pid | _] ->
@@ -330,7 +339,7 @@ command(#'exchange.declare'{} = Command) ->
                 'false' -> kz_amqp_connection:declare_exchange(Pid, Command)
             end
     end;
-command(#'exchange.bind'{} = Command) ->
+maybe_connection_command(true, #'exchange.bind'{} = Command) ->
     case kz_amqp_connections:managers(consumer_broker()) of
         [] -> {'error', 'not_available'};
         [Pid | _] ->
@@ -339,8 +348,8 @@ command(#'exchange.bind'{} = Command) ->
                 'false' -> kz_amqp_connection:exchange_bind(Pid, Command)
             end
     end;
-command(Command) ->
-    %% This will wait forever for a valid channel before publishing...
+maybe_connection_command(_FalseOrOtherCmd, Command) ->
+    %% This will wait forever for a valid channel before executing command...
     %% all commands need to block till completion...
     case consumer_channel() of
         Channel when is_pid(Channel) ->
@@ -352,6 +361,10 @@ command(Command) ->
             command(Assignment, Command);
         {'error', _} = Error -> Error
     end.
+
+-spec command(kz_amqp_command()) -> command_ret().
+command(Command) ->
+    maybe_connection_command(Command).
 
 -spec command(kz_amqp_assignment(), kz_amqp_command()) -> command_ret().
 command(Assignment, Command) ->
@@ -440,18 +453,23 @@ handle_command_result(#'queue.delete_ok'{}
                      ,#kz_amqp_assignment{channel=Channel}=_Assignment
                      ) ->
     lager:debug("deleted queue ~s via channel ~p", [Q, Channel]);
-handle_command_result(#'exchange.declare_ok'{}=Ok
-                     ,#'exchange.declare'{passive='true',exchange=Ex}
+handle_command_result(#'exchange.declare_ok'{}
+                     ,#'exchange.declare'{} = Exchange
                      ,#kz_amqp_assignment{channel=Channel}
                      ) ->
-    lager:debug("passive declared exchange ~s via channel ~p", [Ex, Channel]),
-    {'ok', Ok};
-handle_command_result(#'exchange.declare_ok'{}=Ok
-                     ,#'exchange.declare'{exchange=Ex}
+    lager:debug("declared ~s exchange ~s via ~p", [Exchange#'exchange.declare'.type
+                                                  ,Exchange#'exchange.declare'.exchange
+                                                  ,Channel
+                                                  ]);
+handle_command_result(#'exchange.bind_ok'{}
+                     ,#'exchange.bind'{} = Binding
                      ,#kz_amqp_assignment{channel=Channel}
                      ) ->
-    lager:debug("declared exchanged ~s via channel ~p", [Ex, Channel]),
-    {'ok', Ok};
+    lager:debug("exchange ~s binding from ~s : ~s via ~p", [Binding#'exchange.bind'.destination
+                                                           ,Binding#'exchange.bind'.source
+                                                           ,Binding#'exchange.bind'.routing_key
+                                                           ,Channel
+                                                           ]);
 handle_command_result(#'queue.declare_ok'{queue=Q}=Ok
                      ,#'queue.declare'{passive='true'}
                      ,#kz_amqp_assignment{channel=Channel}
@@ -507,11 +525,6 @@ handle_command_result(#'confirm.select_ok'{}
                      ) ->
     Consumer ! {'$server_confirms', 'true'},
     lager:debug("publisher confirms activated on channel ~p", [Channel]);
-handle_command_result(#'exchange.bind_ok'{}=OK
-                     ,_Command
-                     ,#kz_amqp_assignment{}=_Assignment
-                     ) ->
-    {'ok', OK};
 handle_command_result(#'channel.flow_ok'{active=Active}
                      ,_Command
                      ,#kz_amqp_assignment{channel=Channel
