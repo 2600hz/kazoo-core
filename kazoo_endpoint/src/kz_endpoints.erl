@@ -18,11 +18,11 @@
 
 -include("kazoo_endpoint.hrl").
 
--spec by_owner_id(kz_term:ne_binary(), kapps_call:call()) -> kz_endpoint:endpoints().
+-spec by_owner_id(kz_term:ne_binary(), kapps_call:call()) -> kz_endpoint:endpoints() | {'error', kz_endpoint:build_errors()}.
 by_owner_id(OwnerId, Call) ->
     by_owner_id(OwnerId, kz_json:new(), Call).
 
--spec by_owner_id(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) -> kz_endpoint:endpoints().
+-spec by_owner_id(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) -> kz_endpoint:endpoints() | {'error', kz_endpoint:build_errors()}.
 by_owner_id(OwnerId, Data, Call) ->
     ?MOD(Data):by_owner_id(OwnerId, Data, Call).
 
