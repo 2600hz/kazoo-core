@@ -59,7 +59,8 @@
                               ,{'delivery_mode', 2}
                               ]).
 
--define(ROUTE_TIMEOUT, 'infinity').
+-define(ROUTE_TIMEOUT, kz_app_config:get_timeout(?APP, <<"offnet_route_timeout_ms">>, 'infinity')).
+
 
 %%%=============================================================================
 %%% API
@@ -149,19 +150,22 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'gen_listener', {'created_queue', _QueueNAme}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener', {'is_consuming', 'false'}}, #state{registered = true} = State) ->
+handle_cast({'gen_listener', {'is_consuming', 'false'}}, #state{registered = true, confirms = #{count := Count} = Confirms} = State) ->
     lager:debug("deactivating offnet worker"),
     _ = gproc:unreg({'p', 'l', 'im_offnet'}),
-    {'noreply', State#state{registered = false}};
+    Ack = #'basic.ack'{delivery_tag = Count, multiple = 'true'},
+    {'noreply', handle_confirm(Ack, State#state{registered = false, confirms = Confirms#{count => 0}})};
 handle_cast({'gen_listener', {'is_consuming', 'false'}}, #state{registered = false} = State) ->
+    lager:warning("unexpected state => ~p", [State]),
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', 'true'}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'server_confirms', 'true'}}, #state{registered = false} = State) ->
+handle_cast({'gen_listener',{'server_confirms', 'true'}}, #state{registered = false, confirms = Confirms} = State) ->
     lager:debug("broker can confirm deliveries, activating offnet worker"),
     'true' = gproc:reg({'p', 'l', 'im_offnet'}),
-    {'noreply', State#state{registered = true}};
+    {'noreply', State#state{registered = true, confirms = Confirms#{count => 1}}};
 handle_cast({'gen_listener',{'server_confirms', 'true'}}, #state{registered = true} = State) ->
+    lager:warning("unexpected state => ~p", [State]),
     {'noreply', State};
 handle_cast({'gen_listener',{'server_confirms', 'false'}}, State) ->
     lager:warning("broker can't confirm deliveries"),
