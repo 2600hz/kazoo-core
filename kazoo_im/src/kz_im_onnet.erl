@@ -29,8 +29,6 @@
 
 -include("kazoo_im.hrl").
 
--define(SERVER, ?MODULE).
-
 -type state() :: map().
 
 -define(BINDINGS, [{'im', [{'restrict_to', ['outbound']}]}]).
@@ -54,7 +52,7 @@
                               ,{'delivery_mode', 2}
                               ]).
 
--define(ROUTE_TIMEOUT, 'infinity').
+-define(ROUTE_TIMEOUT, kz_app_config:get_timeout(?APP, <<"onnet_route_timeout_ms">>, 'infinity')).
 
 %%%=============================================================================
 %%% API
@@ -124,19 +122,22 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'gen_listener', {'created_queue', ?QUEUE_NAME}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener', {'is_consuming', 'false'}}, #{registered := true} = State) ->
+handle_cast({'gen_listener', {'is_consuming', 'false'}}, #{registered := true, count := Count} = State) ->
     lager:debug("deactivating onnet worker"),
     _ = gproc:unreg({'p', 'l', 'im_onnet'}),
-    {'noreply', State#{registered => false}};
+    Ack = #'basic.ack'{delivery_tag = Count, multiple = 'true'},
+    {'noreply', handle_confirm(Ack, State#{registered => false, count => 0})};
 handle_cast({'gen_listener', {'is_consuming', 'false'}}, #{registered := false} = State) ->
+    lager:warning("unexpected state => ~p", [State]),
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', 'true'}}, State) ->
     {'noreply', State};
 handle_cast({'gen_listener',{'server_confirms', 'true'}}, #{registered := false} = State) ->
     lager:debug("broker can confirm deliveries, activating onnet worker"),
     'true' = gproc:reg({'p', 'l', 'im_onnet'}),
-    {'noreply', State#{registered => true}};
+    {'noreply', State#{registered => true, count => 1}};
 handle_cast({'gen_listener',{'server_confirms', 'true'}}, #{registered := true} = State) ->
+    lager:warning("unexpected state => ~p", [State]),
     {'noreply', State};
 handle_cast({'gen_listener',{'server_confirms', 'false'}}, State) ->
     lager:warning("broker can't confirm deliveries"),
