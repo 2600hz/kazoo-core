@@ -25,6 +25,7 @@
 -export([get_boolean/2, get_boolean/3]).
 -export([get_ne_binary/2, get_ne_binary/3]).
 -export([get_ne_binaries/2, get_ne_binaries/3]).
+-export([get_timeout/2, get_timeout/3]).
 
 -compile({no_auto_import, [get/1]}).
 
@@ -201,14 +202,23 @@ is_false(App, Key) ->
 is_false(App, Key, Default) ->
     get_is_false(App, Key, Default).
 
+-spec get_timeout(app(), app_key()) -> kz_term:api_pos_integer() | 'infinity'.
+get_timeout(App, Key) ->
+    get_timeout(App, Key, 'undefined').
+
+-spec get_timeout(app(), app_key(), Default) -> pos_integer() | 'infinity' | Default.
+get_timeout(App, Key, Default) ->
+    case get(App, Key) of
+        'undefined' -> Default;
+        {'ok', <<"infinity">>} -> 'infinity';
+        {'ok', Value} -> as_integer(Value, Default, fun(V) -> V > 0 end)
+    end.
+
 -spec get(app(), app_key()) -> 'undefined' | {'ok', any()}.
 get(App, <<_/binary>>=Key) ->
     get(App, binary:split(Key, <<".">>, ['global']));
 get(App, Keys) ->
-    case kz_term:is_ne_binaries(Keys) of
-        'true' -> fetch_value(App, Keys);
-        'false' -> 'undefined'
-    end.
+    fetch_value(App, Keys).
 
 -spec as_integer(any(), Default, fun((integer()) -> boolean())) -> integer() | Default.
 as_integer(Value, Default, VFun)
