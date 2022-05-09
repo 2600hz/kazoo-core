@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2021, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -99,13 +99,13 @@ start_workers(Super) ->
     wait_for_workers(Pid, Ref).
 
 worker_count(EventType) ->
-    case kz_app_config:get_integer(?APP, [kz_term:to_binary(EventType), <<"event_listeners">>]) of
+    case kz_app_config:get_integer(?APP_EVENTS, [kz_term:to_binary(EventType), <<"event_listeners">>]) of
         'undefined' -> default_worker_count();
         Count -> Count
     end.
 
 default_worker_count() ->
-    kz_app_config:get_integer(?APP, <<"event_listeners">>, 5).
+    kz_app_config:get_integer(?APP_EVENTS, <<"event_listeners">>, 5).
 
 wait_for_workers(Pid, Ref) ->
     receive
