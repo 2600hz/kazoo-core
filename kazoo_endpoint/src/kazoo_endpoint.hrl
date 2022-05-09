@@ -29,8 +29,8 @@
 
 -define(EPVERSION, list_to_binary([?MODULE_STRING, "_", ?MODVERSION])).
 -define(EPVERSION(V), list_to_binary([?MODULE_STRING, "_", ?MODVERSION(V)])).
--define(EPMODVERSION, kz_term:to_atom(?EPVERSION)).
--define(EPMODVERSION(V), kz_term:to_atom(?EPVERSION(V))).
+-define(EPMODVERSION, kz_term:to_atom(?EPVERSION, true)).
+-define(EPMODVERSION(V), kz_term:to_atom(?EPVERSION(V), true)).
 
 -define(MOD,(?EPMODVERSION)).
 -define(MOD(V),(?EPMODVERSION(V))).
