@@ -19,7 +19,21 @@
 -define(MODNAME,kapps_config:get_atom(?CONFIG_CAT, <<"endpoint_module">>, 'kz_endpoint_v5')).
 -endif.
 
--define(MOD,(?MODNAME)).
+-ifdef(TEST).
+-define(MODVERSION,<<"v4">>).
+-define(MODVERSION(_V),<<"v4">>).
+-else.
+-define(MODVERSION,kapps_config:get_ne_binary(?CONFIG_CAT, <<"endpoint_module_version">>, <<"v5">>)).
+-define(MODVERSION(V),kz_json:get_ne_binary_value(<<"endpoint_module_version">>, V, kapps_config:get_ne_binary(?CONFIG_CAT, <<"endpoint_module_version">>, <<"v5">>))).
+-endif.
+
+-define(EPVERSION, list_to_binary([?MODULE_STRING, "_", ?MODVERSION])).
+-define(EPVERSION(V), list_to_binary([?MODULE_STRING, "_", ?MODVERSION(V)])).
+-define(EPMODVERSION, kz_term:to_atom(?EPVERSION)).
+-define(EPMODVERSION(V), kz_term:to_atom(?EPVERSION(V))).
+
+-define(MOD,(?EPMODVERSION)).
+-define(MOD(V),(?EPMODVERSION(V))).
 
 -define(KAZOO_ENDPOINT_HRL, 'true').
 -endif.
