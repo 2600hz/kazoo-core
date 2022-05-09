@@ -1,6 +1,6 @@
 -ifndef(KAZOO_EVENTS_HRL).
 
--define(APP, 'kazoo_events').
+-define(APP_EVENTS, 'kazoo_events').
 -define(KZ_EV_CONFIG_CAT, <<"kazoo_events">>).
 
 -define(KZ_EXCHANGE(Name), list_to_binary(["kz_", Name, "_", kz_term:to_binary(node())])).
