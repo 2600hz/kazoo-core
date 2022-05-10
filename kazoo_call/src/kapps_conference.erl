@@ -531,7 +531,7 @@ update_conference(Conference) ->
 
 -spec default_profile(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_json:object().
 default_profile(Language, AccountId, Default) ->
-    kz_json:from_list(update_profile_language(Language, AccountId, Default)).
+    update_language_prompts(Language, AccountId, kz_json:from_list(Default)).
 
 -spec default_audio_profile(kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_json:object().
 default_audio_profile(Language, AccountId) ->
@@ -568,29 +568,6 @@ default_page_profile(Language) ->
 -spec default_video_profile(kz_term:ne_binary()) -> kz_json:object().
 default_video_profile(Language) ->
     default_video_profile(Language, 'undefined').
-
--spec update_profile_language(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
-update_profile_language(Language, AccountId, Profile) ->
-    lists:map(fun({Key, Value}) ->
-                      update_prompt_language(kz_binary:reverse(Key), Key, Value, Language, AccountId)
-              end
-             ,Profile
-             ).
-
--spec update_prompt_language(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:json_term(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
-          {kz_term:ne_binary(), kz_json:json_term()}.
-update_prompt_language(_Yek, Key, <<>> = Value, _Language, _AccountId) ->
-    {Key, Value};
-update_prompt_language(_Yek, Key, <<"tone_stream://", _/binary>> = Value, _Language, _AccountId) ->
-    {Key, Value};
-update_prompt_language(_Yek, Key, <<"silence_stream://", _/binary>> = Value, _Language, _AccountId) ->
-    {Key, Value};
-update_prompt_language(_Yek, Key, <<"$${", _/binary>> = Value, _Language, _AccountId) ->
-    {Key, Value};
-update_prompt_language(<<"dnuos-", _/binary>>, Key, Value, Language, AccountId) ->
-    {Key, kz_media_util:get_prompt(Value, Language, AccountId)};
-update_prompt_language(_, Key, Value, _Language, _AccountId) ->
-    {Key, Value}.
 
 -spec application_name(conference()) -> kz_term:ne_binary().
 application_name(#kapps_conference{app_name=AppName}) ->
@@ -993,7 +970,8 @@ build_profile(#kapps_conference{} = Conference) ->
     MergeOptions = #{'keep_null' => 'false'
                     ,'recursive' => 'true'
                     },
-    kz_json:merge(DefaultProfiles ++ LanguageProfiles, MergeOptions).
+    Profile = kz_json:merge(DefaultProfiles ++ LanguageProfiles, MergeOptions),
+    update_language_prompts(Language, AccountId, Profile).
 
 build_profiles(AccountId, ProfileNames) ->
     Keys = [{AccountId, ProfileName} || ProfileName <- ProfileNames],
@@ -1027,3 +1005,30 @@ profile_names(_AccountId, 'undefined', Acc) -> Acc;
 profile_names(AccountId, <<ProfileName/binary>>, Acc) ->
     BaseProfileName = kapps_merged_config:get_ne_binary(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, ProfileName, <<"base_profile_name">>]),
     profile_names(AccountId, BaseProfileName, [ProfileName | Acc]).
+
+-spec update_language_prompts(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_json:object()) -> kz_json:object().
+update_language_prompts(Language, AccountId, JObj) ->
+    kz_json:map(update_language_prompts_fun(Language, AccountId), JObj).
+
+update_language_prompts_fun(Language, AccountId) ->
+    fun(Key, Value) ->
+            update_language_prompt(kz_binary:reverse(Key), Key, Value, Language, AccountId)
+    end.
+
+-spec update_language_prompt(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:json_term(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
+          {kz_term:ne_binary(), kz_json:json_term()}.
+update_language_prompt(_Yek, Key, <<>> = Value, _Language, _AccountId) ->
+    {Key, Value};
+update_language_prompt(_Yek, Key, <<"tone_stream://", _/binary>> = Value, _Language, _AccountId) ->
+    {Key, Value};
+update_language_prompt(_Yek, Key, <<"silence_stream://", _/binary>> = Value, _Language, _AccountId) ->
+    {Key, Value};
+update_language_prompt(_Yek, Key, <<"$${", _/binary>> = Value, _Language, _AccountId) ->
+    {Key, Value};
+update_language_prompt(<<"dnuos-", _/binary>>, Key, Value, Language, AccountId) ->
+    {Key, kz_media_util:get_prompt(Value, Language, AccountId)};
+update_language_prompt(_, Key, Value, Language, AccountId) ->
+    case kz_json:is_json_object(Value) of
+        true -> {Key, update_language_prompts(Language, AccountId, Value)};
+        false -> {Key, Value}
+    end.
