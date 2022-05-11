@@ -131,15 +131,15 @@ document_referer(Doc, Default) ->
 set_document_referer(Doc, DocumentReferer) ->
     kz_json:set_value([<<"document">>, <<"referer">>], DocumentReferer, Doc).
 
--spec document_url(doc()) -> kz_term:api_binary().
+-spec document_url(doc()) -> kz_term:api_ne_binary().
 document_url(Doc) ->
     document_url(Doc, 'undefined').
 
--spec document_url(doc(), Default) -> binary() | Default.
+-spec document_url(doc(), Default) -> kz_term:ne_binary() | Default.
 document_url(Doc, Default) ->
-    kz_json:get_binary_value([<<"document">>, <<"url">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"document">>, <<"url">>], Doc, Default).
 
--spec set_document_url(doc(), binary()) -> doc().
+-spec set_document_url(doc(), kz_term:ne_binary()) -> doc().
 set_document_url(Doc, DocumentUrl) ->
     kz_json:set_value([<<"document">>, <<"url">>], DocumentUrl, Doc).
 

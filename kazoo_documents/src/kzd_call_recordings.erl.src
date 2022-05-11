@@ -319,14 +319,14 @@ to(Doc, Default) ->
 set_to(Doc, To) ->
     kz_json:set_value([<<"to">>], To, Doc).
 
--spec url(doc()) -> kz_term:api_binary().
+-spec url(doc()) -> kz_term:api_ne_binary().
 url(Doc) ->
     url(Doc, 'undefined').
 
--spec url(doc(), Default) -> binary() | Default.
+-spec url(doc(), Default) -> kz_term:ne_binary() | Default.
 url(Doc, Default) ->
-    kz_json:get_binary_value([<<"url">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"url">>], Doc, Default).
 
--spec set_url(doc(), binary()) -> doc().
+-spec set_url(doc(), kz_term:ne_binary()) -> doc().
 set_url(Doc, Url) ->
     kz_json:set_value([<<"url">>], Url, Doc).

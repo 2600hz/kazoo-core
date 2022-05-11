@@ -199,15 +199,15 @@ caller_exit_key(Doc, Default) ->
 set_caller_exit_key(Doc, CallerExitKey) ->
     kz_json:set_value([<<"caller_exit_key">>], CallerExitKey, Doc).
 
--spec cdr_url(doc()) -> kz_term:api_binary().
+-spec cdr_url(doc()) -> kz_term:api_ne_binary().
 cdr_url(Doc) ->
     cdr_url(Doc, 'undefined').
 
--spec cdr_url(doc(), Default) -> binary() | Default.
+-spec cdr_url(doc(), Default) -> kz_term:ne_binary() | Default.
 cdr_url(Doc, Default) ->
-    kz_json:get_binary_value([<<"cdr_url">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"cdr_url">>], Doc, Default).
 
--spec set_cdr_url(doc(), binary()) -> doc().
+-spec set_cdr_url(doc(), kz_term:ne_binary()) -> doc().
 set_cdr_url(Doc, CdrUrl) ->
     kz_json:set_value([<<"cdr_url">>], CdrUrl, Doc).
 
@@ -295,15 +295,15 @@ record_caller(Doc, Default) ->
 set_record_caller(Doc, RecordCaller) ->
     kz_json:set_value([<<"record_caller">>], RecordCaller, Doc).
 
--spec recording_url(doc()) -> kz_term:api_binary().
+-spec recording_url(doc()) -> kz_term:api_ne_binary().
 recording_url(Doc) ->
     recording_url(Doc, 'undefined').
 
--spec recording_url(doc(), Default) -> binary() | Default.
+-spec recording_url(doc(), Default) -> kz_term:ne_binary() | Default.
 recording_url(Doc, Default) ->
-    kz_json:get_binary_value([<<"recording_url">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"recording_url">>], Doc, Default).
 
--spec set_recording_url(doc(), binary()) -> doc().
+-spec set_recording_url(doc(), kz_term:ne_binary()) -> doc().
 set_recording_url(Doc, RecordingUrl) ->
     kz_json:set_value([<<"recording_url">>], RecordingUrl, Doc).
 

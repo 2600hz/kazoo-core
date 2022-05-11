@@ -137,14 +137,14 @@ retries(Doc, Default) ->
 set_retries(Doc, Retries) ->
     kz_json:set_value([<<"retries">>], Retries, Doc).
 
--spec uri(doc()) -> kz_term:api_binary().
+-spec uri(doc()) -> kz_term:api_ne_binary().
 uri(Doc) ->
     uri(Doc, 'undefined').
 
--spec uri(doc(), Default) -> binary() | Default.
+-spec uri(doc(), Default) -> kz_term:ne_binary() | Default.
 uri(Doc, Default) ->
-    kz_json:get_binary_value([<<"uri">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"uri">>], Doc, Default).
 
--spec set_uri(doc(), binary()) -> doc().
+-spec set_uri(doc(), kz_term:ne_binary()) -> doc().
 set_uri(Doc, Uri) ->
     kz_json:set_value([<<"uri">>], Uri, Doc).

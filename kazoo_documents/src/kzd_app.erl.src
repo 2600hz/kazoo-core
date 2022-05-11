@@ -48,15 +48,15 @@ allowed_users(Doc, Default) ->
 set_allowed_users(Doc, AllowedUsers) ->
     kz_json:set_value([<<"allowed_users">>], AllowedUsers, Doc).
 
--spec api_url(doc()) -> kz_term:api_binary().
+-spec api_url(doc()) -> kz_term:api_ne_binary().
 api_url(Doc) ->
     api_url(Doc, 'undefined').
 
--spec api_url(doc(), Default) -> binary() | Default.
+-spec api_url(doc(), Default) -> kz_term:ne_binary() | Default.
 api_url(Doc, Default) ->
-    kz_json:get_binary_value([<<"api_url">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"api_url">>], Doc, Default).
 
--spec set_api_url(doc(), binary()) -> doc().
+-spec set_api_url(doc(), kz_term:ne_binary()) -> doc().
 set_api_url(Doc, ApiUrl) ->
     kz_json:set_value([<<"api_url">>], ApiUrl, Doc).
 
@@ -180,15 +180,15 @@ screenshots(Doc, Default) ->
 set_screenshots(Doc, Screenshots) ->
     kz_json:set_value([<<"screenshots">>], Screenshots, Doc).
 
--spec source_url(doc()) -> kz_term:api_binary().
+-spec source_url(doc()) -> kz_term:api_ne_binary().
 source_url(Doc) ->
     source_url(Doc, 'undefined').
 
--spec source_url(doc(), Default) -> binary() | Default.
+-spec source_url(doc(), Default) -> kz_term:ne_binary() | Default.
 source_url(Doc, Default) ->
-    kz_json:get_binary_value([<<"source_url">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"source_url">>], Doc, Default).
 
--spec set_source_url(doc(), binary()) -> doc().
+-spec set_source_url(doc(), kz_term:ne_binary()) -> doc().
 set_source_url(Doc, SourceUrl) ->
     kz_json:set_value([<<"source_url">>], SourceUrl, Doc).
 

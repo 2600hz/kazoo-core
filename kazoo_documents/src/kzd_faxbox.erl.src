@@ -243,15 +243,15 @@ notifications_inbound_callback_type(Doc, Default) ->
 set_notifications_inbound_callback_type(Doc, NotificationsInboundCallbackType) ->
     kz_json:set_value([<<"notifications">>, <<"inbound">>, <<"callback">>, <<"type">>], NotificationsInboundCallbackType, Doc).
 
--spec notifications_inbound_callback_url(doc()) -> kz_term:api_binary().
+-spec notifications_inbound_callback_url(doc()) -> kz_term:api_ne_binary().
 notifications_inbound_callback_url(Doc) ->
     notifications_inbound_callback_url(Doc, 'undefined').
 
--spec notifications_inbound_callback_url(doc(), Default) -> binary() | Default.
+-spec notifications_inbound_callback_url(doc(), Default) -> kz_term:ne_binary() | Default.
 notifications_inbound_callback_url(Doc, Default) ->
-    kz_json:get_binary_value([<<"notifications">>, <<"inbound">>, <<"callback">>, <<"url">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"notifications">>, <<"inbound">>, <<"callback">>, <<"url">>], Doc, Default).
 
--spec set_notifications_inbound_callback_url(doc(), binary()) -> doc().
+-spec set_notifications_inbound_callback_url(doc(), kz_term:ne_binary()) -> doc().
 set_notifications_inbound_callback_url(Doc, NotificationsInboundCallbackUrl) ->
     kz_json:set_value([<<"notifications">>, <<"inbound">>, <<"callback">>, <<"url">>], NotificationsInboundCallbackUrl, Doc).
 
@@ -351,15 +351,15 @@ notifications_outbound_callback_type(Doc, Default) ->
 set_notifications_outbound_callback_type(Doc, NotificationsOutboundCallbackType) ->
     kz_json:set_value([<<"notifications">>, <<"outbound">>, <<"callback">>, <<"type">>], NotificationsOutboundCallbackType, Doc).
 
--spec notifications_outbound_callback_url(doc()) -> kz_term:api_binary().
+-spec notifications_outbound_callback_url(doc()) -> kz_term:api_ne_binary().
 notifications_outbound_callback_url(Doc) ->
     notifications_outbound_callback_url(Doc, 'undefined').
 
--spec notifications_outbound_callback_url(doc(), Default) -> binary() | Default.
+-spec notifications_outbound_callback_url(doc(), Default) -> kz_term:ne_binary() | Default.
 notifications_outbound_callback_url(Doc, Default) ->
-    kz_json:get_binary_value([<<"notifications">>, <<"outbound">>, <<"callback">>, <<"url">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"notifications">>, <<"outbound">>, <<"callback">>, <<"url">>], Doc, Default).
 
--spec set_notifications_outbound_callback_url(doc(), binary()) -> doc().
+-spec set_notifications_outbound_callback_url(doc(), kz_term:ne_binary()) -> doc().
 set_notifications_outbound_callback_url(Doc, NotificationsOutboundCallbackUrl) ->
     kz_json:set_value([<<"notifications">>, <<"outbound">>, <<"callback">>, <<"url">>], NotificationsOutboundCallbackUrl, Doc).
 
