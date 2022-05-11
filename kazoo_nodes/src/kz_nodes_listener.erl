@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2021, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -506,6 +506,6 @@ maybe_advertise_node(Node) ->
 
 -spec version() -> kz_term:ne_binary().
 version() ->
-    {_, _, Version} = kz_application:get_app(?APP),
-    OTPRelease = kz_term:to_binary(erlang:system_info('otp_release')),
+    Version = kapps_util:kazoo_version(),
+    OTPRelease = kapps_util:otp_release(),
     list_to_binary([Version, " - ", OTPRelease]).

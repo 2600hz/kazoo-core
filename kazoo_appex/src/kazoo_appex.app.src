@@ -1,0 +1,11 @@
+{application,kazoo_appex,
+ [{applications,[compiler,cowboy,crypto,
+                 kazoo_documents,kazoo_stdlib,kazoo_web,kernel,
+                 lager,stdlib]},
+  {env,[{app_exchange_url,<<"https://api.marketplace.2600hz.com">>},
+        {marketplace_url,<<"https://marketplace.2600hz.com">>}]},
+  {description,"AppEx Client - Manages Kazoo apps from the App Exchange"},
+  {mod,{appex_client_app,[]}},
+  {modules,[]},
+  {registered,[appex_client_sup]},
+  {vsn,"5.0.0"}]}.
