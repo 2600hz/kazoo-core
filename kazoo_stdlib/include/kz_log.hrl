@@ -89,7 +89,7 @@
 -define(SUP_LOG_ERROR(F, A),
         begin
             lager:error(F, A),
-            io:format(F ++ "\n", A)
+            io:format('standard_error', F ++ "\n", A)
         end
        ).
 

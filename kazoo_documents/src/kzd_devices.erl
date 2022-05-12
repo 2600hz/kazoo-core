@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -140,6 +140,8 @@
 
 -include("kz_documents.hrl").
 
+-elvis([{elvis_style, god_modules, disable}]).
+
 -type doc() :: kz_json:object().
 -type docs() :: [doc()].
 -export_type([doc/0, docs/0]).
@@ -178,7 +180,7 @@ set_call_forward(Doc, CallForward) ->
 
 -spec call_forward_direct_calls_only(doc()) -> boolean().
 call_forward_direct_calls_only(Doc) ->
-    call_forward_direct_calls_only(Doc, false).
+    call_forward_direct_calls_only(Doc, 'false').
 
 -spec call_forward_direct_calls_only(doc(), Default) -> boolean() | Default.
 call_forward_direct_calls_only(Doc, Default) ->
@@ -195,7 +197,7 @@ set_call_forward_direct_calls_only(Doc, CallForwardDirectCallsOnly) ->
 
 -spec call_forward_enabled(doc()) -> boolean().
 call_forward_enabled(Doc) ->
-    call_forward_enabled(Doc, false).
+    call_forward_enabled(Doc, 'false').
 
 -spec call_forward_enabled(doc(), Default) -> boolean() | Default.
 call_forward_enabled(Doc, Default) ->
@@ -211,7 +213,7 @@ set_call_forward_enabled(Doc, CallForwardEnabled) ->
 
 -spec call_forward_failover(doc()) -> boolean().
 call_forward_failover(Doc) ->
-    call_forward_failover(Doc, false).
+    call_forward_failover(Doc, 'false').
 
 -spec call_forward_failover(doc(), Default) -> boolean() | Default.
 call_forward_failover(Doc, Default) ->
@@ -227,7 +229,7 @@ set_call_forward_failover(Doc, CallForwardEnabled) ->
 
 -spec call_forward_ignore_early_media(doc()) -> boolean().
 call_forward_ignore_early_media(Doc) ->
-    call_forward_ignore_early_media(Doc, true).
+    call_forward_ignore_early_media(Doc, 'true').
 
 -spec call_forward_ignore_early_media(doc(), Default) -> boolean() | Default.
 call_forward_ignore_early_media(Doc, Default) ->
@@ -243,7 +245,7 @@ set_call_forward_ignore_early_media(Doc, CallForwardIgnoreEarlyMedia) ->
 
 -spec call_forward_keep_caller_id(doc()) -> boolean().
 call_forward_keep_caller_id(Doc) ->
-    call_forward_keep_caller_id(Doc, true).
+    call_forward_keep_caller_id(Doc, 'true').
 
 -spec call_forward_keep_caller_id(doc(), Default) -> boolean() | Default.
 call_forward_keep_caller_id(Doc, Default) ->
@@ -275,7 +277,7 @@ set_call_forward_number(Doc, CallForwardNumber) ->
 
 -spec call_forward_require_keypress(doc()) -> boolean().
 call_forward_require_keypress(Doc) ->
-    call_forward_require_keypress(Doc, true).
+    call_forward_require_keypress(Doc, 'true').
 
 -spec call_forward_require_keypress(doc(), Default) -> boolean() | Default.
 call_forward_require_keypress(Doc, Default) ->
@@ -291,7 +293,7 @@ set_call_forward_require_keypress(Doc, CallForwardRequireKeypress) ->
 
 -spec call_forward_substitute(doc()) -> boolean().
 call_forward_substitute(Doc) ->
-    call_forward_substitute(Doc, true).
+    call_forward_substitute(Doc, 'true').
 
 -spec call_forward_substitute(doc(), Default) -> boolean() | Default.
 call_forward_substitute(Doc, Default) ->
@@ -427,7 +429,7 @@ set_do_not_disturb_enabled(Doc, DoNotDisturbEnabled) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -439,7 +441,7 @@ set_enabled(Doc, Enabled) ->
 
 -spec exclude_from_queues(doc()) -> boolean().
 exclude_from_queues(Doc) ->
-    exclude_from_queues(Doc, false).
+    exclude_from_queues(Doc, 'false').
 
 -spec exclude_from_queues(doc(), Default) -> boolean() | Default.
 exclude_from_queues(Doc, Default) ->
@@ -563,7 +565,7 @@ set_music_on_hold_media_id(Doc, MusicOnHoldMediaId) ->
 
 -spec mwi_unsolicited_updates(doc()) -> boolean().
 mwi_unsolicited_updates(Doc) ->
-    mwi_unsolicited_updates(Doc, true).
+    mwi_unsolicited_updates(Doc, 'true').
 
 -spec mwi_unsolicited_updates(doc(), Default) -> boolean() | Default.
 mwi_unsolicited_updates(Doc, Default) ->
@@ -763,15 +765,15 @@ provision_combo_keys(Doc, Default) ->
 set_provision_combo_keys(Doc, ProvisionComboKeys) ->
     kz_json:set_value([<<"provision">>, <<"combo_keys">>], ProvisionComboKeys, Doc).
 
--spec provision_combo_key(doc(), kz_json:key()) -> any().
+-spec provision_combo_key(doc(), kz_json:key()) -> kz_term:api_object().
 provision_combo_key(Doc, ComboKey) ->
     provision_combo_key(Doc, ComboKey, 'undefined').
 
--spec provision_combo_key(doc(), kz_json:key(), Default) -> any() | Default.
+-spec provision_combo_key(doc(), kz_json:key(), Default) -> kz_json:object() | Default.
 provision_combo_key(Doc, ComboKey, Default) ->
-    kz_json:get_value([<<"provision">>, <<"combo_keys">>, ComboKey], Doc, Default).
+    kz_json:get_json_value([<<"provision">>, <<"combo_keys">>, ComboKey], Doc, Default).
 
--spec set_provision_combo_key(doc(), kz_json:key(), any()) -> doc().
+-spec set_provision_combo_key(doc(), kz_json:key(), kz_json:object()) -> doc().
 set_provision_combo_key(Doc, ComboKey, Value) ->
     kz_json:set_value([<<"provision">>, <<"combo_keys">>, ComboKey], Value, Doc).
 
@@ -823,15 +825,15 @@ provision_feature_keys(Doc, Default) ->
 set_provision_feature_keys(Doc, ProvisionFeatureKeys) ->
     kz_json:set_value([<<"provision">>, <<"feature_keys">>], ProvisionFeatureKeys, Doc).
 
--spec provision_feature_key(doc(), kz_json:key()) -> any().
+-spec provision_feature_key(doc(), kz_json:key()) -> kz_term:api_object().
 provision_feature_key(Doc, FeatureKey) ->
     provision_feature_key(Doc, FeatureKey, 'undefined').
 
--spec provision_feature_key(doc(), kz_json:key(), Default) -> any() | Default.
+-spec provision_feature_key(doc(), kz_json:key(), Default) -> kz_json:object() | Default.
 provision_feature_key(Doc, FeatureKey, Default) ->
-    kz_json:get_value([<<"provision">>, <<"feature_keys">>, FeatureKey], Doc, Default).
+    kz_json:get_json_value([<<"provision">>, <<"feature_keys">>, FeatureKey], Doc, Default).
 
--spec set_provision_feature_key(doc(), kz_json:key(), any()) -> doc().
+-spec set_provision_feature_key(doc(), kz_json:key(), kz_json:object()) -> doc().
 set_provision_feature_key(Doc, FeatureKey, Value) ->
     kz_json:set_value([<<"provision">>, <<"feature_keys">>, FeatureKey], Value, Doc).
 
@@ -849,7 +851,7 @@ set_provision_id(Doc, ProvisionId) ->
 
 -spec register_overwrite_notify(doc()) -> boolean().
 register_overwrite_notify(Doc) ->
-    register_overwrite_notify(Doc, false).
+    register_overwrite_notify(Doc, 'false').
 
 -spec register_overwrite_notify(doc(), Default) -> boolean() | Default.
 register_overwrite_notify(Doc, Default) ->
@@ -1137,7 +1139,7 @@ set_sip_username(Doc, SipUsername) ->
 
 -spec suppress_unregister_notifications(doc()) -> boolean().
 suppress_unregister_notifications(Doc) ->
-    suppress_unregister_notifications(Doc, false).
+    suppress_unregister_notifications(Doc, 'false').
 
 -spec suppress_unregister_notifications(doc(), Default) -> boolean() | Default.
 suppress_unregister_notifications(Doc, Default) ->
