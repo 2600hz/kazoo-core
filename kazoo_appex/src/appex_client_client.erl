@@ -738,9 +738,10 @@ fetch_license(ParentApp, App) ->
                     lager:info("can not get license for app ~p: ", [AppName, _Error]),
                     {'error', <<"error to get license">>}
             end;
-        {'ok', _Code, _RespHeaders, RespBody} ->
-            Err = kz_json:get_value(<<"error">>, RespBody, "InternalServerError"),
-            lager:debug("unexpected code ~b when getting license for app ~s: ~p", [_Code, AppName, Err]),
+        {'ok', Code, _RespHeaders, RespBody} ->
+            Body = kz_json:decode(RespBody, decode_error(Code)),
+            Err = kz_json:get_value(<<"error">>, Body, <<"InternalServerError">>),
+            lager:debug("unexpected code ~b when getting license for app ~s: ~p", [Code, AppName, Err]),
             {'error', <<"error to get license">>};
         {'error', _} ->
             {'error', <<"can not connect to server">>}
