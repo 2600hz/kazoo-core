@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -16,6 +16,7 @@
 -export([running_apps/0, is_kapp/1]).
 -export([version/1]).
 -export([application_version/1]).
+-export([application_version_with_otp_release/1, otp_release/0]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
@@ -136,3 +137,11 @@ version(Application) when is_atom(Application) ->
         {'ok', Version} -> kz_term:to_binary(Version);
         _Else -> 'undefined'
     end.
+
+-spec application_version_with_otp_release(atom()) -> kz_term:ne_binary().
+application_version_with_otp_release(App) ->
+    list_to_binary([application_version(App), " - ", otp_release()]).
+
+-spec otp_release() -> kz_term:ne_binary().
+otp_release() ->
+    kz_term:to_binary(erlang:system_info('otp_release')).
