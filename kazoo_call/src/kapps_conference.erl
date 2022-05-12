@@ -529,21 +529,25 @@ update_conference(Conference) ->
     UpdatedDoc = kz_json:merge(Profile, Doc),
     set_conference_doc(Doc, from_conference_doc(UpdatedDoc, Conference)).
 
--spec default_profile(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_json:object().
-default_profile(Language, AccountId, Default) ->
-    update_language_prompts(Language, AccountId, kz_json:from_list(Default)).
+-spec default_profile(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:ne_binary()) -> kz_json:object().
+default_profile(Language, AccountId, ProfileName) ->
+    build_profile(#kapps_conference{profile_name=ProfileName
+                                   ,account_id=AccountId
+                                   ,language=Language
+                                   }
+                 ).
 
 -spec default_audio_profile(kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_json:object().
 default_audio_profile(Language, AccountId) ->
-    default_profile(Language, AccountId, ?DEFAULT_PROFILE_CONFIG).
+    default_profile(Language, AccountId, ?DEFAULT_PROFILE_NAME).
 
 -spec default_page_profile(kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_json:object().
 default_page_profile(Language, AccountId) ->
-    default_profile(Language, AccountId, ?PAGE_PROFILE_CONFIG).
+    default_profile(Language, AccountId, ?PAGE_PROFILE_NAME).
 
 -spec default_video_profile(kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_json:object().
 default_video_profile(Language, AccountId) ->
-    default_profile(Language, AccountId, ?VIDEO_PROFILE_CONFIG).
+    default_profile(Language, AccountId, ?VIDEO_PROFILE_NAME).
 
 -spec default_audio_profile() -> kz_json:object().
 default_audio_profile() ->
@@ -975,10 +979,15 @@ build_profile(#kapps_conference{} = Conference) ->
 
 build_profiles(AccountId, ProfileNames) ->
     Keys = [{AccountId, ProfileName} || ProfileName <- ProfileNames],
-    lists:foldr(fun build_profile/2, [], Keys).
+    %% get the default from top name
+    %% any persisted change on system_config / account_config
+    %% will be applied on top of default from included hrl.
+    %% this allows to persist only the changes to system_config/conferences
+    Top = profile_default(hd(ProfileNames)),
+    [Top | lists:foldr(fun build_profile/2, [], Keys)].
 
 build_profile({AccountId, ProfileName}, Acc) ->
-    get_profile(AccountId, [<<"profiles">>, ProfileName], profile_default(ProfileName), Acc).
+    get_profile(AccountId, [<<"profiles">>, ProfileName], 'undefined', Acc).
 
 language_profiles(Language, AccountId, ProfileNames) ->
     Keys = [{Language, AccountId, ProfileName} || ProfileName <- ProfileNames],
@@ -1003,8 +1012,19 @@ profile_names(AccountId, ProfileName) ->
 
 profile_names(_AccountId, 'undefined', Acc) -> Acc;
 profile_names(AccountId, <<ProfileName/binary>>, Acc) ->
-    BaseProfileName = kapps_merged_config:get_ne_binary(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, ProfileName, <<"base_profile_name">>]),
-    profile_names(AccountId, BaseProfileName, [ProfileName | Acc]).
+    case kapps_merged_config:get_ne_binary(AccountId, ?CONFERENCE_CONFIG_CAT, [<<"profiles">>, ProfileName, <<"base_profile_name">>]) of
+        ProfileName ->
+            lager:error("profile ~s has itself as base_profile_name, circular dependency", [ProfileName]),
+            Acc;
+        BaseProfileName ->
+            case lists:member(BaseProfileName, Acc) of
+                true ->
+                    lager:error("profile ~s has ~s as base_profile_name which is already in the list, circular dependency", [BaseProfileName, ProfileName]),
+                    Acc;
+                false ->
+                    profile_names(AccountId, BaseProfileName, [ProfileName | Acc])
+            end
+    end.
 
 -spec update_language_prompts(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_json:object()) -> kz_json:object().
 update_language_prompts(Language, AccountId, JObj) ->
