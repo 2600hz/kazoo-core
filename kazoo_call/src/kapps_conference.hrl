@@ -55,16 +55,16 @@
                               ,{<<"channels">>, 2}
                               ,{<<"comfort-noise">>, 1000}
                               ,{<<"deaf-sound">>, <<"conf-deaf">>}
-                              ,{<<"energy-level">>, 20}
+                              ,{<<"energy-level">>, 200}
                               ,{<<"enter-sound">>, ?DEFAULT_ENTRY_TONE}
                               ,{<<"exit-sound">>, ?DEFAULT_EXIT_TONE}
-                              ,{<<"interval">>, 20}
+                              ,{<<"interval">>, 10}
                               ,{<<"locked-sound">>, <<"conf-max_participants">>}
                               ,{<<"max-members-sound">>, <<"conf-max_participants">>}
                               ,{<<"member-enter-sound">>, <<"conf-joining_conference">>}
                               ,{<<"moh-sound">>, <<"$${hold_music}">>}
                               ,{<<"muted-sound">>, <<"conf-muted">>}
-                              ,{<<"rate">>, 48000}
+                              ,{<<"rate">>, 16000}
                               ,{<<"undeaf-sound">>, <<"conf-undeaf">>}
                               ,{<<"unmuted-sound">>, <<"conf-unmuted">>}
 
@@ -73,11 +73,12 @@
 
                               ,{<<"video-super-canvas-bgcolor">>, <<"#333">>}
                               ,{<<"video-mode">>, <<"mux">>}
-                              ,{<<"video-layout-name">>, <<"group:grid">>}
-                              ,{<<"video-layout-bgcolor">>, <<"#333">>}
+
                               ,{<<"video-fps">>, 15}
                               ,{<<"video-codec-bandwidth">>, <<"1mb">>}
                               ,{<<"video-canvas-size">>, <<"1280x720">>}
+
+                              ,{<<"video-layout-bgcolor">>, <<"#333">>}
                               ,{<<"video-canvas-bgcolor">>, <<"#333">>}
                               ,{<<"video-border-color">>, <<"#333">>}
                               ,{<<"video-auto-floor-msec">>, 1500}
