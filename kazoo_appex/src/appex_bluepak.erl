@@ -10,7 +10,6 @@
 -module(appex_bluepak).
 
 -export([load_app/4
-
         ,base_path/0
         ]).
 
