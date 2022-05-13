@@ -9,6 +9,7 @@
 %%%-----------------------------------------------------------------------------
 -module(appex_cb_router).
 -behaviour(cowboy_rest).
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 %% Get things into position
 -export([start_link/0
@@ -135,8 +136,15 @@ resource_exists(Req, _Context, AppDir, AssetPath) ->
         'true' ->
             ContentType = kz_mime:from_filename(AssetFilename),
             lager:info("content type for ~s: ~s", [AssetFilename, ContentType]),
+            Headers = [{<<"access-control-allow-origin">>, <<"*">>}
+                      ,{<<"access-control-allow-methods">>, <<"GET">>}
+                      ,{<<"access-control-allow-headers">>, <<"content-type, depth, user-agent, x-http-method-override, x-file-size, x-requested-with, if-modified-since, x-file-name, cache-control, x-auth-token, x-kazoo-cluster-id, if-match, authorization">>}
+                      ,{<<"access-control-expose-headers">>, <<"content-type, x-auth-token, x-request-id, x-kazoo-cluster-id, location, etag">>}
+                      ,{<<"access-control-max-age">>, kz_term:to_binary(?SECONDS_IN_DAY)}
+                      ,{<<"content-type">>, ContentType}
+                      ],
             {'true'
-            ,cowboy_req:set_resp_header(<<"content-type">>, ContentType, Req)
+            ,cowboy_req:set_resp_headers(maps:from_list(Headers), Req)
             ,AssetFilename
             }
     end.
