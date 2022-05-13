@@ -72,6 +72,7 @@ api_url() ->
 
 -spec set_api_url(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
 set_api_url(URL) ->
+    %% TODO: we need to re-configure running mui apps source_url
     {'ok', _} = kapps_config:set_string(?CONFIG_CAT, <<"api_url">>, URL),
     URL.
 
