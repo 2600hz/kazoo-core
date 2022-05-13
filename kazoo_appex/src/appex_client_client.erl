@@ -711,9 +711,10 @@ fetch_license(ParentApp, App) ->
                     end;
                 Error -> {'error', Error}
             end;
-        {'ok', _Code, _RespHeaders, RespBody} ->
-            Err = kz_json:get_value(<<"error">>, RespBody, "InternalServerError"),
-            {'error', kz_binary:format("unexpected code ~b when getting license for app ~s: ~p", [_Code, AppName, Err])};
+        {'ok', Code, _RespHeaders, RespBody} ->
+            JObj = kz_json:decode(RespBody, decode_error(Code)),
+            Err = kz_json:get_value(<<"error">>, JObj, "InternalServerError"),
+            {'error', kz_binary:format("unexpected code ~b when getting license for app ~s: ~p", [Code, AppName, Err])};
         {'error', _Reason} ->
             {'error', kz_binary:format("failed to connect to appex server: ~p", [_Reason])}
     end.
@@ -853,9 +854,11 @@ process_unlink_cluster(Body) ->
 
 decode_error(Code) ->
     [{'default'
-     ,kz_json:from_list(
-        [{<<"status">>, Code}
-        ,{<<"name">>, <<"InternalServerError">>}
+     ,kz_json:from_list_recursive(
+        [{<<"error">>, [{<<"status">>, Code}
+                       ,{<<"name">>, <<"InternalServerError">>}
+                       ]
+         }
         ]
        )
      }
