@@ -46,15 +46,6 @@ start_link() ->
 
 -spec stop_link() -> 'ok'.
 stop_link() ->
-    %% lager:info("starting up appex app router"),
-    %%
-    %% [{Host, Thing, Paths}] = persistent_term:get('crossbar_dispatch'),
-    %%
-    %% persistent_term:put('crossbar_dispatch'
-    %%                    ,[{Host, Thing, [Path || Path={_, _, Mod, _} <- Paths, Mod =/= ?MODULE]}]
-    %%                    ),
-    %%
-    %% lager:info("removed our path").
     'ok'.
 
 -spec route_paths() -> cowboy_paths().
