@@ -264,10 +264,8 @@ write_file({Filename, Contents}
         {"priv/assets/metadata", "app.json"} ->
             SourceURL = appex_cb_router:source_url(ApiUrl, AppDir),
             AppJObj = kz_doc:setters(kz_json:decode(Contents)
-                                     ,[{fun kzd_app:set_source_url/2, SourceURL}
-                                      ]
+                                    ,[{fun kzd_app:set_source_url/2, SourceURL}]
                                     ),
-            ?DEV_LOG("~n~p~n", [AppJObj]),
             do_the_write_thing({Filename, kz_json:encode(AppJObj)}, LoadApp);
         _ ->
             do_the_write_thing({Filename, Contents}, LoadApp)
