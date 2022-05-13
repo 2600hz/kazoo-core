@@ -14,7 +14,12 @@
         ,loaded/0
 
         ,set_cluster_secret/1
+
+        ,link_cluster/1, link_cluster/2
+        ,unlink_cluster/0
         ]).
+
+-include("appex_client.hrl").
 
 -elvis([{'elvis_style', 'no_debug_call', 'disable'}]).
 
@@ -46,3 +51,38 @@ refresh() ->
 set_cluster_secret(ClusterSecret) ->
     _ = appex_client_config:set_cluster_secret(ClusterSecret),
     io:format("configured cluster with id ~s~n", [appex_client_config:cluster_id()]).
+
+-spec link_cluster(AccessCode::kz_term:ne_binary()) -> 'no_return'.
+link_cluster(AccessCode) ->
+    link_cluster(AccessCode, 'undefined').
+
+-spec link_cluster(AccessCode::kz_term:ne_binary(), ClusterName::kz_term:ne_binary()) -> 'no_return'.
+link_cluster(AccessCode, ClusterName) ->
+    ?SUP_LOG_INFO("linking cluster to marketplace"),
+    case appex_client_client:link_cluster(
+           kz_json:from_list(
+             [{<<"access_code">>, AccessCode}
+              ,{<<"name">>, ClusterName}
+             ]
+            )
+          )
+    of
+        {'ok', _} ->
+            ?SUP_LOG_INFO("successfully linked cluster to marketplace, you can now restart ~p", [?APP]),
+            'no_return';
+        {'error', _Reason} ->
+            ?SUP_LOG_INFO("failed to link cluster to marketplace: ~n~p", [_Reason]),
+            'no_return'
+    end.
+
+-spec unlink_cluster() -> 'no_return'.
+unlink_cluster() ->
+    ?SUP_LOG_INFO("unlinking cluster from marketplace"),
+    case appex_client_client:unlink_cluster() of
+        {'ok', _} ->
+            ?SUP_LOG_INFO("successfully unlinked cluster from marketplace"),
+            'no_return';
+        {'error', _Reason} ->
+            ?SUP_LOG_INFO("failed to unlink cluster from marketplace: ~n~p", [_Reason]),
+            'no_return'
+    end.

@@ -734,16 +734,13 @@ fetch_license(ParentApp, App) ->
                         'undefined' -> {'error', <<"no license">>};
                         Data -> {'ok', kz_json:get_json_value(AppName, Data, Data)}
                     end;
-                _Error ->
-                    lager:info("can not get license for app ~p: ", [AppName, _Error]),
-                    {'error', <<"error to get license">>}
+                Error -> {'error', Error}
             end;
         {'ok', _Code, _RespHeaders, RespBody} ->
             Err = kz_json:get_value(<<"error">>, RespBody, "InternalServerError"),
-            lager:debug("unexpected code ~b when getting license for app ~s: ~p", [_Code, AppName, Err]),
-            {'error', <<"error to get license">>};
-        {'error', _} ->
-            {'error', <<"can not connect to server">>}
+            {'error', kz_binary:format("unexpected code ~b when getting license for app ~s: ~p", [_Code, AppName, Err])};
+        {'error', _Reason} ->
+            {'error', kz_binary:format("failed to connect to appex server: ~p", [_Reason])}
     end.
 
 fetch_license_url(ClusterId, AppName, AppName) ->
@@ -754,6 +751,7 @@ fetch_license_url(ClusterId, ParentApp, AppName) ->
 -spec link_cluster(kz_json:object()) ->
           {'ok' | 'error', kz_json:object()}.
 link_cluster(ReqData) ->
+    lager:info("linking cluster to marketplace"),
     Secret = kz_json:get_ne_binary_value(<<"access_code">>, ReqData, <<>>),
     Headers = [{<<"authorization">>, <<"APPEX-LINK ", Secret/binary>>}
               ,{<<"content-type">>, <<"application/json">>}
@@ -765,12 +763,14 @@ link_cluster(ReqData) ->
             Body = kz_json:decode(RespBody, decode_error(Code)),
             case kz_json:get_value(<<"error">>, Body) of
                 'undefined' ->
+                    lager:info("successfully linked cluster to marketplace"),
                     process_link_cluster(ReqData, Body);
                 Error ->
+                    lager:error("failed to connect to appex server: ~p", [Error]),
                     {'error', Error}
             end;
         {'error', _Reason} ->
-            lager:debug("failed to connect to appex server: ~p", [_Reason]),
+            lager:error("failed to connect to appex server: ~p", [_Reason]),
             {'error', kz_json:from_list(
                         [{<<"name">>, <<"NetworkError">>}
                         ,{<<"message">>, <<"Can not connect to server">>}
@@ -828,6 +828,7 @@ link_payload(JObj) ->
           {'ok', kz_json:object()} |
           {'ok' | 'error', kz_json:object()}.
 unlink_cluster() ->
+    lager:info("unlinking cluster from marketplace"),
     Headers = appex_server_authorization_header(),
     ClusterId = appex_client_config:cluster_id(),
     URL = appex_server_url(
@@ -848,12 +849,14 @@ unlink_cluster() ->
             Body = kz_json:decode(RespBody, decode_error(Code)),
             case kz_json:get_value(<<"error">>, Body) of
                 'undefined' ->
+                    lager:info("successfully unlinked cluster from marketplace"),
                     process_unlink_cluster(Body);
                 Error ->
+                    lager:error("failed to connect to appex server: ~p", [Error]),
                     {'error', Error}
             end;
         {'error', _Reason} ->
-            lager:debug("failed to connect to appex server: ~p", [_Reason]),
+            lager:error("failed to connect to appex server: ~p", [_Reason]),
             {'error', kz_json:from_list(
                         [{<<"name">>, <<"NetworkError">>}
                         ,{<<"message">>, <<"Can not connect to server">>}
