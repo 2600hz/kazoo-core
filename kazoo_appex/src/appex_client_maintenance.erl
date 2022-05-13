@@ -56,13 +56,13 @@ set_cluster_secret(ClusterSecret) ->
 link_cluster(AccessCode) ->
     link_cluster(AccessCode, 'undefined').
 
--spec link_cluster(AccessCode::kz_term:ne_binary(), ClusterName::kz_term:ne_binary()) -> 'no_return'.
+-spec link_cluster(AccessCode::kz_term:ne_binary(), ClusterName::kz_term:api_ne_binary()) -> 'no_return'.
 link_cluster(AccessCode, ClusterName) ->
     io:format("linking cluster to marketplace~n"),
     case appex_client_client:link_cluster(
            kz_json:from_list(
              [{<<"access_code">>, AccessCode}
-              ,{<<"name">>, ClusterName}
+             ,{<<"name">>, ClusterName}
              ]
             )
           )
