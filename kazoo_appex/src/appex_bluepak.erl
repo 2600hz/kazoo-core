@@ -149,19 +149,29 @@ load_beams(Filename, Bin, {'ok', #load_app{loaded_mods=Loaded}=LoadApp}) ->
     end.
 
 -spec adjust_dot_app(load_app()) -> {'ok', load_app()}.
-adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}, parent_app=ParentApp}=LoadApp) ->
+adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}
+                        ,app_metadata=AppMeta
+                        ,parent_app=ParentApp
+                        }=LoadApp) ->
     {AppMod, StartArgs} = props:get_value('mod', AppConfig),
-    Env = props:get_value('env', AppConfig, []),
-    NewConfig = props:set_values([{'mod', {'appex_client_app_loader', {ParentApp, App, AppMod, StartArgs}}}
-                                 ,{'env', props:set_values([{'app_mod', AppMod}
-                                                           ,{'parent_app', ParentApp}
-                                                           ]
-                                                          ,Env
-                                                          )
-                                  }
-                                 ]
-                                ,AppConfig
-                                ),
+    AppEnv = props:get_value('env', AppConfig, []),
+    NewEnv = props:set_values([{'app_mod', AppMod}
+                              ,{'parent_app', ParentApp}
+                              ]
+                             ,AppEnv
+                             ),
+    %% tabulates tabulars
+    AppDeps = props:get_value('applications', AppConfig, []),
+    AppexDeps = [kz_term:to_atom(kz_json:get_ne_binary_value(<<"name">>, Dep), 'true')
+                 || Dep <- kz_json:get_list_value(<<"dependencies">>, AppMeta, []),
+                    not kz_term:is_empty(kz_json:get_ne_binary_value(<<"name">>, Dep))
+                ],
+
+    AppProps = [{'applications', lists:usort(AppDeps ++ AppexDeps)}
+               ,{'mod', {'appex_client_app_loader', {ParentApp, App, AppMod, StartArgs}}}
+               ,{'env', NewEnv}
+               ],
+    NewConfig = props:set_values(AppProps, AppConfig),
     {'ok', LoadApp#load_app{app_spec={'application', App, NewConfig}}}.
 
 -spec load_dot_app(load_app()) -> {'ok', load_app()} | {'error', any()}.
