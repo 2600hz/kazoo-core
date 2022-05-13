@@ -38,7 +38,6 @@
 
 %% internal usage
 -export([controller_fetch_app/2
-        ,post_config_to_exchange/0
         ,fetch_license/2
         ]).
 
@@ -116,7 +115,6 @@ controller_fetch_app(Pid, App) ->
 init(_Args) ->
     process_flag('trap_exit', 'true'),
     _Binding = kapps_controller:binding_fetch_app(?MODULE, 'controller_fetch_app', self()),
-    post_config_to_exchange(),
     {'ok', #state{list_fetch_timer=start_fetch_timer(0)}}.
 
 %%------------------------------------------------------------------------------
@@ -690,29 +688,6 @@ internal_fetch_app_result({'ok', _App}, _, From) ->
 note_request_id(RespHeaders) ->
     RequestId = kz_http_util:get_resp_header("x-request-id", RespHeaders),
     kz_log:put_callid(kz_term:to_binary(RequestId)).
-
--spec post_config_to_exchange() -> 'ok'.
-post_config_to_exchange() ->
-    %% ClusterId = appex_client_config:cluster_id(),
-    %% URL = kz_binary:join([appex_client_config:app_exchange_url(), <<"client">>, <<"config">>], <<"/">>),
-
-    %% Headers = [{"Authorization", authorization(ClusterId, <<"client/config">>)}],
-    %% case kz_http:post(URL, Headers, config_body(), req_options()) of
-    %%     {'ok', 200, _RespHeaders, RespBody} ->
-    %%         lager:info("posted client config: ~s", [RespBody]);
-    %%     _Resp ->
-    %%         lager:info("client config error: ~p", [_Resp])
-    %% end.
-    lager:info("appex client is pretending is uploading config to server").
-
-%% -spec config_body() -> iodata().
-%% config_body() ->
-%%     ConfigJObj = configs(),
-%%     kz_json:encode(ConfigJObj).
-%%
-%% -spec configs() -> kz_json:object().
-%% configs() ->
-%%     appex_client_config:system_configs('true').
 
 -spec fetch_license(atom(), atom()) ->
           {'ok', kz_json:object()} |
