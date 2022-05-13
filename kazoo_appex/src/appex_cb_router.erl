@@ -51,14 +51,14 @@ stop_link() ->
     [{Host, Thing, Paths}] = persistent_term:get('crossbar_dispatch'),
 
     persistent_term:put('crossbar_dispatch'
-                       ,[{Host, Thing, [Path || Path={_, _, Mod, _} <- Paths, Mod =:= ?MODULE]}]
+                       ,[{Host, Thing, [Path || Path={_, _, Mod, _} <- Paths, Mod =/= ?MODULE]}]
                        ),
 
     lager:info("removed our path").
 
 -spec route_paths() -> cowboy_paths().
 route_paths() ->
-    [{<<"/ui/[...]">>, 'appex_cb_router', []}].
+    [{<<"/ui/[...]">>, ?MODULE, []}].
 
 %% @doc APIUrl should be scheme://host:port/v2
 %% returns scheme://host:port/ui/{APP-Vsn}
