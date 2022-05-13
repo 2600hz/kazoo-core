@@ -837,6 +837,13 @@ unlink_cluster() ->
             ]
            ),
     case kz_http:delete(URL, Headers) of
+        {'ok', 401, _RespHeaders, _RespBody} ->
+            %% in case you unlinked the cluster directly from marketplace portal and want to re-link the cluster again
+            %% using mui
+            lager:debug("got 401 when unlinking cluster, considering the cluster is already unlinked from marketplace"),
+            %% don't stop kazoo_appex to let it clean out apps when they stop
+            _ = appex_client_config:set_cluster_secret('null'),
+            {'ok', kz_json:new()};
         {'ok', Code, _RespHeaders, RespBody} ->
             Body = kz_json:decode(RespBody, decode_error(Code)),
             case kz_json:get_value(<<"error">>, Body) of
@@ -861,6 +868,7 @@ process_unlink_cluster(Body) ->
             lager:debug("git bad response data from appex server: undefined"),
             internal_server_error();
         Data ->
+            %% don't stop kazoo_appex to let it clean out apps when they stop
             _ = appex_client_config:set_cluster_secret('null'),
             {'ok', kz_json:delete_key(<<"cluster_secret">>, Data)}
     end.
