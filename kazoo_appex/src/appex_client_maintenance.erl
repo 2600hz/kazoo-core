@@ -58,7 +58,7 @@ link_cluster(AccessCode) ->
 
 -spec link_cluster(AccessCode::kz_term:ne_binary(), ClusterName::kz_term:ne_binary()) -> 'no_return'.
 link_cluster(AccessCode, ClusterName) ->
-    ?SUP_LOG_INFO("linking cluster to marketplace"),
+    io:format("linking cluster to marketplace~n"),
     case appex_client_client:link_cluster(
            kz_json:from_list(
              [{<<"access_code">>, AccessCode}
@@ -68,10 +68,10 @@ link_cluster(AccessCode, ClusterName) ->
           )
     of
         {'ok', _} ->
-            ?SUP_LOG_INFO("successfully linked cluster to marketplace, you can now restart ~p", [?APP]),
+            io:format("successfully linked cluster to marketplace, you can now restart ~p~n", [?APP]),
             'no_return';
         {'error', _Reason} ->
-            ?SUP_LOG_INFO("failed to link cluster to marketplace: ~n~p", [_Reason]),
+            io:format("failed to link cluster to marketplace: ~n~p~n", [_Reason]),
             'no_return'
     end.
 
@@ -80,9 +80,9 @@ unlink_cluster() ->
     ?SUP_LOG_INFO("unlinking cluster from marketplace"),
     case appex_client_client:unlink_cluster() of
         {'ok', _} ->
-            ?SUP_LOG_INFO("successfully unlinked cluster from marketplace"),
+            io:format("successfully unlinked cluster from marketplace, you can now stop ~p~n", [?APP]),
             'no_return';
         {'error', _Reason} ->
-            ?SUP_LOG_INFO("failed to unlink cluster from marketplace: ~n~p", [_Reason]),
+            io:format("failed to unlink cluster from marketplace: ~n~p~n", [_Reason]),
             'no_return'
     end.
