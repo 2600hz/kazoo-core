@@ -10,7 +10,6 @@
 -module(appex_bluepak).
 
 -export([load_app/4
-
         ,base_path/0
         ]).
 
@@ -149,19 +148,29 @@ load_beams(Filename, Bin, {'ok', #load_app{loaded_mods=Loaded}=LoadApp}) ->
     end.
 
 -spec adjust_dot_app(load_app()) -> {'ok', load_app()}.
-adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}, parent_app=ParentApp}=LoadApp) ->
+adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}
+                        ,app_metadata=AppMeta
+                        ,parent_app=ParentApp
+                        }=LoadApp) ->
     {AppMod, StartArgs} = props:get_value('mod', AppConfig),
-    Env = props:get_value('env', AppConfig, []),
-    NewConfig = props:set_values([{'mod', {'appex_client_app_loader', {ParentApp, App, AppMod, StartArgs}}}
-                                 ,{'env', props:set_values([{'app_mod', AppMod}
-                                                           ,{'parent_app', ParentApp}
-                                                           ]
-                                                          ,Env
-                                                          )
-                                  }
-                                 ]
-                                ,AppConfig
-                                ),
+    AppEnv = props:get_value('env', AppConfig, []),
+    NewEnv = props:set_values([{'app_mod', AppMod}
+                              ,{'parent_app', ParentApp}
+                              ]
+                             ,AppEnv
+                             ),
+    %% tabulates tabulars
+    AppDeps = props:get_value('applications', AppConfig, []),
+    AppexDeps = [kz_term:to_atom(kz_json:get_ne_binary_value(<<"name">>, Dep), 'true')
+                 || Dep <- kz_json:get_list_value(<<"dependencies">>, AppMeta, []),
+                    not kz_term:is_empty(kz_json:get_ne_binary_value(<<"name">>, Dep))
+                ],
+
+    AppProps = [{'applications', lists:usort(AppDeps ++ AppexDeps)}
+               ,{'mod', {'appex_client_app_loader', {ParentApp, App, AppMod, StartArgs}}}
+               ,{'env', NewEnv}
+               ],
+    NewConfig = props:set_values(AppProps, AppConfig),
     {'ok', LoadApp#load_app{app_spec={'application', App, NewConfig}}}.
 
 -spec load_dot_app(load_app()) -> {'ok', load_app()} | {'error', any()}.
@@ -245,17 +254,21 @@ ebin_path(#load_app{base_path=BasePath, app_dir=AppDir}) ->
     filename:join([BasePath, AppDir, "ebin"]).
 
 -spec write_file({file:filename_all(), binary()}, load_app()) -> 'ok' | {'error', term()}.
-write_file({"metadata/app.json"=Filename, Contents}
+write_file({Filename, Contents}, #load_app{app_type='kazoo'}=LoadApp) ->
+    do_the_write_thing({Filename, Contents}, LoadApp);
+write_file({Filename, Contents}
           ,#load_app{app_dir=AppDir, api_url=ApiUrl}=LoadApp
           ) ->
-    SourceURL = appex_cb_router:source_url(ApiUrl, AppDir),
-    AppJObj = kz_doc:setters(kz_json:decode(Contents)
-                            ,[{fun kzd_app:set_source_url/2, SourceURL}
-                             ]
-                            ),
-    do_the_write_thing({Filename, kz_json:encode(AppJObj)}, LoadApp);
-write_file({Filename, Contents}, LoadApp) ->
-    do_the_write_thing({Filename, Contents}, LoadApp).
+    case {filename:dirname(Filename), filename:basename(Filename)} of
+        {"priv/assets/metadata", "app.json"} ->
+            SourceURL = appex_cb_router:source_url(ApiUrl, AppDir),
+            AppJObj = kz_doc:setters(kz_json:decode(Contents)
+                                    ,[{fun kzd_app:set_source_url/2, SourceURL}]
+                                    ),
+            do_the_write_thing({Filename, kz_json:encode(AppJObj)}, LoadApp);
+        _ ->
+            do_the_write_thing({Filename, Contents}, LoadApp)
+    end.
 
 -spec do_the_write_thing({file:filename_all(), binary()}, load_app()) -> 'ok' | {'error', term()}.
 do_the_write_thing({Filename, Contents}, LoadApp) ->
