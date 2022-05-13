@@ -56,7 +56,7 @@ set_cluster_secret(<<ClusterSecret/binary>>) ->
 
 -spec app_exchange_url() -> kz_term:api_ne_binary().
 app_exchange_url() ->
-    kapps_config:get_ne_binary(?CONFIG_CAT, <<"app_exchange_url">>, default_value('app_exchange_url')).
+    kapps_config:get_ne_binary(?CONFIG_CAT,<<"app_exchange_url">>, default_value('app_exchange_url', <<"https://api.marketplace.2600hz.com">>)).
 
 -spec set_app_exchange_url(kz_term:ne_binary() | 'null') -> kz_term:api_ne_binary().
 set_app_exchange_url('null') ->
@@ -77,7 +77,7 @@ set_api_url(URL) ->
 
 -spec marketplace_url() -> kz_term:api_ne_binary().
 marketplace_url() ->
-    kapps_config:get_ne_binary(?CONFIG_CAT, <<"marketplace_url">>, default_value('marketplace_url')).
+    kapps_config:get_ne_binary(?CONFIG_CAT, <<"marketplace_url">>, default_value('marketplace_url', <<"https://marketplace.2600hz.com">>)).
 
 -spec set_marketplace_url(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
 set_marketplace_url(URL) ->
@@ -104,7 +104,15 @@ set_http_timeout_s(TimeoutS) ->
 
 -spec default_value(atom()) -> kz_term:api_ne_binary().
 default_value(Key) ->
-    application:get_env('appex_client', Key, 'undefined').
+    default_value(Key, 'undefined').
+
+-spec default_value(atom(), Value) -> Value.
+default_value(Key, Default) ->
+    case application:get_env('kazoo_appex', Key, Default) of
+        'undefined' -> Default;
+        {'ok', Value} -> Value;
+        Default -> Default
+    end.
 
 -spec system_configs() -> kz_json:object().
 system_configs() ->
