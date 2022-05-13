@@ -245,17 +245,23 @@ ebin_path(#load_app{base_path=BasePath, app_dir=AppDir}) ->
     filename:join([BasePath, AppDir, "ebin"]).
 
 -spec write_file({file:filename_all(), binary()}, load_app()) -> 'ok' | {'error', term()}.
-write_file({"metadata/app.json"=Filename, Contents}
+write_file({Filename, Contents}, #load_app{app_type='kazoo'}=LoadApp) ->
+    do_the_write_thing({Filename, Contents}, LoadApp);
+write_file({Filename, Contents}
           ,#load_app{app_dir=AppDir, api_url=ApiUrl}=LoadApp
           ) ->
-    SourceURL = appex_cb_router:source_url(ApiUrl, AppDir),
-    AppJObj = kz_doc:setters(kz_json:decode(Contents)
-                            ,[{fun kzd_app:set_source_url/2, SourceURL}
-                             ]
-                            ),
-    do_the_write_thing({Filename, kz_json:encode(AppJObj)}, LoadApp);
-write_file({Filename, Contents}, LoadApp) ->
-    do_the_write_thing({Filename, Contents}, LoadApp).
+    case {filename:dirname(Filename), filename:basename(Filename)} of
+        {"priv/assets/metadata", "app.json"} ->
+            SourceURL = appex_cb_router:source_url(ApiUrl, AppDir),
+            AppJObj = kz_doc:setters(kz_json:decode(Contents)
+                                     ,[{fun kzd_app:set_source_url/2, SourceURL}
+                                      ]
+                                    ),
+            ?DEV_LOG("~n~p~n", [AppJObj]),
+            do_the_write_thing({Filename, kz_json:encode(AppJObj)}, LoadApp);
+        _ ->
+            do_the_write_thing({Filename, Contents}, LoadApp)
+    end.
 
 -spec do_the_write_thing({file:filename_all(), binary()}, load_app()) -> 'ok' | {'error', term()}.
 do_the_write_thing({Filename, Contents}, LoadApp) ->
