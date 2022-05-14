@@ -9,6 +9,7 @@
 %%%-----------------------------------------------------------------------------
 -module(appex_cb_router).
 -behaviour(cowboy_rest).
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 %% Get things into position
 -export([start_link/0
@@ -45,19 +46,11 @@ start_link() ->
 
 -spec stop_link() -> 'ok'.
 stop_link() ->
-    lager:info("starting up appex app router"),
-
-    [{Host, Thing, Paths}] = persistent_term:get('crossbar_dispatch'),
-
-    persistent_term:put('crossbar_dispatch'
-                       ,[{Host, Thing, [Path || Path={_, _, Mod, _} <- Paths, Mod =:= ?MODULE]}]
-                       ),
-
-    lager:info("removed our path").
+    'ok'.
 
 -spec route_paths() -> cowboy_paths().
 route_paths() ->
-    [{<<"/ui/[...]">>, 'appex_cb_router', []}].
+    [{<<"/ui/[...]">>, ?MODULE, []}].
 
 %% @doc APIUrl should be scheme://host:port/v2
 %% returns scheme://host:port/ui/{APP-Vsn}
@@ -135,8 +128,15 @@ resource_exists(Req, _Context, AppDir, AssetPath) ->
         'true' ->
             ContentType = kz_mime:from_filename(AssetFilename),
             lager:info("content type for ~s: ~s", [AssetFilename, ContentType]),
+            Headers = [{<<"access-control-allow-origin">>, <<"*">>}
+                      ,{<<"access-control-allow-methods">>, <<"GET">>}
+                      ,{<<"access-control-allow-headers">>, <<"content-type, depth, user-agent, x-http-method-override, x-file-size, x-requested-with, if-modified-since, x-file-name, cache-control, x-auth-token, x-kazoo-cluster-id, if-match, authorization">>}
+                      ,{<<"access-control-expose-headers">>, <<"content-type, x-auth-token, x-request-id, x-kazoo-cluster-id, location, etag">>}
+                      ,{<<"access-control-max-age">>, kz_term:to_binary(?SECONDS_IN_DAY)}
+                      ,{<<"content-type">>, ContentType}
+                      ],
             {'true'
-            ,cowboy_req:set_resp_header(<<"content-type">>, ContentType, Req)
+            ,cowboy_req:set_resp_headers(maps:from_list(Headers), Req)
             ,AssetFilename
             }
     end.
