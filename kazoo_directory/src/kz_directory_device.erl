@@ -200,6 +200,7 @@ convert_endpoint_type(<<"softphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"cellphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"landline">>) -> <<"sip">>;
 convert_endpoint_type(<<"fax">>) -> <<"sip">>;
+convert_endpoint_type(<<"ata">>) -> <<"sip">>;
 convert_endpoint_type(<<"mobile">>) -> <<"mobile">>;
 convert_endpoint_type(<<"application">>) -> <<"sip">>;
 convert_endpoint_type(_Else) ->
