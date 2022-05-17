@@ -603,13 +603,12 @@ email_invite_definition() ->
                }
               ,{fun kapi_definition:set_required_headers/2, [<<"Conference-ID">>
                                                             ,<<"Conference-Name">>
-                                                            ,<<"Conference-Link">>
                                                             ,<<"Conference-Call-In-Numbers">>
                                                             ,<<"Conference-Participant-Pins">>
                                                             ,<<"Invite-Message">>
                                                             ,<<"Guests">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Link">>]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }

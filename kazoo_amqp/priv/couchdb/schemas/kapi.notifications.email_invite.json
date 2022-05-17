@@ -43,7 +43,6 @@
     "required": [
         "Conference-Call-In-Numbers",
         "Conference-ID",
-        "Conference-Link",
         "Conference-Name",
         "Conference-Participant-Pins",
         "Guests",
