@@ -31,6 +31,8 @@
 -export([require_pin/1, require_pin/2, set_require_pin/2]).
 -export([save_after_notify/1, save_after_notify/2, set_save_after_notify/2]).
 -export([seek_duration_ms/1, seek_duration_ms/2, set_seek_duration_ms/2]).
+-export([silence_hits/1, silence_hits/2, set_silence_hits/2]).
+-export([silence_threshold/1, silence_threshold/2, set_silence_threshold/2]).
 -export([skip_envelope/1, skip_envelope/2, set_skip_envelope/2]).
 -export([skip_greeting/1, skip_greeting/2, set_skip_greeting/2]).
 -export([skip_instructions/1, skip_instructions/2, set_skip_instructions/2]).
@@ -349,6 +351,30 @@ seek_duration_ms(Doc, Default) ->
 -spec set_seek_duration_ms(doc(), integer()) -> doc().
 set_seek_duration_ms(Doc, SeekDurationMs) ->
     kz_json:set_value([<<"seek_duration_ms">>], SeekDurationMs, Doc).
+
+-spec silence_hits(doc()) -> kz_term:api_integer().
+silence_hits(Doc) ->
+    silence_hits(Doc, 'undefined').
+
+-spec silence_hits(doc(), Default) -> integer() | Default.
+silence_hits(Doc, Default) ->
+    kz_json:get_integer_value([<<"silence_hits">>], Doc, Default).
+
+-spec set_silence_hits(doc(), integer()) -> doc().
+set_silence_hits(Doc, SilenceHits) ->
+    kz_json:set_value([<<"silence_hits">>], SilenceHits, Doc).
+
+-spec silence_threshold(doc()) -> kz_term:api_integer().
+silence_threshold(Doc) ->
+    silence_threshold(Doc, 'undefined').
+
+-spec silence_threshold(doc(), Default) -> integer() | Default.
+silence_threshold(Doc, Default) ->
+    kz_json:get_integer_value([<<"silence_threshold">>], Doc, Default).
+
+-spec set_silence_threshold(doc(), integer()) -> doc().
+set_silence_threshold(Doc, SilenceThreshold) ->
+    kz_json:set_value([<<"silence_threshold">>], SilenceThreshold, Doc).
 
 -spec skip_envelope(doc()) -> boolean().
 skip_envelope(Doc) ->

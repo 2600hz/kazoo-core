@@ -83,7 +83,10 @@ maybe_log_unlock(Key, Type, {?MITIGATION, _Pid}) ->
 maybe_log_unlock(_Key, _Type, _Peek) -> 'ok'.
 
 cache_callback(Name, Key) ->
-    ets:lookup_element(Name, Key, #cache_obj.callback).
+    try ets:lookup_element(Name, Key, #cache_obj.callback)
+    catch
+        'error:badarg' -> 'undefined'
+    end.
 
 -spec exec_erase_callbacks(atom(), any(), callback_fun() | 'undefined', any()) -> 'ok'.
 exec_erase_callbacks(Name, Key, Fun, Value) when is_function(Fun, 3) ->

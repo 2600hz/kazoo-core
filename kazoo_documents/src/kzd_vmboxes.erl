@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Accessors for `vmboxes' document.
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,6 +36,8 @@
 -export([seek_duration_ms/1, seek_duration_ms/2, set_seek_duration_ms/2]).
 -export([include_message_on_notify/1, include_message_on_notify/2, set_include_message_on_notify/2]).
 -export([include_transcription_on_notify/1, include_transcription_on_notify/2, set_include_transcription_on_notify/2]).
+-export([silence_hits/1, silence_hits/2, set_silence_hits/2]).
+-export([silence_threshold/1, silence_threshold/2, set_silence_threshold/2]).
 -export([skip_envelope/1, skip_envelope/2, set_skip_envelope/2]).
 -export([skip_greeting/1, skip_greeting/2, set_skip_greeting/2]).
 -export([skip_instructions/1, skip_instructions/2, set_skip_instructions/2]).
@@ -43,6 +45,7 @@
 -export([transcribe/1, transcribe/2, set_transcribe/2]).
 -export([vm_message_forward_type/1, vm_message_forward_type/2, set_vm_message_forward_type/2]).
 
+-elvis([{elvis_style, god_modules, disable}]).
 
 -include("kz_documents.hrl").
 
@@ -351,6 +354,30 @@ save_after_notify(Doc, Default) ->
 -spec set_save_after_notify(doc(), boolean()) -> doc().
 set_save_after_notify(Doc, SaveAfterNotify) ->
     kz_json:set_value([<<"save_after_notify">>], SaveAfterNotify, Doc).
+
+-spec silence_hits(doc()) -> kz_term:api_integer().
+silence_hits(Doc) ->
+    silence_hits(Doc, 'undefined').
+
+-spec silence_hits(doc(), Default) -> integer() | Default.
+silence_hits(Doc, Default) ->
+    kz_json:get_integer_value([<<"silence_hits">>], Doc, Default).
+
+-spec set_silence_hits(doc(), integer()) -> doc().
+set_silence_hits(Doc, SilenceHits) ->
+    kz_json:set_value([<<"silence_hits">>], SilenceHits, Doc).
+
+-spec silence_threshold(doc()) -> kz_term:api_integer().
+silence_threshold(Doc) ->
+    silence_threshold(Doc, 'undefined').
+
+-spec silence_threshold(doc(), Default) -> integer() | Default.
+silence_threshold(Doc, Default) ->
+    kz_json:get_integer_value([<<"silence_threshold">>], Doc, Default).
+
+-spec set_silence_threshold(doc(), integer()) -> doc().
+set_silence_threshold(Doc, SilenceThreshold) ->
+    kz_json:set_value([<<"silence_threshold">>], SilenceThreshold, Doc).
 
 -spec seek_duration_ms(doc()) -> integer().
 seek_duration_ms(Doc) ->
