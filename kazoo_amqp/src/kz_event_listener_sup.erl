@@ -41,7 +41,7 @@ start_link(Name) ->
     handle_started(supervisor:start_link({'local', Server}, ?MODULE, [Name])).
 
 handle_started({'ok', Pid}) ->
-    _ = start_workers(Pid),
+    _ = kz_process:spawn(fun start_workers/1, [Pid]),
     {'ok', Pid};
 handle_started(Error) -> Error.
 
