@@ -64,6 +64,8 @@
         ,transfer_destination/1
         ]).
 
+-export([bridge_hangup_cause/1, bridge_hangup_cause/2]).
+
 -type payload() :: kz_json:object().
 -export_type([payload/0]).
 
@@ -352,3 +354,11 @@ transfer_leg(JObj) ->
 -spec transfer_destination(payload()) -> kz_term:api_ne_binary().
 transfer_destination(JObj) ->
     kz_json:get_ne_binary_value(<<"Transfer-Destination">>, JObj).
+
+-spec bridge_hangup_cause(payload()) -> kz_term:api_ne_binary().
+bridge_hangup_cause(JObj) ->
+    bridge_hangup_cause(JObj, 'undefined').
+
+-spec bridge_hangup_cause(payload(), Default) -> kz_term:ne_binary() | Default.
+bridge_hangup_cause(JObj, Default) ->
+    kz_json:get_ne_binary_value(<<"Bridge-Hangup-Cause">>, JObj, Default).

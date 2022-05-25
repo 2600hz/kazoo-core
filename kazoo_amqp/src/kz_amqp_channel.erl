@@ -24,6 +24,10 @@
         ,remove_consumer_channel/0
         ,is_consumer_channel_valid/0
         ]).
+-export([consumer_assignment/0
+        ,consumer_assignment/1
+        ,remove_consumer_assignment/0
+        ]).
 -export([check_consumer_pids/0]).
 -export([channel_publish_method/0
         ,channel_publish_method/1
@@ -85,14 +89,22 @@ is_consumer_pid_valid() ->
 has_channel() ->
     'undefined' =/= get('$kz_amqp_consumer_channel').
 
--spec consumer_channel() -> pid() | kz_amqp_assignment() | {'error', 'timeout'}.
+-spec consumer_channel() -> pid().
 consumer_channel() ->
     case get('$kz_amqp_consumer_channel') of
         'undefined' ->
             #kz_amqp_assignment{channel=Channel} = kz_amqp_assignments:get_channel(),
             put('$kz_amqp_consumer_channel', Channel),
             Channel;
-        Channel -> Channel
+        Channel ->
+            case is_process_alive(Channel) of
+                true ->
+                    Channel;
+                false ->
+                    #kz_amqp_assignment{channel=NewChannel} = kz_amqp_assignments:get_channel(),
+                    put('$kz_amqp_consumer_channel', NewChannel),
+                    NewChannel
+            end
     end.
 
 -spec consumer_channel(pid()) -> pid().
@@ -102,6 +114,24 @@ consumer_channel(Channel) ->
 -spec remove_consumer_channel() -> 'undefined'.
 remove_consumer_channel() ->
     put('$kz_amqp_consumer_channel', 'undefined').
+
+-spec consumer_assignment() -> kz_amqp_assignment() | {'error', 'timeout'}.
+consumer_assignment() ->
+    case get('$kz_amqp_consumer_assignment') of
+        'undefined' ->
+            Assignment = #kz_amqp_assignment{} = kz_amqp_assignments:get_channel(),
+            put('$kz_amqp_consumer_assignment', Assignment),
+            Assignment;
+        Assignment -> Assignment
+    end.
+
+-spec consumer_assignment(kz_amqp_assignment()) -> kz_amqp_assignment().
+consumer_assignment(Assignment) ->
+    put('$kz_amqp_assignment', Assignment).
+
+-spec remove_consumer_assignment() -> 'undefined'.
+remove_consumer_assignment() ->
+    put('$kz_amqp_consumer_assignment', 'undefined').
 
 -spec check_consumer_pid({fun(() -> boolean()), fun(() -> 'undefined')}) -> any().
 check_consumer_pid({ValidateFun, RemoveFun}) ->
@@ -351,16 +381,12 @@ maybe_connection_command(true, #'exchange.bind'{} = Command) ->
 maybe_connection_command(_FalseOrOtherCmd, Command) ->
     %% This will wait forever for a valid channel before executing command...
     %% all commands need to block till completion...
-    case consumer_channel() of
-        Channel when is_pid(Channel) ->
-            Assignment = #kz_amqp_assignment{channel=Channel
-                                            ,consumer=consumer_pid()
-                                            },
-            command(Assignment, Command);
-        #kz_amqp_assignment{} = Assignment ->
-            command(Assignment, Command);
-        {'error', _} = Error -> Error
-    end.
+    Channel = consumer_channel(),
+    Consumer = consumer_pid(),
+    Assignment = #kz_amqp_assignment{channel=Channel
+                                    ,consumer=Consumer
+                                    },
+    command(Assignment, Command).
 
 -spec command(kz_amqp_command()) -> command_ret().
 command(Command) ->
