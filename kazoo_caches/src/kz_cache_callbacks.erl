@@ -85,7 +85,7 @@ maybe_log_unlock(_Key, _Type, _Peek) -> 'ok'.
 cache_callback(Name, Key) ->
     try ets:lookup_element(Name, Key, #cache_obj.callback)
     catch
-        'error:badarg' -> 'undefined'
+        'error':'badarg' -> 'undefined'
     end.
 
 -spec exec_erase_callbacks(atom(), any(), callback_fun() | 'undefined', any()) -> 'ok'.
