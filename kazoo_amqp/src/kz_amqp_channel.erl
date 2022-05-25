@@ -89,14 +89,22 @@ is_consumer_pid_valid() ->
 has_channel() ->
     'undefined' =/= get('$kz_amqp_consumer_channel').
 
--spec consumer_channel() -> pid() | kz_amqp_assignment() | {'error', 'timeout'}.
+-spec consumer_channel() -> pid().
 consumer_channel() ->
     case get('$kz_amqp_consumer_channel') of
         'undefined' ->
             #kz_amqp_assignment{channel=Channel} = kz_amqp_assignments:get_channel(),
             put('$kz_amqp_consumer_channel', Channel),
             Channel;
-        Channel -> Channel
+        Channel ->
+            case is_process_alive(Channel) of
+                true ->
+                    Channel;
+                false ->
+                    #kz_amqp_assignment{channel=NewChannel} = kz_amqp_assignments:get_channel(),
+                    put('$kz_amqp_consumer_channel', NewChannel),
+                    NewChannel
+            end
     end.
 
 -spec consumer_channel(pid()) -> pid().
