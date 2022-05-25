@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,9 +18,14 @@
         ,get_channel/1
         ,get_channel/2
         ]).
--export([request_channel/2]).
+-export([request_channel/0
+        ,request_channel/1
+        ,request_channel/2
+        ]).
 -export([add_channel/3]).
--export([release/1]).
+-export([release/0
+        ,release/1
+        ]).
 -export([release_consumer/1, release_consumer/2, release_consumer/3]).
 -export([init/1
         ,handle_call/3
@@ -90,6 +95,14 @@ get_channel(Consumer, Timeout) when is_pid(Consumer) ->
             request_and_wait(Consumer, kz_amqp_channel:consumer_broker(), Timeout)
     end.
 
+-spec request_channel() -> 'ok'.
+request_channel() ->
+    request_channel(self()).
+
+-spec request_channel(pid()) -> 'ok'.
+request_channel(Consumer) ->
+    request_channel(Consumer, kz_amqp_channel:consumer_broker()).
+
 -spec request_channel(pid(), kz_term:api_binary()) -> 'ok'.
 request_channel(Consumer, Broker) ->
     request_channel(Consumer, Broker, 'undefined').
@@ -113,6 +126,10 @@ add_channel(Broker, Connection, Channel)
         'false' ->
             gen_server:cast(?SERVER, {'add_channel_alternate_broker', Broker, Connection, Channel})
     end.
+
+-spec release() -> 'ok'.
+release() ->
+    release(self()).
 
 -spec release(pid()) -> 'ok'.
 release(Consumer) ->
@@ -781,19 +798,19 @@ handle_down_match({'channel', #kz_amqp_assignment{channel=Channel
     maybe_defer_reassign(Assignment, Reason).
 
 -spec maybe_defer_reassign(#kz_amqp_assignment{}, any()) -> 'ok'.
-maybe_defer_reassign(#kz_amqp_assignment{}=Assignment
+maybe_defer_reassign(#kz_amqp_assignment{consumer=Consumer}=Assignment
                     ,{'shutdown',{'server_initiated_close', 404, _Msg}}
                     ) ->
-    lager:debug("defer channel reassign for ~p ms", [?SERVER_RETRY_PERIOD]),
+    lager:debug("defer channel reassign to ~p for ~p ms", [Consumer, ?SERVER_RETRY_PERIOD]),
     kz_process:spawn(
       fun() ->
               timer:sleep(?SERVER_RETRY_PERIOD),
               gen_server:cast(?SERVER, {'maybe_defer_reassign', Assignment})
       end);
-maybe_defer_reassign(#kz_amqp_assignment{}=Assignment
+maybe_defer_reassign(#kz_amqp_assignment{consumer=Consumer}=Assignment
                     ,{'shutdown',{'connection_closing', _}}
                     ) ->
-    lager:debug("defer channel reassign for ~p ms", [?SERVER_RETRY_PERIOD]),
+    lager:debug("defer channel reassign to ~p for ~p ms", [Consumer, ?SERVER_RETRY_PERIOD]),
     kz_process:spawn(
       fun() ->
               timer:sleep(?SERVER_RETRY_PERIOD),
