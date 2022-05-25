@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc Handle a host's connection/channels.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -205,19 +205,21 @@ handle_info({'DOWN', _Ref, 'process', _Pid, _Reason}
 handle_info({'DOWN', Ref, 'process', _Pid, ?SERVER_REPLY_NOT_FOUND}
            ,#kz_amqp_connection{available='true'
                                ,channel_ref=Ref
+                               ,connection=_ConnectionPid
                                ,broker=_Broker
                                }=Connection
            ) ->
-    lager:debug("command channel to ~s died with server not_found",[_Broker]),
+    lager:debug("command channel (~p) to ~s (~p) died with server not_found",[_Pid, _Broker, _ConnectionPid]),
     {'noreply', create_control_channel(Connection), 'hibernate'};
 handle_info({'DOWN', Ref, 'process', _Pid, _Reason}
            ,#kz_amqp_connection{available='true'
                                ,channel_ref=Ref
+                               ,connection=_ConnectionPid
                                ,broker=_Broker
                                }=Connection
            ) ->
-    lager:warning("command channel to the AMQP broker ~s died: ~p"
-                 ,[_Broker, _Reason]
+    lager:warning("command channel (~p) to the AMQP broker ~s (~p) died: ~p"
+                 ,[_Pid, _Broker, _ConnectionPid, _Reason]
                  ),
     {'noreply', create_control_channel(Connection), 'hibernate'};
 handle_info({'DOWN', Ref, 'process', _Pid, _Reason}
@@ -238,16 +240,16 @@ handle_info({'connect', _}, #kz_amqp_connection{available='true'}=Connection) ->
     {'noreply', Connection, 'hibernate'};
 handle_info(#'basic.cancel_ok'{}=_Cancel, Connection) ->
     {'noreply', Connection};
-handle_info(#'connection.blocked'{reason=_Reason}, #kz_amqp_connection{broker=_Broker}=Connection) ->
-    lager:warning("connection ~p is being blocked on the server, check broker health: ~s"
-                 ,[_Broker, _Reason]
+handle_info(#'connection.blocked'{reason=_Reason}, #kz_amqp_connection{broker=_Broker, connection=_ConnectionPid}=Connection) ->
+    lager:warning("connection ~s (~p) is being blocked on the server, check broker health: ~s"
+                 ,[_Broker, _ConnectionPid, _Reason]
                  ),
     {'noreply', Connection};
-handle_info(#'connection.unblocked'{}, #kz_amqp_connection{broker=_Broker}=Connection) ->
-    lager:notice("connection ~p is unblocked on the broker", [_Broker]),
+handle_info(#'connection.unblocked'{}, #kz_amqp_connection{broker=_Broker, connection=_ConnectionPid}=Connection) ->
+    lager:notice("connection ~s (~p) is unblocked on the broker", [_Broker, _ConnectionPid]),
     {'noreply', Connection};
-handle_info(_Info, Connection) ->
-    lager:debug("unhandled message: ~p", [_Info]),
+handle_info(_Info, #kz_amqp_connection{broker=_Broker, connection=_ConnectionPid}=Connection) ->
+    lager:debug("connection ~s (~p) unhandled message: ~p", [_Broker, _ConnectionPid, _Info]),
     {'noreply', Connection, 'hibernate'}.
 
 %%------------------------------------------------------------------------------
@@ -258,9 +260,9 @@ handle_info(_Info, Connection) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), kz_amqp_connection()) -> any().
-terminate(_Reason, #kz_amqp_connection{broker=_Broker}=Connection) ->
-    lager:debug("connection to amqp broker '~s' terminated: ~p"
-               ,[_Broker, _Reason]
+terminate(_Reason, #kz_amqp_connection{broker=_Broker, connection=_ConnectionPid}=Connection) ->
+    lager:debug("connection to amqp broker ~s (~p) terminated: ~p"
+               ,[_Broker, _ConnectionPid, _Reason]
                ),
     disconnected(Connection).
 
@@ -304,8 +306,8 @@ connected(#kz_amqp_connection{prechannels_initialized='false'}=Connection) ->
         #kz_amqp_connection{prechannels_initialized='true'}=Success ->
             connected(Success)
     end;
-connected(#kz_amqp_connection{broker=_Broker}=Connection) ->
-    lager:info("successfully connected to '~s'", [_Broker]),
+connected(#kz_amqp_connection{broker=_Broker,connection=_Pid}=Connection) ->
+    lager:info("successfully connected to ~s(~p)", [_Broker, _Pid]),
     Connection.
 
 %%------------------------------------------------------------------------------
@@ -416,6 +418,7 @@ maybe_connect(#kz_amqp_connection{broker=_Broker
                          ),
             disconnected(Connection, Timeout);
         {'ok', Pid} ->
+            lager:info("new connection to ~s (~p)", [_Broker, Pid]),
             Ref = erlang:monitor('process', Pid),
             _ = amqp_connection:register_blocked_handler(Pid, self()),
             connected(Connection#kz_amqp_connection{connection=Pid
@@ -447,15 +450,15 @@ create_control_channel(#kz_amqp_connection{channel=ChannelPid}=Connection)
   when is_pid(ChannelPid) ->
     shutdown_channel(ChannelPid),
     create_control_channel(Connection#kz_amqp_connection{channel='undefined'});
-create_control_channel(#kz_amqp_connection{broker=Broker}=Connection) ->
+create_control_channel(#kz_amqp_connection{broker=Broker, connection = _ConnectionPid}=Connection) ->
     case open_channel(Connection) of
         {'error', _R} ->
-            lager:critical("unable to establish command channel to ~s, assuming connection is invalid: ~p"
-                          ,[Broker, _R]
+            lager:critical("unable to establish command channel to ~s (~p), assuming connection is invalid: ~p"
+                          ,[Broker, _ConnectionPid, _R]
                           ),
             disconnected(Connection);
         {'ok', Pid} ->
-            lager:debug("created command channel ~p to ~s", [Pid, Broker]),
+            lager:debug("created command channel ~p to ~s (~p)", [Pid, Broker, _ConnectionPid]),
             Ref = erlang:monitor('process', Pid),
             Connection#kz_amqp_connection{channel=Pid
                                          ,channel_ref=Ref
