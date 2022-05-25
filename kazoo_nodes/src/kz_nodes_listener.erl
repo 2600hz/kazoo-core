@@ -203,7 +203,6 @@ handle_cast({'gen_listener', {'created_queue', _Q}}, State) ->
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', IsConsuming}}, State) ->
     lager:debug("heartbeat from remotes is ~p", [IsConsuming]),
-    gen_listener:cast(self(), 'check_is_ready'),
     {'noreply', State#state{is_consuming=IsConsuming}};
 handle_cast('flush', State) ->
     ets:delete_all_objects(?MODULE),
@@ -237,6 +236,14 @@ handle_info({'heartbeat', Ref}
 
 handle_info({'heartbeat', Ref}
            ,#state{heartbeat_ref=Ref
+                  ,is_consuming=false
+                  }=State
+           ) ->
+    Reference = next_heartbeat(),
+    {'noreply', State#state{heartbeat_ref=Reference}};
+
+handle_info({'heartbeat', Ref}
+           ,#state{heartbeat_ref=Ref
                   ,me=Me
                   ,waiting=Waiting
                   }=State
@@ -252,7 +259,7 @@ handle_info({'heartbeat', _Ref}, State) ->
     {'noreply', State};
 
 handle_info({'nodedown', Node, _InfoList}, State) ->
-    lager:info("~s is no longer connected:", [Node]),
+    lager:info("~s is no longer connected", [Node]),
     {'noreply', State};
 handle_info({'nodedown', Node}, State) ->
     lager:info("~s is no longer connected", [Node]),
@@ -450,7 +457,12 @@ get_amqp_broker(JObj) ->
 
 -spec notify_expire(kz_types:kz_nodes()) -> 'ok'.
 notify_expire(Nodes) ->
-    kz_nodes_notify:notify_expire(Nodes).
+    kz_nodes_notify:notify_expire(Nodes),
+    lists:foreach(fun log_expired/1, Nodes).
+
+-spec log_expired(kz_types:kz_node()) -> 'ok'.
+log_expired(#kz_node{node=NodeName}) ->
+    lager:info("lost heartbeat from node ~s", [NodeName]).
 
 -spec notify_new(kz_types:kz_node()) -> 'ok'.
 notify_new(#kz_node{node=NodeName}=Node) ->
