@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -781,19 +781,19 @@ handle_down_match({'channel', #kz_amqp_assignment{channel=Channel
     maybe_defer_reassign(Assignment, Reason).
 
 -spec maybe_defer_reassign(#kz_amqp_assignment{}, any()) -> 'ok'.
-maybe_defer_reassign(#kz_amqp_assignment{}=Assignment
+maybe_defer_reassign(#kz_amqp_assignment{consumer=Consumer}=Assignment
                     ,{'shutdown',{'server_initiated_close', 404, _Msg}}
                     ) ->
-    lager:debug("defer channel reassign for ~p ms", [?SERVER_RETRY_PERIOD]),
+    lager:debug("defer channel reassign to ~p for ~p ms", [Consumer, ?SERVER_RETRY_PERIOD]),
     kz_process:spawn(
       fun() ->
               timer:sleep(?SERVER_RETRY_PERIOD),
               gen_server:cast(?SERVER, {'maybe_defer_reassign', Assignment})
       end);
-maybe_defer_reassign(#kz_amqp_assignment{}=Assignment
+maybe_defer_reassign(#kz_amqp_assignment{consumer=Consumer}=Assignment
                     ,{'shutdown',{'connection_closing', _}}
                     ) ->
-    lager:debug("defer channel reassign for ~p ms", [?SERVER_RETRY_PERIOD]),
+    lager:debug("defer channel reassign to ~p for ~p ms", [Consumer, ?SERVER_RETRY_PERIOD]),
     kz_process:spawn(
       fun() ->
               timer:sleep(?SERVER_RETRY_PERIOD),
