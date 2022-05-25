@@ -58,7 +58,7 @@ exec_flush_callbacks(Name, Fun) ->
 -spec erased(atom(), any()) -> 'ok'.
 erased(Name, Key) ->
     CacheCallback = cache_callback(Name, Key),
-    CacheValue = ets:lookup_element(Name, Key, #cache_obj.value),
+    CacheValue = cache_value(Name, Key),
 
     _ = [maybe_remove_object(Table, Key)
          || Table <- [Name
@@ -82,8 +82,14 @@ maybe_log_unlock(Key, Type, {?MITIGATION, _Pid}) ->
     lager:debug("~s is unlocking key ~p (locked by ~p)", [Type, Key, _Pid]);
 maybe_log_unlock(_Key, _Type, _Peek) -> 'ok'.
 
+cache_value(Name, Key) ->
+    cache_lookup(Name, Key, #cache_obj.value).
+
 cache_callback(Name, Key) ->
-    try ets:lookup_element(Name, Key, #cache_obj.callback)
+    cache_lookup(Name, Key, #cache_obj.callback).
+
+cache_lookup(Name, Key, Position) ->
+    try ets:lookup_element(Name, Key, Position)
     catch
         'error':'badarg' -> 'undefined'
     end.
