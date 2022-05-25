@@ -528,7 +528,7 @@ open_channel(#kz_amqp_connection{connection=Pid}) ->
             {'error', 'not_connected'}
     end.
 
--spec register_default_consumer(pid()) -> pid() | {error, term()}.
+-spec register_default_consumer(pid()) -> {ok, pid()} | {error, term()}.
 register_default_consumer(Channel) ->
     %% This is not strictly necessary, but since we
     %% lose the entire CONNECTION if a single message
