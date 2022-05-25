@@ -508,12 +508,8 @@ establish_prechannel(#kz_amqp_connection{broker=Broker
 -spec open_channel(kz_amqp_connection()) -> {'ok', pid()} | {'error', any()}.
 open_channel(#kz_amqp_connection{connection=Pid}) ->
     try amqp_connection:open_channel(Pid) of
-        {'ok', Channel}=Ok ->
-            %% This is not strictly necessary, but since we
-            %% lose the entire CONNECTION if a single message
-            %% can't be delivered, better safe then sorry...
-            amqp_selective_consumer:register_default_consumer(Channel, self()),
-            Ok;
+        {'ok', Channel} ->
+            register_default_consumer(Channel);
         'closing' ->
             lager:info("unable to open channel, connection is closing", []),
             {'error', 'closing'};
@@ -530,6 +526,27 @@ open_channel(#kz_amqp_connection{connection=Pid}) ->
         _Exc:_Err:_ST ->
             lager:warning("amqp exception opening channel : ~p , ~p", [_Exc, _Err]),
             {'error', 'not_connected'}
+    end.
+
+-spec register_default_consumer(pid()) -> pid() | {error, term()}.
+register_default_consumer(Channel) ->
+    %% This is not strictly necessary, but since we
+    %% lose the entire CONNECTION if a single message
+    %% can't be delivered, better safe then sorry...
+    %%
+    %% we need to do a catch here because the channel
+    %% may become invalid between opening and
+    %% registering the default consumer
+    %% otherwise this server will exit and terminate
+    %% and will be removed from kz_amqp_connections
+    %% and even with the supervisor restart for this broker
+    %% kz_amqp_connections will never recover
+    %% because it deleted the record from ets table
+    %% when we crashed
+    case catch amqp_selective_consumer:register_default_consumer(Channel, self()) of
+        ok -> {ok, Channel};
+        {'EXIT', Reason} -> {error, Reason};
+        _Other -> {error, _Other}
     end.
 
 %%------------------------------------------------------------------------------
