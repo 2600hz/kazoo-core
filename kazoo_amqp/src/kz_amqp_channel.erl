@@ -24,6 +24,10 @@
         ,remove_consumer_channel/0
         ,is_consumer_channel_valid/0
         ]).
+-export([consumer_assignment/0
+        ,consumer_assignment/1
+        ,remove_consumer_assignment/0
+        ]).
 -export([check_consumer_pids/0]).
 -export([channel_publish_method/0
         ,channel_publish_method/1
@@ -102,6 +106,24 @@ consumer_channel(Channel) ->
 -spec remove_consumer_channel() -> 'undefined'.
 remove_consumer_channel() ->
     put('$kz_amqp_consumer_channel', 'undefined').
+
+-spec consumer_assignment() -> kz_amqp_assignment() | {'error', 'timeout'}.
+consumer_assignment() ->
+    case get('$kz_amqp_consumer_assignment') of
+        'undefined' ->
+            Assignment = #kz_amqp_assignment{} = kz_amqp_assignments:get_channel(),
+            put('$kz_amqp_consumer_assignment', Assignment),
+            Assignment;
+        Assignment -> Assignment
+    end.
+
+-spec consumer_assignment(kz_amqp_assignment()) -> kz_amqp_assignment().
+consumer_assignment(Assignment) ->
+    put('$kz_amqp_assignment', Assignment).
+
+-spec remove_consumer_assignment() -> 'undefined'.
+remove_consumer_assignment() ->
+    put('$kz_amqp_consumer_assignment', 'undefined').
 
 -spec check_consumer_pid({fun(() -> boolean()), fun(() -> 'undefined')}) -> any().
 check_consumer_pid({ValidateFun, RemoveFun}) ->

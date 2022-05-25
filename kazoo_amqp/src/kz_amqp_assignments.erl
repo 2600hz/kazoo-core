@@ -18,9 +18,14 @@
         ,get_channel/1
         ,get_channel/2
         ]).
--export([request_channel/2]).
+-export([request_channel/0
+        ,request_channel/1
+        ,request_channel/2
+        ]).
 -export([add_channel/3]).
--export([release/1]).
+-export([release/0
+        ,release/1
+        ]).
 -export([release_consumer/1, release_consumer/2, release_consumer/3]).
 -export([init/1
         ,handle_call/3
@@ -90,6 +95,14 @@ get_channel(Consumer, Timeout) when is_pid(Consumer) ->
             request_and_wait(Consumer, kz_amqp_channel:consumer_broker(), Timeout)
     end.
 
+-spec request_channel() -> 'ok'.
+request_channel() ->
+    request_channel(self()).
+
+-spec request_channel(pid()) -> 'ok'.
+request_channel(Consumer) ->
+    request_channel(Consumer, kz_amqp_channel:consumer_broker()).
+
 -spec request_channel(pid(), kz_term:api_binary()) -> 'ok'.
 request_channel(Consumer, Broker) ->
     request_channel(Consumer, Broker, 'undefined').
@@ -113,6 +126,10 @@ add_channel(Broker, Connection, Channel)
         'false' ->
             gen_server:cast(?SERVER, {'add_channel_alternate_broker', Broker, Connection, Channel})
     end.
+
+-spec release() -> 'ok'.
+release() ->
+    release(self()).
 
 -spec release(pid()) -> 'ok'.
 release(Consumer) ->
