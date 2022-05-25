@@ -381,16 +381,12 @@ maybe_connection_command(true, #'exchange.bind'{} = Command) ->
 maybe_connection_command(_FalseOrOtherCmd, Command) ->
     %% This will wait forever for a valid channel before executing command...
     %% all commands need to block till completion...
-    case consumer_channel() of
-        Channel when is_pid(Channel) ->
-            Assignment = #kz_amqp_assignment{channel=Channel
-                                            ,consumer=consumer_pid()
-                                            },
-            command(Assignment, Command);
-        #kz_amqp_assignment{} = Assignment ->
-            command(Assignment, Command);
-        {'error', _} = Error -> Error
-    end.
+    Channel = consumer_channel(),
+    Consumer = consumer_pid(),
+    Assignment = #kz_amqp_assignment{channel=Channel
+                                    ,consumer=Consumer
+                                    },
+    command(Assignment, Command).
 
 -spec command(kz_amqp_command()) -> command_ret().
 command(Command) ->
