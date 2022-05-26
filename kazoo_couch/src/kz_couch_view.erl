@@ -756,24 +756,70 @@ fetch_more(Cursor, Bookmark, Rows) ->
     #{'design_view' := View
      ,'server' := Server
      } = Params,
-    NewCursor = Cursor#{'reductions' => Reductions + 1},
-    ViewOptions = next_view_options(NewCursor, Bookmark),
+    Cursor1 = Cursor#{'reductions' => Reductions + 1},
+    ViewOptions = next_view_options(Cursor1, Bookmark),
 
     ?MAYBE_LOG("kz_datamgr:get_results(~p, ~p, ~1000p)", [Db, View, ViewOptions]),
 
     case get_results(Server, Db, View, ViewOptions) of
-        {'error', 'not_found'} when [] =:= RestDbs ->
-            ?MAYBE_LOG("either the db ~s or view ~s does not exists", [Db, View]),
-            {'error', 'not_found'};
         {'error', 'not_found'} ->
-            ?MAYBE_LOG("either the db ~s or view ~s does not exists, querying next db...", [Db, View]),
-            fetch_more(NewCursor#{'databases' => RestDbs}, Bookmark, Rows);
+            NewCursor = update_db_errors(Cursor1, Db, db_or_view_not_found(Server, Db, View)),
+            handle_db_not_found(NewCursor#{'databases' => RestDbs}, Bookmark, Rows);
         {'error', _Reason}=Error ->
             ?MAYBE_LOG("failed to query view ~s from db ~s: ~p", [View, Db, _Reason]),
             {'error', Error};
         {'ok', JObjs} ->
+            NewCursor = update_db_errors(Cursor1, Db, 'ok'),
             handle_query_results(NewCursor, Bookmark, Rows, JObjs, props:get_value('limit', ViewOptions))
     end.
+
+handle_db_not_found(Cursor, Bookmark, Rows) ->
+    case is_last_db(Cursor) of
+        'false' ->
+            %% lets query the next db in hope that it exists and has some result.
+            ?MAYBE_LOG("last db returned error but we have hopes, querying next db...", []),
+            fetch_more(Cursor, Bookmark, Rows);
+        'true' ->
+            LastError = last_error(Cursor),
+            case other_dbs_have_results(Cursor) of
+                'true' ->
+                    %% soft ignoring missing db or view, useful for ignoring missing or buggy modb/yodb.
+                    ?MAYBE_LOG("databases exhausted with some results from other dbs, ignoring errors and retuning results", []),
+                    handle_ret(Cursor#{'is_exhausted' => 'true'}, Bookmark, Rows);
+                'false' ->
+                    %% Returning error if all dbs return error.
+                    %% This mostly applies for querying a system or an account db, when we always expect that db or view
+                    %% exists, returning error here will lets us handle the error better.
+                    ?MAYBE_LOG("no result from any database, returning the last error: ~p", [LastError]),
+                    {'error', LastError}
+            end
+    end.
+
+is_last_db(#{databases := []}) -> 'true';
+is_last_db(_) -> 'false'.
+
+other_dbs_have_results(#{db_errors := DbErrors}) ->
+    kz_term:is_not_empty(
+      [Db || {Db, MaybeOkay} <- DbErrors,
+             MaybeOkay =:= 'ok'
+      ]
+     ).
+
+last_error(#{'db_errors' := []}) -> 'undefined';
+last_error(#{db_errors := [{_Db, Error} | _]}) -> Error.
+
+db_or_view_not_found(Server, Db, View) ->
+    case kz_couch_db:db_exists(Server, Db) of
+        'true' ->
+            ?MAYBE_LOG("view ~s does not exists in db ~s", [View, Db]),
+            'invalid_view_name';
+        'false' ->
+            ?MAYBE_LOG("db ~s does not exists", [Db]),
+            'invalid_db_name'
+    end.
+
+update_db_errors(#{'db_errors' := DbErrors}=Cursor, Db, Error) ->
+    Cursor#{'db_errors' => [{Db, Error} | DbErrors]}.
 
 -spec next_view_options(kz_view_cursor:cursor(), map()) -> view_options().
 next_view_options(#{'direction' := Direction
