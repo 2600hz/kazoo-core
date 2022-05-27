@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc Util functions used by kazoo_couch
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -769,13 +769,13 @@ fetch_more(Cursor, Bookmark, Rows) ->
     end.
 
 handle_db_not_found(Cursor, Bookmark, Rows) ->
-    case is_last_db(Cursor) of
+    case kz_view_cursor:is_last_db(Cursor) of
         'false' ->
             %% lets query the next db in hope that it exists and has some result.
             ?MAYBE_LOG("last db returned error but we have hopes, querying next db...", []),
             fetch_more(Cursor, Bookmark, Rows);
         'true' ->
-            LastError = last_error(Cursor),
+            LastError = kz_view_cursor:last_db_error(Cursor),
             case other_dbs_have_results(Cursor) of
                 'true' ->
                     %% soft ignoring missing db or view, useful for ignoring missing or buggy modb/yodb.
@@ -790,18 +790,12 @@ handle_db_not_found(Cursor, Bookmark, Rows) ->
             end
     end.
 
-is_last_db(#{databases := []}) -> 'true';
-is_last_db(_) -> 'false'.
-
-other_dbs_have_results(#{db_errors := DbErrors}) ->
+other_dbs_have_results(Cursor) ->
     kz_term:is_not_empty(
-      [Db || {Db, MaybeOkay} <- DbErrors,
+      [Db || {Db, MaybeOkay} <- kz_view_cursor:get_db_errors(Cursor),
              MaybeOkay =:= 'ok'
       ]
      ).
-
-last_error(#{'db_errors' := []}) -> 'undefined';
-last_error(#{db_errors := [{_Db, Error} | _]}) -> Error.
 
 db_or_view_not_found(Server, Db, View) ->
     case kz_couch_db:db_exists(Server, Db) of
