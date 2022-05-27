@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% @author Hesaam Farhang
 %%%
@@ -52,6 +52,10 @@
         ,get_reductions/1, set_reductions/2
         ,get_memory_limit/1, set_memory_limit/2
         ,get_user_params/1, set_user_params/2
+        ]).
+
+-export([is_last_db/1
+        ,last_db_error/1
         ]).
 
 -include("kz_data.hrl").
@@ -426,6 +430,14 @@ set_reductions(Cursor, Value) -> Cursor#{reductions => Value}.
 get_memory_limit(#{memory_limit := Value}) -> Value.
 -spec set_memory_limit(Cursor::cursor(), 'false' | non_neg_integer()) -> Cursor::cursor().
 set_memory_limit(Cursor, Value) -> Cursor#{memory_limit => Value}.
+
+-spec is_last_db(Cursor::cursor()) -> boolean().
+is_last_db(#{databases := []}) -> 'true';
+is_last_db(_) -> 'false'.
+
+-spec last_db_error(Cursor::cursor()) -> any().
+last_db_error(#{db_errors := [{_Db, Error}|_]}) -> Error;
+last_db_error(_) -> 'undefined'.
 
 %%------------------------------------------------------------------------------
 %% @doc
