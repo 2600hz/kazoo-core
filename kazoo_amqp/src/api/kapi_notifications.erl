@@ -610,7 +610,8 @@ email_invite_definition() ->
                                                             ,<<"Invite-Message">>
                                                             ,<<"Guests">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Link">>]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Link">>
+                                                            ,<<"To">>]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
@@ -618,10 +619,10 @@ email_invite_definition() ->
                ,[{<<"Conference-ID">>, fun is_binary/1}
                 ,{<<"Conference-Name">>, fun is_binary/1}
                 ,{<<"Conference-Link">>, fun is_binary/1}
-                ,{<<"Conference-Call-In-Numbers">>, fun kz_term:is_ne_list/1}
-                ,{<<"Conference-Participant-Pins">>, fun kz_term:is_ne_list/1}
+                ,{<<"Conference-Call-In-Numbers">>, fun kz_term:is_not_empty/1}
+                ,{<<"Conference-Participant-Pins">>, fun kz_term:is_not_empty/1}
                 ,{<<"Invite-Message">>, fun is_binary/1}
-                ,{<<"Guests">>, fun kz_term:is_ne_list/1}
+                ,{<<"Guests">>, fun kz_term:is_not_empty/1}
                 ]
                }
               ],
@@ -2174,6 +2175,8 @@ headers(<<"fax_outbound_error_to_email">>) ->
     headers(<<"outbound_fax_error">>);
 headers(<<"fax_outbound_smtp_error">>) ->
     headers(<<"outbound_smtp_fax_error">>);
+headers(<<"conference_email_invite">>) ->
+    headers(<<"email_invite">>);
 headers(Name) ->
     try api_definition(Name) of
         Definition ->
