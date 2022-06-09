@@ -622,7 +622,7 @@ email_invite_definition() ->
                 ,{<<"Conference-Call-In-Numbers">>, fun kz_term:is_not_empty/1}
                 ,{<<"Conference-Participant-Pins">>, fun kz_term:is_not_empty/1}
                 ,{<<"Invite-Message">>, fun is_binary/1}
-                ,{<<"Guests">>, fun kz_term:is_not_empty/1}
+                ,{<<"Guests">>, fun kz_term:is_ne_binary/1}
                 ]
                }
               ],
