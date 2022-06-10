@@ -619,10 +619,10 @@ email_invite_definition() ->
                ,[{<<"Conference-ID">>, fun is_binary/1}
                 ,{<<"Conference-Name">>, fun is_binary/1}
                 ,{<<"Conference-Link">>, fun is_binary/1}
-                ,{<<"Conference-Call-In-Numbers">>, fun kz_term:is_ne_binary/1}
-                ,{<<"Conference-Participant-Pins">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Conference-Call-In-Numbers">>, fun kz_term:always_true/1}
+                ,{<<"Conference-Participant-Pins">>, fun kz_term:always_true/1}
                 ,{<<"Invite-Message">>, fun is_binary/1}
-                ,{<<"Guests">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Guests">>, fun kz_term:always_true/1}
                 ]
                }
               ],
