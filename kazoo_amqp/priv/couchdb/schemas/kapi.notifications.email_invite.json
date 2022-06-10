@@ -38,6 +38,9 @@
         },
         "Invite-Message": {
             "type": "string"
+        },
+        "To": {
+            "type": "string"
         }
     },
     "required": [
