@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc Behaviour for setting up an AMQP listener.
 %%% Add/remove responders for `Event-Cat'/`Event-Name' pairs. Each responder
 %%% corresponds to a module that has defined a `handle/1' function, receiving
@@ -1260,20 +1260,33 @@ set_qos(<<>>, 'undefined') ->
     case kz_config:get_integer(<<"amqp">>, <<"prefetch">>) of
         [N] when is_integer(N) ->
             lager:debug("random queue getting config.ini QoS settings(~p) applied", [N]),
-            kz_amqp_util:basic_qos(N);
+            set_qos(N);
         _ ->
             lager:debug("random queue getting default QoS settings(1) applied"),
-            kz_amqp_util:basic_qos(?DEFAULT_PREFETCH)
+            set_qos(?DEFAULT_PREFETCH)
     end;
 set_qos(_QueueName, 'undefined') ->
     lager:debug("named queue has no QoS settings");
 set_qos(_QueueName, N) when is_integer(N), N >= 0 ->
     lager:debug("applying QoS prefetch of ~p", [N]),
-    kz_amqp_util:basic_qos(N).
+    set_qos(N).
+
+-spec set_qos(non_neg_integer()) -> 'ok'.
+set_qos(N) ->
+    catch(kz_amqp_util:basic_qos(N)),
+    ok.
 
 -spec start_consumer(kz_term:ne_binary(), kz_term:api_proplist()) -> command_ret().
-start_consumer(Q, 'undefined') -> kz_amqp_util:basic_consume(Q, []);
-start_consumer(Q, ConsumeProps) -> kz_amqp_util:basic_consume(Q, ConsumeProps).
+start_consumer(Q, 'undefined') ->
+    start_consumer(Q, []);
+start_consumer(Q, ConsumeProps) ->
+    try
+        kz_amqp_util:basic_consume(Q, ConsumeProps)
+    catch
+        Exc:Msg:_ST ->
+            lager:warning("error starting consumer: ~p / ~p", [Exc, Msg]),
+            {error, Msg}
+    end.
 
 resume_consumers(Queues, AutoAck) ->
     _ = [resume_consumer(Queue, props:get_value('consume_options', Params, []), AutoAck)
@@ -1298,6 +1311,9 @@ remove_binding(Binding, Props, Q) ->
 create_binding(Binding, Props, QueueName) when not is_binary(Binding) ->
     create_binding(kz_term:to_binary(Binding), Props, QueueName);
 create_binding(Binding, Props, QueueName) ->
+    %% TODO
+    %% HANDLE POTENTIAL CRASH
+    %%
     APIModule = kz_term:to_atom(list_to_binary([<<"kapi_">>, kz_term:to_binary(Binding)]), 'true'),
     declare_binding_exchanges(APIModule),
     'true' = kz_module:is_exported(APIModule, 'bind_q', 2),
@@ -1637,11 +1653,10 @@ handle_exchanges_ready(#state{params=Params
             %% basic.consume is sent and basic.consume_ok is
             %% received (blocking call) so we know we are consuming
 
-            State1 = handle_amqp_started(State#state{is_consuming='true'
-                                                    ,queue=QueueName
-                                                    }
-                                        ),
-            maybe_start_other_queues(State1);
+            handle_amqp_started(State#state{is_consuming='true'
+                                           ,queue=QueueName
+                                           }
+                               );
         {'error', Reason} ->
             lager:warning("start amqp error ~p", [Reason]),
             handle_amqp_errored(State)
@@ -1666,15 +1681,17 @@ start_other_queue_fold({QueueName, {Bindings, QueueParams}}, State) ->
 handle_amqp_started(#state{params=Params
                           ,queue=QueueName
                           }=State) ->
-    State1 = start_initial_bindings(State),
-
-    gen_server:cast(self(), {?MODULE, {'created_queue', QueueName}}),
-
-    maybe_server_confirms(props:get_value('server_confirms', Params, 'false')),
-
-    maybe_channel_flow(props:get_value('channel_flow', Params, 'false')),
-
-    State1.
+    try
+        State1 = start_initial_bindings(State),
+        maybe_server_confirms(props:get_value('server_confirms', Params, 'false')),
+        maybe_channel_flow(props:get_value('channel_flow', Params, 'false')),
+        gen_server:cast(self(), {?MODULE, {'created_queue', QueueName}}),
+        maybe_start_other_queues(State1)
+    catch
+        Exc:Msg:_ST ->
+            lager:warning("error handling amqp started: ~p / ~p", [Exc, Msg]),
+            handle_amqp_errored(State)
+    end.
 
 -spec handle_amqp_errored(state()) -> state().
 handle_amqp_errored(State) ->

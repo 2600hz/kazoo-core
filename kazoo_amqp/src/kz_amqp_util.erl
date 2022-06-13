@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Utilities to facilitate AMQP interaction.
 %%%
 %%% @author James Aimonetti
@@ -904,7 +904,10 @@ new_queue(Queue, Options) when is_binary(Queue) ->
             {Q, MCnt, CCnt};
         {'error', _}=E -> E;
         {'EXIT', {{'shutdown', Reason}, _}} -> {'error', Reason};
-        {'EXIT',{'noproc', _}} -> {'error', 'no_channel'}
+        {'EXIT', {'noproc', _}} -> {'error', 'no_channel'};
+        _Else ->
+            lager:error_unsafe("unhandled catch => ~p", [_Else]),
+            {error, _Else}
     end.
 
 -spec new_queue_name() -> kz_term:ne_binary().
