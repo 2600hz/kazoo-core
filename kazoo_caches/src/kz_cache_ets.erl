@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc Simple ETS-backed cache. Handles ETS operations
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -66,7 +66,7 @@ pointer_tab(Name) ->
 monitor_tab(Name) ->
     to_tab(Name, "_monitors").
 
--spec store_options(atom(), kz_cache:start_options()) -> ok.
+-spec store_options(atom(), kz_cache:start_options()) -> 'ok'.
 store_options(Name, Options) ->
     persistent_term:put(to_tab(Name, "_options"), Options).
 
@@ -98,16 +98,42 @@ peek(Srv, Key) ->
             {'error', 'not_found'}
     end.
 
+-spec peek_cache_obj(atom(), any()) -> {'ok', any()} |
+          {?MITIGATION, pid()} |
+          {'error', 'not_found'}.
+peek_cache_obj(Srv, Key) ->
+    try ets:lookup(Srv, Key) of
+        [] -> {'error', 'not_found'};
+        [#cache_obj{value={?MITIGATION, _Pid}=Mitigation}] -> Mitigation;
+        [#cache_obj{}=CacheObj] -> {'ok', CacheObj}
+    catch
+        'error':'badarg' ->
+            {'error', 'not_found'}
+    end.
+
 -spec fetch(atom(), any()) -> {'ok', any()} |
           {'error', 'not_found'} |
           {?MITIGATION, pid()}.
 fetch(Srv, Key) ->
-    case peek(Srv, Key) of
+    case peek_cache_obj(Srv, Key) of
         {'error', 'not_found'}=E -> E;
         {?MITIGATION, _Pid}=Stampede -> Stampede;
-        {'ok', _Value}=Ok ->
-            ets:update_element(Srv, Key, {#cache_obj.timestamp_ms, kz_time:now_ms()}),
-            Ok
+        {'ok', #cache_obj{expires_s='infinity', value=Value}} ->
+            {'ok', Value};
+        {'ok', #cache_obj{expires_s=Expires, timestamp_ms=TS, value=Value}} ->
+            %% if the cache object is not half-way to expiration, don't bump the timestamp
+            %% for instance:
+            %%   cache_obj{expires_s=10, timestamp_ms=5000}
+            %%    - last updated timstamp at 5,000, expires 10s later (so 15,000)
+            %%   if fetch() is called anytime before 10,000, don't bump timestamp_ms
+            %% for a key being frequently accessed, this cuts down significantly on ETS actions
+            case kz_time:now_ms() - TS < (Expires * ?MILLISECONDS_IN_SECOND / 2)  of
+                'true' ->
+                    {'ok', Value};
+                'false' ->
+                    ets:update_element(Srv, Key, {#cache_obj.timestamp_ms, kz_time:now_ms()}),
+                    {'ok', Value}
+            end
     end.
 
 -spec erase(atom(), any()) -> 'ok'.
@@ -239,17 +265,23 @@ mitigate_stampede(Srv, Key, Options) ->
 expire_objects(Name) ->
     kz_cache_callbacks:expire_objects(Name, [pointer_tab(Name), monitor_tab(Name)]).
 
+ets_options() ->
+    [{'write_concurrency', 'true'}
+    ,{'read_concurrency', 'true'}
+    ,{'decentralized_counters', 'true'}
+    ].
+
 -spec init([atom() | kz_cache:start_options()]) -> {'ok', state()}.
 init([Name, Options]) ->
     process_flag('trap_exit', 'true'),
     _Name = ets:new(Name
-                   ,['set', 'public', 'named_table', {'keypos', #cache_obj.key}]
+                   ,['set', 'public', 'named_table', {'keypos', #cache_obj.key} | ets_options()]
                    ),
     _PointerName = ets:new(pointer_tab(Name)
-                          ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key}]
+                          ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key} | ets_options()]
                           ),
     _MonitorName = ets:new(monitor_tab(Name)
-                          ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key}]
+                          ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key} | ets_options()]
                           ),
     store_options(Name, Options),
     {'ok', Name}.
@@ -366,7 +398,7 @@ start_monitor_expire_timer(Cache, Timeout, Ref) ->
 handle_dead_pid(Name, Pid) ->
     MatchSpec =
         [{#cache_obj{key='$1', value='$2', _='_'}
-         ,[{'=:=', '$2', {const, {?MITIGATION, Pid}}}]
+         ,[{'=:=', '$2', {'const', {?MITIGATION, Pid}}}]
          ,[{{'$1', '$2'}}]
          }],
     Erased = [erase(Name, Key)
