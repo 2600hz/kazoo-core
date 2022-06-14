@@ -16,6 +16,7 @@
 -export([name/1, name/2, set_name/2]).
 -export([retries/1, retries/2, set_retries/2]).
 -export([uri/1, uri/2, set_uri/2]).
+-export([version/1, version/2, set_version/2]).
 
 
 -include("kz_documents.hrl").
@@ -148,3 +149,15 @@ uri(Doc, Default) ->
 -spec set_uri(doc(), binary()) -> doc().
 set_uri(Doc, Uri) ->
     kz_json:set_value([<<"uri">>], Uri, Doc).
+
+-spec version(doc()) -> binary().
+version(Doc) ->
+    version(Doc, <<"v1">>).
+
+-spec version(doc(), Default) -> binary() | Default.
+version(Doc, Default) ->
+    kz_json:get_binary_value([<<"version">>], Doc, Default).
+
+-spec set_version(doc(), binary()) -> doc().
+set_version(Doc, Version) ->
+    kz_json:set_value([<<"version">>], Version, Doc).
