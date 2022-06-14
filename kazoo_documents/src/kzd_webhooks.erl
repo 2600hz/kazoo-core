@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,6 +20,7 @@
 -export([name/1, name/2, set_name/2]).
 -export([retries/1, retries/2, set_retries/2]).
 -export([uri/1, uri/2, set_uri/2]).
+-export([version/1, version/2, set_version/2]).
 
 -export([disable/1, disable/2
         ,disabled_message/1, disabled_message/2
@@ -62,7 +63,7 @@ set_custom_data(Doc, CustomData) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -122,7 +123,7 @@ set_http_verb(Doc, HttpVerb) ->
 
 -spec include_internal_legs(doc()) -> boolean().
 include_internal_legs(Doc) ->
-    include_internal_legs(Doc, true).
+    include_internal_legs(Doc, 'true').
 
 -spec include_internal_legs(doc(), Default) -> boolean() | Default.
 include_internal_legs(Doc, Default) ->
@@ -188,6 +189,18 @@ uri(Doc, Default) ->
 -spec set_uri(doc(), binary()) -> doc().
 set_uri(Doc, Uri) ->
     kz_json:set_value([<<"uri">>], Uri, Doc).
+
+-spec version(doc()) -> binary().
+version(Doc) ->
+    version(Doc, <<"v1">>).
+
+-spec version(doc(), Default) -> binary() | Default.
+version(Doc, Default) ->
+    kz_json:get_binary_value([<<"version">>], Doc, Default).
+
+-spec set_version(doc(), binary()) -> doc().
+set_version(Doc, Version) ->
+    kz_json:set_value([<<"version">>], Version, Doc).
 
 -spec enable(doc()) -> doc().
 enable(Hook) ->
