@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2021, 2600Hz
+%%% @copyright (C) 2013-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -192,7 +192,7 @@ remote_server_id(JObj, Self) ->
 %% @doc returns formatted remote queue_id or null
 %% @end
 %%------------------------------------------------------------------------------
--spec remote_queue_id(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary() | null.
+-spec remote_queue_id(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary() | 'null'.
 remote_queue_id(JObj, Self) ->
     case kz_api:queue_id(JObj, 'undefined') of
         'undefined' -> 'null';

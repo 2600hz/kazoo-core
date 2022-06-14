@@ -544,9 +544,9 @@ register_default_consumer(Channel) ->
     %% because it deleted the record from ets table
     %% when we crashed
     case catch amqp_selective_consumer:register_default_consumer(Channel, self()) of
-        ok -> {ok, Channel};
-        {'EXIT', Reason} -> {error, Reason};
-        _Other -> {error, _Other}
+        'ok' -> {'ok', Channel};
+        {'EXIT', Reason} -> {'error', Reason};
+        _Other -> {'error', _Other}
     end.
 
 %%------------------------------------------------------------------------------

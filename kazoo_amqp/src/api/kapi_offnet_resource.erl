@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -92,6 +92,8 @@
 -include_lib("kz_amqp_util.hrl").
 -include_lib("kazoo_amqp/include/kz_amqp.hrl").
 -include_lib("kazoo_amqp/include/kapi_offnet_resource.hrl").
+
+-elvis([{'elvis_style', 'god_modules', 'disable'}]).
 
 -export_type([req/0
              ,resp/0

@@ -260,6 +260,8 @@
 
 -include_lib("kz_amqp_util.hrl").
 
+-elvis([{'elvis_style', 'god_modules', 'disable'}]).
+
 -type doc() :: kz_json:object().
 
 -define(DEFAULT_OPTIONAL_HEADERS, [<<"Account-DB">>

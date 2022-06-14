@@ -242,6 +242,8 @@
 -include("kz_amqp_util.hrl").
 -include("kapi_dialplan.hrl").
 
+-elvis([{'elvis_style', 'god_modules', 'disable'}]).
+
 %%------------------------------------------------------------------------------
 %% @doc Get all API definitions of this module.
 %% @end

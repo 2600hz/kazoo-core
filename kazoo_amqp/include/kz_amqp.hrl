@@ -245,9 +245,13 @@
 
 -type basic_publish() :: #'basic.publish'{}.
 -type basic_deliver() :: #'basic.deliver'{}.
+-type basic_return() :: #'basic.return'{}.
+-type basic_ack() :: #'basic.ack'{}.
+-type basic_nack() :: #'basic.nack'{}.
 -type amqp_msg() :: #'amqp_msg'{}.
 -type amqp_basic() :: #'P_basic'{}.
 -type amqp_deliver() :: {basic_deliver(), amqp_msg()}.
+-type access_request() :: #'access.request'{}.
 
 %% 'arguments' keys can be <<"x-max-priority">>, <<"x-max-length">>, or <<"x-message-ttl">>
 -type queue_option() :: {'arguments', kz_term:proplist()} |

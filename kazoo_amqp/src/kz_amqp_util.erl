@@ -167,6 +167,8 @@
 
 -export([normalize_amqp_uri/1]).
 
+-elvis([{'elvis_style', 'god_modules', 'disable'}]).
+
 -export_type([declare_exchange_options/0]).
 
 -define(KEY_SAFE(C), ((C >= $a
@@ -583,13 +585,13 @@ basic_publish(Exchange, RoutingKey0, ?NE_BINARY = Payload, ContentType, Props0)
 basic_routing(<<"pid://", _/binary>>=RoutingKey, Props) ->
     Headers = props:get_value('headers', Props, []),
     {'match', [Pid, RK]}= re:run(RoutingKey, <<"pid://(.*)/(.*)">>, [{'capture', [1,2], 'binary'}]),
-    {RK, props:set_value('headers', [{?KEY_DELIVER_TO_PID, binary, Pid} | Headers], Props)};
+    {RK, props:set_value('headers', [{?KEY_DELIVER_TO_PID, 'binary', Pid} | Headers], Props)};
 basic_routing(<<"consumer://", _/binary>>=RoutingKey, Props) ->
     Headers = props:get_value('headers', Props, []),
     case re:run(RoutingKey, <<"(consumer://.*/)pid://(.*)/(.*)">>, [{'capture', [1,2,3], 'binary'}]) of
         {'match', [Consumer, Pid, RK]} ->
             NewRoutingKey = list_to_binary([Consumer, RK]),
-            {NewRoutingKey, props:set_value('headers', [{?KEY_DELIVER_TO_PID, binary, Pid} | Headers], Props)};
+            {NewRoutingKey, props:set_value('headers', [{?KEY_DELIVER_TO_PID, 'binary', Pid} | Headers], Props)};
         _Else ->
             {RoutingKey, Props}
     end;
@@ -907,7 +909,7 @@ new_queue(Queue, Options) when is_binary(Queue) ->
         {'EXIT', {'noproc', _}} -> {'error', 'no_channel'};
         _Else ->
             lager:error_unsafe("unhandled catch => ~p", [_Else]),
-            {error, _Else}
+            {'error', _Else}
     end.
 
 -spec new_queue_name() -> kz_term:ne_binary().
@@ -1416,10 +1418,10 @@ flow_control_reply(Active) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec access_request() -> #'access.request'{}.
+-spec access_request() -> access_request().
 access_request() -> access_request([]).
 
--spec access_request(kz_term:proplist()) -> #'access.request'{}.
+-spec access_request(kz_term:proplist()) -> access_request().
 access_request(Options) ->
     #'access.request'{realm = ?P_GET('realm', Options, <<"/data">>)
                      ,exclusive = ?P_GET('exclusive', Options, 'false')
@@ -1441,7 +1443,7 @@ is_json(#'P_basic'{content_type=CT}) -> CT =:= ?DEFAULT_CONTENT_TYPE.
 %% delivered via the Deliver or `Get-Ok' methods.
 %% @end
 %%------------------------------------------------------------------------------
--spec basic_ack(integer() | #'basic.deliver'{}) -> 'ok'.
+-spec basic_ack(integer() | basic_deliver()) -> 'ok'.
 basic_ack(#'basic.deliver'{delivery_tag=DTag}) -> basic_ack(DTag);
 basic_ack(DTag) -> kz_amqp_channel:command(#'basic.ack'{delivery_tag=DTag}).
 
@@ -1451,7 +1453,7 @@ basic_ack(DTag) -> kz_amqp_channel:command(#'basic.ack'{delivery_tag=DTag}).
 %% <div class="notice">This method is a RabbitMQ-specific extension of AMQP.</div>
 %% @end
 %%------------------------------------------------------------------------------
--spec basic_nack(integer() | #'basic.deliver'{}) -> 'ok'.
+-spec basic_nack(integer() | basic_deliver()) -> 'ok'.
 basic_nack(#'basic.deliver'{delivery_tag=DTag}) -> basic_nack(DTag);
 basic_nack(DTag) -> kz_amqp_channel:command(#'basic.nack'{delivery_tag=DTag}).
 

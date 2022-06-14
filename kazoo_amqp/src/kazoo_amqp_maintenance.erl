@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,6 +32,8 @@
 
 -include("kz_amqp_util.hrl").
 -include("kazoo_events.hrl").
+
+-elvis([{elvis_style, no_debug_call, disable}]).
 
 -define(ASSIGNMENTS, 'kz_amqp_assignments').
 -define(CONNECTIONS, 'kz_amqp_connections').

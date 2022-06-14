@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2020, 2600Hz
+%%% @copyright (C) 2013-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -53,7 +53,7 @@ routing_key_test_() ->
      }
     ,{"Name can be anything"
      ,?_assertMatch(<<Prefix:8/binary, Event:8/binary, ".", _/binary>>
-                   ,Test(kz_term:to_list(Event), fun() -> ok end)
+                   ,Test(kz_term:to_list(Event), fun() -> 'ok' end)
                    )
      }
     ].

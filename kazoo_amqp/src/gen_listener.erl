@@ -920,7 +920,7 @@ handle_event(JObj, {<<"application/json">>, _}, Deliver, State) ->
 %% Allows listeners to pass options to handlers.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_return(kz_term:ne_binary(), content(), #'basic.return'{}, state()) ->  handle_cast_return().
+-spec handle_return(kz_term:ne_binary(), content(), basic_return(), state()) ->  handle_cast_return().
 handle_return(Payload, {<<"application/json">>, <<"gzip">>}, BR, State) ->
     JObj = kz_json:decode(zlib:gunzip(Payload)),
     _ = kz_log:put_callid(JObj),
@@ -938,12 +938,12 @@ handle_return(Payload, {<<"application/erlang">>, _}, BR, State) ->
     _ = kz_log:put_callid(JObj),
     handle_return(JObj, BR, State).
 
--spec handle_return(kz_json:object(), #'basic.return'{}, state()) -> handle_cast_return().
+-spec handle_return(kz_json:object(), basic_return(), state()) -> handle_cast_return().
 handle_return(JObj, BR, State) ->
     Msg = {?MODULE, {'return', JObj, basic_return_to_jobj(BR)}},
     handle_module_cast(Msg, State).
 
--spec basic_return_to_jobj(#'basic.return'{}) -> kz_json:object().
+-spec basic_return_to_jobj(basic_return()) -> kz_json:object().
 basic_return_to_jobj(#'basic.return'{reply_code=Code
                                     ,reply_text=Msg
                                     ,exchange=Exchange
@@ -955,7 +955,7 @@ basic_return_to_jobj(#'basic.return'{reply_code=Code
                       ,{<<"routing_key">>, kz_term:to_binary(RoutingKey)}
                       ]).
 
--spec handle_confirm(#'basic.ack'{} | #'basic.nack'{}, state()) -> handle_cast_return().
+-spec handle_confirm(basic_ack() | basic_nack(), state()) -> handle_cast_return().
 handle_confirm(Confirm, State) ->
     Msg = {?MODULE, {'confirm', Confirm}},
     handle_module_cast(Msg, State).
@@ -1274,7 +1274,7 @@ set_qos(_QueueName, N) when is_integer(N), N >= 0 ->
 -spec set_qos(non_neg_integer()) -> 'ok'.
 set_qos(N) ->
     catch(kz_amqp_util:basic_qos(N)),
-    ok.
+    'ok'.
 
 -spec start_consumer(kz_term:ne_binary(), kz_term:api_proplist()) -> command_ret().
 start_consumer(Q, 'undefined') ->
@@ -1285,7 +1285,7 @@ start_consumer(Q, ConsumeProps) ->
     catch
         Exc:Msg:_ST ->
             lager:warning("error starting consumer: ~p / ~p", [Exc, Msg]),
-            {error, Msg}
+            {'error', Msg}
     end.
 
 resume_consumers(Queues, AutoAck) ->

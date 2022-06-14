@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -197,6 +197,8 @@
 
 -include_lib("kz_amqp_util.hrl").
 -include("kapi_dialplan.hrl").
+
+-elvis([{'elvis_style', 'god_modules', 'disable'}]).
 
 -type doc() :: kz_json:object().
 -type discovery_req() :: kz_json:object().

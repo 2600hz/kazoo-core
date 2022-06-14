@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc For `gen_listeners' that bind to targeted for direct messaging.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -68,20 +68,20 @@ bind_exchange(Props) ->
           end,
     lists:foreach(Fun, Bindings).
 
-declare_bound_exchange(null) -> ok;
-declare_bound_exchange(undefined) -> ok;
+declare_bound_exchange('null') -> 'ok';
+declare_bound_exchange('undefined') -> 'ok';
 declare_bound_exchange(KAPI) ->
     APIModule = kz_term:to_atom(list_to_binary([<<"kapi_">>, kz_term:to_binary(KAPI)]), 'true'),
-    declare_bound_exchange(kz_module:is_exported(APIModule, declare_exchanges, 0), APIModule).
+    declare_bound_exchange(kz_module:is_exported(APIModule, 'declare_exchanges', 0), APIModule).
 
-declare_bound_exchange(true, APIModule) -> APIModule:declare_exchanges();
-declare_bound_exchange(false, _APIModule) -> ok.
+declare_bound_exchange('true', APIModule) -> APIModule:declare_exchanges();
+declare_bound_exchange('false', _APIModule) -> 'ok'.
 
 -spec bind_kapi(atom(), binary(), kz_term:proplist()) -> 'ok'.
 bind_kapi(KAPI, Exchange, Props) ->
     declare_bound_exchange(KAPI),
-    Source = props:get_value(source, Props, kz_term:to_binary(KAPI)),
-    bind_cmd(Exchange, Source, props:get_ne_binary_value(routing, Props)),
+    Source = props:get_value('source', Props, kz_term:to_binary(KAPI)),
+    bind_cmd(Exchange, Source, props:get_ne_binary_value('routing', Props)),
     Fun = fun(RK) -> bind_cmd(Exchange, Source, RK) end,
     lists:foreach(Fun, props:get_value('routings', Props, [])).
 
@@ -91,7 +91,7 @@ bind_cmd(Exchange, Source, Routing) ->
     BindCmd = #'exchange.bind'{destination=Exchange
                               ,source = Source
                               ,routing_key= Routing
-                              ,nowait=false
+                              ,nowait='false'
                               ,arguments=[]
                               },
     kz_amqp_channel:command(BindCmd).

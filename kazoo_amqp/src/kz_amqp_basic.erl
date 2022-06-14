@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% Accessor for 'P_basic'
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -36,8 +36,8 @@
          %% ,priority/1
          %% ,correlation_id/1
          %% ,reply_to/1
-         ,expiration/1
-         ,timestamp/1
+        ,expiration/1
+        ,timestamp/1
          %% ,type/1
          %% ,user_id/1
          %% ,app_id/1
@@ -97,37 +97,37 @@
                       non_neg_integer(). % timestamp
 
 
--spec message_id(basic()) -> binary() | undefined.
+-spec message_id(basic()) -> binary() | 'undefined'.
 message_id(#'P_basic'{message_id = MessageId}) -> MessageId.
 
 -spec set_message_id(basic(), binary()) -> basic().
 set_message_id(#'P_basic'{} = Basic, MessageId) -> Basic#'P_basic'{message_id = MessageId}.
 
 
--spec expiration(basic()) -> integer() | undefined.
+-spec expiration(basic()) -> integer() | 'undefined'.
 expiration(#'P_basic'{expiration = Expiration}) -> Expiration.
 
--spec timestamp(basic()) -> non_neg_integer() | undefined.
+-spec timestamp(basic()) -> non_neg_integer() | 'undefined'.
 timestamp(#'P_basic'{timestamp = Timestamp}) -> Timestamp.
 
--spec headers(basic()) -> amqp_table() | undefined.
-headers(#'P_basic'{headers = undefined}) -> undefined;
+-spec headers(basic()) -> amqp_table() | 'undefined'.
+headers(#'P_basic'{headers = 'undefined'}) -> 'undefined';
 headers(#'P_basic'{headers = Table}) -> Table.
 
--spec header(basic(), binary()) -> {amqp_field_type(), amqp_value()} | undefined.
-header(#'P_basic'{headers = undefined}, _Key) -> undefined;
+-spec header(basic(), binary()) -> {amqp_field_type(), amqp_value()} | 'undefined'.
+header(#'P_basic'{headers = 'undefined'}, _Key) -> 'undefined';
 header(#'P_basic'{headers = Table}, Key) ->
     case lists:keysearch(Key, 1, Table) of
-        {value, {_, Type, Value}} -> {Type, Value};
-        false                      -> undefined
+        {'value', {_, Type, Value}} -> {Type, Value};
+        'false'                      -> 'undefined'
     end.
 
 -spec header_value(basic(), binary()) -> amqp_value().
-header_value(#'P_basic'{headers = undefined}, _Key) -> undefined;
+header_value(#'P_basic'{headers = 'undefined'}, _Key) -> 'undefined';
 header_value(#'P_basic'{headers = Table}, Key) ->
     case lists:keysearch(Key, 1, Table) of
-        {value, {_, _Type, Value}} -> Value;
-        false                      -> undefined
+        {'value', {_, _Type, Value}} -> Value;
+        'false'                      -> 'undefined'
     end.
 
 %% ====================================================================

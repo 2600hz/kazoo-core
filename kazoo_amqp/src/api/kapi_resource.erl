@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2021, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -382,7 +382,7 @@ publish_originate_req(Req, ContentType) ->
 publish_originate_req_key(BaseKey, Req)
   when is_list(Req) ->
     case props:get_ne_binary_value(<<"Switch-Nodename">>, Req) of
-        undefined ->
+        'undefined' ->
             BaseKey;
         Switch ->
             list_to_binary([BaseKey, ".", kz_amqp_util:encode(Switch)])
@@ -565,7 +565,7 @@ unbind_q(_, _, []) ->
     'ok'.
 
 -spec bind_key(kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_term:ne_binary().
-bind_key(RK, undefined) ->
+bind_key(RK, 'undefined') ->
     RK;
 bind_key(Base, Node) ->
     list_to_binary([Base, ".", kz_amqp_util:encode(Node)]).

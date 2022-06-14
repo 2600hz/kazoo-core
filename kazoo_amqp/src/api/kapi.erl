@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Kazoo API Helpers.
 %%% Most API functions take a proplist, filter it against required headers
 %%% and optional headers, and return either the JSON string if all
@@ -38,7 +38,7 @@ event_name(JObj) ->
     kz_term:to_atom(kz_api:event_name(JObj), 'true').
 
 -spec delivery_message(JObj, kz_term:proplist()) ->
-          {{kz_term:ne_binary(), kz_term:ne_binary(), {#'P_basic'{}, #'basic.deliver'{}}}
+          {{kz_term:ne_binary(), kz_term:ne_binary(), {amqp_basic(), basic_deliver()}}
           ,{atom(), atom()}
           ,JObj
           }

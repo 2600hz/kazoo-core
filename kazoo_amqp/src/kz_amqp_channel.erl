@@ -98,9 +98,9 @@ consumer_channel() ->
             Channel;
         Channel ->
             case is_process_alive(Channel) of
-                true ->
+                'true' ->
                     Channel;
-                false ->
+                'false' ->
                     #kz_amqp_assignment{channel=NewChannel} = kz_amqp_assignments:get_channel(),
                     put('$kz_amqp_consumer_channel', NewChannel),
                     NewChannel
@@ -352,7 +352,7 @@ maybe_split_routing_key(RoutingKey) ->
 
 -spec connection_command_enabled() -> boolean().
 connection_command_enabled() ->
-    kz_app_config:is_true(?APP, <<"enable_connection_commands">>, false)
+    kz_app_config:is_true(?APP, <<"enable_connection_commands">>, 'false')
         orelse not is_consumer_channel_valid().
 
 -spec maybe_connection_command(kz_amqp_command()) -> command_ret().
@@ -360,7 +360,7 @@ maybe_connection_command(Cmd) ->
     maybe_connection_command(connection_command_enabled(), Cmd).
 
 -spec maybe_connection_command(boolean(), kz_amqp_command()) -> command_ret().
-maybe_connection_command(true, #'exchange.declare'{} = Command) ->
+maybe_connection_command('true', #'exchange.declare'{} = Command) ->
     case kz_amqp_connections:managers(consumer_broker()) of
         [] -> {'error', 'not_available'};
         [Pid | _] ->
@@ -369,7 +369,7 @@ maybe_connection_command(true, #'exchange.declare'{} = Command) ->
                 'false' -> kz_amqp_connection:declare_exchange(Pid, Command)
             end
     end;
-maybe_connection_command(true, #'exchange.bind'{} = Command) ->
+maybe_connection_command('true', #'exchange.bind'{} = Command) ->
     case kz_amqp_connections:managers(consumer_broker()) of
         [] -> {'error', 'not_available'};
         [Pid | _] ->

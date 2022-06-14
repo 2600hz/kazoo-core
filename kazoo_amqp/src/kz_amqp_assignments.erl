@@ -755,7 +755,7 @@ handle_down_match({'channel', #kz_amqp_assignment{timestamp=Timestamp
                                                  ,consumer='undefined'
                                                  }
                   }
-                 ,{shutdown,{connection_closing,{server_initiated_close, _, _}}}
+                 ,{'shutdown',{'connection_closing',{'server_initiated_close', _, _}}}
                  ) ->
     ets:delete(?TAB, Timestamp);
 handle_down_match({'channel', #kz_amqp_assignment{timestamp=Timestamp
@@ -797,7 +797,7 @@ handle_down_match({'channel', #kz_amqp_assignment{channel=Channel
     Consumer ! {'kz_amqp_assignment', 'lost_channel'},
     maybe_defer_reassign(Assignment, Reason).
 
--spec maybe_defer_reassign(#kz_amqp_assignment{}, any()) -> 'ok'.
+-spec maybe_defer_reassign(kz_amqp_assignment(), any()) -> 'ok'.
 maybe_defer_reassign(#kz_amqp_assignment{consumer=Consumer}=Assignment
                     ,{'shutdown',{'server_initiated_close', 404, _Msg}}
                     ) ->
