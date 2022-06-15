@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2020, 2600Hz
+%%% @copyright (C) 2016-2022, 2600Hz
 %%% @doc Utilities for tasks validation and stuff.
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -389,24 +389,21 @@ to_json(#{id := TaskId
 -spec to_public_json(task()) -> kz_json:object().
 to_public_json(Task) ->
     Doc = to_json(Task),
-    kz_json:from_list_recursive(
-      [{<<"_read_only">>
-       ,[{<<"id">>, kzd_task:id(Doc)}
-        ,{<<"node">>, kzd_task:node(Doc)}
-        ,{<<"account_id">>, kzd_task:account_id(Doc)}
-        ,{<<"auth_account_id">>, kzd_task:auth_account_id(Doc)}
-        ,{<<"category">>, kzd_task:category(Doc)}
-        ,{<<"action">>, kzd_task:action(Doc)}
-        ,{<<"file_name">>, kzd_task:file_name(Doc)}
-        ,{<<"created">>, kz_doc:created(Doc)}
-        ,{<<"start_timestamp">>, kzd_task:start_timestamp(Doc)}
-        ,{<<"end_timestamp">>, kzd_task:end_timestamp(Doc)}
-        ,{<<"total_count">>, kzd_task:total_count(Doc)}
-        ,{<<"failure_count">>, kzd_task:failure_count(Doc)}
-        ,{<<"success_count">>, kzd_task:success_count(Doc)}
-        ,{<<"status">>, kzd_task:status(Doc)}
-        ]
-       }
+    kz_json:from_list(
+      [{<<"id">>, kzd_task:id(Doc)}
+      ,{<<"node">>, kzd_task:node(Doc)}
+      ,{<<"account_id">>, kzd_task:account_id(Doc)}
+      ,{<<"auth_account_id">>, kzd_task:auth_account_id(Doc)}
+      ,{<<"category">>, kzd_task:category(Doc)}
+      ,{<<"action">>, kzd_task:action(Doc)}
+      ,{<<"file_name">>, kzd_task:file_name(Doc)}
+      ,{<<"created">>, kz_doc:created(Doc)}
+      ,{<<"start_timestamp">>, kzd_task:start_timestamp(Doc)}
+      ,{<<"end_timestamp">>, kzd_task:end_timestamp(Doc)}
+      ,{<<"total_count">>, kzd_task:total_count(Doc)}
+      ,{<<"failure_count">>, kzd_task:failure_count(Doc)}
+      ,{<<"success_count">>, kzd_task:success_count(Doc)}
+      ,{<<"status">>, kzd_task:status(Doc)}
       ]).
 
 

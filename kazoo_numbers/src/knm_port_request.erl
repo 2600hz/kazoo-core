@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,6 +13,7 @@
 -export([current_state/1
         ,public_fields/0
         ,public_fields/1
+        ,read_only_public_fields/1
         ,get/1
         ,are_porting/1
         ,get_portin_number/2
@@ -208,7 +209,7 @@ account_active_ports(AccountId) ->
           kz_datamgr:data_error().
 account_ports_by_state(AccountId, PortState) ->
     ViewOptions = [{'startkey', [AccountId, PortState]}
-                  ,{endkey, [AccountId, PortState, kz_json:new()]}
+                  ,{'endkey', [AccountId, PortState, kz_json:new()]}
                   ,'include_docs'
                   ],
     case kz_datamgr:get_results(?KZ_PORT_REQUESTS_DB, ?PORT_LISTING_BY_STATE, ViewOptions) of

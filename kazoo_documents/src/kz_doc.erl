@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc Utilities for manipulating Kazoo documents.
 %%% @author Edouard Swiac
 %%% @author James Aimonetti
@@ -811,7 +811,16 @@ base_read_only(Doc) ->
     kz_json:from_list([{<<"id">>, id(Doc)}
                       ,{<<"created">>, created(Doc)}
                       ,{<<"modified">>, modified(Doc)}
+                      | maybe_deleted(Doc)
                       ]).
+
+maybe_deleted(Doc) ->
+    case is_soft_deleted(Doc)
+        orelse is_deleted(Doc)
+    of
+        'false' -> [];
+        'true' -> [{<<"deleted">>, 'true'}]
+    end.
 
 -spec read_only(doc()) -> kz_json:object().
 read_only(Doc) ->
