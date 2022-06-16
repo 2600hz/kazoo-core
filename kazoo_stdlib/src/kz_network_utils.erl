@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Various utilities - a veritable cornucopia.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -67,7 +67,7 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -define(LOOKUP_TIMEOUT, 500).
--define(LOOKUP_OPTIONS, [{'timeout', ?LOOKUP_TIMEOUT}]).
+-define(LOOKUP_OPTIONS, [{'timeout', ?LOOKUP_TIMEOUT}, {'usevc', 'true'}]).
 
 -define(BIND_ALL_INTERFACE_4, <<"0.0.0.0">>).
 -define(BIND_ALL_INTERFACE_6, <<"::">>).
@@ -89,7 +89,7 @@
 %% from inet_res.erl
 -type res_option() ::
         {alt_nameservers, [nameserver()]}
-      | {edns, 0 | false}
+      | {edns, 0 | 'false'}
       | {inet6, boolean()}
       | {nameservers, [nameserver()]}
       | {recurse, boolean()}
