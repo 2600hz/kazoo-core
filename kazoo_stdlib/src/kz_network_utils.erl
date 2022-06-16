@@ -47,6 +47,7 @@
 -export([lookup_timeout/0]).
 -export([new_options/0
         ,default_options/0
+        ,default_options/1
         ,set_option_alt_nameservers/2
         ,set_option_edns/2
         ,set_option_inet6/2
@@ -67,7 +68,7 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -define(LOOKUP_TIMEOUT, 500).
--define(LOOKUP_OPTIONS, [{'timeout', ?LOOKUP_TIMEOUT}]).
+-define(LOOKUP_OPTIONS, [{'timeout', ?LOOKUP_TIMEOUT}, {'usevc', 'true'}]).
 
 -define(BIND_ALL_INTERFACE_4, <<"0.0.0.0">>).
 -define(BIND_ALL_INTERFACE_6, <<"::">>).
@@ -581,6 +582,14 @@ new_options() -> [].
 -spec default_options() -> options().
 default_options() -> ?LOOKUP_OPTIONS.
 
+-spec default_options(kz_term:ne_binary()) -> options().
+default_options(AppName) ->
+    DefaultOptions = kz_network_utils:default_options(),
+    case kapps_config:is_true(AppName, <<"use_tcp">>, 'false') of
+        'true' -> DefaultOptions;
+        'false' -> props:set_value('usevc', 'false', DefaultOptions)
+    end.
+    
 -spec set_option_alt_nameservers(options(), [nameserver()]) -> options().
 set_option_alt_nameservers(Options, Value) ->
     props:set_value('alt_nameservers', maybe_resolve_nameservers(Value, []), Options).

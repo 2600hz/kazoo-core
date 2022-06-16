@@ -13,6 +13,7 @@
         ,base_path/0
         ]).
 
+-include("appex_client.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -record(load_app, {app_metadata :: kz_json:api_object()
@@ -304,6 +305,7 @@ api_url() ->
                   kz_term:to_binary(
                     kz_network_utils:get_hostname()
                    )
+                  , kz_network_utils:default_options(?APP_NAME)
                  )
             of
                 [] ->
