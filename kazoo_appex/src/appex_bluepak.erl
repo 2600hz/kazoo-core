@@ -13,6 +13,7 @@
         ,base_path/0
         ]).
 
+-include("appex_client.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -record(load_app, {app_metadata :: kz_json:api_object()
@@ -321,11 +322,9 @@ write_path(Filename, #load_app{app_dir=AppDir
 api_url() ->
     case appex_client_config:api_url() of
         'undefined' ->
-            try kz_network_utils:resolve(
-                  kz_term:to_binary(
-                    kz_network_utils:get_hostname()
-                   )
-                 )
+            try kz_network_utils:resolve(kz_term:to_binary(kz_network_utils:get_hostname())
+                                        ,get_resolve_options()
+                                        )
             of
                 [] ->
                     lager:error("unable to detect localhost api_url, please configure api_url in appex_client"),
@@ -509,3 +508,10 @@ create_minimal_modules(#load_app{app_spec={'application', App, AppConfig}
                                         }
 
                     }.
+
+-spec get_resolve_options() -> kz_term:proplist().
+get_resolve_options() ->
+    case kapps_config:is_true(?CONFIG_CAT, <<"use_tcp">>, 'false') of
+        'true' -> kz_network_utils:default_options();
+        'false' -> props:set_value('usevc', 'false', kz_network_utils:default_options())
+    end.
