@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -560,9 +560,9 @@ calculate_qubicle_queue_updates(JObj, Updates) ->
         'false' -> Updates;
         'true' ->
             Offering = case kz_json:get_ne_value(<<"features">>, JObj, <<"basic">>) of
-                [<<"pro">>] -> <<"pro">>;
-                _Other -> <<"basic">>
-            end,
+                           [<<"pro">>] -> <<"pro">>;
+                           _Other -> <<"basic">>
+                       end,
             Key = [<<"qubicle">>, <<Offering/binary, "_queue">>],
             [{Key, 1} | Updates]
     end.
@@ -575,9 +575,9 @@ calculate_qubicle_recipient_updates(JObj, Updates) ->
         'false' -> Updates;
         'true' ->
             Offering = case kz_json:get_ne_value([<<"qubicle">>, <<"recipient">>, <<"features">>], JObj, <<"basic">>) of
-                [<<"pro">>] -> <<"pro">>;
-                _Other -> <<"basic">>
-            end,
+                           [<<"pro">>] -> <<"pro">>;
+                           _Other -> <<"basic">>
+                       end,
             Key = [<<"qubicle">>, <<Offering/binary, "_recipient">>],
             [{Key, 1} | Updates]
     end.
