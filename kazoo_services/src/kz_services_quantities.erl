@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -559,7 +559,11 @@ calculate_qubicle_queue_updates(JObj, Updates) ->
     case kz_doc:type(JObj) =:= <<"qubicle_queue">> of
         'false' -> Updates;
         'true' ->
-            Offering = kz_json:get_ne_value(<<"pvt_offering">>, JObj, <<"basic">>),
+            Features = kz_json:get_ne_value(<<"features">>, JObj, [<<"basic">>]),
+            Offering = case lists:member(<<"pro">>, Features) of
+                           'true' -> <<"pro">>;
+                           'false' -> <<"basic">>
+                       end,
             Key = [<<"qubicle">>, <<Offering/binary, "_queue">>],
             [{Key, 1} | Updates]
     end.
@@ -571,7 +575,11 @@ calculate_qubicle_recipient_updates(JObj, Updates) ->
     of
         'false' -> Updates;
         'true' ->
-            Offering = kz_json:get_ne_value([<<"qubicle">>, <<"recipient">>, <<"offering">>], JObj, <<"basic">>),
+            Features = kz_json:get_ne_value([<<"qubicle">>, <<"recipient">>, <<"features">>], JObj, [<<"basic">>]),
+            Offering = case lists:member(<<"pro">>, Features) of
+                           'true' -> <<"pro">>;
+                           'false' -> <<"basic">>
+                       end,
             Key = [<<"qubicle">>, <<Offering/binary, "_recipient">>],
             [{Key, 1} | Updates]
     end.

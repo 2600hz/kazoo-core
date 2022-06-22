@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -158,7 +158,11 @@ js_quantify_map() ->
        "            emit(['users', doc.priv_level], 1);"
        "            if (doc.qubicle && doc.qubicle.enabled) {"
        "                if (doc.qubicle.recipient) {"
-       "                    emit(['qubicle', (doc.qubicle.recipient.offering || 'basic') + '_recipient'], 1);"
+       "                    if(doc.qubicle.recipient.features.indexOf('pro') > -1){"
+       "                        emit(['qubicle', 'pro_recipient'], 1);"
+       "                    }else{"
+       "                        emit(['qubicle', 'basic_recipient'], 1);"
+       "                    }"
        "                }"
        "            }"
        "            break;"
@@ -217,7 +221,11 @@ js_quantify_map() ->
       ,kazoo_numbers_maintenance:generate_js_classifiers(FunMatchBlock),
        "            break;"
        "        case 'qubicle_queue':"
-       "            emit(['qubicle', (doc.pvt_offering || 'basic') + '_queue'], 1);"
+       "            if(doc.features.indexOf('pro') > -1){"
+       "                emit(['qubicle', 'pro_queue'], 1);"
+       "            }else{"
+       "                emit(['qubicle', 'basic_queue'], 1);"
+       "            }"
        "            break;"
        "        case 'vmbox':"
        "            emit(['voicemails', 'mailbox'], 1);"
