@@ -158,7 +158,7 @@ js_quantify_map() ->
        "            emit(['users', doc.priv_level], 1);"
        "            if (doc.qubicle && doc.qubicle.enabled) {"
        "                if (doc.qubicle.recipient) {"
-       "                    if(doc.qubicle.recipient.features == ['pro']){"
+       "                    if(doc.qubicle.recipient.features.indexOf('pro') > -1){"
        "                        emit(['qubicle', 'pro_recipient'], 1);"
        "                    }else{"
        "                        emit(['qubicle', 'basic_recipient'], 1);"
@@ -221,7 +221,7 @@ js_quantify_map() ->
       ,kazoo_numbers_maintenance:generate_js_classifiers(FunMatchBlock),
        "            break;"
        "        case 'qubicle_queue':"
-       "            if(doc.features == ['pro']){"
+       "            if(doc.features.indexOf('pro') > -1){"
        "                emit(['qubicle', 'pro_queue'], 1);"
        "            }else{"
        "                emit(['qubicle', 'basic_queue'], 1);"
