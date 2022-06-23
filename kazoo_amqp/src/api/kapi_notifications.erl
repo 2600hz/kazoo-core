@@ -611,7 +611,8 @@ email_invite_definition() ->
                                                             ,<<"Guests">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Link">>
-                                                            ,<<"To">>]}
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
+                                                            ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
