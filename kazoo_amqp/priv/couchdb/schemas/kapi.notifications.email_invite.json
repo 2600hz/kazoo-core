@@ -3,6 +3,18 @@
     "_id": "kapi.notifications.email_invite",
     "description": "AMQP API for notifications.email_invite",
     "properties": {
+        "Account-DB": {
+            "type": "string"
+        },
+        "Attachment-URL": {
+            "type": "string"
+        },
+        "Bcc": {
+            "type": "string"
+        },
+        "Cc": {
+            "type": "string"
+        },
         "Conference-Call-In-Numbers": {
             "minItems": 1,
             "type": "string"
@@ -32,11 +44,29 @@
             ],
             "type": "string"
         },
+        "From": {
+            "type": "string"
+        },
         "Guests": {
             "minItems": 1,
             "type": "string"
         },
+        "HTML": {
+            "type": "string"
+        },
         "Invite-Message": {
+            "type": "string"
+        },
+        "Preview": {
+            "type": "boolean"
+        },
+        "Reply-To": {
+            "type": "string"
+        },
+        "Subject": {
+            "type": "string"
+        },
+        "Text": {
             "type": "string"
         },
         "To": {
