@@ -305,7 +305,7 @@ api_url() ->
                   kz_term:to_binary(
                     kz_network_utils:get_hostname()
                    )
-                  , kz_network_utils:default_options(?APP_NAME)
+                  , kz_network_utils:default_options(?CONFIG_CAT)
                  )
             of
                 [] ->
