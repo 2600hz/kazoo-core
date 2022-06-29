@@ -94,6 +94,8 @@
         ,start_record_call/2, start_record_call/3, start_record_call/4
         ,mask_record_call/2
         ,unmask_record_call/2
+        ,pause_record_call/2
+        ,resume_record_call/2
         ,stop_record_call/2
         ]).
 -export([store/3, store/4, store/5, store/6
@@ -1795,6 +1797,14 @@ mask_record_call(Media, Call) ->
 -spec unmask_record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
 unmask_record_call(Media, Call) ->
     record_call(Media, <<"unmask">>, Call).
+
+-spec pause_record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+pause_record_call(Media, Call) ->
+    record_call(Media, <<"pause">>, Call).
+
+-spec resume_record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+resume_record_call(Media, Call) ->
+    record_call(Media, <<"resume">>, Call).
 
 -spec record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
 record_call(Media, Call) ->

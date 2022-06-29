@@ -1305,7 +1305,14 @@ record_call_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"record_call">>}
-                ,{<<"Record-Action">>, [<<"start">>, <<"stop">>, <<"mask">>, <<"unmask">>]}
+                ,{<<"Record-Action">>, [<<"start">>
+                                       ,<<"stop">>
+                                       ,<<"mask">>
+                                       ,<<"unmask">>
+                                       ,<<"pause">>
+                                       ,<<"resume">>
+                                       ]
+                 }
                 ,?INSERT_AT_TUPLE
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
