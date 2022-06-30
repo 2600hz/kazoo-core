@@ -608,7 +608,9 @@ email_invite_definition() ->
                                                             ,<<"Invite-Message">>
                                                             ,<<"Guests">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Link">>]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Link">>
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
+                                                            ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
@@ -2172,6 +2174,8 @@ headers(<<"fax_outbound_error_to_email">>) ->
     headers(<<"outbound_fax_error">>);
 headers(<<"fax_outbound_smtp_error">>) ->
     headers(<<"outbound_smtp_fax_error">>);
+headers(<<"conference_email_invite">>) ->
+    headers(<<"email_invite">>);
 headers(Name) ->
     try api_definition(Name) of
         Definition ->
