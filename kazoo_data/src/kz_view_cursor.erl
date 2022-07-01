@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% @author Hesaam Farhang
 %%%
@@ -40,6 +40,7 @@
 -export([get_batch_size/1, set_batch_size/2
         ,get_bookmark/1, set_bookmark/2
         ,get_databases/1, set_databases/2
+        ,get_db_errors/1, set_db_errors/2
         ,get_direction/1, set_direction/2
         ,get_driver_params/1, set_driver_params/2
         ,get_filtermap/1, set_filtermap/2
@@ -53,6 +54,10 @@
         ,get_user_params/1, set_user_params/2
         ]).
 
+-export([is_last_db/1
+        ,last_db_error/1
+        ]).
+
 -include("kz_data.hrl").
 
 -type cursor() :: #{batch_size := kz_view:limit()
@@ -60,6 +65,7 @@
                    ,cursor_module := atom()
                    ,cursor_size := non_neg_integer()
                    ,databases := kz_term:ne_binaries()
+                   ,db_errors := kz_term:proplist()
                    ,direction := kz_view:direction()
                    ,driver_params := any()
                    ,fields_fun := kz_view:fields_fun()
@@ -331,6 +337,7 @@ new(CursorMod, Databases, DriverParams, Options) ->
      ,cursor_module => CursorMod
      ,cursor_size => 0
      ,databases => Databases
+     ,db_errors => []
      ,direction => props:get_value('direction', Options, 'ascending')
      ,driver_params => DriverParams
      ,fields_fun => props:get_value('fields_fun', Options)
@@ -363,6 +370,11 @@ set_bookmark(Cursor, Bookmark) -> Cursor#{bookmark => Bookmark}.
 get_databases(#{databases := Databases}) -> Databases.
 -spec set_databases(Cursor::cursor(), Databases::kz_term:ne_binaries()) -> Cursor::cursor().
 set_databases(Cursor, Databases) -> Cursor#{databases => Databases}.
+
+-spec get_db_errors(Cursor::cursor()) -> kz_term:proplist().
+get_db_errors(#{db_errors := Errors}) -> Errors.
+-spec set_db_errors(Cursor::cursor(), Errors::kz_term:proplist()) -> Cursor::cursor().
+set_db_errors(Cursor, Errors) -> Cursor#{db_errors => Errors}.
 
 -spec get_direction(Cursor::cursor()) -> 'ascending' | 'descending'.
 get_direction(#{direction := Value}) -> Value.
@@ -418,6 +430,14 @@ set_reductions(Cursor, Value) -> Cursor#{reductions => Value}.
 get_memory_limit(#{memory_limit := Value}) -> Value.
 -spec set_memory_limit(Cursor::cursor(), 'false' | non_neg_integer()) -> Cursor::cursor().
 set_memory_limit(Cursor, Value) -> Cursor#{memory_limit => Value}.
+
+-spec is_last_db(Cursor::cursor()) -> boolean().
+is_last_db(#{databases := []}) -> 'true';
+is_last_db(_) -> 'false'.
+
+-spec last_db_error(Cursor::cursor()) -> any().
+last_db_error(#{db_errors := [{_Db, Error}|_]}) -> Error;
+last_db_error(_) -> 'undefined'.
 
 %%------------------------------------------------------------------------------
 %% @doc
