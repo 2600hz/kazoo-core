@@ -17,6 +17,7 @@
         ,req_v/1
         ,publish_req/1
         ,publish_req/2
+        ,publish_req/3
         ]).
 -export([resp/1
         ,resp_v/1
@@ -279,8 +280,14 @@ req_event_type() ->
 publish_req(JObj) ->
     publish_req(JObj, ?DEFAULT_CONTENT_TYPE).
 
--spec publish_req(kz_term:api_terms(), binary()) -> 'ok'.
-publish_req(Req, ContentType) ->
+-spec publish_req(kz_term:api_terms(), binary() | kz_term:proplist()) -> 'ok'.
+publish_req(Req, ContentType) when is_binary(ContentType) ->
+    publish_req(Req, ContentType, []);
+publish_req(Req, Options) when is_list(Options) ->
+    publish_req(Req, ?DEFAULT_CONTENT_TYPE, Options).
+
+-spec publish_req(kz_term:api_terms(), binary(), kz_term:proplist()) -> 'ok'.
+publish_req(Req, ContentType, Options) ->
     Definition = req_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(Req
                                                 ,kapi_definition:values(Definition)
@@ -288,7 +295,7 @@ publish_req(Req, ContentType) ->
                                                  ,{'remove_recursive', 'false'}
                                                  ]
                                                 ),
-    kz_amqp_util:callmgr_publish(Payload, ContentType, (kapi_definition:binding(Definition))(Req)).
+    kz_amqp_util:callmgr_publish(Payload, ContentType, (kapi_definition:binding(Definition))(Req), Options).
 
 %%------------------------------------------------------------------------------
 %% @doc Dialplan Route Response.
