@@ -35,6 +35,7 @@
 -include("kazoo_endpoint.hrl").
 
 -type cid() :: {kz_term:api_binary(), kz_term:api_binary()}.
+-export_type([cid/0]).
 
 %%------------------------------------------------------------------------------
 %% @doc
