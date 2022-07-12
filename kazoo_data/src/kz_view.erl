@@ -241,7 +241,7 @@ normalize_selector([]) ->
     {'ok', []};
 normalize_selector(_S) ->
     Msg = kz_binary:format("bad selector: ~p, please define one of 'key', 'keys' or 'start','end'", [_S]),
-    lager:debug("~s", Msg),
+    lager:debug("~s", [Msg]),
     {'error', Msg}.
 
 build_options(Database, DesignDoc, Options) ->

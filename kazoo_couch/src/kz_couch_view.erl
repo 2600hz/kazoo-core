@@ -393,8 +393,7 @@ db_or_class(Db, _) ->
 -spec maybe_design_options(kz_term:ne_binary(), params(), kz_view:selector(), view_options()) ->
           kz_either:either(kz_view:error(), {params(), kz_term:ne_binaries()} | 'empty').
 maybe_design_options(Database, #{'ddoc_module' := Module, 'view_name' := View}=Params, Selector, Options) ->
-    FromBookmark = range_keys_from_bookmark(props:get_value('bookmark', Options)),
-    case maybe_build_range_keys(Params, Selector, props:set_values(FromBookmark, Options)) of
+    case maybe_build_range_keys(Params, Selector, Options) of
         {'ok', 'empty'}=Empty ->
             Empty;
         {'ok', RangeKey} when Module =:= 'undefined' ->
@@ -406,17 +405,6 @@ maybe_design_options(Database, #{'ddoc_module' := Module, 'view_name' := View}=P
         {'error', _}=Error ->
             Error
     end.
-
-range_keys_from_bookmark('undefined') ->
-    [];
-range_keys_from_bookmark([]) ->
-    [];
-range_keys_from_bookmark(Bookmark) ->
-    ?MAYBE_LOG("importing range keys from bookmark into options", []),
-    props:filter_undefined(
-      [{'startkey', props:get_value('next_startkey', Bookmark)}
-      ,{'startkey_docid', props:get_value('next_startkey_docid', Bookmark)}
-      ]).
 
 -spec maybe_design_databases(kz_term:ne_binary(), params(), kz_view:options()) ->
           kz_either:either(kz_view:error(), {params(), kz_term:ne_binaries()}).
@@ -463,22 +451,139 @@ set_direction(ViewOptions, Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_build_range_keys(params(), kz_view:selector(), kz_view:options()) -> kz_either:either(kz_view:error(), view_options() | 'empty').
+-spec range_keys_from_bookmark(kz_view:options() | 'undefined') -> view_options().
+range_keys_from_bookmark('undefined') ->
+    [];
+range_keys_from_bookmark([]) ->
+    [];
+range_keys_from_bookmark(Bookmark) ->
+    ?MAYBE_LOG("importing range keys from bookmark", []),
+    props:filter_undefined(
+      [{'startkey', props:get_value('next_startkey', Bookmark)}
+      ,{'startkey_docid', props:get_value('next_startkey_docid', Bookmark)}
+      ]).
+
+-spec maybe_build_range_keys(params(), kz_view:selector(), kz_view:options()) ->
+          kz_either:either(kz_view:error(), view_options() | 'empty').
+maybe_build_range_keys(#{ddoc_module := 'undefined'}, _Selector, Options) ->
+    Keys = keys_from_option(Options),
+    sanity_and_boomark(Options, Keys);
 maybe_build_range_keys(#{ddoc_module := Module}=Params, Selector, Options) ->
-    case lists:any(fun(Key) -> props:is_defined(Key, Options) end, ?RANGE_KEYS) of
-        'true' ->
-            ?MAYBE_LOG("using range keys from options", []),
-            {'ok', [{Key, Value} || {Key, Value} <- Options,
-                                    lists:member(Key, ?RANGE_KEYS)
-                   ]
-            };
-        'false' when Module == 'undefined' ->
-            {'ok', [{Key, Value} || {Key, Value} <- Options,
-                                    lists:member(Key, ?RANGE_KEYS)
-                   ]
-            };
+    Keys = keys_from_option(Options),
+    %% we want to allow the caller to set their custom key/range keys if they don't want those to be generated
+    %% automatically. So if see any key related in options we stop auto key generation and pass key options as-is to
+    %% couchdb.
+    %%
+    %% In this case it is up to caller to make sure they have the correct view options. Here we only check if key and
+    %% range keys are not mixed as a per caution to avoid pagination issues.
+    case kz_term:is_empty(Keys) of
         'false' ->
-            build_design_range_keys(Params, Selector, Options)
+            ?MAYBE_LOG("some range keys are overwritten in option, not calling ~s module to generate range keys"
+                      ,[Module]
+                      ),
+            sanity_and_boomark(Options, Keys);
+        'true' ->
+            case build_design_range_keys(Params, Selector, Options) of
+                {'ok', 'empty'}=Empty -> Empty;
+                {'error', _}=Error -> Error;
+                {'ok', GeneratedKeys} ->
+                    sanity_and_boomark(Options, GeneratedKeys)
+            end
+    end.
+
+-spec sanity_and_boomark(kz_view:options(), view_options()) ->
+          {'ok', view_options()} |
+          {'error', kz_term:ne_binary()}.
+sanity_and_boomark(Options, Keys) ->
+    Bookmark = range_keys_from_bookmark(props:get_value('bookmark', Options)),
+    sanity_and_boomark(Options, Keys, Bookmark).
+
+-spec sanity_and_boomark(kz_view:options(), view_options(), view_options()) ->
+          {'ok', view_options()} |
+          {'error', kz_term:ne_binary()}.
+sanity_and_boomark(_Options, Keys, []) ->
+    {'ok', Keys};
+sanity_and_boomark(Options, Keys, Bookmark) ->
+    case key_keys_sanity_check(Options, Keys) of
+        'no_keys' ->
+            ?MAYBE_LOG("overwriting bookmark on generated range keys", []),
+            {'ok', props:set_values(Bookmark, Keys)};
+        {'ok', _}=Ok ->
+            %% Also note we *intentionally* refuse to merge bookmark when key/keys is in use
+            %% since bookmark contains startkey and this is not valid couchDb view query.
+            ?MAYBE_LOG("rejecting imported bookmark because of using of key/keys", []),
+            Ok;
+        {'error', _}=Error ->
+            Error
+    end.
+
+%% @doc check you're using key or range keys and not mixing them.
+%%
+%% If you're seeing a error log from here that means you're mixing [{'key', ....}] or [{'keys', ...}] view options with
+%% [{startkey, ...}, {'endkey', ...}]. This is invalid operation in couchDb.
+%% You can try and use the same key for both start/end. If u are using keys then remove start/end from your view
+%% options.
+%%
+%% Also note we *intentionally* refuse to merge bookmark when key/key is in use since bookmark contains startkey and
+%% this is not valid.
+%%
+%% We also not allowing batching because it works by setting startkey for next batch and again startkey and key/keys
+%% are not compatible.
+%%
+%% In other words, if you're making a query with key/keys, DO NOT EVER DO pagination or batching!!!
+-spec key_keys_sanity_check(kz_view:options(), view_options()) ->
+          'no_keys' |
+          kz_either:either(kz_term:ne_binary(), view_options()).
+key_keys_sanity_check(Options, Keys) ->
+    case has_key_options(Keys) of
+        'true' ->
+            case has_start_end_options(Keys) of
+                'true' ->
+                    lager:critical("mixing key/keys and start/end keys is invalid"),
+                    {'error', <<"mixing key and range key is invalid">>};
+                'false' ->
+                    batch_not_allowed_on_keys(Options, Keys)
+            end;
+        'false' ->
+            'no_keys'
+    end.
+
+-spec has_key_options(kz_view:options()) -> boolean().
+has_key_options(Options) ->
+    lists:any(fun(K) -> lists:member(K, ['key', 'keys']) end, Options).
+
+-spec has_start_end_options(kz_view:options()) -> boolean().
+has_start_end_options(Options) ->
+    lists:any(fun(K) -> lists:member(K, ['start_key', 'startkey', 'end_key', 'endkey']) end, Options).
+
+%% We not allowing batching because it works by setting startkey for next batch and startkey and key/keys are not
+%% compatible.
+%%
+%% In other words, if you're making a query with key/keys, DO NOT EVER DO pagination or batching!!!
+-spec batch_not_allowed_on_keys(kz_view:options(), view_options()) -> kz_either:either(kz_term:ne_binary(), view_options()).
+batch_not_allowed_on_keys(Options, Keys) ->
+    %% FIXME: same thing with pagee_size, but maybe just allow it but log it?
+    %% pagination is the caller's concern??
+    case props:is_true('no_batch', Options, 'false')
+        orelse 'infinity' =:= props:get_value('batch_size', Options, 'infinity')
+    of
+        'true' ->
+            {'ok', Keys};
+        'false' ->
+            lager:critical("batch options and key is not allowed"),
+            {'error', <<"batch options and key is not allowed">>}
+    end.
+
+-spec keys_from_option(kz_view:options()) -> view_options().
+keys_from_option(Options) ->
+    case [{Key, Value} || {Key, Value} <- Options,
+                          lists:member(Key, ?RANGE_KEYS)
+         ]
+    of
+        [] -> [];
+        Keys ->
+            ?MAYBE_LOG("importing range keys from options", []),
+            Keys
     end.
 
 build_design_range_keys(#{ddoc_module := Module, view_name := View}=Params, Selector, Options) ->
@@ -836,6 +941,12 @@ next_view_options(#{'direction' := Direction
              ,{'startkey_docid', NextId}
              ]),
     Options = props:set_values(Prop, ViewOptions),
+
+    %% FIXME: What will happend if ViewOptions has key/keys in it?
+    %% If they have key/keys and we set startkey here it is invalid options. If they have key and we remove keys, the
+    %% view options potentialy loses its ending condition and will return everything in view.
+    %%
+    %% In other words, if you're making a query with key/keys, DO NOT EVER DO pagination or batching!!!
     case {props:get_value('startkey', Options)
          ,props:get_value('endkey', Options)
          }
