@@ -382,7 +382,7 @@ channel_status_resp_definition() ->
                                                             ,<<"Switch-Nodename">>
                                                             ,<<"Switch-URL">>
                                                             ,<<"Username">>
-                                                            ,<<"Channel-Record">>
+                                                            ,<<"Channel-Record">> %% this is the json object of the channel from ecallmgr_fs_channels
                                                             | channel_status_extended_headers()
                                                             ]}
               ,{fun kapi_definition:set_values/2

@@ -30,11 +30,11 @@
 -export([public_json/1]).
 
 -export([create/3]).
+-export([changes/1]).
 -export([has_changes/1]).
 -export([has_additions/1]).
 -export([has_billable_additions/1]).
-
--include("services.hrl").
+-export([has_updates/1]).
 
 -record(invoice, {bookkeeper_hash :: kz_term:api_binary()
                  ,items = kz_services_items:empty() :: kz_services_items:items()
@@ -233,6 +233,14 @@ has_changes(#invoice{items=Items}) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec changes(invoice()) -> kz_services_items:items().
+changes(#invoice{items=Items}) ->
+    kz_services_items:changes(Items).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec has_additions(invoice()) -> boolean().
 has_additions(#invoice{items=Items}) ->
     kz_services_items:has_additions(Items).
@@ -244,3 +252,13 @@ has_additions(#invoice{items=Items}) ->
 -spec has_billable_additions(invoice()) -> boolean().
 has_billable_additions(#invoice{items=Items}) ->
     kz_services_items:has_billable_additions(Items).
+
+%%------------------------------------------------------------------------------
+%% @doc Has any changed items in this invoice is a result of direct update by a user?
+%%
+%% Direct updates can be any API requests or calls to ay kz_services:set_*_updates.
+%% @end
+%%------------------------------------------------------------------------------
+-spec has_updates(invoice()) -> boolean().
+has_updates(#invoice{items=Items}) ->
+    kz_services_items:has_updates(Items).

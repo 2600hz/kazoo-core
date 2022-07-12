@@ -21,11 +21,12 @@
 -export([additions/1]).
 -export([has_billable_additions/1]).
 -export([billable_additions/1]).
+-export([updates/1, has_updates/1]).
 
 -export([reset/1]).
 
--export([annotate/2
-        ,annotate/3
+-export([annotate/3
+        ,annotate/4
         ]).
 -export([difference/2
         ,difference/3
@@ -167,6 +168,29 @@ billable_additions(Items) ->
     ].
 
 %%------------------------------------------------------------------------------
+%% @doc Has any changed items as a result of direct update by a user?
+%%
+%% Direct updates can be any API requests or calls to ay kz_services:set_*_updates.
+%% @end
+%%------------------------------------------------------------------------------
+-spec has_updates(items()) -> boolean().
+has_updates(Items) ->
+    updates(Items) =/= [].
+
+%%------------------------------------------------------------------------------
+%% @doc Returns items that have changed as a result of an update by a user.
+%%
+%% Direct updates can be any API requests or calls to ay kz_services:set_*_updates.
+%% @end
+%%------------------------------------------------------------------------------
+-spec updates(items()) -> items().
+updates(Items) ->
+    [Item
+     || Item <- Items,
+        kz_services_item:has_updates(Item)
+    ].
+
+%%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
@@ -180,16 +204,16 @@ reset(Items) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec annotate(items(), items()) -> items().
-annotate(CurrentItems, ProposedItems) ->
-    annotate(CurrentItems, ProposedItems, 'undefined').
+-spec annotate(kz_services:services(), items(), items()) -> items().
+annotate(Services, CurrentItems, ProposedItems) ->
+    annotate(Services, CurrentItems, ProposedItems, 'undefined').
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec annotate(items(), items(), kz_term:api_binary()) -> items().
-annotate(CurrentItems, ProposedItems, Reason) ->
+-spec annotate(kz_services:services(), items(), items(), kz_term:api_binary()) -> items().
+annotate(Services, CurrentItems, ProposedItems, InvoiceReason) ->
     Dict =
         foldl(fun(Item, D) ->
                       Key = kz_services_item:hash(Item),
@@ -214,46 +238,112 @@ annotate(CurrentItems, ProposedItems, Reason) ->
                ,ProposedItems
                )
          ),
-    do_annotate([Items || {_ItemHash, Items} <- TentativeItems], Reason, []).
+    do_annotate(Services, [Items || {_ItemHash, Items} <- TentativeItems], InvoiceReason, []).
 
 -type tentative_items() :: [{kz_services_item:item() | 'undefined', kz_services_item:item() | 'undefined'}].
--spec do_annotate(tentative_items(), kz_term:api_binary(), items()) -> items().
-do_annotate([], _Reason, Items) ->
+-spec do_annotate(kz_services:services(), tentative_items(), kz_term:api_binary(), items()) -> items().
+do_annotate(_Services, [], _InvoiceReason, Items) ->
     Items;
-do_annotate([{CurrentItem, 'undefined'}|TentativeItems], Reason, Items) ->
+do_annotate(Services, [{CurrentItem, 'undefined'}|TentativeItems], InvoiceReason, Items) ->
+    %% current item is removed, either due to:
+    %% - there is no item of this kind left in account anymore (quantity was set null)
+    %% - the item or its category got removed from plan (plan changed)
+    %% - the item hash (maybe its masquerade_as/display_name part) is changed in plan
     ProposedItem = kz_services_item:reset(CurrentItem),
     Difference = difference(CurrentItem, ProposedItem),
-    Item = maybe_annotate(<<"removed">>, Difference, Reason, ProposedItem),
-    do_annotate(TentativeItems, Reason, [Item|Items]);
-do_annotate([{'undefined', ProposedItem}|TentativeItems], Reason, Items) ->
+    Item = maybe_annotate(Services, <<"removed">>, Difference, InvoiceReason, ProposedItem),
+    do_annotate(Services, TentativeItems, InvoiceReason, [Item|Items]);
+do_annotate(Services, [{'undefined', ProposedItem}|TentativeItems], InvoiceReason, Items) ->
+    %% a new item is added, either by
+    %% - new additions to the account
+    %% - new additions to the plan? override?
+    %% - the item hash (maybe its masquerade_as/display_name part) is changed in plan
     CurrentItem = kz_services_item:reset(ProposedItem),
     Difference = difference(CurrentItem, ProposedItem),
-    Item = maybe_annotate(<<"created">>, Difference, Reason, ProposedItem),
-    do_annotate(TentativeItems, Reason, [Item|Items]);
-do_annotate([{CurrentItem, ProposedItem}|TentativeItems], Reason, Items) ->
+    Item = maybe_annotate(Services, <<"created">>, Difference, InvoiceReason, ProposedItem),
+    do_annotate(Services, TentativeItems, InvoiceReason, [Item|Items]);
+do_annotate(Services, [{CurrentItem, ProposedItem}|TentativeItems], InvoiceReason, Items) ->
+    %% - nothing is changed
+    %% - item is modified
+    %% - plan was assigned / unassign
     Difference = difference(CurrentItem, ProposedItem),
-    Item = maybe_annotate(<<"modified">>, Difference, Reason, ProposedItem),
-    do_annotate(TentativeItems, Reason, [Item|Items]).
+    Item = maybe_annotate(Services, <<"modified">>, Difference, InvoiceReason, ProposedItem),
+    do_annotate(Services, TentativeItems, InvoiceReason, [Item|Items]).
 
--spec maybe_annotate(kz_term:ne_binary(), kz_term:api_object(), kz_term:api_binary(), kz_services_item:item()) ->
+-spec maybe_annotate(kz_services:services(), kz_term:ne_binary(), kz_term:api_object(), kz_term:api_binary(), kz_services_item:item()) ->
           kz_services_item:item().
-maybe_annotate(Type, Difference, Reason, Item) ->
+maybe_annotate(Services, Type, Difference, InvoiceReason, Item) ->
     case kz_json:is_empty(Difference) of
         'true' -> Item;
         'false' ->
-            lager:debug("update ~s the item ~s/~s"
+            ProposedUpdates = annotate_updates(Services, Item),
+            Reason = change_reason(InvoiceReason, ProposedUpdates),
+            lager:debug("update ~s the item ~s/~s with reason ~s"
                        ,[Type
                         ,kz_services_item:category_name(Item)
                         ,kz_services_item:item_name(Item)
+                        ,Reason
                         ]
                        ),
+            %% Note: type removed/created and InvoiceReason =:= item_changed means that the item was added, removed or moved
+            %% in plan WHILE also has its quantity changed
             Changes = props:filter_empty(
                         [{<<"type">>, Type}
                         ,{<<"reason">>, Reason}
                         ,{<<"difference">>, Difference}
+                        ,{<<"updates">>, ProposedUpdates}
                         ]
                        ),
             kz_services_item:set_changes(Item, kz_json:from_list(Changes))
+    end.
+
+-spec change_reason(kz_term:api_ne_binary(), kz_json:object()) ->
+          kz_term:ne_binary().
+change_reason('undefined', Updates) ->
+    %% If there is any account, cascade or manual updates that means this change
+    %% is the result of direct updates by user or API or etc...
+    UpdatesQuantity = kz_json:get_first_defined([<<"manual">>, <<"account">>, <<"cascade">>], Updates),
+    case UpdatesQuantity =/= 'undefined' of
+        'true' ->
+            <<"service_change">>;
+        'false' ->
+            <<"reconcile">>
+    end;
+change_reason(Reason, _) ->
+    Reason.
+
+%% @doc Create an object of quantities of any types of updates.
+-spec annotate_updates(kz_services:services(), kz_services_item:item()) -> kz_json:object().
+annotate_updates(Services, Item) ->
+    lists:foldl(fun (Kind, Acc) -> annotate_update_fold(Item, Kind, Acc) end
+               ,kz_json:new()
+               ,[{<<"manual">>, kz_services:manual_updates(Services)}
+                ,{<<"account">>, kz_services:account_updates(Services)}
+                ,{<<"cascade">>, kz_services:cascade_updates(Services)}
+                ]
+               ).
+
+-spec annotate_update_fold(kz_services_item:item(), {kz_term:ne_binary(), kz_json:object()}, kz_json:object()) -> kz_json:object().
+annotate_update_fold(Item, {Kind, Updates}, Acc) ->
+    IsAllItemKeys = kzd_service_plan:all_items_key() =:= kz_services_item:item_name(Item),
+    get_item_update(IsAllItemKeys, Kind, Item, Updates, Acc).
+
+-spec get_item_update(boolean(), kz_term:ne_binary(), kz_services_item:item(), kz_json:object(), kz_json:object()) -> kz_json:object().
+get_item_update('true', Kind, Item, Updates, Acc) ->
+    CategoryName = kz_services_item:category_name(Item),
+    case kz_json:get_value(CategoryName, Updates) of
+        'undefined' -> Acc;
+        Items ->
+            CategorySum = kz_json:foldl(fun(_ItemName, ItemQuantity, Sum) -> ItemQuantity + Sum end, 0, Items),
+            kz_json:set_value(Kind, CategorySum, Acc)
+    end;
+get_item_update('false', Kind, Item, Updates, Acc) ->
+    CategoryName = kz_services_item:category_name(Item),
+    ItemName = kz_services_item:item_name(Item),
+    case kz_json:get_value([CategoryName, ItemName], Updates) of
+        'undefined' -> Acc;
+        ItemQuantity ->
+            kz_json:set_value(Kind, ItemQuantity, Acc)
     end.
 
 %%------------------------------------------------------------------------------

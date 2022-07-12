@@ -73,8 +73,8 @@
 -export([has_additions/1]).
 -export([has_billable_additions/1]).
 -export([hash/1]).
-
--include("services.hrl").
+-export([has_updates/1]).
+-export([updates/1]).
 
 -record(kz_service_item, {category_name :: kz_term:api_ne_binary()
                          ,item_name :: kz_term:api_ne_binary()
@@ -291,14 +291,14 @@ set_cumulative_discount_rate(#kz_service_item{}=Item, Rate) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec changes(item()) -> kz_term:api_ne_binaries().
+-spec changes(item()) -> kz_term:api_object().
 changes(Item) -> changes(Item, 'undefined').
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec changes(item(), Default) -> kz_term:ne_binaries() | Default.
+-spec changes(item(), Default) -> kz_term:api_object() | Default.
 changes(#kz_service_item{changes='undefined'}, Default) -> Default;
 changes(#kz_service_item{changes=Changes}, _Default) -> Changes.
 
@@ -837,6 +837,34 @@ has_billable_additions(Item) ->
         Changes ->
             Key = [<<"difference">>, <<"billable">>],
             kz_json:get_integer_value(Key, Changes, 0) > 0
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Does item has change as a result of direct update by a user?
+%%
+%% Direct updates can be any API requests or calls to ay kz_services:set_*_updates.
+%% @end
+%%------------------------------------------------------------------------------
+-spec has_updates(item()) -> boolean().
+has_updates(Item) ->
+    kz_term:is_not_empty(updates(Item)).
+
+%%------------------------------------------------------------------------------
+%% @doc Return item changes that are result of an update by a user.
+%%
+%% Direct updates can be any API requests or calls to ay kz_services:set_*_updates.
+%% @end
+%%------------------------------------------------------------------------------
+-spec updates(item()) -> kz_term:api_object().
+updates(Item) ->
+    updates(Item, 'undefined').
+
+-spec updates(item(), Default) -> kz_json:object() | Default.
+updates(Item, Default) ->
+    case changes(Item) of
+        'undefined' -> Default;
+        Changes ->
+            kz_json:get_value(<<"updates">>, Changes, Default)
     end.
 
 %%------------------------------------------------------------------------------

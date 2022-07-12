@@ -14,14 +14,16 @@
 -export([foldl/3]).
 
 -export([public_json/1]).
+-export([changes/1]).
 -export([has_changes/1]).
 -export([changed/1]).
 -export([has_additions/1]).
 -export([additions/1]).
 -export([has_billable_additions/1]).
 -export([billable_additions/1]).
-
--include("services.hrl").
+-export([updates/1
+        ,has_updates/1
+        ]).
 
 -type invoices() :: [kz_services_invoice:invoice()].
 -type fold_fun() :: fun((kz_services_invoice:invoice(), Acc) -> Acc).
@@ -80,10 +82,12 @@ annotate(Services, CurrentInvoices, ProposedInvoices) ->
 -spec do_annotate(kz_services:services(), tentative_invoices(), invoices()) -> invoices().
 do_annotate(_Services, [], Invoices) -> Invoices;
 do_annotate(Services, [{CurrentInvoice, 'undefined'}|TentativeInvoices], Invoices) ->
-    %% All plans associated with a bookkeeper was removed
+    %% It could be one of these:
+    %% - all plans removed from account
+    %% - plan's bookkeeper is changed
     CurrentItems = kz_services_invoice:items(CurrentInvoice),
     ProposedItems = kz_services_items:reset(CurrentItems),
-    Items = kz_services_items:annotate(CurrentItems, ProposedItems),
+    Items = kz_services_items:annotate(Services, CurrentItems, ProposedItems, <<"bookkeeper_removed">>),
     Setters = [{fun kz_services_invoice:set_items/2, Items}
               ,{fun kz_services_invoice:set_activation_charges/2
                ,kz_services_activation_items:empty()
@@ -94,10 +98,12 @@ do_annotate(Services, [{CurrentInvoice, 'undefined'}|TentativeInvoices], Invoice
                ,[kz_services_invoice:setters(CurrentInvoice, Setters)|Invoices]
                );
 do_annotate(Services, [{'undefined', ProposedInvoice}|TentativeInvoices], Invoices) ->
-    %% A plan(s) associated with a new bookkeeper was added
+    %% It could be one of these:
+    %% - new plan(s) is added for the __first time__ to the account
+    %% - all plans bookkeeper is changed
     ProposedItems = kz_services_invoice:items(ProposedInvoice),
     CurrentItems = kz_services_items:reset(ProposedItems),
-    Items = kz_services_items:annotate(CurrentItems, ProposedItems),
+    Items = kz_services_items:annotate(Services, CurrentItems, ProposedItems, <<"bookkeeper_added">>),
     ActivationItems = kz_services_activation_items:create(Items),
     Setters = [{fun kz_services_invoice:set_items/2, Items}
               ,{fun kz_services_invoice:set_activation_charges/2, ActivationItems}
@@ -107,9 +113,14 @@ do_annotate(Services, [{'undefined', ProposedInvoice}|TentativeInvoices], Invoic
                ,[kz_services_invoice:setters(ProposedInvoice, Setters)|Invoices]
                );
 do_annotate(Services, [{CurrentInvoice, ProposedInvoice}|TentativeInvoices], Invoices) ->
+    %% It could be one of these:
+    %% - nothing is changed at all
+    %% - items are modified
+    %% - plan(s) is assigned or unassign
+    %% - plan(s) are changed
     CurrentItems = kz_services_invoice:items(CurrentInvoice),
     ProposedItems = kz_services_invoice:items(ProposedInvoice),
-    Items = kz_services_items:annotate(CurrentItems, ProposedItems),
+    Items = kz_services_items:annotate(Services, CurrentItems, ProposedItems),
     ActivationItems = kz_services_activation_items:create(Items),
     Setters = [{fun kz_services_invoice:set_items/2, Items}
               ,{fun kz_services_invoice:set_activation_charges/2, ActivationItems}
@@ -195,6 +206,15 @@ changed(Thing) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec changes(kz_services:services() | invoices()) -> kz_services_items:items().
+changes(Thing) ->
+    Invoices = maybe_services(Thing),
+    lists:append([kz_services_invoice:changes(Invoice) || Invoice <- Invoices]).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec has_additions(kz_services:services() | invoices()) -> boolean().
 has_additions(Thing) ->
     additions(Thing) =/= [].
@@ -229,6 +249,31 @@ billable_additions(Thing) ->
     [Invoice
      || Invoice <- Invoices,
         kz_services_invoice:has_billable_additions(Invoice)
+    ].
+
+%%------------------------------------------------------------------------------
+%% @doc Has any invoice with change items that are result of a direct user uodates?
+%%
+%% Direct updates can be any API requests or calls to ay kz_services:set_*_updates.
+%% @end
+%%------------------------------------------------------------------------------
+-spec has_updates(kz_services:services() | invoices()) -> boolean().
+has_updates(Thing) ->
+    updates(Thing) =/= [].
+
+%%------------------------------------------------------------------------------
+%% @doc Retuns changed items in all invoices in which the changed item is a result
+%% of direct user updates.
+%%
+%% Direct updates can be any API requests or calls to ay kz_services:set_*_updates.
+%% @end
+%%------------------------------------------------------------------------------
+-spec updates(kz_services:services() | invoices()) -> invoices().
+updates(Thing) ->
+    Invoices = maybe_services(Thing),
+    [Invoice
+     || Invoice <- Invoices,
+        kz_services_invoice:has_updates(Invoice)
     ].
 
 %%------------------------------------------------------------------------------

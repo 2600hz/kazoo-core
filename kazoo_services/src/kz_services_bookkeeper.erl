@@ -31,7 +31,7 @@ sync(AccountId) ->
                    ],
     Services = kz_services:fetch(AccountId, FetchOptions),
     Invoices = kz_services:invoices(Services),
-    _ = kz_services_invoices:foldl(invoices_foldl_fun(Services)
+    _ = kz_services_invoices:foldl(invoices_foldl_fun(Services, 'sync')
                                   ,[]
                                   ,Invoices
                                   ),
@@ -50,7 +50,7 @@ maybe_update(Services) ->
         'true' ->
             Invoices = kz_services_invoices:changed(Services),
             _BookkeeperResults =
-                kz_services_invoices:foldl(invoices_foldl_fun(Services)
+                kz_services_invoices:foldl(invoices_foldl_fun(Services, 'update')
                                           ,[]
                                           ,Invoices
                                           ),
@@ -62,9 +62,9 @@ maybe_update(Services) ->
 %% @end
 %%------------------------------------------------------------------------------
 -type invoices_acc() :: [{kz_json:object(), kz_amqp_worker:request_return()}].
--spec invoices_foldl_fun(kz_services:services()) ->
+-spec invoices_foldl_fun(kz_services:services(), Reason :: 'sync' | 'update') ->
           fun((kz_json:object(), invoices_acc()) -> invoices_acc()).
-invoices_foldl_fun(Services) ->
+invoices_foldl_fun(Services, Reason) ->
     fun(Invoice, Results) ->
             Type = kz_services_invoice:bookkeeper_type(Invoice),
             AuditJObj = maybe_store_audit_log(Services, Invoice),
@@ -77,7 +77,7 @@ invoices_foldl_fun(Services) ->
                         ]
                 end,
             FinalAuditJObj = update_audit_log(Services, AuditJObj, Result),
-            _ = notify_reseller(Services, Invoice, FinalAuditJObj),
+            _ = maybe_send_notify(Services, Invoice, FinalAuditJObj, Reason),
             [{Invoice, Result} | Results]
     end.
 
@@ -169,25 +169,59 @@ final_status(JObj) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @doc
+%% @doc Send notification to the account only if the changes are made by user
+%% via API. Ignore anything else.
+%%
+%% This is to avoid alarm account owners about why their are receiving notifications
+%% unrelated to what they actually changed via API request.
+%%
+%% @TODO: May consider to add a new type of notification for sync/reconcile
 %% @end
 %%------------------------------------------------------------------------------
--spec notify_reseller(kz_services:services(), kz_services_invoice:invoice(), kz_term:api_object()) -> 'ok'.
-notify_reseller(Services, Invoice, 'undefined') ->
+-spec maybe_send_notify(kz_services:services(), kz_services_invoice:invoice(), kz_term:api_object(), 'sync' | 'update') -> 'ok'.
+maybe_send_notify(_Services, Invoice, _AuditJObj, 'sync') ->
+    lager:debug("this is synchronization, not sending notification for bookkeeper ~s invoice"
+               ,[kz_services_invoice:bookkeeper_hash(Invoice)]
+               );
+maybe_send_notify(Services, Invoice, AuditJObj, 'update') ->
+    case should_send_notify(Services, Invoice) of
+        'true' -> send_notify(Services, Invoice, AuditJObj);
+        'false' ->
+            lager:debug("changes in bookkeeper ~s invoice are triggered by reconciliation, not sending notification"
+                       ,[kz_services_invoice:bookkeeper_hash(Invoice)]
+                       ),
+            'ok'
+    end.
+
+-spec send_notify(kz_services:services(), kz_services_invoice:invoice(), kz_term:api_object()) -> 'ok'.
+send_notify(Services, Invoice, 'undefined') ->
     AuditJObj = kz_json:from_list([{<<"audit">>, kz_services:audit_log(Services)}]),
-    notify_reseller(Services, Invoice, AuditJObj);
-notify_reseller(Services, Invoice, AuditJObj) ->
+    send_notify(Services, Invoice, AuditJObj);
+send_notify(Services, Invoice, AuditJObj) ->
     Props = [{<<"Account-ID">>, kz_services:account_id(Services)}
             ,{<<"Audit-Log">>, AuditJObj}
             ,{<<"Items">>
              ,kz_services_items:public_json(
-                kz_services_invoice:items(Invoice)
+                [normalize_item_to_service_change(Item) || Item <- kz_services_invoice:items(Invoice)]
                )
              }
             ,{<<"Timestamp">>, kz_time:now_s()}
             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
             ],
     kapps_notify_publisher:cast(Props, fun kapi_notifications:publish_service_added/1).
+
+%% @doc to avoid alarming accounts about notification, if service has some updates triggered via api,
+%% this checks items to make sure any decrepencies not related to proposed updates via api
+%% are nullified. This only affects notification, the actual change is always persisted by bookkeeper itself.
+%%
+%% @TODO: Alternative approach is to update teletype template to explain what/why is this change to item has occurred.
+%% May even consider to only send _changed_ items not the whole items!
+-spec normalize_item_to_service_change(kz_services_item:item()) -> kz_services_item:item().
+normalize_item_to_service_change(Item) ->
+    case kz_services_item:has_updates(Item) of
+        'true' -> Item;
+        'false' -> kz_services_item:set_changes(Item, 'undefined')
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -213,3 +247,13 @@ update_bookkeeper(_Type, Invoice, Services, AuditJObj) ->
                        ,fun kapi_bookkeepers:update_resp_v/1
                        ,20 * ?MILLISECONDS_IN_SECOND
                        ).
+
+%%------------------------------------------------------------------------------
+%% @doc Checks if the service updates are related to API request before sending
+%% an unrelated email to users.
+%% @end
+%%------------------------------------------------------------------------------
+-spec should_send_notify(kz_services:services(), kz_services_invoice:invoice()) ->
+          boolean().
+should_send_notify(_Services, Invoice) ->
+    kz_services_invoice:has_updates(Invoice).
