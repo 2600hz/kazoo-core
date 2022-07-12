@@ -274,23 +274,25 @@ cascade_item(Services, CategoryName, ItemName) ->
 -spec calculate_updates(kz_services:services(), billable() | billables(), billable() | billables()) ->
           kz_json:object().
 calculate_updates(Services, 'undefined', ProposedJObjs) ->
-    lager:debug("calculating service updates for addition(s)", []),
     calculate_updates(Services, [], ProposedJObjs);
 calculate_updates(Services, CurrentJObjs, 'undefined') ->
-    lager:debug("calculating service updates for removal(s)", []),
     calculate_updates(Services, CurrentJObjs, []);
-
-calculate_updates(Services, CurrentJObj, ProposedJObjs)
-  when not is_list(CurrentJObj) ->
+calculate_updates(Services, CurrentJObj, ProposedJObjs) when not is_list(CurrentJObj) ->
     calculate_updates(Services, [CurrentJObj], ProposedJObjs);
-calculate_updates(Services, CurrentJObjs, ProposedJObj)
-  when not is_list(ProposedJObj) ->
+calculate_updates(Services, CurrentJObjs, ProposedJObj) when not is_list(ProposedJObj) ->
     calculate_updates(Services, CurrentJObjs, [ProposedJObj]);
-
 calculate_updates(Services, CurrentJObjs, ProposedJObjs) ->
+    log_calculating_updates(CurrentJObjs, ProposedJObjs),
     Props = calculate_updates(Services, CurrentJObjs, ProposedJObjs, []),
     lager:debug("calculated ~p possible services change", [length(Props)]),
     kz_json:set_values(Props, kz_json:new()).
+
+log_calculating_updates([], _ProposedJObjs) ->
+    lager:debug("calculating service updates for entity addition(s)", []);
+log_calculating_updates(_CurrentJObjs, []) ->
+    lager:debug("calculating service updates for entity removal(s)", []);
+log_calculating_updates(_CurrentJObjs, _ProposedJObjs) ->
+    lager:debug("calculating service updates for existing entity modification(s)", []).
 
 -spec calculate_updates(kz_services:services(), billables(), billables(), kz_term:proplist()) -> kz_term:proplist().
 calculate_updates(_Services, [], [], Updates) -> Updates;
