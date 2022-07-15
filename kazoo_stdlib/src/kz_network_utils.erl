@@ -65,7 +65,7 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -define(LOOKUP_TIMEOUT, 500).
--define(LOOKUP_OPTIONS, [{'timeout', ?LOOKUP_TIMEOUT}]).
+-define(LOOKUP_OPTIONS, [{'timeout', ?LOOKUP_TIMEOUT}, {'usevc', 'true'}]).
 
 -define(BIND_ALL_INTERFACE_4, <<"0.0.0.0">>).
 -define(BIND_ALL_INTERFACE_6, <<"::">>).
