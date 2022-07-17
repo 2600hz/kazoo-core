@@ -9,6 +9,9 @@
         "Call": {
             "type": "object"
         },
+        "Custom-Request-Headers": {
+            "type": "object"
+        },
         "Debug": {
             "type": "string"
         },
