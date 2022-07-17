@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,6 +19,7 @@
 -export([transfer_destination/1, transfer_destination/2
         ,transfer_method/1, transfer_method/2
         ,file_path/1
+        ,record_start_time_us/1
         ,response_media/1
         ]).
 
@@ -97,6 +98,10 @@ transfer_method(JObj, Default) ->
 -spec file_path(event()) -> kz_term:api_ne_binary().
 file_path(JObj) ->
     kz_json:get_ne_binary_value([?RECORDING_ROOT, <<"File-Path">>], JObj).
+
+-spec record_start_time_us(event()) -> kz_term:api_integer().
+record_start_time_us(JObj) ->
+    kz_json:get_integer_value([?RECORDING_ROOT, <<"Record-Start-Timestamp-Micro">>], JObj).
 
 -spec data(event()) -> term().
 data(JObj) ->
