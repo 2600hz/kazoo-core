@@ -62,7 +62,7 @@
                   %% other_options
                   {atom() | kz_term:ne_binary(), any()}.
 
--type options() :: couch_view_options() | [option()].
+-type options() :: view_options() | [option()].
 
 -type selector() :: [] |
                     [{'key', kz_term:proplist()}] |

@@ -19,7 +19,7 @@
 -export([move_doc/4, move_doc/5]).
 -export([copy_doc/4, copy_doc/5]).
 -export([get_modb/1, get_modb/2, get_modb/3]).
--export([maybe_archive_modb/1]).
+-export([maybe_archive_modb/1, maybe_archive_modb/2]).
 -export([refresh_views/1]).
 -export([create/1, maybe_create/1
         ,add_routine/1
@@ -570,17 +570,12 @@ migrate_routines([R | Rs], Acc) ->
 %%------------------------------------------------------------------------------
 -spec maybe_archive_modb(kz_term:ne_binary()) -> 'ok'.
 maybe_archive_modb(AccountMODb) ->
+    maybe_archive_modb(AccountMODb, 'true').
+
+-spec maybe_archive_modb(kz_term:ne_binary(), boolean()) -> 'ok'.
+maybe_archive_modb(AccountMODb, ArchiveBeforeDel) ->
     {Year, Month, _} = erlang:date(),
-    case should_archive(AccountMODb, Year, Month) of
-        'true' ->
-            lager:info("account modb ~s needs archiving", [AccountMODb]),
-            'ok' = kz_datamgr:db_archive(AccountMODb),
-            lager:info("account modb ~s archived, removing the db", [AccountMODb]),
-            Rm = kz_datamgr:db_delete(AccountMODb),
-            lager:info("account modb ~s deleted: ~p", [AccountMODb, Rm]);
-        'false' ->
-            lager:info("account modb ~s still current enough to keep", [AccountMODb])
-    end.
+    maybe_archive_modb_first(AccountMODb, ArchiveBeforeDel, should_archive(AccountMODb, Year, Month)).
 
 -spec should_archive(kz_term:ne_binary(), kz_time:year(), kz_time:month()) -> boolean().
 should_archive(AccountMODb, Year, Month) ->
@@ -591,6 +586,20 @@ should_archive(AccountMODb, Year, Month) ->
             ModbMonths = (ModbYear * 12) + ModbMonth,
             (Months - ModbMonths) > kapps_config:get_integer(?CONFIG_CAT, <<"active_modbs">>, 6)
     end.
+
+-spec maybe_archive_modb_first(kz_term:ne_binary(), boolean(), boolean()) -> 'ok'.
+maybe_archive_modb_first(AccountMODb, 'true' = _ArchiveBeforeDel, 'true' = _ShouldArchive) ->
+    lager:info("account modb ~s needs archiving", [AccountMODb]),
+    'ok' = kz_datamgr:db_archive(AccountMODb),
+    lager:info("account modb ~s archived, removing the db", [AccountMODb]),
+    Rm = kz_datamgr:db_delete(AccountMODb),
+    lager:info("account modb ~s deleted: ~p", [AccountMODb, Rm]);
+maybe_archive_modb_first(AccountMODb, 'false' = _ArchiveBeforeDel, 'true' = _ShouldArchive) ->
+    lager:info("account modb ~s archiving disabled. removing the db", [AccountMODb]),
+    Rm = kz_datamgr:db_delete(AccountMODb),
+    lager:info("account modb ~s deleted: ~p", [AccountMODb, Rm]);
+maybe_archive_modb_first(AccountMODb, _, _) ->
+    lager:info("account modb ~s still current enough to keep", [AccountMODb]).
 
 %%------------------------------------------------------------------------------
 %% @doc Delete an modb if it is no longer associated with its account.
