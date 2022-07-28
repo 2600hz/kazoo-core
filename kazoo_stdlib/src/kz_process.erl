@@ -10,8 +10,8 @@
 -module(kz_process).
 
 -export([runs_in/3
-        ,spawn/1, spawn/2
-        ,spawn_link/1, spawn_link/2
+        ,spawn/1, spawn/2, spawn/3
+        ,spawn_link/1, spawn_link/2, spawn_link/3
         ,spawn_monitor/2, spawn_monitor/3
         ]).
 
@@ -42,6 +42,16 @@ runs_in(MaxTime, Fun, Arguments)
   when is_number(MaxTime), MaxTime > 0 ->
     runs_in(kz_term:to_integer(MaxTime), Fun, Arguments).
 
+-spec spawn(fun(() -> any())) -> pid().
+spawn(Fun) ->
+    CallId = kz_log:get_callid(),
+    Application = get_application(),
+    erlang:spawn(fun() ->
+                         _ = kz_log:put_callid(CallId),
+                         _ = put_application(Application),
+                         Fun()
+                 end).
+
 -spec spawn(fun(), list()) -> pid().
 spawn(Fun, Arguments) ->
     CallId = kz_log:get_callid(),
@@ -52,15 +62,25 @@ spawn(Fun, Arguments) ->
                          erlang:apply(Fun, Arguments)
                  end).
 
--spec spawn(fun(() -> any())) -> pid().
-spawn(Fun) ->
+-spec spawn(module(), atom(), list()) -> pid().
+spawn(Module, Function, Arguments) ->
     CallId = kz_log:get_callid(),
     Application = get_application(),
     erlang:spawn(fun() ->
                          _ = kz_log:put_callid(CallId),
                          _ = put_application(Application),
-                         Fun()
+                         erlang:apply(Module, Function, Arguments)
                  end).
+
+-spec spawn_link(fun(() -> any())) -> pid().
+spawn_link(Fun) ->
+    CallId = kz_log:get_callid(),
+    Application = get_application(),
+    erlang:spawn_link(fun() ->
+                              _ = kz_log:put_callid(CallId),
+                              _ = put_application(Application),
+                              Fun()
+                      end).
 
 -spec spawn_link(fun(), list()) -> pid().
 spawn_link(Fun, Arguments) ->
@@ -72,15 +92,16 @@ spawn_link(Fun, Arguments) ->
                               erlang:apply(Fun, Arguments)
                       end).
 
--spec spawn_link(fun(() -> any())) -> pid().
-spawn_link(Fun) ->
+-spec spawn_link(module(), atom(), list()) -> pid().
+spawn_link(Module, Function, Arguments) ->
     CallId = kz_log:get_callid(),
     Application = get_application(),
-    erlang:spawn_link(fun() ->
+    erlang:spawn_link(fun () ->
                               _ = kz_log:put_callid(CallId),
                               _ = put_application(Application),
-                              Fun()
+                              erlang:apply(Module, Function, Arguments)
                       end).
+
 
 -spec spawn_monitor(fun(), list()) -> kz_term:pid_ref().
 spawn_monitor(Fun, Arguments) ->
@@ -93,13 +114,13 @@ spawn_monitor(Fun, Arguments) ->
                          end).
 
 -spec spawn_monitor(module(), atom(), list()) -> kz_term:pid_ref().
-spawn_monitor(Module, Fun, Args) ->
+spawn_monitor(Module, Function, Args) ->
     CallId = kz_log:get_callid(),
     Application = get_application(),
     erlang:spawn_monitor(fun () ->
                                  _ = kz_log:put_callid(CallId),
                                  _ = put_application(Application),
-                                 erlang:apply(Module, Fun, Args)
+                                 erlang:apply(Module, Function, Args)
                          end).
 
 -spec get_application() -> atom().
