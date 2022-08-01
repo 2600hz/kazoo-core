@@ -9,9 +9,7 @@
 %%%-----------------------------------------------------------------------------
 -module(appex_client_maintenance).
 
--export([listing/0
-        ,refresh/0
-        ,loaded/0
+-export([loaded/0
 
         ,set_cluster_secret/1
 
@@ -23,28 +21,10 @@
 
 -elvis([{'elvis_style', 'no_debug_call', 'disable'}]).
 
--spec listing() -> 'ok'.
-listing() ->
-    lists:foreach(fun print_app_listing/1, appex_client_client:listings()).
-
-print_app_listing(AppDetails) ->
-    io:format("~14s:", [kz_json:get_ne_binary_value(<<"name">>, AppDetails)]),
-    kz_json:foreach(fun print_app_details/1, AppDetails),
-    io:format("~n").
-
-print_app_details({<<"version">>, Version}) ->
-    io:format(" ~s", [Version]);
-print_app_details(_KV) -> 'ok'.
-
 -spec loaded() -> 'no_return'.
 loaded() ->
-    io:format("loaded: ~w~n", [appex_client_client:loaded()]),
+    io:format("loaded: ~w~n", [kappex_controller:loaded()]),
     'no_return'.
-
--spec refresh() -> 'ok'.
-refresh() ->
-    appex_client_client:refresh_listing(),
-    io:format("refresh initiated~n").
 
 %% @doc set the secret for the appex client
 -spec set_cluster_secret(kz_term:ne_binary()) -> 'ok'.

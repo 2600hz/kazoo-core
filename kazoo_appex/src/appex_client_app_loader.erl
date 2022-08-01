@@ -29,10 +29,10 @@ start(Type, StartArgs) ->
 try_start_app(Type, {ParentApp, App, AppMod, StartArgs}, Counter) ->
     case appex_app_master:start_app(App, Type, {AppMod, StartArgs}) of
         {'ok', Pid} ->
-            appex_client_client:add_running(App, Pid),
+            kappex_controller:add_running(App, Pid),
             {'ok', Pid, {?MODULE, {ParentApp, App, AppMod}, []}};
         {'ok', Pid, State} ->
-            appex_client_client:add_running(App, Pid),
+            kappex_controller:add_running(App, Pid),
             {'ok', Pid, {?MODULE, {ParentApp, App, AppMod}, State}};
         {'error', 'invalid_license'}=Error
           when Counter < 3 ->

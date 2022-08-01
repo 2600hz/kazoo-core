@@ -19,7 +19,7 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER('appex_client_client')
+-define(CHILDREN, [?WORKER('kappex_controller')
                   ,?WORKER('appex_cb_router')
                   ]).
 
