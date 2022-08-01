@@ -19,7 +19,7 @@
 -record(load_app, {app_metadata :: kz_json:api_object()
                   ,app_name :: kz_term:api_ne_binary()
                   ,parent_app :: kz_term:api_atom()
-                  ,app_spec :: {'application', module(), kz_term:proplist()} | 'undefined'
+                  ,app_spec :: {'application', atom(), kz_term:proplist()} | 'undefined'
                   ,app_type :: atom()
                   ,app :: atom()
                   ,app_vsn :: kz_term:api_ne_binary()
@@ -32,8 +32,19 @@
                   }).
 -type load_app() :: #load_app{}.
 
--spec load_app(ParentApp::atom(), App::atom(), Archive::binary(), ContentType::string() | 'undefined') ->
-          {'ok', atom()} | {'error', any()}.
+-type loaded() :: #{app => atom()
+                   ,app_name => kz_term:ne_binary()
+                   ,app_spec => {'application', atom(), kz_term:proplist()}
+                   ,app_type => kz_term:ne_binary()
+                   ,app_vsn => kz_term:ne_binary()
+                   }.
+-type load_ret() :: {'ok', load_app()} | {'error', any()}.
+-type load_resp() :: {'ok', loaded()} | {'error', any()}.
+-export_type([loaded/0
+             ,load_resp/0
+             ]).
+
+-spec load_app(ParentApp::atom(), App::atom(), Archive::binary(), ContentType::string() | 'undefined') -> load_resp().
 load_app(ParentApp, App, Archive, ContentType) ->
     case app_type(ContentType) of
         'unknown' ->
@@ -91,7 +102,7 @@ set_load_params(#load_app{app_spec=_AppSpec
             end
     end.
 
--spec load_app(load_app()) -> {'ok', atom()} | {'error', any()}.
+-spec load_app(load_app()) -> load_resp().
 load_app(#load_app{app_spec=_AppSpec, app=App}=LoadApp) ->
     Funs = [fun write_files/1
            ,fun adjust_dot_app/1
@@ -100,14 +111,24 @@ load_app(#load_app{app_spec=_AppSpec, app=App}=LoadApp) ->
            ,fun finish_loading_app/1
            ],
     try kz_either:pipe(set_load_params(LoadApp), Funs) of
-        {'ok', _} ->
-            {'ok', App};
+        {'ok', #load_app{app_spec=NewAppSpec
+                        ,app_name=AppName
+                        ,app_type=AppType
+                        ,app_vsn=AppVsn
+                        }} ->
+            {'ok', #{app => App
+                    ,app_name => AppName
+                    ,app_spec => NewAppSpec
+                    ,app_type => AppType
+                    ,app_vsn => AppVsn
+                    }
+            };
         {'error', _}=Error ->
             fail_cleanup(LoadApp),
             Error
     catch
         _Class:_Reason:_ST ->
-            lager:debug("failed to load app ~s: {~p, ~p}", [App, _Class, _Reason]),
+            lager:debug("crashed to load app ~s: {~p, ~p}", [App, _Class, _Reason]),
             kz_log:log_stacktrace(_ST),
             fail_cleanup(LoadApp),
             {'error', 'failed'}
@@ -128,12 +149,11 @@ fail_cleanup(#load_app{loaded_mods=Loaded
     _ = code:set_path(lists:delete(Ebin, code:get_path())),
     'ok'.
 
--spec load_beams(load_app()) -> load_app().
+-spec load_beams(load_app()) -> load_ret().
 load_beams(#load_app{app_beams=AppBeams}=LoadApp) ->
     maps:fold(fun load_beams/3, {'ok', LoadApp}, AppBeams).
 
--spec load_beams(file:filename_all(), binary(), {'ok', load_app()} | {'error', any()}) ->
-          {'ok', load_app()} | {'error', any()}.
+-spec load_beams(file:filename_all(), binary(), load_ret()) -> load_ret().
 load_beams(_, _, {'error', _}=Error) ->
     Error;
 load_beams(Filename, Bin, {'ok', #load_app{loaded_mods=Loaded}=LoadApp}) ->
@@ -174,7 +194,7 @@ adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}
     NewConfig = props:set_values(AppProps, AppConfig),
     {'ok', LoadApp#load_app{app_spec={'application', App, NewConfig}}}.
 
--spec load_dot_app(load_app()) -> {'ok', load_app()} | {'error', any()}.
+-spec load_dot_app(load_app()) -> load_ret().
 load_dot_app(#load_app{app_spec={'application', App, _}=AppSpec}=LoadApp) ->
     case application:load(AppSpec) of
         'ok' ->
@@ -188,6 +208,7 @@ load_dot_app(#load_app{app_spec={'application', App, _}=AppSpec}=LoadApp) ->
             {'error', {'load_app', {App, Reason}}}
     end.
 
+-spec finish_loading_app(load_app()) -> load_ret().
 finish_loading_app(#load_app{app_type='monster'
                             ,app_dir=AppDir
                             ,base_path=BasePath
@@ -202,7 +223,7 @@ finish_loading_app(#load_app{app=App}=LoadApp) ->
     lager:info("initialized ~s app", [App]),
     {'ok', LoadApp}.
 
--spec write_files(load_app()) -> {'ok', load_app()}.
+-spec write_files(load_app()) -> load_ret().
 write_files(LoadApp) ->
     Ebin = ebin_path(LoadApp),
     case loop_expected(
@@ -320,6 +341,10 @@ api_url() ->
             {'ok', ApiUrl}
     end.
 
+%% erl_tar:extract will return 'ok' when extracting to a directory. if dialyzer is complaining ignore it or just add
+%% a dummy ok fun header to extract_files to handle it.
+-type erl_tar_extract() :: {'ok', [{Path::string(), Content::binary()}]} | {'error', term()}.
+-spec extract(binary()) -> erl_tar_extract().
 extract(Archive) ->
     try erl_tar:extract({'binary', Archive}, ['compressed', 'memory'])
     catch
@@ -328,8 +353,7 @@ extract(Archive) ->
             {'error', 'bad_archive'}
     end.
 
--spec extract_files(atom(), atom(), {'ok', load_app()} | {'error', any()}) ->
-          {'ok', load_app()} | {'error', any()}.
+-spec extract_files(atom(), atom(), erl_tar_extract()) -> load_ret().
 extract_files(App, AppType, {'ok', ArchiveFiles}) ->
     finish_extracting(
       lists:foldl(fun extract_file/2
@@ -410,6 +434,7 @@ finish_extracting(#load_app{app_spec='undefined'
 finish_extracting(#load_app{}=LoadApp) ->
     {'ok', LoadApp}.
 
+-spec minimal_app_mod(module()) -> {'ok', module(), binary() | term()} | {'error', term(), term()}.
 minimal_app_mod(App) ->
     Mod = kz_term:to_atom(io_lib:format("~s_app", [App]), 'true'),
     SupMod = kz_term:to_atom(io_lib:format("~s_sup", [App]), 'true'),
@@ -428,6 +453,7 @@ minimal_app_mod(App) ->
       ]
      ).
 
+-spec minimal_app_sup(atom()) -> {'ok', module(), binary() | term()} | {'error', term(), term()}.
 minimal_app_sup(App) ->
     Mod = kz_term:to_atom(io_lib:format("~s_sup", [App]), 'true'),
     compile:forms(
@@ -464,6 +490,7 @@ handle_dot_app_file(Bin, LoadApp) ->
             NewLoad
     end.
 
+-spec create_minimal_modules(load_app()) -> load_app().
 create_minimal_modules(#load_app{app_spec={'application', App, AppConfig}
                                 ,app_beams=AppBeams
                                 }=LoadApp) ->

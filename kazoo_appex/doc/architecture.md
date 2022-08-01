@@ -6,7 +6,9 @@ When the `appex_client` Erlang application is started, a supervisor and a couple
 
 The HTTP client that communicates with the configured app exchange server API.
 
-On init, the process binds itself into `kapps_controller` for fetching apps. When `kapps_controller` cannot find an Erlang application when asked to start it, a routing request will be issued for help (`app.fetch` binding). `appex_client_client` binds for those and, if possible, fetches the app (if managed by `appex_client`) and unpack the the archive file make it ready to be started.
+## `kappex_controller`
+
+On start up, the process binds itself into `kapps_controller` for fetching apps. When `kapps_controller` cannot find an Erlang application when asked to start it, a routing request will be issued for help (`app.fetch` binding). `kappex_controller` binds for those and, if possible, fetches the app (if the cluster has a subscription to the app) and unpack the archive file make it ready to be started.
 
 If the app is not yet download, a request will be issued to the appex server for access to the Erlang application.
 
