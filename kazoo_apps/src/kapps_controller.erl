@@ -120,42 +120,60 @@ start_app(App) when is_atom(App) ->
 start_app(App) ->
     start_app(kz_term:to_atom(App, 'true')).
 
--spec maybe_start_external_app(atom()) -> {'ok', kz_term:atoms()} |
+-spec maybe_start_external_app(atom()) ->
+          {'ok', kz_term:atoms()} |
           {'error', any()}.
 maybe_start_external_app(App) ->
+    StartTime = kz_time:start_time(),
     case load_external_app(App) of
-        'true' -> start_external_app(App);
+        'true' ->
+            case ensure_external_started(App, App, []) of
+                {'ok', Started} ->
+                    lager:info("started ~s in ~pms", [App, kz_time:elapsed_ms(StartTime)]),
+                    _ = [kz_nodes_bindings:bind(A) || A <- lists:usort([App | Started]), is_kapp(A)],
+                    {'ok', lists:reverse(Started)};
+                {'error', Reason, Started} ->
+                    _ = [application:stop(AppStarted) || AppStarted <- Started],
+                    lager:error("~s could not start: ~p", [App, Reason]),
+                    {'error', Reason}
+            end;
         'false' ->
             lager:info("failed to find app ~s in external sources", [App]),
             {'error', 'not_found'}
     end.
 
--spec start_external_app(atom()) ->
+%% @doc Ensure app and all dependencies are started, properly handle external apps.
+%%
+%% Lifted from erlang:ensure_all_started/1, specifically handle app not found error
+%% and call external sources instead of stopping the started app and causing race conditions.
+-spec ensure_external_started(atom(), atom(), kz_term:atoms()) ->
           {'ok', kz_term:atoms()} |
-          {'error', any()}.
-start_external_app(App) ->
-    StartTime = kz_time:start_time(),
-    case application:ensure_all_started(App) of
-        {'ok', Started}=OK ->
-            lager:info("started ~s in ~pms", [App, kz_time:elapsed_ms(StartTime)]),
-            _ = [kz_nodes_bindings:bind(A) || A <- [App | Started], is_kapp(A)],
-            OK;
-        {'error', {App, {"no such file or directory", DotApp}}}=Error ->
-            lager:info("app ~s (~s) not found in external sources", [App, DotApp]),
-            Error;
-        {'error', {Depenedency, {"no such file or directory", DotApp}}}=Error ->
-            lager:info("app ~s dependency ~s (~s) not found, asking around", [App, Depenedency, DotApp]),
-            case load_external_app({App, Depenedency}) of
-                'true' ->
-                    lager:info("dependency ~s resolved, trying to start ~s again", [Depenedency, App]),
-                    start_external_app(App);
-                'false' ->
-                    lager:info("app ~s dependency ~s not found in external sources", [App, Depenedency]),
+          {'error', any(), kz_term:atoms()}.
+ensure_external_started(Parent, Application, Started) ->
+    case application:start(Application) of
+        'ok' ->
+            {'ok', [Application | Started]};
+        {'error', {'already_started', Application}} ->
+            {ok, Started};
+        {'error', {'not_started', Dependency}} ->
+            case ensure_external_started(Parent, Dependency, Started) of
+                {'ok', NewStarted} ->
+                    ensure_external_started(Parent, Application, NewStarted);
+                Error ->
                     Error
             end;
-        {'error', _E}=E ->
-            lager:error("~s could not start: ~p", [App, _E]),
-            E
+        {'error', {"no such file or directory", DotApp}} ->
+            lager:info("app ~s dependency ~s (~s) not found, asking around", [Parent, Application, DotApp]),
+            case load_external_app({Parent, Application}) of
+                'true' ->
+                    lager:info("dependency ~s resolved, trying to start it again", [Application]),
+                    ensure_external_started(Parent, Application, Started);
+                'false' ->
+                    lager:info("app ~s dependency ~s not found in external sources", [Parent, Application]),
+                    {'error', {Application, {"no such file or directory", DotApp}}, Started}
+            end;
+        {'error', Reason} ->
+            {'error', {Application, Reason}, Started}
     end.
 
 -spec load_external_app(atom() | {atom(), atom()}) -> boolean().
