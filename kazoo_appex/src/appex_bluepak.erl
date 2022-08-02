@@ -37,6 +37,7 @@
                    ,app_type => kz_term:ne_binary()
                    ,app_vsn => kz_term:ne_binary()
                    }.
+-type load_ret() :: {'ok', load_app()} | {'error', any()}.
 -type load_resp() :: {'ok', loaded()} | {'error', any()}.
 -export_type([loaded/0
              ,load_resp/0
@@ -147,11 +148,11 @@ fail_cleanup(#load_app{loaded_mods=Loaded
     _ = code:set_path(lists:delete(Ebin, code:get_path())),
     'ok'.
 
--spec load_beams(load_app()) -> load_resp().
+-spec load_beams(load_app()) -> load_ret().
 load_beams(#load_app{app_beams=AppBeams}=LoadApp) ->
     maps:fold(fun load_beams/3, {'ok', LoadApp}, AppBeams).
 
--spec load_beams(file:filename_all(), binary(), load_resp()) -> load_resp().
+-spec load_beams(file:filename_all(), binary(), load_ret()) -> load_ret().
 load_beams(_, _, {'error', _}=Error) ->
     Error;
 load_beams(Filename, Bin, {'ok', #load_app{loaded_mods=Loaded}=LoadApp}) ->
@@ -192,7 +193,7 @@ adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}
     NewConfig = props:set_values(AppProps, AppConfig),
     {'ok', LoadApp#load_app{app_spec={'application', App, NewConfig}}}.
 
--spec load_dot_app(load_app()) -> load_resp().
+-spec load_dot_app(load_app()) -> load_ret().
 load_dot_app(#load_app{app_spec={'application', App, _}=AppSpec}=LoadApp) ->
     case application:load(AppSpec) of
         'ok' ->
@@ -206,7 +207,7 @@ load_dot_app(#load_app{app_spec={'application', App, _}=AppSpec}=LoadApp) ->
             {'error', {'load_app', {App, Reason}}}
     end.
 
--spec finish_loading_app(load_app()) -> load_resp().
+-spec finish_loading_app(load_app()) -> load_ret().
 finish_loading_app(#load_app{app_type='monster'
                             ,app_dir=AppDir
                             ,base_path=BasePath
@@ -221,7 +222,7 @@ finish_loading_app(#load_app{app=App}=LoadApp) ->
     lager:info("initialized ~s app", [App]),
     {'ok', LoadApp}.
 
--spec write_files(load_app()) -> load_resp().
+-spec write_files(load_app()) -> load_ret().
 write_files(LoadApp) ->
     Ebin = ebin_path(LoadApp),
     case loop_expected(
@@ -353,7 +354,7 @@ extract(Archive) ->
             {'error', 'bad_archive'}
     end.
 
--spec extract_files(atom(), atom(), erl_tar_extract()) -> load_resp().
+-spec extract_files(atom(), atom(), erl_tar_extract()) -> load_ret().
 extract_files(App, AppType, {'ok', ArchiveFiles}) ->
     finish_extracting(
       lists:foldl(fun extract_file/2

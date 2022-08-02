@@ -345,9 +345,7 @@ handle_received_app(#{resp_body := Archive
                      }) ->
     note_request_id(RespHeaders),
     CT = props:get_value("content-type", RespHeaders),
-    try appex_bluepak:load_app(ParentApp, AppName, Archive, CT) of
-        {'ok', Loaded} -> {'ok', Loaded};
-        {'error', _}=Error -> Error
+    try appex_bluepak:load_app(ParentApp, AppName, Archive, CT)
     catch
         'error':{'badmatch',{'error',{'running',_App}}} ->
             lager:info("~s is already running", [_App]),
@@ -359,7 +357,7 @@ handle_received_app(#{resp_body := Archive
     end.
 
 -spec maybe_redirect({'ok', appex_bluepak:loaded()} | {'error', any()} | {'redirect', kz_term:api_string()}, map()) ->
-          {'ok', atom()} |
+          {'ok', appex_bluepak:loaded()} |
           {'error', any()}.
 maybe_redirect({'redirect', 'undefined'}, _) ->
     lager:error("redirect has no location url"),

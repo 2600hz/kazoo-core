@@ -274,16 +274,15 @@ start_fetch_process(ExternalApp, From) ->
     App = external_app(ExternalApp),
     spawn_monitor(
       fun() ->
-              internal_fetch_result(App, From, appex_client_client:load_app(ParentApp, App))
+              case appex_client_client:load_app(ParentApp, App) of
+                  {'ok', _Loaded} ->
+                      gen_server:reply(From, 'true');
+                  {'error', _Reason} ->
+                      lager:error("failed to fetch and extract app ~s: ~p", [App, _Reason]),
+                      gen_server:reply(From, 'false')
+              end
       end
      ).
-
--spec internal_fetch_result(atom(), kz_term:pid_ref(), appex_bluepak:load_resp()) -> 'ok'.
-internal_fetch_result(App, From, {'error', _Reason}) ->
-    lager:error("failed to fetch and extract app ~s: ~p", [App, _Reason]),
-    gen_server:reply(From, 'false');
-internal_fetch_result(_App, From, {'ok', _Loaded}) ->
-    gen_server:reply(From, 'true').
 
 -spec handle_fetch_down(any(), state()) -> 'no_fetch_app' | state().
 handle_fetch_down({'DOWN', Ref, 'process', Pid, 'normal'}, #state{fetchings=Fetches}=State) ->
