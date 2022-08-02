@@ -268,7 +268,7 @@ fetch_app_options() ->
           {'redirect', kz_term:api_string()}.
 receive_app(ReqId, Fetch) ->
     case receive_app_response(ReqId, Fetch) of
-        {'continue', Fetch1} -> receive_app_response(ReqId, Fetch1);
+        {'continue', Fetch1} -> receive_app(ReqId, Fetch1);
         {'finished', Fetch1} -> handle_received_app(Fetch1);
         {'redirect', _}=Redirect -> Redirect;
         {'error', _E}=Error -> Error
