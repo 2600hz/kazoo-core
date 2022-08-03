@@ -265,7 +265,8 @@ handle_load_app(ExternalApp, From, #state{fetchings=Fetchings}=State) ->
                                              ,from=From
                                              ,fetch=PidRef
                                              }
-                                       | Fetchings]
+                                      | Fetchings
+                                      ]
                            }}.
 
 -spec start_fetch_process(external_app(), kz_term:pid_ref()) -> kz_term:pid_ref().
@@ -294,10 +295,10 @@ handle_fetch_down({'DOWN', Ref, 'process', Pid, 'normal'}, #state{fetchings=Fetc
             State#state{fetchings=Fetches1}
     end;
 handle_fetch_down({'DOWN', Ref, 'process', Pid, _Reason}
-                   ,#state{fetchings=Fetches
-                          ,loaded=Loaded
-                          }=State
-                   ) ->
+                 ,#state{fetchings=Fetches
+                        ,loaded=Loaded
+                        }=State
+                 ) ->
     case lists:keytake({Pid, Ref}, #fetch.fetch, Fetches) of
         'false' -> 'no_fetch_app';
         {'value', #fetch{app=App, from=From}, Fetches1} ->
