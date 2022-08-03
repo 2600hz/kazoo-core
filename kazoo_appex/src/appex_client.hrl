@@ -1,5 +1,6 @@
 -ifndef(APPEX_READER_HRL).
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -define(APP, 'kazoo_appex').
 -define(APP_NAME, <<"kazoo_appex">>).
