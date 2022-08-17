@@ -617,7 +617,7 @@ email_invite_definition() ->
                ,kapi_definition:event_type_headers(Category, EventName)
                }
               ,{fun kapi_definition:set_types/2
-               ,[{<<"Conference-ID">>, fun is_binary/1}
+               ,[{<<"Conference-ID">>, fun kz_term:is_ne_list/1}
                 ,{<<"Conference-Name">>, fun is_binary/1}
                 ,{<<"Conference-Link">>, fun is_binary/1}
                 ,{<<"Conference-Call-In-Numbers">>, fun kz_term:is_ne_list/1}
