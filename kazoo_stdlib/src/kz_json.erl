@@ -38,7 +38,7 @@
         ]).
 
 -export([is_true/2, is_true/3, is_false/2, is_false/3]).
--export([is_empty/1]).
+-export([is_empty/1, is_not_empty/1]).
 -export([is_json_object/1, is_json_object/2
         ,are_json_objects/1
         ,is_valid_json_object/1
@@ -127,6 +127,8 @@
         ]).
 
 -export([lift_common_properties/1, lift_common_properties/2]).
+
+-elvis([{'elvis_style', 'god_modules', 'disable'}]).
 
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
@@ -248,6 +250,10 @@ is_defined(Path, JObj) ->
 -spec is_empty(object()) -> boolean().
 is_empty(MaybeJObj) ->
     MaybeJObj =:= ?EMPTY_JSON_OBJECT.
+
+-spec is_not_empty(object()) -> boolean().
+is_not_empty(MaybeJObj) ->
+    not is_empty(MaybeJObj).
 
 -spec is_json_object(any()) -> boolean().
 is_json_object(?JSON_WRAPPER(P)) when is_list(P) -> 'true';
@@ -832,8 +838,8 @@ sum(?JSON_WRAPPER(_)=JObj1, ?JSON_WRAPPER(_)=JObj2) ->
 -type sumer() :: fun((json_term(), json_term()) -> json_term()).
 
 -spec default_sumer(json_term(), json_term()) -> json_term().
-default_sumer(Value1, undefined) -> Value1;
-default_sumer(undefined, Value2) -> Value2;
+default_sumer(Value1, 'undefined') -> Value1;
+default_sumer('undefined', Value2) -> Value2;
 default_sumer(Value1, Value2) when is_number(Value1),
                                    is_number(Value2) ->
     Value1 + Value2;
