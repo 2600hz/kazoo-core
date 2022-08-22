@@ -503,7 +503,7 @@ wait_for_refresh() ->
 -spec maybe_advertise_node(kz_types:kz_node()) -> 'ok'.
 maybe_advertise_node(#kz_node{broker = <<"disconnected">>}) -> 'ok';
 maybe_advertise_node(Node) ->
-    kapi_nodes:publish_advertise(advertise_payload(Node)).
+    catch(kapi_nodes:publish_advertise(advertise_payload(Node))).
 
 -spec version() -> kz_term:ne_binary().
 version() ->
