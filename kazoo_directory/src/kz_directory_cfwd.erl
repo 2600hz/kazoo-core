@@ -29,13 +29,13 @@ call_forward(EndpointId, AccountId, Endpoint) ->
 
 -spec is_call_forward_enabled(kz_json:object()) -> boolean().
 is_call_forward_enabled(Endpoint) ->
-    CallForward = kzd_devices:call_forward(Endpoint, kz_json:new()),
+    CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
     kzd_call_forward:number(CallForward) =/= 'undefined'
         andalso kzd_call_forward:enabled(CallForward).
 
 -spec build_call_forward(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 build_call_forward(EndpointId, AccountId, Endpoint) ->
-    CallForward = kzd_devices:call_forward(Endpoint, kz_json:new()),
+    CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
     Number = kzd_call_forward:number(CallForward),
     IsReconcilable = knm_converters:is_reconcilable(Number, AccountId),
     Realm = get_realm(Endpoint),
@@ -58,7 +58,7 @@ call_forward_properties(EndpointId, AccountId, Endpoint, IsReconcilable) ->
 
 -spec call_forward_base_properties(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
 call_forward_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
-    CallForward = kzd_devices:call_forward(Endpoint, kz_json:new()),
+    CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
     [{<<"Call-Forward">>, 'true'}
     ,{<<"Is-Substitute">>, call_forward_is_substitute(Endpoint)}
     ,{<<"Direct-Calls-Only">>, kzd_call_forward:direct_calls_only(CallForward)}
@@ -75,7 +75,7 @@ call_forward_cid_type_name('false') -> <<"Internal">>.
 -spec call_forward_is_substitute(kz_json:object()) -> boolean().
 call_forward_is_substitute(Endpoint) ->
     kzd_call_forward:substitute(
-      kzd_devices:call_forward(Endpoint, kz_json:new())
+      kzd_endpoint:call_forward(Endpoint, kz_json:new())
      ).
 
 -spec cfw_single_reject() -> kz_term:ne_binaries().
@@ -90,7 +90,7 @@ cfw_single_reject() ->
 
 -spec call_forward_confirm_properties(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
 call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
-    CallForward = kzd_devices:call_forward(Endpoint, kz_json:new()),
+    CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
     case kzd_call_forward:require_keypress(CallForward) of
         'false' -> [];
         'true' ->
@@ -106,7 +106,7 @@ call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilab
 
 -spec call_forward_maybe_retain_cid(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
 call_forward_maybe_retain_cid(_EndpointId, _AccountId, Endpoint, IsReconcilable) ->
-    CallForward = kzd_devices:call_forward(Endpoint, kz_json:new()),
+    CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
     CIDTypeName = call_forward_cid_type_name(IsReconcilable),
     case kzd_call_forward:keep_caller_id(CallForward) of
         'false' -> [];
