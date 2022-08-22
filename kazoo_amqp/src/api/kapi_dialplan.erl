@@ -1447,6 +1447,7 @@ hold_definition() ->
                                                             ,<<"Call-ID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Hold-Media">>
+                                                            ,<<"Hold-Media-Options">>
                                                             ,<<"Insert-At">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
@@ -1455,7 +1456,7 @@ hold_definition() ->
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2, [{<<"Hold-Media-Options">>, fun kz_json:is_json_object/1}]}
               ],
     kapi_definition:setters(Setters).
 
