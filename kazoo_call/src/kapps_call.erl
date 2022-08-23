@@ -161,6 +161,7 @@
 -export([is_call_forward/1]).
 -export([is_transfer/1]).
 -export([endpoint_id/1]).
+-export([restricted_endpoint_id/1]).
 
 -ifdef(TEST).
 -export([eq/2]).
@@ -1852,6 +1853,12 @@ endpoint_id(#kapps_call{endpoint_id='undefined'
                        ,authorizing_id=AuthzId
                        }) -> AuthzId;
 endpoint_id(#kapps_call{endpoint_id=EndpointId}) -> EndpointId.
+
+-spec restricted_endpoint_id(call()) -> kz_term:api_ne_binary().
+restricted_endpoint_id(#kapps_call{endpoint_id=AuthzId
+                                  ,authorizing_id=AuthzId
+                                  }) -> 'undefined';
+restricted_endpoint_id(#kapps_call{endpoint_id=EndpointId}) -> EndpointId.
 
 -ifdef(TEST).
 eq(Call, Call1) ->
