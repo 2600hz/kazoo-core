@@ -23,7 +23,7 @@
         ,owned_by_docs/2, owned_by_docs/3
         ]).
 -export([owner_ids/2]).
--export([get_account_external_cid/1]).
+-export([get_account_external_cid/1, get_account_external_cid/3]).
 -export([maybe_get_assigned_number/3]).
 -export([maybe_get_account_default_number/4]).
 -export([maybe_prefix_cid/5]).
@@ -34,7 +34,7 @@
 
 -include("kazoo_endpoint.hrl").
 
--type cid() :: {kz_term:api_binary(), kz_term:api_binary()}.
+-type cid() :: {kz_term:api_binary(), kz_term:api_binary()}. %% {Number, Name}
 -export_type([cid/0]).
 
 %%------------------------------------------------------------------------------
@@ -253,64 +253,69 @@ maybe_ensure_cid_valid(Number, Name, _, Attribute, _Call) ->
 
 -spec ensure_valid_caller_id(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> cid().
 ensure_valid_caller_id(Number, Name, Call) ->
-    case is_valid_caller_id(Number, Call) of
+    AccountId = kapps_call:account_id(Call),
+    case is_valid_caller_id(Number, AccountId) of
         'true' ->
             lager:info("determined valid external caller id is <~s> ~s", [Name, Number]),
             {Number, Name};
         'false' ->
             lager:info("invalid external caller id <~s> ~s", [Name, Number]),
-            maybe_get_account_cid(Number, Name, Call)
+            maybe_get_account_cid(Number, Name, AccountId)
     end.
 
 -spec get_account_external_cid(kapps_call:call()) -> cid().
 get_account_external_cid(Call) ->
     Number = kapps_call:caller_id_number(Call),
     Name = kapps_call:caller_id_name(Call),
+    get_account_external_cid(Number, Name, kapps_call:account_id(Call)).
 
+-spec get_account_external_cid(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary()) -> cid().
+get_account_external_cid(Number, Name, AccountId) ->
     lager:info("current cid number ~s and name ~s", [Number, Name]),
+    maybe_get_account_cid(Number, Name, AccountId).
 
-    maybe_get_account_cid(Number, Name, Call).
-
--spec maybe_get_account_cid(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> cid().
-maybe_get_account_cid(Number, Name, Call) ->
-    case kzd_accounts:fetch(kapps_call:account_id(Call)) of
+-spec maybe_get_account_cid(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary()) -> cid().
+maybe_get_account_cid(Number, Name, AccountId) ->
+    case kzd_accounts:fetch(AccountId) of
         {'error', _E} ->
-            ?LOG_INFO("failed to open ~s: ~p", [kapps_call:account_id(Call), _E]),
-            maybe_get_assigned_number(Number, Name, Call);
-        {'ok', AccountDoc} -> maybe_get_account_external_cid(Number, Name, Call, AccountDoc)
+            ?LOG_INFO("failed to open ~s: ~p", [AccountId, _E]),
+            maybe_get_assigned_number(Number, Name, kzs_util:format_account_db(AccountId));
+        {'ok', AccountDoc} -> maybe_get_account_external_cid(Number, Name, AccountId, AccountDoc)
     end.
 
--spec maybe_get_account_external_cid(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kzd_accounts:doc()) -> cid().
-maybe_get_account_external_cid(Number, Name, Call, AccountDoc) ->
+-spec maybe_get_account_external_cid(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary(), kzd_accounts:doc()) -> cid().
+maybe_get_account_external_cid(Number, Name, AccountId, AccountDoc) ->
     ExternalNumber = kz_json:get_ne_value([<<"caller_id">>, <<"external">>, <<"number">>], AccountDoc),
     ExternalName = kz_json:get_ne_value([<<"caller_id">>, <<"external">>, <<"name">>], AccountDoc, Name),
 
-    case is_valid_caller_id(ExternalNumber, Call) of
+    case is_valid_caller_id(ExternalNumber, AccountId) of
         'true' ->
             ?LOG_INFO("determined valid account external caller id is <~s> ~s", [ExternalName, ExternalNumber]),
             {ExternalNumber, ExternalName};
         'false' ->
             ?LOG_DEBUG("external number ~s not valid, trying default", [ExternalNumber]),
-            maybe_get_account_default_number(Number, ExternalName, Call, AccountDoc)
+            maybe_get_account_default_number(Number, ExternalName, AccountId, AccountDoc)
     end.
 
--spec maybe_get_account_default_number(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kzd_accounts:doc()) -> cid().
-maybe_get_account_default_number(Number, Name, Call, AccountDoc) ->
+-spec maybe_get_account_default_number(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call() | kz_term:api_binary(), kzd_accounts:doc()) -> cid().
+maybe_get_account_default_number(Number, Name, <<AccountId/binary>>, AccountDoc) ->
     DefaultNumber = kz_json:get_ne_value([<<"caller_id">>, <<"default">>, <<"number">>], AccountDoc),
     DefaultName = kz_json:get_ne_value([<<"caller_id">>, <<"default">>, <<"name">>], AccountDoc, Name),
 
-    case is_valid_caller_id(DefaultNumber, Call) of
+    case is_valid_caller_id(DefaultNumber, AccountId) of
         'true' ->
             ?LOG_INFO("determined valid account default caller id is <~s> ~s", [DefaultName, DefaultNumber]),
             {DefaultNumber, DefaultName};
         'false' ->
             ?LOG_DEBUG("default number ~s not valid, trying assigned numbers", [DefaultNumber]),
-            maybe_get_assigned_number(Number, Name, Call)
-    end.
+            maybe_get_assigned_number(Number, Name, kzs_util:format_account_db(AccountId))
+    end;
+maybe_get_account_default_number(Number, Name, Call, AccountDoc) ->
+    maybe_get_account_default_number(Number, Name, kapps_call:account_id(Call), AccountDoc).
 
 -spec maybe_get_assigned_number(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()|kapps_call:call()) -> cid().
-maybe_get_assigned_number(CandidateNumber, Name, <<Account/binary>>) ->
-    case knm_numbers:account_listing(Account) of
+maybe_get_assigned_number(CandidateNumber, Name, <<AccountDb/binary>>) ->
+    case knm_numbers:account_listing(AccountDb) of
         [_|_] = NumbersList ->
             Numbers = [Num
                        || {Num, JObj} <- NumbersList,
@@ -321,11 +326,11 @@ maybe_get_assigned_number(CandidateNumber, Name, <<Account/binary>>) ->
                     ?LOG_DEBUG("using assigned number <~s> ~s", [Name, CandidateNumber]),
                     {CandidateNumber, Name};
                 'false' ->
-                    maybe_get_assigned_numbers(Account, Numbers, Name)
+                    maybe_get_assigned_numbers(AccountDb, Numbers, Name)
             end;
         _Else ->
             ?LOG_DEBUG("failed to list account numbers: ~p", [_Else]),
-            Number = default_cid_number(Account),
+            Number = default_cid_number(AccountDb),
             ?LOG_WARNING("no numbers available, proceed with <~s> ~s", [Name, Number]),
             {Number, Name}
     end;
@@ -344,10 +349,9 @@ maybe_get_assigned_numbers(_AccountId, [Number|_], Name) ->
     ?LOG_INFO("using first assigned number caller id <~s> ~s", [Name, Number]),
     {Number, Name}.
 
--spec is_valid_caller_id(kz_term:api_binary(), kapps_call:call()) -> boolean().
+-spec is_valid_caller_id(kz_term:api_binary(), kapps_call:call() | kz_term:api_binary()) -> boolean().
 is_valid_caller_id('undefined', _) -> 'false';
-is_valid_caller_id(Number, Call) ->
-    AccountId = kapps_call:account_id(Call),
+is_valid_caller_id(Number, <<AccountId/binary>>) ->
     case knm_numbers:lookup_account(Number) of
         {'ok', AccountId, _} -> 'true';
         _Else ->
