@@ -824,6 +824,7 @@ outbound_smtp_fax_error_definition() ->
                                                             ,<<"Timestamp">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Fax-To-Email">>
+                                                            ,<<"Fax-Email-Subject">>
                                                             ,<<"FaxBox-ID">>
                                                             ,<<"FaxBox-Name">>
                                                             ,<<"FaxBox-Timezone">>
