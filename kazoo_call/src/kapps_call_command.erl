@@ -1386,7 +1386,7 @@ hold_command(Call) ->
 
 -spec hold_command(kz_term:api_binary(), kapps_call:call() | kz_term:ne_binary()) ->
           kz_json:object().
-hold_command(MOH, CallId=?NE_BINARY) ->
+hold_command(MOH, <<CallId/binary>>) ->
     hold_command(MOH, 'undefined', CallId);
 hold_command(MOH, Call) ->
     hold_command(kz_media_util:media_path(MOH, kapps_call:account_id(Call))
@@ -1394,7 +1394,7 @@ hold_command(MOH, Call) ->
                 ).
 
 -spec hold_command(kz_term:api_binary(), kz_term:api_object(), kapps_call:call() | kz_term:ne_binary()) -> kz_json:object().
-hold_command(MOH, MOHOptions, CallId=?NE_BINARY) ->
+hold_command(MOH, MOHOptions, <<CallId/binary>>) ->
     kz_json:from_list(
       [{<<"Application-Name">>, <<"hold">>}
       ,{<<"Insert-At">>, <<"flush">>}

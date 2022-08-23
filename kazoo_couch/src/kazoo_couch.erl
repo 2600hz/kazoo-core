@@ -69,12 +69,13 @@
         ]).
 
 %% Kazoo-View related
--export([find/5
-        ]).
+-export([find/5]).
 
 -include("kz_couch.hrl").
 
--export_type([couch_version/0]).
+-export_type([couch_version/0
+             ,server/0
+             ]).
 
 %% Server operations
 -spec new_connection(map()) -> kz_data:connection() |

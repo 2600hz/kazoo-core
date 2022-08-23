@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Provide functions to create and manage a single voicemail message.
 %%% @author Hesaam Farhang
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,7 +24,9 @@
 -include("kz_voicemail.hrl").
 -include("kazoo_media/include/kz_media.hrl").
 
--export_type([vm_folder/0]).
+-export_type([vm_folder/0
+             ,db_ret/0
+             ]).
 
 -type new_msg_ret() :: {'ok', kapps_call:call()} | {'error', kapps_call:call(), kz_term:text()}.
 %% Result of storing message. If it's not successful element 3 of tuple has the error message.

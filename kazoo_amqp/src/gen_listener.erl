@@ -229,7 +229,7 @@
 -ifdef(TEST).
 %% cause the server to crash
 -export([crash/1]).
--spec crash(kz_term:server_ref()) -> 'ok'.
+-spec crash(kz_types:server_ref()) -> 'ok'.
 crash(Server) ->
     gen_server:cast(Server, 'crash').
 -endif.
