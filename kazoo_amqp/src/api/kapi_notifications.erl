@@ -609,6 +609,7 @@ email_invite_definition() ->
                                                             ,<<"Guests">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Link">>
+                                                            ,<<"Conference-Participant-Pins">>
                                                             | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2
@@ -619,7 +620,7 @@ email_invite_definition() ->
                 ,{<<"Conference-Name">>, fun is_binary/1}
                 ,{<<"Conference-Link">>, fun is_binary/1}
                 ,{<<"Conference-Call-In-Numbers">>, fun kz_term:is_ne_list/1}
-                ,{<<"Conference-Participant-Pins">>, fun kz_term:is_ne_list/1}
+                ,{<<"Conference-Participant-Pins">>, fun erlang:is_list/1}
                 ,{<<"Invite-Message">>, fun is_binary/1}
                 ,{<<"Guests">>, fun kz_term:is_ne_list/1}
                 ]
