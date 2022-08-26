@@ -29,8 +29,11 @@
             "type": "string"
         },
         "Conference-Participant-Pins": {
+            "items": {
+                "type": "string"
+            },
             "minItems": 1,
-            "type": "string"
+            "type": "array"
         },
         "Event-Category": {
             "enum": [
