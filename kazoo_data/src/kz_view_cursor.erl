@@ -82,7 +82,6 @@
 
 -type result() :: kz_either:either(kz_view:error(), {cursor(), kz_view:result_value()} | 'cursor_exhausted').
 
-
 -type user_fold_fun() :: fun((Result::kz_view:result_value(), Acc::term()) -> user_fold_ret()).
 -type user_fold_ret() :: kz_either:either({Error::term(), Acc::term()}, Acc::term()) |
                          {'stop', Acc::term()} |
@@ -145,8 +144,16 @@ rest(#{}=Cursor) -> get_more(Cursor, 'infinity').
 %% @end
 %%------------------------------------------------------------------------------
 -spec take(Cursor::cursor(), Limit::kz_view:limit()) -> result().
-take(#{}=Cursor, Limit) ->
-    get_more(Cursor, Limit).
+take(#{page_size := PageSize}=Cursor, Limit) ->
+    %% FIXME: If Limit > PageSize the limit will be set as PageSize - CursorSize.
+    %% Maybe set page_size to infinity so we only use Limit?
+    %% {@see page_limit/3}
+    case get_more(Cursor#{}, Limit) of
+        {'ok', {NewCursor, Result}} ->
+            {'ok', {NewCursor#{page_size => PageSize}, Result}};
+        {'ok', 'cursor_exhausted'}=Exhausted -> Exhausted;
+        {'error', _}=Error -> Error
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Compute the total number of result object client-side by fetching and
@@ -158,7 +165,7 @@ it_count(#{batch_size := Limit}=Cursor) -> it_count(Cursor, Limit).
 
 -spec it_count(Cursor::cursor(), Limit::kz_view:limit()) -> kz_either:either(kz_view:error(), non_neg_integer()).
 it_count(#{}=Cursor, Limit) ->
-    case get_more(Cursor, Limit) of
+    case take(Cursor, Limit) of
         {'ok', {_, Result}} -> length(Result);
         {'ok', 'cursor_exhausted'} -> 0;
         {'error', _}=Error -> Error
@@ -506,6 +513,7 @@ page_limit(PageSize, PageSize, TotalRows) ->
 page_limit(PageSize, Limit, TotalRows) when Limit < (PageSize - TotalRows) ->
     Limit;
 %% limit is bigger than page_size, using page_size
+%% FIXME: this will break requested limit size if we are using take/2 and have a limit bigger than PageSize
 page_limit(PageSize, _Limit, TotalRows) ->
     PageSize - TotalRows.
 
