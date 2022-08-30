@@ -1,6 +1,7 @@
 ---
-name: kazoo
+name: kazoo-core
 base_branch: origin/5.1
+exposure: private
 base_core:
 template: kazoo-core.spec.tmpl
 metapackage:
