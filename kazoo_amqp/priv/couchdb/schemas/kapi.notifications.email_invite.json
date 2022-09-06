@@ -28,6 +28,12 @@
         "Conference-Name": {
             "type": "string"
         },
+        "Conference-Numbers": {
+            "items": {
+                "type": "string"
+            },
+            "type": "array"
+        },
         "Conference-Participant-Pins": {
             "items": {
                 "type": "string"
