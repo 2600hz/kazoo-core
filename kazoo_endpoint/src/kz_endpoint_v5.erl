@@ -437,7 +437,7 @@ merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
             AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
             OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
             Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kz_json:is_true([Key, <<"enabled">>], Merged) of
+            case kz_json:is_true(<<"enabled">>, Merged) of
                 'true' -> kz_json:set_value(Key, Merged, Endpoint);
                 'false' -> Endpoint
             end
@@ -450,7 +450,7 @@ merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
             AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
             OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
             Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kz_json:is_true([Key, <<"enabled">>], Merged) of
+            case kz_json:is_true(<<"enabled">>, Merged) of
                 'true' -> kz_json:set_value(Key, Merged, Endpoint);
                 'false' -> Endpoint
             end
