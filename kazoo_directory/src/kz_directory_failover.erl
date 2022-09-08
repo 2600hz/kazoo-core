@@ -23,9 +23,21 @@
 -spec failover(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_object().
 failover(EndpointId, AccountId, Endpoint) ->
     case is_call_failover_enabled(Endpoint) of
-        'false' -> 'undefined';
+        'false' -> maybe_legacy_failover(EndpointId, AccountId, Endpoint);
         'true' -> build_failover(EndpointId, AccountId, Endpoint)
     end.
+
+-spec maybe_legacy_failover(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_object().
+maybe_legacy_failover(EndpointId, AccountId, Endpoint) ->
+    CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
+    case kz_json:is_true(<<"failover">>, CallForward) of
+        false -> undefined;
+        true -> build_legacy_failover(EndpointId, AccountId, Endpoint, CallForward)
+    end.
+
+build_legacy_failover(EndpointId, AccountId, Endpoint, CallForward) ->
+    EP = kz_json:set_value(<<"call_failover">>, CallForward, kz_json:delete_key(<<"call_forward">>, Endpoint)),
+    build_failover(EndpointId, AccountId, EP).
 
 -spec is_call_failover_enabled(kz_json:object()) -> boolean().
 is_call_failover_enabled(Endpoint) ->
