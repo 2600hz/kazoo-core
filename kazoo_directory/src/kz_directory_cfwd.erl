@@ -98,7 +98,7 @@ call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilab
             ,{<<"Confirm-Cancel-Timeout">>, 'true'}
             ,{<<"Confirm-Read-Timeout">>, ?CONFIRM_READ_TIMEOUT_SEC * ?MILLISECONDS_IN_SECOND}
             ,{<<"Confirm-Play-Count">>, ?CONFIRM_PLAY_COUNT}
-            ,{<<"Confirm-File">>, kzd_endpoint:get_prompt_url(Endpoint, <<"ivr-group_confirm">>)}
+            ,{<<"Confirm-File">>, kzd_endpoint:get_prompt(Endpoint, <<"ivr-group_confirm">>)}
             ,{<<"Require-Ignore-Early-Media">>, 'true'}
             ,{<<"Require-Fail-On-Single-Reject">>, cfw_single_reject()}
             ]
