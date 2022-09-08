@@ -1,6 +1,6 @@
 -ifndef(KAZOO_JSON_HRL).
 
--include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include("kz_types.hrl").
 
 %% How do we wrap proplists to denote they're json objects?
 %% -define(JSON_WRAPPER(Proplist), {struct, Proplist}).
@@ -71,7 +71,13 @@
 -type json_number() :: integer() | float().
 %% Denotes number in JSON.
 
--type json_proplist() :: [{key(), json_term()}].
+-type json_kv() :: {key(), json_term()}.
+%% Denotes JSON KV Erlang representation.
+
+-type json_proplist() :: [json_kv()].
+%% Denotes proplist of JSON object Erlang representation.
+
+-type json_ne_proplist() :: [json_kv(),...].
 %% Denotes proplist of JSON object Erlang representation.
 
 -ifdef(PROPER).
@@ -81,8 +87,14 @@
 %% Denotes JSON object Erlang representation, {@link json_proplist} wrapped in `{}'.
 -endif.
 
+-type ne_map() :: #{any() := any()}.
+-type ne_object() :: ?JSON_WRAPPER(json_ne_proplist()) | ne_map().
+
 -type objects() :: [object()].
 %% Denotes a list of {@link object()}.
+
+-type ne_objects() :: [ne_object(),...].
+%% Denotes a non empty list of {@link object()}.
 
 %% Denotes a JSON of flatten version of JSON proplist, same as {@link flat_proplist()} but wrapped in `{}'.
 -type flat_object() :: ?JSON_WRAPPER(flat_proplist()).

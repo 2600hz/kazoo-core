@@ -109,6 +109,9 @@ maybe_cached_hotdesk_ids(Props, JObj, AccountDb) ->
         OwnerIds -> lists:foldl(fun(Id, P) -> [{'db', AccountDb, Id}|P] end, Props, OwnerIds)
     end.
 
+-spec tags(kz_json:object()) -> kz_term:api_ne_objects().
+tags(Endpoint) -> kzd_endpoint:tags(Endpoint).
+
 -spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
 build(EndpointId, AccountId, Endpoint, Options, Module) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options, Module),
@@ -130,6 +133,7 @@ build(EndpointId, AccountId, Endpoint, Options, Module) ->
            ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
            ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
            ,{<<"Endpoint-DND">>, dnd(Endpoint)}
+           ,{<<"Endpoint-Tag-Rules">>, tags(Endpoint)}
            ],
     Profile = [{<<"Endpoint-Type">>, <<"device">>}
               ,{<<"Domain-Name">>, AccountId}
@@ -187,15 +191,12 @@ maybe_endpoint_type_is_push(Endpoint) ->
 
 -spec get_endpoint_type_property(kz_json:object()) -> kz_term:api_ne_binary().
 get_endpoint_type_property(Endpoint) ->
-    kz_json:get_first_defined([<<"endpoint_type">>
-                              ,<<"device_type">>
-                              ]
-                             ,Endpoint
-                             ).
+    kz_json:get_ne_binary_value(<<"device_type">>, Endpoint, <<"sip_device">>).
 
 -spec convert_endpoint_type(kz_term:ne_binary()) -> kz_term:api_ne_binary().
 convert_endpoint_type(<<"push">>) -> <<"push">>;
 convert_endpoint_type(<<"sip_", _/binary>>) -> <<"sip">>;
+convert_endpoint_type(<<"sip">>) -> <<"sip">>;
 convert_endpoint_type(<<"smartphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"softphone">>) -> <<"sip">>;
 convert_endpoint_type(<<"cellphone">>) -> <<"sip">>;
@@ -213,7 +214,7 @@ maybe_guess_endpoint_type(Endpoint) ->
     case kapps_config:get_is_true(?CONFIG_CAT, <<"restrict_to_known_types">>, 'false') of
         'false' -> guess_endpoint_type(Endpoint);
         'true' ->
-            lager:info("unknown endpoint type and callflows restricted to known types", []),
+            lager:info("unknown endpoint type and callflows restricted to known types"),
             <<"unknown">>
     end.
 

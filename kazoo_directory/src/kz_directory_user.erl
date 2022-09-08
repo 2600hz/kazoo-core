@@ -87,6 +87,9 @@ cache_origin(EndpointId, AccountId, Profile) ->
                ],
     lists:foldl(fun(F, P) -> F(P) end, [], Routines).
 
+-spec tags(kz_json:object()) -> kz_term:api_ne_objects().
+tags(Endpoint) -> kzd_endpoint:tags(Endpoint).
+
 -spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
 build(EndpointId, AccountId, Endpoint, Options) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options),
@@ -107,6 +110,7 @@ build(EndpointId, AccountId, Endpoint, Options) ->
            ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
            ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
            ,{<<"Endpoint-DND">>, dnd(Endpoint)}
+           ,{<<"Endpoint-Tag-Rules">>, tags(Endpoint)}
            ],
     Profile = [{<<"Endpoint-Type">>, <<"user">>}
               ,{<<"Domain-Name">>, AccountId}
