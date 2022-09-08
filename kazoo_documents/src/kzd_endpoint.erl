@@ -19,6 +19,7 @@
 -export([presence_id/1]).
 -export([call_forward/1, call_forward/2]).
 -export([call_failover/1, call_failover/2]).
+-export([tags/1, tags/2]).
 
 -export([build_options/1]).
 
@@ -122,3 +123,11 @@ call_forward(Endpoint) ->
 -spec call_forward(endpoint(), Default) -> kz_json:object() | Default.
 call_forward(Endpoint, Default) ->
     kz_json:get_json_value([<<"call_forward">>], Endpoint, Default).
+
+-spec tags(endpoint()) -> kz_term:api_objects().
+tags(Endpoint) ->
+    tags(Endpoint, 'undefined').
+
+-spec tags(endpoint(), Default) -> kz_json:ne_objects() | Default.
+tags(Endpoint, Default) ->
+    kz_json:get_ne_json_list([<<"tags">>], Endpoint, Default).

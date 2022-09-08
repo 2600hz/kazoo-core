@@ -30,6 +30,8 @@
 -export([get_atom_value/2, get_atom_value/3]).
 -export([get_string_value/2, get_string_value/3
         ,get_list_value/2, get_list_value/3
+        ,get_json_list/2, get_json_list/3
+        ,get_ne_json_list/2, get_ne_json_list/3
         ,get_ne_binaries/2, get_ne_binaries/3
         ,get_ne_binary_or_binaries/2, get_ne_binary_or_binaries/3
         ]).
@@ -139,12 +141,16 @@
              ,flat_object/0, flat_objects/0
              ,flat_proplist/0
              ,get_key/0
+             ,json_kv/0
              ,json_array/0
              ,json_proplist/0
+             ,json_ne_proplist/0
              ,json_string/0
              ,json_term/0, api_json_term/0, json_terms/0
              ,key/0, keys/0
              ,object/0, objects/0
+             ,ne_object/0, ne_objects/0
+             ,ne_map/0
              ,path/0, paths/0
 
              ,exec_fun/0
@@ -1067,6 +1073,40 @@ get_json_value(Key, ?JSON_WRAPPER(_)=JObj, Default) ->
         'undefined' -> Default;
         ?JSON_WRAPPER(_)=V -> V;
         _ -> Default
+    end.
+
+-spec get_json_list(get_key(), object() | objects()) -> kz_term:api_objects().
+get_json_list(Key, JObj) ->
+    get_json_list(Key, JObj, 'undefined').
+
+-spec get_json_list(get_key(), object() | objects(), Default) -> Default | objects().
+get_json_list(Key, JObj, Default) ->
+    case get_value(Key, JObj) of
+        'undefined' -> Default;
+        List when is_list(List) -> lists:filter(fun is_json_object/1, List);
+        _Else -> Default
+    end.
+
+-spec get_ne_json_list(get_key(), object() | objects()) -> kz_term:api_ne_objects().
+get_ne_json_list(Key, JObj) ->
+    get_ne_json_list(Key, JObj, 'undefined').
+
+-spec get_ne_json_list(get_key(), object() | objects(), Default) -> Default | ne_objects().
+get_ne_json_list(Key, JObj, Default) ->
+    case get_json_list(Key, JObj, Default) of
+        'undefined' -> Default;
+        Default -> Default;
+        [] -> Default;
+        List -> filter_json_list(List, fun is_not_empty/1, Default)
+    end.
+
+-type filter_json_list_fun() :: fun((term()) -> boolean()).
+
+-spec filter_json_list(objects(), filter_json_list_fun(), Default) -> Default | ne_objects().
+filter_json_list(List, Fun, Default) ->
+    case lists:filter(Fun, List) of
+        [] -> Default;
+        Objects -> Objects
     end.
 
 -spec get_ne_json_value(get_key(), object()) -> kz_term:api_object().
