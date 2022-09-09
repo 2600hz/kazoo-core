@@ -308,14 +308,14 @@ maybe_get_account_default_number(Number, Name, <<AccountId/binary>>, AccountDoc)
             {DefaultNumber, DefaultName};
         'false' ->
             ?LOG_DEBUG("default number ~s not valid, trying assigned numbers", [DefaultNumber]),
-            maybe_get_assigned_number(Number, Name, kzs_util:format_account_db(AccountId))
+            maybe_get_assigned_number(Number, Name, AccountId)
     end;
 maybe_get_account_default_number(Number, Name, Call, AccountDoc) ->
     maybe_get_account_default_number(Number, Name, kapps_call:account_id(Call), AccountDoc).
 
 -spec maybe_get_assigned_number(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()|kapps_call:call()) -> cid().
-maybe_get_assigned_number(CandidateNumber, Name, <<AccountDb/binary>>) ->
-    case knm_numbers:account_listing(AccountDb) of
+maybe_get_assigned_number(CandidateNumber, Name, <<Account/binary>>) ->
+    case knm_numbers:account_listing(Account) of
         [_|_] = NumbersList ->
             Numbers = [Num
                        || {Num, JObj} <- NumbersList,
@@ -326,11 +326,11 @@ maybe_get_assigned_number(CandidateNumber, Name, <<AccountDb/binary>>) ->
                     ?LOG_DEBUG("using assigned number <~s> ~s", [Name, CandidateNumber]),
                     {CandidateNumber, Name};
                 'false' ->
-                    maybe_get_assigned_numbers(AccountDb, Numbers, Name)
+                    maybe_get_assigned_numbers(Account, Numbers, Name)
             end;
         _Else ->
             ?LOG_DEBUG("failed to list account numbers: ~p", [_Else]),
-            Number = default_cid_number(AccountDb),
+            Number = default_cid_number(Account),
             ?LOG_WARNING("no numbers available, proceed with <~s> ~s", [Name, Number]),
             {Number, Name}
     end;
