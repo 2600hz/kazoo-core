@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2021, 2600Hz
+%%% @copyright (C) 2014-2022, 2600Hz
 %%% @doc Module for interacting with JSON schema docs
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -12,7 +12,7 @@
 
 -export([add_defaults/2
         ,load/1, load/2
-        ,fload/1
+        ,fload/1, fload/2
         ,flush/0, flush/1
         ,diff/0, diff/1
         ,diff_schema/1, diff_schema/2
@@ -42,6 +42,8 @@
 -include_lib("kazoo_documents/include/kazoo_documents.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
+
+-elvis([{elvis_style, no_debug_call, disable}]).
 
 -type extra_validator() :: fun((jesse:json_term(), jesse_state:state()) -> jesse_state:state()).
 -type validator_option() :: 'use_defaults' | 'apply_defaults_to_empty_objects'.
@@ -107,29 +109,37 @@ load(<<SchemaId/binary>>, Options) ->
 load(Schema, Options) -> load(kz_term:to_binary(Schema), Options).
 -endif.
 
--spec fload(kz_term:ne_binary() | string()) -> {'ok', kz_json:object()} |
-          {'error', 'not_found' | file:posix()}.
-fload(<<"./", Schema/binary>>) -> fload(Schema);
-fload(<<"file://", Schema/binary>>) -> fload(Schema);
-fload(<<Schema/binary>>) ->
-    case filelib:is_regular(Schema) of
-        'true' -> fload_file(Schema);
-        'false' -> find_and_fload(Schema)
-    end;
-fload(Schema) -> fload(kz_term:to_binary(Schema)).
-
--spec find_and_fload(kz_term:ne_binary()) ->
+-spec fload(kz_term:ne_binary() | string()) ->
           {'ok', kz_json:object()} |
           {'error', 'not_found' | file:posix()}.
-find_and_fload(Schema) ->
-    PrivDir = code:priv_dir('crossbar'),
+fload(Schema) ->
+    fload(Schema, 'crossbar').
+
+-spec fload(kz_term:ne_binary() | string(), atom()) ->
+          {'ok', kz_json:object()} |
+          {'error', 'not_found' | file:posix()}.
+fload(<<"./", Schema/binary>>, App) -> fload(Schema, App);
+fload(<<"file://", Schema/binary>>, App) -> fload(Schema, App);
+fload(<<Schema/binary>>, App) ->
+    case filelib:is_regular(Schema) of
+        'true' -> fload_file(Schema);
+        'false' -> find_and_fload(Schema, App)
+    end;
+fload(Schema, App) -> fload(kz_term:to_binary(Schema), App).
+
+-spec find_and_fload(kz_term:ne_binary(), atom()) ->
+          {'ok', kz_json:object()} |
+          {'error', 'not_found' | file:posix()}.
+find_and_fload(Schema, App) ->
+    PrivDir = code:priv_dir(App),
     SchemaPath = filename:join([PrivDir, "couchdb", "schemas", maybe_add_ext(Schema)]),
     case filelib:is_regular(SchemaPath) of
         'true' -> fload_file(SchemaPath);
         'false'-> {'error', 'not_found'}
     end.
 
--spec fload_file(kz_term:ne_binary()) -> {'ok', kz_json:object()} |
+-spec fload_file(kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
           {'error', 'not_found' | file:posix()}.
 fload_file(SchemaPath) ->
     Schema = filename:basename(SchemaPath, ".json"),
