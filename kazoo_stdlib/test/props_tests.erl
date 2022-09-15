@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Mostly a drop-in replacement and extension of the proplists module,
 %%% but using the lists module to implement
 %%%
@@ -59,14 +59,35 @@ filter_undefined_test_() ->
     ,?_assertEqual([{<<"pouet">>, 'null'}], props:filter_undefined([{<<"pouet">>, 'null'}]))
     ].
 
+partition_test_() ->
+    [?_assertEqual({[{'a', 'true'}], [{'b', 'false'}]}
+                  ,props:partition(fun is_true/1
+                                  ,[{'b', 'false'}, {'a', 'true'}]
+                                  )
+                  )
+    ,?_assertEqual({[{'a', 'true'}], []}
+                  ,props:partition(fun is_true/1
+                                  ,[{'a', 'true'}]
+                                  )
+                  )
+    ,?_assertEqual({[], [{'b', 'false'}]}
+                  ,props:partition(fun is_true/1
+                                  ,[{'b', 'false'}]
+                                  )
+                  )
+    ,?_assertEqual({[], []}, props:partition(fun is_true/1, []))
+    ].
+
+is_true({_, Bool}) -> Bool.
+
 unique_test_() ->
     L = [{'a', 'b'}, {'a', 'b'}, {'a', 'c'}, {'b','c'}, {'b','d'}],
     [?_assertEqual([{'a', 'b'}, {'b', 'c'}], props:unique(L))
     ,?_assertEqual([], props:unique([]))
-    ,?_assertEqual([{module_name, <<"my_module">>}]
-                  ,props:unique([{module_name, <<"my_module">>}
-                                ,{module_name, <<"blaaa">>}
-                                ,{module_name, false}
+    ,?_assertEqual([{'module_name', <<"my_module">>}]
+                  ,props:unique([{'module_name', <<"my_module">>}
+                                ,{'module_name', <<"blaaa">>}
+                                ,{'module_name', 'false'}
                                 ])
                   )
     ].
@@ -121,26 +142,26 @@ is_defined_test_() ->
     ].
 
 bools_test_() ->
-    Props1 = [{key, undefined}],
-    Props2 = [{key, <<"undefined">>}],
-    Props3 = [{key, <<"false">>}],
-    Props4 = [{key, false}],
-    Props5 = [{key, <<"true">>}],
-    Props6 = [{key, true}],
-    [?_assertEqual(undefined, props:is_true(key, []))
-    ,?_assertEqual(undefined, props:is_true(key, Props1))
-    ,?_assertEqual(false, props:is_true(key, Props2))
-    ,?_assertEqual(false, props:is_true(key, Props3))
-    ,?_assertEqual(false, props:is_true(key, Props4))
-    ,?_assertEqual(true, props:is_true(key, Props5))
-    ,?_assertEqual(true, props:is_true(key, Props6))
-    ,?_assertEqual(undefined, props:is_false(key, []))
-    ,?_assertEqual(undefined, props:is_false(key, Props1))
-    ,?_assertEqual(false, props:is_false(key, Props2))
-    ,?_assertEqual(true, props:is_false(key, Props3))
-    ,?_assertEqual(true, props:is_false(key, Props4))
-    ,?_assertEqual(false, props:is_false(key, Props5))
-    ,?_assertEqual(false, props:is_false(key, Props6))
+    Props1 = [{'key', 'undefined'}],
+    Props2 = [{'key', <<"undefined">>}],
+    Props3 = [{'key', <<"false">>}],
+    Props4 = [{'key', 'false'}],
+    Props5 = [{'key', <<"true">>}],
+    Props6 = [{'key', 'true'}],
+    [?_assertEqual('undefined', props:is_true('key', []))
+    ,?_assertEqual('undefined', props:is_true('key', Props1))
+    ,?_assertEqual('false', props:is_true('key', Props2))
+    ,?_assertEqual('false', props:is_true('key', Props3))
+    ,?_assertEqual('false', props:is_true('key', Props4))
+    ,?_assertEqual('true', props:is_true('key', Props5))
+    ,?_assertEqual('true', props:is_true('key', Props6))
+    ,?_assertEqual('undefined', props:is_false('key', []))
+    ,?_assertEqual('undefined', props:is_false('key', Props1))
+    ,?_assertEqual('false', props:is_false('key', Props2))
+    ,?_assertEqual('true', props:is_false('key', Props3))
+    ,?_assertEqual('true', props:is_false('key', Props4))
+    ,?_assertEqual('false', props:is_false('key', Props5))
+    ,?_assertEqual('false', props:is_false('key', Props6))
     ].
 
 
