@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,6 @@
 -export([call_restriction/1, call_restriction/2, set_call_restriction/2]).
 -export([call_waiting/1, call_waiting/2, set_call_waiting/2]).
 -export([caller_id/1, caller_id/2, set_caller_id/2]).
--export([caller_id_options/1, caller_id_options/2, set_caller_id_options/2]).
 -export([contact_list/1, contact_list/2, set_contact_list/2]).
 -export([contact_list_exclude/1, contact_list_exclude/2, set_contact_list_exclude/2]).
 -export([device_type/1, device_type/2, set_device_type/2]).
@@ -353,18 +352,6 @@ caller_id(Doc, Default) ->
 -spec set_caller_id(doc(), kz_json:object()) -> doc().
 set_caller_id(Doc, CallerId) ->
     kz_json:set_value([<<"caller_id">>], CallerId, Doc).
-
--spec caller_id_options(doc()) -> kz_term:api_object().
-caller_id_options(Doc) ->
-    caller_id_options(Doc, 'undefined').
-
--spec caller_id_options(doc(), Default) -> kz_json:object() | Default.
-caller_id_options(Doc, Default) ->
-    kz_json:get_json_value([<<"caller_id_options">>], Doc, Default).
-
--spec set_caller_id_options(doc(), kz_json:object()) -> doc().
-set_caller_id_options(Doc, CallerIdOptions) ->
-    kz_json:set_value([<<"caller_id_options">>], CallerIdOptions, Doc).
 
 -spec contact_list(doc()) -> kz_json:object().
 contact_list(Doc) ->
