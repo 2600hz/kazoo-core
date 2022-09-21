@@ -125,6 +125,8 @@
 
 -deprecated({'ensure_saved', '_', 'eventually'}).
 
+-elvis([{'elvis_style', 'god_modules', 'disable'}]).
+
 -include("kz_data.hrl").
 
 -type database_name() :: kz_term:ne_binary().
@@ -1660,7 +1662,7 @@ register_views(App, Views) ->
 -spec register_view(atom(), view_listing() | string() | kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
           data_error().
-register_view(App, {_, ViewJObj}=View) ->
+register_view(App, {_DocId, ViewJObj}=View) ->
     Validate = validate_view_map(kz_json:get_ne_json_value(<<"kazoo">>, ViewJObj)),
     maybe_register_view(View, App, Validate);
 register_view(App, ViewName) ->

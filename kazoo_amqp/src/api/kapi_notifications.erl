@@ -12,7 +12,10 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_notifications).
 
--export([bind_q/2, unbind_q/2]).
+-export([bind_q/2, unbind_q/2
+        ,find_publisher/1
+        ,bind_publisher/3, unbind_publisher/3
+        ]).
 -export([declare_exchanges/0]).
 
 -export([api_definitions/0, api_definition/1]).
@@ -230,6 +233,12 @@
         ,webhook_disabled_v/1
         ,publish_webhook_disabled/1
         ,publish_webhook_disabled/2
+        ]).
+%% Ephemeral report notifications
+-export([ephemeral_report_generated/1
+        ,ephemeral_report_generated_v/1
+        ,publish_ephemeral_report_generated/1
+        ,publish_ephemeral_report_generated/2
         ]).
 %% published on completion of notification
 -export([notify_update/1
@@ -1776,6 +1785,32 @@ webhook_disabled_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+%%------------------------------------------------------------------------------
+%% @doc Notification Get Ephemeral Report Generated API definition.
+%% @end
+%%------------------------------------------------------------------------------
+-spec ephemeral_report_generated_definition() -> kapi_definition:api().
+ephemeral_report_generated_definition() ->
+    EventName = <<"ephemeral_report_generated">>,
+    Category = <<"ephemeral">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Ephemeral Report Generated">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"This event is triggered when a ephemeral report is generated">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun ephemeral_report_generated/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun ephemeral_report_generated_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_ephemeral_report_generated/1}
+              ,{fun kapi_definition:set_binding/2, ?BINDING_STRING(Category, <<"created">>)}
+              ,{fun kapi_definition:set_restrict_to/2, 'ephemeral_report_generated'}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>]}
+              ,{fun kapi_definition:set_optional_headers/2, ?DEFAULT_OPTIONAL_HEADERS}
+              ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
 %%%=============================================================================
 %%% Customer Defined Notifications Definitions
 %%%=============================================================================
@@ -1913,6 +1948,7 @@ api_definitions() ->
     ,voicemail_saved_definition()
     ,webhook_definition()
     ,webhook_disabled_definition()
+    ,ephemeral_report_generated_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -2007,6 +2043,8 @@ api_definition(<<"webhook">>) ->
     webhook_definition();
 api_definition(<<"webhook_disabled">>) ->
     webhook_disabled_definition();
+api_definition(<<"ephemeral_report_generated">>) ->
+    ephemeral_report_generated_definition();
 api_definition(<<"cf_notification">>) ->
     cf_notification_definition();
 api_definition(<<"number_feature_manual_action">>) ->
@@ -3291,6 +3329,35 @@ publish_webhook_disabled(API, ContentType) ->
     kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
 
 %%%=============================================================================
+%%% Ephemeral Report Generated Functions
+%%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc Takes proplist, creates JSON string and publish it on AMQP.
+%% @end
+%%------------------------------------------------------------------------------
+-spec ephemeral_report_generated(kz_term:api_terms()) -> api_formatter_return().
+ephemeral_report_generated(Prop) ->
+    kapi_definition:build_message(Prop, ephemeral_report_generated_definition()).
+
+-spec ephemeral_report_generated_v(kz_term:api_terms()) -> boolean().
+ephemeral_report_generated_v(Prop) ->
+    kapi_definition:validate(Prop, ephemeral_report_generated_definition()).
+
+-spec publish_ephemeral_report_generated(kz_term:api_terms()) -> 'ok'.
+publish_ephemeral_report_generated(JObj) ->
+    publish_ephemeral_report_generated(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_ephemeral_report_generated(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_ephemeral_report_generated(API, ContentType) ->
+    Definition = ephemeral_report_generated_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
+
+%%%=============================================================================
 %%% Customer Defined Notifications Definitions
 %%%=============================================================================
 
@@ -3347,3 +3414,24 @@ publish_number_feature_manual_action(API, ContentType) ->
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
+
+-spec find_publisher(kz_term:ne_binary()) -> [{module(), atom()} | fun((kz_term:api_terms()) -> 'ok')].
+find_publisher(TemplateId) ->
+    [PubFun
+     || PubFun <- kazoo_bindings:map(binding_kapi_publisher(TemplateId), [TemplateId]),
+        (is_tuple(PubFun)
+         andalso erlang:tuple_size(PubFun) =:= 2
+        )
+            orelse is_function(PubFun, 1)
+    ].
+
+binding_kapi_publisher(TemplateId) ->
+    <<"kapi.publisher.", TemplateId/binary>>.
+
+-spec bind_publisher(kz_term:ne_binary(), module(), atom()) -> kazoo_bindigs:bind_result().
+bind_publisher(TemplateId, M, F) ->
+    kazoo_bindings:bind(binding_kapi_publisher(TemplateId), M, F).
+
+-spec unbind_publisher(kz_term:ne_binary(), module(), atom()) -> kazoo_bindigs:unbind_result().
+unbind_publisher(TemplateId, M, F) ->
+    kazoo_bindings:unbind(binding_kapi_publisher(TemplateId), M, F).

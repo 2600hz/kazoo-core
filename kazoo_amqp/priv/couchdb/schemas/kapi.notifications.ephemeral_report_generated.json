@@ -1,0 +1,57 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.notifications.ephemeral_report_generated",
+    "description": "AMQP API for notifications.ephemeral_report_generated",
+    "properties": {
+        "Account-DB": {
+            "type": "string"
+        },
+        "Account-ID": {
+            "type": "string"
+        },
+        "Attachment-URL": {
+            "type": "string"
+        },
+        "Bcc": {
+            "type": "string"
+        },
+        "Cc": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "notification"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "ephemeral_report_generated"
+            ]
+        },
+        "From": {
+            "type": "string"
+        },
+        "HTML": {
+            "type": "string"
+        },
+        "Preview": {
+            "type": "boolean"
+        },
+        "Reply-To": {
+            "type": "string"
+        },
+        "Subject": {
+            "type": "string"
+        },
+        "Text": {
+            "type": "string"
+        },
+        "To": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Account-ID"
+    ],
+    "type": "object"
+}
