@@ -24,6 +24,7 @@
         ,maybe_start_metaflow/2
         ,encryption_method_map/2
         ,get_sip_realm/2, get_sip_realm/3
+        ,merge_call_recording/1
         ]).
 
 -ifdef(TEST).
