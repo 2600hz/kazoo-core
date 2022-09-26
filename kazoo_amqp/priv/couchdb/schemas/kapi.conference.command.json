@@ -58,6 +58,9 @@
         "Custom-Channel-Vars": {
             "type": "object"
         },
+        "Custom-Conference-Vars": {
+            "type": "object"
+        },
         "Endless-Playback": {
             "type": "string"
         },
