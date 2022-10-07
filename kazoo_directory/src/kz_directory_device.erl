@@ -348,12 +348,35 @@ enforce_security(Endpoint, CCVs) ->
 encryption_flags(Endpoint, CCVs) ->
     kz_endpoint:encryption_method_map(CCVs, Endpoint).
 
+-spec ringtone(kz_json:object(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
+ringtone(Endpoint, Key) ->
+    case kz_json:get_ne_binary_value([<<"ringtones">>, Key], Endpoint) of
+        undefined -> undefined;
+        RingTone -> <<"${first-of(alert_info|#", RingTone/binary, ")}">>
+    end.
+
+-spec ringtones(kz_json:object(), kz_term:ne_binaries()) -> kz_json:object().
+ringtones(Endpoint, Keys) ->
+    lists:foldl(ringtones_fold_fun(Endpoint), [], Keys).
+
+-spec ringtones_fold_fun(kz_json:object()) -> fun((kz_term:ne_binary(), kz_term:proplist()) -> kz_term:proplist()).
+ringtones_fold_fun(Endpoint) ->
+    fun(Key, Acc) ->
+            case ringtone(Endpoint, kz_term:to_lower_binary(Key)) of
+                undefined -> Acc;
+                RingTone -> [{[Key, <<"Alert-Info">>], RingTone} | Acc]
+            end
+    end.
+
+-spec inception_context_keys() -> kz_term:ne_binaries().
+inception_context_keys() -> [<<"Internal">>, <<"External">>].
+
 -spec add_alert_info(kz_json:object(), kz_json:object()) -> kz_json:object().
 add_alert_info(Endpoint, CCVs) ->
-    AlertInfo = [{[<<"Internal">>, <<"Alert-Info">>], kz_json:get_value([<<"ringtones">>, <<"internal">>], Endpoint)}
-                ,{[<<"External">>, <<"Alert-Info">>], kz_json:get_value([<<"ringtones">>, <<"external">>], Endpoint)}
-                ],
-    kz_json:set_values(AlertInfo, CCVs).
+    case ringtones(Endpoint, inception_context_keys()) of
+        [] -> CCVs;
+        Values -> kz_json:set_values(Values, CCVs)
+    end.
 
 -spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), module()) -> kz_json:object().
 generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, _Module) ->
