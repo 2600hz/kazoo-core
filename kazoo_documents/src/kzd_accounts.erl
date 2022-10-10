@@ -58,7 +58,6 @@
 -export([zones/1, zones/2, set_zones/2]).
 -export([zones_home/1, zones_home/2, set_zones_home/2]).
 
-
 -export([type/0
         ,fetch/1, fetch/2
         ,fetch_name/1, fetch_realm/1
@@ -123,6 +122,8 @@
 
         ,is_unique_realm/2
         ]).
+
+-elvis([{'elvis_style', 'god_modules', 'disable'}]).
 
 -include("kz_documents.hrl").
 
@@ -435,7 +436,7 @@ set_notifications_first_occurrence(Doc, NotificationsFirstOccurrence) ->
 
 -spec notifications_first_occurrence_sent_initial_call(doc()) -> boolean().
 notifications_first_occurrence_sent_initial_call(Doc) ->
-    notifications_first_occurrence_sent_initial_call(Doc, false).
+    notifications_first_occurrence_sent_initial_call(Doc, 'false').
 
 -spec notifications_first_occurrence_sent_initial_call(doc(), Default) -> boolean() | Default.
 notifications_first_occurrence_sent_initial_call(Doc, Default) ->
@@ -447,7 +448,7 @@ set_notifications_first_occurrence_sent_initial_call(Doc, NotificationsFirstOccu
 
 -spec notifications_first_occurrence_sent_initial_registration(doc()) -> boolean().
 notifications_first_occurrence_sent_initial_registration(Doc) ->
-    notifications_first_occurrence_sent_initial_registration(Doc, false).
+    notifications_first_occurrence_sent_initial_registration(Doc, 'false').
 
 -spec notifications_first_occurrence_sent_initial_registration(doc(), Default) -> boolean() | Default.
 notifications_first_occurrence_sent_initial_registration(Doc, Default) ->
@@ -1407,6 +1408,7 @@ validate(ParentId, AccountId, ReqJObj) ->
                    ,fun cleanup_leaky_keys/2
                    ,fun validate_realm_is_unique/2
                    ,fun validate_account_name_is_unique/2
+                   ,fun maybe_set_enabled/2
                    ,fun(AID, Acc) ->  validate_schema(ParentId, AID, Acc) end
                    ,fun normalize_alphanum_name/2
                    ,fun validate_call_failover/2
@@ -1521,6 +1523,20 @@ validate_account_name_is_unique(AccountId, {Doc, Errors}) ->
                     ]),
             {Doc, [{[<<"name">>], <<"unique">>, Msg} | Errors]}
     end.
+
+maybe_set_enabled('undefined', {Doc, Errors}) ->
+    {Doc, Errors};
+maybe_set_enabled(AccountId, {Doc, Errors}) ->
+    maybe_set_enabled(AccountId, Doc, Errors, kz_json:is_true(<<"enabled">>, Doc, 'undefined')).
+
+%% when the request hasn't set 'enabled', import from existing doc to
+%% avoid schema validation forcing 'enabled' = true via the defaults
+maybe_set_enabled(AccountId, Doc, Errors, 'undefined') ->
+    {'ok', ExistingDoc} = fetch(AccountId),
+    IsEnabled = is_enabled(ExistingDoc),
+    {kz_json:set_value(<<"enabled">>, IsEnabled, Doc), Errors};
+maybe_set_enabled(_AccountId, Doc, Errors, _IsEnabled) ->
+    {Doc, Errors}.
 
 %%------------------------------------------------------------------------------
 %% @doc This function will determine if the account name is unique
