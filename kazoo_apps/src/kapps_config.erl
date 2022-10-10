@@ -1044,6 +1044,13 @@ fetch_category(Category, 'false') ->
         ,{{<<"crossbar">>, <<"token_auth_expiry">>}
          ,{<<"crossbar.auth">>, <<"token_auth_expiry_s">>}
          }
+        ,{{<<"crossbar.commland">>,  <<"base_url">>}
+          ,fun (FromId, _Node, FromSetting, <<"https://packages.2600hz.com/commland/dist/compatibility">>) ->
+                {FromId, FromSetting, <<"https://packages.2600hz.com/commland/dist/compatibility/stable">>};
+            (FromId, _Node, FromSetting, Value) ->
+                  {FromId, FromSetting, Value}
+           end
+         }
         ,{{<<"cb_modb">>, <<"maybe_archive_modbs">>}
          ,{<<"tasks">>, <<"should_archive_modbs">>}
          }
