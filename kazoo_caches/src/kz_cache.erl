@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc API interface to the cache system
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -22,6 +22,7 @@
 -export([filter_local/2, filter_erase_local/2]).
 -export([dump_local/1, dump_local/2]).
 -export([count_local/2, count_local/3, count_local/5]).
+-export([map_local/2]).
 
 -export([wait_for_key_local/2
         ,wait_for_key_local/3
@@ -45,6 +46,8 @@
                         {'channel_reconnect_flush', boolean()} |
                         {'flush_callback', flush_callback_fun()}.
 -type start_options() :: [start_option()].
+
+-type map_fun() :: fun((any(), any()) -> any()).
 
 -export_type([store_options/0
              ,start_options/0
@@ -177,6 +180,11 @@ count_local(Srv
            ,ValMatchHead, ValMatchCondition
            ) ->
     kz_cache_ets:count(Srv, KeyMatchHead, KeyMatchCondition, ValMatchHead, ValMatchCondition).
+
+%% @doc map a function(key, value) over the cache entries. order of entries is not specified
+-spec map_local(atom(), map_fun()) -> list().
+map_local(Srv, MapFun) when is_function(MapFun, 2) ->
+    [MapFun(Key, Value) || #cache_obj{key=Key, value=Value} <- ets:tab2list(Srv)].
 
 -spec display_cache_obj(cache_obj(), boolean(), kz_time:gregorian_seconds()) -> 'ok'.
 display_cache_obj(#cache_obj{key=Key
