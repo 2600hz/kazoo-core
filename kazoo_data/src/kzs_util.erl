@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc kazoo data utils
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -139,11 +139,11 @@ binding_db_classify(Database) ->
     Encoded = kz_amqp_util:encode(Database),
     <<"db.classify.", Encoded/binary>>.
 
--spec bind_db_classify(kz_term:ne_binary(), module(), atom()) -> any().
+-spec bind_db_classify(kz_term:ne_binary(), module(), atom()) -> kazoo_bindings:bind_result().
 bind_db_classify(Database, M, F) ->
     kazoo_bindings:bind(binding_db_classify(Database), M, F).
 
--spec unbind_db_classify(kz_term:ne_binary(), module(), atom()) -> any().
+-spec unbind_db_classify(kz_term:ne_binary(), module(), atom()) -> kazoo_bindings:unbind_result().
 unbind_db_classify(Database, M, F) ->
     kazoo_bindings:unbind(binding_db_classify(Database), M, F).
 
