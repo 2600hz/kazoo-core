@@ -328,6 +328,7 @@ account_tree_keys() ->
 attributes_keys() ->
     [<<"call_failover">>
     ,<<"call_forward">>
+    ,<<"call_limits">>
     ,<<"call_recording">>
     ,<<"call_restriction">>
     ,<<"call_waiting">>
@@ -508,6 +509,20 @@ merge_attribute(<<"outbound_flags">>, Account, Endpoint, Owner) ->
                             ,kzd_devices:outbound_dynamic_flags(Endpoint)
                             ]),
     kzd_devices:set_outbound_flags(Endpoint, Static, Dynamic);
+merge_attribute(<<"call_limits">> = _Key, Account, Endpoint, Owner) ->
+    EndpointAttr = kzd_endpoint:call_limits(Endpoint, kz_json:new()),
+    case kzd_call_limits:max_concurrent(EndpointAttr) of
+        'undefined' ->
+            AccountAttr = kzd_endpoint:call_limits(Account, kz_json:new()),
+            OwnerAttr = kzd_endpoint:call_limits(Owner, kz_json:new()),
+            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
+            case kzd_call_limits:max_concurrent(Merged) of
+                'undefined' -> Endpoint;
+                _ -> kzd_endpoint:set_call_limits(Endpoint, Merged)
+            end;
+        _Limit ->
+            Endpoint
+    end;
 merge_attribute(Key, Account, Endpoint, Owner) ->
     AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
     EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),

@@ -90,6 +90,10 @@ cache_origin(EndpointId, AccountId, Profile) ->
 -spec tags(kz_json:object()) -> kz_term:api_ne_objects().
 tags(Endpoint) -> kzd_endpoint:tags(Endpoint).
 
+-spec call_limit(kzd_endpoint:endpoint()) -> kz_term:api_integer().
+call_limit(Endpoint) ->
+    kzd_call_limits:max_concurrent(kzd_endpoint:call_limits(Endpoint, kz_json:new())).
+
 -spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
 build(EndpointId, AccountId, Endpoint, Options) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options),
@@ -111,6 +115,7 @@ build(EndpointId, AccountId, Endpoint, Options) ->
            ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
            ,{<<"Endpoint-DND">>, dnd(Endpoint)}
            ,{<<"Endpoint-Tag-Rules">>, tags(Endpoint)}
+           ,{<<"Endpoint-Call-Limit">>, call_limit(Endpoint)}
            ],
     Profile = [{<<"Endpoint-Type">>, <<"user">>}
               ,{<<"Domain-Name">>, AccountId}

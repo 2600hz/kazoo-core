@@ -18,6 +18,7 @@
 -export([put/3, put/4]).
 -export([keys_to_atoms/1, keys_to_atoms/2]).
 -export([exec/2]).
+-export([remove/2]).
 
 %% if you want specific merge functionality, first arg to merge/3
 -export([merge_left/2, merge_right/2]).
@@ -167,6 +168,14 @@ exec_fold({Fun, Arg}, Map)
 exec_fold({Fun, Arg1, Arg2}, Map)
   when is_function(Fun, 3) ->
     Fun(Map, Arg1, Arg2).
+
+-spec remove(term() | [term()], map()) -> map().
+remove([Key | Rem], Map) ->
+    remove(Rem, maps:remove(Key, Map));
+remove([], Map) ->
+    Map;
+remove(Key, Map) ->
+    remove([Key], Map).
 
 %%==============================================================================
 %% Internal functions

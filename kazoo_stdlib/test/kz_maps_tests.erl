@@ -32,3 +32,21 @@ horse_merge_right() ->
                 ,kz_maps:merge(fun kz_maps:merge_right/2, ?M1, ?M2)
                 ).
 -endif.
+
+
+remove_test_() ->
+    Map = #{key1 => value1
+           ,key2 => value2
+           ,key3 => value3
+           },
+
+    [{"Invalid key, map should not be modified"
+     ,?_assertEqual(Map, kz_maps:remove(invalid, Map))
+     }
+    ,{"Deleting a single key"
+     ,?_assertEqual(#{key2 => value2, key3 => value3}, kz_maps:remove(key1, Map))
+     }
+    ,{"Deleting more than one keys"
+     ,?_assertEqual(#{key3 => value3}, kz_maps:remove([key1, key2], Map))
+     }
+    ].
