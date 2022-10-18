@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -40,6 +40,7 @@ cache_test_() ->
                ,{"cache key for process", fun cache_key_for_process/0}
                ,{"count keys", fun count_keys/0}
                ,{"count keys and values", fun count_keys_values/0}
+               ,{"map keys and values", fun map_keys_values/0}
                ]
        end
       }
@@ -279,3 +280,10 @@ count_keys_values() ->
     ?assertEqual(1, kz_cache:count_local(?MODULE, '$1', {'>', '$1', 3}, 8, 'undefined')),
     ?assertEqual(1, kz_cache:count_local(?MODULE, 2, 4)),
     ?assertEqual(1, kz_cache:count_local(?MODULE, '_', 'undefined', '$1', {'=:=', '$1', 12})).
+
+map_keys_values() ->
+    OneToSix = lists:seq(1,6),
+    KVs = [{Key, Key*2} || Key <- OneToSix],
+    [kz_cache:store_local(?MODULE, Key, Value) || {Key, Value} <- KVs],
+
+    ?assertEqual(OneToSix, lists:usort(kz_cache:map_local(?MODULE, fun(Key, _) -> Key end))).
