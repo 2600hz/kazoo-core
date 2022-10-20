@@ -40,6 +40,8 @@
 -export([mac_address/1, mac_address/2, set_mac_address/2]).
 -export([media/1, media/2, set_media/2]).
 -export([metaflows/1, metaflows/2, set_metaflows/2]).
+-export([mobile/1, mobile/2, set_mobile/2]).
+-export([mobile_mdn/1, mobile_mdn/2, set_mobile_mdn/2]).
 -export([music_on_hold/1, music_on_hold/2, set_music_on_hold/2]).
 -export([music_on_hold_media_id/1, music_on_hold_media_id/2, set_music_on_hold_media_id/2]).
 -export([mwi_unsolicited_updates/1, mwi_unsolicited_updates/2, set_mwi_unsolicited_updates/2]).
@@ -551,6 +553,30 @@ metaflows(Doc, Default) ->
 -spec set_metaflows(doc(), kz_json:object()) -> doc().
 set_metaflows(Doc, Metaflows) ->
     kz_json:set_value([<<"metaflows">>], Metaflows, Doc).
+
+-spec mobile(doc()) -> kz_term:api_object().
+mobile(Doc) ->
+    mobile(Doc, 'undefined').
+
+-spec mobile(doc(), Default) -> kz_json:object() | Default.
+mobile(Doc, Default) ->
+    kz_json:get_json_value([<<"mobile">>], Doc, Default).
+
+-spec set_mobile(doc(), kz_json:object()) -> doc().
+set_mobile(Doc, Mobile) ->
+    kz_json:set_value([<<"mobile">>], Mobile, Doc).
+
+-spec mobile_mdn(doc()) -> kz_term:api_binary().
+mobile_mdn(Doc) ->
+    mobile_mdn(Doc, 'undefined').
+
+-spec mobile_mdn(doc(), Default) -> binary() | Default.
+mobile_mdn(Doc, Default) ->
+    kz_json:get_binary_value([<<"mobile">>, <<"mdn">>], Doc, Default).
+
+-spec set_mobile_mdn(doc(), binary()) -> doc().
+set_mobile_mdn(Doc, MobileMdn) ->
+    kz_json:set_value([<<"mobile">>, <<"mdn">>], MobileMdn, Doc).
 
 -spec music_on_hold(doc()) -> kz_json:object().
 music_on_hold(Doc) ->

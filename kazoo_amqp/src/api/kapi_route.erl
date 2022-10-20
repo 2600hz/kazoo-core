@@ -616,7 +616,7 @@ publish_query_quickroutes_resp(ServerId, Resp, ContentType) ->
 bind_q(Queue, Props) ->
     bind_q(Queue, props:get_value('restrict_to', Props), Props).
 
--type restrict_to() :: 'no_account' | 'account' | 'quickroute'.
+-type restrict_to() :: 'no_account' | 'account' | 'quickroute' | 'query_quickroutes_req'.
 
 -spec bind_q(kz_term:ne_binary(), [restrict_to()] | 'undefined', kz_term:proplist()) -> 'ok'.
 bind_q(Queue, 'undefined', Props) ->
