@@ -2087,6 +2087,8 @@ diff_deep(J1, J2) ->
 -type exec_fun() :: exec_fun_1() | exec_fun_2() | exec_fun_3().
 -type exec_funs() :: [exec_fun(),...].
 
+%% Runs in Fun(Value, JObj) order. If you need the JObj to be the first parameter passed to Fun,
+%% check exec_first/2 function.
 -spec exec(exec_funs(), object()) -> object().
 exec(Funs, ?JSON_WRAPPER(_)=JObj) ->
     lists:foldl(fun exec_fold/2, JObj, Funs).
@@ -2102,6 +2104,8 @@ exec_fold(F, JObj) when is_function(F, 1) -> F(JObj).
 -type exec_first_fun() :: exec_first_fun_1() | exec_first_fun_2() | exec_first_fun_3().
 -type exec_first_funs() :: [exec_first_fun(),...].
 
+%% Runs in Fun(JObj, Value) order. If you need the Value to be the first parameter passed to Fun,
+%% check exec/2 function.
 -spec exec_first(exec_first_funs(), object()) -> object().
 exec_first(Funs, ?JSON_WRAPPER(_)=JObj) ->
     lists:foldl(fun exec_first_fold/2, JObj, Funs).
