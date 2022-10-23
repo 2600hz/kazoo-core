@@ -7,6 +7,7 @@
 
 -export([new/0]).
 -export([after_forward_action/1, after_forward_action/2, set_after_forward_action/2]).
+-export([aliases/1, aliases/2, set_aliases/2]).
 -export([announcement_only/1, announcement_only/2, set_announcement_only/2]).
 -export([check_if_owner/1, check_if_owner/2, set_check_if_owner/2]).
 -export([delete_after_notify/1, delete_after_notify/2, set_delete_after_notify/2]).
@@ -64,6 +65,18 @@ after_forward_action(Doc, Default) ->
 -spec set_after_forward_action(doc(), binary()) -> doc().
 set_after_forward_action(Doc, AfterForwardAction) ->
     kz_json:set_value([<<"after_forward_action">>], AfterForwardAction, Doc).
+
+-spec aliases(doc()) -> kz_term:ne_binaries().
+aliases(Doc) ->
+    aliases(Doc, []).
+
+-spec aliases(doc(), Default) -> kz_term:ne_binaries() | Default.
+aliases(Doc, Default) ->
+    kz_json:get_list_value([<<"aliases">>], Doc, Default).
+
+-spec set_aliases(doc(), kz_term:ne_binaries()) -> doc().
+set_aliases(Doc, Aliases) ->
+    kz_json:set_value([<<"aliases">>], Aliases, Doc).
 
 -spec announcement_only(doc()) -> boolean().
 announcement_only(Doc) ->

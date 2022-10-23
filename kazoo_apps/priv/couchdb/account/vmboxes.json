@@ -27,7 +27,11 @@
             "map": [
                 "function(doc) {",
                 "  if (doc.pvt_type != 'vmbox' || doc.pvt_deleted) return;",
-                "  emit(parseInt(doc.mailbox, 10), null);",
+                "  var aliases = doc.aliases || [];",
+                "  var checklist = aliases.concat([doc.mailbox]);",
+                "  for (var i in checklist) emit(checklist[i], {",
+                "    'name': doc.name || doc._id",
+                "  });",
                 "}"
             ]
         }
