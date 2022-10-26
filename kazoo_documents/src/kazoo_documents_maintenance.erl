@@ -201,7 +201,7 @@ rename_app_on_accountdb_apps_store_doc(AppId, _PrevName, NewName, Account, {'ok'
                     Failed;
                 {'error', _Error} ->
                     ?SUP_LOG_INFO("failed to rename ~s (~s) app on ~s/apps_store doc with error: ~p"
-                                  ,[AppId, _PrevName, AccountDB, _Error]
+                                 ,[AppId, _PrevName, AccountDB, _Error]
                                  ),
                     [Account | Failed]
             end
