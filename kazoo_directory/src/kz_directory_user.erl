@@ -140,6 +140,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options) ->
     CCVFuns = [{fun owner_id/2, Endpoint}
               ,{fun presence_id/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
+              ,{fun hold_music_options/2, Endpoint}
               ,{fun relay_id/2, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
@@ -161,6 +162,10 @@ owner_id(Endpoint, CCVs) ->
 -spec hold_music(kz_json:object(), kz_json:object()) -> kz_json:object().
 hold_music(Endpoint, CCVs) ->
     kz_json:set_value(<<"Hold-Media">>, kzd_endpoint:moh_url(Endpoint), CCVs).
+
+-spec hold_music_options(kz_json:object(), kz_json:object()) -> kz_json:object().
+hold_music_options(Endpoint, CCVs) ->
+    kz_json:set_value(<<"Hold-Media-Options">>, kzd_endpoint:moh_options(Endpoint), CCVs).
 
 -spec generate_sip_headers(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> kz_json:object().
 generate_sip_headers(_EndpointId, _AccountId, Endpoint, _Options) ->

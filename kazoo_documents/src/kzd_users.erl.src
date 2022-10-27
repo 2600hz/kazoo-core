@@ -37,6 +37,7 @@
 -export([metaflows/1, metaflows/2, set_metaflows/2]).
 -export([music_on_hold/1, music_on_hold/2, set_music_on_hold/2]).
 -export([music_on_hold_media_id/1, music_on_hold_media_id/2, set_music_on_hold_media_id/2]).
+-export([music_on_hold_options/1, music_on_hold_options/2, set_music_on_hold_options/2]).
 -export([password/1, password/2, set_password/2]).
 -export([presence_id/1, presence_id/2, set_presence_id/2]).
 -export([priv_level/1, priv_level/2, set_priv_level/2]).
@@ -439,6 +440,18 @@ music_on_hold_media_id(Doc, Default) ->
 -spec set_music_on_hold_media_id(doc(), binary()) -> doc().
 set_music_on_hold_media_id(Doc, MusicOnHoldMediaId) ->
     kz_json:set_value([<<"music_on_hold">>, <<"media_id">>], MusicOnHoldMediaId, Doc).
+
+-spec music_on_hold_options(doc()) -> kz_term:api_ne_binaries().
+music_on_hold_options(Doc) ->
+    music_on_hold_options(Doc, 'undefined').
+
+-spec music_on_hold_options(doc(), Default) -> kz_term:ne_binaries() | Default.
+music_on_hold_options(Doc, Default) ->
+    kz_json:get_list_value([<<"music_on_hold">>, <<"options">>], Doc, Default).
+
+-spec set_music_on_hold_options(doc(), kz_term:ne_binaries()) -> doc().
+set_music_on_hold_options(Doc, MusicOnHoldOptions) ->
+    kz_json:set_value([<<"music_on_hold">>, <<"options">>], MusicOnHoldOptions, Doc).
 
 -spec password(doc()) -> kz_term:api_binary().
 password(Doc) ->
