@@ -20,11 +20,11 @@
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
--spec max_concurrent(doc()) -> kz_term:api_integer().
+-spec max_concurrent(doc()) -> kz_term:api_non_neg_integer().
 max_concurrent(Doc) ->
     max_concurrent(Doc, 'undefined').
 
--spec max_concurrent(doc(), Default) -> integer() | Default.
+-spec max_concurrent(doc(), Default) -> non_neg_integer() | Default.
 max_concurrent(Doc, Default) ->
     kz_json:get_integer_value([<<"max_concurrent">>], Doc, Default).
 
