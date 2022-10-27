@@ -23,6 +23,8 @@
         ,set_app_features/2
         ,set_app_icon/2
         ,set_app_screenshots/2
+
+        ,fix_apps_store_SUPP_212/1, fix_apps_store_SUPP_212/2, fix_apps_store_SUPP_212/3
         ]).
 
 -define(DEFAULT_REFRESH_APP_KEYS, [<<"name">>
@@ -161,7 +163,7 @@ rename_app(AppId, PrevName, NewName, [Account | Accounts], Failed) ->
                   ),
     NewFailed = rename_app_on_accountdb_apps_store_doc(AppId, PrevName, NewName, Account, Failed),
     %% This function may receive thousands of accounts, so give the DB some rest in between of accounts.
-    timer:sleep(500),
+    maybe_sleep_between(200, length(Accounts) + 1, 10),
     rename_app(AppId, PrevName, NewName, Accounts, NewFailed).
 
 %%------------------------------------------------------------------------------
@@ -182,21 +184,27 @@ rename_app_on_accountdb_apps_store_doc(AppId, PrevName, NewName, Account, Failed
                                             ,{'ok', kz_json:object()} | {'error', 'undefined'} | kz_datamgr:data_error()
                                             ,kz_term:ne_binaries()
                                             ) -> kz_term:ne_binaries().
-rename_app_on_accountdb_apps_store_doc(AppId, _PrevName, NewName, Account, {'ok', AppDoc}, Failed) ->
-    Renamed = kz_json:set_value([<<"apps">>, AppId, <<"name">>], NewName, AppDoc),
-    AccountDB = kzs_util:format_account_db(Account),
-    case kz_datamgr:save_doc(AccountDB, Renamed) of
-        {'ok', _JObj} ->
-            ?SUP_LOG_INFO("renamed ~s -> ~s on ~s/apps_store doc", [_PrevName, NewName, AccountDB]),
-            ?SUP_LOG_INFO("reconciling services for account ~s", [Account]),
-            %% takes care of updating/renaming application within services document for the account.
-            _ = kz_services:reconcile(Account),
+rename_app_on_accountdb_apps_store_doc(AppId, _PrevName, NewName, Account, {'ok', AppsStoreDoc}, Failed) ->
+    case kz_json:get_json_value([<<"apps">>, AppId], AppsStoreDoc) of
+        'undefined' ->
+            ?SUP_LOG_INFO("app ~s (~s) is not installed in account ~s, ignoring...", [NewName, _PrevName, Account]),
             Failed;
-        {'error', _Error} ->
-            ?SUP_LOG_INFO("failed to rename ~s (~s) app on ~s/apps_store doc with error: ~p"
-                         ,[AppId, _PrevName, AccountDB, _Error]
-                         ),
-            [Account | Failed]
+        _AppDoc ->
+            Renamed = kz_json:set_value([<<"apps">>, AppId, <<"name">>], NewName, AppsStoreDoc),
+            AccountDB = kzs_util:format_account_db(Account),
+            case kz_datamgr:save_doc(AccountDB, Renamed) of
+                {'ok', _JObj} ->
+                    ?SUP_LOG_INFO("renamed ~s -> ~s on ~s/apps_store doc", [_PrevName, NewName, AccountDB]),
+                    ?SUP_LOG_INFO("reconciling services for account ~s", [Account]),
+                    %% takes care of updating/renaming application within services document for the account.
+                    _ = kz_services:reconcile(Account),
+                    Failed;
+                {'error', _Error} ->
+                    ?SUP_LOG_INFO("failed to rename ~s (~s) app on ~s/apps_store doc with error: ~p"
+                                 ,[AppId, _PrevName, AccountDB, _Error]
+                                 ),
+                    [Account | Failed]
+            end
     end;
 rename_app_on_accountdb_apps_store_doc(_AppId, _PrevName, _NewName, Account, _Err, Failed) ->
     ?SUP_LOG_WARNING("failed to fetch apps_store document for account ~s, skipping. Error: ~p"
@@ -519,3 +527,126 @@ set_app_screenshots(AppId, PathToScreenshotsFolder) ->
               || SShot <- filelib:wildcard(kz_term:to_list(PathToScreenshotsFolder) ++ "/*.png")
              ],
     update_screenshots(AppId, MA, SShots).
+
+-spec fix_apps_store_SUPP_212(kz_term:ne_binary() | kz_term:ne_binaries()) -> 'ok'.
+fix_apps_store_SUPP_212(AppId) ->
+    fix_apps_store_SUPP_212(AppId, 10).
+
+-spec fix_apps_store_SUPP_212(kz_term:ne_binary() | kz_term:ne_binaries(), binary() | non_neg_integer()) -> 'ok'.
+fix_apps_store_SUPP_212(AppId, SecondsToRelax) ->
+    fix_apps_store_SUPP_212(AppId, SecondsToRelax, 200).
+
+-spec fix_apps_store_SUPP_212(kz_term:ne_binary() | kz_term:ne_binaries(), binary() | non_neg_integer(), binary() | non_neg_integer()) -> 'ok'.
+fix_apps_store_SUPP_212(<<AppId/binary>>, SecondsToRelax, WriteLoopLimit) ->
+    fix_apps_store_SUPP_212([AppId], SecondsToRelax, WriteLoopLimit);
+fix_apps_store_SUPP_212(AppIds, SecondsToRelax, WriteLoopLimit) when is_list(AppIds) ->
+    {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
+    Accounts = kapps_util:account_descendants(MasterAccountId),
+
+    Acc = #{processed_count => 1
+           ,app_ids => AppIds
+           ,relax_s => kz_term:to_integer(SecondsToRelax)
+           ,loop_limit => kz_term:to_integer(WriteLoopLimit)
+           ,total_accounts => length(Accounts)
+           },
+    io:format("~n"),
+    Result = lists:foldl(fun fix_SUP_212_fold/2, Acc, [MasterAccountId | Accounts]),
+
+    LogFile = <<"/tmp/fix_apps_store_SUPP_212_", (kz_binary:rand_hex(4))/binary, ".log">>,
+    ?SUP_LOG_INFO("~n>> you can examine fix result at ~s", [LogFile]),
+    file:write_file(LogFile, io_lib:format("~p~n", [Result])).
+
+fix_SUP_212_fold(AccountId, #{processed_count := Count
+                             ,loop_limit := Limit
+                             ,relax_s := SleepSec
+                             }=Acc) ->
+    NewAcc = process_account_SUP_212(AccountId, Acc),
+    maybe_sleep_between(Limit, Count + 1, SleepSec),
+    NewAcc.
+
+process_account_SUP_212(AccountId, #{processed_count := Count
+                                    ,total_accounts := Total
+                                    }=Acc) ->
+    NewAcc0 = Acc#{processed_count => Count+1},
+    ?SUP_LOG_INFO(":: (~p/~p) processing account ~s apps_store doc", [Count, Total, AccountId]),
+    try maybe_apps_store_SUP_212(AccountId, NewAcc0)
+    catch
+        _E:_T:_ST ->
+            ?SUP_LOG_INFO("        crashed during fixing apps_store, moving on...: ~p:~p", [_E, _T]),
+            kz_log:log_stacktrace(_ST),
+            kz_maps:put(['errors', AccountId], NewAcc0, io_lib:format("crashed during fixing apps_store: ~p:~p", [_E, _T]))
+    end.
+
+maybe_apps_store_SUP_212(AccountId, Acc) ->
+    case kz_datamgr:open_doc(AccountId, <<"apps_store">>) of
+        {'ok', AppsStoreDoc} ->
+            maybe_fix_SUPP_212(AccountId, Acc, AppsStoreDoc);
+        {'error', 'not_found'} ->
+            ?SUP_LOG_INFO("        no apps_store for account, moving on..."),
+            kz_maps:put(['no_problems', AccountId, <<"apps_store">>], Acc, "not_found");
+        {'error', E} ->
+            ?SUP_LOG_INFO("        failed to open apps_store doc:~n        ~p", [E]),
+            kz_maps:put(['errors', AccountId], Acc, io_lib:format("failed to open apps_store doc ~p", [E]))
+    end.
+
+maybe_fix_SUPP_212(AccountId, #{app_ids := AppIds}=Acc, AppsStoreDoc) ->
+    {_AccoutId, _AppsStoreDoc, NewAcc} = lists:foldl(fun maybe_fix_app_SUPP_212/2
+                                                    ,{AccountId, AppsStoreDoc, Acc}
+                                                    ,AppIds
+                                                    ),
+    case kz_maps:get(['to_delete', AccountId], NewAcc, 'undefined') of
+        'undefined' ->
+            ?SUP_LOG_INFO("        apps_store is correct"),
+            NewAcc;
+        ToDelete ->
+            ToDeleteIds = maps:keys(ToDelete),
+            NewAppsStoreJObj = kz_json:delete_keys([[<<"apps">>, AppId] || AppId <- ToDeleteIds], AppsStoreDoc),
+            case kz_datamgr:save_doc(AccountId, NewAppsStoreJObj) of
+                {ok, _Saved} ->
+                    ?SUP_LOG_INFO("        removed wrongfully installed apps"),
+                    kz_maps:put(['fixed', AccountId], NewAcc, ToDelete);
+                {error, E} ->
+                    ?SUP_LOG_INFO("        failed to write and fix apps_store:~n        ~p", [E]),
+                    kz_maps:put(['errors', AccountId], NewAcc, kz_binary:format("failed to save and fix apps_store ~p", [E]))
+            end
+    end.
+
+maybe_fix_app_SUPP_212(AppId, {AccountId, AppsStoreDoc, Acc}) ->
+    case {kz_json:is_defined([<<"apps">>, AppId], AppsStoreDoc)
+         ,kz_json:get_ne_binary_value([<<"apps">>, AppId, <<"allowed_users">>], AppsStoreDoc)
+         }
+    of
+        {'true', 'undefined'} ->
+            ?SUP_LOG_INFO("        removing wrongfully installed app ~s", [AppId]),
+            {AccountId
+            ,AppsStoreDoc
+            ,kz_maps:put(['to_delete', AccountId, AppId], Acc, kz_json:get_value([<<"apps">>, AppId], AppsStoreDoc))
+            };
+        {'true', _Allowed} ->
+            ?SUP_LOG_INFO("        app ~p is correct", [AppId]),
+            {AccountId
+            ,AppsStoreDoc
+            ,kz_maps:put(['no_problems', AccountId, AppId], Acc, "app object is correct")
+            };
+        {'false', _} ->
+            ?SUP_LOG_INFO("        app ~s is not defined in apps_store doc, all good", [AppId]),
+            {AccountId
+            ,AppsStoreDoc
+            ,kz_maps:put(['no_problems', AccountId, AppId], Acc, "app is not defined in apps_store")
+            }
+    end.
+
+maybe_sleep_between(Limit, CurrentCount, SleepSec) ->
+    case (CurrentCount + 1) rem Limit of
+        0 ->
+            io:format("~n==== sleeping for 5s to relax on CouchDB....~n"),
+            _ = [begin
+                     timer:sleep(1000),
+                     io:format("...~b", [SleepCount]),
+                     'ok'
+                 end || SleepCount <- lists:seq(1, SleepSec)
+                ],
+            io:format("~n");
+        _ ->
+            'ok'
+    end.
