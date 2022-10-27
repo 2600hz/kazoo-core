@@ -91,6 +91,7 @@ cfw_single_reject() ->
     [<<"USER_BUSY">>
     ,<<"CALL_REJECTED">>
     ,<<"NO_ANSWER">>
+    ,<<"NO_ENDPOINTS">>
     ,<<"NORMAL_CLEARING">>
     ,<<"PROGRESS_TIMEOUT">>
     ,<<"ALLOTTED_TIMEOUT">>
