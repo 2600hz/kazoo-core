@@ -307,6 +307,9 @@
             "type": "string"
         },
         "Hold-Media-Options": {
+            "items": {
+                "type": "string"
+            },
             "type": "object"
         },
         "Hook-DTMF": {

@@ -149,6 +149,9 @@
         "Hold-Media": {
             "type": "string"
         },
+        "Hold-Media-Options": {
+            "type": "string"
+        },
         "Ignore-Completed-Elsewhere": {
             "type": "string"
         },

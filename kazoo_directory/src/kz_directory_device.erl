@@ -263,6 +263,10 @@ presence_id(Endpoint, CCVs) ->
 hold_music(Endpoint, CCVs) ->
     kz_json:set_value(<<"Hold-Media">>, kzd_endpoint:moh_url(Endpoint), CCVs).
 
+-spec hold_music_options(kz_json:object(), kz_json:object()) -> kz_json:object().
+hold_music_options(Endpoint, CCVs) ->
+    kz_json:set_value(<<"Hold-Media-Options">>, kzd_endpoint:moh_options(Endpoint), CCVs).
+
 -spec invite_uri(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 invite_uri(Module, Endpoint, CCVs) ->
     Module:invite_uri(Endpoint, CCVs).
@@ -390,6 +394,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Module) ->
     CCVFuns = [{fun endpoint_id/2, Endpoint}
               ,{fun owner_id/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
+              ,{fun hold_music_options/2, Endpoint}
               ,{fun add_alert_info/2, Endpoint}
               ,{fun presence_id/2, Endpoint}
               ],
