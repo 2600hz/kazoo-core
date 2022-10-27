@@ -15,7 +15,7 @@
 -export([account_id/1, account_name/1, account_realm/1]).
 -export([language/1, language/2]).
 -export([get_prompt/2, get_prompt_url/2]).
--export([moh/1, moh_media_path/1, moh_url/1]).
+-export([moh/1, moh_media_path/1, moh_url/1, moh_options/1]).
 -export([presence_id/1]).
 -export([call_forward/1, call_forward/2]).
 -export([call_failover/1, call_failover/2]).
@@ -78,6 +78,10 @@ get_prompt_url(Endpoint, PromptId) ->
 -spec moh(endpoint()) -> kz_term:api_ne_binary().
 moh(Endpoint) ->
     kz_json:get_ne_binary_value([<<"music_on_hold">>, <<"media_id">>], Endpoint).
+
+-spec moh_options(endpoint()) -> kz_term:api_ne_binaries().
+moh_options(Endpoint) ->
+    kz_json:get_ne_binaries([<<"music_on_hold">>, <<"options">>], Endpoint).
 
 -spec moh_media_path(endpoint()) -> kz_term:api_ne_binary().
 moh_media_path(Endpoint) ->
