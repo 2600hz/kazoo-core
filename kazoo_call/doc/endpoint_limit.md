@@ -22,8 +22,8 @@ For the following example, *AccountId* and *EndpointId* (unassigned) existence i
 endpoint with a limitation of 2 maximum concurrent calls.
 
 ```erlang
-AccounId = <<"account012345">>,
-EndpointId = <<"device012345">>, %% Unassigned device.
+AccounId = {ACCOUNT_ID},
+EndpointId = {ENDPOINT_ID}, %% Unassigned device.
 
 %% Creating reservations
 {ok, ReservationId0, 1, 1} = kapps_endpoint_limit_ra:reserve(AccountId, EndpointId),
@@ -50,9 +50,9 @@ is assumed. In this scenario, owners's limit=1 and device's limit=2.
 
 ```erlang
 OwnerLimit = 1,
-AccounId = <<"account012345">>,
-OwnerId = <<"Owner012345">>,
-EndpointId = <<"device012345">>, %% Assigned to OwnerId.
+AccounId = {ACCOUNT_ID},
+OwnerId = {OWNER_ID},
+EndpointId = {ENDPOINT_ID}, %% Assigned to OwnerId.
 
 %% Creating reservations
 %% The number of available spots in this response is zero, because when the endpoint was built, it
