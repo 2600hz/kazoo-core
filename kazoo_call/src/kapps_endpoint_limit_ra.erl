@@ -124,9 +124,9 @@ reservations(AccountId, EndpointId) ->
     kz_log:put_callid(kz_log:get_callid()),
     query_state(reservations_query_fun(AccountId, EndpointId)).
 
--spec ra_name() -> 'j5_endpoint_limit'.
+-spec ra_name() -> 'endpoint_limit'.
 ra_name() ->
-    'j5_endpoint_limit'.
+    'endpoint_limit'.
 
 %%%=============================================================================
 %%% ra_machine callbacks
