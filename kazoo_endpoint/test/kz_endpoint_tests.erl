@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%%
@@ -29,7 +29,7 @@ call_recording_test_() ->
     ,empty_device()
     ].
 
-call_limits_test_() ->
+merge_attribute_call_limits_test_() ->
     TestFun = fun(Account, Endpoint, Owner) ->
                       kz_endpoint:merge_attribute(<<"call_limits">>, Account, Endpoint, Owner)
               end,
