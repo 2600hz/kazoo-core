@@ -31,8 +31,6 @@
 -export([attributes_keys/0
         ,merge_attribute/4
         ]).
-
--include_lib("eunit/include/eunit.hrl").
 -endif.
 
 -include("kazoo_endpoint.hrl").
@@ -325,6 +323,7 @@ account_keys() ->
 account_tree_keys() ->
     [<<"call_restriction">>].
 
+-spec attributes_keys() -> kz_term:ne_binaries().
 attributes_keys() ->
     [<<"call_failover">>
     ,<<"call_forward">>
@@ -510,18 +509,21 @@ merge_attribute(<<"outbound_flags">>, Account, Endpoint, Owner) ->
                             ]),
     kzd_devices:set_outbound_flags(Endpoint, Static, Dynamic);
 merge_attribute(<<"call_limits">> = _Key, Account, Endpoint, Owner) ->
+    AccountAttr = kzd_endpoint:call_limits(Account, kz_json:new()),
+    OwnerAttr = kzd_endpoint:call_limits(Owner, kz_json:new()),
     EndpointAttr = kzd_endpoint:call_limits(Endpoint, kz_json:new()),
-    case kzd_call_limits:max_concurrent(EndpointAttr) of
-        'undefined' ->
-            AccountAttr = kzd_endpoint:call_limits(Account, kz_json:new()),
-            OwnerAttr = kzd_endpoint:call_limits(Owner, kz_json:new()),
-            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kzd_call_limits:max_concurrent(Merged) of
-                'undefined' -> Endpoint;
-                _ -> kzd_endpoint:set_call_limits(Endpoint, Merged)
-            end;
-        _Limit ->
-            Endpoint
+    case min(kzd_call_limits:max_concurrent(AccountAttr, 'infinity')
+            ,min(kzd_call_limits:max_concurrent(OwnerAttr, 'infinity')
+                ,kzd_call_limits:max_concurrent(EndpointAttr, 'infinity')
+                )
+            )
+    of
+        'infinity' ->
+            Endpoint; %% call_limits not configured at any level for this endpoint.
+        Min ->
+            kzd_endpoint:set_call_limits(Endpoint
+                                        ,kzd_call_limits:set_max_concurrent(EndpointAttr, Min)
+                                        )
     end;
 merge_attribute(Key, Account, Endpoint, Owner) ->
     AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
