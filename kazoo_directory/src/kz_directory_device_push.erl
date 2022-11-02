@@ -25,6 +25,7 @@
 -export([invite_uri/2]).
 -export([routing_ccvs/2]).
 -export([sip_headers/2]).
+-export([sip_auth/2]).
 
 -spec authorizing_type(kz_json:object()) -> binary().
 authorizing_type(Endpoint) ->
@@ -103,3 +104,18 @@ push_properties(Endpoint) ->
 -spec push_headers(kz_json:object()) -> kz_json:object().
 push_headers(PushJObj) ->
     kz_json:map(fun(K, V) -> {<<"X-KAZOO-PUSHER-", K/binary>>, V} end, PushJObj).
+
+-spec sip_auth(kz_json:object(), kz_json:object()) -> kz_json:object().
+sip_auth(Endpoint, CCVs) ->
+    case {kzd_devices:sip_username(Endpoint)
+         ,kzd_devices:sip_password(Endpoint)
+         }
+    of
+        {undefined, _} -> CCVs;
+        {_, undefined} -> CCVs;
+        {Username, Password} ->
+            KVs = [{<<"Auth-User">>, Username}
+                  ,{<<"Auth-Password">>, Password}
+                  ],
+            kz_json:set_values(KVs, CCVs)
+    end.

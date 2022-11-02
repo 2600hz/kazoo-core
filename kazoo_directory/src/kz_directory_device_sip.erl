@@ -25,6 +25,7 @@
 -export([invite_uri/2]).
 -export([routing_ccvs/2]).
 -export([sip_headers/2]).
+-export([sip_auth/2]).
 
 -include("kazoo_directory.hrl").
 
@@ -151,3 +152,18 @@ routing_ccvs(Endpoint, CCVs) ->
 -spec sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_headers(_Endpoint, Headers) ->
     Headers.
+
+-spec sip_auth(kz_json:object(), kz_json:object()) -> kz_json:object().
+sip_auth(Endpoint, CCVs) ->
+    case {kzd_devices:sip_username(Endpoint)
+         ,kzd_devices:sip_password(Endpoint)
+         }
+    of
+        {undefined, _} -> CCVs;
+        {_, undefined} -> CCVs;
+        {Username, Password} ->
+            KVs = [{<<"Auth-User">>, Username}
+                  ,{<<"Auth-Password">>, Password}
+                  ],
+            kz_json:set_values(KVs, CCVs)
+    end.
