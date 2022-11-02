@@ -14,6 +14,7 @@
         ,account_id/1
         ,auth_expires/1
         ,auth_from/1
+        ,auth_method/1, auth_method/2
         ,auth_nonce/1
         ,auth_response/1
         ,auth_to/1
@@ -193,6 +194,14 @@ cauth(JObj) ->
 -spec auth_from(data()) -> kz_term:api_binary().
 auth_from(JObj) ->
     kz_json:get_ne_binary_value(<<"Auth-From">>, JObj).
+
+-spec auth_method(data()) -> kz_term:api_binary().
+auth_method(JObj) ->
+    auth_method(JObj, undefined).
+
+-spec auth_method(data(), Default) -> kz_term:ne_binary() | Default.
+auth_method(JObj, Default) ->
+    kz_json:get_ne_binary_value(<<"Auth-Method">>, JObj, Default).
 
 -spec auth_to(data()) -> kz_term:api_binary().
 auth_to(JObj) ->

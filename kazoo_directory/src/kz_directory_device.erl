@@ -383,7 +383,7 @@ add_alert_info(Endpoint, CCVs) ->
     end.
 
 -spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), module()) -> kz_json:object().
-generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, _Module) ->
+generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, Module) ->
     Realm = kzd_devices:sip_realm(Endpoint, kz_json:get_ne_binary_value(<<"realm">>, Endpoint)),
     Props = [{<<"Account-ID">>, AccountId}
             ,{<<"Reseller-ID">>, kz_services_reseller:get_id(AccountId)}
@@ -400,6 +400,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, _Module) ->
               ,{fun add_alert_info/2, Endpoint}
               ,{fun presence_id/2, Endpoint}
               ,{fun relay_id/2, Endpoint}
+              ,{fun sip_auth/3, Module, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
@@ -420,6 +421,28 @@ generate_routing_ccvs(Endpoint, _Options, Module) ->
               ,{fun routing_ccvs/3, Module, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
+
+-spec sip_auth(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+sip_auth(Mod, Endpoint, CCVs) ->
+    case sip_auth(Endpoint) of
+        undefined -> Mod:sip_auth(Endpoint, CCVs);
+        SIPAuth -> kz_json:merge(CCVs, SIPAuth)
+    end.
+
+-spec sip_auth(kz_json:object()) -> kz_json:api_object().
+sip_auth(Endpoint) ->
+    case {kzd_devices:sip_username(Endpoint)
+         ,kzd_devices:sip_password(Endpoint)
+         }
+    of
+        {undefined, _} -> undefined;
+        {_, undefined} -> undefined;
+        {Username, Password} ->
+            KVs = [{<<"Auth-User">>, Username}
+                  ,{<<"Auth-Password">>, Password}
+                  ],
+            kz_json:set_values(KVs, kz_json:new())
+    end.
 
 -spec routing_ccvs(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 routing_ccvs(Mod, Endpoint, CCVs) ->
