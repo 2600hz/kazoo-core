@@ -91,13 +91,15 @@ call_failover_cid_type_name('false') -> <<"Internal">>.
 
 -spec cfw_single_reject() -> kz_term:ne_binaries().
 cfw_single_reject() ->
-    [<<"USER_BUSY">>
+    [<<"ALLOTTED_TIMEOUT">>
     ,<<"CALL_REJECTED">>
     ,<<"NO_ANSWER">>
     ,<<"NO_ENDPOINTS">>
+    ,<<"NO_ROUTE_DESTINATION">>
     ,<<"NORMAL_CLEARING">>
     ,<<"PROGRESS_TIMEOUT">>
-    ,<<"ALLOTTED_TIMEOUT">>
+    ,<<"UNALLOCATED_NUMBER">>
+    ,<<"USER_BUSY">>
     ].
 
 -spec cfw_failover_reasons() -> kz_term:ne_binaries().
