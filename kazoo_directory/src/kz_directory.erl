@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -14,6 +14,7 @@
 -module(kz_directory).
 
 -export([lookup/2, lookup/3]).
+-export([lookup_by_user_realm/2]).
 
 -include("kazoo_directory.hrl").
 
@@ -52,3 +53,24 @@ lookup([Fun | Routines], EndpointId, AccountId, Options) ->
           {'error', 'not_found'}.
 cached(EndpointId, AccountId, _Options) ->
     kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}).
+
+-spec lookup_by_user_realm(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+lookup_by_user_realm(Username, Realm) ->
+    case lookup_account_id_by_realm(Realm) of
+        undefined -> {'error', 'not_found'};
+        AccountId -> lookup_endpoint_id_by_username(Username, AccountId)
+    end.
+
+lookup_endpoint_id_by_username(Username, AccountId) ->
+    case kzv_by_sip_usernames:find_one(AccountId, Username, [{result_key, <<"id">>}]) of
+        {ok, EndpointId} -> lookup(EndpointId, AccountId);
+        _Else -> {'error', 'not_found'}
+    end.
+
+lookup_account_id_by_realm(Realm) ->
+    case kapps_util:get_account_by_realm(Realm) of
+        {ok, AccountDB} -> kzs_util:format_account_id(AccountDB);
+        _Else -> undefined
+    end.
