@@ -10,6 +10,7 @@
 -export([announcement_only/1, announcement_only/2, set_announcement_only/2]).
 -export([check_if_owner/1, check_if_owner/2, set_check_if_owner/2]).
 -export([delete_after_notify/1, delete_after_notify/2, set_delete_after_notify/2]).
+-export([envelope_type/1, envelope_type/2, set_envelope_type/2]).
 -export([flags/1, flags/2, set_flags/2]).
 -export([include_message_on_notify/1, include_message_on_notify/2, set_include_message_on_notify/2]).
 -export([include_transcription_on_notify/1, include_transcription_on_notify/2, set_include_transcription_on_notify/2]).
@@ -99,6 +100,18 @@ delete_after_notify(Doc, Default) ->
 -spec set_delete_after_notify(doc(), boolean()) -> doc().
 set_delete_after_notify(Doc, DeleteAfterNotify) ->
     kz_json:set_value([<<"delete_after_notify">>], DeleteAfterNotify, Doc).
+
+-spec envelope_type(doc()) -> kz_term:api_binary().
+envelope_type(Doc) ->
+    envelope_type(Doc, 'undefined').
+
+-spec envelope_type(doc(), Default) -> binary() | Default.
+envelope_type(Doc, Default) ->
+    kz_json:get_binary_value([<<"envelope_type">>], Doc, Default).
+
+-spec set_envelope_type(doc(), binary()) -> doc().
+set_envelope_type(Doc, EnvelopeType) ->
+    kz_json:set_value([<<"envelope_type">>], EnvelopeType, Doc).
 
 -spec flags(doc()) -> kz_term:api_ne_binaries().
 flags(Doc) ->
