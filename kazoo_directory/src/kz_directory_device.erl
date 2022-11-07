@@ -17,25 +17,32 @@
 
 -include("kazoo_directory.hrl").
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 profile(EndpointId, AccountId) ->
     profile(EndpointId, AccountId, []).
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
     case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
         {'ok', Profile} -> {'ok', Profile};
         {'error', 'not_found'} -> fetch_profile(EndpointId, AccountId, Options)
     end.
 
--spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 fetch_profile(EndpointId, AccountId, Options) ->
     case kz_endpoint:get(EndpointId, AccountId, Options) of
         {'ok', Endpoint} -> fetch_profile(EndpointId, AccountId, Endpoint, Options);
         Error -> Error
     end.
 
--spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+-spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
+          {'ok', kz_json:object()}.
 fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
     case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
         <<"device">> ->
@@ -48,13 +55,15 @@ fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
             {'error', 'not_device'}
     end.
 
--spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
+-spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) ->
+          {'ok', kz_json:object()}.
 build_and_cache(EndpointId, AccountId, Endpoint, Options, Module) ->
     {'ok', Profile} = build(EndpointId, AccountId, Endpoint, Options, Module),
     Origins = cache_origin(EndpointId, AccountId, Endpoint),
     cache(EndpointId, AccountId, Profile, Origins).
 
--spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), list()) -> {'ok', kz_json:object()}.
+-spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_cache:origin_tuples()) ->
+          {'ok', kz_json:object()}.
 cache(EndpointId, AccountId, Profile, Origins) ->
     CacheProps = [{'origin', Origins}
                  ,{'callback', fun cache_callback/3}
@@ -85,7 +94,8 @@ notify(EndpointId, AccountId) ->
     kz_directory_cache:clear(<<EndpointId/binary, "@", AccountId/binary>>),
     lager:debug("directory cache erased key changed (~s / ~s)", [EndpointId, AccountId]).
 
--spec cache_origin(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> list().
+-spec cache_origin(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+          kz_cache:origin_tuples().
 cache_origin(EndpointId, AccountId, JObj) ->
     AccountDb = kzs_util:format_account_db(AccountId),
     Routines = [fun(P) -> [{'db', AccountDb, EndpointId} | P] end
@@ -95,14 +105,16 @@ cache_origin(EndpointId, AccountId, JObj) ->
                ],
     lists:foldl(fun(F, P) -> F(P) end, [], Routines).
 
--spec maybe_cached_owner_id(kz_term:proplist(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
+-spec maybe_cached_owner_id(kz_cache:origin_tuples(), kz_json:object(), kz_term:ne_binary()) ->
+          kz_cache:origin_tuples().
 maybe_cached_owner_id(Props, JObj, AccountDb) ->
     case kz_json:get_ne_binary_value(<<"owner_id">>, JObj) of
         'undefined' -> Props;
         OwnerId -> [{'db', AccountDb, OwnerId}|Props]
     end.
 
--spec maybe_cached_hotdesk_ids(kz_term:proplist(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
+-spec maybe_cached_hotdesk_ids(kz_cache:origin_tuples(), kz_json:object(), kz_term:ne_binary()) ->
+          kz_cache:origin_tuples().
 maybe_cached_hotdesk_ids(Props, JObj, AccountDb) ->
     case kz_json:get_keys([<<"hotdesk">>, <<"users">>], JObj) of
         [] -> Props;
@@ -332,7 +344,10 @@ ignore_completed_elsewhere(Endpoint, CCVs) ->
     Value = kz_json:get_first_defined([[<<"caller_id_options">>, <<"ignore_completed_elsewhere">>]
                                       ,[<<"sip">>, <<"ignore_completed_elsewhere">>]
                                       ,<<"ignore_completed_elsewhere">>
-                                      ], Endpoint, Default),
+                                      ]
+                                     ,Endpoint
+                                     ,Default
+                                     ),
     kz_json:set_value(<<"Ignore-Completed-Elsewhere">>, kz_term:is_true(Value), CCVs).
 
 -spec enforce_security(kz_json:object(), kz_json:object()) -> kz_json:object().
@@ -355,11 +370,11 @@ encryption_flags(Endpoint, CCVs) ->
 -spec ringtone(kz_json:object(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 ringtone(Endpoint, Key) ->
     case kz_json:get_ne_binary_value([<<"ringtones">>, Key], Endpoint) of
-        undefined -> undefined;
+        'undefined' -> 'undefined';
         RingTone -> <<"${first-of(alert_info|#", RingTone/binary, ")}">>
     end.
 
--spec ringtones(kz_json:object(), kz_term:ne_binaries()) -> kz_json:object().
+-spec ringtones(kz_json:object(), kz_term:ne_binaries()) -> kz_term:proplist().
 ringtones(Endpoint, Keys) ->
     lists:foldl(ringtones_fold_fun(Endpoint), [], Keys).
 
@@ -367,7 +382,7 @@ ringtones(Endpoint, Keys) ->
 ringtones_fold_fun(Endpoint) ->
     fun(Key, Acc) ->
             case ringtone(Endpoint, kz_term:to_lower_binary(Key)) of
-                undefined -> Acc;
+                'undefined' -> Acc;
                 RingTone -> [{[Key, <<"Alert-Info">>], RingTone} | Acc]
             end
     end.
@@ -425,18 +440,18 @@ generate_routing_ccvs(Endpoint, _Options, Module) ->
 -spec sip_auth(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_auth(Mod, Endpoint, CCVs) ->
     case sip_auth(Endpoint) of
-        undefined -> Mod:sip_auth(Endpoint, CCVs);
+        'undefined' -> Mod:sip_auth(Endpoint, CCVs);
         SIPAuth -> kz_json:merge(CCVs, SIPAuth)
     end.
 
--spec sip_auth(kz_json:object()) -> kz_json:api_object().
+-spec sip_auth(kz_json:object()) -> kz_term:api_object().
 sip_auth(Endpoint) ->
     case {kzd_devices:sip_username(Endpoint)
          ,kzd_devices:sip_password(Endpoint)
          }
     of
-        {undefined, _} -> undefined;
-        {_, undefined} -> undefined;
+        {'undefined', _} -> 'undefined';
+        {_, 'undefined'} -> 'undefined';
         {Username, Password} ->
             KVs = [{<<"Auth-User">>, Username}
                   ,{<<"Auth-Password">>, Password}

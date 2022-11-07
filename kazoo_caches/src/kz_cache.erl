@@ -51,6 +51,7 @@
 
 -export_type([store_options/0
              ,start_options/0
+             ,origin_tuple/0, origin_tuples/0
              ]).
 
 %%%=============================================================================

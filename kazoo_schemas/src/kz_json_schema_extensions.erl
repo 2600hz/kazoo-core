@@ -11,6 +11,7 @@
 
 -export([extra_validator/3]).
 
+-include_lib("kernel/include/inet.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -define(INVALID_STORAGE_ATTACHMENT_REFERENCE(R), <<"invalid reference '", R/binary, "' to attachments">>).
@@ -284,19 +285,25 @@ is_valid_sftp_url(_URL) ->
 is_valid_ftp_userpass([_User, _Pass]) -> 'true';
 is_valid_ftp_userpass(_) -> 'false'.
 
--spec is_valid_host(kz_http_util:location()) -> boolean().
+-spec is_valid_host(kz_http_util:location() | inet:ip_address()) -> boolean().
 is_valid_host(<<Host/binary>>) ->
     is_valid_host(kz_term:to_lower_binary(Host), kz_network_utils:is_ip(Host));
-is_valid_host({Host, _Port}) when is_integer(_Port) ->
-    is_valid_host(Host);
+is_valid_host({Host, Port}) when is_integer(Port) ->
+    is_valid_host(Host)
+        andalso is_valid_port(Port);
 is_valid_host({Host, _Username, _Password}) ->
-    is_valid_host(Host).
+    is_valid_host(Host);
+is_valid_host(?IPV4=IP) ->
+    is_valid_host(kz_network_utils:iptuple_to_binary(IP));
+is_valid_host(?IPV6=IP) ->
+    is_valid_host(kz_network_utils:iptuple_to_binary(IP)).
 
 -spec is_valid_host(kz_term:ne_binary(), boolean()) -> boolean().
 is_valid_host(Host, 'true') ->
     is_valid_host_value(Host, 'true', kz_http_util:client_ip_blacklist());
 is_valid_host(Host, 'false') ->
-    is_valid_host_value(Host, 'false', kz_http_util:client_host_blacklist()).
+    is_valid_host_value(Host, 'false', kz_http_util:client_host_blacklist())
+        andalso is_valid_dns(Host).
 
 url_error(URL, State) ->
     lager:info("client URL '~s' not valid", [URL]),
@@ -311,10 +318,82 @@ is_host_blacklisted(Host, _IsIp, Host) ->
     lager:debug("host matches blacklisted value ~s", [Host]),
     'true';
 is_host_blacklisted(Host, 'true', CIDR) ->
+    is_host_blacklisted_cidr(Host, CIDR)
+        orelse is_host_blacklisted_restricted_ip(Host);
+is_host_blacklisted(Host, 'false', Host) ->
+    lager:info("host ~s is restricted by config", [Host]),
+    'true';
+is_host_blacklisted(_Host, 'false', _BlockedHost) ->
+    'false'.
+
+is_host_blacklisted_cidr(Host, CIDR) ->
     case kz_network_utils:verify_cidr(Host, CIDR) of
         'false' -> 'false';
         'true' ->
-            lager:debug("host ~s is part of CIDR ~s", [Host, CIDR]),
+            lager:info("host ~s is part of restricted CIDR ~s", [Host, CIDR]),
             'true'
-    end;
-is_host_blacklisted(_Host, 'false', _Hostname) -> 'false'.
+    end.
+
+is_host_blacklisted_restricted_ip(Host) ->
+    is_host_blacklisted_restricted_ip(Host
+                                     ,kapps_config:is_true(<<"kazoo_web">>, <<"allow_restricted_ips">>, 'true')
+                                     ).
+
+is_host_blacklisted_restricted_ip(_Host, 'true') -> 'false';
+is_host_blacklisted_restricted_ip(Host, 'false') ->
+    case kz_network_utils:is_restricted_ip(Host) of
+        'false' -> 'false';
+        'true' ->
+            lager:info("host ~s is part of restricted IP space", [Host]),
+            'true'
+    end.
+
+is_valid_port(Port) ->
+    is_valid_port(Port, kz_http_util:client_port_blacklist()).
+
+-spec is_valid_port(inet:port_number(), [inet:port_number()]) -> boolean().
+is_valid_port(Port, BlockedPorts) ->
+    case lists:member(Port, BlockedPorts) of
+        'false' -> 'true';
+        'true' ->
+            lager:info("port ~p is blocked via configuration", [Port]),
+            'false'
+    end.
+
+-spec is_valid_dns(kz_term:ne_binary()) -> boolean().
+is_valid_dns(Host) ->
+    Options = kz_network_utils:default_options(),
+
+    LookupOptions =
+        case kz_network_utils:find_nameservers(Host) of
+            [] -> Options;
+            Nameservers ->
+                lager:info("adding nameservers for ~s: ~p", [Host, Nameservers]),
+                kz_network_utils:set_option_nameservers(Options, Nameservers)
+        end,
+
+    case kz_network_utils:lookup_dns(kz_binary:remove_white_spaces(Host), 'a', LookupOptions) of
+        {'ok', []} ->
+            maybe_local_dns(Host);
+        {'ok', Lookup} ->
+            lists:all(fun is_valid_host/1, Lookup)
+    end.
+
+maybe_local_dns(Host) ->
+    HostL = kz_term:to_list(Host),
+    case inet:gethostbyname(HostL) of
+        {'ok', #hostent{h_name = HostL,
+                        h_addrtype = 'inet',
+                        h_length = 4,
+                        h_addr_list = [?IPV4=IP|_]
+                       }
+        } ->
+            lager:info("host ~s defined locally as ~p", [Host, IP]),
+            is_valid_host(IP);
+        {'ok', _HostEnt} ->
+            lager:info("got a host rec but didn't match ~s: ~p", [Host, _HostEnt]),
+            'false';
+        {'error', _E} ->
+            lager:info("failed to get DNS for host ~s: ~p", [Host, _E]),
+            'false'
+    end.

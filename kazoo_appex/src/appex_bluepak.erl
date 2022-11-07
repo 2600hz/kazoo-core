@@ -16,7 +16,7 @@
 -include("appex_client.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
--record(load_app, {app_metadata :: kz_json:api_object()
+-record(load_app, {app_metadata :: kz_term:api_object()
                   ,app_name :: kz_term:api_ne_binary()
                   ,parent_app :: kz_term:api_atom()
                   ,app_spec :: {'application', atom(), kz_term:proplist()} | 'undefined'
@@ -434,42 +434,46 @@ finish_extracting(#load_app{app_spec='undefined'
 finish_extracting(#load_app{}=LoadApp) ->
     {'ok', LoadApp}.
 
--spec minimal_app_mod(module()) -> {'ok', module(), binary() | term()} | {'error', term(), term()}.
+-spec minimal_app_mod(module()) ->
+          {'ok', module(), binary() | term()} |
+          {'error', term(), term()}.
 minimal_app_mod(App) ->
     Mod = kz_term:to_atom(io_lib:format("~s_app", [App]), 'true'),
     SupMod = kz_term:to_atom(io_lib:format("~s_sup", [App]), 'true'),
     compile:forms(
-      [{'attribute',1,'file',{io_lib:format("~s.erl", [Mod]),1}}
-      ,{'attribute',1,'module',Mod}
-      ,{'attribute',2,'behaviour','application'}
-      ,{'attribute',3,'export',[{'start',2},{'stop',1}]}
-      ,{'function',4,'start',2
-       ,[{'clause',4, [{'var',4,'_'},{'var',4,'_'}], []
-         ,[{'call',4,{'remote',4,{'atom',4,SupMod},{'atom',4,'start_link'}},[]}]
+      [{'attribute',erl_anno:new(1),'file',{io_lib:format("~s.erl", [Mod]),1}}
+      ,{'attribute',erl_anno:new(1),'module',Mod}
+      ,{'attribute',erl_anno:new(2),'behaviour','application'}
+      ,{'attribute',erl_anno:new(3),'export',[{'start',2},{'stop',1}]}
+      ,{'function',erl_anno:new(4),'start',2
+       ,[{'clause',erl_anno:new(4), [{'var',erl_anno:new(4),'_'},{'var',erl_anno:new(4),'_'}], []
+         ,[{'call',erl_anno:new(4),{'remote',erl_anno:new(4),{'atom',erl_anno:new(4),SupMod},{'atom',erl_anno:new(4),'start_link'}},[]}]
          }
         ]
        }
-      ,{'function',5,'stop',1,[{'clause',5,[{'var',5,'_'}],[],[{'atom',5,'ok'}]}]}
+      ,{'function',erl_anno:new(5),'stop',1,[{'clause',erl_anno:new(5),[{'var',erl_anno:new(5),'_'}],[],[{'atom',erl_anno:new(5),'ok'}]}]}
       ]
      ).
 
--spec minimal_app_sup(atom()) -> {'ok', module(), binary() | term()} | {'error', term(), term()}.
+-spec minimal_app_sup(atom()) ->
+          {'ok', module(), binary() | term()} |
+          {'error', term(), term()}.
 minimal_app_sup(App) ->
     Mod = kz_term:to_atom(io_lib:format("~s_sup", [App]), 'true'),
     compile:forms(
-      [{'attribute',1,'file',{io_lib:format("~s.erl", [Mod]),1}}
-      ,{'attribute',1,'module',Mod}
-      ,{'attribute',2,'behaviour','supervisor'}
-      ,{'attribute',3,'export',[{'start_link',0},{'init',1}]}
-      ,{'function',4,'start_link',0
-       ,[{'clause',4,[],[]
-         ,[{'call',4,{'remote',4,{'atom',4,'supervisor'},{'atom',4,'start_link'}}
-           ,[{'tuple',4,[{'atom',4,'local'},{'atom',4,Mod}]},{'atom',4,Mod},{'nil',4}]
+      [{'attribute',erl_anno:new(1),'file',{io_lib:format("~s.erl", [Mod]),1}}
+      ,{'attribute',erl_anno:new(1),'module',Mod}
+      ,{'attribute',erl_anno:new(2),'behaviour','supervisor'}
+      ,{'attribute',erl_anno:new(3),'export',[{'start_link',0},{'init',1}]}
+      ,{'function',erl_anno:new(4),'start_link',0
+       ,[{'clause',erl_anno:new(4),[],[]
+         ,[{'call',erl_anno:new(4),{'remote',erl_anno:new(4),{'atom',erl_anno:new(4),'supervisor'},{'atom',erl_anno:new(4),'start_link'}}
+           ,[{'tuple',erl_anno:new(4),[{'atom',erl_anno:new(4),'local'},{'atom',erl_anno:new(4),Mod}]},{'atom',erl_anno:new(4),Mod},{'nil',erl_anno:new(4)}]
            }]}]
        }
-      ,{'function',5,'init',1
-       ,[{'clause',5,[{'nil',5}],[]
-         ,[{'tuple',5,[{'atom',5,'ok'},{'tuple',5,[{'tuple',5,[{'atom',5,'one_for_one'},{'integer',5,25},{'integer',5,1}]},{'nil',5}]}]}
+      ,{'function',erl_anno:new(5),'init',1
+       ,[{'clause',erl_anno:new(5),[{'nil',erl_anno:new(5)}],[]
+         ,[{'tuple',erl_anno:new(5),[{'atom',erl_anno:new(5),'ok'},{'tuple',erl_anno:new(5),[{'tuple',erl_anno:new(5),[{'atom',erl_anno:new(5),'one_for_one'},{'integer',erl_anno:new(5),25},{'integer',erl_anno:new(5),1}]},{'nil',erl_anno:new(5)}]}]}
           ]}]
        }
       ]
