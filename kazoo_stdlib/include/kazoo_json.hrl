@@ -117,6 +117,7 @@
                        | 'pretty'
                        | 'force_utf8'
                        | 'escape_forward_slashes'
+                       | 'canonical' % RFC 8785
                        | {'bytes_per_iter', non_neg_integer()}
                        | {'bytes_per_red', non_neg_integer()}.
 %% `jiffy' encode option.

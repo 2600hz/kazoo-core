@@ -187,10 +187,102 @@ encode(JObj) -> encode(JObj, []).
 
 -spec encode(json_term(), encode_options()) -> kz_term:text().
 encode(JObj, Options) ->
+    maybe_canonicalize(JObj, props:take_value('canonical', Options, 'false')).
+
+maybe_canonicalize(JObj, {'false', Options}) ->
+    encode_jobj(JObj, Options);
+maybe_canonicalize(JObj, {'true', Options}) ->
+    encode_jobj(canonicalize(JObj), ['force_utf8' | Options]).
+
+encode_jobj(JObj, Options) ->
     case jiffy:encode(JObj, lists:merge(?ENCODE_OPTIONS, Options)) of
         L when is_list(L) -> list_to_binary(L);
         B when is_binary(B) -> B
     end.
+
+%% formats the JObj into RFC8785 canonical version (for HMAC hashing mostly) before encoding
+canonicalize(?JSON_WRAPPER(Props)) ->
+    ?JSON_WRAPPER(lists:sort([canonicalize(Key, Value) || {Key, Value} <- Props]));
+canonicalize(Thing) -> Thing.
+
+canonicalize(Key, ?JSON_WRAPPER(_)=JObj) ->
+    {Key, canonicalize(JObj)};
+canonicalize(Key, [_|_]=List) ->
+    {Key, [canonicalize(Element) || Element <- List]};
+canonicalize(Key, Value) ->
+    canonicalize_true(Key, Value, kz_term:is_true(Value)).
+
+%% 3.2.2.1 - literals true, false, and null
+canonicalize_true(Key, _Value, 'true') -> {Key, 'true'};
+canonicalize_true(Key, Value, 'false') ->
+    canonicalize_false(Key, Value, kz_term:is_false(Value)).
+
+canonicalize_false(Key, _Value, 'true') -> {Key, 'false'};
+canonicalize_false(Key, Value, 'false') ->
+    canonicalize_null(Key, Value).
+
+canonicalize_null(Key, 'null') -> {Key, 'null'};
+canonicalize_null(Key, <<"null">>) -> {Key, 'null'};
+canonicalize_null(Key, Value) ->
+    canonicalize_strings(Key, Value).
+
+%% 3.2.2.2 - JSON strings
+canonicalize_strings(Key, <<Value/binary>>) ->
+    {Key, canonicalize_string(Value)};
+canonicalize_strings(Key, Value) ->
+    canonicalize_numbers(Key, Value).
+
+%% It appears that jiffy handles encoding string values appropriately,
+%% except for Unicode sequences - jiffy is hard-coded to use uppercase
+%% hex values (\uHHHH) instead of lower-case (\uhhhh) which the RFC
+%% calls for.
+%% An issue has been opened upstream: https://github.com/davisp/jiffy/issues/222
+%% To see if there is interest in moving to lower-cased hex
+
+canonicalize_string(Value) -> Value.
+
+%% \u1234 in Erlang is \x{1234} - Erlang doesn't support \u escape sequence:
+%% https://www.erlang.org/doc/reference_manual/data_types.html#escape-sequences
+
+%% leaving this dead code for a bit, it does a good job of fixing
+%% strings to match what the RFC calls for. The big issue is the
+%% encoding of hex a-f in jiffy is A-F which is not compatible with
+%% the RFC.
+
+%% canonicalize_string(Value) ->
+%%     %% string:to_graphemes(Value)
+%%     canonicalize_string(unicode:characters_to_list(Value), []).
+
+%% canonicalize_string([], Acc) -> unicode:characters_to_binary(lists:reverse(Acc));
+%% %% If the Unicode value falls within the traditional ASCII control
+%% %% character range (U+0000 through U+001F), it MUST be serialized
+%% %% using lowercase hexadecimal Unicode notation (\uhhhh) unless it is
+%% %% in the set of predefined JSON control characters U+0008, U+0009,
+%% %% U+000A, U+000C, or U+000D, which MUST be serialized as \b, \t, \n,
+%% %% \f, and \r, respectively.
+%% canonicalize_string([$\b | Rest], Acc) -> canonicalize_string(Rest, [$\b | Acc]);
+%% canonicalize_string([$\t | Rest], Acc) -> canonicalize_string(Rest, [$\t | Acc]);
+%% canonicalize_string([$\n | Rest], Acc) -> canonicalize_string(Rest, [$\n | Acc]);
+%% canonicalize_string([$\f | Rest], Acc) -> canonicalize_string(Rest, [$\f | Acc]);
+%% canonicalize_string([$\r | Rest], Acc) -> canonicalize_string(Rest, [$\r | Acc]);
+%% canonicalize_string([N | Rest], Acc)
+%%   when N >= 16#00, N =< 16#1F ->
+%%     UTFBin = kz_binary:pad_left(integer_to_binary(N, 16), 4, <<"0">>),
+%%     Bin = kz_term:to_lower_binary(UTFBin),
+%%     canonicalize_string(Rest, [<<92, 117, Bin/binary>> | Acc]);
+
+%% %% If the Unicode value is outside of the ASCII control character
+%% %% range, it MUST be serialized "as is" unless it is equivalent to
+%% %% U+005C (\) or U+0022 ("), which MUST be serialized as \\ and \",
+%% %% respectively
+%% canonicalize_string([16#5c | Rest], Acc) -> canonicalize_string(Rest, [16#5c | Acc]);
+%% canonicalize_string([16#22 | Rest], Acc) -> canonicalize_string(Rest, [16#22 | Acc]);
+%% canonicalize_string([N | Rest], Acc) ->
+%%     canonicalize_string(Rest, [<<N/utf8>> | Acc]).
+
+%% 3.2.2.3 - JSON numbers
+%% Handled by jiffy:encode/2
+canonicalize_numbers(Key, Value) -> {Key, Value}.
 
 -spec unsafe_decode(iolist() | kz_term:ne_binary()) -> json_term().
 unsafe_decode(Thing) when is_list(Thing);
@@ -203,7 +295,7 @@ unsafe_decode(JSON, Options) ->
     try jiffy:decode(JSON, JIFFY)
     catch
         'throw':{'error',{_Loc, 'invalid_string'}}=Error ->
-            lager:debug("invalid string(near char ~p) in input, checking for unicode", [_Loc]),
+            ?LOG_DEBUG("invalid string(near char ~p) in input, checking for unicode", [_Loc]),
             case try_converting(JSON) of
                 JSON -> throw({'invalid_json', Error, JSON});
                 Converted -> unsafe_decode(Converted)
@@ -226,7 +318,7 @@ decode(JSON, Options) ->
     try unsafe_decode(JSON, Options)
     catch
         _:{'invalid_json', {'error', {_Loc, _Msg}}, _JSON} ->
-            lager:error_unsafe("decode error ~s near char # ~b => ~s", [_Msg, _Loc, _JSON]),
+            ?LOG_ERROR("decode error ~s near char # ~b => ~s", [_Msg, _Loc, _JSON]),
             props:get_value('default', Options, new())
     end.
 
@@ -467,18 +559,31 @@ merge(MergeFun, [], [{KY, VY}|Ys], Acc, Options) when is_function(MergeFun, 2) -
     merge(MergeFun, Ys, [], f(KY, MergeFun(KY, {'right', VY}), Acc), Options);
 merge(MergeFun, [], [{KY, VY}|Ys], Acc, Options) when is_function(MergeFun, 3) ->
     merge(MergeFun, Ys, [], f(KY, MergeFun(KY, {'right', VY}, Options), Acc), Options);
-merge(MergeFun, [{KX, VX}|Xs]=Left, [{KY, VY}|Ys]=Right, Acc, Options) when is_function(MergeFun, 2) ->
-    if
-        KX < KY -> merge(MergeFun, Xs, Right, f(KX, MergeFun(KX, {'left', VX}), Acc), Options);
-        KX > KY -> merge(MergeFun, Left, Ys, f(KY, MergeFun(KY, {'right', VY}), Acc), Options);
-        KX =:= KY -> merge(MergeFun, Xs, Ys, f(KX, MergeFun(KX, {'both', VX, VY}), Acc), Options)
-    end;
-merge(MergeFun, [{KX, VX}|Xs]=Left, [{KY, VY}|Ys]=Right, Acc, Options) when is_function(MergeFun, 3) ->
-    if
-        KX < KY -> merge(MergeFun, Xs, Right, f(KX, MergeFun(KX, {'left', VX}, Options), Acc), Options);
-        KX > KY -> merge(MergeFun, Left, Ys, f(KY, MergeFun(KY, {'right', VY}, Options), Acc), Options);
-        KX =:= KY -> merge(MergeFun, Xs, Ys, f(KX, MergeFun(KX, {'both', VX, VY}, Options), Acc), Options)
-    end.
+
+merge(MergeFun, Left, Right, Acc, Options) when is_function(MergeFun, 2) ->
+    merge_fun_2(MergeFun, Left, Right, Acc, Options);
+merge(MergeFun, Left, Right, Acc, Options) when is_function(MergeFun, 3) ->
+    merge_fun_3(MergeFun, Left, Right, Acc, Options).
+
+merge_fun_2(MergeFun, [{KX, VX}|Xs], [{KY, _VY}|_Ys]=Right, Acc, Options)
+  when KX < KY ->
+    merge(MergeFun, Xs, Right, f(KX, MergeFun(KX, {'left', VX}), Acc), Options);
+merge_fun_2(MergeFun, [{KX, _VX}|_Xs]=Left, [{KY, VY}|Ys], Acc, Options)
+  when KX > KY ->
+    merge(MergeFun, Left, Ys, f(KY, MergeFun(KY, {'right', VY}), Acc), Options);
+merge_fun_2(MergeFun, [{KX, VX}|Xs], [{KY, VY}|Ys], Acc, Options)
+  when KX =:= KY ->
+    merge(MergeFun, Xs, Ys, f(KX, MergeFun(KX, {'both', VX, VY}), Acc), Options).
+
+merge_fun_3(MergeFun, [{KX, VX}|Xs], [{KY, _VY}|_Ys]=Right, Acc, Options)
+  when KX < KY ->
+    merge(MergeFun, Xs, Right, f(KX, MergeFun(KX, {'left', VX}, Options), Acc), Options);
+merge_fun_3(MergeFun, [{KX, _VX}|_Xs]=Left, [{KY, VY}|Ys], Acc, Options)
+  when KX > KY ->
+    merge(MergeFun, Left, Ys, f(KY, MergeFun(KY, {'right', VY}, Options), Acc), Options);
+merge_fun_3(MergeFun, [{KX, VX}|Xs], [{KY, VY}|Ys], Acc, Options)
+  when KX =:= KY ->
+    merge(MergeFun, Xs, Ys, f(KX, MergeFun(KX, {'both', VX, VY}, Options), Acc), Options).
 
 -spec f(key(), merge_fun_result(), list()) -> list().
 f(_K, 'undefined', Acc) -> Acc;

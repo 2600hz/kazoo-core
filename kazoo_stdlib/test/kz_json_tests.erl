@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc proplists-like interface to json objects
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -318,7 +318,7 @@ prop_merge_with_null() ->
                               ?debugFmt("merging nulls failed on ~p:~nnull: ~p~nright: ~p~nmerged: ~p~n"
                                        ,[Path, WithNull, RightJObj, Merged]
                                        ),
-                              start_debug(kz_json),
+                              start_debug('kz_json'),
                               kz_json:merge(fun kz_json:merge_left/3, WithNull, RightJObj, #{'keep_null' => 'true'}),
                               stop_debug()
                           end
@@ -328,17 +328,6 @@ prop_merge_with_null() ->
             end
            ).
 
-start_debug(M) ->
-    dbg:start(),
-    dbg:tracer(),
-
-    dbg:tpl(M, [{'_', [], [$_]}]),
-    dbg:p(all, c).
-
-stop_debug() ->
-    dbg:stop_clear(),
-    dbg:stop().
-
 %% Once-failing tests found by PropEr
 merge_left_test_() ->
     JObjs = [{kz_json:from_list([{<<"foo">>, kz_json:new()}])
@@ -347,7 +336,7 @@ merge_left_test_() ->
             ,{kz_json:from_list([{<<164,157,198,86>>,<<>>}
                                 ,{<<141,91,80,224,4,15,58>>,<<123,90,22,250,127,8>>}
                                 ,{<<89,32,154,252,169,163,159>>,<<12,20,213,203>>}
-                                ,{<<"ï¿½ï¿½F">>,false}
+                                ,{<<"ï¿½ï¿½F">>,'false'}
                                 ,{<<158,113,31,162,148>>,kz_json:new()}
                                 ,{<<"ï¿½">>,kz_json:new()}
                                 ]
@@ -1021,7 +1010,7 @@ get_value_test_() ->
     ,?_assertEqual(<<"not">>, kz_json:get_value([3, <<"sub_docs">>, <<"2">>, <<"d2k2">>], [], <<"not">>))
     ,?_assertEqual(3.14,      kz_json:get_value([3, <<"sub_docs">>, 2, <<"d2k2">>], ?D4, <<"not">>))
      %% Reading from non JObj should not be okay
-    ,?_assertError(badarg, kz_json:get_value(<<"a">>, not_json))
+    ,?_assertError('badarg', kz_json:get_value(<<"a">>, 'not_json'))
 
     ,?_assertEqual('undefined'
                   ,kz_json:get_value([<<"en-us">>, <<"label">>], ?D1)
@@ -1146,13 +1135,13 @@ are_all_there(Values, Keys, Vs, Ks) ->
                                   ,{<<"k4">>, [1,2,3]}
                                   ])).
 -define(PROPS_WITH_UNDEFINED, [{<<"a">>, 42}
-                              ,{<<"b">>, undefined}
+                              ,{<<"b">>, 'undefined'}
                               ]).
 
 codec_test_() ->
     [?_assertEqual(?CODEC_JOBJ, kz_json:decode(kz_json:encode(?CODEC_JOBJ)))
-    ,?_assertException(error,{invalid_ejson,undefined}, kz_json:encode(undefined))
-    ,?_assertException(error,{invalid_ejson,undefined}, kz_json:encode(?JSON_WRAPPER(?PROPS_WITH_UNDEFINED)))
+    ,?_assertException('error',{'invalid_ejson','undefined'}, kz_json:encode('undefined'))
+    ,?_assertException('error',{'invalid_ejson','undefined'}, kz_json:encode(?JSON_WRAPPER(?PROPS_WITH_UNDEFINED)))
     ,?_assert(kz_json:are_equal(kz_json:from_list(?PROPS_WITH_UNDEFINED)
                                ,kz_json:decode(kz_json:encode(kz_json:from_list(?PROPS_WITH_UNDEFINED)))
                                ))
@@ -1236,11 +1225,11 @@ to_map_test_() ->
 
 are_equal_test_() ->
     JObj = kz_json:from_map(kz_json:to_map(?MAP_JSON)),
-    [?_assertEqual(true, kz_json:are_equal(?MAP_JSON, JObj))
-    ,?_assertEqual(true, kz_json:are_equal(JObj, ?MAP_JSON))
-    ,?_assertEqual(true, kz_json:are_equal(undefined, undefined))
-    ,?_assertEqual(false, kz_json:are_equal(undefined, kz_json:new()))
-    ,?_assertEqual(false, kz_json:are_equal(kz_json:new(), undefined))
+    [?_assertEqual('true', kz_json:are_equal(?MAP_JSON, JObj))
+    ,?_assertEqual('true', kz_json:are_equal(JObj, ?MAP_JSON))
+    ,?_assertEqual('true', kz_json:are_equal('undefined', 'undefined'))
+    ,?_assertEqual('false', kz_json:are_equal('undefined', kz_json:new()))
+    ,?_assertEqual('false', kz_json:are_equal(kz_json:new(), 'undefined'))
     ].
 
 -define(CHARGES_SIMPLE,
@@ -1416,49 +1405,51 @@ merge_vs_merge_recursive_test_() ->
 set_value_test_() ->
     JObj = kz_json:from_list([{<<189>>,[]}]),
     Key = [<<189>>,<<0>>],
-    Value = null,
+    Value = 'null',
     JObj1 = kz_json:set_value(Key, Value, JObj),
     [{"prop_set_value error", ?_assertEqual(Value, kz_json:get_value(Key, JObj1, Value))}].
 
 -define(FROM_MAP_JSON_1,
-        kz_json:from_list([{options, kz_json:from_list([{opt1,<<"my-opt1">>}
-                                                       ,{opt2,<<"my-opt2">>}
+        kz_json:from_list([{options, kz_json:from_list([{'opt1',<<"my-opt1">>}
+                                                       ,{'opt2',<<"my-opt2">>}
                                                        ])}])).
 -define(FROM_MAP_JSON_2,
-        kz_json:from_list([{outer_key, kz_json:from_list([{inner_key,<<"inner_value">>}])}])).
+        kz_json:from_list([{outer_key, kz_json:from_list([{'inner_key',<<"inner_value">>}])}])).
 
 -define(FROM_MAP_JSON_3,
-        kz_json:from_list([{outer_key, kz_json:from_list([{inner_key,<<"inner_value">>}
-                                                         ,{inner_options, kz_json:from_list([{opt1,<<"my-opt1">>}
-                                                                                            ,{opt2,<<"my-opt2">>}
-                                                                                            ])}
+        kz_json:from_list([{outer_key, kz_json:from_list([{'inner_key',<<"inner_value">>}
+                                                         ,{'inner_options', kz_json:from_list([{'opt1',<<"my-opt1">>}
+                                                                                              ,{'opt2',<<"my-opt2">>}
+                                                                                              ])}
                                                          ])}])).
--define(FROM_MAP_JSON_4_WRONG,
-        kz_json:from_list([{outer_key, kz_json:from_list([{inner_key,<<"inner_value">>}
-                                                         ,{inner_options, [{opt1,<<"my-opt1">>}
-                                                                          ,<<"anykey">>
-                                                                          ,{opt1,<<"my-opt1">>}
-                                                                          ]}
-                                                         ])}])).
--define(FROM_MAP_JSON_4_RIGHT,
-        kz_json:from_list([{outer_key, kz_json:from_list([{inner_key,<<"inner_value">>}
-                                                         ,{inner_options, [kz_json:from_list([{opt1,<<"my-opt1">>}])
-                                                                          ,<<"anykey">>
-                                                                          ,kz_json:from_list([{opt1,<<"my-opt1">>}])
-                                                                          ]}
-                                                         ])}])).
+-define(FROM_MAP_JSON_4_WRONG
+       ,kz_json:from_list([{'outer_key', kz_json:from_list([{'inner_key',<<"inner_value">>}
+                                                           ,{'inner_options', [{'opt1',<<"my-opt1">>}
+                                                                              ,<<"anykey">>
+                                                                              ,{'opt1',<<"my-opt1">>}
+                                                                              ]}
+                                                           ])}])
+       ).
+-define(FROM_MAP_JSON_4_RIGHT
+       ,kz_json:from_list([{'outer_key', kz_json:from_list([{'inner_key',<<"inner_value">>}
+                                                           ,{'inner_options', [kz_json:from_list([{'opt1',<<"my-opt1">>}])
+                                                                              ,<<"anykey">>
+                                                                              ,kz_json:from_list([{'opt1',<<"my-opt1">>}])
+                                                                              ]}
+                                                           ])}])
+       ).
 
--define(FROM_MAP_MAP_1, #{options => [{opt1,<<"my-opt1">>},{opt2,<<"my-opt2">>}]}).
--define(FROM_MAP_MAP_2, #{outer_key => #{inner_key => <<"inner_value">>}}).
--define(FROM_MAP_MAP_3, #{outer_key => #{inner_key => <<"inner_value">>
-                                        ,inner_options => [{opt1,<<"my-opt1">>}
-                                                          ,{opt2,<<"my-opt2">>}
-                                                          ]}}).
--define(FROM_MAP_MAP_4, #{outer_key => #{inner_key => <<"inner_value">>
-                                        ,inner_options => [{opt1,<<"my-opt1">>}
-                                                          ,<<"anykey">>
-                                                          ,{opt1,<<"my-opt1">>}
-                                                          ]}}).
+-define(FROM_MAP_MAP_1, #{options => [{'opt1',<<"my-opt1">>},{'opt2',<<"my-opt2">>}]}).
+-define(FROM_MAP_MAP_2, #{outer_key => #{'inner_key' => <<"inner_value">>}}).
+-define(FROM_MAP_MAP_3, #{outer_key => #{'inner_key' => <<"inner_value">>
+                                        ,'inner_options' => [{'opt1',<<"my-opt1">>}
+                                                            ,{'opt2',<<"my-opt2">>}
+                                                            ]}}).
+-define(FROM_MAP_MAP_4, #{outer_key => #{'inner_key' => <<"inner_value">>
+                                        ,'inner_options' => [{'opt1',<<"my-opt1">>}
+                                                            ,<<"anykey">>
+                                                            ,{'opt1',<<"my-opt1">>}
+                                                            ]}}).
 
 from_map_test_() ->
     [{"Map with a proplist as a key's value"
@@ -1475,7 +1466,7 @@ from_map_test_() ->
      ,?_assertEqual(?FROM_MAP_JSON_4_RIGHT, kz_json:from_map(?FROM_MAP_MAP_4))
      }
     ,{"error encoding the invalid json generated in from_map with a mixed proplist inside map"
-     ,?_assertException(error, {invalid_ejson,{opt1,<<"my-opt1">>}}, kz_json:encode(?FROM_MAP_JSON_4_WRONG))
+     ,?_assertException('error', {'invalid_ejson',{'opt1',<<"my-opt1">>}}, kz_json:encode(?FROM_MAP_JSON_4_WRONG))
      }
     ,{"encoding the invalid json generated in from_map with a mixed proplist inside map"
      ,?_assertEqual(kz_json:encode(?FROM_MAP_JSON_4_RIGHT), kz_json:encode(kz_json:from_map(?FROM_MAP_MAP_4)))
@@ -1516,10 +1507,10 @@ utf8_binary_values_test_() ->
      ,?_assertEqual(UTF8Recursive, kz_json:from_list_recursive(Recursive))
      }
     ,{"When encoding a NOT utf8 ready object it should fail"
-     ,?_assertException(error, {invalid_string,V}, kz_json:encode(?JSON_WRAPPER(Props)))
+     ,?_assertException('error', {'invalid_string',V}, kz_json:encode(?JSON_WRAPPER(Props)))
      }
     ,{"When encoding a NOT utf8 ready object it should fail"
-     ,?_assertException(error, {invalid_string,V}, kz_json:encode(?JSON_WRAPPER([{K, ?JSON_WRAPPER(Props)}])))
+     ,?_assertException('error', {'invalid_string',V}, kz_json:encode(?JSON_WRAPPER([{K, ?JSON_WRAPPER(Props)}])))
      }
     ,{"When encoding a utf8 ready object it should work"
      ,?_assertEqual(UTF8EncJObj, kz_json:encode(UTF8JObj))
@@ -1551,17 +1542,23 @@ qsjs_merge_test_() ->
      ,[?_assertEqual(j_from_p([{<<"a">>, [<<"b">>, [{<<"c">>, <<"d">>}]]}])
                     ,kz_json:qsjs_merge(j_from_p([{<<"a">>, <<"b">>}]), j_from_p([{<<"a">>, [{<<"c">>, <<"d">>}]}]))
                     )
-      ,?_assertEqual(j_from_p([{<<"a">>, [{<<"c">>, <<"d">>}, {<<"b">>, true}]}])
-                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [{<<"c">>, <<"d">>}]}]), j_from_p([{<<"a">>, <<"b">>}]))
+      ,?_assertEqual(j_from_p([{<<"a">>, [{<<"c">>, <<"d">>}, {<<"b">>, 'true'}]}])
+                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [{<<"c">>, <<"d">>}]}])
+                                       ,j_from_p([{<<"a">>, <<"b">>}])
+                                       )
                     )
       ,?_assertEqual(j_from_p([{<<"a">>, [<<"z">> ,[{<<"c">>, <<"d">>}], <<"b">>]}])
-                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [<<"z">>, [{<<"c">>, <<"d">>}]]}]), j_from_p([{<<"a">>, <<"b">>}]))
+                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [<<"z">>, [{<<"c">>, <<"d">>}]]}])
+                                       ,j_from_p([{<<"a">>, <<"b">>}])
+                                       )
                     )
       ]
      }
     ,{"merge arrays"
      ,[?_assertEqual(j_from_p([{<<"a">>, [<<"b">>, <<"b">>, <<"c">>, <<"d">>]}])
-                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [<<"b">>]}]), j_from_p([{<<"a">>, [<<"b">>, <<"c">>, <<"d">>]}]))
+                    ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [<<"b">>]}])
+                                       ,j_from_p([{<<"a">>, [<<"b">>, <<"c">>, <<"d">>]}])
+                                       )
                     )
       ,?_assertEqual(j_from_p([{<<"a">>, [[{<<"b">>, 2}, {<<"c">>, 3}], [{<<"d">>, 4}, {<<"e">>, 5}]]}])
                     ,kz_json:qsjs_merge(j_from_p([{<<"a">>, [[{<<"b">>, 2}], [{<<"d">>, 4}]]}])
@@ -1572,10 +1569,14 @@ qsjs_merge_test_() ->
      }
     ,{"do not add key if it is undefined in source only"
      ,[?_assertEqual(j_from_p([{<<"a">>, <<"b">>}])
-                    ,kz_json:qsjs_merge(?JSON_WRAPPER([{<<"a">>, undefined}]), j_from_p([{<<"a">>, <<"b">>}]))
+                    ,kz_json:qsjs_merge(?JSON_WRAPPER([{<<"a">>, 'undefined'}])
+                                       ,j_from_p([{<<"a">>, <<"b">>}])
+                                       )
                     )
-      ,?_assertEqual(?JSON_WRAPPER([{<<"a">>, undefined}])
-                    ,kz_json:qsjs_merge(?JSON_WRAPPER([{<<"a">>, undefined}]), ?JSON_WRAPPER([{<<"a">>, undefined}]))
+      ,?_assertEqual(?JSON_WRAPPER([{<<"a">>, 'undefined'}])
+                    ,kz_json:qsjs_merge(?JSON_WRAPPER([{<<"a">>, 'undefined'}])
+                                       ,?JSON_WRAPPER([{<<"a">>, 'undefined'}])
+                                       )
                     )
       ]
      }
@@ -1586,6 +1587,111 @@ qsjs_merge_test_() ->
 %% > kz_json:qsjs_merge(A, B).
 %% {[{<<"a">>,[{[{<<"b">>,2},{<<"c">>,3}]},{[{<<"d">>,4},{<<"e">>,5}]}]}]}
 j_from_p(Prop) -> kz_json:from_list_recursive(Prop).
+
+
+canonicalize_test_() ->
+    Canonical = <<"{\"age\":17,\"key\":\"123\",\"value\":\"456\",\"win\":true}">>,
+
+    [?_assertMatch(Canonical
+                  ,kz_json:encode(kz_json:from_list([{<<"key">>, <<"123">>}
+                                                    ,{<<"value">>, <<"456">>}
+                                                    ,{<<"age">>, 17}
+                                                    ,{<<"win">>, <<"true">>}
+                                                    ]
+                                                   )
+                                 ,['canonical']
+                                 )
+                  )
+    ,?_assertMatch(Canonical
+                  ,kz_json:encode(kz_json:from_list([{<<"value">>, <<"456">>}
+                                                    ,{<<"win">>, <<"true">>}
+                                                    ,{<<"key">>, <<"123">>}
+                                                    ,{<<"age">>, 17}
+                                                    ]
+                                                   )
+                                 ,['canonical']
+                                 )
+                  )
+    ,?_assertMatch(Canonical
+                  ,kz_json:encode(kz_json:from_list([{<<"age">>, 17}
+                                                    ,{<<"value">>, <<"456">>}
+                                                    ,{<<"win">>, <<"true">>}
+                                                    ,{<<"key">>, <<"123">>}
+                                                    ]
+                                                   )
+                                 ,['canonical']
+                                 )
+                  )
+    ,?_assertMatch(Canonical
+                  ,kz_json:encode(kz_json:decode(Canonical), ['canonical'])
+                  )
+    ].
+
+
+canonicalize_rfc8785_test() ->
+    {'ok', <<JSON/binary>>} = file:read_file(filename:join([code:lib_dir('kazoo_stdlib', 'test'), "input.json"])),
+    {'ok', <<Canonical/binary>>} = file:read_file(filename:join([code:lib_dir('kazoo_stdlib', 'test'), "canonical.json"])),
+
+    Made = kz_json:encode(kz_json:decode(JSON), ['canonical']),
+    MadeJObj = kz_json:decode(Made),
+
+    ?assert(kz_json:are_equal(kz_json:decode(Canonical), MadeJObj)).
+%% ?assertMatch(Canonical, Made).
+
+canonicalize_u_test_() ->
+    JSON = <<"{\"account_db\":\"account%2f123\"}">>,
+    Canon = kz_json:encode(kz_json:decode(JSON), ['canonical']),
+    [?_assertMatch(JSON, Canon)].
+
+%% diff(C, M) ->
+%%     diff_l(unicode:characters_to_list(C)
+%%           ,unicode:characters_to_list(M)
+%%           ).
+
+%% diff_l([], []) -> {<<>>, <<>>};
+%% diff_l([C | CRest], [C | MRest]) ->
+%%     diff_l(CRest, MRest);
+%% diff_l(C, M) ->
+%%     {unicode:characters_to_binary(C)
+%%     ,unicode:characters_to_binary(M)
+%%     }.
+
+
+%% test/kz_json_tests.erl:1642:<0.83.0>:
+%% diff:
+%% c:<<92,117,48,48,48,102,92,110,65,39,66,92,34,92,92,92,92,92,34,47,34,125,10>>
+%% m:<<117,48,48,48,102,92,110,65,39,66,92,34,92,92,92,92,92,34,47,34,125>>
+
+%% test/kz_json_tests.erl:1643:<0.83.0>:
+%% diff:
+%% c:\u000f\nA'B\"\\\\\"/"}
+
+%% m:u000f\nA'B\"\\\\\"/"}
+
+
+%% test/kz_json_tests.erl:1642:<0.83.0>:
+%% diff:
+%% c:<<117,48,48,48,102,92,110,65,39,66,92,34,92,92,92,92,92,34,47,34,125,10>>
+%% m:<<92,117,48,48,48,102,92,110,65,39,66,92,34,92,92,92,92,92,34,47,34,125>>
+
+%% test/kz_json_tests.erl:1643:<0.83.0>:
+%% diff:
+%% c:u000f\nA'B\"\\\\\"/"}
+
+%% m:\u000f\nA'B\"\\\\\"/"}
+
+
+%% start_debug(M) ->
+%%     dbg:start(),
+%%     dbg:tracer(),
+
+%%     dbg:tpl(M, [{'_', [], [$_]}]),
+%%     dbg:p(all, c).
+
+%% stop_debug() ->
+%%     dbg:stop_clear(),
+%%     dbg:stop().
+
 
 -ifdef(PERF).
 -define(REPEAT, 100000).
