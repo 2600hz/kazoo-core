@@ -30,12 +30,10 @@ call_recording_test_() ->
     ].
 
 merge_attribute_call_limits_test_() ->
-    TestFun = fun(Account, Endpoint, Owner) ->
-                      kz_endpoint:merge_attribute(<<"call_limits">>, Account, Endpoint, Owner)
+    TestFun = fun(InAccount, InEndpoint, InOwner) ->
+                      kz_endpoint_v5:merge_attribute(<<"call_limits">>, InAccount, InEndpoint, InOwner)
               end,
-    Match = fun(JObj, N) ->
-                    N =:= kzd_call_limits:max_concurrent(kzd_endpoint:call_limits(JObj))
-            end,
+    Value = fun(JObj) -> kzd_call_limits:max_concurrent(kzd_endpoint:call_limits(JObj)) end,
     AccountLimit = kz_term:rand_integer(1, 10),
     OwnerLimit = kz_term:rand_integer(1, 10),
     EndpointLimit = kz_term:rand_integer(1, 10),
@@ -45,31 +43,31 @@ merge_attribute_call_limits_test_() ->
     Endpoint = new_limited_entity(EndpointLimit),
 
     [{"not configured at any level"
-     ,?_assert(Match(TestFun(NotLimit, NotLimit, NotLimit), 'undefined'))
+     ,?_assertEqual('undefined', Value(TestFun(NotLimit, NotLimit, NotLimit)))
      }
     ,{"configured at account level"
-     ,?_assert(Match(TestFun(Account, NotLimit, NotLimit), AccountLimit))
+     ,?_assertEqual(AccountLimit, Value(TestFun(Account, NotLimit, NotLimit)))
      }
     ,{"configured at owner level"
-     ,?_assert(Match(TestFun(NotLimit, NotLimit, Owner), OwnerLimit))
+     ,?_assertEqual('undefined', Value(TestFun(NotLimit, NotLimit, Owner)))
      }
     ,{"configured at endpoint level"
-     ,?_assert(Match(TestFun(NotLimit, Endpoint, NotLimit), EndpointLimit))
+     ,?_assertEqual(EndpointLimit, Value(TestFun(NotLimit, Endpoint, NotLimit)))
      }
     ,{"configured at account and owner level"
-     ,?_assert(Match(TestFun(Account, NotLimit, Owner), min(AccountLimit, OwnerLimit)))
+     ,?_assertEqual(AccountLimit, Value(TestFun(Account, NotLimit, Owner)))
      }
     ,{"configured at account and endpoint level"
-     ,?_assert(Match(TestFun(Account, Endpoint, NotLimit), min(AccountLimit, EndpointLimit)))
+     ,?_assertEqual(EndpointLimit, Value(TestFun(Account, Endpoint, NotLimit)))
      }
     ,{"configured at owner and endpoint level"
-     ,?_assert(Match(TestFun(NotLimit, Endpoint, Owner), min(EndpointLimit, OwnerLimit)))
+     ,?_assertEqual(EndpointLimit, Value(TestFun(NotLimit, Endpoint, Owner)))
      }
     ,{"configured at all levels"
-     ,?_assert(Match(TestFun(Account, Endpoint, Owner), min(AccountLimit, min(EndpointLimit, OwnerLimit))))
+     ,?_assertEqual(EndpointLimit, Value(TestFun(Account, Endpoint, Owner)))
      }
     ,{"configured at all levels with the same limit"
-     ,?_assert(Match(TestFun(Endpoint, Endpoint, Endpoint), EndpointLimit))
+     ,?_assertEqual(EndpointLimit, Value(TestFun(Endpoint, Endpoint, Endpoint)))
      }
     ].
 
