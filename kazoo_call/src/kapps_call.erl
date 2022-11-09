@@ -172,6 +172,7 @@
 -export([updateable_ccvs/2]).
 -endif.
 
+-include("kapps_call.hrl").
 -include("kapps_call_command.hrl").
 -include_lib("kazoo_sip/include/kzsip_uri.hrl").
 
@@ -222,8 +223,8 @@
                     ,fetch_id :: kz_term:api_binary()                    %% The Fetch ID of the Call
                     ,bridge_id :: kz_term:api_binary()                    %% The Bridge ID of the Call
                     ,language :: kz_term:api_binary()                     %% Language of the call to use
-                    ,app_name = <<"kapps_call">> :: kz_term:ne_binary()        %% The application name used during kapps_call_command
-                    ,app_version = <<"1.0.0">> :: kz_term:ne_binary()           %% The application version used during kapps_call_command
+                    ,app_name = ?KAPPS_CALL_APP_NAME :: kz_term:ne_binary() %% The application name used during kapps_call_command
+                    ,app_version = ?KAPPS_CALL_APP_VERSION :: kz_term:ne_binary() %% The application version used during kapps_call_command
                     ,custom_publish_fun :: kapps_custom_publish() | 'undefined'     %% A custom command used to publish kapps_call_command
                     ,ccvs = kz_json:new() :: kz_json:object()           %% Any custom channel vars that where provided with the route request
                     ,cavs = kz_json:new() :: kz_json:object()           %% Any custom application vars that where provided with the route request

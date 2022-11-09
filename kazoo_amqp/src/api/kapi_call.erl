@@ -32,6 +32,16 @@
         ,publish_channel_status_resp/3
         ,channel_status_extended_headers/0
         ]).
+-export([enforce_endpoint_limit_req/1
+        ,enforce_endpoint_limit_req_v/1
+        ,publish_enforce_endpoint_limit_req/1
+        ,publish_enforce_endpoint_limit_req/2
+        ]).
+-export([enforce_endpoint_limit_resp/1
+        ,enforce_endpoint_limit_resp_v/1
+        ,publish_enforce_endpoint_limit_resp/2
+        ,publish_enforce_endpoint_limit_resp/3
+        ]).
 -export([query_auth_id_req/1
         ,query_auth_id_req_v/1
         ,publish_query_auth_id_req/1
@@ -125,6 +135,8 @@ api_definitions() ->
     [event_definition()
     ,channel_status_req_definition()
     ,channel_status_resp_definition()
+    ,enforce_endpoint_limit_req_definition()
+    ,enforce_endpoint_limit_resp_definition()
     ,query_auth_id_req_definition()
     ,query_auth_id_resp_definition()
     ,query_user_channels_req_definition()
@@ -151,6 +163,10 @@ api_definition(<<"channel_status_req">>) ->
     channel_status_req_definition();
 api_definition(<<"channel_status_resp">>) ->
     channel_status_resp_definition();
+api_definition(<<"enforce_endpoint_limit_req">>) ->
+    enforce_endpoint_limit_req_definition();
+api_definition(<<"enforce_endpoint_limit_resp">>) ->
+    enforce_endpoint_limit_resp_definition();
 api_definition(<<"query_auth_id_req">>) ->
     query_auth_id_req_definition();
 api_definition(<<"query_auth_id_resp">>) ->
@@ -368,7 +384,6 @@ channel_status_resp_definition() ->
               ],
     kapi_definition:setters(Setters).
 
-
 -spec channel_status_extended_headers() -> kz_term:ne_binaries().
 channel_status_extended_headers() ->
     [<<"Answered">>
@@ -392,6 +407,62 @@ channel_status_extended_headers() ->
     ,<<"To">>
     ,<<"To-Tag">>
     ].
+
+-spec enforce_endpoint_limit_req_definition() -> kapi_definition:api().
+enforce_endpoint_limit_req_definition() ->
+    EventName = <<"enforce_endpoint_limit_req">>,
+    Category = <<"channel">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Enforce Endpoint Limit Request">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Request to know whether or not the endpoint has reached its configured limit">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun enforce_endpoint_limit_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun enforce_endpoint_limit_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_enforce_endpoint_limit_req/1}
+              ,{fun kapi_definition:set_binding/2, fun enforce_endpoint_limit_routing_key/0}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Endpoint-Limit">>
+                                                            ,<<"Endpoint-ID">>
+                                                            ,<<"Endpoint-Type">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Endpoint-Limit">>, fun erlang:is_integer/1}
+                ,{<<"Endpoint-ID">>, fun erlang:is_binary/1}
+                ,{<<"Endpoint-Type">>, fun erlang:is_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec enforce_endpoint_limit_resp_definition() -> kapi_definition:api().
+enforce_endpoint_limit_resp_definition() ->
+    EventName = <<"enforce_endpoint_limit_resp">>,
+    Category = <<"channel">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Enforce Endpoint Limit Response">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Response for whether or not the endpoint has reached its configured limit">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun enforce_endpoint_limit_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun enforce_endpoint_limit_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_enforce_endpoint_limit_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Has-Reached-Limit">>]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Has-Reached-Limit">>, fun erlang:is_boolean/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
 
 -spec query_auth_id_req_definition() -> kapi_definition:api().
 query_auth_id_req_definition() ->
@@ -784,6 +855,61 @@ publish_channel_status_resp(RespQ, Resp, ContentType) ->
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
 %%------------------------------------------------------------------------------
+%% @doc 
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec enforce_endpoint_limit_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+enforce_endpoint_limit_req(Req) ->
+    kapi_definition:build_message(Req, enforce_endpoint_limit_req_definition()).
+
+-spec enforce_endpoint_limit_req_v(kz_term:api_terms()) -> boolean().
+enforce_endpoint_limit_req_v(Req) ->
+    kapi_definition:validate(Req, enforce_endpoint_limit_req_definition()).
+
+-spec publish_enforce_endpoint_limit_req(kz_term:api_terms()) -> 'ok'.
+publish_enforce_endpoint_limit_req(API) ->
+    publish_enforce_endpoint_limit_req(API, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_enforce_endpoint_limit_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_enforce_endpoint_limit_req(Req, ContentType) ->
+    Definition = enforce_endpoint_limit_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:channels_publish((kapi_definition:binding(Definition))()
+                                 ,Payload
+                                 ,ContentType
+                                 ).
+
+%%------------------------------------------------------------------------------
+%% @doc Response about whether or not an endpoint has reached its configured limit or not.
+%% Takes {@link lz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec enforce_endpoint_limit_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+enforce_endpoint_limit_resp(Req) ->
+    kapi_definition:build_message(Req, enforce_endpoint_limit_resp_definition()).
+
+-spec enforce_endpoint_limit_resp_v(kz_term:api_terms()) -> boolean().
+enforce_endpoint_limit_resp_v(Req) ->
+    kapi_definition:validate(Req, enforce_endpoint_limit_resp_definition()).
+
+-spec publish_enforce_endpoint_limit_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_enforce_endpoint_limit_resp(RespQ, JObj) ->
+    publish_enforce_endpoint_limit_resp(RespQ, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_enforce_endpoint_limit_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_enforce_endpoint_limit_resp(RespQ, Resp, ContentType) ->
+    Definition = enforce_endpoint_limit_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Resp
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
+
+%%------------------------------------------------------------------------------
 %% @doc Inquire into the status of a call.
 %% Takes {@link lz_term:proplist()}, creates JSON string or error.
 %% @end
@@ -1156,6 +1282,9 @@ maybe_bind_q(_Queue, _Events, _CallId, 'true') ->
 bind_q(Q, ['status_req' = Event|T], CallId) ->
     'ok' = kz_amqp_util:bind_q_to_channels(Q, query_routing_key(Event, CallId)),
     bind_q(Q, T, CallId);
+bind_q(Q, ['enforce_endpoint_limit_req' = _Event|T], CallId) ->
+    'ok' = kz_amqp_util:bind_q_to_channels(Q, enforce_endpoint_limit_routing_key()),
+    bind_q(Q, T, CallId);
 bind_q(Q, [Event|T], CallId) ->
     'ok' = kz_amqp_util:bind_q_to_callevt(Q, call_routing_key(Event, CallId)),
     bind_q(Q, T, CallId);
@@ -1211,10 +1340,6 @@ first_username(JObj) ->
     [U|_] = kz_json:get_value(<<"Usernames">>, JObj),
     U.
 
--spec event_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-event_routing_key(EventName, CallId) ->
-    call_routing_key(EventName, CallId).
-
 -spec auth_id(kz_term:api_terms()) -> kz_term:ne_binary().
 auth_id(Props) when is_list(Props) ->
     props:get_ne_binary_value(<<"Auth-ID">>, Props);
@@ -1233,6 +1358,11 @@ realm(Props) when is_list(Props) ->
 realm(JObj) ->
     kz_json:get_ne_binary_value(<<"Realm">>, JObj).
 
+%% Routing keys builders
+-spec event_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+event_routing_key(EventName, CallId) ->
+    call_routing_key(EventName, CallId).
+
 -spec call_routing_key(kz_term:ne_binary() | atom(), kz_term:ne_binary()) -> kz_term:ne_binary().
 call_routing_key(Event, CallId) ->
     list_to_binary(["call."
@@ -1244,6 +1374,10 @@ call_routing_key(Event, CallId) ->
 -spec query_routing_key(kz_term:ne_binary() | atom(), kz_term:ne_binary()) -> kz_term:ne_binary().
 query_routing_key(_Event, _CallId) ->
     <<"query.status">>.
+
+-spec enforce_endpoint_limit_routing_key() -> kz_term:ne_binary().
+enforce_endpoint_limit_routing_key() ->
+    <<"channel.enforce_endpoint_limit">>.
 
 %% Helpers
 -spec update_name_and_values(kapi_definition:api(), kz_term:api_terms()) -> kapi_definition:api().

@@ -1,0 +1,32 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.call.enforce_endpoint_limit_req",
+    "description": "AMQP API for call.enforce_endpoint_limit_req",
+    "properties": {
+        "Endpoint-ID": {
+            "type": "string"
+        },
+        "Endpoint-Limit": {
+            "type": "integer"
+        },
+        "Endpoint-Type": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "channel"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "enforce_endpoint_limit_req"
+            ]
+        }
+    },
+    "required": [
+        "Endpoint-ID",
+        "Endpoint-Limit",
+        "Endpoint-Type"
+    ],
+    "type": "object"
+}
