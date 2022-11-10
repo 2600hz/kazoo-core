@@ -855,7 +855,7 @@ publish_channel_status_resp(RespQ, Resp, ContentType) ->
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc Sends request to know whether or not an endpoint has reached its configured limit.
 %% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
@@ -884,7 +884,7 @@ publish_enforce_endpoint_limit_req(Req, ContentType) ->
                                  ).
 
 %%------------------------------------------------------------------------------
-%% @doc Response about whether or not an endpoint has reached its configured limit or not.
+%% @doc Sends response about whether or not an endpoint has reached its configured limit.
 %% Takes {@link lz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------

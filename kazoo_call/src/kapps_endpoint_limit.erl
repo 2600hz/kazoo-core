@@ -35,11 +35,11 @@ has_reached_limit(EndpointId, EndpointType, EndpointLimit) ->
           ,{<<"Endpoint-Type">>, EndpointType}
           ,{<<"Endpoint-Limit">>, EndpointLimit}
           ,{?KEY_MSG_ID, kz_binary:rand_hex(16)}
-           | kz_api:default_headers(<<"channel">>
-                                   ,<<"enforce_endpoint_limit_req">>
-                                   ,?KAPPS_CALL_APP_NAME
-                                   ,?KAPPS_CALL_APP_VERSION
-                                   )
+          | kz_api:default_headers(<<"channel">>
+                                  ,<<"enforce_endpoint_limit_req">>
+                                  ,?KAPPS_CALL_APP_NAME
+                                  ,?KAPPS_CALL_APP_VERSION
+                                  )
           ],
 
     Resp = kz_amqp_worker:call(Req
