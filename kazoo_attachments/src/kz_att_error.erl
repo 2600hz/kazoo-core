@@ -48,6 +48,7 @@
                  {'error', kz_term:ne_binary(), 'return_id_missing'}.
 -export_type([error/0
              ,update_routines/0
+             ,resp_headers/0
              ]).
 
 -spec new(kz_datamgr:data_errors()) -> error().

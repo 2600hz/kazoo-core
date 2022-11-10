@@ -22,22 +22,36 @@
 
 -export([aws_default_fields/0]).
 
+-define(MOD_CONFIG_CAT, <<"attachments.s3">>).
+
 -define(AMAZON_S3_HOST, <<"s3.amazonaws.com">>).
 -define(AMAZON_S3_UPLOAD_TIMEOUT, ?MILLISECONDS_IN_MINUTE * 30).
 
 -define(AMAZON_S3_HTTP_DEFAULT_CLIENT, 'lhttpc').
 %% httpc seems broken in otp 21.2.5
 
+-define(HTTP_RESP_CODE_FORBIDDEN, 403).
+
+%% A tuple containing an S3 bucket, a file path in that bucket, and config for
+%% connecting to AWS with `erlcloud`. Grouped together as these variables are
+%% used by all the `erlcloud_s3` funs.
+-type bpc() :: {string(), kz_term:api_ne_binary(), aws_config()}.
 -type s3_error() :: {'aws_error', {'socket_error', binary()}} |
                     {'aws_error', {'http_error', pos_integer(), string(), binary()}} |
                     {'s3_error', string(), string()}.
+-type existing_att_op() :: fun((bpc()
+                               ,kz_att_error:update_routines()
+                               ) -> gen_attachment:fetch_response()
+                                        ).
+-type bpc_provider() :: fun(() -> bpc()).
+-type bpc_consumer(ReturnType) :: fun((bpc()) -> ReturnType).
 
 %%%=============================================================================
 %%% gen_attachment behaviour callbacks (API)
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
-%% @doc
+%% @doc Put an attachment in an S3 bucket.
 %% @end
 %%------------------------------------------------------------------------------
 -spec put_attachment(gen_attachment:settings()
@@ -48,25 +62,18 @@
                     ,gen_attachment:options()
                     ) -> gen_attachment:put_response().
 put_attachment(Params, DbName, DocId, AName, Contents, Options) ->
-    {Bucket, FilePath, Config} = aws_bpc(Params, {DbName, DocId, AName}),
-    case put_object(Bucket, FilePath, Contents, Config) of
-        {'ok', RespHeaders} ->
-            Metadata = create_metadata(RespHeaders),
-            S3Key = encode_retrieval(Params, FilePath),
-            {'ok', [{'attachment', [{<<"S3">>, S3Key}
-                                   ,{<<"metadata">>, kz_json:from_list(Metadata)}
-                                   ]}
-                   ,{'headers', RespHeaders}
-                   ]};
-        {'error', _FilePath, Error} ->
-            Routines = [{fun kz_att_error:set_req_url/2, FilePath}
-                       | kz_att_error:put_routines(Params, DbName, DocId, AName
-                                                  ,<<>>, Options
-                                                  )
-                       ],
-            handle_s3_error(Error, Routines)
-    end.
+    Routines = kz_att_error:put_routines(Params, DbName, DocId, AName, Contents, Options),
 
+    catch_unauthorized(
+      fun() -> aws_bpc(Params, {DbName, DocId, AName}) end
+     ,fun(BPC) -> put_attachment(Params, Contents, BPC, Routines) end
+     ,Routines
+     ).
+
+%%------------------------------------------------------------------------------
+%% @doc Fetch an attachment from its S3 bucket.
+%% @end
+%%------------------------------------------------------------------------------
 -spec fetch_attachment(gen_attachment:handler_props()
                       ,gen_attachment:db_name()
                       ,gen_attachment:doc_id()
@@ -79,18 +86,15 @@ fetch_attachment(Conn, DbName, DocId, AName) ->
         'undefined' ->
             kz_att_error:new('invalid_data', Routines);
         S3 ->
-            {Bucket, FilePath, Config} = aws_bpc(S3, HandlerProps, {DbName, DocId, AName}),
-            case get_object(Bucket, FilePath, Config) of
-                {'ok', RespHeaders} ->
-                    {'ok', props:get_value('content', RespHeaders)};
-                {'error', FilePath, Error} ->
-                    NewRoutines = [{fun kz_att_error:set_req_url/2, FilePath}
-                                  | Routines
-                                  ],
-                    handle_s3_error(Error, NewRoutines)
-            end
+            do_on_existing_attachment(
+              HandlerProps, S3, DbName, DocId, AName, Routines, fun fetch_attachment/2
+             )
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc Delete an attachment from its S3 bucket, provided deletion is enabled.
+%% @end
+%%------------------------------------------------------------------------------
 -spec delete_attachment(gen_attachment:handler_props()
                        ,gen_attachment:db_name()
                        ,gen_attachment:doc_id()
@@ -105,21 +109,106 @@ delete_attachment(Conn, DbName, DocId, AName) ->
         'undefined' ->
             kz_att_error:new('invalid_data', Routines);
         'true' ->
-            {Bucket, FilePath, Config} = aws_bpc(S3, HandlerProps, {DbName, DocId, AName}),
-            case del_object(Bucket, FilePath, Config) of
-                {'ok', RespHeaders} ->
-                    {'ok', props:get_value('content', RespHeaders)};
-                {'error', FilePath, Error} ->
-                    NewRoutines = [{fun kz_att_error:set_req_url/2, FilePath}
-                                  | Routines
-                                  ],
-                    handle_s3_error(Error, NewRoutines)
-            end
+            do_on_existing_attachment(
+              HandlerProps, S3, DbName, DocId, AName, Routines, fun delete_attachment/2
+             )
     end.
 
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc Put an attachment in an S3 bucket.
+%% @end
+%%------------------------------------------------------------------------------
+-spec put_attachment(gen_attachment:settings()
+                    ,gen_attachment:contents()
+                    ,bpc()
+                    ,kz_att_error:update_routines()
+                    ) -> gen_attachment:put_response().
+put_attachment(Params, Contents, {Bucket, FilePath, Config}, ErrorRoutines) ->
+    case put_object(Bucket, FilePath, Contents, Config) of
+        {'ok', RespHeaders} ->
+            Metadata = create_metadata(RespHeaders),
+            S3Key = encode_retrieval(Params, FilePath),
+            {'ok', [{'attachment', [{<<"S3">>, S3Key}
+                                   ,{<<"metadata">>, kz_json:from_list(Metadata)}
+                                   ]}
+                   ,{'headers', RespHeaders}
+                   ]};
+        {'error', _FilePath, Error} ->
+            Routines = [{fun kz_att_error:set_req_url/2, FilePath} | ErrorRoutines],
+            handle_s3_error(Error, Routines)
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Fetch an attachment from its S3 bucket.
+%% @end
+%%------------------------------------------------------------------------------
+-spec fetch_attachment(bpc(), kz_att_error:update_routines()) ->
+          gen_attachment:fetch_response().
+fetch_attachment({Bucket, FilePath, Config}, ErrorRoutines) ->
+    case get_object(Bucket, FilePath, Config) of
+        {'ok', RespHeaders} -> {'ok', props:get_value('content', RespHeaders)};
+        {'error', FilePath, Error} ->
+            ErrorRoutines1 = [{fun kz_att_error:set_req_url/2, FilePath} | ErrorRoutines],
+            handle_s3_error(Error, ErrorRoutines1)
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Delete an attachment from its S3 bucket.
+%% @end
+%%------------------------------------------------------------------------------
+-spec delete_attachment(bpc(), kz_att_error:update_routines()) ->
+          gen_attachment:fetch_response().
+delete_attachment({Bucket, FilePath, Config}, ErrorRoutines) ->
+    case del_object(Bucket, FilePath, Config) of
+        {'ok', RespHeaders} -> {'ok', props:get_value('content', RespHeaders)};
+        {'error', FilePath, Error} ->
+            ErrorRoutines1 = [{fun kz_att_error:set_req_url/2, FilePath} | ErrorRoutines],
+            handle_s3_error(Error, ErrorRoutines1)
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Run a request on an existing S3 object.
+%% @end
+%%------------------------------------------------------------------------------
+-spec do_on_existing_attachment(map() | 'undefined'
+                               ,kz_term:ne_binary()
+                               ,gen_attachment:db_name()
+                               ,gen_attachment:doc_id()
+                               ,gen_attachment:att_name()
+                               ,kz_att_error:update_routines()
+                               ,existing_att_op()
+                               ) -> gen_attachment:fetch_response().
+do_on_existing_attachment(CurrentHandlerProps, RetrievalKey, DbName, DocId, AName, ErrorRoutines, Fun) ->
+    catch_unauthorized(
+      fun() -> aws_bpc(RetrievalKey, CurrentHandlerProps, {DbName, DocId, AName}) end
+     ,fun(BPC) -> Fun(BPC, ErrorRoutines) end
+     ,ErrorRoutines
+     ).
+
+%%------------------------------------------------------------------------------
+%% @doc Fetch the bucket, file path, and config for a request and run the
+%% request using those values. If the request is not authorized, handle that
+%% error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec catch_unauthorized(bpc_provider()
+                        ,bpc_consumer(ReturnType)
+                        ,kz_att_error:update_routines()
+                        ) -> kz_att_error:error() | ReturnType.
+catch_unauthorized(BPCFun, Fun, ErrorRoutines) ->
+        try BPCFun() of
+            BPC -> Fun(BPC)
+        catch
+            'unauthorized' ->
+                RespCode = ?HTTP_RESP_CODE_FORBIDDEN,
+                kz_att_error:new(get_reason(RespCode)
+                                ,add_resp_code_to_error_routines(RespCode, ErrorRoutines)
+                                )
+        end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -168,11 +257,34 @@ aws_default_bucket_access(Map) ->
 aws_bucket_access(Map) ->
     kz_term:to_atom(maps:get('bucket_access_method', Map, aws_default_bucket_access(Map)), 'true').
 
+%%------------------------------------------------------------------------------
+%% @doc Get the config for an AWS request. The config includes any provided
+%% authentication key/secret. If no key/secret are provided, AWS task or
+%% instance metadata credentials can be used if allowed on this node. If all
+%% else fails, the request is considered unauthorized.
+%% @end
+%%------------------------------------------------------------------------------
 -spec aws_config(gen_attachment:settings()) -> aws_config().
 aws_config(#{'key' := Key
             ,'secret' := Secret
             }=Map
           ) ->
+    Config = common_aws_config(Map),
+    Config#aws_config{access_key_id=kz_term:to_list(Key)
+                     ,secret_access_key=kz_term:to_list(Secret)
+                     };
+aws_config(Map) ->
+    case kapps_config:get_boolean(?MOD_CONFIG_CAT, <<"allow_metadata_credentials">>, 'false') of
+        'true' -> common_aws_config(Map);
+        'false' -> throw('unauthorized')
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Get the common config for all AWS requests.
+%% @end
+%%------------------------------------------------------------------------------
+-spec common_aws_config(gen_attachment:settings()) -> aws_config().
+common_aws_config(Map) ->
     Region = aws_region(Map),
     BucketAfterHost = kz_term:is_true(maps:get('bucket_after_host', Map, 'false')),
     BucketAccess = aws_bucket_access(Map),
@@ -183,9 +295,7 @@ aws_config(#{'key' := Key
     Scheme = fix_scheme(maps:get('scheme', Map,  <<"https://">>)),
     DefaultPort = aws_default_port(Scheme),
     Port = kz_term:to_integer(maps:get('port', Map,  DefaultPort)),
-    #aws_config{access_key_id=kz_term:to_list(Key)
-               ,secret_access_key=kz_term:to_list(Secret)
-               ,s3_scheme=kz_term:to_list(Scheme)
+    #aws_config{s3_scheme=kz_term:to_list(Scheme)
                ,s3_host=kz_term:to_list(Host)
                ,s3_port=Port
                ,s3_bucket_after_host=BucketAfterHost
@@ -224,11 +334,11 @@ merge_params(S3, M2)
     M1 = decode_retrieval(S3),
     merge_params(M1, M2).
 
--spec aws_bpc(gen_attachment:settings(), attachment_info()) -> {string(), kz_term:api_ne_binary(), aws_config()}.
+-spec aws_bpc(gen_attachment:settings(), attachment_info()) -> bpc().
 aws_bpc(Map, AttInfo) ->
     {bucket(Map), aws_format_url(Map, AttInfo), aws_config(Map)}.
 
--spec aws_bpc(kz_term:ne_binary(), map() | 'undefined', attachment_info()) -> {string(), kz_term:api_ne_binary(), aws_config()}.
+-spec aws_bpc(kz_term:ne_binary(), map() | 'undefined', attachment_info()) -> bpc().
 aws_bpc(S3, Handler, Attinfo) ->
     aws_bpc(merge_params(S3, Handler), Attinfo).
 
@@ -345,11 +455,7 @@ handle_s3_error({'aws_error'
                ,Routines
                ) ->
     Reason = get_reason(RespCode, RespBody),
-    NewRoutines = [{fun kz_att_error:set_resp_code/2, RespCode}
-                  ,{fun kz_att_error:set_resp_body/2, RespBody}
-                  ,{fun kz_att_error:set_resp_headers/2, []}
-                  | Routines
-                  ],
+    NewRoutines = add_resp_to_error_routines(RespCode, RespBody, [], Routines),
     lager:error("S3 error: ~p (code: ~p)", [_E, RespCode]),
     kz_att_error:new(Reason, NewRoutines);
 handle_s3_error({'aws_error', {'socket_error', RespBody}} = _E, Routines) ->
@@ -362,13 +468,48 @@ handle_s3_error(_E, Routines) ->
     Reason = <<"Unknown Error">>,
     kz_att_error:new(Reason, Routines).
 
--spec get_reason(atom() | pos_integer(), kz_term:ne_binary()) -> kz_term:ne_binary().
+%%------------------------------------------------------------------------------
+%% @doc Add response information to a list of error routines.
+%% @end
+%%------------------------------------------------------------------------------
+-spec add_resp_to_error_routines(pos_integer()
+                                ,binary()
+                                ,kz_att_error:resp_headers()
+                                ,kz_att_error:update_routines()
+                                ) -> kz_att_error:update_routines().
+add_resp_to_error_routines(Code, Body, Headers, ErrorRoutines) ->
+    [{fun kz_att_error:set_resp_body/2, Body}
+    ,{fun kz_att_error:set_resp_headers/2, Headers}
+    | add_resp_code_to_error_routines(Code, ErrorRoutines)
+    ].
+
+%%------------------------------------------------------------------------------
+%% @doc Add a response code to a list of error routines.
+%% @end
+%%------------------------------------------------------------------------------
+-spec add_resp_code_to_error_routines(pos_integer(), kz_att_error:update_routines()) ->
+          kz_att_error:update_routines().
+add_resp_code_to_error_routines(Code, ErrorRoutines) ->
+    [{fun kz_att_error:set_resp_code/2, Code} | ErrorRoutines].
+
+%%------------------------------------------------------------------------------
+%% @doc Get the reason for an error from a response. The body is scanned for
+%% extra details.
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_reason(pos_integer(), binary()) -> binary().
 get_reason(RespCode, RespBody) when RespCode >= 400 ->
     %% If the `RespCode' value is >= 400 then the resp_body must contain an error object
     try xmerl_scan:string(binary_to_list(RespBody)) of
         {Xml, _} -> kz_xml:get_value("//Message/text()", Xml)
     catch
-        _:_ -> kz_http_util:http_code_to_status_line(RespCode)
+        _:_ -> get_reason(RespCode)
     end;
-get_reason(RespCode, _RespBody) ->
-    kz_http_util:http_code_to_status_line(RespCode).
+get_reason(RespCode, _RespBody) -> get_reason(RespCode).
+
+%%------------------------------------------------------------------------------
+%% @doc Get the reason for an error from a response code.
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_reason(pos_integer()) -> kz_term:ne_binary().
+get_reason(RespCode) -> kz_http_util:http_code_to_status_line(RespCode).
