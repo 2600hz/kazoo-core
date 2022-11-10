@@ -360,6 +360,12 @@ is_valid_port(Port, BlockedPorts) ->
             'false'
     end.
 
+-ifdef(TEST).
+%% when running local tests don't check DNS for hostnames
+is_valid_dns(_Host) -> 'true'.
+
+-else.
+
 -spec is_valid_dns(kz_term:ne_binary()) -> boolean().
 is_valid_dns(Host) ->
     Options = kz_network_utils:default_options(),
@@ -393,7 +399,11 @@ maybe_local_dns(Host) ->
         {'ok', _HostEnt} ->
             lager:info("got a host rec but didn't match ~s: ~p", [Host, _HostEnt]),
             'false';
+        {'error', 'nxdomain'} ->
+            lager:info("no DNS setup (nxdomain) for ~s", [Host]),
+            'false';
         {'error', _E} ->
             lager:info("failed to get DNS for host ~s: ~p", [Host, _E]),
             'false'
     end.
+-endif.
