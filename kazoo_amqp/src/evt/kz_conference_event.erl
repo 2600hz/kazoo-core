@@ -32,7 +32,6 @@
 -type payload() :: kz_json:object().
 -export_type([payload/0]).
 
-
 -spec call_id(payload()) -> kz_term:api_binary().
 call_id(JObj) ->
     kz_json:get_ne_binary_value(<<"Call-ID">>, JObj).
@@ -54,7 +53,7 @@ conference_channel_vars(JObj) -> kz_json:get_json_value(<<"Conference-Channel-Va
 -spec custom_application_vars(payload()) -> payload().
 custom_application_vars(JObj) -> kz_json:get_json_value(<<"Custom-Application-Vars">>, JObj).
 
--spec conference_vars(payload()) -> payload().
+-spec conference_vars(payload()) -> payload() | 'undefined'.
 conference_vars(JObj) -> kz_json:get_json_value(<<"Conference-Vars">>, JObj).
 
 -spec event(payload()) -> kz_term:api_binary().

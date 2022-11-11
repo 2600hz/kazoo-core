@@ -54,16 +54,15 @@
 -type data() :: kz_json:object().
 -export_type([data/0]).
 
-
--spec call_id(data()) -> kz_term:api_binary().
+-spec call_id(data()) -> kz_term:api_ne_binary().
 call_id(JObj) ->
     kz_json:get_ne_binary_value(<<"Call-ID">>, JObj, kz_json:get_ne_binary_value(<<"Unique-ID">>, JObj)).
 
--spec account_id(data()) -> kz_term:api_binary().
+-spec account_id(data()) -> kz_term:api_ne_binary().
 account_id(JObj) ->
     kz_json:get_ne_binary_value(<<"Account-ID">>, JObj, ccv(JObj, <<"Account-ID">>)).
 
--spec ccv(data(), kz_term:ne_binary()) -> kz_term:api_binary() | kz_term:ne_binaries().
+-spec ccv(data(), kz_term:ne_binary()) -> kz_term:api_ne_binary() | kz_term:ne_binaries().
 ccv(JObj, Key) ->
     ccv(JObj, Key, 'undefined').
 
@@ -75,19 +74,19 @@ ccv(JObj, Key, Default) ->
 ccvs(JObj) ->
     kz_json:get_json_value(<<"Custom-Channel-Vars">>, JObj, kz_json:new()).
 
--spec core_uuid(data()) -> kz_term:api_binary().
+-spec core_uuid(data()) -> kz_term:api_ne_binary().
 core_uuid(JObj) ->
-    kz_json:get_value(<<"Core-UUID">>, JObj).
+    kz_json:get_ne_binary_value(<<"Core-UUID">>, JObj).
 
--spec fetch_uuid(data()) -> kz_term:api_binary().
+-spec fetch_uuid(data()) -> kz_term:api_ne_binary().
 fetch_uuid(JObj) ->
-    kz_json:get_binary_value(<<"Fetch-UUID">>, JObj).
+    kz_json:get_ne_binary_value(<<"Fetch-UUID">>, JObj).
 
--spec fetch_action(data()) -> kz_term:api_binary().
+-spec fetch_action(data()) -> kz_term:api_ne_binary().
 fetch_action(JObj) ->
     fetch_action(JObj, 'undefined').
 
--spec fetch_action(data(), Default) -> kz_term:api_binary() | Default.
+-spec fetch_action(data(), Default) -> kz_term:ne_binary() | Default.
 fetch_action(JObj, Default) ->
     kz_json:get_first_defined([<<"Action">>, <<"action">>], JObj, Default).
 
@@ -99,9 +98,9 @@ fetch_key_name(JObj) ->
 fetch_key_value(JObj) ->
     kz_json:get_ne_binary_value(<<"Fetch-Key-Value">>, JObj).
 
--spec fetch_node(data()) -> kz_term:api_binary().
+-spec fetch_node(data()) -> kz_term:api_ne_binary().
 fetch_node(JObj) ->
-    kz_json:get_value(<<"Node">>, JObj).
+    kz_json:get_ne_binary_value(<<"Node">>, JObj).
 
 -spec fetch_section(data()) -> kz_term:api_ne_binary().
 fetch_section(JObj) ->
@@ -135,51 +134,51 @@ fetch_user(JObj) ->
 fetch_group(JObj) ->
     kz_json:get_ne_binary_value(<<"group">>, JObj).
 
--spec fetch_auth_endpoint(data()) -> kz_term:api_binary().
+-spec fetch_auth_endpoint(data()) -> kz_term:ne_binary().
 fetch_auth_endpoint(JObj) ->
     list_to_binary([fetch_user(JObj), "@", fetch_key_value(JObj)]).
 
--spec fetch_winning_pid(data()) -> kz_term:api_binary().
+-spec fetch_winning_pid(data()) -> kz_term:api_ne_binary().
 fetch_winning_pid(JObj) ->
-    kz_json:get_binary_value(<<"Fetch-Winning-PID">>, JObj).
+    kz_json:get_ne_binary_value(<<"Fetch-Winning-PID">>, JObj).
 
 -spec fetch_version(data()) -> kz_term:api_ne_binary().
 fetch_version(JObj) ->
     kz_json:get_ne_binary_value(<<"Fetch-Version">>, JObj, <<"community">>).
 
--spec controller_queue(data()) -> kz_term:api_binary().
+-spec controller_queue(data()) -> kz_term:api_ne_binary().
 controller_queue(JObj) ->
     kz_json:get_ne_binary_value(<<"Controller-Queue">>, JObj).
 
--spec controller_pid(data()) -> kz_term:api_binary().
+-spec controller_pid(data()) -> kz_term:api_ne_binary().
 controller_pid(JObj) ->
     kz_json:get_ne_binary_value(<<"Controller-PID">>, JObj).
 
--spec node(data()) -> kz_term:api_binary().
+-spec node(data()) -> atom().
 node(JObj) ->
     kz_json:get_atom_value(<<"Node">>, JObj).
 
--spec from_network_ip(data()) -> kz_term:api_binary().
+-spec from_network_ip(data()) -> kz_term:api_ne_binary().
 from_network_ip(JObj) ->
     kz_json:get_ne_binary_value(<<"Network-IP">>, JObj).
 
--spec from_network_port(data()) -> kz_term:api_binary().
+-spec from_network_port(data()) -> kz_term:api_ne_binary().
 from_network_port(JObj) ->
     kz_json:get_ne_binary_value(<<"Network-Port">>, JObj).
 
--spec user_agent(data()) -> kz_term:api_binary().
+-spec user_agent(data()) -> kz_term:api_ne_binary().
 user_agent(JObj) ->
     kz_json:get_ne_binary_value(<<"User-Agent">>, JObj).
 
--spec auth_expires(data()) -> kz_term:api_binary().
+-spec auth_expires(data()) -> kz_term:api_ne_binary().
 auth_expires(JObj) ->
     kz_json:get_ne_binary_value(<<"Expires">>, JObj).
 
--spec auth_nonce(data()) -> kz_term:api_binary().
+-spec auth_nonce(data()) -> kz_term:api_ne_binary().
 auth_nonce(JObj) ->
     kz_json:get_ne_binary_value(<<"Auth-Nonce">>, JObj).
 
--spec auth_response(data()) -> kz_term:api_binary().
+-spec auth_response(data()) -> kz_term:api_ne_binary().
 auth_response(JObj) ->
     kz_json:get_ne_binary_value(<<"Auth-Response">>, JObj).
 
@@ -191,31 +190,31 @@ cshs(JObj) ->
 cauth(JObj) ->
     kz_json:get_json_value(<<"Custom-AUTH-Headers">>, JObj, kz_json:new()).
 
--spec auth_from(data()) -> kz_term:api_binary().
+-spec auth_from(data()) -> kz_term:api_ne_binary().
 auth_from(JObj) ->
     kz_json:get_ne_binary_value(<<"Auth-From">>, JObj).
 
--spec auth_method(data()) -> kz_term:api_binary().
+-spec auth_method(data()) -> kz_term:api_ne_binary().
 auth_method(JObj) ->
-    auth_method(JObj, undefined).
+    auth_method(JObj, 'undefined').
 
 -spec auth_method(data(), Default) -> kz_term:ne_binary() | Default.
 auth_method(JObj, Default) ->
     kz_json:get_ne_binary_value(<<"Auth-Method">>, JObj, Default).
 
--spec auth_to(data()) -> kz_term:api_binary().
+-spec auth_to(data()) -> kz_term:api_ne_binary().
 auth_to(JObj) ->
     kz_json:get_ne_binary_value(<<"Auth-To">>, JObj).
 
--spec server_id(data()) -> kz_term:api_binary().
+-spec server_id(data()) -> kz_term:api_ne_binary().
 server_id(JObj) ->
-    kz_json:get_ne_binary_value(<<"Server-ID">>, JObj).
+    kz_api:server_id(JObj).
 
 -spec resource(data()) -> kz_term:api_object().
 resource(JObj) ->
     resource(JObj, 'undefined').
 
--spec resource(data(), Default) -> kz_term:api_object() | Default.
+-spec resource(data(), Default) -> kz_json:object() | Default.
 resource(JObj, Default) ->
     kz_json:get_json_value(<<"Resource">>, JObj, Default).
 
@@ -223,29 +222,29 @@ resource(JObj, Default) ->
 formatters(JObj) ->
     formatters(JObj, 'undefined').
 
--spec formatters(data(), Default) -> kz_term:api_object() | Default.
+-spec formatters(data(), Default) -> kz_json:object() | Default.
 formatters(JObj, Default) ->
     kz_json:get_json_value(<<"Formatters">>, resource(JObj, kz_json:new()), Default).
 
--spec hunt_destination_number(data()) -> kz_term:api_binary().
+-spec hunt_destination_number(data()) -> kz_term:api_ne_binary().
 hunt_destination_number(JObj) ->
-    hunt_destination_number(JObj, undefined).
+    hunt_destination_number(JObj, 'undefined').
 
 -spec hunt_destination_number(data(), Default) -> kz_term:ne_binary() | Default.
 hunt_destination_number(JObj, Default) ->
     kz_json:get_ne_binary_value(<<"Hunt-Destination-Number">>, JObj, Default).
 
--spec hunt_context(data()) -> kz_term:api_binary().
+-spec hunt_context(data()) -> kz_term:api_ne_binary().
 hunt_context(JObj) ->
-    hunt_context(JObj, undefined).
+    hunt_context(JObj, 'undefined').
 
 -spec hunt_context(data(), Default) -> kz_term:ne_binary() | Default.
 hunt_context(JObj, Default) ->
     kz_json:get_ne_binary_value(<<"Hunt-Context">>, JObj, Default).
 
--spec hunt_extension(data()) -> kz_term:api_binary().
+-spec hunt_extension(data()) -> kz_term:api_ne_binary().
 hunt_extension(JObj) ->
-    hunt_extension(JObj, undefined).
+    hunt_extension(JObj, 'undefined').
 
 -spec hunt_extension(data(), Default) -> kz_term:ne_binary() | Default.
 hunt_extension(JObj, Default) ->
