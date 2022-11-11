@@ -296,11 +296,18 @@ channel_status_req_definition() ->
               ,{fun kapi_definition:set_publish_fun/2, fun publish_channel_status_req/1}
               ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Call-ID">>]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Active-Only">>]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Active-Only">>
+                                                            ,<<"Channel-Record">>
+                                                            ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Call-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Active-Only">>, fun kz_term:is_boolean/1}
+                ,{<<"Channel-Record">>, fun kz_term:is_boolean/1}
+                ]
+               }
               ],
     kapi_definition:setters(Setters).
 
@@ -329,6 +336,7 @@ channel_status_resp_definition() ->
                                                             ,<<"Switch-Nodename">>
                                                             ,<<"Switch-URL">>
                                                             ,<<"Username">>
+                                                            ,<<"Channel-Record">>
                                                             | channel_status_extended_headers()
                                                             ]}
               ,{fun kapi_definition:set_values/2
@@ -340,6 +348,7 @@ channel_status_resp_definition() ->
                ,[{<<"Custom-Application-Vars">>, fun kz_json:is_json_object/1}
                 ,{<<"Custom-Channel-Vars">>, fun kz_json:is_json_object/1}
                 ,{<<"Custom-SIP-Headers">>, fun kz_json:is_json_object/1}
+                ,{<<"Channel-Record">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],
