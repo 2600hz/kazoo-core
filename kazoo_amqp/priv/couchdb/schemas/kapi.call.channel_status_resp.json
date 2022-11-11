@@ -24,6 +24,9 @@
         "Caller-ID-Number": {
             "type": "string"
         },
+        "Channel-Record": {
+            "type": "object"
+        },
         "Correlation-ID": {
             "type": "string"
         },

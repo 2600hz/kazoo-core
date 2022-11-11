@@ -7,6 +7,10 @@
             "type": "string"
         },
         "Call-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Channel-Record": {
             "type": "string"
         },
         "Event-Category": {
