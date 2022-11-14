@@ -434,9 +434,9 @@ skip_envelope(Doc, Default) ->
 set_skip_envelope(Doc, SkipEnvelope) ->
     kz_json:set_value([<<"skip_envelope">>], SkipEnvelope, Doc).
 
--spec envelope_type(doc()) -> boolean().
+-spec envelope_type(doc()) -> binary().
 envelope_type(Doc) ->
-    envelope_type(Doc, 'false').
+    envelope_type(Doc, <<"default">>).
 
 -spec envelope_type(doc(), Default) -> boolean() | Default.
 envelope_type(Doc, Default) ->

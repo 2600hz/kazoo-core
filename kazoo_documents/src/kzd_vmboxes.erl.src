@@ -101,9 +101,9 @@ delete_after_notify(Doc, Default) ->
 set_delete_after_notify(Doc, DeleteAfterNotify) ->
     kz_json:set_value([<<"delete_after_notify">>], DeleteAfterNotify, Doc).
 
--spec envelope_type(doc()) -> kz_term:api_binary().
+-spec envelope_type(doc()) -> binary().
 envelope_type(Doc) ->
-    envelope_type(Doc, 'undefined').
+    envelope_type(Doc, <<"default">>).
 
 -spec envelope_type(doc(), Default) -> binary() | Default.
 envelope_type(Doc, Default) ->
