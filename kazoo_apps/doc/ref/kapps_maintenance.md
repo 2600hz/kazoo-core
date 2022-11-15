@@ -58,6 +58,8 @@
 | `migrate_modbs_ranged/1` | `(Start)` | |
 | `migrate_modbs_ranged/2` | `(Pause,Start)` | |
 | `migrate_modbs_ranged/3` | `(Pause,Start,End)` | |
+| `migrate_softphone_to_ms_teams/1` | `(_)` | |
+| `migrate_softphone_to_ms_teams/2` | `(AccountId,DeviceId)` | |
 | `migrate_system/0` |  | |
 | `migrate_to_4_0/0` |  | |
 | `migrate_yodbs/0` |  | |
