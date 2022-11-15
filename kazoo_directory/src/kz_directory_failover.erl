@@ -77,6 +77,7 @@ call_failover_properties(EndpointId, AccountId, Endpoint, IsReconcilable) ->
 call_failover_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
     Failover = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
     [{<<"Call-Forward">>, 'true'}
+    ,{<<"Is-Failover">>, 'true'}
     ,{<<"Direct-Calls-Only">>, kzd_call_failover:direct_calls_only(Failover)}
     ,{<<"Require-Ignore-Early-Media">>, 'true'}
     ,{<<"Ignore-Early-Media">>, 'true'}
