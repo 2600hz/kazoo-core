@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Accessors for `vmboxes' document.
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -37,6 +37,7 @@
 -export([include_message_on_notify/1, include_message_on_notify/2, set_include_message_on_notify/2]).
 -export([include_transcription_on_notify/1, include_transcription_on_notify/2, set_include_transcription_on_notify/2]).
 -export([skip_envelope/1, skip_envelope/2, set_skip_envelope/2]).
+-export([envelope_type/1, envelope_type/2, set_envelope_type/2]).
 -export([skip_greeting/1, skip_greeting/2, set_skip_greeting/2]).
 -export([skip_instructions/1, skip_instructions/2, set_skip_instructions/2]).
 -export([timezone/1, timezone/2, set_timezone/2]).
@@ -405,6 +406,18 @@ skip_envelope(Doc, Default) ->
 -spec set_skip_envelope(doc(), boolean()) -> doc().
 set_skip_envelope(Doc, SkipEnvelope) ->
     kz_json:set_value([<<"skip_envelope">>], SkipEnvelope, Doc).
+
+-spec envelope_type(doc()) -> binary().
+envelope_type(Doc) ->
+    envelope_type(Doc, <<"default">>).
+
+-spec envelope_type(doc(), Default) -> boolean() | Default.
+envelope_type(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"envelope_type">>], Doc, Default).
+
+-spec set_envelope_type(doc(), kz_term:ne_binary()) -> doc().
+set_envelope_type(Doc, EnvelopeType) ->
+    kz_json:set_value([<<"envelope_type">>], EnvelopeType, Doc).
 
 -spec skip_greeting(doc()) -> boolean().
 skip_greeting(Doc) ->
