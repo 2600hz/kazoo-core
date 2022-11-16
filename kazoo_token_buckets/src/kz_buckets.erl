@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2020, 2600Hz
+%%% @copyright (C) 2014-2022, 2600Hz
 %%% @doc API interface for buckets
 %%% ETS writer for table
 %%%
@@ -43,6 +43,8 @@
         ]).
 
 -include("kz_buckets.hrl").
+
+-elvis([{elvis_style, no_debug_call, disable}]).
 
 -define(SERVER, ?MODULE).
 
@@ -142,16 +144,14 @@ consume_tokens_until(App=?NE_BINARY, Key=?NE_BINARY, Count, StartIfMissing)
     consume_tokens(App, Key, Count, StartIfMissing, fun kz_token_bucket:consume_until/2).
 
 -spec consume_tokens(kz_term:ne_binary(), kz_term:ne_binary(), integer(), boolean(), fun()) -> boolean().
+consume_tokens(_App, _Key, 0, _StartIfMissing, _BucketFun) ->
+    'true';
 consume_tokens(App, Key, Count, StartIfMissing, BucketFun) ->
     case get_bucket(App, Key) of
+        Srv when is_pid(Srv) ->
+            BucketFun(Srv, Count);
         'undefined' ->
-            maybe_start_bucket(App, Key, Count, StartIfMissing, BucketFun);
-        Srv ->
-            case is_process_alive(Srv) of
-                'true' -> BucketFun(Srv, Count);
-                'false' ->
-                    maybe_start_bucket(App, Key, Count, StartIfMissing, BucketFun)
-            end
+            maybe_start_bucket(App, Key, Count, StartIfMissing, BucketFun)
     end.
 
 -spec maybe_start_bucket(kz_term:ne_binary(), kz_term:ne_binary(), integer(), boolean(), fun()) -> boolean().
@@ -178,8 +178,13 @@ get_bucket(App, Key, 'server') ->
     case ets:lookup(table_id(), T) of
         [] -> 'undefined';
         [#bucket{srv=Srv}] ->
-            gen_server:cast(?SERVER, {'bucket_accessed', T}),
-            Srv
+            case is_process_alive(Srv) of
+                'true' ->
+                    gen_server:cast(?SERVER, {'bucket_accessed', T}),
+                    Srv;
+                'false' ->
+                    'undefined'
+            end
     end.
 
 -spec exists(kz_term:ne_binary()) -> boolean().

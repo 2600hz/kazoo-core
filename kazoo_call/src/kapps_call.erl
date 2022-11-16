@@ -162,6 +162,10 @@
 -export([is_call_forward/1]).
 -export([is_transfer/1]).
 -export([endpoint_id/1]).
+-export([restricted_endpoint_id/1]).
+
+-export([tags/1, tag/2, untag/2]).
+-export([dynamic_cfwd/1, set_dynamic_cfwd/2, remove_dynamic_cfwd/1]).
 
 -ifdef(TEST).
 -export([eq/2]).
@@ -1874,6 +1878,12 @@ endpoint_id(#kapps_call{endpoint_id='undefined'
                        }) -> AuthzId;
 endpoint_id(#kapps_call{endpoint_id=EndpointId}) -> EndpointId.
 
+-spec restricted_endpoint_id(call()) -> kz_term:api_ne_binary().
+restricted_endpoint_id(#kapps_call{endpoint_id=AuthzId
+                                  ,authorizing_id=AuthzId
+                                  }) -> 'undefined';
+restricted_endpoint_id(#kapps_call{endpoint_id=EndpointId}) -> EndpointId.
+
 -ifdef(TEST).
 eq(Call, Call1) ->
     eq(tuple_to_list(Call), tuple_to_list(Call1), 1).
@@ -1924,6 +1934,8 @@ routing_context(Call) ->
             ,{<<"Other-UUID">>, other_leg_call_id(Call)}
             ],
     Routines = [fun routing_context_flags/2
+               ,fun routing_context_tags/2
+               ,fun routing_context_dynamic_cfwd/2
                ,fun routing_context_request_uris/2
                ],
     KVs = lists:foldl(fun(F, Acc) -> F(Call, Acc) end, Props, Routines),
@@ -1944,6 +1956,17 @@ routing_context_flags(Call, Props) ->
     Flags = kvs_fetch('context-flags', [], Call)
         ++ routing_context_direct_call_flag(Call),
     [{<<"Flags">>, Flags} | Props].
+
+-spec routing_context_tags(call(), kz_term:proplist()) -> kz_term:proplist().
+routing_context_tags(Call, Props) ->
+    [{<<"Tags">>, tags(Call)} | Props].
+
+-spec routing_context_dynamic_cfwd(call(), kz_term:proplist()) -> kz_term:proplist().
+routing_context_dynamic_cfwd(Call, Props) ->
+    case dynamic_cfwd(Call) of
+        undefined -> Props;
+        Cfwd -> [{<<"cfwd">>, Cfwd} | Props]
+    end.
 
 -spec routing_context_non_direct_modules() -> kz_term:ne_binaries().
 routing_context_non_direct_modules() ->
@@ -1985,3 +2008,40 @@ inception_route_forwarded(CCVs) ->
         <<"onnet">> -> 'undefined';
         <<"offnet">> -> <<"call-forward-from-offnet">>
     end.
+
+-spec tags(call()) -> kz_term:ne_binaries().
+tags(Call) ->
+    kvs_fetch('context-tags', [], Call).
+
+-spec tag(kz_term:ne_binary() | kz_term:ne_binaries(), call()) -> call().
+tag(Tag, Call)
+  when is_binary(Tag) ->
+    kvs_store('context-tags', lists:usort(tags(Call) ++ [Tag]), Call);
+tag(Tags, Call)
+  when is_list(Tags) ->
+    kvs_store('context-tags', lists:usort(tags(Call) ++ Tags), Call).
+
+-spec untag(kz_term:ne_binary() | kz_term:ne_binaries(), call()) -> call().
+untag(Tag, Call)
+  when is_binary(Tag) ->
+    kvs_store('context-tags', lists:usort(tags(Call) -- [Tag]), Call);
+untag(Tags, Call)
+  when is_list(Tags) ->
+    kvs_store('context-tags', lists:usort(tags(Call) -- Tags), Call).
+
+-spec dynamic_cfwd(call()) -> kz_term:api_object().
+dynamic_cfwd(Call) ->
+    kvs_fetch('context-dynamic-cfwd', undefined, Call).
+
+-spec set_dynamic_cfwd(kz_term:api_object(), call()) -> call().
+set_dynamic_cfwd(undefined, Call) ->
+    remove_dynamic_cfwd(Call);
+set_dynamic_cfwd(JObj, Call) ->
+    case kz_json:is_json_object(JObj) of
+        true -> kvs_store('context-dynamic-cfwd', JObj, Call);
+        false -> remove_dynamic_cfwd(Call)
+    end.
+
+-spec remove_dynamic_cfwd(call()) -> call().
+remove_dynamic_cfwd(Call) ->
+    kvs_erase('context-dynamic-cfwd', Call).

@@ -24,6 +24,7 @@
         ,maybe_start_metaflow/2
         ,encryption_method_map/2
         ,get_sip_realm/2, get_sip_realm/3
+        ,merge_call_recording/1
         ]).
 
 -ifdef(TEST).
@@ -629,8 +630,8 @@ get_users(AccountDb, OwnerIds) ->
     _ = kz_datamgr:open_cache_docs(AccountDb, OwnerIds),
     F = fun (UserId, UsersAcc) ->
                 case kzd_users:fetch(AccountDb, UserId) of
-                    {ok, UserJObj} -> [UserJObj|UsersAcc];
-                    {error, _R} ->
+                    {'ok', UserJObj} -> [UserJObj|UsersAcc];
+                    {'error', _R} ->
                         lager:warning("failed to load endpoint owner ~s: ~p", [UserId, _R]),
                         UsersAcc
                 end

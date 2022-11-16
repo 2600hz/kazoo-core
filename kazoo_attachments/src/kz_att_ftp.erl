@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2021, 2600Hz
+%%% @copyright (C) 2017-2022, 2600Hz
 %%% @doc Simple URL Storage for attachments.
 %%% @author Luis Azedo
 %%%
@@ -139,13 +139,13 @@ send_request({Host, Options}, {User, Pass}, FullPath, Contents) ->
 -spec ftp_connect(map()) -> ftp_connect_info().
 ftp_connect(#{scheme := "ftps", host := Host, port := Port}) ->
     {Host,
-     [{port, Port}
-     ,{tls, []}
+     [{'port', Port}
+     ,{'tls', []}
      ]};
 ftp_connect(#{scheme := "ftps", host := Host}) ->
-    {Host, [{tls, []}]};
+    {Host, [{'tls', []}]};
 ftp_connect(#{scheme := "ftp", host := Host, port := Port}) ->
-    {Host, [{port, Port}]};
+    {Host, [{'port', Port}]};
 ftp_connect(#{scheme := "ftp", host := Host}) ->
     {Host, []};
 ftp_connect(#{host := Host}) ->

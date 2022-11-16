@@ -24,6 +24,7 @@
         ,maybe_start_metaflow/2
         ,encryption_method_map/2
         ,get_sip_realm/2, get_sip_realm/3
+        ,merge_call_recording/1
         ]).
 
 -ifdef(TEST).
@@ -156,3 +157,10 @@ get_sip_realm(SIPJObj, AccountId) -> ?MOD:get_sip_realm(SIPJObj, AccountId).
 
 -spec get_sip_realm(kz_json:object(), kz_term:ne_binary(), Default) -> Default | kz_term:ne_binary().
 get_sip_realm(SIPJObj, AccountId, Default) -> ?MOD:get_sip_realm(SIPJObj, AccountId, Default).
+
+%%------------------------------------------------------------------------------
+%% @doc Merge any, inbound, and outbound call_recording configuration.
+%% @end
+%%------------------------------------------------------------------------------
+-spec merge_call_recording(kzd_call_recording:doc()) -> kzd_call_recording:doc().
+merge_call_recording(RecordingSettings) -> ?MOD:merge_call_recording(RecordingSettings).

@@ -176,6 +176,11 @@
         ,publish_dial_resp/2
         ,publish_dial_resp/3
         ]).
+-export([vars/1
+        ,vars_v/1
+        ,publish_vars/2
+        ,publish_vars/3
+        ]).
 
 -export([bind_q/2
         ,unbind_q/2
@@ -291,6 +296,7 @@ api_definitions() ->
     ,play_macro_req_definition()
     ,dial_definition()
     ,dial_resp_definition()
+    ,vars_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -368,7 +374,9 @@ api_definition(<<"play_macro_req">>) ->
 api_definition(<<"dial">>) ->
     dial_definition();
 api_definition(<<"dial_resp">>) ->
-    dial_resp_definition().
+    dial_resp_definition();
+api_definition(<<"vars">>) ->
+    vars_definition().
 
 -spec event_definition() -> kapi_definition:api().
 event_definition() ->
@@ -441,12 +449,13 @@ search_resp_definition() ->
                                                              ]
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Answered">>
+                                                            ,<<"Custom-Conference-Vars">>
                                                             ,<<"Dynamic">>
                                                             ,<<"Locked">>
                                                             ,<<"Participant-Count">>
                                                             ,<<"Participants">>
-                                                            ,<<"Running">>
                                                             ,<<"Run-Time">>
+                                                            ,<<"Running">>
                                                             ,<<"Start-Time">>
                                                             ,<<"Switch-External-IP">>
                                                             ,<<"Switch-Hostname">>
@@ -1399,6 +1408,34 @@ dial_resp_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+-spec vars_definition() -> kapi_definition:api().
+vars_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference Vars">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference Vars">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun vars/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun vars_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_vars/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Custom-Conference-Vars">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"vars">>}
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Custom-Conference-Vars">>, fun kz_json:is_json_object/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
@@ -2248,6 +2285,32 @@ publish_dial_resp(Queue, Req, ContentType) ->
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Conference Vars.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec vars(kz_term:api_terms()) -> kz_api:api_formatter_return().
+vars(Req) ->
+    kapi_definition:build_message(Req, vars_definition()).
+
+-spec vars_v(kz_term:api_terms()) -> boolean().
+vars_v(Req) ->
+    kapi_definition:validate(Req, vars_definition()).
+
+-spec publish_vars(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_vars(ConferenceId, JObj) ->
+    publish_vars(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_vars(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_vars(ConferenceId, Req, ContentType) ->
+    Definition = vars_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
 %% @doc Bind a queue to the conference exchange.

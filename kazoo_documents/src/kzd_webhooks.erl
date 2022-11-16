@@ -19,6 +19,8 @@
 -export([include_subaccounts/1, include_subaccounts/2, set_include_subaccounts/2]).
 -export([name/1, name/2, set_name/2]).
 -export([retries/1, retries/2, set_retries/2]).
+-export([security_settings/1, security_settings/2, set_security_settings/2]).
+-export([security_settings_sha256_key/1, security_settings_sha256_key/2, set_security_settings_sha256_key/2]).
 -export([uri/1, uri/2, set_uri/2]).
 -export([version/1, version/2, set_version/2]).
 
@@ -173,10 +175,33 @@ constrain_retries(N) when N < 1 -> 1;
 constrain_retries(N) when N > 5 -> 5;
 constrain_retries(N) when is_integer(N) -> N.
 
-
 -spec set_retries(doc(), integer()) -> doc().
 set_retries(Doc, Retries) ->
     kz_json:set_value([<<"retries">>], Retries, Doc).
+
+-spec security_settings(doc()) -> kz_term:api_object().
+security_settings(Doc) ->
+    security_settings(Doc, 'undefined').
+
+-spec security_settings(doc(), Default) -> kz_json:object() | Default.
+security_settings(Doc, Default) ->
+    kz_json:get_json_value([<<"security_settings">>], Doc, Default).
+
+-spec set_security_settings(doc(), kz_json:object()) -> doc().
+set_security_settings(Doc, SecuritySettings) ->
+    kz_json:set_value([<<"security_settings">>], SecuritySettings, Doc).
+
+-spec security_settings_sha256_key(doc()) -> kz_term:api_binary().
+security_settings_sha256_key(Doc) ->
+    security_settings_sha256_key(Doc, 'undefined').
+
+-spec security_settings_sha256_key(doc(), Default) -> binary() | Default.
+security_settings_sha256_key(Doc, Default) ->
+    kz_json:get_binary_value([<<"security_settings">>, <<"sha256_key">>], Doc, Default).
+
+-spec set_security_settings_sha256_key(doc(), binary()) -> doc().
+set_security_settings_sha256_key(Doc, SecuritySettingsSha256Key) ->
+    kz_json:set_value([<<"security_settings">>, <<"sha256_key">>], SecuritySettingsSha256Key, Doc).
 
 -spec uri(doc()) -> kz_term:api_binary().
 uri(Doc) ->

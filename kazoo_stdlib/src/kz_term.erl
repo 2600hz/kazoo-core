@@ -116,7 +116,13 @@
 -type api_object() :: kz_json:object() | 'undefined'.
 %% Denotes either data type is defined as {@link kz_json:object()} or it's `undefined'.
 
+-type api_ne_object() :: kz_json:ne_object() | 'undefined'.
+%% Denotes either data type is defined as {@link kz_json:object()} or it's `undefined'.
+
 -type api_objects() :: kz_json:objects() | 'undefined'.
+%% Denotes either data type is defined as {@link kz_json:objects()} or it's `undefined'.
+
+-type api_ne_objects() :: kz_json:ne_objects() | 'undefined'.
 %% Denotes either data type is defined as {@link kz_json:objects()} or it's `undefined'.
 
 -type api_boolean() :: boolean() | 'undefined'.
@@ -207,6 +213,8 @@
              ,api_number/0
              ,api_object/0
              ,api_objects/0
+             ,api_ne_object/0
+             ,api_ne_objects/0
              ,api_pid/0
              ,api_pid_ref/0
              ,api_pid_refs/0

@@ -125,6 +125,8 @@
 
 -deprecated({'ensure_saved', '_', 'eventually'}).
 
+-elvis([{'elvis_style', 'god_modules', 'disable'}]).
+
 -include("kz_data.hrl").
 
 -type database_name() :: kz_term:ne_binary().
@@ -426,10 +428,9 @@ db_view_update(DbName, Views) ->
 
 -spec db_view_update(database_name(), views_listing(), boolean()) ->
           boolean() |
-          {'error', 'db_not_found'} |
-          {'error', 'invalid_db_name'}.
+          {'error', 'db_not_found'}.
 db_view_update(DbName, Views0, Remove) ->
-    case lists:keymap(fun maybe_adapt_multilines/1, 2, Views0) of
+    case [{Key, maybe_adapt_multilines(ViewDefs)} || {Key, ViewDefs} <- Views0] of
         [] -> 'false';
         Views ->
             Database = kzs_util:to_database(DbName),
@@ -1393,7 +1394,7 @@ get_result_ids(JObjs) ->
 %% - otherwise `{'error', multiple_results}' is returned.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_single_result(database_name(), kz_term:ne_binary(), view_options()) ->
+-spec get_single_result(database_name(), ddoc(), view_options()) ->
           {'ok', kz_json:object()} |
           {'error', 'multiple_results'} |
           data_error().
@@ -1409,7 +1410,7 @@ get_single_result(DbName, DesignDoc, Options) ->
         {'error', _}=E -> E
     end.
 
--spec get_result_doc(database_name(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+-spec get_result_doc(database_name(), ddoc(), kz_json:get_key()) ->
           {'ok', kz_json:object()} |
           {'error', 'multiple_results'} |
           data_error().
@@ -1424,7 +1425,7 @@ get_result_doc(DbName, DesignDoc, Key) ->
         {'error', _}=E -> E
     end.
 
--spec get_result_docs(database_name(), kz_term:ne_binary(), kz_term:ne_binaries()) ->
+-spec get_result_docs(database_name(), ddoc(), kz_json:path()) ->
           {'ok', kz_json:objects()} |
           data_error().
 get_result_docs(DbName, DesignDoc, Keys) ->
@@ -1660,7 +1661,7 @@ register_views(App, Views) ->
 -spec register_view(atom(), view_listing() | string() | kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
           data_error().
-register_view(App, {_, ViewJObj}=View) ->
+register_view(App, {_DocId, ViewJObj}=View) ->
     Validate = validate_view_map(kz_json:get_ne_json_value(<<"kazoo">>, ViewJObj)),
     maybe_register_view(View, App, Validate);
 register_view(App, ViewName) ->
@@ -1816,10 +1817,12 @@ do_refresh_views(DbName) ->
     enable_change_notice(),
     Updated.
 
--spec view_definitions(database_name(), atom() | kz_term:ne_binary()) -> views_listing().
-view_definitions(DbName, Classification) ->
-    ViewOptions = [kz_http_util:urldecode(DbName), kz_term:to_binary(Classification)],
-    case get_result_docs(?KZ_DATA_DB, <<"views/views_by_classification">>, ViewOptions) of
+-spec view_definitions(database_name(), db_classification() | kz_term:ne_binary()) -> views_listing().
+view_definitions(DbName, Classification) when is_atom(Classification) ->
+    view_definitions(DbName, kz_term:to_binary(Classification));
+view_definitions(<<DbName/binary>>, <<Classification/binary>>) ->
+    Keys = [kz_http_util:urldecode(DbName), Classification],
+    case get_result_docs(?KZ_DATA_DB, <<"views/views_by_classification">>, Keys) of
         {'error', _} -> [];
         {'ok', JObjs} ->
             ViewDefs = [kz_json:get_json_value(<<"view_definition">>, JObj) || JObj <- JObjs],

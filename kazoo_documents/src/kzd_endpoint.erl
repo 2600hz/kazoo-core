@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,8 +15,12 @@
 -export([account_id/1, account_name/1, account_realm/1]).
 -export([language/1, language/2]).
 -export([get_prompt/2, get_prompt_url/2]).
--export([moh/1, moh_media_path/1, moh_url/1]).
+-export([moh/1, moh_media_path/1, moh_url/1, moh_options/1]).
 -export([presence_id/1]).
+-export([call_forward/1, call_forward/2]).
+-export([call_failover/1, call_failover/2]).
+-export([tags/1, tags/2]).
+
 -export([build_options/1]).
 
 -type endpoint() :: kz_json:object().
@@ -55,7 +59,7 @@ language(Endpoint, Default) ->
     endpoint_language(kz_json:get_ne_binary_value([<<"language">>], Endpoint, Default)).
 
 -spec endpoint_language(kz_term:api_binary()) -> kz_term:ne_binary().
-endpoint_language(undefined) -> default_endpoint_language();
+endpoint_language('undefined') -> default_endpoint_language();
 endpoint_language(Lang) -> kz_term:to_lower_binary(Lang).
 
 -spec default_endpoint_language() -> kz_term:ne_binary().
@@ -68,7 +72,7 @@ get_prompt(Endpoint, PromptId) ->
 -spec get_prompt_url(endpoint(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 get_prompt_url(Endpoint, PromptId) ->
     case get_prompt(Endpoint, PromptId) of
-        undefined -> undefined;
+        'undefined' -> 'undefined';
         MediaPath -> kz_media_url:playback(MediaPath)
     end.
 
@@ -76,23 +80,27 @@ get_prompt_url(Endpoint, PromptId) ->
 moh(Endpoint) ->
     kz_json:get_ne_binary_value([<<"music_on_hold">>, <<"media_id">>], Endpoint).
 
+-spec moh_options(endpoint()) -> kz_term:api_ne_binaries().
+moh_options(Endpoint) ->
+    kz_json:get_ne_binaries([<<"music_on_hold">>, <<"options">>], Endpoint).
+
 -spec moh_media_path(endpoint()) -> kz_term:api_ne_binary().
 moh_media_path(Endpoint) ->
     case moh(Endpoint) of
-        undefined -> undefined;
+        'undefined' -> 'undefined';
         MediaId -> kz_media_util:media_path(MediaId, account_id(Endpoint))
     end.
 
 -spec moh_url(endpoint()) -> kz_term:api_ne_binary().
 moh_url(Endpoint) ->
     case moh_media_path(Endpoint) of
-        undefined -> undefined;
+        'undefined' -> 'undefined';
         MediaPath -> moh_playback_url(MediaPath)
     end.
 
 moh_playback_url(MediaPath) ->
     case kz_media_url:playback(MediaPath) of
-        {error, _} -> undefined;
+        {'error', _} -> 'undefined';
         URL -> URL
     end.
 
@@ -103,3 +111,27 @@ presence_id(Endpoint) ->
 -spec build_options(endpoint()) -> kz_term:api_object().
 build_options(Endpoint) ->
     kz_json:get_json_value(<<"Endpoint-Build-Options">>, Endpoint).
+
+-spec call_failover(endpoint()) -> kz_term:api_object().
+call_failover(Endpoint) ->
+    call_failover(Endpoint, 'undefined').
+
+-spec call_failover(endpoint(), Default) -> kz_json:object() | Default.
+call_failover(Endpoint, Default) ->
+    kz_json:get_json_value([<<"call_failover">>], Endpoint, Default).
+
+-spec call_forward(endpoint()) -> kz_term:api_object().
+call_forward(Endpoint) ->
+    call_forward(Endpoint, 'undefined').
+
+-spec call_forward(endpoint(), Default) -> kz_json:object() | Default.
+call_forward(Endpoint, Default) ->
+    kz_json:get_json_value([<<"call_forward">>], Endpoint, Default).
+
+-spec tags(endpoint()) -> kz_term:api_objects().
+tags(Endpoint) ->
+    tags(Endpoint, 'undefined').
+
+-spec tags(endpoint(), Default) -> kz_json:ne_objects() | Default.
+tags(Endpoint, Default) ->
+    kz_json:get_ne_json_list([<<"tags">>], Endpoint, Default).

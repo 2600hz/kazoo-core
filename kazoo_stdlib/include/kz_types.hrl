@@ -244,5 +244,13 @@
 
 -define(FAKE_CALLID(C), kz_term:to_hex_binary(crypto:hash('md5', C))).
 
+-define(IPV4(A, B, C, D), {A, B, C, D}).
+-define(IPV4, ?IPV4(_, _, _, _)).
+
+-define(IPV6(A, B, C, D, E, F, G, H)
+       ,    {A, B, C, D, E, F, G, H}
+       ).
+-define(IPV6, ?IPV6(_, _, _, _, _, _, _, _)).
+
 -define(KAZOO_TYPES_INCLUDED, 'true').
 -endif.

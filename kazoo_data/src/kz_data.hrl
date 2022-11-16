@@ -81,8 +81,8 @@
                               {'end_docid', binary()} |
                               {'endkey', key_range()} |
                               {'group_level', 'exact' | integer()} |
-                              {'key', binary()} |
-                              {'keys', kz_json:paths()} |
+                              {'key', kz_json:get_key()} |
+                              {'keys', [kz_json:get_key()]} |
                               {'limit', integer()} |
                               {'list', binary()} |
                               {'reduce', boolean()} |
@@ -100,7 +100,7 @@
 
 -type view_options() :: [view_option()].
 
--type view_listing() :: {kz_term:ne_binary(), kz_json:object()}.
+-type view_listing() :: {kz_term:ne_binary(), kz_json:object() | kz_json:objects()}.
 -type views_listing() :: [view_listing()].
 
 -type couch_open_option() :: {'accept', 'any' | kz_term:ne_binary()} | % accepted content-types?

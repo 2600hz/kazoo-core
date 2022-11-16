@@ -190,7 +190,7 @@ aws_config(#{'key' := Key
                ,s3_port=Port
                ,s3_bucket_after_host=BucketAfterHost
                ,s3_bucket_access_method=BucketAccess
-               ,s3_follow_redirect=true
+               ,s3_follow_redirect='true'
                ,s3_follow_redirect_count=3
                ,timeout=Timeout
                ,http_client=HttpClient
@@ -210,7 +210,7 @@ aws_default_fields() ->
 aws_format_url(Map, AttInfo) ->
     kz_att_util:format_url(Map, AttInfo, aws_default_fields()).
 
--spec merge_params(map() | kz_term:ne_binary(), map() | undefined) -> map().
+-spec merge_params(map() | kz_term:ne_binary(), map() | 'undefined') -> map().
 merge_params(#{bucket := Bucket, host := Host} = M1, #{bucket := Bucket, host := Host} = M2) ->
     kz_maps:merge(M1, M2);
 merge_params(#{bucket := Bucket} = M1, #{bucket := Bucket} = M2) ->
@@ -301,7 +301,12 @@ put_object(Bucket, FilePath, Contents, #aws_config{s3_host=Host} = Config) ->
     try erlcloud_s3:put_object(Bucket, FilePath, Contents, Options, ReqHeaders, Config) of
         Headers -> {'ok', Headers}
     catch
-        'error':Error -> {'error', FilePath, Error}
+        'error':Error:ST ->
+            kz_log:log_stacktrace(ST, "exception storing ~s to ~s", [FilePath, Host]),
+            {'error', FilePath, Error};
+        _Exc:Error:ST ->
+            kz_log:log_stacktrace(ST, "exception ~s storing ~s to ~s", [_Exc, FilePath, Host]),
+            {'error', FilePath, Error}
     end.
 
 -spec get_object(string(), kz_term:ne_binary(), aws_config()) ->

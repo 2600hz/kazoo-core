@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Mostly a drop-in replacement and extension of the proplists module,
 %%% but using the lists module to implement
 %%%
@@ -13,33 +13,38 @@
 %%%-----------------------------------------------------------------------------
 -module(props).
 
--export([get_value/2, get_value/3
-        ,delete/2, delete_keys/2
-        ,is_defined/2
-        ,get_integer_value/2, get_integer_value/3
-        ,get_atom_value/2, get_atom_value/3
-        ,get_binary_value/2, get_binary_value/3
-        ,get_ne_binary_value/2, get_ne_binary_value/3
-        ,get_is_true/2, get_is_true/3, is_true/2, is_true/3
-        ,get_is_false/2, get_is_false/3, is_false/2, is_false/3
-        ,get_keys/1, get_values/1
-        ,get_first_defined/2, get_first_defined/3
-        ,get_all_values/2
-        ,get_values_and_keys/1
-        ,set_values/2
-        ,set_value/2, set_value/3
-        ,take_value/2, take_value/3
-        ,insert_value/2, insert_value/3, insert_values/2
-        ,replace_value/3
-        ,unique/1
+-export([delete/2, delete_keys/2
         ,filter/2
         ,filter_empty/1, filter_empty_strings/1
         ,filter_undefined/1
+        ,get_all_values/2
+        ,get_atom_value/2, get_atom_value/3
+        ,get_binary_value/2, get_binary_value/3
+        ,get_first_defined/2, get_first_defined/3
+        ,get_integer_value/2, get_integer_value/3
+        ,get_is_false/2, get_is_false/3, is_false/2, is_false/3
+        ,get_is_true/2, get_is_true/3, is_true/2, is_true/3
+        ,get_keys/1, get_values/1
+        ,get_ne_binary_value/2, get_ne_binary_value/3
+        ,get_value/2, get_value/3
+        ,get_values_and_keys/1
+        ,insert_value/2, insert_value/3, insert_values/2
+        ,is_defined/2
+        ,partition/2
+        ,replace_value/3
+        ,set_value/2, set_value/3
+        ,set_values/2
+        ,take_value/2, take_value/3
         ,to_log/1, to_log/2
+        ,unique/1
         ]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
+
+-type filter_fun() :: fun((kz_term:proplist_property()) -> boolean()).
+
+-export_type([filter_fun/0]).
 
 %% don't import the get_keys/1 that fetches keys from the process dictionary
 -compile({'no_auto_import', [get_keys/1]}).
@@ -98,7 +103,6 @@ insert_values(KVs, Props) ->
 replace_value(Key, Value, Props) ->
     lists:keyreplace(Key, 1, Props, {Key, Value}).
 
--type filter_fun() :: fun((kz_term:proplist_property()) -> boolean()).
 -spec filter(filter_fun(), kz_term:proplist()) -> kz_term:proplist().
 filter(Fun, Props) when is_function(Fun, 1),
                         is_list(Props) ->
@@ -299,6 +303,14 @@ take_value(Key, Props, Default) ->
         'undefined' -> {Default, Props};
         Value -> {Value, delete(Key, Props)}
     end.
+
+%%------------------------------------------------------------------------------
+%% @doc Splits given proplist based on filter function (Fun).
+%% @end
+%%------------------------------------------------------------------------------
+-spec partition(filter_fun(), kz_term:proplist()) -> {kz_term:proplist(), kz_term:proplist()}.
+partition(Fun, Props) when is_function(Fun, 1), is_list(Props) ->
+    lists:partition(Fun, Props).
 
 -spec delete(kz_term:proplist_key(), kz_term:proplist()) -> kz_term:proplist().
 delete(K, Props) ->

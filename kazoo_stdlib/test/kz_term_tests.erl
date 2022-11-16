@@ -116,7 +116,7 @@ prop_pretty_print_bytes() ->
                               )
                             ),
                 Result = kz_term:pretty_print_bytes(Bytes),
-                ?WHENFAIL(io:format("~pT ~pG ~pM ~pK ~pB (~pb): ~p =:= ~p~n", [T, G, M, K, B, Bytes, Result, Expected])
+                ?WHENFAIL(?debugFmt("~pT ~pG ~pM ~pK ~pB (~pb): ~p =:= ~p~n", [T, G, M, K, B, Bytes, Result, Expected])
                          ,Result =:= Expected
                          )
             end).

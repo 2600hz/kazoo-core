@@ -15,6 +15,9 @@
         "Conferences": {
             "type": "string"
         },
+        "Custom-Conference-Vars": {
+            "type": "object"
+        },
         "Dynamic": {
             "type": "string"
         },

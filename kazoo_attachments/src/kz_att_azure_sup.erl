@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2020, 2600Hz
+%%% @copyright (C) 2017-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -43,7 +43,7 @@ start_azure(Account, Key) when is_binary(Account) ->
 start_azure(Account, Key) when is_binary(Key) ->
     start_azure(Account, kz_term:to_list(Key));
 start_azure(Account, Key) ->
-    supervisor:start_child(?SERVER, [{local, list_to_atom("erlazure_" ++ Account)}, Account, Key]).
+    supervisor:start_child(?SERVER, [{'local', list_to_atom("erlazure_" ++ Account)}, Account, Key]).
 
 
 -spec workers() -> kz_term:pids().

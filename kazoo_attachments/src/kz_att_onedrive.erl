@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2020, 2600Hz
+%%% @copyright (C) 2017-2022, 2600Hz
 %%% @doc Google Drive for attachments.
 %%% @author Luis Azedo
 %%%
@@ -201,7 +201,7 @@ onedrive_put(Url, Headers, Body) ->
           when Code < 300 ->
             BodyJObj = kz_json:decode(ResponseBody),
             props:to_log(ResponseHeaders, <<"GRAPH HEADERS">>),
-            lager:debug("graph result body : ~s", [kz_json:encode(BodyJObj, ['pretty'])]),
+            lager:debug("graph result body : ~s", [kz_json:encode(BodyJObj)]),
 
             case {kz_json:get_value(<<"id">>, BodyJObj)
                  ,kz_json:get_value([<<"parentReference">>, <<"driveId">>], BodyJObj)

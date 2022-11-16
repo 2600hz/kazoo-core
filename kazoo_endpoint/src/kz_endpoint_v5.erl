@@ -24,6 +24,7 @@
         ,maybe_start_metaflow/2
         ,encryption_method_map/2
         ,get_sip_realm/2, get_sip_realm/3
+        ,merge_call_recording/1
         ]).
 
 -ifdef(TEST).
@@ -437,7 +438,7 @@ merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
             AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
             OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
             Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kz_json:is_true([Key, <<"enabled">>], Merged) of
+            case kz_json:is_true(<<"enabled">>, Merged) of
                 'true' -> kz_json:set_value(Key, Merged, Endpoint);
                 'false' -> Endpoint
             end
@@ -450,7 +451,7 @@ merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
             AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
             OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
             Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kz_json:is_true([Key, <<"enabled">>], Merged) of
+            case kz_json:is_true(<<"enabled">>, Merged) of
                 'true' -> kz_json:set_value(Key, Merged, Endpoint);
                 'false' -> Endpoint
             end
@@ -493,8 +494,10 @@ merge_attribute(<<"call_recording">> = Key, Account, Endpoint, Owner) ->
     AccountAttr = get_account_record_call_properties(Account),
     OwnerAttr = get_user_record_call_properties(Owner),
     EndpointAttr = get_device_record_call_properties(Endpoint),
-    Merged = kz_json:merge([AccountAttr, OwnerAttr, EndpointAttr]),
-    kz_json:set_value(Key, Merged, Endpoint);
+    case lists:filter(fun is_valid_call_recording_object/1, [AccountAttr, OwnerAttr, EndpointAttr]) of
+        [] -> kz_json:delete_key(Key, Endpoint);
+        JObjs -> kz_json:set_value(Key, kz_json:merge(JObjs), Endpoint)
+    end;
 merge_attribute(<<"outbound_flags">>, Account, Endpoint, Owner) ->
     Static = lists:flatten([kzd_devices:outbound_static_flags(Account)
                            ,kzd_devices:outbound_static_flags(Owner)
@@ -552,6 +555,13 @@ merge_call_recording(RecordingSettings) ->
 
     F2 = fun(Direction, Networks, RSAcc2) -> merge_call_recording_networks(Direction, Networks, RSAcc2, AnyNets) end,
     kz_json:foldl(F2, RecordingSettings1, RecordingSettings1).
+
+-spec is_valid_call_recording_object(kz_term:api_object()) -> boolean().
+is_valid_call_recording_object('undefined') ->
+    'false';
+is_valid_call_recording_object(JObj) ->
+    kz_json:is_json_object(JObj)
+        andalso not kz_json:is_empty(JObj).
 
 -spec merge_call_recording_direction(kz_term:ne_binary(), kzd_call_recording:doc(), kz_json:object()) -> kz_json:object().
 merge_call_recording_direction(Direction, RecordingSettings, AnyDirectionSettings) ->
@@ -918,14 +928,14 @@ should_create_endpoint_fold(Routine, {Endpoint, Properties, Call}=Acc) when is_f
         'ok' -> Acc;
         Error -> Error
     catch
-        ?STACKTRACE('throw', Error, ST)
-        kz_log:log_stacktrace(ST),
-        Error;
-        ?STACKTRACE(_E, _R, ST)
-        lager:debug("exception ~p:~p", [_E, _R]),
-        kz_log:log_stacktrace(ST),
-        {'error', 'exception'}
-        end;
+        'throw':Error:ST ->
+            kz_log:log_stacktrace(ST),
+            Error;
+        _E:_R:ST ->
+            lager:debug("exception ~p:~p", [_E, _R]),
+            kz_log:log_stacktrace(ST),
+            {'error', 'exception'}
+    end;
 should_create_endpoint_fold(_Routine, Error) -> Error.
 
 -spec maybe_missing_resource_type(kz_json:object(), kz_json:object(),  kapps_call:call()) ->

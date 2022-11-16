@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,7 @@
 -export([listen/1, accept/1, accept_connection/5,
          setup/5, close/1, select/1]).
 
--spec listen(atom()) -> {error, any()} | {ok, term()}.
+-spec listen(atom()) -> {'error', any()} | {'ok', term()}.
 listen(Name) ->
     inet_tcp_dist:listen(Name).
 
@@ -23,7 +23,7 @@ select(FullNode) ->
           when Node =:= "freeswitch" ->
             inet_tcp_dist:select(FullNode);
         _Else ->
-            false
+            'false'
     end.
 
 -spec accept(term()) -> pid().

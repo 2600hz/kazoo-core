@@ -32,7 +32,9 @@
 -export([resolve/1
         ,resolve/2
         ]).
--export([is_rfc1918_ip/1]).
+-export([is_rfc1918_ip/1
+        ,is_restricted_ip/1
+        ]).
 -export([iptuple_to_binary/1
         ,srvtuple_to_binary/1
         ,naptrtuple_to_binary/1
@@ -88,15 +90,15 @@
 
 %% from inet_res.erl
 -type res_option() ::
-        {alt_nameservers, [nameserver()]}
-      | {edns, 0 | 'false'}
-      | {inet6, boolean()}
-      | {nameservers, [nameserver()]}
-      | {recurse, boolean()}
-      | {retry, integer()}
-      | {timeout, integer()}
-      | {udp_payload_size, integer()}
-      | {usevc, boolean()}.
+        {'alt_nameservers', [nameserver()]}
+      | {'edns', 0 | 'false'}
+      | {'inet6', boolean()}
+      | {'nameservers', [nameserver()]}
+      | {'recurse', boolean()}
+      | {'retry', integer()}
+      | {'timeout', integer()}
+      | {'udp_payload_size', integer()}
+      | {'usevc', boolean()}.
 
 -type nameserver() :: {inet:ip_address(), Port :: 1..65535}.
 
@@ -224,8 +226,8 @@ get_supported_binding_ip(IP, 'undefined') ->
     get_supported_binding_ip(IP, default_binding_ip());
 get_supported_binding_ip(IP, DefaultIP) ->
     case detect_ip_is_bindable(IP) of
-        {'ok', _, IPAdress} ->
-            IPAdress;
+        {'ok', _, IPAddress} ->
+            IPAddress;
         {'error', _, _ReasonIP} ->
             case detect_ip_is_bindable(DefaultIP) of
                 {'ok', _, DefaultIPAddress} ->
@@ -247,16 +249,18 @@ get_supported_binding_ip(IP, DefaultIP) ->
 %% @doc Detects IP family of `IP' and returns its {@link inet:ip_address()}.
 %% @end
 %%------------------------------------------------------------------------------
--spec detect_ip_family(kz_term:ne_binary() | string()) -> {inet:address_family(), inet:ip_address()} | {'error', 'einval'}.
+-spec detect_ip_family(kz_term:ne_binary() | string()) ->
+          {inet:address_family(), inet:ip_address()} |
+          {'error', 'einval'}.
 detect_ip_family(IP) when is_binary(IP) ->
     detect_ip_family(kz_term:to_list(IP));
 detect_ip_family(IP) ->
     try
         case inet:parse_ipv6strict_address(IP) of
-            {'ok', IPv6} -> {'inet6', IPv6};
+            {'ok', ?IPV6=IPv6} -> {'inet6', IPv6};
             {'error', 'einval'} ->
                 case inet:parse_ipv4strict_address(IP) of
-                    {'ok', IPv4} -> {'inet', IPv4};
+                    {'ok', ?IPV4=IPv4} -> {'inet', IPv4};
                     {'error', 'einval'}=Error -> Error
                 end
         end
@@ -317,26 +321,24 @@ detect_ip_is_bindable('inet6') ->
     detect_ip_is_bindable(?BIND_ALL_INTERFACE_6);
 detect_ip_is_bindable({'error', 'einval'}) ->
     {'error', 'einval', "einval: invalid ip address"};
-detect_ip_is_bindable({Family, IPAdress}) ->
+detect_ip_is_bindable({Family, IPAddress}) ->
     Format = fun(R) -> io_lib:format("~p: ~s", [R, inet:format_error(R)]) end,
-    try
-        case gen_tcp:listen(6416, [Family, {'ifaddr', IPAdress}]) of
-            {'ok', Port} ->
-                gen_tcp:close(Port),
-                {'ok', Family, IPAdress};
-            {'error', 'eafnosupport'=Reason} ->
-                {'error', Family, Format(Reason)};
-            {'error', 'eaddrnotavail'=Reason} ->
-                {'error', Family, Format(Reason)};
-            {'error', 'einval'=Reason} ->
-                %% can't bind to ip because its link-local or something reserved
-                {'error', Family, Format(Reason)};
-            {'error', 'eaddrinuse'} ->
-                %% try again maybe? does this at least confirm that the ifaddr is exists?
-                {'ok', Family, IPAdress};
-            {'error', Reason} ->
-                {'error', Family, Format(Reason)}
-        end
+    try gen_tcp:listen(0, [Family, {'ifaddr', IPAddress}]) of
+        {'ok', Socket} ->
+            gen_tcp:close(Socket),
+            {'ok', Family, IPAddress};
+        {'error', 'eafnosupport'=Reason} ->
+            {'error', Family, Format(Reason)};
+        {'error', 'eaddrnotavail'=Reason} ->
+            {'error', Family, Format(Reason)};
+        {'error', 'einval'=Reason} ->
+            %% can't bind to ip because its link-local or something reserved
+            {'error', Family, Format(Reason)};
+        {'error', 'eaddrinuse'} ->
+            %% try again maybe? does this at least confirm that the ifaddr is exists?
+            {'ok', Family, IPAddress};
+        {'error', Reason} ->
+            {'error', Family, Format(Reason)}
     catch
         _E:_T ->
             {'error', io_lib:format("exception occurred when detecting ip family supportability/bindability: ~p:~p", [_E, _T])}
@@ -393,6 +395,31 @@ is_rfc1918_ip(IP) ->
     verify_cidr(IP, "192.168.0.0/16")
         orelse verify_cidr(IP, "10.0.0.0/8")
         orelse verify_cidr(IP, "172.16.0.0/12").
+
+%% @doc tests IP for whether it is from a restricted IP space
+%% like RFC1918 IPs, loopbacks, auto-config addresses, etc
+-spec is_restricted_ip(inet:ip4_address() | inet:ip6_address() | kz_term:text()) -> boolean().
+is_restricted_ip(<<"::">>) -> 'true';    % IPv6 default route
+is_restricted_ip(<<IPAddress/binary>>) ->
+    case inet:parse_address(kz_term:to_list(IPAddress)) of
+        {'ok', IPTuple} ->
+            IP = iptuple_to_binary(IPTuple),
+            is_rfc1918_ip(IP)
+                orelse verify_cidr(IP, <<"fc00::/7">>)       %% IPv6 unique local addresses (comparable to rfc1918 IPv4 addresses
+                orelse verify_cidr(IP, <<"0.0.0.0/32">>)     %% IPv4 unspecified address
+                orelse verify_cidr(IP, <<"127.0.0.0/8">>)    %% IPv4 loopback address
+                orelse verify_cidr(IP, <<"::1/128">>)        %% IPv6 loopback address
+                orelse verify_cidr(IP, <<"169.254.0.0/16">>) %% IPv4 auto-config address
+                orelse verify_cidr(IP, <<"fe80::/10">>)      %% IPv6 link-local prefix
+      ;
+        {'error', _} -> 'true'
+    end;
+is_restricted_ip(?IPV4=IPTuple) ->
+    is_restricted_ip(iptuple_to_binary(IPTuple));
+is_restricted_ip(?IPV6=IPTuple) ->
+    is_restricted_ip(iptuple_to_binary(IPTuple));
+is_restricted_ip(IPAddress) ->
+    is_restricted_ip(kz_term:to_binary(IPAddress)).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -497,7 +524,7 @@ resolve_a_record_fold(IPTuple, I) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec iptuple_to_binary(inet:ip4_address() | inet:ip6_address()) -> kz_term:ne_binary().
-iptuple_to_binary({A,B,C,D}) ->
+iptuple_to_binary(?IPV4(A,B,C,D)) ->
     <<(kz_term:to_binary(A))/binary, "."
      ,(kz_term:to_binary(B))/binary, "."
      ,(kz_term:to_binary(C))/binary, "."
@@ -506,11 +533,11 @@ iptuple_to_binary({A,B,C,D}) ->
 
 %% IPv4 mapped to IPv6
 %% https://tools.ietf.org/html/rfc4038#section-4.2
-iptuple_to_binary({0, 0, 0, 0, 0, 16#FFFF, AB, CD}) ->
+iptuple_to_binary(?IPV6(0, 0, 0, 0, 0, 16#FFFF, AB, CD)) ->
     <<A:8, B:8>> = <<AB:16>>,
     <<C:8, D:8>> = <<CD:16>>,
-    iptuple_to_binary({A,B,C,D});
-iptuple_to_binary({_I1, _I2, _I3, _I4, _I5, _I6, _I7, _I8}=T) ->
+    iptuple_to_binary(?IPV4(A,B,C,D));
+iptuple_to_binary(?IPV6(_I1, _I2, _I3, _I4, _I5, _I6, _I7, _I8)=T) ->
     kz_binary:join([to_hex(I) || I <- tuple_to_list(T)], <<":">>).
 
 -spec to_hex(integer()) -> binary().
@@ -545,14 +572,17 @@ mxtuple_to_binary({_Priority, Domain}) ->
 %%------------------------------------------------------------------------------
 -spec pretty_print_bytes(non_neg_integer()) -> iolist().
 pretty_print_bytes(Bytes)
-  when Bytes div 1073741824 > 0 ->
-    io_lib:format("~.2fGB", [Bytes/1073741824]);
+  when Bytes div ?BYTES_T > 0 ->
+    io_lib:format("~.2fTB", [Bytes/?BYTES_T]);
 pretty_print_bytes(Bytes)
-  when Bytes div 1048576 > 0 ->
-    io_lib:format("~.2fMB", [Bytes/1048576]);
+  when Bytes div ?BYTES_G > 0 ->
+    io_lib:format("~.2fGB", [Bytes/?BYTES_G]);
 pretty_print_bytes(Bytes)
-  when Bytes div 1024 > 0 ->
-    io_lib:format("~.2fKB", [Bytes/1024]);
+  when Bytes div ?BYTES_M > 0 ->
+    io_lib:format("~.2fMB", [Bytes/?BYTES_M]);
+pretty_print_bytes(Bytes)
+  when Bytes div ?BYTES_K > 0 ->
+    io_lib:format("~.2fKB", [Bytes/?BYTES_K]);
 pretty_print_bytes(Bytes) ->
     io_lib:format("~BB", [Bytes]).
 
