@@ -410,6 +410,8 @@ mwi_update_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Messages-New">>
                                                             ,<<"Messages-Saved">>
                                                             ,<<"To">>
+                                                            ,<<"Account-ID">>
+                                                            ,<<"Owner-ID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Call-ID">>
                                                             ,<<"Expires">>
