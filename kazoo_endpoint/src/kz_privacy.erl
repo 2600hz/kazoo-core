@@ -12,7 +12,10 @@
 -export([get_method/1
         ,get_method/2
         ]).
--export([should_hide_name/1
+-export([should_hide_realm/1
+        ,should_hide_realm/2
+        ,should_hide_realm/3
+        ,should_hide_name/1
         ,should_hide_name/2
         ,should_hide_number/1
         ,should_hide_number/2
@@ -31,8 +34,14 @@
         ]).
 -export([anonymous_caller_id_name/0, anonymous_caller_id_name/1
         ,anonymous_caller_id_number/0, anonymous_caller_id_number/1
+        ,anonymous_caller_id_realm/0, anonymous_caller_id_realm/1
         ]).
 -export([use_sip_privacy_header/0]).
+
+-ifdef(TEST).
+-export([hide_from_uri/3
+        ]).
+-endif.
 
 -include("kazoo_endpoint.hrl").
 -include_lib("kazoo_amqp/include/kapi_offnet_resource.hrl").
@@ -44,6 +53,9 @@
 
 -define(KEY_ANONYMOUS_NUMBER, <<"default_privacy_number">>).
 -define(DEFAULT_ANONYMOUS_NUMBER, <<"anonymous">>).
+
+-define(KEY_ANONYMOUS_REALM, <<"default_privacy_realm">>).
+-define(DEFAULT_ANONYMOUS_REALM, <<"anonymous.invalid">>).
 
 -define(KEY_PRIVACY_HEADER, <<"use_sip_privacy_header">>).
 
@@ -93,6 +105,33 @@ get_default_privacy_mode() ->
                               ).
 
 %%------------------------------------------------------------------------------
+%% @doc The realm should ONLY be hidden if
+%% should_hide_realm = true and privacy_method = kazoo
+%% and number is being hidden
+%% @end
+%%------------------------------------------------------------------------------
+-spec should_hide_realm(kz_json:object()) -> boolean().
+should_hide_realm(JObj) ->
+    should_hide_realm(JObj, default_should_hide_realm()).
+
+-spec should_hide_realm(kz_json:object(), boolean()) -> boolean().
+should_hide_realm(JObj, 'true') ->
+    should_hide_realm(JObj, 'true', get_method(JObj));
+should_hide_realm(_JObj, 'false') ->
+    'false'.
+
+-spec should_hide_realm(kz_json:object(), boolean(), kz_term:ne_binary()) -> boolean().
+should_hide_realm(JObj, 'true', <<"kazoo">>) ->
+    should_hide_number(JObj);
+should_hide_realm(_JObj, 'true', _Method) ->
+    'false';
+should_hide_realm(_JObj, 'false', _Method) ->
+    'false'.
+
+default_should_hide_realm() ->
+    kapps_config:is_true(?PRIVACY_CAT, <<"should_hide_realm">>, 'false').
+
+%%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
@@ -129,7 +168,7 @@ should_hide_number(JObj) ->
     Keys = [[<<"caller_id_options">>, <<"outbound_privacy">>]
            ,[<<"privacy">>, <<"hide_number">>]
            ,?KEY_PRIVACY_HIDE_NUMBER
-           ,?CCV(?KEY_PRIVACY_HIDE_NAME)
+           ,?CCV(?KEY_PRIVACY_HIDE_NUMBER)
            ,?CALLER_PRIVACY_NUMBER
            ,?CCV(?CALLER_PRIVACY_NUMBER)
            ,<<"privacy_mode">>
@@ -161,6 +200,7 @@ enforce(JObj, DefaultMethod) ->
     Method = get_method(JObj, DefaultMethod),
     Routines = [fun maybe_anonymize_name/2
                ,fun maybe_anonymize_number/2
+               ,fun maybe_anonymize_from_uri/2
                ,fun maybe_endpoints/2
                ,fun maybe_custom_channel_vars/2
                ,fun maybe_custom_call_vars/2
@@ -225,6 +265,76 @@ hide_number(JObj, _Method) ->
                ,JObj
                ,Keys
                ).
+
+%%------------------------------------------------------------------------------
+%% @doc `maybe_anonymize_from_uri' needs to call to hide_from_uri only if the
+%% method is "kazoo".
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_anonymize_from_uri(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
+maybe_anonymize_from_uri(JObj, <<"kazoo">>) ->
+    KeyPath = [<<"Custom-Channel-Vars">>, <<"From-URI">>],
+    case kz_json:get_ne_binary_value(KeyPath, JObj) of
+        'undefined' -> JObj;
+        FromURI -> kz_json:set_value(KeyPath, hide_from_uri(JObj, FromURI), JObj)
+    end;
+maybe_anonymize_from_uri(JObj, _) ->
+    JObj.
+
+%%------------------------------------------------------------------------------
+%% @doc `hide_from_uri' needs to consider hiding the name and number when putting
+%% the binary back together, sometimes name will be hidden and not the number
+%% or any combination.
+%% @end
+%%------------------------------------------------------------------------------
+-spec hide_from_uri(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary().
+hide_from_uri(JObj, FromURI) ->
+    Options = [{'should_hide_realm', default_should_hide_realm()}
+              ,{'method', get_method(JObj)}
+              ],
+    hide_from_uri(JObj, FromURI, Options).
+
+-spec hide_from_uri(kz_json:object(), kz_term:ne_binary(), kz_json:proplist()) -> kz_term:ne_binary().
+hide_from_uri(JObj, FromURI, Options) ->
+    %% Utimately this will take apart a FromURI and put it back together in the same format as the original, regardless
+    %% of the SIP validity... the reason being, the From-URI can come from external systems and might
+    %% intentionally or historically be set to loosely-compliant values ;)
+    %%
+    %% If should_hide_[name,number,realm] = true:
+    %% number@realm.test -> anonymous@anonymous.invalid
+    %% number@realm.test:7000;tag=example -> anonymous@anonymous.invalid:7000;tag=example
+    %% "name" number@realm.test:7000;tag=example -> "Anonymous" anonymous@anonymous.invalid:7000;tag=example
+    %% "name" <sip:number@realm.test:7000;tag=example> -> "Anonymous" <sip:anonymous@anonymous.invalid:7000;tag=example>
+    %% "name" <sip:number@realm.test:7000>;tag=example -> "Anonymous" <sip:anonymous@anonymous.invalid:7000>;tag=example
+    %% name <sip:number@realm.test:7000>;tag=example -> Anonymous <sip:anonymous@anonymous.invalid:7000>;tag=example
+    %% "name" <sip:number@realm.test:7000> ;tag=example -> "Anonymous" <sip:anonymous@anonymous.invalid:7000>;tag=example
+    %% name <sip:number@realm.test:7000> ;tag=example -> Anonymous <sip:anonymous@anonymous.invalid:7000>;tag=example
+    SIP_URI = kzsip_uri:parse(FromURI),
+    MaybeReplace = [{kzsip_uri:display_name(SIP_URI), anonymous_caller_id_name(), should_hide_name(JObj)}
+                   ,{kzsip_uri:user(SIP_URI), anonymous_caller_id_number(), should_hide_number(JObj)}
+                   ,{kzsip_uri:host(SIP_URI)
+                    ,anonymous_caller_id_realm()
+                    ,should_hide_realm(JObj
+                                      ,props:is_true('should_hide_realm', Options)
+                                      ,props:get_ne_binary_value('method', Options)
+                                      )
+                    }
+                   ],
+    lists:foldl(fun fold_maybe_hide/2, FromURI, MaybeReplace).
+
+-spec fold_maybe_hide({kz_term:binary(), kz_term:ne_binary(), boolean()}, kz_term:ne_binary()) -> kz_term:ne_binary().
+fold_maybe_hide({Value, Replacement, 'true'}, FromURI) ->
+    case kz_term:is_empty(Value) of
+        'true' -> FromURI;
+        'false' -> re:replace(FromURI, escape_plus(Value), Replacement, [{'return', 'binary'}])
+    end;
+fold_maybe_hide({_Value, _Replacement, 'false'}, FromURI) ->
+    FromURI.
+
+%% Some URIs have +1234567890 as the user, instead of a device's username.
+-spec escape_plus(kz_term:ne_binary()) -> kz_term:ne_binary().
+escape_plus(Subject) ->
+    re:replace(Subject, <<"\\+">>, <<"\\\\+">>, [{'return', 'binary'}]).
 
 -spec maybe_endpoints(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
 maybe_endpoints(JObj, Method) ->
@@ -352,7 +462,7 @@ has_flags(JObj) ->
         orelse should_hide_number(JObj).
 
 %%------------------------------------------------------------------------------
-%% @doc Find out if we call should be blocked if it's anonymous and Account
+%% @doc Find out if the call should be blocked if it's anonymous and Account
 %% or system is configured to block anonymous calls
 %% @end
 %%------------------------------------------------------------------------------
@@ -446,9 +556,33 @@ is_anonymous_rule_member(Value, [Match|Matches]) ->
 %% @doc Default anonymous Caller IDs from System wide config, or Account
 %% @end
 %%------------------------------------------------------------------------------
+-ifdef(TEST). %% Avoids involving kapps_config usage when running tests.
+
+-spec anonymous_caller_id_name() -> kz_term:ne_binary().
+anonymous_caller_id_name() ->
+    ?DEFAULT_ANONYMOUS_NAME.
+
+-spec anonymous_caller_id_number() -> kz_term:ne_binary().
+anonymous_caller_id_number() ->
+    ?DEFAULT_ANONYMOUS_NUMBER.
+
+-spec anonymous_caller_id_realm() -> kz_term:ne_binary().
+anonymous_caller_id_realm() ->
+    ?DEFAULT_ANONYMOUS_REALM.
+-else.
+
 -spec anonymous_caller_id_name() -> kz_term:ne_binary().
 anonymous_caller_id_name() ->
     kapps_config:get_binary(?PRIVACY_CAT, ?KEY_ANONYMOUS_NAME, ?DEFAULT_ANONYMOUS_NAME).
+
+-spec anonymous_caller_id_number() -> kz_term:ne_binary().
+anonymous_caller_id_number() ->
+    kapps_config:get_binary(?PRIVACY_CAT, ?KEY_ANONYMOUS_NUMBER, ?DEFAULT_ANONYMOUS_NUMBER).
+
+-spec anonymous_caller_id_realm() -> kz_term:ne_binary().
+anonymous_caller_id_realm() ->
+    kapps_config:get_binary(?PRIVACY_CAT, ?KEY_ANONYMOUS_REALM, ?DEFAULT_ANONYMOUS_REALM).
+-endif.
 
 -spec anonymous_caller_id_name(kz_term:api_binary()) -> kz_term:ne_binary().
 anonymous_caller_id_name('undefined') ->
@@ -456,15 +590,17 @@ anonymous_caller_id_name('undefined') ->
 anonymous_caller_id_name(AccountId) ->
     kapps_account_config:get_global(AccountId, ?PRIVACY_CAT, ?KEY_ANONYMOUS_NAME, ?DEFAULT_ANONYMOUS_NAME).
 
--spec anonymous_caller_id_number() -> kz_term:ne_binary().
-anonymous_caller_id_number() ->
-    kapps_config:get_binary(?PRIVACY_CAT, ?KEY_ANONYMOUS_NUMBER, ?DEFAULT_ANONYMOUS_NUMBER).
-
 -spec anonymous_caller_id_number(kz_term:api_binary()) -> kz_term:ne_binary().
 anonymous_caller_id_number('undefined') ->
     anonymous_caller_id_number();
 anonymous_caller_id_number(AccountId) ->
     kapps_account_config:get_global(AccountId, ?PRIVACY_CAT, ?KEY_ANONYMOUS_NUMBER, ?DEFAULT_ANONYMOUS_NUMBER).
+
+-spec anonymous_caller_id_realm(kz_term:api_binary()) -> kz_term:ne_binary().
+anonymous_caller_id_realm('undefined') ->
+    anonymous_caller_id_realm();
+anonymous_caller_id_realm(AccountId) ->
+    kapps_account_config:get_global(AccountId, ?PRIVACY_CAT, ?KEY_ANONYMOUS_REALM, ?DEFAULT_ANONYMOUS_REALM).
 
 %%------------------------------------------------------------------------------
 %% @doc

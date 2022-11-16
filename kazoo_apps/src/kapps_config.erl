@@ -30,6 +30,7 @@
 -export([get_jsons/2, get_jsons/3, get_jsons/4]).
 -export([get_atom/2, get_atom/3, get_atom/4]).
 -export([get_integer/2, get_integer/3, get_integer/4]).
+-export([get_integers/2, get_integers/3, get_integers/4]).
 -export([get_pos_integer/2, get_pos_integer/3, get_pos_integer/4]).
 -export([get_non_neg_integer/2, get_non_neg_integer/3, get_non_neg_integer/4]).
 -export([get_float/2, get_float/3, get_float/4]).
@@ -422,6 +423,21 @@ get_ne_binaries(Category, Key, Default) ->
 get_ne_binaries(Category, Key, Default, Node) ->
     Values = get(Category, Key, Default, Node),
     value_or_values(Values, Default).
+
+-spec get_integers(config_category(), config_key()) -> [integer()] | 'undefined'.
+get_integers(Category, Key) ->
+    get_integers(Category, Key, 'undefined').
+
+-spec get_integers(config_category(), config_key(), Default) -> [integer()] | Default.
+get_integers(Category, Key, Default) ->
+    get_integers(Category, Key, Default, kz_term:to_binary(node())).
+
+-spec get_integers(config_category(), config_key(), Default, config_node()) -> [integer()] | Default.
+get_integers(Category, Key, Default, Node) ->
+    case get(Category, Key, Default, Node) of
+        Default -> Default;
+        Values -> [kz_term:to_integer(Int) || Int <- Values]
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Get a configuration key for a given category but only if its configured
@@ -1270,7 +1286,7 @@ add_config_setting(JObj, ToSetting, [{FromId, Node, FromSetting, Value} | Values
     Key = config_setting_key(Node, ToSetting),
     case kz_json:get_value(Key, JObj) of
         'undefined' ->
-            io:format("migrating setting from ~s ~s.~s to ~s ~s.~s value ~p~n"
+            ?LOG_INFO("migrating setting from ~s ~s.~s to ~s ~s.~s value ~p~n"
                      ,[FromId, Node, FromSetting
                       ,ToId, Node, ToSetting
                       ,Value
@@ -1281,13 +1297,16 @@ add_config_setting(JObj, ToSetting, [{FromId, Node, FromSetting, Value} | Values
                               );
         Value -> add_config_setting(JObj, ToSetting, Values);
         _Else ->
-            io:format("the system tried to move the parameter listed below"
+            ?LOG_INFO("the system tried to move the parameter listed below"
                       " but found a different setting already there."
-                      " You need to correct this disparity manually!~n"),
-            io:format("  Source~n    db: ~s~n    id: ~s~n    key: ~s ~s~n    value: ~p~n"
-                     ,[?KZ_CONFIG_DB, FromId, Node, FromSetting, Value]),
-            io:format("  Destination~n    db: ~s~n    id: ~s~n    key: ~s ~s~n    value: ~p~n"
-                     ,[?KZ_CONFIG_DB, ToId, Node, ToSetting, _Else]),
+                      " You need to correct this disparity manually!~n"
+                     ),
+            ?LOG_INFO("  Source~n    db: ~s~n    id: ~s~n    key: ~s ~s~n    value: ~p~n"
+                     ,[?KZ_CONFIG_DB, FromId, Node, FromSetting, Value]
+                     ),
+            ?LOG_INFO("  Destination~n    db: ~s~n    id: ~s~n    key: ~s ~s~n    value: ~p~n"
+                     ,[?KZ_CONFIG_DB, ToId, Node, ToSetting, _Else]
+                     ),
             {'error', 'disparity'}
     end.
 
@@ -1444,6 +1463,6 @@ fetch_default_value(Keys, Default, JObj) ->
 -spec key(term()) -> [binary()].
 key(Key) ->
     case erlang:get('is_sup_call') of
-        true -> binary:split(kz_term:to_binary(Key), <<".">>, [global]);
+        'true' -> binary:split(kz_term:to_binary(Key), <<".">>, ['global']);
         _ -> [kz_term:to_binary(Key)]
     end.

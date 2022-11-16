@@ -485,6 +485,7 @@ bridge_definition() ->
                                                             ,<<"Fail-On-Single-Reject">>
                                                             ,<<"Force-Fax">>
                                                             ,<<"Hold-Media">>
+                                                            ,<<"Hold-Media-Options">>
                                                             ,<<"Ignore-Completed-Elsewhere">>
                                                             ,<<"Ignore-Early-Media">>
                                                             ,<<"Ignore-Forward">>
@@ -528,6 +529,7 @@ bridge_definition() ->
                 ,{<<"SIP-Invite-Parameters">>, fun erlang:is_list/1}
                 ,{<<"Secure-RTP">>, fun kz_term:is_boolean/1}
                 ,{<<"Bridge-Actions">>, fun kz_json:is_json_object/1}
+                ,{<<"Hold-Media-Options">>, fun kz_term:is_ne_binaries/1}
                 ]
                }
               ],
@@ -573,6 +575,7 @@ bridge_endpoint_definition() ->
                                                             ,<<"Force-Fax">>
                                                             ,<<"Forward-IP">>
                                                             ,<<"Hold-Media">>
+                                                            ,<<"Hold-Media-Options">>
                                                             ,<<"Ignore-Completed-Elsewhere">>
                                                             ,<<"Ignore-Early-Media">>
                                                             ,<<"Loopback-Bowout">>
@@ -619,6 +622,7 @@ bridge_endpoint_definition() ->
                 ,{<<"Ignore-Early-Media">>, fun kz_term:is_boolean/1}
                 ,{<<"Bypass-Media">>, fun kz_term:is_boolean/1}
                 ,{<<"SIP-Invite-Parameters">>, fun erlang:is_list/1}
+                ,{<<"Hold-Media-Options">>, fun kz_term:is_ne_binaries/1}
                 ]
                }
               ],
@@ -1447,6 +1451,7 @@ hold_definition() ->
                                                             ,<<"Call-ID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Hold-Media">>
+                                                            ,<<"Hold-Media-Options">>
                                                             ,<<"Insert-At">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
@@ -1455,7 +1460,7 @@ hold_definition() ->
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2, [{<<"Hold-Media-Options">>, fun kz_term:is_ne_binaries/1}]}
               ],
     kapi_definition:setters(Setters).
 
@@ -3377,10 +3382,10 @@ build_command(Prop, DPApp) when is_list(Prop) ->
                     ?MODULE:BuildMsgFun(kz_api:set_missing_values(Prop, ?DEFAULT_VALUES))
             end
     catch
-        ?STACKTRACE(_, R, ST)
-        kz_log:log_stacktrace(ST),
-        throw({R, Prop})
-        end;
+        _:R:ST ->
+            kz_log:log_stacktrace(ST),
+            throw({R, Prop})
+    end;
 build_command(JObj, DPApp) ->
     build_command(kz_json:to_proplist(JObj), DPApp).
 

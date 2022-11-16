@@ -23,19 +23,31 @@
 -spec failover(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_object().
 failover(EndpointId, AccountId, Endpoint) ->
     case is_call_failover_enabled(Endpoint) of
-        'false' -> 'undefined';
+        'false' -> maybe_legacy_failover(EndpointId, AccountId, Endpoint);
         'true' -> build_failover(EndpointId, AccountId, Endpoint)
     end.
 
+-spec maybe_legacy_failover(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_object().
+maybe_legacy_failover(EndpointId, AccountId, Endpoint) ->
+    CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
+    case kz_json:is_true(<<"failover">>, CallForward) of
+        false -> undefined;
+        true -> build_legacy_failover(EndpointId, AccountId, Endpoint, CallForward)
+    end.
+
+build_legacy_failover(EndpointId, AccountId, Endpoint, CallForward) ->
+    EP = kz_json:set_value(<<"call_failover">>, CallForward, kz_json:delete_key(<<"call_forward">>, Endpoint)),
+    build_failover(EndpointId, AccountId, EP).
+
 -spec is_call_failover_enabled(kz_json:object()) -> boolean().
 is_call_failover_enabled(Endpoint) ->
-    Failover = kzd_devices:call_failover(Endpoint, kz_json:new()),
+    Failover = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
     kz_term:is_not_empty(kzd_call_failover:number(Failover))
         andalso kzd_call_failover:enabled(Failover).
 
 -spec build_failover(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 build_failover(EndpointId, AccountId, Endpoint) ->
-    Failover = kzd_devices:call_failover(Endpoint, kz_json:new()),
+    Failover = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
     Number = kzd_call_failover:number(Failover),
     IsReconcilable = knm_converters:is_reconcilable(Number, AccountId),
     Realm = get_realm(Endpoint),
@@ -63,8 +75,9 @@ call_failover_properties(EndpointId, AccountId, Endpoint, IsReconcilable) ->
 
 -spec call_failover_base_properties(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
 call_failover_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
-    Failover = kzd_devices:call_failover(Endpoint, kz_json:new()),
+    Failover = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
     [{<<"Call-Forward">>, 'true'}
+    ,{<<"Is-Failover">>, 'true'}
     ,{<<"Direct-Calls-Only">>, kzd_call_failover:direct_calls_only(Failover)}
     ,{<<"Require-Ignore-Early-Media">>, 'true'}
     ,{<<"Ignore-Early-Media">>, 'true'}
@@ -79,12 +92,15 @@ call_failover_cid_type_name('false') -> <<"Internal">>.
 
 -spec cfw_single_reject() -> kz_term:ne_binaries().
 cfw_single_reject() ->
-    [<<"USER_BUSY">>
+    [<<"ALLOTTED_TIMEOUT">>
     ,<<"CALL_REJECTED">>
     ,<<"NO_ANSWER">>
+    ,<<"NO_ENDPOINTS">>
+    ,<<"NO_ROUTE_DESTINATION">>
     ,<<"NORMAL_CLEARING">>
     ,<<"PROGRESS_TIMEOUT">>
-    ,<<"ALLOTTED_TIMEOUT">>
+    ,<<"UNALLOCATED_NUMBER">>
+    ,<<"USER_BUSY">>
     ].
 
 -spec cfw_failover_reasons() -> kz_term:ne_binaries().
@@ -95,7 +111,7 @@ cfw_failover_reasons() ->
 
 -spec call_failover_confirm_properties(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
 call_failover_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
-    Failover = kzd_devices:call_failover(Endpoint, kz_json:new()),
+    Failover = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
     case kzd_call_failover:require_keypress(Failover) of
         'false' -> [];
         'true' ->
@@ -103,7 +119,7 @@ call_failover_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcila
             ,{<<"Confirm-Cancel-Timeout">>, 'true'}
             ,{<<"Confirm-Read-Timeout">>, ?CONFIRM_READ_TIMEOUT_SEC * ?MILLISECONDS_IN_SECOND}
             ,{<<"Confirm-Play-Count">>, ?CONFIRM_PLAY_COUNT}
-            ,{<<"Confirm-File">>, kzd_endpoint:get_prompt_url(Endpoint, <<"ivr-group_confirm">>)}
+            ,{<<"Confirm-File">>, kzd_endpoint:get_prompt(Endpoint, <<"ivr-group_confirm">>)}
             ,{<<"Require-Ignore-Early-Media">>, 'true'}
             ,{<<"Require-Fail-On-Single-Reject">>, cfw_single_reject()}
             ]
@@ -111,7 +127,7 @@ call_failover_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcila
 
 -spec call_failover_maybe_retain_cid(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
 call_failover_maybe_retain_cid(_EndpointId, _AccountId, Endpoint, IsReconcilable) ->
-    Failover = kzd_devices:call_failover(Endpoint, kz_json:new()),
+    Failover = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
     CIDTypeName = call_failover_cid_type_name(IsReconcilable),
     case kzd_call_failover:keep_caller_id(Failover) of
         'false' -> [];

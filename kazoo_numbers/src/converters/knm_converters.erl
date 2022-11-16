@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -223,19 +223,15 @@ are_reconcilable(Nums) ->
 %%------------------------------------------------------------------------------
 -spec is_reconcilable(kz_term:ne_binary()) -> boolean().
 is_reconcilable(Number) ->
-    Num = normalize(Number),
-    is_reconcilable_by_regex(Num, ?RECONCILE_REGEX).
+    is_reconcilable_by_regex(Number, ?RECONCILE_REGEX).
 
 -spec is_reconcilable(kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
 is_reconcilable(Number, AccountId) ->
-    Num = normalize(Number, AccountId),
-    is_reconcilable_by_regex(Num, ?RECONCILE_REGEX(AccountId)).
+    is_reconcilable_by_regex(Number, ?RECONCILE_REGEX(AccountId)).
 
 is_reconcilable_by_regex(Num, Regex) ->
     case re:run(Num, Regex) of
-        'nomatch' ->
-            lager:debug("number '~s' is not reconcilable", [Num]),
-            'false';
+        'nomatch' -> 'false';
         _ -> 'true'
     end.
 
@@ -311,7 +307,7 @@ get_classifier_regex(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec correct_depreciated_classifiers(kz_json:key(), kz_json:json_term(), kz_json:object()) ->
-                                                 kz_json:object().
+          kz_json:object().
 correct_depreciated_classifiers(ClassifierName, <<Regex/binary>>, CorrectedClassifiers) ->
     ClassifierSettings = kz_json:from_list([{<<"regex">>, Regex}
                                            ,{<<"friendly_name">>, ClassifierName}

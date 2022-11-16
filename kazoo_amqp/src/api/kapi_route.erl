@@ -29,6 +29,21 @@
         ,publish_win/2
         ,publish_win/3
         ]).
+-export([quickroute/1
+        ,quickroute_v/1
+        ,publish_quickroute/1
+        ,publish_quickroute/2
+
+        ,query_quickroutes_req/1
+        ,query_quickroutes_req_v/1
+        ,publish_query_quickroutes_req/1
+        ,publish_query_quickroutes_req/2
+
+        ,query_quickroutes_resp/1
+        ,query_quickroutes_resp_v/1
+        ,publish_query_quickroutes_resp/2
+        ,publish_query_quickroutes_resp/3
+        ]).
 
 -export([bind_q/2, unbind_q/2
         ,declare_exchanges/0
@@ -59,8 +74,12 @@
 -type req() :: kz_json:object().
 -type resp() :: kz_json:object().
 -type win() :: kz_json:object().
+-type quickroute() :: kz_json:object().
+-type quickroutes_query() :: kz_json:object().
 
--export_type([req/0, resp/0, win/0]).
+-export_type([req/0, resp/0, win/0
+             ,quickroute/0, quickroutes_query/0
+             ]).
 
 -ifdef(TEST).
 -export([get_route_req_account_routing/2
@@ -261,6 +280,87 @@ win_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+-spec quickroute_definition() -> kapi_definition:api().
+quickroute_definition() ->
+    EventName = <<"quickroute">>,
+    Category = ?EVENT_CATEGORY,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Quickroute">>}
+              ,{fun kapi_definition:set_description/2, <<"Quickroute - bypass KAZOO routing to go direct to an endpoint">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun quickroute/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun quickroute_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_quickroute/1}
+              ,{fun kapi_definition:set_binding/2, 'undefined'}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Endpoints">>, <<"Number">>]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Expiry">>]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Endpoints">>, fun are_endpoints/1}
+                ,{<<"Number">>, fun erlang:is_binary/1}
+                ,{<<"Expiry">>, fun erlang:is_integer/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+are_endpoints(Endpoints) ->
+    kz_json:are_json_objects(Endpoints)
+        andalso lists:all(fun is_quickroute_endpoint/1, Endpoints).
+
+is_quickroute_endpoint(Endpoint) ->
+    kz_json:is_defined(<<"Endpoint-ID">>, Endpoint)
+        andalso kz_json:is_defined(<<"Account-ID">>, Endpoint).
+
+-spec query_quickroutes_req_definition() -> kapi_definition:api().
+query_quickroutes_req_definition() ->
+    EventName = <<"query_quickroutes_req">>,
+    Category = ?EVENT_CATEGORY,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Quickroutes Query">>}
+              ,{fun kapi_definition:set_description/2, <<"Query for quickroutes">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun query_quickroutes_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun query_quickroutes_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_query_quickroutes_req/1}
+              ,{fun kapi_definition:set_binding/2, 'undefined'}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Account-ID">>, fun erlang:is_binary/1}]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+%% @doc quickroutes = [quickroute()]; quickroute = {endpoint-id, number, expiry}
+-spec query_quickroutes_resp_definition() -> kapi_definition:api().
+query_quickroutes_resp_definition() ->
+    EventName = <<"query_quickroutes_resp">>,
+    Category = ?EVENT_CATEGORY,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Quickroutes Query Response">>}
+              ,{fun kapi_definition:set_description/2, <<"Query response for quickroutes">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun query_quickroutes_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun query_quickroutes_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_query_quickroutes_resp/2}
+              ,{fun kapi_definition:set_binding/2, 'undefined'}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Quickroutes">>]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Quickroutes">>, fun kz_json:are_json_objects/1}]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
 %%------------------------------------------------------------------------------
 %% @doc Dialplan Route Request.
 %% Takes proplist, creates JSON string or error.
@@ -409,6 +509,106 @@ publish_win(RespQ, Win, ContentType) ->
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
 %%------------------------------------------------------------------------------
+%% @doc Quickroute - bypass KAZOO routing, go straight to endpoint
+%% Takes proplist, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec quickroute(kz_term:api_terms()) -> kz_api:api_formatter_return().
+quickroute(Req) ->
+    kapi_definition:build_message(Req, quickroute_definition()).
+
+-spec quickroute_v(kz_term:api_terms()) -> boolean().
+quickroute_v(Req) ->
+    kapi_definition:validate(Req, quickroute_definition()).
+
+-spec publish_quickroute(kz_term:api_terms()) -> 'ok'.
+publish_quickroute(JObj) ->
+    publish_quickroute(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_quickroute(kz_term:api_terms(), binary() | kz_term:proplist()) -> 'ok'.
+publish_quickroute(Req, ContentType) when is_binary(ContentType) ->
+    publish_quickroute(Req, ContentType, []);
+publish_quickroute(Req, Options) when is_list(Options) ->
+    publish_quickroute(Req, ?DEFAULT_CONTENT_TYPE, Options).
+
+-spec publish_quickroute(kz_term:api_terms(), binary(), kz_term:proplist()) -> 'ok'.
+publish_quickroute(Req, ContentType, Options) ->
+    Definition = quickroute_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,[{'formatter', kapi_definition:build_fun(Definition)}
+                                                 ,{'remove_recursive', 'false'}
+                                                 ]
+                                                ),
+    kz_amqp_util:callmgr_publish(Payload, ContentType, quickroute_routing_key(), Options).
+
+quickroute_routing_key() -> <<"call.quickroute">>.
+
+%%------------------------------------------------------------------------------
+%% @doc Query existing Quickroutes
+%% Takes proplist, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec query_quickroutes_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+query_quickroutes_req(Req) ->
+    kapi_definition:build_message(Req, query_quickroutes_req_definition()).
+
+-spec query_quickroutes_req_v(kz_term:api_terms()) -> boolean().
+query_quickroutes_req_v(Req) ->
+    kapi_definition:validate(Req, query_quickroutes_req_definition()).
+
+-spec publish_query_quickroutes_req(kz_term:api_terms()) -> 'ok'.
+publish_query_quickroutes_req(JObj) ->
+    publish_query_quickroutes_req(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_query_quickroutes_req(kz_term:api_terms(), binary() | kz_term:proplist()) -> 'ok'.
+publish_query_quickroutes_req(Req, ContentType) when is_binary(ContentType) ->
+    publish_query_quickroutes_req(Req, ContentType, []);
+publish_query_quickroutes_req(Req, Options) when is_list(Options) ->
+    publish_query_quickroutes_req(Req, ?DEFAULT_CONTENT_TYPE, Options).
+
+-spec publish_query_quickroutes_req(kz_term:api_terms(), binary(), kz_term:proplist()) -> 'ok'.
+publish_query_quickroutes_req(Req, ContentType, Options) ->
+    Definition = query_quickroutes_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,[{'formatter', kapi_definition:build_fun(Definition)}
+                                                 ,{'remove_recursive', 'false'}
+                                                 ]
+                                                ),
+    kz_amqp_util:callmgr_publish(Payload, ContentType, query_quickroutes_req_routing_key(), Options).
+
+query_quickroutes_req_routing_key() -> <<"quickroutes.query">>.
+
+%%------------------------------------------------------------------------------
+%% @doc Response to queries for existing Quickroutes
+%% Takes proplist, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec query_quickroutes_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+query_quickroutes_resp(Req) ->
+    kapi_definition:build_message(Req, query_quickroutes_resp_definition()).
+
+-spec query_quickroutes_resp_v(kz_term:api_terms()) -> boolean().
+query_quickroutes_resp_v(Req) ->
+    kapi_definition:validate(Req, query_quickroutes_resp_definition()).
+
+-spec publish_query_quickroutes_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_query_quickroutes_resp(ServerId, JObj) ->
+    publish_query_quickroutes_resp(ServerId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_query_quickroutes_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_query_quickroutes_resp(ServerId, Resp, ContentType) ->
+    Definition = query_quickroutes_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Resp
+                                                ,kapi_definition:values(Definition)
+                                                ,[{'formatter', kapi_definition:build_fun(Definition)}
+                                                 ,{'remove_recursive', 'false'}
+                                                 ]
+                                                ),
+    kz_amqp_util:targeted_publish(ServerId, Payload, ContentType).
+
+%%------------------------------------------------------------------------------
 %% @doc Bind AMQP Queue for routing requests.
 %% @end
 %%------------------------------------------------------------------------------
@@ -416,7 +616,9 @@ publish_win(RespQ, Win, ContentType) ->
 bind_q(Queue, Props) ->
     bind_q(Queue, props:get_value('restrict_to', Props), Props).
 
--spec bind_q(kz_term:ne_binary(), list() | 'undefined', kz_term:proplist()) -> 'ok'.
+-type restrict_to() :: 'no_account' | 'account' | 'quickroute' | 'query_quickroutes_req'.
+
+-spec bind_q(kz_term:ne_binary(), [restrict_to()] | 'undefined', kz_term:proplist()) -> 'ok'.
 bind_q(Queue, 'undefined', Props) ->
     Keys = get_all_routing_keys(Props),
     lists:foreach(fun(Key) -> kz_amqp_util:bind_q_to_callmgr(Queue, Key) end, Keys);
@@ -428,6 +630,12 @@ bind_q(Queue, ['account' | T], Props) ->
     Keys = get_account_routing_keys(Props),
     lists:foreach(fun(Key) -> kz_amqp_util:bind_q_to_callmgr(Queue, Key) end, Keys),
     bind_q(Queue, T, Props);
+bind_q(Queue, ['quickroute' | T], Props) ->
+    'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, quickroute_routing_key()),
+    bind_q(Queue, T, Props);
+bind_q(Queue, ['query_quickroutes_req' | T], Props) ->
+    'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, query_quickroutes_req_routing_key()),
+    bind_q(Queue, T, Props);
 bind_q(Queue, [_ | T], Props) ->
     bind_q(Queue, T, Props);
 bind_q(_, [], _) -> 'ok'.
@@ -436,7 +644,7 @@ bind_q(_, [], _) -> 'ok'.
 unbind_q(Queue, Props) ->
     unbind_q(Queue, props:get_value('restrict_to', Props), Props).
 
--spec unbind_q(kz_term:ne_binary(), list() | 'undefined', kz_term:proplist()) -> 'ok'.
+-spec unbind_q(kz_term:ne_binary(), [restrict_to()] | 'undefined', kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, 'undefined', Props) ->
     Keys = get_all_routing_keys(Props),
     lists:foreach(fun(Key) -> kz_amqp_util:unbind_q_from_callmgr(Queue, Key) end, Keys);
@@ -447,6 +655,9 @@ unbind_q(Queue, ['no_account' | T], Props) ->
 unbind_q(Queue, ['account' | T], Props) ->
     Keys = get_account_routing_keys(Props),
     lists:foreach(fun(Key) -> kz_amqp_util:unbind_q_from_callmgr(Queue, Key) end, Keys),
+    unbind_q(Queue, T, Props);
+unbind_q(Queue, ['quickroute' | T], Props) ->
+    'ok' = kz_amqp_util:unbind_q_from_callmgr(Queue, quickroute_routing_key()),
     unbind_q(Queue, T, Props);
 unbind_q(Queue, [_ | T], Props) ->
     unbind_q(Queue, T, Props);
@@ -472,7 +683,8 @@ get_account_routing_keys(Props) ->
 %%------------------------------------------------------------------------------
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->
-    kz_amqp_util:callmgr_exchange().
+    kz_amqp_util:callmgr_exchange(),
+    kz_amqp_util:targeted_exchange().
 
 -spec get_route_req_account_routing(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
 get_route_req_account_routing(Type, AccountId) ->

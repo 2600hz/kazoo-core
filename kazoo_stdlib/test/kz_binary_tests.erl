@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -70,7 +70,7 @@ closests_test_() ->
     ].
 
 to_hex_test_() ->
-    [?_assertEqual(<<"626c61">>, kz_binary:hexencode(bla))
+    [?_assertEqual(<<"626c61">>, kz_binary:hexencode('bla'))
     ,?_assertEqual(<<"626c61">>, kz_binary:hexencode("bla"))
     ,?_assertEqual(<<"626c61">>, kz_binary:hexencode(<<"bla">>))
     ,?_assertEqual(30, byte_size(kz_binary:rand_hex("15")))
@@ -109,12 +109,12 @@ strip_binary_test_() ->
     ,?_assertEqual(<<"foo">>, kz_binary:strip(<<" foo ">>))
     ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"  foo  ">>))
     ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"     foo">>))
-    ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"     foo   ">>, both))
-    ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"     foo   ">>, [left,right]))
+    ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"     foo   ">>, 'both'))
+    ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"     foo   ">>, ['left','right']))
 
     ,?_assertEqual(<<"foo">>, kz_binary:strip_left(<<"foo">>, $\s))
     ,?_assertEqual(<<"foo">>, kz_binary:strip_left(<<" foo">>, $\s))
-    ,?_assertEqual(<<"foo">>, kz_binary:strip(<<" foo">>, left))
+    ,?_assertEqual(<<"foo">>, kz_binary:strip(<<" foo">>, 'left'))
     ,?_assertEqual(<<"foo ">>, kz_binary:strip_left(<<" foo ">>, $\s))
     ,?_assertEqual(<<"foo ">>, kz_binary:strip_left(<<"foo ">>, $\s))
 
@@ -122,15 +122,15 @@ strip_binary_test_() ->
     ,?_assertEqual(<<" foo">>, kz_binary:strip_right(<<" foo">>, $\s))
     ,?_assertEqual(<<" foo">>, kz_binary:strip_right(<<" foo ">>, $\s))
     ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo ">>, $\s))
-    ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"foo ">>, right))
+    ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"foo ">>, 'right'))
     ].
 
 strip_test() ->
     ?assertEqual(kz_binary:strip(<<"...Hello.....">>, $.), <<"Hello">>).
 
 suffix_binary_test_() ->
-    [?_assertEqual(false, kz_binary:suffix(<<>>, <<"1">>))
-    ,?_assertEqual(false, kz_binary:suffix(<<"1">>, <<>>))
+    [?_assertEqual('false', kz_binary:suffix(<<>>, <<"1">>))
+    ,?_assertEqual('false', kz_binary:suffix(<<"1">>, <<>>))
     ,?_assertEqual('true', kz_binary:suffix(<<"34">>, <<"1234">>))
     ,?_assertEqual('false', kz_binary:suffix(<<"34">>, <<"12345">>))
     ,?_assertEqual('false', kz_binary:suffix(<<"1234">>, <<"1">>))
@@ -166,6 +166,95 @@ truncate_binary_test_() ->
     ,?_assertEqual(<<"bla">>, kz_binary:truncate(<<"bla">>, 4))
     ,?_assertEqual(<<"bla">>, kz_binary:truncate_left(<<"bla">>, 4))
     ,?_assertEqual(<<"bla">>, kz_binary:truncate_right(<<"bla">>, 4))
+    ].
+
+to_proplist_test_() ->
+    TestF = fun kz_binary:to_proplist/3,
+    [to_proplist_with_properties(TestF)
+    ,to_proplist_with_properties_without_values(TestF)
+    ,to_proplist_without_properties(TestF)
+    ].
+
+to_proplist_with_properties(TestF) ->
+    %% Property: key=value, key  =value, key = value, etc.
+    Bins = [<<"a=A,b=B,c=C">> %% Well formatted.
+           ,<<",a=A,b=B,c=C">> %% Starts with separator character.
+           ,<<"a=A,,b=B,c=C">> %% No information between separator characters (empty property (?)).
+           ,<<"a=A, b=B ,c=C">> %% Spaces anywhere.
+           ,<<"a = A,b=B ,c= C">> %% Spaces anywhere.
+           ,<<"   a = A,b=B ,c= C ">> %% Spaces anywhere.
+           ,<<"  a   =   A , b =B , c= C ">> %% Spaces anywhere.
+           ],
+    Expected = [{<<"a">>, <<"A">>}
+               ,{<<"b">>, <<"B">>}
+               ,{<<"c">>, <<"C">>}
+               ],
+    Test = [{Bin, TestF(Bin, <<",">>, <<"=">>)} || Bin <- Bins],
+
+    [{"binary: " ++ kz_term:to_list(Binary)
+     ,[?_assertEqual(<<"A">>, props:get_value(<<"a">>, Proplist))
+      ,?_assertEqual(<<"B">>, props:get_value(<<"b">>, Proplist))
+      ,?_assertEqual(<<"C">>, props:get_value(<<"c">>, Proplist))
+      ,?_assertEqual(Expected, Proplist) %% Test output's order matches input's order.
+      ]
+     } || {Binary, Proplist} <- Test
+    ].
+
+to_proplist_with_properties_without_values(TestF) ->
+    Result0 = TestF(<<"hello=,a=A">>, <<",">>, <<"=">>),
+    Result1 = TestF(<<"hello=world,a=, b=">>, <<",">>, <<"=">>),
+    [{"binary: hello=,a=A"
+     ,[?_assertEqual(<<>>, props:get_value(<<"hello">>, Result0))
+      ,?_assertEqual(<<"A">>, props:get_value(<<"a">>, Result0))
+      ]
+     }
+    ,{"binary: hello=world,a=, b="
+     ,[?_assertEqual(<<"world">>, props:get_value(<<"hello">>, Result1))
+      ,?_assertEqual(<<>>, props:get_value(<<"a">>, Result1))
+      ,?_assertEqual(<<>>, props:get_value(<<"b">>, Result1))
+      ]
+     }
+    ].
+
+to_proplist_without_properties(TestF) ->
+    Bins = [<<>>, <<" ">>, <<", , , ,">>, <<"hello">>, <<"hello,world">>],
+
+    [{kz_term:to_list(Bin)
+     ,?_assertEqual([], TestF(Bin, <<",">>, <<"=">>))
+     } || Bin <- Bins
+    ].
+
+matches_test_() ->
+    Regexes = [{<<"^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$">> %% IP addresses.
+               ,[<<"0.0.0.0">>, <<"1.2.3.4">>, <<"10.0.0.1">>, <<"192.168.0.1">>, <<"255.255.255.255">>]
+               ,[<<"1.2.3">>, <<"256.0.0.1">>, <<"999.999.999.999">>]
+               }
+              ,{<<"^[\\w\\d_\\+]+@[\\w\\d_\\]+\.[a-z]+$">> %% Non-strict user@domain.com.
+               ,[<<"hello@example.com">>, <<"h3l10@d0ma1n.sub">>]
+               ,[<<"hello-example.com">>, <<"he-llo@example">>, <<"user@">>, <<"user.com">>, <<"@domain.sub">>, <<"user @domain.sub">>]
+               }
+              ,{<<"[\\d]+">> %% Contains numbers
+               ,[<<"abc1">>, <<"1a2b3c">>, <<"0">>, <<"+123">>, <<"123-abc_">>]
+               ,[<<>>, <<" ">>, <<"hello">>, <<"+one">>]
+               }
+              ,{<<"^sips?">> %% Starts with sip or sips.
+               ,[<<"sip">>, <<"sips">>, <<"sip:something">>, <<"sips:something">>]
+               ,[<<>>, <<"<sip">>, <<"<sips:user@domain.com>">>, <<"s ip">>, <<"si-ps">>, <<"s1ps">>]
+               }
+              ,{<<".+">> %% Everything that is not an empty string.
+               ,[<<"He">>, <<"+1234@QwErTy -_$">>]
+               ,[<<>>]
+               }
+              ],
+    [{"regex: " ++ kz_term:to_list(Regex)
+     ,[{"Should match"
+       ,[{kz_term:to_list(Subject), ?_assert(kz_binary:matches(Subject, Regex))} || Subject <- ShouldMatch]
+       }
+      ,{"Should NOT match"
+       ,[{kz_term:to_list(Subject), ?_assertNot(kz_binary:matches(Subject, Regex))} || Subject <- ShouldNotMatch]
+       }
+      ]
+     } || {Regex, ShouldMatch, ShouldNotMatch} <- Regexes
     ].
 
 -ifdef(PERF).

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2021, 2600Hz
+%%% @copyright (C) 2015-2022, 2600Hz
 %%% @doc HTTP helper functions for Kazoo
 %%% @author Mark Magnusson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -27,6 +27,7 @@
 
         ,client_ip_blacklist/0, set_client_ip_blacklist/1
         ,client_host_blacklist/0, set_client_host_blacklist/1
+        ,client_port_blacklist/0, set_client_port_blacklist/1
         ]).
 
 -ifdef(TEST).
@@ -48,7 +49,7 @@
 
 -define(INVALID_HOSTS, kapps_config:get(?APP_NAME
                                        ,[<<"client">>, <<"blacklist">>, <<"hosts">>]
-                                       ,[<<"localhost">>]
+                                       ,[<<"localhost">>, <<"localhost.localdomain">>]
                                        )).
 -define(SET_INVALID_HOSTS(Hosts), kapps_config:set_default(?APP_NAME
                                                           ,[<<"client">>, <<"blacklist">>, <<"hosts">>]
@@ -66,6 +67,19 @@
                                                                   ,[<<"client">>, <<"blacklist">>, <<"cidrs">>]
                                                                   ,Cidrs
                                                                   )).
+
+-define(INVALID_PORTS, kapps_config:get_integers(?APP_NAME
+                                                ,[<<"client">>, <<"blacklist">>, <<"ports">>]
+                                                ,[5984, 5984, 15984, 15986 % couchdb
+                                                 ,4369                     % epmd
+                                                 ,15672                    % rabbit mgmt
+                                                 ,22002                    % haproxy stats
+                                                 ]
+                                                )).
+-define(SET_INVALID_PORTS(Ports), kapps_config:set_default(?APP_NAME
+                                                          ,[<<"client">>, <<"blacklist">>, <<"ports">>]
+                                                          ,Ports
+                                                          )).
 
 -spec urldecode(kz_term:text()) -> kz_term:text().
 urldecode(URL) -> urldecode(URL, 'rfc').
@@ -847,6 +861,14 @@ set_client_ip_blacklist(Blacklist) ->
 client_host_blacklist() -> ?INVALID_HOSTS.
 
 -spec set_client_host_blacklist(kz_term:ne_binaries()) -> kz_term:ne_binaries().
-set_client_host_blacklist(Blacklist) ->
+set_client_host_blacklist([_|_]=Blacklist) ->
     {'ok', _} = ?SET_INVALID_HOSTS(Blacklist),
     client_host_blacklist().
+
+-spec client_port_blacklist() -> [inet:port_number()].
+client_port_blacklist() -> ?INVALID_PORTS.
+
+-spec set_client_port_blacklist(kz_term:ne_binaries()) -> [inet:port_number()].
+set_client_port_blacklist([_|_]=Blacklist) ->
+    {'ok', _} = ?SET_INVALID_PORTS(Blacklist),
+    client_port_blacklist().

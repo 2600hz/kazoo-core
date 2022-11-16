@@ -34,6 +34,9 @@
 | `get_integer/2` | `(Category,Key)` | |
 | `get_integer/3` | `(Category,Key,Default)` | |
 | `get_integer/4` | `(Category,Key,Default,Node)` | |
+| `get_integers/2` | `(Category,Key)` | |
+| `get_integers/3` | `(Category,Key,Default)` | |
+| `get_integers/4` | `(Category,Key,Default,Node)` | |
 | `get_is_false/2` | `(Category,Key)` | |
 | `get_is_false/3` | `(Category,Key,Default)` | |
 | `get_is_false/4` | `(Category,Key,Default,Node)` | |

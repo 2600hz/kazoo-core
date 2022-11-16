@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Conversion of types
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -39,9 +39,11 @@
 -export([md5/1]).
 -export([pad/3, pad_left/3
         ,join/1, join/2
+        ,to_proplist/3
         ,reverse/1
         ]).
 -export([pos/2, closests/2]).
+-export([matches/2]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
@@ -85,6 +87,40 @@ join([Bin|Bins], Sep) ->
     iolist_to_binary(
       [kz_term:to_binary(Bin)] ++ [[Sep, kz_term:to_binary(B)] || B <- Bins]
      ).
+
+%%------------------------------------------------------------------------------
+%% @doc Build a proplist out of a binary.
+%% Example:
+%% ``
+%%  Subject: <<"a=A,b=B,c=C">> | <<",a=A,b=B,c=C">> | <<"a=A,,b=B,c=C">> | <<"a=A, b=B ,c=C">> | <<"a = A,b=B ,c= C">>
+%%  PropSep: <<",">>
+%%  KeyValSep: <<"=">>
+%%
+%%  output:
+%%  [{<<"a">>, <<"A">>}
+%%  ,{<<"b">>, <<"B">>}
+%%  ,{<<"c">>, <<"C">>}
+%%  ]
+%% ''
+%% @end
+%%------------------------------------------------------------------------------
+-spec to_proplist(binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> [{kz_term:ne_binary(), binary()}].
+to_proplist(<<>>, _PropSep, _KeyValSep) ->
+    [];
+to_proplist(Subject, PropSep, KeyValSep) ->
+    lists:foldr(fun(PropBin, Acc) -> %% lists:foldr being used in order to keep parameters order between input and output.
+                        fold_to_proplist(binary:split(PropBin, KeyValSep), Acc)
+                end
+               ,[]
+               ,binary:split(Subject, PropSep, ['global', 'trim_all'])
+               ).
+
+-spec fold_to_proplist([kz_term:ne_binary()], [{kz_term:ne_binary(), binary()}]) -> [{kz_term:ne_binary(), binary()}].
+fold_to_proplist([_SepNotFound], Acc) ->
+    %% Only 1 element. It means the split did not happen because the separator was not found.
+    Acc;
+fold_to_proplist([K, V], Acc) ->
+    props:set_value(strip(K), strip(V), Acc).
 
 -spec md5(kz_term:text()) -> kz_term:ne_binary().
 md5(Text) -> kz_term:to_hex_binary(erlang:md5(kz_term:to_binary(Text))).
@@ -248,7 +284,7 @@ lcfirst(<<F:8, Bin/binary>>) -> <<(kz_term:to_lower_char(F)):8, Bin/binary>>.
 -spec to_camel_case(any()) -> binary().
 to_camel_case(Binary) when is_binary(Binary) ->
     << <<(ucfirst(kz_term:to_lower_binary(Word)))/binary>>
-       || Word <- binary:split(Binary, [<<$_>>, <<$->>, <<$.>>], [global]),
+       || Word <- binary:split(Binary, [<<$_>>, <<$->>, <<$.>>], ['global']),
           Word =/= <<>>
     >>.
 
@@ -271,7 +307,7 @@ closests(Chars, Bin) ->
 
 -spec reverse(binary()) -> binary().
 reverse(Binary) ->
-    Size = erlang:size(Binary)*8,
+    Size = erlang:byte_size(Binary)*8,
     <<X:Size/integer-little>> = Binary,
     <<X:Size/integer-big>>.
 
@@ -286,4 +322,11 @@ to_utf8(<<Value/binary>>) ->
         'false' ->
             %% it must be a file's content
             Value
+    end.
+
+-spec matches(kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
+matches(Subject, Regex) ->
+    case re:run(Subject, Regex) of
+        {'match', _} -> 'true';
+        _ -> 'false'
     end.

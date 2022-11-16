@@ -56,6 +56,13 @@
 
 -include("kz_amqp_util.hrl").
 
+-type originate_req() :: kz_term:api_terms().
+-type originate_resp() :: kz_term:api_terms().
+
+-export_type([originate_req/0
+             ,originate_resp/0
+             ]).
+
 %% Eavesdrop: If you set a Group ID, the Call-ID is ignored and "all" is used instead
 -define(EAVESDROP_VALID_MODES, [<<"listen">>   % hear both sides - default
                                ,<<"whisper">> % talk to one side
@@ -333,7 +340,7 @@ originate_cancel_v(API) ->
 %% Takes proplist, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec originate_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+-spec originate_req(originate_req()) -> kz_api:api_formatter_return().
 originate_req(Prop) ->
     EPs = [update_originate_endpoint(EP)
            || EP <- props:get_value(<<"Endpoints">>, Prop, []),
@@ -347,7 +354,7 @@ update_originate_endpoint(EP) ->
     {'ok', EPProps} = originate_req_endpoint_headers(EP),
     kz_json:from_list(EPProps).
 
--spec originate_req_v(kz_term:api_terms()) -> boolean().
+-spec originate_req_v(originate_req()) -> boolean().
 originate_req_v(Req) ->
     kapi_definition:validate(Req, originate_req_definition()).
 
@@ -363,11 +370,11 @@ originate_req_endpoint_v(Prop) when is_list(Prop) ->
 originate_req_endpoint_v(JObj) ->
     originate_req_endpoint_v(kz_json:to_proplist(JObj)).
 
--spec publish_originate_req(kz_term:api_terms()) -> 'ok'.
+-spec publish_originate_req(originate_req()) -> 'ok'.
 publish_originate_req(JObj) ->
     publish_originate_req(JObj, ?DEFAULT_CONTENT_TYPE).
 
--spec publish_originate_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+-spec publish_originate_req(originate_req(), kz_term:ne_binary()) -> 'ok'.
 publish_originate_req(Req, ContentType) ->
     Definition = originate_req_definition(),
     BaseKey = kapi_definition:binding(Definition),
@@ -378,7 +385,7 @@ publish_originate_req(Req, ContentType) ->
                                                 ),
     kz_amqp_util:callmgr_publish(Payload, ContentType, RK, [{'mandatory', 'true'}]).
 
--spec publish_originate_req_key(kz_term:ne_binary(), kz_term:api_terms()) -> kz_term:ne_binary().
+-spec publish_originate_req_key(kz_term:ne_binary(), originate_req()) -> kz_term:ne_binary().
 publish_originate_req_key(BaseKey, Req)
   when is_list(Req) ->
     case props:get_ne_binary_value(<<"Switch-Nodename">>, Req) of
@@ -395,19 +402,19 @@ publish_originate_req_key(BaseKey, Req) ->
 %% Takes proplist, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec originate_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
-originate_resp(Req) ->
-    kapi_definition:build_message(Req, originate_resp_definition()).
+-spec originate_resp(originate_resp()) -> kz_api:api_formatter_return().
+originate_resp(Resp) ->
+    kapi_definition:build_message(Resp, originate_resp_definition()).
 
--spec originate_resp_v(kz_term:api_terms()) -> boolean().
-originate_resp_v(Req) ->
-    kapi_definition:validate(Req, originate_resp_definition()).
+-spec originate_resp_v(originate_resp()) -> boolean().
+originate_resp_v(Resp) ->
+    kapi_definition:validate(Resp, originate_resp_definition()).
 
--spec publish_originate_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
-publish_originate_resp(TargetQ, JObj) ->
-    publish_originate_resp(TargetQ, JObj, ?DEFAULT_CONTENT_TYPE).
+-spec publish_originate_resp(kz_term:ne_binary(), originate_resp()) -> 'ok'.
+publish_originate_resp(TargetQ, Resp) ->
+    publish_originate_resp(TargetQ, Resp, ?DEFAULT_CONTENT_TYPE).
 
--spec publish_originate_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+-spec publish_originate_resp(kz_term:ne_binary(), originate_resp(), kz_term:ne_binary()) -> 'ok'.
 publish_originate_resp(TargetQ, Resp, ContentType) ->
     Definition = originate_resp_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(Resp

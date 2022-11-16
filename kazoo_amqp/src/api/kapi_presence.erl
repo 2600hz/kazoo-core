@@ -113,6 +113,10 @@
         ]).
 -endif.
 
+-type dialog() :: kz_term:api_terms().
+
+-export_type([dialog/0]).
+
 %%------------------------------------------------------------------------------
 %% @doc Get all API definitions of this module.
 %% @end
@@ -410,6 +414,8 @@ mwi_update_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Messages-New">>
                                                             ,<<"Messages-Saved">>
                                                             ,<<"To">>
+                                                            ,<<"Account-ID">>
+                                                            ,<<"Owner-ID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Call-ID">>
                                                             ,<<"Expires">>
@@ -707,11 +713,11 @@ subscribe_routing_key(User) ->
 %% @doc Dialog state updates
 %% @end
 %%------------------------------------------------------------------------------
--spec dialog(kz_term:api_terms()) -> kz_api:api_formatter_return().
+-spec dialog(dialog()) -> kz_api:api_formatter_return().
 dialog(Req) ->
     kapi_definition:build_message(Req, dialog_definition()).
 
--spec dialog_v(kz_term:api_terms()) -> boolean().
+-spec dialog_v(dialog()) -> boolean().
 dialog_v(Req) ->
     kapi_definition:validate(Req, dialog_definition()).
 
