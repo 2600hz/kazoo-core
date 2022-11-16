@@ -3,6 +3,9 @@
     "_id": "kapi.presence.mwi_update",
     "description": "AMQP API for presence.mwi_update",
     "properties": {
+        "Account-ID": {
+            "type": "string"
+        },
         "Call-ID": {
             "type": "string"
         },
@@ -49,6 +52,9 @@
             "type": "string"
         },
         "Messages-Waiting": {
+            "type": "string"
+        },
+        "Owner-ID": {
             "type": "string"
         },
         "Presence-ID": {
