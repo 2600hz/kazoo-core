@@ -475,7 +475,9 @@ query_auth_id_req_definition() ->
     Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Auth ID Req">>}
-              ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Query to list the channels being used by the given Auth-ID">>
+               }
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun query_auth_id_req/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_auth_id_req_v/1}
@@ -496,7 +498,7 @@ query_auth_id_resp_definition() ->
     Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Auth ID Resp">>}
-              ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
+              ,{fun kapi_definition:set_description/2, <<"Reply for a channels per Auth-ID listing request">>}
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun query_auth_id_resp/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_auth_id_resp_v/1}
@@ -516,7 +518,11 @@ query_user_channels_req_definition() ->
     Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query User Channels Req">>}
-              ,{fun kapi_definition:set_description/2, <<>>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Query to list channels per any, several, or all of: "
+                 ,(kz_binary:join(?QUERY_USER_CHANNELS_MAIN_OPT_HEADERS, <<", ">>))/binary
+                >>
+               }
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun query_user_channels_req/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_user_channels_req_v/1}
@@ -524,10 +530,9 @@ query_user_channels_req_definition() ->
               ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
               ,{fun kapi_definition:set_required_headers/2, []}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Active-Only">>
-                                                            ,<<"Authorizing-IDs">>
-                                                            ,<<"Realm">>
                                                             ,<<"Username">>
                                                             ,<<"Usernames">>
+                                                            | ?QUERY_USER_CHANNELS_MAIN_OPT_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
@@ -549,7 +554,7 @@ query_user_channels_resp_definition() ->
     Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query User Channels Resp">>}
-              ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
+              ,{fun kapi_definition:set_description/2, <<"Reply to user_channels listing request">>}
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun query_user_channels_resp/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_user_channels_resp_v/1}
@@ -569,7 +574,9 @@ query_account_channels_req_definition() ->
     Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Account Channels Req">>}
-              ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Query to list the active channels that belong to the given Account-ID">>
+               }
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun query_account_channels_req/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_account_channels_req_v/1}
@@ -598,7 +605,9 @@ query_account_channels_resp_definition() ->
     Category = <<"channel">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query Account Channels Resp">>}
-              ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Reply to account's channels listing request">>
+               }
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun query_account_channels_resp/1}
               ,{fun kapi_definition:set_validate_fun/2, fun query_account_channels_resp_v/1}

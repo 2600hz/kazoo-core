@@ -56,7 +56,7 @@ has_reached_limit(EndpointId, EndpointType, EndpointLimit) ->
 -spec get_reply_from_response(kz_amqp_worker:request_return()) -> boolean().
 get_reply_from_response({Success, JObj}) when 'ok' =:= Success; 'returned' =:= Success ->
     HasReachedLimit = kz_json:get_boolean_value(<<"Has-Reached-Limit">>, JObj),
-    lager:debug("did endpoint reach its limit?: ~p", [HasReachedLimit]),
+    lager:debug("did endpoint reach its configured limit?: ~p", [HasReachedLimit]),
     HasReachedLimit;
 get_reply_from_response(_Unexpected) ->
     lager:debug("Unexpected response: ~p", [_Unexpected]),
