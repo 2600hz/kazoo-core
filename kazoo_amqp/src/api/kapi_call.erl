@@ -993,8 +993,18 @@ query_user_channels_req(Req) ->
     kapi_definition:build_message(Req, query_user_channels_req_definition()).
 
 -spec query_user_channels_req_v(kz_term:api_terms()) -> boolean().
-query_user_channels_req_v(Req) ->
-    kapi_definition:validate(Req, query_user_channels_req_definition()).
+query_user_channels_req_v([_|_] = PropReq) ->
+    %% Make sure at least 1 of the ?QUERY_USER_CHANNELS_MAIN_OPT_HEADERS is included within the
+    %% request object, if not, fail validation, because an empty list will always be the response
+    %% from ecallmgr_fs_channels:handle_query_user_channels/2 for such requests.
+    lists:any(fun({ReqHeader, _}) ->
+                      lists:member(ReqHeader, ?QUERY_USER_CHANNELS_MAIN_OPT_HEADERS)
+              end
+             ,PropReq
+             )
+    andalso kapi_definition:validate(PropReq, query_user_channels_req_definition());
+query_user_channels_req_v(JObj) ->
+    query_user_channels_req_v(kz_json:to_proplist(JObj)).
 
 -spec publish_query_user_channels_req(kz_term:api_terms()) -> 'ok'.
 publish_query_user_channels_req(API) ->
