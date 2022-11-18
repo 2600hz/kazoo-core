@@ -114,6 +114,11 @@
 
 -include_lib("kazoo_amqp/src/kz_amqp_util.hrl").
 
+-define(QUERY_USER_CHANNELS_MAIN_OPT_HEADERS, [<<"Authorizing-IDs">>
+                                              ,<<"Owner-ID">>
+                                              ,<<"Realm">>
+                                              ]).
+
 -type event() :: kz_json:object().
 
 -ifdef(TEST).
@@ -530,6 +535,7 @@ query_user_channels_req_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Active-Only">>, fun kz_term:is_boolean/1}
                 ,{<<"Authorizing-IDs">>, fun erlang:is_list/1}
+                ,{<<"Owner-ID">>, fun erlang:is_binary/1}
                 ,{<<"Username">>, fun erlang:is_binary/1}
                 ,{<<"Usernames">>, fun erlang:is_list/1}
                 ]

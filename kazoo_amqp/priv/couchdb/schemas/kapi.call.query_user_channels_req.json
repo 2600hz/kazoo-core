@@ -24,6 +24,9 @@
             ],
             "type": "string"
         },
+        "Owner-ID": {
+            "type": "string"
+        },
         "Realm": {
             "type": "string"
         },
