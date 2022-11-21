@@ -19,6 +19,7 @@
 -export([put_attachment/6]).
 -export([fetch_attachment/4]).
 -export([delete_attachment/4]).
+-export([update_metadata/5]).
 
 -export([aws_default_fields/0]).
 
@@ -32,19 +33,24 @@
 
 -define(HTTP_RESP_CODE_FORBIDDEN, 403).
 
+-type handler_props() :: gen_attachment:settings() | 'undefined'.
 %% A tuple containing an S3 bucket, a file path in that bucket, and config for
-%% connecting to AWS with `erlcloud`. Grouped together as these variables are
-%% used by all the `erlcloud_s3` funs.
+%% connecting to AWS with `erlcloud'. Grouped together as these variables are
+%% used by all the `erlcloud_s3' funs.
 -type bpc() :: {string(), kz_term:api_ne_binary(), aws_config()}.
 -type s3_error() :: {'aws_error', {'socket_error', binary()}} |
                     {'aws_error', {'http_error', pos_integer(), string(), binary()}} |
                     {'s3_error', string(), string()}.
--type existing_att_op() :: fun((bpc()
+-type existing_att_op() :: fun((handler_props()
+                               ,bpc()
                                ,kz_att_error:update_routines()
                                ) -> gen_attachment:fetch_response()
                                         ).
 -type bpc_provider() :: fun(() -> bpc()).
 -type bpc_consumer(ReturnType) :: fun((bpc()) -> ReturnType).
+-type http_headers() :: kz_term:proplist_kv(string(), string() | binary()).
+-type tag() :: {kz_json:key(), binary()}.
+-type tags() :: [tag()].
 
 %%%=============================================================================
 %%% gen_attachment behaviour callbacks (API)
@@ -66,7 +72,10 @@ put_attachment(Params, DbName, DocId, AName, Contents, Options) ->
 
     catch_unauthorized(
       fun() -> aws_bpc(Params, {DbName, DocId, AName}) end
-     ,fun(BPC) -> put_attachment(Params, Contents, BPC, Routines) end
+     ,fun(BPC) ->
+              Headers = put_headers(Params, DbName, DocId),
+              put_attachment(Params, Contents, Headers, BPC, Routines)
+      end
      ,Routines
      ).
 
@@ -80,16 +89,10 @@ put_attachment(Params, DbName, DocId, AName, Contents, Options) ->
                       ,gen_attachment:att_name()
                       ) -> gen_attachment:fetch_response().
 fetch_attachment(Conn, DbName, DocId, AName) ->
-    HandlerProps = kz_json:get_value(<<"handler_props">>, Conn, 'undefined'),
-    Routines = kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName),
-    case kz_json:get_value(<<"S3">>, Conn) of
-        'undefined' ->
-            kz_att_error:new('invalid_data', Routines);
-        S3 ->
-            do_on_existing_attachment(
-              HandlerProps, S3, DbName, DocId, AName, Routines, fun fetch_attachment/2
-             )
-    end.
+    FetchAttachment = fun(_, BPC, Routines) ->
+                              fetch_attachment(BPC, Routines)
+                      end,
+    do_if_attachment_is_retrievable(Conn, DbName, DocId, AName, FetchAttachment).
 
 %%------------------------------------------------------------------------------
 %% @doc Delete an attachment from its S3 bucket, provided deletion is enabled.
@@ -101,18 +104,25 @@ fetch_attachment(Conn, DbName, DocId, AName) ->
                        ,gen_attachment:att_name()
                        ) -> gen_attachment:fetch_response().
 delete_attachment(Conn, DbName, DocId, AName) ->
-    HandlerProps = kz_json:get_value(<<"handler_props">>, Conn, 'undefined'),
-    Routines = kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName),
-    S3 = kz_json:get_value(<<"S3">>, Conn),
-    case kz_att_util:should_del_att(HandlerProps) of
-        'false' -> {'ok', kz_json:new()};
-        'undefined' ->
-            kz_att_error:new('invalid_data', Routines);
-        'true' ->
-            do_on_existing_attachment(
-              HandlerProps, S3, DbName, DocId, AName, Routines, fun delete_attachment/2
-             )
-    end.
+    do_if_attachment_is_retrievable(Conn, DbName, DocId, AName, fun maybe_delete_attachment/3).
+
+%%------------------------------------------------------------------------------
+%% @doc Update the metadata on an attachment stored in an S3 bucket. The only
+%% metadata that is currently supported are tags. See
+%% [https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-tagging.html].
+%% @end
+%%------------------------------------------------------------------------------
+-spec update_metadata(gen_attachment:handler_props()
+                     ,gen_attachment:db_name()
+                     ,gen_attachment:doc_id()
+                     ,gen_attachment:att_name()
+                     ,kz_doc:doc()
+                     ) -> gen_attachment:update_metadata_response().
+update_metadata(Conn, DbName, DocId, AName, Doc) ->
+    UpdateMetadata = fun(HandlerProps, BPC, Routines) ->
+                             update_metadata(HandlerProps, BPC, Doc, Routines)
+                     end,
+    do_if_attachment_is_retrievable(Conn, DbName, DocId, AName, UpdateMetadata).
 
 %%%=============================================================================
 %%% Internal functions
@@ -124,11 +134,12 @@ delete_attachment(Conn, DbName, DocId, AName) ->
 %%------------------------------------------------------------------------------
 -spec put_attachment(gen_attachment:settings()
                     ,gen_attachment:contents()
+                    ,http_headers()
                     ,bpc()
                     ,kz_att_error:update_routines()
                     ) -> gen_attachment:put_response().
-put_attachment(Params, Contents, {Bucket, FilePath, Config}, ErrorRoutines) ->
-    case put_object(Bucket, FilePath, Contents, Config) of
+put_attachment(Params, Contents, Headers, {Bucket, FilePath, Config}, ErrorRoutines) ->
+    case put_object(Bucket, FilePath, Contents, Headers, Config) of
         {'ok', RespHeaders} ->
             Metadata = create_metadata(RespHeaders),
             S3Key = encode_retrieval(Params, FilePath),
@@ -157,6 +168,19 @@ fetch_attachment({Bucket, FilePath, Config}, ErrorRoutines) ->
     end.
 
 %%------------------------------------------------------------------------------
+%% @doc Delete an attachment from its S3 bucket if deletion is enabled for the
+%% handler.
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_delete_attachment(handler_props(), bpc(), kz_att_error:update_routines()) ->
+          gen_attachment:fetch_response().
+maybe_delete_attachment(HandlerProps, BPC, ErrorRoutines) ->
+    case kz_att_util:should_del_att(HandlerProps) of
+        'true' -> delete_attachment(BPC, ErrorRoutines);
+        'false' -> {'ok', <<>>}
+    end.
+
+%%------------------------------------------------------------------------------
 %% @doc Delete an attachment from its S3 bucket.
 %% @end
 %%------------------------------------------------------------------------------
@@ -171,10 +195,54 @@ delete_attachment({Bucket, FilePath, Config}, ErrorRoutines) ->
     end.
 
 %%------------------------------------------------------------------------------
+%% @doc Update the metadata on an attachment stored in an S3 bucket.
+%% @end
+%%------------------------------------------------------------------------------
+-spec update_metadata(handler_props(), bpc(), kz_doc:doc(), kz_att_error:update_routines()) ->
+          gen_attachment:update_metadata_response().
+update_metadata(#{tags_key_path := TagsKeyPath}
+               ,{Bucket, FilePath, Config}
+               ,Doc
+               ,ErrorRoutines
+               ) ->
+    Tags = tags(TagsKeyPath, Doc),
+    case put_object_tagging(Bucket, FilePath, Tags, Config) of
+        'ok' -> 'ok';
+        {'error', _FilePath, Error} ->
+            ErrorRoutines1 = [{fun kz_att_error:set_req_url/2, FilePath} | ErrorRoutines],
+            handle_s3_error(Error, ErrorRoutines1)
+    end;
+update_metadata(_, _, _, ErrorRoutines) ->
+    kz_att_error:new(<<"Cannot determine 'tags_key_path'">>, ErrorRoutines).
+
+%%------------------------------------------------------------------------------
+%% @doc Run a request on an existing S3 object provided there is enough
+%% information in the attachment metadata to retrieve the object.
+%% @end
+%%------------------------------------------------------------------------------
+-spec do_if_attachment_is_retrievable(gen_attachment:handler_props()
+                                     ,gen_attachment:db_name()
+                                     ,gen_attachment:doc_id()
+                                     ,gen_attachment:att_name()
+                                     ,existing_att_op()
+                                     ) -> gen_attachment:fetch_response().
+do_if_attachment_is_retrievable(Conn, DbName, DocId, AName, Fun) ->
+    HandlerProps = kz_json:get_value(<<"handler_props">>, Conn, 'undefined'),
+    Routines = kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName),
+
+    case kz_json:get_value(<<"S3">>, Conn) of
+        'undefined' -> kz_att_error:new('invalid_data', Routines);
+        S3 ->
+            do_on_existing_attachment(
+              HandlerProps, S3, DbName, DocId, AName, Routines, Fun
+             )
+    end.
+
+%%------------------------------------------------------------------------------
 %% @doc Run a request on an existing S3 object.
 %% @end
 %%------------------------------------------------------------------------------
--spec do_on_existing_attachment(map() | 'undefined'
+-spec do_on_existing_attachment(handler_props()
                                ,kz_term:ne_binary()
                                ,gen_attachment:db_name()
                                ,gen_attachment:doc_id()
@@ -182,10 +250,10 @@ delete_attachment({Bucket, FilePath, Config}, ErrorRoutines) ->
                                ,kz_att_error:update_routines()
                                ,existing_att_op()
                                ) -> gen_attachment:fetch_response().
-do_on_existing_attachment(CurrentHandlerProps, RetrievalKey, DbName, DocId, AName, ErrorRoutines, Fun) ->
+do_on_existing_attachment(HandlerProps, RetrievalKey, DbName, DocId, AName, ErrorRoutines, Fun) ->
     catch_unauthorized(
-      fun() -> aws_bpc(RetrievalKey, CurrentHandlerProps, {DbName, DocId, AName}) end
-     ,fun(BPC) -> Fun(BPC, ErrorRoutines) end
+      fun() -> aws_bpc(RetrievalKey, HandlerProps, {DbName, DocId, AName}) end
+     ,fun(BPC) -> Fun(HandlerProps, BPC, ErrorRoutines) end
      ,ErrorRoutines
      ).
 
@@ -320,7 +388,7 @@ aws_default_fields() ->
 aws_format_url(Map, AttInfo) ->
     kz_att_util:format_url(Map, AttInfo, aws_default_fields()).
 
--spec merge_params(map() | kz_term:ne_binary(), map() | 'undefined') -> map().
+-spec merge_params(map() | kz_term:ne_binary(), handler_props()) -> map().
 merge_params(#{bucket := Bucket, host := Host} = M1, #{bucket := Bucket, host := Host} = M2) ->
     kz_maps:merge(M1, M2);
 merge_params(#{bucket := Bucket} = M1, #{bucket := Bucket} = M2) ->
@@ -338,7 +406,7 @@ merge_params(S3, M2)
 aws_bpc(Map, AttInfo) ->
     {bucket(Map), aws_format_url(Map, AttInfo), aws_config(Map)}.
 
--spec aws_bpc(kz_term:ne_binary(), map() | 'undefined', attachment_info()) -> bpc().
+-spec aws_bpc(kz_term:ne_binary(), handler_props(), attachment_info()) -> bpc().
 aws_bpc(S3, Handler, Attinfo) ->
     aws_bpc(merge_params(S3, Handler), Attinfo).
 
@@ -397,18 +465,87 @@ convert_kv({<<"etag">> = K, V}) ->
     {K, binary:replace(V, <<$">>, <<>>, ['global'])};
 convert_kv(KV) -> KV.
 
--spec put_object(string(), string() | kz_term:ne_binary(), binary(), aws_config()) ->
-          {'ok', kz_term:proplist()} |
-          {'error', string() | kz_term:ne_binary(), s3_error()}.
-put_object(Bucket, FilePath, Contents,Config)
+%%------------------------------------------------------------------------------
+%% @doc Get the list of headers to include on an object put request.
+%% @end
+%%------------------------------------------------------------------------------
+-spec put_headers(gen_attachment:settings()
+                 ,gen_attachment:db_name()
+                 ,gen_attachment:doc_id()
+                 ) -> http_headers().
+put_headers(#{tags_key_path := TagsKeyPath}, DbName, DocId) ->
+    {'ok', Doc} = kz_datamgr:open_cache_doc(DbName, DocId),
+    Tags = encode_tag_keys(tags(TagsKeyPath, Doc)),
+    TagsBin = kz_term:to_binary(kz_http_util:props_to_querystring(Tags)),
+    [{"x-amz-tagging", TagsBin}];
+put_headers(_, _, _) -> [].
+
+%%------------------------------------------------------------------------------
+%% @doc Get the list of tags to associate with an object. The tags come from the
+%% specified key path in the doc.
+%% @end
+%%------------------------------------------------------------------------------
+-spec tags(kz_json:path(), kz_doc:doc()) -> tags().
+tags(TagsKeyPath, Doc) ->
+    case kz_json:get_json_value(TagsKeyPath, Doc) of
+        'undefined' -> [];
+        TagsJObj ->
+            %% Up to 10 tags can be associated with an object
+            TagProps = lists:sublist(kz_json:to_proplist(TagsJObj), 10),
+            TagProps1 = filter_valid_tags(TagProps),
+            lager:debug("tag count: ~b", [length(TagProps1)]),
+            TagProps1
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Filter only tags that are valid for association with objects.
+%% @end
+%%------------------------------------------------------------------------------
+-spec filter_valid_tags(kz_json:json_proplist()) -> tags().
+filter_valid_tags(TagProps) -> lists:filtermap(fun is_valid_tag/1, TagProps).
+
+%%------------------------------------------------------------------------------
+%% @doc Return whether the tag is valid for association with an object. See
+%% [https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-tagging.html#tagging-and-policies]
+%% for tag restrictions.
+%% @end
+%%------------------------------------------------------------------------------
+-spec is_valid_tag(kz_json:json_kv()) -> {'true', tag()} | 'false'.
+is_valid_tag({<<"aws:", _/binary>>}) -> 'false';
+is_valid_tag({K, V}) when not is_binary(V) ->
+    %% Try converting such things as JSON objects to binaries
+    try kz_term:to_binary(V) of
+        VBin -> is_valid_tag({K, VBin})
+    catch
+        'error':'badarg' -> 'false'
+    end;
+is_valid_tag({K, V}) when byte_size(K) =< 128; byte_size(V) =< 256 -> {'true', {K, V}};
+is_valid_tag(_) -> 'false'.
+
+%%------------------------------------------------------------------------------
+%% @doc URI-encode the keys of a list of tags.
+%% @end
+%%------------------------------------------------------------------------------
+-spec encode_tag_keys(tags()) -> tags().
+encode_tag_keys(Tags) ->
+    [{kz_http_uri:encode(K), V} || {K, V} <- Tags].
+
+-spec put_object(string()
+                ,string() | kz_term:ne_binary()
+                ,binary()
+                ,http_headers()
+                ,aws_config()
+                ) -> {'ok', kz_term:proplist()}
+              | {'error', string() | kz_term:ne_binary(), s3_error()}.
+put_object(Bucket, FilePath, Contents, ReqHeaders, Config)
   when is_binary(FilePath) ->
-    put_object(Bucket, kz_term:to_list(FilePath), Contents,Config);
-put_object(Bucket, FilePath, Contents, #aws_config{s3_host=Host} = Config) ->
+    put_object(Bucket, kz_term:to_list(FilePath), Contents, ReqHeaders, Config);
+put_object(Bucket, FilePath, Contents, ReqHeaders, #aws_config{s3_host=Host} = Config) ->
     lager:debug("storing ~s to ~s", [FilePath, Host]),
     Options = ['return_all_headers'],
     CT = kz_mime:from_filename(FilePath),
-    ReqHeaders = [{"content-type", kz_term:to_list(CT)}],
-    try erlcloud_s3:put_object(Bucket, FilePath, Contents, Options, ReqHeaders, Config) of
+    ReqHeaders1 = [{"content-type", kz_term:to_list(CT)} | ReqHeaders],
+    try erlcloud_s3:put_object(Bucket, FilePath, Contents, Options, ReqHeaders1, Config) of
         Headers -> {'ok', Headers}
     catch
         'error':Error:ST ->
@@ -440,6 +577,22 @@ del_object(Bucket, FilePath, #aws_config{s3_host=Host} = Config) ->
         RespHeaders ->
             lager:info("the attachment is deleted with: ~p", [RespHeaders]),
             {'ok', RespHeaders}
+    catch
+        'error':Error -> {'error', FilePath, Error}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Update the tag-set on an S3 object.
+%% @end
+%%------------------------------------------------------------------------------
+-spec put_object_tagging(string(), FilePath, tags(), aws_config()) ->
+          'ok' | {'error', FilePath, s3_error()}
+              when FilePath :: kz_term:ne_binary().
+put_object_tagging(Bucket, FilePath, Tags, #aws_config{s3_host=Host} = Config) ->
+    lager:debug("updating tag-set on ~s in ~s on ~s", [FilePath, Bucket, Host]),
+    TagStrs = [{kz_term:to_list(K), kz_term:to_list(V)} || {K, V} <- Tags],
+    try erlcloud_s3:put_object_tagging(Bucket, kz_term:to_list(FilePath), TagStrs, Config) of
+        _ -> 'ok'
     catch
         'error':Error -> {'error', FilePath, Error}
     end.

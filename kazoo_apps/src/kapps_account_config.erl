@@ -12,6 +12,8 @@
 %%%-----------------------------------------------------------------------------
 -module(kapps_account_config).
 
+-elvis([{elvis_style, no_debug_call, disable}]).
+
 -export([get/2, get/3, get/4
 
         ,get_ne_binary/3, get_ne_binary/4
@@ -34,7 +36,7 @@
 
 -type api_account() :: kz_term:api_ne_binary() | kz_json:object().
 -type account_or_not() :: kz_term:ne_binary() | 'no_account_id'.
--type config_key() :: kz_json:path() | kz_json:key().
+-type config_key() :: kz_json:get_key().
 
 %% @equiv get_ne_binary(Account, Category, Path, undefined)
 
@@ -185,7 +187,7 @@ get_hierarchy(Account, Category, Key, Default) ->
 %% @equiv get_with_strategy(Strategy, Account, Category, Key, undefined)
 
 -spec get_with_strategy(kz_term:ne_binary(), api_account(), kz_term:ne_binary(), config_key()) ->
-          kz_json:json_term().
+          kz_json:api_json_term().
 get_with_strategy(Strategy, Account, Category, Key) ->
     get_with_strategy(Strategy, Account, Category, Key, 'undefined').
 
@@ -219,8 +221,13 @@ get_with_strategy(Strategy, Account, Category, Key) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_with_strategy(kz_term:ne_binary(), api_account(), kz_term:ne_binary(), config_key(), kz_json:api_json_term()) ->
-          kz_json:json_term().
+-spec get_with_strategy(kz_term:ne_binary()
+                       ,api_account()
+                       ,kz_term:ne_binary()
+                       ,config_key()
+                       ,Default
+                       ) -> kz_json:json_term() | Default
+              when Default :: kz_json:api_json_term().
 get_with_strategy(Strategy, Account, Category, Key, Default) ->
     ShouldMerge = is_merge_strategy(Strategy),
     case get_from_strategy_cache(Strategy, account_id(Account), Category, Key, ShouldMerge) of
@@ -236,7 +243,7 @@ get_with_strategy(Strategy, Account, Category, Key, Default) ->
             Default
     end.
 
--spec get_from_strategy_cache(kz_term:ne_binary(), account_or_not(), config_key(), kz_term:ne_binary(), boolean()) ->
+-spec get_from_strategy_cache(kz_term:ne_binary(), account_or_not(), kz_term:ne_binary(), config_key(), boolean()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 get_from_strategy_cache(_, 'no_account_id', _, _, _) ->
@@ -486,7 +493,7 @@ flush(Account, Category) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec flush_all_strategies(kz_term:ne_binary(), kz_term:ne_binary()) -> ok.
+-spec flush_all_strategies(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 flush_all_strategies(Account, Category) ->
     Strategies = [<<"hierarchy_merge">>
                  ,<<"global">>
@@ -502,7 +509,7 @@ flush_all_strategies(Account, Category) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec flush(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> ok.
+-spec flush(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 flush(Account, Category, Strategy) ->
     AccountId = kzs_util:format_account_id(Account),
     CacheKey = strategy_cache_key(AccountId, Category, Strategy),
@@ -517,11 +524,11 @@ flush(Account, Category, Strategy) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec walk_the_walk(map()) -> {'ok', kz_json:object()} | {'error', not_found}.
+-spec walk_the_walk(map()) -> {'ok', kz_json:object()} | {'error', 'not_found'}.
 walk_the_walk(#{strategy_funs := []
                ,results := []
                }) ->
-    {'error', not_found};
+    {'error', 'not_found'};
 walk_the_walk(#{strategy_funs := []
                ,merge := ShouldMerge
                }=Map) ->
@@ -805,7 +812,7 @@ config_setting_key(Node, Setting) ->
 -spec key(term()) -> [binary()].
 key(Key) when is_binary(Key) ->
     case erlang:get('is_sup_call') of
-        true -> binary:split(kz_term:to_binary(Key), <<".">>, [global]);
+        'true' -> binary:split(kz_term:to_binary(Key), <<".">>, ['global']);
         _ -> [kz_term:to_binary(Key)]
     end;
 key(Key) -> Key.

@@ -27,6 +27,8 @@
 -type fetch_response()   :: {'ok', iodata()} |
                             kz_att_error:error().
 
+-type update_metadata_response() :: 'ok' | kz_att_error:error().
+
 -export_type([settings/0
              ,db_name/0
              ,doc_id/0
@@ -36,11 +38,14 @@
              ,handler_props/0
              ,put_response/0
              ,fetch_response/0
+             ,update_metadata_response/0
              ]).
 
 %%%=============================================================================
 %%% Callbacks
 %%%=============================================================================
+
+-optional_callbacks([update_metadata/5]).
 
 -callback put_attachment(settings()
                         ,db_name()
@@ -55,3 +60,10 @@
                           ,doc_id()
                           ,att_name()
                           ) -> fetch_response().
+
+-callback update_metadata(handler_props()
+                         ,db_name()
+                         ,doc_id()
+                         ,att_name()
+                         ,kz_doc:doc()
+                         ) -> update_metadata_response().

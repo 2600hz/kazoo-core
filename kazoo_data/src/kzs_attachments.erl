@@ -16,6 +16,7 @@
         ,stream_attachment/5
         ,put_attachment/6
         ,delete_attachment/5
+        ,update_metadata/5
         ,attachment_url/6
         ]).
 
@@ -267,6 +268,63 @@ publish_doc(Plan, DbName, DocId) ->
         {'ok', JObj} -> kzs_publish:maybe_publish_doc(DbName, JObj, JObj);
         {'error', Error} ->
             lager:debug("failed to publish doc update after attachment store for ~s/~s (~p)", [DbName, DocId, Error])
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Update the metadata on an attachment. If there is no attachment handler
+%% configured, this is a no-op. An attachment handler can choose to use some or
+%% all of the doc to update the metadata on the external service.
+%% @end
+%%------------------------------------------------------------------------------
+-spec update_metadata(map()
+                     ,gen_attachment:db_name()
+                     ,gen_attachment:doc_id()
+                     ,gen_attachment:att_name()
+                     ,kz_doc:doc()
+                     ) -> gen_attachment:update_metadata_response().
+update_metadata(Plan, DbName, DocId, AName, Doc) ->
+    Att = kz_doc:attachment(Doc, AName),
+    case kz_json:get_json_value(<<"handler">>, Att) of
+        %% Do nothing extra with metadata if there is no configured attachment handler
+        'undefined' -> 'ok';
+        Handler ->
+            HandlerPL = kz_json:to_proplist(Handler),
+            AttHandler = maps:get('att_handler', Plan, 'undefined'),
+            {HandlerMod, HandlerProps} =
+                get_handler_mod_and_props(HandlerPL, AttHandler),
+            update_metadata_with_handler(
+              HandlerMod, HandlerProps, DbName, DocId, AName, Doc
+             )
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Update the metadata on an attachment using the specified handler. If the
+%% handler doesn't implement the callback, it's assumed the handler doesn't care
+%% about or utilize any metadata.
+%% @end
+%%------------------------------------------------------------------------------
+-spec update_metadata_with_handler(module()
+                                  ,gen_attachment:handler_props()
+                                  ,gen_attachment:db_name()
+                                  ,gen_attachment:doc_id()
+                                  ,gen_attachment:att_name()
+                                  ,kz_doc:doc()
+                                  ) -> gen_attachment:update_metadata_response().
+update_metadata_with_handler(HandlerMod, HandlerProps, DbName, DocId, AName, Doc) ->
+    case kz_module:is_exported(HandlerMod, 'update_metadata', 5) of
+        'true' -> HandlerMod:update_metadata(HandlerProps, DbName, DocId, AName, Doc);
+        'false' -> 'ok'
+    end.
+
+get_handler_mod_and_props([{Handler, Props}], 'undefined') ->
+    Module = kz_term:to_atom(Handler, 'true'),
+    {Module, Props};
+get_handler_mod_and_props([{Handler, HandlerProps}], {Module, ModuleProps}) ->
+    case kz_term:to_atom(Handler, 'true') of
+        Module ->
+            Props = kz_json:set_value(<<"handler_props">>, ModuleProps, HandlerProps),
+            {Module, Props};
+        DiffModule -> {DiffModule, HandlerProps}
     end.
 
 -spec attachment_url(map(), DbName, DocId, AttachmentId, Handler, Options) ->

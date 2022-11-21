@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,6 +35,7 @@
 -export([start/1, start/2, set_start/2]).
 -export([to/1, to/2, set_to/2]).
 -export([url/1, url/2, set_url/2]).
+-export([path_user_metadata/0, user_metadata/1, user_metadata/2, set_user_metadata/2]).
 
 -export([set_id/2, set_id/4]).
 
@@ -344,6 +345,21 @@ url(Doc, Default) ->
 -spec set_url(doc(), binary()) -> doc().
 set_url(Doc, Url) ->
     kz_json:set_value([<<"url">>], Url, Doc).
+
+-spec path_user_metadata() -> kz_json:path().
+path_user_metadata() -> [<<"user_metadata">>].
+
+-spec user_metadata(doc()) -> kz_term:api_object().
+user_metadata(Doc) ->
+    user_metadata(Doc, 'undefined').
+
+-spec user_metadata(doc(), Default) -> kz_json:object() | Default.
+user_metadata(Doc, Default) ->
+    kz_json:get_json_value(path_user_metadata(), Doc, Default).
+
+-spec set_user_metadata(doc(), kz_json:object()) -> doc().
+set_user_metadata(Doc, UserMetadata) ->
+    kz_json:set_value(path_user_metadata(), UserMetadata, Doc).
 
 -spec set_id(doc(), kz_term:ne_binary()) -> doc().
 set_id(Doc, RecordingId) ->

@@ -70,6 +70,7 @@
         ,stream_attachment/3, stream_attachment/4, stream_attachment/5
         ,put_attachment/4, put_attachment/5
         ,delete_attachment/3, delete_attachment/4
+        ,update_attachment_metadata/4
         ,attachment_url/3, attachment_url/4
         ]).
 
@@ -1065,6 +1066,21 @@ delete_attachment(DbName, DocId, AName) ->
 delete_attachment(DbName, DocId, AName, Options) ->
     Database = kzs_util:to_database(DbName),
     kzs_attachments:delete_attachment(kzs_plan:plan(Database, DocId), Database, DocId, AName, Options).
+
+%%------------------------------------------------------------------------------
+%% @doc Update the metadata on an attachment, provided there is an attachment
+%% handler configured in the storage plan used for the document.
+%% @end
+%%------------------------------------------------------------------------------
+-spec update_attachment_metadata(gen_attachment:db_name()
+                                ,gen_attachment:doc_id()
+                                ,gen_attachment:att_name()
+                                ,kz_doc:doc()
+                                ) -> gen_attachment:update_metadata_response().
+update_attachment_metadata(DbName, DocId, AName, Doc) ->
+    Database = kzs_util:to_database(DbName),
+    Plan = kzs_plan:plan(Database, [{'doc_type', kz_doc:type(Doc)}]),
+    kzs_attachments:update_metadata(Plan, Database, DocId, AName, Doc).
 
 -spec attachment_url(database_name(), docid(), kz_term:ne_binary()) ->
           kz_term:ne_binary() |
