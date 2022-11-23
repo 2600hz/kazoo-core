@@ -116,12 +116,12 @@ extra_validation(<<"faxbox.notifications.outbound.callback.url">>, URL, State) -
 extra_validation(<<"storage.attachment.http.url">>, URL, State) ->
     url_validation(URL, State);
 extra_validation(<<"resources.server">>, URL, State) ->
-    case is_valid_host(URL) of
+    case is_valid_sip_host(URL) of
         'true' -> State;
         'false' -> url_error(URL, State)
     end;
 extra_validation(<<"resources.realm">>, URL, State) ->
-    case is_valid_host(URL) of
+    case is_valid_sip_host(URL) of
         'true' -> State;
         'false' -> url_error(URL, State)
     end;
@@ -284,6 +284,13 @@ is_valid_sftp_url(_URL) ->
 
 is_valid_ftp_userpass([_User, _Pass]) -> 'true';
 is_valid_ftp_userpass(_) -> 'false'.
+
+is_valid_sip_host(<<"sip:", _/binary>>=SIP) ->
+    URI = kzsip_uri:parse(SIP),
+    is_valid_host(kzsip_uri:host(URI));
+is_valid_sip_host(<<Host/binary>>) ->
+    lager:debug("host ~s not SIP-ified", [Host]),
+    is_valid_sip_host(<<"sip:nouser@", Host/binary>>).
 
 -spec is_valid_host(kz_http_util:location() | inet:ip_address()) -> boolean().
 is_valid_host(<<Host/binary>>) ->
