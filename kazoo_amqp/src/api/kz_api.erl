@@ -41,6 +41,7 @@
         ,app_name/1
         ,app_version/1
         ,node/1
+        ,zone/1
         ,defer_response/1
         ,from_pid/1
         ,reply_to/1
@@ -654,9 +655,13 @@ is_federated_event(JObj) ->
         _Broker -> 'true'
     end.
 
--spec event_zone(kz_json:object()) -> kz_term:ne_binary().
+-spec event_zone(kz_json:object()) -> kz_term:api_ne_binary().
 event_zone(JObj) ->
     kz_json:get_ne_binary_value(?KEY_AMQP_ZONE, JObj).
+
+-spec zone(kz_json:object()) -> kz_term:ne_binary().
+zone(JObj) ->
+    kz_json:get_ne_binary_value(?KEY_AMQP_ZONE, JObj, kz_config:zone(binary)).
 
 -type exec_fun_1() :: fun((kz_term:api_terms()) -> kz_term:api_terms()).
 -type exec_fun_2() :: {fun((_, kz_term:api_terms()) -> kz_term:api_terms()), _}.
