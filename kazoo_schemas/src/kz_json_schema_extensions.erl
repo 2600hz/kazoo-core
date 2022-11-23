@@ -14,8 +14,21 @@
 -include_lib("kernel/include/inet.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
--define(INVALID_STORAGE_ATTACHMENT_REFERENCE(R), <<"invalid reference '", R/binary, "' to attachments">>).
--define(INVALID_STORAGE_CONNECTION_REFERENCE(R), <<"invalid reference '", R/binary, "' to connections">>).
+-include("kazoo_schemas.hrl").
+
+-define(INVALID_STORAGE_ATTACHMENT_REFERENCE(R)
+       ,<<"invalid reference '", R/binary, "' to attachments">>
+       ).
+-define(INVALID_STORAGE_CONNECTION_REFERENCE(R)
+       ,<<"invalid reference '", R/binary, "' to connections">>
+       ).
+
+%% options about whether and how to validate hosts (like HTTP servers
+%% or SIP realms)
+-type host_validation_options() :: #{ip => boolean()
+                                    ,dns => boolean()
+                                    ,port => boolean()
+                                    }.
 
 -spec extra_validator(jesse:json_term(), jesse_state:state(), kz_json_schema:extra_validator_options()) -> jesse_state:state().
 extra_validator(Value, State, Options) ->
@@ -285,52 +298,78 @@ is_valid_sftp_url(_URL) ->
 is_valid_ftp_userpass([_User, _Pass]) -> 'true';
 is_valid_ftp_userpass(_) -> 'false'.
 
-is_valid_sip_host(<<"sip:", _/binary>>=SIP) ->
-    URI = kzsip_uri:parse(SIP),
-    is_valid_host(kzsip_uri:host(URI));
-is_valid_sip_host(<<Host/binary>>) ->
-    lager:debug("host ~s not SIP-ified", [Host]),
+is_valid_sip_host(<<"sip:", _/binary>>=URI) ->
+    case kzsip_uri:uris(URI) of
+        'error' ->
+            lager:info("invalid host '~s', unable to parse", [URI]),
+            'false';
+        [SIPURI] ->
+            lager:info("parsed URI: ~p", [SIPURI]),
+            Host = kzsip_uri:host(SIPURI),
+            lager:info("got URI host ~s", [Host]),
+            is_valid_sip_host(Host, kapps_config:is_true(?CONFIG_CAT, <<"validate_sip_hosts">>, 'true'))
+    end;
+is_valid_sip_host(Host) ->
+    lager:info("turning host '~s' into SIP URI", [Host]),
     is_valid_sip_host(<<"sip:nouser@", Host/binary>>).
 
--spec is_valid_host(kz_http_util:location() | inet:ip_address()) -> boolean().
-is_valid_host(<<Host/binary>>) ->
-    is_valid_host(kz_term:to_lower_binary(Host), kz_network_utils:is_ip(Host));
-is_valid_host({Host, Port}) when is_integer(Port) ->
-    is_valid_host(Host)
-        andalso is_valid_port(Port);
-is_valid_host({Host, _Username, _Password}) ->
-    is_valid_host(Host);
-is_valid_host(?IPV4=IP) ->
-    is_valid_host(kz_network_utils:iptuple_to_binary(IP));
-is_valid_host(?IPV6=IP) ->
-    is_valid_host(kz_network_utils:iptuple_to_binary(IP)).
+is_valid_sip_host(Host, 'true') ->
+    is_valid_host(Host, #{ip => 'true', dns => 'true'});
+is_valid_sip_host(_Host, 'false') ->
+    'true'.
 
--spec is_valid_host(kz_term:ne_binary(), boolean()) -> boolean().
-is_valid_host(Host, 'true') ->
-    is_valid_host_value(Host, 'true', kz_http_util:client_ip_blacklist());
-is_valid_host(Host, 'false') ->
-    is_valid_host_value(Host, 'false', kz_http_util:client_host_blacklist())
-        andalso is_valid_dns(Host).
+-spec is_valid_host(kz_http_util:location() | inet:ip_address()) -> boolean().
+is_valid_host(Host) ->
+    is_valid_host(Host, #{ip => 'true', dns => 'true'}).
+
+-spec is_valid_host(kz_http_util:location() | inet:ip_address(), host_validation_options()) -> boolean().
+is_valid_host(_Host, #{ip := 'false', dns := 'false'}) ->
+    lager:debug("configured not to validate hosts, allowing ~s", [_Host]),
+    'true';
+is_valid_host(<<Host/binary>>, ValidationOptions) ->
+    is_valid_host(kz_term:to_lower_binary(Host), kz_network_utils:is_ip(Host), ValidationOptions);
+is_valid_host({Host, Port}, ValidationOptions) when is_integer(Port) ->
+    is_valid_host(Host, ValidationOptions)
+        andalso is_valid_port(Port, ValidationOptions);
+is_valid_host({Host, _Username, _Password}, ValidationOptions) ->
+    is_valid_host(Host, ValidationOptions);
+is_valid_host(?IPV4=IP, ValidationOptions) ->
+    is_valid_host(kz_network_utils:iptuple_to_binary(IP), ValidationOptions);
+is_valid_host(?IPV6=IP, ValidationOptions) ->
+    is_valid_host(kz_network_utils:iptuple_to_binary(IP), ValidationOptions).
+
+-spec is_valid_host(kz_term:ne_binary(), boolean(), host_validation_options()) -> boolean().
+is_valid_host(Host, 'true', ValidationOptions) ->
+    is_valid_host_value(Host, 'true', kz_http_util:client_ip_blacklist(), ValidationOptions);
+is_valid_host(Host, 'false', #{dns := ValidateDNS}=ValidationOptions) ->
+    is_valid_host_value(Host, 'false', kz_http_util:client_host_blacklist(), ValidationOptions)
+        andalso is_valid_dns(Host, ValidateDNS).
 
 url_error(URL, State) ->
     lager:info("client URL '~s' not valid", [URL]),
     jesse_error:handle_data_invalid({'external_error', <<"invalid client URL">>}, URL, State).
 
--spec is_valid_host_value(kz_term:ne_binary(), boolean(), kz_term:api_ne_binaries()) -> boolean().
-is_valid_host_value(_Host, _IsIp, 'undefined') -> 'true';
-is_valid_host_value(Host, IsIp, Blacklist) ->
-    not lists:any(fun(B) -> is_host_blacklisted(Host, IsIp, B) end, Blacklist).
+-spec is_valid_host_value(kz_term:ne_binary(), boolean(), kz_term:api_ne_binaries(), host_validation_options()) -> boolean().
+is_valid_host_value(_Host, _IsIp, 'undefined', _ValidationOptions) -> 'true';
+is_valid_host_value(_Host, 'true', _Blacklist, #{ip := 'false'}) ->
+    lager:debug("not configured to validate IPs, allowing ~s", [_Host]),
+    'true';
+is_valid_host_value(Host, IsIp, Blacklist, ValidationOptions) ->
+    not lists:any(fun(B) -> is_host_blacklisted(Host, IsIp, B, ValidationOptions) end, Blacklist).
 
-is_host_blacklisted(Host, _IsIp, Host) ->
+is_host_blacklisted(Host, _IsIp, Host, _ValidationOptions) ->
     lager:debug("host matches blacklisted value ~s", [Host]),
     'true';
-is_host_blacklisted(Host, 'true', CIDR) ->
+is_host_blacklisted(Host, 'true', CIDR, #{ip := 'true'}) ->
+    %% Host is an IP address, check CIDRS
     is_host_blacklisted_cidr(Host, CIDR)
         orelse is_host_blacklisted_restricted_ip(Host);
-is_host_blacklisted(Host, 'false', Host) ->
+is_host_blacklisted(Host, 'false', Host, _ValidationOptions) ->
+    %% Host is a hostname that matches a blacklisted host
     lager:info("host ~s is restricted by config", [Host]),
     'true';
-is_host_blacklisted(_Host, 'false', _BlockedHost) ->
+is_host_blacklisted(_Host, 'false', _BlockedHost, _ValidationOptions) ->
+    %% Host is not blacklisted
     'false'.
 
 is_host_blacklisted_cidr(Host, CIDR) ->
@@ -355,26 +394,30 @@ is_host_blacklisted_restricted_ip(Host, 'false') ->
             'true'
     end.
 
-is_valid_port(Port) ->
-    is_valid_port(Port, kz_http_util:client_port_blacklist()).
+is_valid_port(Port, ValidationOptions) ->
+    is_valid_port(Port, ValidationOptions, kz_http_util:client_port_blacklist()).
 
--spec is_valid_port(inet:port_number(), [inet:port_number()]) -> boolean().
-is_valid_port(Port, BlockedPorts) ->
+-spec is_valid_port(inet:port_number(), host_validation_options(), [inet:port_number()]) -> boolean().
+is_valid_port(Port, #{port := 'true'}, BlockedPorts) ->
     case lists:member(Port, BlockedPorts) of
         'false' -> 'true';
         'true' ->
             lager:info("port ~p is blocked via configuration", [Port]),
             'false'
-    end.
+    end;
+is_valid_port(_Port, _ValidationOptions, _BlockedPorts) ->
+    'true'.
 
 -ifdef(TEST).
 %% when running local tests don't check DNS for hostnames
-is_valid_dns(_Host) -> 'true'.
-
+is_valid_dns(_Host, _Bool) -> 'true'.
 -else.
 
--spec is_valid_dns(kz_term:ne_binary()) -> boolean().
-is_valid_dns(Host) ->
+-spec is_valid_dns(kz_term:ne_binary(), boolean()) -> boolean().
+is_valid_dns(Host, 'false') ->
+    lager:debug("this cluster is not validating DNS, accepting ~s", [Host]),
+    'true';
+is_valid_dns(Host, 'true') ->
     Options = kz_network_utils:default_options(),
 
     LookupOptions =
