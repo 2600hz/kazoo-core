@@ -692,7 +692,7 @@ fold_bind_results([#kz_responder{module=M
             log_undefined(M, F, length(Payload), ST),
             fold_bind_results(Responders, Payload, Route, RespondersLen, ReRunResponders);
         _T:_E:ST ->
-            lager:error("excepted: ~s: ~p", [_T, _E]),
+            lager:error("excepted applying ~s:~s/~p: ~s: ~p", [M, F, length(Payload), _T, _E]),
             kz_log:log_stacktrace(ST),
             fold_bind_results(Responders, Payload, Route, RespondersLen, ReRunResponders)
     end;
