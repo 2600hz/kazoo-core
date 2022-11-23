@@ -299,28 +299,22 @@ is_valid_ftp_userpass([_User, _Pass]) -> 'true';
 is_valid_ftp_userpass(_) -> 'false'.
 
 is_valid_sip_host(<<"sip:", _/binary>>=URI) ->
-    case kzsip_uri:uris(URI) of
-        'error' ->
-            lager:info("invalid host '~s', unable to parse", [URI]),
-            'false';
-        [SIPURI] ->
-            lager:info("parsed URI: ~p", [SIPURI]),
-            Host = kzsip_uri:host(SIPURI),
-            lager:info("got URI host ~s", [Host]),
-            is_valid_sip_host(Host, kapps_config:is_true(?CONFIG_CAT, <<"validate_sip_hosts">>, 'true'))
-    end;
+    SIPURI = kzsip_uri:parse(URI),
+    Host = kzsip_uri:host(SIPURI),
+    is_valid_sip_host(Host, kapps_config:is_true(?CONFIG_CAT, <<"validate_sip_hosts">>, 'true'));
 is_valid_sip_host(Host) ->
     lager:info("turning host '~s' into SIP URI", [Host]),
     is_valid_sip_host(<<"sip:nouser@", Host/binary>>).
 
 is_valid_sip_host(Host, 'true') ->
-    is_valid_host(Host, #{ip => 'true', dns => 'true'});
+    lager:debug("configured to validate SIP hosts, checking ~s", [Host]),
+    is_valid_host(Host, #{ip => 'true', dns => 'true', port => 'false'});
 is_valid_sip_host(_Host, 'false') ->
     'true'.
 
 -spec is_valid_host(kz_http_util:location() | inet:ip_address()) -> boolean().
 is_valid_host(Host) ->
-    is_valid_host(Host, #{ip => 'true', dns => 'true'}).
+    is_valid_host(Host, #{ip => 'true', dns => 'true', port => 'true'}).
 
 -spec is_valid_host(kz_http_util:location() | inet:ip_address(), host_validation_options()) -> boolean().
 is_valid_host(_Host, #{ip := 'false', dns := 'false'}) ->
@@ -350,11 +344,14 @@ url_error(URL, State) ->
     jesse_error:handle_data_invalid({'external_error', <<"invalid client URL">>}, URL, State).
 
 -spec is_valid_host_value(kz_term:ne_binary(), boolean(), kz_term:api_ne_binaries(), host_validation_options()) -> boolean().
-is_valid_host_value(_Host, _IsIp, 'undefined', _ValidationOptions) -> 'true';
+is_valid_host_value(Host, 'true', 'undefined', #{ip := 'true'}) ->
+    lager:info("no IP blacklist, just checking IP space for ~s", [Host]),
+    is_host_blacklisted_restricted_ip(Host);
 is_valid_host_value(_Host, 'true', _Blacklist, #{ip := 'false'}) ->
     lager:debug("not configured to validate IPs, allowing ~s", [_Host]),
     'true';
 is_valid_host_value(Host, IsIp, Blacklist, ValidationOptions) ->
+    lager:debug("checking host ~s against blacklist ~p", [Host, Blacklist]),
     not lists:any(fun(B) -> is_host_blacklisted(Host, IsIp, B, ValidationOptions) end, Blacklist).
 
 is_host_blacklisted(Host, _IsIp, Host, _ValidationOptions) ->
@@ -385,7 +382,9 @@ is_host_blacklisted_restricted_ip(Host) ->
                                      ,kapps_config:is_true(<<"kazoo_web">>, <<"allow_restricted_ips">>, 'true')
                                      ).
 
-is_host_blacklisted_restricted_ip(_Host, 'true') -> 'false';
+is_host_blacklisted_restricted_ip(_Host, 'true') ->
+    lager:info("allowing restricted IPs, allowing ~s", [_Host]),
+    'false';
 is_host_blacklisted_restricted_ip(Host, 'false') ->
     case kz_network_utils:is_restricted_ip(Host) of
         'false' -> 'false';
