@@ -73,6 +73,16 @@
         ,publish_query_channels_resp/2
         ,publish_query_channels_resp/3
         ]).
+-export([query_endpoint_channels_req/1
+        ,query_endpoint_channels_req_v/1
+        ,publish_query_endpoint_channels_req/1
+        ,publish_query_endpoint_channels_req/2
+        ]).
+-export([query_endpoint_channels_resp/1
+        ,query_endpoint_channels_resp_v/1
+        ,publish_query_endpoint_channels_resp/2
+        ,publish_query_endpoint_channels_resp/3
+        ]).
 -export([usurp_control/1
         ,usurp_control_v/1
         ,publish_usurp_control/2
@@ -157,6 +167,10 @@ api_definition(<<"query_channels_req">>) ->
     query_channels_req_definition();
 api_definition(<<"query_channels_resp">>) ->
     query_channels_resp_definition();
+api_definition(<<"query_endpoint_channels_req">>) ->
+    query_endpoint_channels_req_definition();
+api_definition(<<"query_endpoint_channels_resp">>) ->
+    query_endpoint_channels_resp_definition();
 api_definition(<<"usurp_control">>) ->
     usurp_control_definition();
 api_definition(<<"usurp_publisher">>) ->
@@ -569,6 +583,57 @@ query_channels_resp_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+-spec query_endpoint_channels_req_definition() -> kapi_definition:api().
+query_endpoint_channels_req_definition() ->
+    EventName = <<"query_endpoint_channels_req">>,
+    Category = <<"channel">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Query Endpoint Channels Req">>}
+              ,{fun kapi_definition:set_description/2, <<"Query the Channels belonging to an Endpoint">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun query_endpoint_channels_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun query_endpoint_channels_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_query_endpoint_channels_req/1}
+              ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Endpoint-ID">>]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Direction">>
+                                                            ,<<"Count-Only">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Direction">>, [<<"inbound">>, <<"outbound">>]}
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Count-Only">>, fun kz_term:is_boolean/1}]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec query_endpoint_channels_resp_definition() -> kapi_definition:api().
+query_endpoint_channels_resp_definition() ->
+    EventName = <<"query_endpoint_channels_resp">>,
+    Category = <<"channel">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Query Endpoint Channels Resp">>}
+              ,{fun kapi_definition:set_description/2, <<"Inquire into the status of a call">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun query_endpoint_channels_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun query_endpoint_channels_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_query_endpoint_channels_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [[<<"Channels">>, <<"Count">>]]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Channels">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"Count">>, fun is_integer/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
 -spec usurp_control_definition() -> kapi_definition:api().
 usurp_control_definition() ->
     EventName = <<"usurp_control">>,
@@ -959,6 +1024,61 @@ publish_query_channels_resp(RespQ, APIProps, ContentType) when is_list(APIProps)
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType);
 publish_query_channels_resp(RespQ, JObj, ContentType) ->
     publish_query_channels_resp(RespQ, kz_json:to_proplist(JObj), ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Inquire into the status of a call.
+%% Takes {@link lz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec query_endpoint_channels_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+query_endpoint_channels_req(Req) ->
+    kapi_definition:build_message(Req, query_endpoint_channels_req_definition()).
+
+-spec query_endpoint_channels_req_v(kz_term:api_terms()) -> boolean().
+query_endpoint_channels_req_v(Req) ->
+    kapi_definition:validate(Req, query_endpoint_channels_req_definition()).
+
+-spec publish_query_endpoint_channels_req(kz_term:api_terms()) -> 'ok'.
+publish_query_endpoint_channels_req(API) ->
+    publish_query_endpoint_channels_req(API, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_query_endpoint_channels_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_query_endpoint_channels_req(Req, ContentType) ->
+    Definition = query_endpoint_channels_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:channels_publish((kapi_definition:binding(Definition))('status_req', <<>>)
+                                 ,Payload
+                                 ,ContentType
+                                 ).
+
+%%------------------------------------------------------------------------------
+%% @doc Inquire into the status of a call.
+%% Takes {@link lz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec query_endpoint_channels_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+query_endpoint_channels_resp(Req) ->
+    kapi_definition:build_message(Req, query_endpoint_channels_resp_definition()).
+
+-spec query_endpoint_channels_resp_v(kz_term:api_terms()) -> boolean().
+query_endpoint_channels_resp_v(Req) ->
+    kapi_definition:validate(Req, query_endpoint_channels_resp_definition()).
+
+-spec publish_query_endpoint_channels_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_query_endpoint_channels_resp(RespQ, JObj) ->
+    publish_query_endpoint_channels_resp(RespQ, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_query_endpoint_channels_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_query_endpoint_channels_resp(RespQ, Resp, ContentType) ->
+    Definition = query_endpoint_channels_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Resp
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
 %%------------------------------------------------------------------------------
 %% @doc Format a call id update from the switch for the listener.
