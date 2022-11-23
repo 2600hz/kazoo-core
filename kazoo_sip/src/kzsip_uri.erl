@@ -175,50 +175,57 @@ encode(#sip_uri{display_name = DisplayName
      ,(params_to_binary(ExtraParams))/binary
     >>.
 
--spec display_name(sip_uri()) -> display_name().
-display_name(#sip_uri{display_name=DisplayName}) -> DisplayName.
+-spec display_name(sip_uri() | uri()) -> display_name().
+display_name(#sip_uri{display_name=DisplayName}) -> DisplayName;
+display_name(#uri{disp=DisplayName}) -> DisplayName.
 
 -spec set_display_name(sip_uri(), display_name()) -> sip_uri().
 set_display_name(#sip_uri{}=Sip, DisplayName) ->
     Sip#sip_uri{display_name=DisplayName}.
 
--spec scheme(sip_uri()) -> scheme().
-scheme(#sip_uri{scheme=S}) -> S.
+-spec scheme(sip_uri() | uri()) -> scheme().
+scheme(#sip_uri{scheme=S}) -> S;
+scheme(#uri{scheme=S}) -> S.
 
 -spec set_scheme(sip_uri(), scheme()) -> sip_uri().
 set_scheme(#sip_uri{}=Sip, S) ->
     Sip#sip_uri{scheme=S}.
 
--spec user(sip_uri()) -> user().
-user(#sip_uri{user=U}) -> U.
+-spec user(sip_uri() | uri()) -> user().
+user(#sip_uri{user=U}) -> U;
+user(#uri{user=U}) -> U.
 
 -spec set_user(sip_uri(), user()) -> sip_uri().
 set_user(#sip_uri{}=Sip, U) ->
     Sip#sip_uri{user=U}.
 
--spec host(sip_uri()) -> host().
-host(#sip_uri{host=H}) -> H.
+-spec host(sip_uri() | uri()) -> host().
+host(#sip_uri{host=H}) -> H;
+host(#uri{domain=H}) -> kz_term:to_binary(H).
 
 -spec set_host(sip_uri(), host()) -> sip_uri().
 set_host(#sip_uri{}=Sip, H) ->
     Sip#sip_uri{host=H}.
 
--spec port(sip_uri()) -> uri_port().
-port(#sip_uri{port=P}) -> P.
+-spec port(sip_uri() | uri()) -> uri_port().
+port(#sip_uri{port=P}) -> P;
+port(#uri{port=P}) -> P.
 
 -spec set_port(sip_uri(), uri_port()) -> sip_uri().
 set_port(#sip_uri{}=Sip, P) ->
     Sip#sip_uri{port=P}.
 
--spec uri_params(sip_uri()) -> uri_params().
-uri_params(#sip_uri{uri_params=URIParams}) -> URIParams.
+-spec uri_params(sip_uri() | uri()) -> uri_params().
+uri_params(#sip_uri{uri_params=URIParams}) -> URIParams;
+uri_params(#uri{opts=URIParams}) -> URIParams.
 
 -spec set_uri_params(sip_uri(), uri_params()) -> sip_uri().
 set_uri_params(#sip_uri{}=Sip, URIParams) ->
     Sip#sip_uri{uri_params=URIParams}.
 
--spec extra_params(sip_uri()) -> extra_params().
-extra_params(#sip_uri{extra_params=ExtraParams}) -> ExtraParams.
+-spec extra_params(sip_uri() | uri()) -> extra_params().
+extra_params(#sip_uri{extra_params=ExtraParams}) -> ExtraParams;
+extra_params(#uri{ext_opts=ExtraParams}) -> ExtraParams.
 
 -spec set_extra_params(sip_uri(), extra_params()) -> sip_uri().
 set_extra_params(#sip_uri{}=Sip, ExtraParams) ->
@@ -255,8 +262,6 @@ set_extra_param({Param, Value}, #sip_uri{}=Sip) ->
 -spec set_extra_param(uri_param_key(), uri_param_value(), sip_uri()) -> sip_uri().
 set_extra_param(Param, Value, #sip_uri{}=Sip) ->
     set_extra_params(Sip, props:set_value(Param, Value, extra_params(Sip))).
-
-
 
 %% Helpers
 -spec build_sip_uri(kz_term:proplist()) -> sip_uri().
