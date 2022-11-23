@@ -243,7 +243,7 @@ maybe_publish(#'basic.publish'{routing_key=RoutingKey}=BasicPub, AmqpMsg) ->
         {ConsumerPid, RemoteRoutingKey} ->
             basic_publish(kz_amqp_assignments:find(ConsumerPid)
                          ,BasicPub#'basic.publish'{routing_key=RemoteRoutingKey}
-                         ,AmqpMsg
+                         ,ensure_amqp_zone(AmqpMsg)
                          )
     end.
 
@@ -262,7 +262,7 @@ publish(#'basic.publish'{routing_key=RoutingKey}=BasicPub, AmqpMsg) ->
         {ConsumerPid, RemoteRoutingKey} ->
             basic_publish(kz_amqp_assignments:get_channel(ConsumerPid, ?ASSIGNMENT_TIMEOUT)
                          ,BasicPub#'basic.publish'{routing_key=RemoteRoutingKey}
-                         ,AmqpMsg
+                         ,ensure_amqp_zone(AmqpMsg)
                          )
     end.
 
@@ -339,6 +339,10 @@ basic_publish(Channel
              ,Method
              ) when is_pid(Channel) ->
     amqp_channel:Method(Channel, BasicPub, AmqpMsg).
+
+-spec ensure_amqp_zone(amqp_msg()) -> amqp_msg().
+ensure_amqp_zone(#'amqp_msg'{props = Basic} = Msg) ->
+    Msg#'amqp_msg'{props = kz_amqp_basic:set_header_binary(Basic, ?KEY_AMQP_ZONE, kz_config:zone(binary))}.
 
 -spec maybe_split_routing_key(binary()) -> {kz_term:api_pid(), binary()}.
 maybe_split_routing_key(<<"consumer://", _/binary>> = RoutingKey) ->

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2020, 2600Hz
+%%% @copyright (C) 2013-2022, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -316,6 +316,17 @@ load() ->
 
 -spec zone() -> atom().
 zone() ->
+    case persistent_term:get(amqp_zone, undefined) of
+        undefined -> set_zone();
+        Zone -> Zone
+    end.
+
+set_zone() ->
+    Zone = get_zone(),
+    persistent_term:put(amqp_zone, Zone),
+    Zone.
+
+get_zone() ->
     case application:get_env(?APP, 'zone') of
         'undefined' -> find_zone();
         {'ok', Zone} -> Zone

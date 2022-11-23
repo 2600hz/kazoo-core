@@ -898,11 +898,11 @@ handle_info(Message, State) ->
 handle_event(<<Payload/binary>>, {<<"application/json">>, <<"gzip">>}, Deliver, State) ->
     JObj = kz_json:decode(zlib:gunzip(Payload)),
     _ = kz_log:put_callid(JObj),
-    distribute_event(JObj, Deliver, State);
+    deliver_event(JObj, Deliver, State);
 handle_event(<<Payload/binary>>, {<<"application/json">>, _}, Deliver, State) ->
     JObj = kz_json:decode(Payload),
     _ = kz_log:put_callid(JObj),
-    distribute_event(JObj, Deliver, State);
+    deliver_event(JObj, Deliver, State);
 handle_event(<<Payload/binary>>, {<<"application/erlang">>, <<"gzip">>}, Deliver, State) ->
     JObj = binary_to_term(zlib:gunzip(Payload)),
     _ = kz_log:put_callid(JObj),
@@ -913,7 +913,7 @@ handle_event(<<Payload/binary>>, {<<"application/erlang">>, _}, Deliver, State) 
     distribute_event(JObj, Deliver, State);
 handle_event(JObj, {<<"application/json">>, _}, Deliver, State) ->
     kz_log:put_callid(JObj),
-    distribute_event(JObj, Deliver, State).
+    deliver_event(JObj, Deliver, State).
 
 %%------------------------------------------------------------------------------
 %% @doc Handles the AMQP messages prior to the spawning a handler.
@@ -1056,6 +1056,15 @@ format_status(_Opt
              }]
     end.
 
+-spec deliver_event(kz_json:object(), deliver(), state()) ->  kz_types:handle_info_ret().
+deliver_event(JObj, {_ , #'P_basic'{headers='undefined'}}=BasicDeliver, State) ->
+    distribute_event(JObj, BasicDeliver, State);
+deliver_event(JObj, {_ , Basic}=BasicDeliver, State) ->
+    case kz_amqp_basic:header_value(Basic, ?KEY_AMQP_ZONE) of
+        undefined -> distribute_event(JObj, BasicDeliver, State);
+        Zone -> distribute_event(kz_json:set_value(?KEY_AMQP_ZONE, Zone, JObj), BasicDeliver, State)
+    end.
+
 -spec distribute_event(kz_json:object(), deliver(), state()) ->  kz_types:handle_info_ret().
 distribute_event(JObj, {_ , #'P_basic'{headers='undefined'}}=BasicDeliver, State) ->
     case callback_handle_event(JObj, BasicDeliver, State) of
@@ -1066,18 +1075,9 @@ distribute_event(JObj, {_ , #'P_basic'{headers='undefined'}}=BasicDeliver, State
         {CallbackData, ModuleState} -> distribute_event(CallbackData, JObj, BasicDeliver, State#state{module_state=ModuleState});
         CallbackData -> distribute_event(CallbackData, JObj, BasicDeliver, State)
     end;
-distribute_event(JObj, {Deliver, #'P_basic'{headers=Headers}=Basic}=BasicDeliver, State) ->
-    case lists:keyfind(?KEY_DELIVER_TO_PID, 1, Headers) of
-        {?KEY_DELIVER_TO_PID, _, Pid} ->
-            Props = [{'basic', Basic}
-                    ,{'deliver', Deliver}
-                    ],
-            Msg = kapi:delivery_message(JObj, Props),
-            {{Exchange, RK, _}, {Category, Event}, _} = Msg,
-            lager:debug("delivering ~s/~s ~s/~s to pid ~s", [Exchange, RK, Category, Event, Pid]),
-            kz_term:to_pid(Pid) ! {'kapi', Msg},
-            {'noreply', State};
-        'false' ->
+distribute_event(JObj, {Deliver,Basic}=BasicDeliver, State) ->
+    case kz_amqp_basic:header_value(Basic, ?KEY_DELIVER_TO_PID) of
+        'undefined' ->
             case callback_handle_event(JObj, BasicDeliver, State) of
                 'ignore' -> {'noreply', State};
                 {'ignore', ModuleState} -> {'noreply', State#state{module_state=ModuleState}};
@@ -1085,7 +1085,16 @@ distribute_event(JObj, {Deliver, #'P_basic'{headers=Headers}=Basic}=BasicDeliver
                 {'ignore', ModuleState, Timeout} -> {'noreply', State#state{module_state=ModuleState}, Timeout};
                 {CallbackData, ModuleState} -> distribute_event(CallbackData, JObj, BasicDeliver, State#state{module_state=ModuleState});
                 CallbackData -> distribute_event(CallbackData, JObj, BasicDeliver, State)
-            end
+            end;
+        Pid ->
+            Props = [{'basic', Basic}
+                    ,{'deliver', Deliver}
+                    ],
+            Msg = kapi:delivery_message(JObj, Props),
+            {{Exchange, RK, _}, {Category, Event}, _} = Msg,
+            lager:debug("delivering ~s/~s ~s/~s to pid ~s", [Exchange, RK, Category, Event, Pid]),
+            kz_term:to_pid(Pid) ! {'kapi', Msg},
+            {'noreply', State}
     end.
 
 -spec distribute_event(callback_data(), kz_json:object(), deliver(), state()) -> {'noreply', state()}.
