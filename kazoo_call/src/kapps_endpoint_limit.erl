@@ -1,6 +1,5 @@
 %%%-----------------------------------------------------------------------------
 %%% @copyright (C) 2022, 2600Hz
-%%% @doc RA (Raft) integration
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -18,7 +17,7 @@
 %% }
 
 -type endpoint_id() :: kz_term:ne_binary(). %% Can be the id of either a "user" or a "device".
--type endpoint_type() :: kz_term:ne_binary().
+-type endpoint_type() :: kz_term:ne_binary(). %% "account", "user", or "device".
 -type endpoint_limit() :: non_neg_integer().
 
 %%%=============================================================================

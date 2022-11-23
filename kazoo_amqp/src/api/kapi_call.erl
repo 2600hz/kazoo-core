@@ -871,7 +871,6 @@ publish_channel_status_resp(RespQ, Resp, ContentType) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Sends request to know whether or not an endpoint has reached its configured limit.
-%% Takes {@link kz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec enforce_endpoint_limit_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -900,7 +899,6 @@ publish_enforce_endpoint_limit_req(Req, ContentType) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Sends response about whether or not an endpoint has reached its configured limit.
-%% Takes {@link lz_term:proplist()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec enforce_endpoint_limit_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().

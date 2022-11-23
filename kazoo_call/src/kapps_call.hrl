@@ -1,4 +1,4 @@
--ifndef(KAPPS_CALL_HEADERS).
+-ifndef(KAPPS_CALL_HRL).
 
 %% Since kapps_call.erl module also includes kapi_call_command.hrl headers file, and that file
 %% already defined APP_NAME and APP_VERSION macros, these 2 new macros are prefixed with

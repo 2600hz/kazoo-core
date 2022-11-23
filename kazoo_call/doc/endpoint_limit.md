@@ -44,7 +44,7 @@ OwnerLimit = kzd_call_limits:max_concurrent(kzd_endpoint:call_limits(Owner)),
 false = kapps_endpoint_limit:has_reached_limit(EndpointId, EndpointType, EndpointLimit),
 false = kapps_endpoint_limit:has_reached_limit(OwnerId, <<"user">>, OwnerLimit),
 
-%% If a call is placed from/to EndpointId, check should return true when quering for endpoint's limit
+%% If a call is placed from/to EndpointId, check should return true when querying for endpoint's limit
 %% and false, when querying for user's limit because user has a limit=2 and only 1 channels is in use.
 true = kapps_endpoint_limit:has_reached_limit(EndpointId, EndpointType, EndpointLimit),
 false = kapps_endpoint_limit:has_reached_limit(OwnerId, <<"user">>, OwnerLimit),
