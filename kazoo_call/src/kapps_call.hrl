@@ -6,5 +6,5 @@
 -define(KAPPS_CALL_APP_NAME, <<"kapps_call">>).
 -define(KAPPS_CALL_APP_VERSION, <<"1.0.0">>).
 
--define(KAPPS_CALL_HEADERS, 'true').
+-define(KAPPS_CALL_HRL, 'true').
 -endif.
