@@ -1,0 +1,33 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2022, 2600Hz
+%%% @doc Accessors for `call_limits' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_call_limits).
+
+-export([new/0]).
+-export([max_concurrent/1, max_concurrent/2, set_max_concurrent/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"call_limits">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec max_concurrent(doc()) -> kz_term:api_non_neg_integer().
+max_concurrent(Doc) ->
+    max_concurrent(Doc, 'undefined').
+
+-spec max_concurrent(doc(), Default) -> non_neg_integer() | Default.
+max_concurrent(Doc, Default) ->
+    kz_json:get_integer_value([<<"max_concurrent">>], Doc, Default).
+
+-spec set_max_concurrent(doc(), non_neg_integer()) -> doc().
+set_max_concurrent(Doc, MaxConcurrent) ->
+    kz_json:set_value([<<"max_concurrent">>], MaxConcurrent, Doc).

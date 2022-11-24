@@ -31,8 +31,6 @@
 -export([attributes_keys/0
         ,merge_attribute/4
         ]).
-
--include_lib("eunit/include/eunit.hrl").
 -endif.
 
 -include("kazoo_endpoint.hrl").
@@ -62,6 +60,7 @@ get(EndpointId, Call) -> ?MOD:get(EndpointId, Call).
 get(EndpointId, Call, Options) -> ?MOD:get(EndpointId, Call, Options).
 
 -ifdef(TEST).
+-spec attributes_keys() -> kz_term:ne_binaries().
 attributes_keys() -> ?MOD:attributes_keys().
 
 -spec merge_attribute(kz_term:ne_binary(), kz_term:api_object(), kz_term:api_object(), kz_term:api_object()) -> kz_json:object().

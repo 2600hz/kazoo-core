@@ -20,6 +20,7 @@
 -export([call_forward_number/1, call_forward_number/2, set_call_forward_number/2]).
 -export([call_forward_require_keypress/1, call_forward_require_keypress/2, set_call_forward_require_keypress/2]).
 -export([call_forward_substitute/1, call_forward_substitute/2, set_call_forward_substitute/2]).
+-export([call_limits/1, call_limits/2, set_call_limits/2]).
 -export([call_recording/1, call_recording/2, set_call_recording/2]).
 -export([call_restriction/1, call_restriction/2, set_call_restriction/2]).
 -export([call_waiting/1, call_waiting/2, set_call_waiting/2]).
@@ -309,6 +310,18 @@ set_call_forward_substitute(Doc, CallForwardSubstitute) ->
                                                     ,CallForwardSubstitute
                                                     )
                     ).
+
+-spec call_limits(doc()) -> kz_term:api_object().
+call_limits(Doc) ->
+    call_limits(Doc, 'undefined').
+
+-spec call_limits(doc(), Default) -> kz_json:object() | Default.
+call_limits(Doc, Default) ->
+    kz_json:get_json_value([<<"call_limits">>], Doc, Default).
+
+-spec set_call_limits(doc(), kz_json:object()) -> doc().
+set_call_limits(Doc, CallLimits) ->
+    kz_json:set_value([<<"call_limits">>], CallLimits, Doc).
 
 -spec call_recording(doc()) -> kz_term:api_object().
 call_recording(Doc) ->
