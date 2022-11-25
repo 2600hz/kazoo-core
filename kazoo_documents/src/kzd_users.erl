@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,6 +20,7 @@
 -export([call_forward_number/1, call_forward_number/2, set_call_forward_number/2]).
 -export([call_forward_require_keypress/1, call_forward_require_keypress/2, set_call_forward_require_keypress/2]).
 -export([call_forward_substitute/1, call_forward_substitute/2, set_call_forward_substitute/2]).
+-export([call_limits/1, call_limits/2, set_call_limits/2]).
 -export([call_recording/1, call_recording/2, set_call_recording/2]).
 -export([call_restriction/1, call_restriction/2, set_call_restriction/2]).
 -export([call_waiting/1, call_waiting/2, set_call_waiting/2]).
@@ -296,6 +297,18 @@ set_call_forward_substitute(Doc, CallForwardSubstitute) ->
 -spec set_call_forward(doc(), kz_json:object()) -> doc().
 set_call_forward(Doc, CallForward) ->
     kz_json:set_value([<<"call_forward">>], CallForward, Doc).
+
+-spec call_limits(doc()) -> kz_term:api_object().
+call_limits(Doc) ->
+    call_limits(Doc, 'undefined').
+
+-spec call_limits(doc(), Default) -> kz_json:object() | Default.
+call_limits(Doc, Default) ->
+    kz_json:get_json_value([<<"call_limits">>], Doc, Default).
+
+-spec set_call_limits(doc(), kz_json:object()) -> doc().
+set_call_limits(Doc, CallLimits) ->
+    kz_json:set_value([<<"call_limits">>], CallLimits, Doc).
 
 -spec call_recording(doc()) -> kz_term:api_object().
 call_recording(Doc) ->

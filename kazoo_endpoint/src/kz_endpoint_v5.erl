@@ -31,8 +31,6 @@
 -export([attributes_keys/0
         ,merge_attribute/4
         ]).
-
--include_lib("eunit/include/eunit.hrl").
 -endif.
 
 -include("kazoo_endpoint.hrl").
@@ -325,9 +323,11 @@ account_keys() ->
 account_tree_keys() ->
     [<<"call_restriction">>].
 
+-spec attributes_keys() -> kz_term:ne_binaries().
 attributes_keys() ->
     [<<"call_failover">>
     ,<<"call_forward">>
+    ,<<"call_limits">>
     ,<<"call_recording">>
     ,<<"call_restriction">>
     ,<<"call_waiting">>
@@ -508,6 +508,21 @@ merge_attribute(<<"outbound_flags">>, Account, Endpoint, Owner) ->
                             ,kzd_devices:outbound_dynamic_flags(Endpoint)
                             ]),
     kzd_devices:set_outbound_flags(Endpoint, Static, Dynamic);
+merge_attribute(<<"call_limits">> = _Key, Account, Endpoint, _Owner) ->
+    %% If endpoint_type=device, and assigned, ignore owner’s and account’s configuration for this
+    %% parameter. If endpoint is unassigned, use endpoint’s configuration if set, otherwise, use
+    %% account’s configuration if set.
+    EndpointAttr = kzd_endpoint:call_limits(Endpoint, kz_json:new()),
+    case kzd_call_limits:max_concurrent(EndpointAttr) of
+        'undefined' ->
+            AccountAttr = kzd_endpoint:call_limits(Account, kz_json:new()),
+            Merged = kz_json:merge_recursive([AccountAttr, EndpointAttr]
+                                            ,fun(_, V) -> not kz_term:is_empty(V) end
+                                            ),
+            kzd_endpoint:set_call_limits(Endpoint, Merged);
+        _ ->
+            Endpoint
+    end;
 merge_attribute(Key, Account, Endpoint, Owner) ->
     AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
     EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),

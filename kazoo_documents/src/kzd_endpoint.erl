@@ -19,6 +19,7 @@
 -export([presence_id/1]).
 -export([call_forward/1, call_forward/2]).
 -export([call_failover/1, call_failover/2]).
+-export([call_limits/1, call_limits/2, set_call_limits/2]).
 -export([tags/1, tags/2]).
 
 -export([build_options/1]).
@@ -127,6 +128,18 @@ call_forward(Endpoint) ->
 -spec call_forward(endpoint(), Default) -> kz_json:object() | Default.
 call_forward(Endpoint, Default) ->
     kz_json:get_json_value([<<"call_forward">>], Endpoint, Default).
+
+-spec call_limits(endpoint()) -> kz_term:api_object().
+call_limits(Doc) ->
+    call_limits(Doc, 'undefined').
+
+-spec call_limits(endpoint(), Default) -> kz_json:object() | Default.
+call_limits(Doc, Default) ->
+    kz_json:get_json_value([<<"call_limits">>], Doc, Default).
+
+-spec set_call_limits(endpoint(), kz_json:object()) -> endpoint().
+set_call_limits(Doc, CallLimits) ->
+    kz_json:set_value([<<"call_limits">>], CallLimits, Doc).
 
 -spec tags(endpoint()) -> kz_term:api_objects().
 tags(Endpoint) ->
