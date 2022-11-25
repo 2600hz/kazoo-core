@@ -1,0 +1,90 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2023, 2600Hz
+%%% @author Navoda Ginige
+%%% @doc
+%%% This Source Code Form is subject to the terms of the Mozilla Public
+%%% License, v. 2.0. If a copy of the MPL was not distributed with this
+%%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
+%%%
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_websites).
+
+-export([new/0]).
+-export([type/0]).
+-export([account_wide/1, account_wide/2, set_account_wide/2]).
+-export([name/1, name/2, set_name/2]).
+-export([users/1, users/2, set_users/2]).
+-export([web_url/1, web_url/2, set_web_url/2]).
+
+-export([schema/0]).
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-type website_format() :: 'form-data' | 'json'.
+
+-export_type([doc/0
+             ,website_format/0
+             ]).
+
+-define(TYPE, <<"website">>).
+-define(SCHEMA, <<"websites">>).
+
+-spec new() -> doc().
+new() ->
+    kz_doc:set_type(kz_json_schema:default_object(?SCHEMA), type()).
+
+-spec account_wide(doc()) -> boolean().
+account_wide(Doc) ->
+    account_wide(Doc, 'true').
+
+-spec account_wide(doc(), Default) -> boolean() | Default.
+account_wide(Doc, Default) ->
+    kz_json:get_boolean_value([<<"account_wide">>], Doc, Default).
+
+-spec set_account_wide(doc(), boolean()) -> doc().
+set_account_wide(Doc, AccountWide) ->
+    kz_json:set_value([<<"account_wide">>], AccountWide, Doc).
+
+-spec name(doc()) -> kz_term:api_ne_binary().
+name(Doc) ->
+    name(Doc, 'undefined').
+
+-spec name(doc(), Default) -> kz_term:ne_binary() | Default.
+name(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"name">>], Doc, Default).
+
+-spec type() -> kz_term:ne_binary().
+type() -> ?TYPE.
+
+-spec schema() -> kz_term:ne_binary().
+schema() -> ?SCHEMA.
+
+-spec set_name(doc(), kz_term:ne_binary()) -> doc().
+set_name(Doc, Name) ->
+    kz_json:set_value([<<"name">>], Name, Doc).
+
+-spec users(doc()) -> kz_term:ne_binaries().
+users(Doc) ->
+    users(Doc, []).
+
+-spec users(doc(), Default) -> kz_term:ne_binaries() | Default.
+users(Doc, Default) ->
+    kz_json:get_list_value([<<"users">>], Doc, Default).
+
+-spec set_users(doc(), kz_term:ne_binaries()) -> doc().
+set_users(Doc, Users) ->
+    kz_json:set_value([<<"users">>], Users, Doc).
+
+-spec web_url(doc()) -> kz_term:api_ne_binary().
+web_url(Doc) ->
+    web_url(Doc, 'undefined').
+
+-spec web_url(doc(), Default) -> kz_term:ne_binary() | Default.
+web_url(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"web_url">>], Doc, Default).
+
+-spec set_web_url(doc(), kz_term:ne_binary()) -> doc().
+set_web_url(Doc, WebUrl) ->
+    kz_json:set_value([<<"web_url">>], WebUrl, Doc).
