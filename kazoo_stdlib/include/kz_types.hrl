@@ -149,6 +149,28 @@
         >>
        ).
 
+%% Matches db name format related to modbs (<<"account/e1/82/5a77626f4..........-202210-whatever">>)
+-define(MATCH_TYPE_MODB_SUFFIX_RAW(A, B, Rest, Year, Month, Any)
+       ,<<(A):2/binary, (B):2/binary, (Rest):28/binary
+         ,"-", (Year):4/binary, (Month):2/binary, Any/binary
+        >>
+       ).
+-define(MATCH_TYPE_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month, Any)
+       ,<<"account/", (A):2/binary, "/", (B):2/binary, "/", (Rest):28/binary
+         ,"-", (Year):4/binary, (Month):2/binary, Any/binary
+        >>
+       ).
+-define(MATCH_TYPE_MODB_SUFFIX_ENCODED(A, B, Rest, Year, Month, Any)
+       ,<<"account%2F", (A):2/binary, "%2F", (B):2/binary, "%2F", (Rest):28/binary
+         ,"-", (Year):4/binary, (Month):2/binary, Any/binary
+        >>
+       ).
+-define(MATCH_TYPE_MODB_SUFFIX_encoded(A, B, Rest, Year, Month, Any)
+       ,<<"account%2f", (A):2/binary, "%2f", (B):2/binary, "%2f", (Rest):28/binary
+         ,"-", (Year):4/binary, (Month):2/binary, Any/binary
+        >>
+       ).
+
 -define(MATCH_YODB_SUFFIX_RAW(A, B, Rest, Year)
        ,<<(A):2/binary, (B):2/binary, (Rest):28/binary
          ,"-", (Year):4/binary

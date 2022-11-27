@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2021, 2600Hz
+%%% @copyright (C) 2018-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -128,7 +128,7 @@ delete_remove_db({AccountJObj, Errors}=Acc) ->
 
 -spec delete_mod_dbs(delete_acc()) -> delete_acc().
 delete_mod_dbs({AccountJObj, _Errors}=Acc) ->
-    MODBs = kapps_util:get_account_mods(kz_doc:id(AccountJObj), 'encoded'),
+    MODBs = kapps_util:get_all_account_type_mods(kz_doc:id(AccountJObj), 'encoded'),
     _ = [kz_datamgr:db_delete(MODB) || MODB <- MODBs],
     Acc.
 
