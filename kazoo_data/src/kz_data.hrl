@@ -121,6 +121,7 @@
                              'deprecated' |
                              'external' |
                              'modb' |
+                             'type_modb' |
                              'yodb' |
                              'numbers' |
                              'provisioner' |
