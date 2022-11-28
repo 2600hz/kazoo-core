@@ -6,6 +6,14 @@
 -module(kzd_devices).
 
 -export([new/0]).
+-export([addresses/1, addresses/2, set_addresses/2]).
+-export([addresses_emergency/1, addresses_emergency/2, set_addresses_emergency/2]).
+-export([addresses_emergency_caller_name/1, addresses_emergency_caller_name/2, set_addresses_emergency_caller_name/2]).
+-export([addresses_emergency_extended_address/1, addresses_emergency_extended_address/2, set_addresses_emergency_extended_address/2]).
+-export([addresses_emergency_locality/1, addresses_emergency_locality/2, set_addresses_emergency_locality/2]).
+-export([addresses_emergency_postal_code/1, addresses_emergency_postal_code/2, set_addresses_emergency_postal_code/2]).
+-export([addresses_emergency_region/1, addresses_emergency_region/2, set_addresses_emergency_region/2]).
+-export([addresses_emergency_street_address/1, addresses_emergency_street_address/2, set_addresses_emergency_street_address/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
@@ -89,6 +97,102 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec addresses(doc()) -> kz_term:api_object().
+addresses(Doc) ->
+    addresses(Doc, 'undefined').
+
+-spec addresses(doc(), Default) -> kz_json:object() | Default.
+addresses(Doc, Default) ->
+    kz_json:get_json_value([<<"addresses">>], Doc, Default).
+
+-spec set_addresses(doc(), kz_json:object()) -> doc().
+set_addresses(Doc, Addresses) ->
+    kz_json:set_value([<<"addresses">>], Addresses, Doc).
+
+-spec addresses_emergency(doc()) -> kz_term:api_object().
+addresses_emergency(Doc) ->
+    addresses_emergency(Doc, 'undefined').
+
+-spec addresses_emergency(doc(), Default) -> kz_json:object() | Default.
+addresses_emergency(Doc, Default) ->
+    kz_json:get_json_value([<<"addresses">>, <<"emergency">>], Doc, Default).
+
+-spec set_addresses_emergency(doc(), kz_json:object()) -> doc().
+set_addresses_emergency(Doc, AddressesEmergency) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>], AddressesEmergency, Doc).
+
+-spec addresses_emergency_caller_name(doc()) -> kz_term:api_binary().
+addresses_emergency_caller_name(Doc) ->
+    addresses_emergency_caller_name(Doc, 'undefined').
+
+-spec addresses_emergency_caller_name(doc(), Default) -> binary() | Default.
+addresses_emergency_caller_name(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"caller_name">>], Doc, Default).
+
+-spec set_addresses_emergency_caller_name(doc(), binary()) -> doc().
+set_addresses_emergency_caller_name(Doc, AddressesEmergencyCallerName) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"caller_name">>], AddressesEmergencyCallerName, Doc).
+
+-spec addresses_emergency_extended_address(doc()) -> kz_term:api_binary().
+addresses_emergency_extended_address(Doc) ->
+    addresses_emergency_extended_address(Doc, 'undefined').
+
+-spec addresses_emergency_extended_address(doc(), Default) -> binary() | Default.
+addresses_emergency_extended_address(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"extended_address">>], Doc, Default).
+
+-spec set_addresses_emergency_extended_address(doc(), binary()) -> doc().
+set_addresses_emergency_extended_address(Doc, AddressesEmergencyExtendedAddress) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"extended_address">>], AddressesEmergencyExtendedAddress, Doc).
+
+-spec addresses_emergency_locality(doc()) -> kz_term:api_binary().
+addresses_emergency_locality(Doc) ->
+    addresses_emergency_locality(Doc, 'undefined').
+
+-spec addresses_emergency_locality(doc(), Default) -> binary() | Default.
+addresses_emergency_locality(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"locality">>], Doc, Default).
+
+-spec set_addresses_emergency_locality(doc(), binary()) -> doc().
+set_addresses_emergency_locality(Doc, AddressesEmergencyLocality) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"locality">>], AddressesEmergencyLocality, Doc).
+
+-spec addresses_emergency_postal_code(doc()) -> kz_term:api_binary().
+addresses_emergency_postal_code(Doc) ->
+    addresses_emergency_postal_code(Doc, 'undefined').
+
+-spec addresses_emergency_postal_code(doc(), Default) -> binary() | Default.
+addresses_emergency_postal_code(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"postal_code">>], Doc, Default).
+
+-spec set_addresses_emergency_postal_code(doc(), binary()) -> doc().
+set_addresses_emergency_postal_code(Doc, AddressesEmergencyPostalCode) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"postal_code">>], AddressesEmergencyPostalCode, Doc).
+
+-spec addresses_emergency_region(doc()) -> kz_term:api_binary().
+addresses_emergency_region(Doc) ->
+    addresses_emergency_region(Doc, 'undefined').
+
+-spec addresses_emergency_region(doc(), Default) -> binary() | Default.
+addresses_emergency_region(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"region">>], Doc, Default).
+
+-spec set_addresses_emergency_region(doc(), binary()) -> doc().
+set_addresses_emergency_region(Doc, AddressesEmergencyRegion) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"region">>], AddressesEmergencyRegion, Doc).
+
+-spec addresses_emergency_street_address(doc()) -> kz_term:api_binary().
+addresses_emergency_street_address(Doc) ->
+    addresses_emergency_street_address(Doc, 'undefined').
+
+-spec addresses_emergency_street_address(doc(), Default) -> binary() | Default.
+addresses_emergency_street_address(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"street_address">>], Doc, Default).
+
+-spec set_addresses_emergency_street_address(doc(), binary()) -> doc().
+set_addresses_emergency_street_address(Doc, AddressesEmergencyStreetAddress) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"street_address">>], AddressesEmergencyStreetAddress, Doc).
 
 -spec call_failover(doc()) -> kz_term:api_object().
 call_failover(Doc) ->
