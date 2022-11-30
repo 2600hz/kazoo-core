@@ -1269,14 +1269,16 @@ all(Pred, ?JSON_WRAPPER(Prop)) when is_function(Pred, 1) ->
 any(Pred, ?JSON_WRAPPER(Prop)) when is_function(Pred, 1) ->
     lists:any(Pred, Prop).
 
--type folder() :: fun((key(), json_term(), any()) -> any()).
+-type folder(AccIn, AccOut) :: fun((key(), json_term(), AccIn) -> AccOut).
 
--spec foldl(folder(), any(), object()) -> any().
+-spec foldl(folder(any(), any()), AccIn, empty_object()) -> AccIn;
+           (folder(AccIn, AccOut), AccIn, ne_object()) -> AccOut when AccOut :: AccIn.
 foldl(F, Acc0, ?JSON_WRAPPER([])) when is_function(F, 3) -> Acc0;
 foldl(F, Acc0, ?JSON_WRAPPER(Prop)) when is_function(F, 3) ->
     lists:foldl(fun({Key, Value}, Acc1) -> F(Key, Value, Acc1) end, Acc0, Prop).
 
--spec foldr(folder(), any(), object()) -> any().
+-spec foldr(folder(any(), any()), AccIn, empty_object()) -> AccIn;
+           (folder(AccIn, AccOut), AccIn, ne_object()) -> AccOut when AccOut :: AccIn.
 foldr(F, Acc0, ?JSON_WRAPPER([])) when is_function(F, 3) -> Acc0;
 foldr(F, Acc0, ?JSON_WRAPPER(Prop)) when is_function(F, 3) ->
     lists:foldr(fun({Key, Value}, Acc1) -> F(Key, Value, Acc1) end, Acc0, Prop).

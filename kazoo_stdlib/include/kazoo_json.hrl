@@ -19,7 +19,7 @@
                               | json_array().
 
 -type non_null_json_term() :: non_object_json_term()
-                            | object() | ?EMPTY_JSON_OBJECT.
+                            | object().
 
 %% Denotes term definitions for JSON.
 
@@ -80,10 +80,12 @@
 -type json_ne_proplist() :: [json_kv(),...].
 %% Denotes proplist of JSON object Erlang representation.
 
+-type empty_object() :: ?EMPTY_JSON_OBJECT.
+
 -ifdef(PROPER).
--type object() :: ?JSON_WRAPPER(json_proplist()) | ?EMPTY_JSON_OBJECT.
+-type object() :: ?JSON_WRAPPER(json_proplist()) | empty_object().
 -else.
--type object() :: ?JSON_WRAPPER(json_proplist()) | ?EMPTY_JSON_OBJECT | map().
+-type object() :: ?JSON_WRAPPER(json_proplist()) | empty_object() | map().
 %% Denotes JSON object Erlang representation, {@link json_proplist} wrapped in `{}'.
 -endif.
 

@@ -303,6 +303,17 @@ prop_key_with_null() ->
             end
            ).
 
+start_debug(M) ->
+    dbg:start(),
+    dbg:tracer(),
+
+    dbg:tpl(M, [{'_', [], [$_]}]),
+    dbg:p('all', 'c').
+
+stop_debug() ->
+    dbg:stop_clear(),
+    dbg:stop().
+
 prop_merge_with_null() ->
     ?FORALL({LeftJObj, Path, RightJObj}
            ,{resize(?MAX_OBJECT_DEPTH, kz_json_generators:deep_object())
@@ -1679,18 +1690,6 @@ canonicalize_u_test_() ->
 %% c:u000f\nA'B\"\\\\\"/"}
 
 %% m:\u000f\nA'B\"\\\\\"/"}
-
-
-%% start_debug(M) ->
-%%     dbg:start(),
-%%     dbg:tracer(),
-
-%%     dbg:tpl(M, [{'_', [], [$_]}]),
-%%     dbg:p(all, c).
-
-%% stop_debug() ->
-%%     dbg:stop_clear(),
-%%     dbg:stop().
 
 
 -ifdef(PERF).
