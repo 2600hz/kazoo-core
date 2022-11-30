@@ -595,7 +595,9 @@ query_endpoint_channels_req_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun query_endpoint_channels_req_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_query_endpoint_channels_req/1}
               ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Endpoint-ID">>]}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
+                                                            ,<<"Endpoint-ID">>
+                                                            ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Direction">>
                                                             ,<<"Count-Only">>
                                                             ]}
@@ -605,7 +607,10 @@ query_endpoint_channels_req_definition() ->
                 ]
                }
               ,{fun kapi_definition:set_types/2
-               ,[{<<"Count-Only">>, fun kz_term:is_boolean/1}]
+               ,[{<<"Count-Only">>, fun kz_term:is_boolean/1}
+                ,{<<"Account-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Endpoint-ID">>, fun kz_term:is_ne_binary/1}
+                ]
                }
               ],
     kapi_definition:setters(Setters).
