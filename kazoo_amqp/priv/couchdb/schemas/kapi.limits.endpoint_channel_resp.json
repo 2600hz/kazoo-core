@@ -1,0 +1,30 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.limits.endpoint_channel_resp",
+    "description": "AMQP API for limits.endpoint_channel_resp",
+    "properties": {
+        "Allowed": {
+            "type": "boolean"
+        },
+        "Event-Category": {
+            "enum": [
+                "limits"
+            ],
+            "type": "string"
+        },
+        "Event-Name": {
+            "enum": [
+                "endpoint_channel_resp"
+            ],
+            "type": "string"
+        },
+        "Limit-ID": {
+            "minLength": 1,
+            "type": "string"
+        }
+    },
+    "required": [
+        "Allowed"
+    ],
+    "type": "object"
+}
