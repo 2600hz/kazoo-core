@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2020, 2600Hz
+%%% @copyright (C) 2013-2022, 2600Hz
 %%% @doc Implementation of a
 %%% <a href="https://en.wikipedia.org/wiki/Token_bucket#The_token_bucket_algorithm">Token Bucket</a>
 %%% as `gen_server;.
@@ -126,7 +126,7 @@ consume(_Srv, Tokens) when is_integer(Tokens)
     'true';
 consume(Srv, Tokens) when is_integer(Tokens)
                           andalso Tokens > 0 ->
-    gen_server:call(Srv, {'consume', Tokens}).
+    gen_server:call(Srv, {'consume', Tokens, get_callid()}).
 
 -spec consume_until(pid(), non_neg_integer()) -> boolean().
 consume_until(_Srv, Tokens) when is_integer(Tokens)
@@ -134,12 +134,18 @@ consume_until(_Srv, Tokens) when is_integer(Tokens)
     'true';
 consume_until(Srv, Tokens) when is_integer(Tokens)
                                 andalso Tokens > 0 ->
-    gen_server:call(Srv, {'consume_until', Tokens}).
+    gen_server:call(Srv, {'consume_until', Tokens, get_callid()}).
 
 -spec credit(pid(), pos_integer()) -> 'ok'.
 credit(Srv, Tokens) when is_integer(Tokens)
                          andalso Tokens > 0 ->
-    gen_server:cast(Srv, {'credit', Tokens}).
+    gen_server:cast(Srv, {'credit', Tokens, get_callid()}).
+
+get_callid() ->
+    case kz_log:get_callid() of
+        'undefined' -> ?DEFAULT_LOG_SYSTEM_ID;
+        CallId -> CallId
+    end.
 
 -spec tokens(pid()) -> non_neg_integer().
 tokens(Srv) -> gen_server:call(Srv, {'tokens'}).
@@ -189,7 +195,8 @@ init([Max, FillRate, FillAsBlock, FillTime]) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
-handle_call({'consume', Req}, _From, #state{tokens=Current}=State) ->
+handle_call({'consume', Req, CallId}, _From, #state{tokens=Current}=State) ->
+    kz_log:put_callid(CallId),
     case Current - Req of
         N when N >= 0 ->
             lager:debug("consumed ~p, ~p left", [Req, N]),
@@ -198,7 +205,8 @@ handle_call({'consume', Req}, _From, #state{tokens=Current}=State) ->
             lager:debug("not enough tokens (~p) to consume ~p", [Current, Req]),
             {'reply', 'false', State}
     end;
-handle_call({'consume_until', Req}, _From, #state{tokens=Current}=State) ->
+handle_call({'consume_until', Req, CallId}, _From, #state{tokens=Current}=State) ->
+    kz_log:put_callid(CallId),
     case Current - Req of
         N when N >= 0 ->
             lager:debug("consumed ~p, ~p left", [Req, N]),
@@ -218,9 +226,10 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'credit', Req}, #state{tokens=Current
-                                   ,max_tokens=Max
-                                   }=State) ->
+handle_cast({'credit', Req, CallId}, #state{tokens=Current
+                                           ,max_tokens=Max
+                                           }=State) ->
+    kz_log:put_callid(CallId),
     case Current + Req of
         N when N > Max ->
             lager:debug("credit of ~p tokens overfills, setting to ~p", [Req, Max]),
