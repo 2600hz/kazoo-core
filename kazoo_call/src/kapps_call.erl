@@ -2053,7 +2053,7 @@ remove_dynamic_cfwd(Call) ->
 %% the keys defined in the sysconfig are available in the user doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_add_default_cavs_to_call(kz_term:ne_binary(), kz_json:object(), kapps_call:call(), kz_json:object()) -> kapps_call:call().
+-spec maybe_add_default_cavs_to_call(kz_term:ne_binary(), kz_json:object(), call(), kz_json:object()) -> call().
 maybe_add_default_cavs_to_call(OwnerId, Data,  #kapps_call{account_id=AccountId}=Call, CAVList) ->
     UserDoc = get_user(AccountId, OwnerId),
     CAVs = build_default_cavs(CAVList, UserDoc, []),
