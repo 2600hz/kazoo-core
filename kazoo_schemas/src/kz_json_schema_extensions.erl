@@ -308,13 +308,19 @@ is_valid_sip_host(Host) ->
 
 is_valid_sip_host(Host, 'true') ->
     lager:debug("configured to validate SIP hosts, checking ~s", [Host]),
-    is_valid_host(Host, #{ip => 'true', dns => 'true', port => 'false'});
+    is_valid_host(Host, #{ip => kapps_config:is_true(?CONFIG_CAT, <<"validate_ip_addresses">>, 'true')
+                         ,dns => kapps_config:is_true(?CONFIG_CAT, <<"validate_dns_records">>, 'true')
+                         ,port => 'false'
+                         });
 is_valid_sip_host(_Host, 'false') ->
     'true'.
 
 -spec is_valid_host(kz_http_util:location() | inet:ip_address()) -> boolean().
 is_valid_host(Host) ->
-    is_valid_host(Host, #{ip => 'true', dns => 'true', port => 'true'}).
+    is_valid_host(Host, #{ip => kapps_config:is_true(?CONFIG_CAT, <<"validate_ip_addresses">>, 'true')
+                         ,dns => kapps_config:is_true(?CONFIG_CAT, <<"validate_dns_records">>, 'true')
+                         ,port => kapps_config:is_true(?CONFIG_CAT, <<"validate_ports">>, 'true')
+                         }).
 
 -spec is_valid_host(kz_http_util:location() | inet:ip_address(), host_validation_options()) -> boolean().
 is_valid_host(_Host, #{ip := 'false', dns := 'false'}) ->
