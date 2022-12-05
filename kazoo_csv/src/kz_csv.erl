@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Simple and efficient operations on CSV binaries.
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,7 +13,8 @@
 %% Public API
 -export([count_rows/1
         ,fold/3
-        ,take_row/1, take_mapped_row/2
+        ,take_row/1, take_row/2
+        ,take_mapped_row/2, take_mapped_row/3
         ,pad_row_to/2
         ,associator/3
         ,verify_mapped_row/2
@@ -46,7 +47,7 @@
 
 -ifdef(TEST).
 -export([take_line/1]).
--export([parse_row/1]).
+-export([parse_row/1, parse_row/2]).
 -endif.
 
 %%%=============================================================================
@@ -107,15 +108,18 @@ fold(CSV, Fun, Acc)
 %% @end
 %%------------------------------------------------------------------------------
 -spec take_row(csv()) -> {row(), csv()} | 'eof'.
-take_row(<<>>) -> 'eof';
-take_row(CSV)
-  when is_binary(CSV) ->
+take_row(CSV) ->
+    take_row(CSV, $,).
+
+-spec take_row(csv(), char()) -> {row(), csv()} | 'eof'.
+take_row(<<>>, _Separator) -> 'eof';
+take_row(<<CSV/binary>>, Separator) ->
     case take_line(CSV) of
         'eof' -> 'eof';
         [Line] ->
-            {parse_row(Line), <<>>};
+            {parse_row(Line, Separator), <<>>};
         [Line, CSVRest] ->
-            {parse_row(Line), CSVRest}
+            {parse_row(Line, Separator), CSVRest}
     end.
 
 %%------------------------------------------------------------------------------
@@ -123,9 +127,12 @@ take_row(CSV)
 %% @end
 %%------------------------------------------------------------------------------
 -spec take_mapped_row(row(), csv()) -> {mapped_row(), csv()} | 'eof'.
-take_mapped_row(Header, CSV)
-  when is_binary(CSV) ->
-    case take_row(CSV) of
+take_mapped_row(Header, CSV) ->
+    take_mapped_row(Header, CSV, $,).
+
+-spec take_mapped_row(row(), csv(), char()) -> {mapped_row(), csv()} | 'eof'.
+take_mapped_row(Header, <<CSV/binary>>, Separator) ->
+    case take_row(CSV, Separator) of
         'eof' -> 'eof';
         {Row, CSVRest} ->
             MappedRow = maps:from_list(lists:zip(Header, Row)),
@@ -329,12 +336,25 @@ take_line(CSV) ->
 %% but `<<"\"\",">>' will be converted to `[<<>>, ?ZILCH]'
 %% @end
 %%------------------------------------------------------------------------------
+-ifdef(TEST).
 -spec parse_row(kz_term:ne_binary()) -> row().
-parse_row(<<>>) -> [?ZILCH];
 parse_row(Line) ->
-    parse_row(kz_term:to_list(Line), [], [], 'normal').
+    parse_row(Line, $,).
+-endif.
 
--spec parse_row(list(), list(), list(), atom()) -> row().
+-spec parse_row(kz_term:ne_binary(), char()) -> row().
+parse_row(<<>>, _Separator) -> [?ZILCH];
+parse_row(Line, Separator) ->
+    parse_row(kz_term:to_list(Line), [], [], #{state => 'normal'
+                                              ,separator => Separator
+                                              }
+             ).
+
+-type parse_state() :: #{state := 'normal' | 'escaped' | 'was_escaped'
+                        ,separator := char()
+                        }.
+
+-spec parse_row(list(), list(), list(), parse_state()) -> row().
 %% The end of the Line
 %% Add the last CellAcc to RowAcc and return the reverse
 parse_row([], CellAcc, RowAcc, State) ->
@@ -344,41 +364,45 @@ parse_row([], CellAcc, RowAcc, State) ->
 %% 1 double quote when not in escaped state,
 %% Enter double quote escaped state and drop the double quote
 %% Discard any CellAcc to this point
-parse_row([$"|T], _CellAcc, RowAcc, 'normal') ->
-    parse_row(T, [], RowAcc, 'escaped');
+parse_row([$"|T], _CellAcc, RowAcc, #{state := 'normal'}=State) ->
+    parse_row(T, [], RowAcc, State#{state => 'escaped'});
 
 %% 2 double quotes when in escaped state,
 %% Drop the escaping leading double quote
-parse_row([$",$"=H|T], CellAcc, RowAcc, 'escaped') ->
-    parse_row(T, [H|CellAcc], RowAcc, 'escaped');
+parse_row([$",$"=H|T], CellAcc, RowAcc, #{state := 'escaped'}=State) ->
+    parse_row(T, [H|CellAcc], RowAcc, State);
 
 %% 1 double quote when in escaped state,
 %% Exit double quote escaped state and drop the double quote
-parse_row([$"|T], CellAcc, RowAcc, 'escaped') ->
-    parse_row(T, CellAcc, RowAcc, 'was_escaped');
+parse_row([$"|T], CellAcc, RowAcc, #{state := 'escaped'}=State) ->
+    parse_row(T, CellAcc, RowAcc, State#{state => 'was_escaped'});
 
 %% Comma when in escaped state,
 %% Do not split, Its escaped!, Add it to the cell
-parse_row([$,=H|T], CellAcc, RowAcc, 'escaped') ->
-    parse_row(T, [H|CellAcc], RowAcc, 'escaped');
+parse_row([Sep|T], CellAcc, RowAcc, #{state := 'escaped'
+                                     ,separator := Sep
+                                     }=State
+         ) ->
+    parse_row(T, [Sep|CellAcc], RowAcc, State);
 
 %% Comma when not in escaped state,
 %% Split the line here and drop the comma
 %% Add the binary reverse of the CellAcc to the RowAcc
-parse_row([$,|T], CellAcc, RowAcc, State) ->
+parse_row([Sep|T], CellAcc, RowAcc, #{separator := Sep}=State) ->
     Cell = cell_acc_to_cell(CellAcc, State),
-    parse_row(T, [], [Cell|RowAcc], 'normal');
+    parse_row(T, [], [Cell|RowAcc], State#{state := 'normal'});
 
 %% All other characters received before the comma but after an escaped cell
 %% Discard them
-parse_row([_|T], CellAcc, RowAcc, 'was_escaped') ->
-    parse_row(T, CellAcc, RowAcc, 'was_escaped');
+parse_row([_|T], CellAcc, RowAcc, #{state := 'was_escaped'}=State) ->
+    parse_row(T, CellAcc, RowAcc, State);
 
 %% All other characters in both escaped and not escaped state,
 %% Add them to the CellAcc list
-parse_row([H|T], CellAcc, RowAcc, State) when State =:= 'normal'; State =:= 'escaped' ->
+parse_row([H|T], CellAcc, RowAcc, #{state := ParseState}=State)
+  when ParseState =:= 'normal'
+       orelse ParseState =:= 'escaped' ->
     parse_row(T, [H|CellAcc], RowAcc, State).
-
 
 %%------------------------------------------------------------------------------
 %% @doc Convert the CellAcc from the function parse_row/4 to a binary
@@ -387,10 +411,12 @@ parse_row([H|T], CellAcc, RowAcc, State) when State =:= 'normal'; State =:= 'esc
 %% cell with double quotes should be `<<>>'
 %% @end
 %%------------------------------------------------------------------------------
--spec cell_acc_to_cell(list(), 'normal' | 'was_escaped') -> binary() | 'undefined'.
-cell_acc_to_cell([], 'normal') -> ?ZILCH;
-cell_acc_to_cell([], 'was_escaped') -> <<>>;
-cell_acc_to_cell(CellAcc, State) when State =:= 'normal'; State =:= 'was_escaped' ->
+-spec cell_acc_to_cell(list(), parse_state()) -> binary() | 'undefined'.
+cell_acc_to_cell([], #{state := 'normal'}) -> ?ZILCH;
+cell_acc_to_cell([], #{state := 'was_escaped'}) -> <<>>;
+cell_acc_to_cell(CellAcc, #{state := ParseState})
+  when ParseState =:= 'normal'
+       orelse ParseState =:= 'was_escaped' ->
     kz_term:to_binary(lists:reverse(CellAcc)).
 
 -spec find_position(kz_term:ne_binary(), kz_term:ne_binaries()) -> pos_integer().

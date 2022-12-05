@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2020, 2600Hz
+%%% @copyright (C) 2016-2022, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%% @author James Aimonetti
@@ -19,10 +19,10 @@
 -define(FIELDS, [<<"A">>, <<"B">>, <<"C">>, <<"D">>, <<"E">>]).
 
 verify_bin1(Cell)
-  when 1 =:= byte_size(Cell) -> true;
-verify_bin1(_) -> false.
+  when 1 =:= byte_size(Cell) -> 'true';
+verify_bin1(_) -> 'false'.
 
-verifier(<<"D">>, _Cell) -> true;
+verifier(<<"D">>, _Cell) -> 'true';
 verifier(_Field, Cell) ->
     verify_bin1(Cell).
 
@@ -48,20 +48,20 @@ associator_verify_test() ->
     CSVHeader = [<<"A">>, <<"E">>, <<"C">>, <<"B">>],
     CSVRow    = [<<"1">>, <<"5">>, <<"3">>, <<"42">>],
     FAssoc = kz_csv:associator(CSVHeader, ?FIELDS, fun verify_all_1bin/2),
-    ?assertEqual({error,<<"B">>}, FAssoc(CSVRow)).
+    ?assertEqual({'error', <<"B">>}, FAssoc(CSVRow)).
 
-verify_FIELDS_only(_, ?ZILCH) -> true;
+verify_FIELDS_only(_, ?ZILCH) -> 'true';
 verify_FIELDS_only(Field, Value) ->
     case lists:member(Field, ?FIELDS) of
-        false -> true;
-        true -> 1 =:= byte_size(Value)
+        'false' -> 'true';
+        'true' -> 1 =:= byte_size(Value)
     end.
 
 associator_varargs_test() ->
     CSVHeader = [<<"A">>, <<"E">>, <<"C">>, <<"my_field">>],
     CSVRow    = [<<"1">>, <<"5">>, <<"3">>, <<"blip blop">>],
     FAssoc = kz_csv:associator(CSVHeader, ?FIELDS, fun verify_FIELDS_only/2),
-    ?assertEqual({ok
+    ?assertEqual({'ok'
                  ,#{<<"A">> => <<"1">>
                    ,<<"B">> => ?ZILCH
                    ,<<"C">> => <<"3">>
@@ -83,12 +83,12 @@ associator_varargs2_test_() ->
     CSVRow1 = [<<"bla">>, <<"+14157215235">>, ?ZILCH, ?ZILCH],
     CSVRow2 = [<<"6b71cb72c876b5b1396a335f8f8a2594">>, <<"+14157215234">>, ?ZILCH, <<"val1">>],
     FAssoc = kz_csv:associator(CSVHeader, Fields, fun verify_account_id_only/2),
-    [?_assertEqual({error, <<"account_id">>}, FAssoc(CSVRow1))
-    ,?_assertEqual({ok, #{<<"account_id">> => <<"6b71cb72c876b5b1396a335f8f8a2594">>
-                         ,<<"e164">> => <<"+14157215234">>
-                         ,<<"cnam.outbound">> => ?ZILCH
-                         ,<<"opaque.field1.nest1">> => <<"val1">>
-                         }
+    [?_assertEqual({'error', <<"account_id">>}, FAssoc(CSVRow1))
+    ,?_assertEqual({'ok', #{<<"account_id">> => <<"6b71cb72c876b5b1396a335f8f8a2594">>
+                           ,<<"e164">> => <<"+14157215234">>
+                           ,<<"cnam.outbound">> => ?ZILCH
+                           ,<<"opaque.field1.nest1">> => <<"val1">>
+                           }
                    }
                   ,FAssoc(CSVRow2)
                   )
@@ -268,6 +268,18 @@ parse_test_() ->
     ,?_assertEqual([?ZILCH,<<"test">>,<<"''">>,<<"foo bar">>], kz_csv:parse_row(<<",test,'',foo bar">>))
     ,?_assertEqual([?ZILCH,<<"test">>,<<>>,<<"foo bar">>], kz_csv:parse_row(<<",test,\"\",foo bar">>))
     ,?_assertEqual(MixedJSONResp, kz_csv:parse_row(MixedJSONBin))
+    ].
+
+parse_separator_test_() ->
+    [?_assertEqual([<<"0.1651">>, <<"ZAMBIA, MOBILE">>, <<"ZAMBIA, MOBILE-26094">>, <<"ZAMBIA, MOBILE">>, <<"26094">>, <<"0">>]
+                  ,kz_csv:parse_row(<<"\"0.1651\"|\"ZAMBIA, MOBILE\"|\"ZAMBIA, MOBILE-26094\"|\"ZAMBIA, MOBILE\"|\"26094\"|\"0\"">>, $|)
+                  )
+    ,?_assertEqual([<<"0.1651">>, <<"ZAMBIA, MOBILE">>, <<"ZAMBIA, MOBILE-26094">>, <<"ZAMBIA, MOBILE">>, <<"26094">>, <<"0">>]
+                  ,kz_csv:parse_row(<<"\"0.1651\"|\"ZAMBIA, MOBILE\"|\"ZAMBIA, MOBILE-26094\"|\"ZAMBIA, MOBILE\"|\"26094\"|0">>, $|)
+                  )
+    ,?_assertEqual([<<"0.1651">>, <<"ZAMBIA, MOBILE">>, <<"ZAMBIA, MOBILE-26094">>, <<"ZAMBIA, MOBILE">>, <<"26094">>, <<"0">>]
+                  ,kz_csv:parse_row(<<"0.1651|\"ZAMBIA, MOBILE\"|\"ZAMBIA, MOBILE-26094\"|\"ZAMBIA, MOBILE\"|\"26094\"|\"0\"">>, $|)
+                  )
     ].
 
 files_test_() ->
