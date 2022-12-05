@@ -157,6 +157,7 @@ build(EndpointId, AccountId, Endpoint, Options, Module) ->
               ,{<<"User-ID">>, EndpointId}
               ,{<<"Account-ID">>, AccountId}
               ,{<<"Custom-Channel-Vars">>, CCVs}
+              ,{<<"Custom-Application-Vars">>, maybe_add_default_cavs(Endpoint)}
               ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
               ,{<<"Custom-Routing-Vars">>, CRVs}
               ,{<<"Custom-SIP-Headers">>, SIPHeaders}
@@ -441,6 +442,46 @@ generate_routing_ccvs(Endpoint, _Options, Module) ->
               ,{fun routing_ccvs/3, Module, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
+
+maybe_add_default_cavs(Endpoint) ->
+    case kapps_config:get(?CONFIG_CAT, <<"default_cavs">>) of
+        'undefined' ->
+            kz_json:new();
+        CAVList ->
+            AccountId = kz_json:get_ne_binary_value(<<"pvt_auth_account_id">>, Endpoint),
+            OwnerId = kz_json:get_ne_binary_value(<<"pvt_auth_user_id">>, Endpoint),
+            UserDoc = get_user(AccountId, OwnerId),
+            build_default_cavs(CAVList, UserDoc, kz_json:new())
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Provides the user object for a given Account Id and OwnerId
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_user(kz_term:ne_binary(), kz_term:api_binary() | kz_json:object()) -> kz_json:object().
+get_user(_AccountDb, 'undefined') -> kz_json:new();
+get_user(AccountDb, OwnerId) when is_binary(OwnerId) ->
+    case kzd_users:fetch(AccountDb, OwnerId) of
+        {'ok', JObj} -> JObj;
+        {'error', _R} ->
+            lager:warning("failed to load endpoint owner ~s: ~p", [OwnerId, _R]),
+            kz_json:new()
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc generates a key-value list to add as CAVs
+%% @end
+%%------------------------------------------------------------------------------
+build_default_cavs([], _UserDoc, CAVs) ->
+    CAVs;
+
+build_default_cavs([Path| REST], UserDoc, CAVs) ->
+    case kz_json:get_value(Path, UserDoc) of
+        'undefined' -> build_default_cavs(REST, UserDoc, CAVs);
+        CAVValue ->
+            CAVKey = lists:last(Path),
+            build_default_cavs(REST, UserDoc, kz_json:set_value(<<"cav_",CAVKey/binary>>, CAVValue, CAVs))
+    end.
 
 -spec sip_auth(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_auth(Mod, Endpoint, CCVs) ->
