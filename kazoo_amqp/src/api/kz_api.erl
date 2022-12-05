@@ -62,6 +62,7 @@
 -export([error_resp/1, error_resp_v/1]).
 -export([publish_error/2, publish_error/3]).
 -export([public_fields/1]).
+-export([normalize_amqp/1, normalize_amqp/2]).
 
 %% Other AMQP API validators can use these helpers
 -export([build_message/3
@@ -83,6 +84,10 @@
              ,api_valid_values/0
              ,formatter_fun/0
              ]).
+
+-type normalize_amqp_options() :: [{'explicit_replaces', [{kz_term:ne_binary(), kz_term:ne_binary()}]}
+                                  |{'normalize_nested_keys', boolean()}
+                                  ].
 
 %%%=============================================================================
 %%% API
@@ -424,6 +429,84 @@ remove_optional_defaults(JObj) ->
                        ,Key /= ?KEY_NODE
            ],
     kz_json:delete_keys(Keys, JObj).
+
+%%------------------------------------------------------------------------------
+%% @doc Normalize a JSON object to be sent within an AMQP message. Converts
+%% Crossbar objects into AMQP objects.
+%% All underscores are replaced by dashes, and uppercase the first character of
+%% each word (separated by -/_) with a single exception, "id" should be returned
+%% as "ID".
+%%
+%% Example:
+%%  input:  `{[{<<"three_words_key">>, <<"value">>}]}'
+%%  output: `{[{<<"Three-Words-Key">>, <<"value">>}]}'
+%%
+%% NOTE: Nested objects are not normalized by default, only when
+%% 'normalize_nested_keys' option is passed and set to true.
+%% @end
+%%------------------------------------------------------------------------------
+%% {
+-spec normalize_amqp(kz_json:object()) -> kz_json:object().
+normalize_amqp(JObj) ->
+    normalize_amqp(JObj, []).
+
+%%------------------------------------------------------------------------------
+%% @doc Accepts options to change the default normalization behavior.
+%% @end
+%%------------------------------------------------------------------------------
+-spec normalize_amqp(kz_json:object(), normalize_amqp_options()) -> kz_json:object().
+normalize_amqp(JObj, Options) ->
+    kz_json:foldl(fun(K, V, Acc) -> fold_normalize_amqp(K, V, Acc, Options) end
+                 ,kz_json:new()
+                 ,JObj
+                 ).
+
+%%------------------------------------------------------------------------------
+%% @doc if Value is a (nested) JSON object and `normalize_nested_keys=true',
+%% normalize it as well, otherwise, leave it as it is.
+%% @end
+%%------------------------------------------------------------------------------
+-spec fold_normalize_amqp(kz_json:key(), kz_json:json_term(), kz_json:object(), normalize_amqp_options()) ->
+          kz_json:object().
+fold_normalize_amqp(Key, Value, Acc, Options) ->
+    NormalizedKey = normalize_amqp_key(Key, Options),
+    case kz_json:is_json_object(Value)
+        andalso props:get_is_true('normalize_nested_keys', Options, 'false')
+    of
+        'true' ->
+            kz_json:set_value(NormalizedKey, normalize_amqp(Value, Options), Acc);
+        'false' ->
+            kz_json:set_value(NormalizedKey, Value, Acc)
+    end.
+
+-spec normalize_amqp_key(kz_json:key(), normalize_amqp_options()) -> kz_json:key().
+normalize_amqp_key(Key, Options) ->
+    %% Split by "_", maybe upper case first character in every word, and join list using "-".
+    kz_binary:join([maybe_ucfirst(Word, Options)
+                    || Word <- binary:split(Key, <<"_">>, ['global']),
+                       %% Filter out empty words, e.g.: binary:split(<<"_id">>, <<"_">>) -> [<<>>, <<"id">>].
+                       Word =/= <<>>
+                   ]
+                  ,<<"-">>
+                  ).
+
+%%------------------------------------------------------------------------------
+%% @doc If explicit replace was provided for the given word, it will be used,
+%% otherwise, the first letter of the given word will be upper cased.
+%%
+%% There is an exception to this behavior, if word="id", "ID" will be returned.
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_ucfirst(kz_term:ne_binary(), normalize_amqp_options()) -> kz_json:key().
+maybe_ucfirst(<<"id">>, _Options) ->
+    %% Special case.
+    <<"ID">>;
+maybe_ucfirst(Word, Options) ->
+    case props:get_value(Word, props:get_value('explicit_replaces', Options, [])) of
+        'undefined' -> kz_binary:ucfirst(Word);
+        Explicit -> Explicit
+    end.
+%% }
 
 %%%=============================================================================
 %%% Internal functions
