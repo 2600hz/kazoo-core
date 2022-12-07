@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.limits.endpoint_channel_req",
+    "description": "AMQP API for limits.endpoint_channel_req",
+    "properties": {
+        "Account-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Direction": {
+            "enum": [
+                "inbound",
+                "outbound"
+            ],
+            "type": "string"
+        },
+        "Endpoint-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "limits"
+            ],
+            "type": "string"
+        },
+        "Event-Name": {
+            "enum": [
+                "endpoint_channel_req"
+            ],
+            "type": "string"
+        }
+    },
+    "required": [
+        "Account-ID",
+        "Endpoint-ID"
+    ],
+    "type": "object"
+}
