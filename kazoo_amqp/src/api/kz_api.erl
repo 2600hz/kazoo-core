@@ -661,7 +661,7 @@ event_zone(JObj) ->
 
 -spec zone(kz_json:object()) -> kz_term:ne_binary().
 zone(JObj) ->
-    kz_json:get_ne_binary_value(?KEY_AMQP_ZONE, JObj, kz_config:zone(binary)).
+    kz_json:get_ne_binary_value(?KEY_AMQP_ZONE, JObj, kz_config:zone('binary')).
 
 -type exec_fun_1() :: fun((kz_term:api_terms()) -> kz_term:api_terms()).
 -type exec_fun_2() :: {fun((_, kz_term:api_terms()) -> kz_term:api_terms()), _}.

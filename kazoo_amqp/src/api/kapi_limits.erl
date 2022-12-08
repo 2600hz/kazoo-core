@@ -158,7 +158,7 @@ bind_q(Queue, Props) ->
     Events = props:get_value('restrict_to', Props),
     bind(Queue, Events).
 
-bind(Q, undefined) ->
+bind(Q, 'undefined') ->
     'ok' = kz_amqp_util:bind_q_to_exchange(Q, ?ENDPOINT_CHANNEL_RK, ?EXCHANGE_NAME);
 bind(Q, ['endpoint_channel' | T]) ->
     'ok' = kz_amqp_util:bind_q_to_exchange(Q, ?ENDPOINT_CHANNEL_RK, ?EXCHANGE_NAME),
@@ -170,7 +170,7 @@ unbind_q(Queue, Props) ->
     Events = props:get_value('restrict_to', Props),
     unbind(Queue, Events).
 
-unbind(Q, undefined) ->
+unbind(Q, 'undefined') ->
     'ok' = kz_amqp_util:unbind_q_from_exchange(Q, ?ENDPOINT_CHANNEL_RK, ?EXCHANGE_NAME);
 unbind(Q, ['endpoint_channel' | T]) ->
     _ = kz_amqp_util:unbind_q_from_exchange(Q, ?ENDPOINT_CHANNEL_RK, ?EXCHANGE_NAME),

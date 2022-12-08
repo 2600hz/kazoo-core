@@ -3428,10 +3428,10 @@ find_publisher(TemplateId) ->
 binding_kapi_publisher(TemplateId) ->
     <<"kapi.publisher.", TemplateId/binary>>.
 
--spec bind_publisher(kz_term:ne_binary(), module(), atom()) -> kazoo_bindigs:bind_result().
+-spec bind_publisher(kz_term:ne_binary(), module(), atom()) -> kazoo_bindings:bind_result().
 bind_publisher(TemplateId, M, F) ->
     kazoo_bindings:bind(binding_kapi_publisher(TemplateId), M, F).
 
--spec unbind_publisher(kz_term:ne_binary(), module(), atom()) -> kazoo_bindigs:unbind_result().
+-spec unbind_publisher(kz_term:ne_binary(), module(), atom()) -> kazoo_bindings:unbind_result().
 unbind_publisher(TemplateId, M, F) ->
     kazoo_bindings:unbind(binding_kapi_publisher(TemplateId), M, F).

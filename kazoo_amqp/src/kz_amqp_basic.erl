@@ -150,62 +150,62 @@ set_headers(#'P_basic'{}=Basic, Headers) ->
     Basic#'P_basic'{headers = Headers}.
 
 -spec set_header(basic(), amqp_header()) -> basic().
-set_header(#'P_basic'{headers = undefined} = Basic, Value) ->
+set_header(#'P_basic'{headers = 'undefined'} = Basic, Value) ->
     set_header(Basic#'P_basic'{headers = []}, Value);
 set_header(#'P_basic'{headers = Headers} = Basic, {Key, _, _} = Value) ->
     Basic#'P_basic'{headers = [Value | lists:keydelete(Key, 1, Headers)]}.
 
 -spec set_longstr_header(basic(), binary(), integer()) -> basic().
 set_longstr_header(Basic, Key, Value) ->
-    set_header(Basic, {Key, longstr, Value}).
+    set_header(Basic, {Key, 'longstr', Value}).
 
 -spec set_header_signedint(basic(), binary(), integer()) -> basic().
 set_header_signedint(Basic, Key, Value) ->
-    set_header(Basic, {Key, signedint, Value}).
+    set_header(Basic, {Key, 'signedint', Value}).
 
 -spec set_header_decimal(basic(), binary(), {non_neg_integer(), non_neg_integer()}) -> basic().
 set_header_decimal(Basic, Key, Value) ->
-    set_header(Basic, {Key, decimal, Value}).
+    set_header(Basic, {Key, 'decimal', Value}).
 
 -spec set_header_table(basic(), binary(), amqp_table()) -> basic().
 set_header_table(Basic, Key, Value) ->
-    set_header(Basic, {Key, table, Value}).
+    set_header(Basic, {Key, 'table', Value}).
 
 -spec set_header_array(basic(), binary(), amqp_array()) -> basic().
 set_header_array(Basic, Key, Value) ->
-    set_header(Basic, {Key, array, Value}).
+    set_header(Basic, {Key, 'array', Value}).
 
 -spec set_header_byte(basic(), binary(), byte()) -> basic().
 set_header_byte(Basic, Key, Value) ->
-    set_header(Basic, {Key, byte, Value}).
+    set_header(Basic, {Key, 'byte', Value}).
 
 -spec set_header_double(basic(), binary(), float()) -> basic().
 set_header_double(Basic, Key, Value) ->
-    set_header(Basic, {Key, double, Value}).
+    set_header(Basic, {Key, 'double', Value}).
 
 -spec set_header_float(basic(), binary(), float()) -> basic().
 set_header_float(Basic, Key, Value) ->
-    set_header(Basic, {Key, float, Value}).
+    set_header(Basic, {Key, 'float', Value}).
 
 -spec set_header_long(basic(), binary(), integer()) -> basic().
 set_header_long(Basic, Key, Value) ->
-    set_header(Basic, {Key, long, Value}).
+    set_header(Basic, {Key, 'long', Value}).
 
 -spec set_header_short(basic(), binary(), integer()) -> basic().
 set_header_short(Basic, Key, Value) ->
-    set_header(Basic, {Key, short, Value}).
+    set_header(Basic, {Key, 'short', Value}).
 
 -spec set_header_bool(basic(), binary(), boolean()) -> basic().
 set_header_bool(Basic, Key, Value) ->
-    set_header(Basic, {Key, bool, Value}).
+    set_header(Basic, {Key, 'bool', Value}).
 
 -spec set_header_binary(basic(), binary(), binary()) -> basic().
 set_header_binary(Basic, Key, Value) ->
-    set_header(Basic, {Key, binary, Value}).
+    set_header(Basic, {Key, 'binary', Value}).
 
 -spec set_header_timestamp(basic(), binary(), non_neg_integer()) -> basic().
 set_header_timestamp(Basic, Key, Value) ->
-    set_header(Basic, {Key, timestamp, Value}).
+    set_header(Basic, {Key, 'timestamp', Value}).
 
 
 %% ====================================================================

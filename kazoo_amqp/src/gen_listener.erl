@@ -1061,7 +1061,7 @@ deliver_event(JObj, {_ , #'P_basic'{headers='undefined'}}=BasicDeliver, State) -
     distribute_event(JObj, BasicDeliver, State);
 deliver_event(JObj, {_ , Basic}=BasicDeliver, State) ->
     case kz_amqp_basic:header_value(Basic, ?KEY_AMQP_ZONE) of
-        undefined -> distribute_event(JObj, BasicDeliver, State);
+        'undefined' -> distribute_event(JObj, BasicDeliver, State);
         Zone -> distribute_event(kz_json:set_value(?KEY_AMQP_ZONE, Zone, JObj), BasicDeliver, State)
     end.
 

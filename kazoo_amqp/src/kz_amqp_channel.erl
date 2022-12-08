@@ -342,7 +342,7 @@ basic_publish(Channel
 
 -spec ensure_amqp_zone(amqp_msg()) -> amqp_msg().
 ensure_amqp_zone(#'amqp_msg'{props = Basic} = Msg) ->
-    Msg#'amqp_msg'{props = kz_amqp_basic:set_header_binary(Basic, ?KEY_AMQP_ZONE, kz_config:zone(binary))}.
+    Msg#'amqp_msg'{props = kz_amqp_basic:set_header_binary(Basic, ?KEY_AMQP_ZONE, kz_config:zone('binary'))}.
 
 -spec maybe_split_routing_key(binary()) -> {kz_term:api_pid(), binary()}.
 maybe_split_routing_key(<<"consumer://", _/binary>> = RoutingKey) ->
