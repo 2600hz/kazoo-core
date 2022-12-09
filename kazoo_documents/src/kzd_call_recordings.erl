@@ -23,6 +23,7 @@
 -export([direction/1, direction/2, set_direction/2]).
 -export([duration/1, duration/2, set_duration/2]).
 -export([duration_ms/1, duration_ms/2, set_duration_ms/2]).
+-export([endpoint_id/1, endpoint_id/2, set_endpoint_id/2]).
 -export([from/1, from/2, set_from/2]).
 -export([interaction_id/1, interaction_id/2, set_interaction_id/2]).
 -export([media_source/1, media_source/2, set_media_source/2]).
@@ -201,6 +202,18 @@ duration_ms(Doc, Default) ->
 -spec set_duration_ms(doc(), integer()) -> doc().
 set_duration_ms(Doc, DurationMs) ->
     kz_json:set_value([<<"duration_ms">>], DurationMs, Doc).
+
+-spec endpoint_id(doc()) -> kz_term:api_binary().
+endpoint_id(Doc) ->
+    endpoint_id(Doc, 'undefined').
+
+-spec endpoint_id(doc(), Default) -> binary() | Default.
+endpoint_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"endpoint_id">>], Doc, Default).
+
+-spec set_endpoint_id(doc(), binary()) -> doc().
+set_endpoint_id(Doc, EndpointId) ->
+    kz_json:set_value([<<"endpoint_id">>], EndpointId, Doc).
 
 -spec from(doc()) -> kz_term:api_binary().
 from(Doc) ->
