@@ -1,0 +1,200 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.pusher.endpoint_push_req",
+    "description": "AMQP API for pusher.endpoint_push_req",
+    "properties": {
+        "APNs": {
+            "properties": {
+                "Alert": {
+                    "properties": {
+                        "Subtitle-Key": {
+                            "type": "string"
+                        },
+                        "Subtitle-Params": {
+                            "items": {
+                                "type": "string"
+                            },
+                            "type": "array"
+                        }
+                    },
+                    "type": "object"
+                },
+                "Push-Type": {
+                    "enum": [
+                        "alert",
+                        "background",
+                        "complication",
+                        "fileprovider",
+                        "location",
+                        "mdm",
+                        "voip"
+                    ],
+                    "type": "string"
+                },
+                "Thread-ID": {
+                    "type": "string"
+                },
+                "Topic": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "Account-ID": {
+            "description": "The account of the endpoint that should receive the push notification.",
+            "minLength": 1,
+            "type": "string"
+        },
+        "Alert": {
+            "properties": {
+                "Body": {
+                    "description": "The body of the notification.",
+                    "type": "string"
+                },
+                "Body-Key": {
+                    "description": "The key for a localized notification body.",
+                    "type": "string"
+                },
+                "Body-Params": {
+                    "description": "The array of values to replace placeholders in the localized body.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "Subtitle": {
+                    "description": "The subtitle of the notification.",
+                    "type": "string"
+                },
+                "Title": {
+                    "description": "The title of the notification.",
+                    "type": "string"
+                },
+                "Title-Key": {
+                    "description": "The key for a localized notification title.",
+                    "type": "string"
+                },
+                "Title-Params": {
+                    "description": "The array of values to replace placeholders in the localized title.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            },
+            "type": "object"
+        },
+        "Badge": {
+            "description": "The value to set the home screen app icon badge to. `0` removes the badge.",
+            "type": "integer"
+        },
+        "Call-ID": {
+            "description": "(Legacy) The call ID for a call notification.",
+            "minLength": 1,
+            "type": "string"
+        },
+        "Category": {
+            "description": "The app-specific type of notification, which corresponds to a pre-registered `UNNotificationCategory` on iOS or an intent filter launched on click on Android.",
+            "type": "string"
+        },
+        "Collapse-ID": {
+            "description": "Coalesce multiple notifications matching the same ID into one.",
+            "type": "string"
+        },
+        "Content-Available": {
+            "description": "Specify `true` to deliver the notification as a silent background update on iOS.",
+            "type": "boolean"
+        },
+        "Content-Mutable": {
+            "description": "Specify `true` to allow a notification service app extension on iOS to modify the notification's content before delivery.",
+            "type": "boolean"
+        },
+        "Data": {
+            "description": "The custom data to include in the notification.",
+            "type": "object"
+        },
+        "Endpoint": {
+            "properties": {
+                "ID": {
+                    "description": "The endpoint that should receive the push notification.",
+                    "maxLength": 32,
+                    "minLength": 32,
+                    "type": "string"
+                },
+                "Type": {
+                    "description": "The type of endpoint that should receive the push notification. If `\"user\"`, all that user's devices will receive the same push notification.",
+                    "enum": [
+                        "device",
+                        "user"
+                    ],
+                    "type": "string"
+                }
+            },
+            "required": [
+                "ID",
+                "Type"
+            ],
+            "type": "object"
+        },
+        "Event-Category": {
+            "enum": [
+                "notification"
+            ],
+            "type": "string"
+        },
+        "Event-Name": {
+            "enum": [
+                "endpoint_push_req"
+            ],
+            "type": "string"
+        },
+        "FCM": {
+            "properties": {
+                "Android": {
+                    "properties": {
+                        "Channel-ID": {
+                            "description": "The pre-registered notification channel to associate the notification with.",
+                            "type": "string"
+                        },
+                        "Color": {
+                            "description": "The color, expressed in `#rrggbb` format, of the notification.",
+                            "type": "string"
+                        },
+                        "Icon": {
+                            "description": "The name of a drawable resource to use as the notification's icon.",
+                            "type": "string"
+                        },
+                        "Tag": {
+                            "description": "Replace existing notifications in the notification drawer that have the same tag.",
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                }
+            },
+            "type": "object"
+        },
+        "Priority": {
+            "description": "The priority of the notification.",
+            "enum": [
+                "high",
+                "low",
+                "normal"
+            ],
+            "type": "string"
+        },
+        "Sound": {
+            "description": "The name of a sound file to play when the device receives the notification.",
+            "type": "string"
+        },
+        "TTL": {
+            "description": "The duration (in seconds) for which notification delivery should be retried if it fails.",
+            "type": "integer"
+        }
+    },
+    "required": [
+        "Account-ID",
+        "Endpoint"
+    ],
+    "type": "object"
+}

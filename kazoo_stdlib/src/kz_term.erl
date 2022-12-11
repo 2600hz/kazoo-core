@@ -39,7 +39,7 @@
         ]).
 -export([is_true/1, is_false/1
         ,is_boolean/1
-        ,is_ne_binary/1, is_api_ne_binary/1
+        ,is_api_binary/1, is_ne_binary/1, is_api_ne_binary/1
         ,is_ne_binaries/1
         ,is_ne_binary_or_binaries/1
         ,is_empty/1, is_not_empty/1
@@ -366,7 +366,7 @@ to_list(X) when is_pid(X) -> pid_to_list(X).
 to_binary(X) when is_binary(X) -> X;
 to_binary(X) when is_float(X) -> to_binary(kz_mochinum:digits(X));
 to_binary(X) when is_integer(X) -> integer_to_binary(X);
-to_binary(X) when is_atom(X) -> atom_to_binary(X, utf8);
+to_binary(X) when is_atom(X) -> atom_to_binary(X, 'utf8');
 to_binary(X) when is_list(X) -> iolist_to_binary(X);
 to_binary(X) when is_pid(X) -> to_binary(pid_to_list(X));
 to_binary(X) ->
@@ -452,6 +452,10 @@ is_false(_) -> 'false'.
 
 -spec always_false(any()) -> 'false'.
 always_false(_) -> 'false'.
+
+-spec is_api_binary(any()) -> boolean().
+is_api_binary('undefined') -> 'true';
+is_api_binary(V) -> is_binary(V).
 
 -spec is_ne_binary(any()) -> boolean().
 is_ne_binary(V) ->

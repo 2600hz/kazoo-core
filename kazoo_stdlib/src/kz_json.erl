@@ -1576,7 +1576,7 @@ get_fields([], _, Acc) -> Acc;
 get_fields([K|Ks], JObj, Acc) ->
     get_fields(Ks, JObj, set_value(K, get_value(K, JObj), Acc)).
 
--spec get_value(get_key(), object() | objects()) -> json_term() | 'undefined'.
+-spec get_value(get_key(), object() | objects()) -> api_json_term().
 get_value(Key, JObj) ->
     get_value(Key, JObj, 'undefined').
 
