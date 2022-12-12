@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2020, 2600Hz
+%%% @copyright (C) 2014-2022, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,6 +41,7 @@ kz_attributes_test_() ->
              ,test_get_flags_trunkstore()
              ,test_process_dynamic_flags()
              ,test_account_cid()
+             ,test_owned_by_query()
              ]
      end
     }.
@@ -120,3 +121,74 @@ test_account_cid() ->
      ,?_assertEqual(<<"account-external-name">>, CIDName)
      }
     ].
+
+test_owned_by_query() ->
+    UserId = <<"user0000000000000000000000000001">>,
+    UserId2 = <<"user0000000000000000000000000002">>,
+    UserIds = [UserId, UserId2],
+    DocType = <<"device">>,
+    AccountId = ?FIXTURE_MASTER_ACCOUNT_ID,
+    AccountDb = ?FIXTURE_MASTER_ACCOUNT_DB,
+    Call = kapps_call:set_account_id(AccountId, kapps_call:new()),
+
+    OwnedIds = kz_attributes:owned_by(UserId, AccountId),
+    OwnedIdsOfType = kz_attributes:owned_by(UserId, DocType, AccountId),
+    MultiOwnedIdsOfType = kz_attributes:owned_by(UserIds, DocType, AccountId),
+    OwnedDocs = kz_attributes:owned_by_docs(UserId, AccountId),
+    OwnedDocsOfType = kz_attributes:owned_by_docs(UserId, DocType, AccountId),
+    MultiOwnedDocsOfType = kz_attributes:owned_by_docs(UserIds, DocType, AccountId),
+
+    ExpectedOwnedIds = [<<"device00000000000000000000000001">>
+                       ,<<"device00000000000000000000000002">>
+                       ,<<"vmbox01">>
+                       ],
+    ExpectedOwnedIdsOfType = [<<"device00000000000000000000000001">>],
+    ExpectedMultiOwnedIdsOfType = [<<"device00000000000000000000000001">>
+                                  ,<<"device00000000000000000000000002">>
+                                  ,<<"device00000000000000000000000003">>
+                                  ],
+
+    [{"owned ids"
+     ,[?_assertEqual([], kz_attributes:owned_by('undefined', UserId))
+      ,?_assertEqual(ExpectedOwnedIds, OwnedIds)
+      ,?_assertEqual(OwnedIds, kz_attributes:owned_by(UserId, AccountDb))
+      ,?_assertEqual(OwnedIds, kz_attributes:owned_by(UserId, Call))
+      ]
+     }
+    ,{"owned ids of type"
+     ,[?_assertEqual([], kz_attributes:owned_by('undefined', DocType, UserId))
+      ,?_assertEqual(ExpectedOwnedIdsOfType, OwnedIdsOfType)
+      ,?_assertEqual(OwnedIdsOfType, kz_attributes:owned_by(UserId, DocType, AccountDb))
+      ,?_assertEqual(OwnedIdsOfType, kz_attributes:owned_by(UserId, DocType, Call))
+      ]
+     }
+    ,{"owned ids of type for multiple owners"
+     ,[?_assertEqual(ExpectedMultiOwnedIdsOfType, MultiOwnedIdsOfType)
+      ,?_assertEqual(MultiOwnedIdsOfType, kz_attributes:owned_by(UserIds, DocType, AccountDb))
+      ,?_assertEqual(MultiOwnedIdsOfType, kz_attributes:owned_by(UserIds, DocType, Call))
+      ]
+     }
+    ,{"owned docs"
+     ,[?_assertEqual([], kz_attributes:owned_by_docs('undefined', UserId))
+      ,?_assertEqual(ExpectedOwnedIds, doc_ids(OwnedDocs))
+      ,?_assertEqual(OwnedDocs, kz_attributes:owned_by_docs(UserId, AccountDb))
+      ,?_assertEqual(OwnedDocs, kz_attributes:owned_by_docs(UserId, Call))
+      ]
+     }
+    ,{"owned docs of type"
+     ,[?_assertEqual([], kz_attributes:owned_by_docs('undefined', DocType, UserId))
+      ,?_assertEqual(ExpectedOwnedIdsOfType, doc_ids(OwnedDocsOfType))
+      ,?_assertEqual(OwnedDocsOfType, kz_attributes:owned_by_docs(UserId, DocType, AccountDb))
+      ,?_assertEqual(OwnedDocsOfType, kz_attributes:owned_by_docs(UserId, DocType, Call))
+      ]
+     }
+    ,{"owned docs of type for multiple owners"
+     ,[?_assertEqual(ExpectedMultiOwnedIdsOfType, doc_ids(MultiOwnedDocsOfType))
+      ,?_assertEqual(MultiOwnedDocsOfType, kz_attributes:owned_by_docs(UserIds, DocType, AccountDb))
+      ,?_assertEqual(MultiOwnedDocsOfType, kz_attributes:owned_by_docs(UserIds, DocType, Call))
+      ]
+     }
+    ].
+
+doc_ids(Docs) ->
+    [kz_doc:id(Doc) || Doc <- Docs].

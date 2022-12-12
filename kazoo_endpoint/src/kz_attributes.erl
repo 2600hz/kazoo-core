@@ -513,71 +513,89 @@ presence_id(Endpoint, _Call, Default) ->
     kzd_devices:calculate_presence_id(Endpoint, Default).
 
 %%------------------------------------------------------------------------------
-%% @doc
+%% @doc Fetch the IDs of all the entities owned by a user.
 %% @end
 %%------------------------------------------------------------------------------
-
--spec owned_by(kz_term:api_binary(), kapps_call:call()) -> kz_term:api_binaries().
+-spec owned_by(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call()) ->
+          kz_term:api_binaries().
 owned_by('undefined', _) -> [];
-owned_by(OwnerId, Call) ->
-    AccountDb = kapps_call:account_db(Call),
-    ViewOptions = [{'startkey', [OwnerId]}
-                  ,{'endkey', [OwnerId, kz_json:new()]}
-                  ],
-    case kz_datamgr:get_results(AccountDb, <<"attributes/owned">>, ViewOptions) of
-        {'ok', JObjs} -> [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs];
-        {'error', _R} ->
-            lager:warning("unable to find documents owned by ~s: ~p", [OwnerId, _R]),
-            []
-    end.
+owned_by(OwnerId, AccountOrCall) ->
+    owned_by_query([{'startkey', [OwnerId]}
+                   ,{'endkey', [OwnerId, kz_json:new()]}
+                   ]
+                  ,AccountOrCall
+                  ).
 
--spec owned_by(kz_term:api_binary() | kz_term:api_binaries(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_binaries().
+%%------------------------------------------------------------------------------
+%% @doc Fetch the IDs of all the entities of the specified type owned by a user.
+%% @end
+%%------------------------------------------------------------------------------
+-spec owned_by(kz_term:api_binary() | kz_term:api_binaries()
+              ,kz_term:ne_binary()
+              ,kz_term:ne_binary() | kapps_call:call()
+              ) -> kz_term:api_binaries().
 owned_by('undefined', _, _) -> [];
-owned_by([_|_]=OwnerIds, Type, Call) ->
+owned_by([_|_]=OwnerIds, Type, AccountOrCall) ->
     Keys = [[OwnerId, Type] || OwnerId <- OwnerIds],
-    owned_by_query([{'keys', Keys}], Call);
-owned_by(OwnerId, Type, Call) ->
-    owned_by_query([{'key', [OwnerId, Type]}], Call).
+    owned_by_query([{'keys', Keys}], AccountOrCall);
+owned_by(OwnerId, Type, AccountOrCall) ->
+    owned_by_query([{'key', [OwnerId, Type]}], AccountOrCall).
 
+%%------------------------------------------------------------------------------
+%% @doc Fetch the documents owned by a user.
+%% @end
+%%------------------------------------------------------------------------------
 -spec owned_by_docs(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call()) ->
           kz_term:api_objects().
 owned_by_docs('undefined', _) -> [];
-owned_by_docs(OwnerId, ?NE_BINARY=Account) ->
-    AccountDb = kzs_util:format_account_db(Account),
-    ViewOptions = [{'startkey', [OwnerId]}
-                  ,{'endkey', [OwnerId, kz_json:new()]}
-                  ,'include_docs'
-                  ],
-    case kz_datamgr:get_results(AccountDb, <<"attributes/owned">>, ViewOptions) of
-        {'ok', JObjs} -> [kz_json:get_json_value(<<"doc">>, JObj) || JObj <- JObjs];
-        {'error', _R} ->
-            lager:warning("unable to find documents owned by ~s: ~p", [OwnerId, _R]),
-            []
-    end;
-owned_by_docs(OwnerId, Call) ->
-    owned_by_docs(OwnerId, kapps_call:account_id(Call)).
+owned_by_docs(OwnerId, AccountOrCall) ->
+    owned_by_query([{'startkey', [OwnerId]}
+                   ,{'endkey', [OwnerId, kz_json:new()]}
+                   ,'include_docs'
+                   ]
+                  ,AccountOrCall
+                  ,<<"doc">>
+                  ).
 
--spec owned_by_docs(kz_term:api_binary() | kz_term:api_binaries(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_objects().
+%%------------------------------------------------------------------------------
+%% @doc Fetch the documents of the specified type owned by a user.
+%% @end
+%%------------------------------------------------------------------------------
+-spec owned_by_docs(kz_term:api_binary() | kz_term:api_binaries()
+                   ,kz_term:ne_binary()
+                   ,kz_term:ne_binary() | kapps_call:call()
+                   ) -> kz_term:api_objects().
 owned_by_docs('undefined', _, _) -> [];
-owned_by_docs([_|_]=OwnerIds, Type, Call) ->
+owned_by_docs([_|_]=OwnerIds, Type, AccountOrCall) ->
     Keys = [[OwnerId, Type] || OwnerId <- OwnerIds],
-    owned_by_query([{'keys', Keys}, 'include_docs'], Call, <<"doc">>);
-owned_by_docs(OwnerId, Type, Call) ->
-    owned_by_query([{'key', [OwnerId, Type]}, 'include_docs'], Call, <<"doc">>).
+    owned_by_query([{'keys', Keys}, 'include_docs'], AccountOrCall, <<"doc">>);
+owned_by_docs(OwnerId, Type, AccountOrCall) ->
+    owned_by_query([{'key', [OwnerId, Type]}, 'include_docs'], AccountOrCall, <<"doc">>).
 
--spec owned_by_query(list(), kapps_call:call()) -> kz_term:api_binaries() | kz_json:objects().
-owned_by_query(ViewOptions, Call) ->
-    owned_by_query(ViewOptions, Call, <<"value">>).
+%%------------------------------------------------------------------------------
+%% @doc Query for a list of owned document IDs.
+%% @end
+%%------------------------------------------------------------------------------
+-spec owned_by_query(list(), kz_term:ne_binary() | kapps_call:call()) -> kz_term:api_binaries().
+owned_by_query(ViewOptions, AccountOrCall) ->
+    owned_by_query(ViewOptions, AccountOrCall, <<"value">>).
 
--spec owned_by_query(list(), kapps_call:call(), kz_term:ne_binary()) -> kz_term:api_binaries() | kz_json:objects().
-owned_by_query(ViewOptions, Call, ViewKey) ->
-    AccountDb = kapps_call:account_db(Call),
-    case kz_datamgr:get_results(AccountDb, <<"attributes/owned">>, ViewOptions) of
+%%------------------------------------------------------------------------------
+%% @doc Query owned documents and return the data under the `ViewKey' in each
+%% result.
+%% @end
+%%------------------------------------------------------------------------------
+-spec owned_by_query(list(), kz_term:ne_binary() | kapps_call:call(), kz_term:ne_binary()) ->
+          kz_term:api_binaries() | kz_json:objects().
+owned_by_query(ViewOptions, ?NE_BINARY=Account, ViewKey) ->
+    case kz_datamgr:get_results(Account, <<"attributes/owned">>, ViewOptions) of
         {'ok', JObjs} -> [kz_json:get_value(ViewKey, JObj) || JObj <- JObjs];
         {'error', _R} ->
             lager:warning("unable to find owned documents (~p) using ~p", [_R, ViewOptions]),
             []
-    end.
+    end;
+owned_by_query(ViewOptions, Call, ViewKey) ->
+    owned_by_query(ViewOptions, kapps_call:account_id(Call), ViewKey).
 
 %%------------------------------------------------------------------------------
 %% @doc

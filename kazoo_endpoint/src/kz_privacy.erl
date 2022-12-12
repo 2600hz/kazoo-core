@@ -294,7 +294,7 @@ hide_from_uri(JObj, FromURI) ->
               ],
     hide_from_uri(JObj, FromURI, Options).
 
--spec hide_from_uri(kz_json:object(), kz_term:ne_binary(), kz_json:proplist()) -> kz_term:ne_binary().
+-spec hide_from_uri(kz_json:object(), kz_term:ne_binary(), kz_term:proplist()) -> kz_term:ne_binary().
 hide_from_uri(JObj, FromURI, Options) ->
     %% Utimately this will take apart a FromURI and put it back together in the same format as the original, regardless
     %% of the SIP validity... the reason being, the From-URI can come from external systems and might
@@ -322,7 +322,7 @@ hide_from_uri(JObj, FromURI, Options) ->
                    ],
     lists:foldl(fun fold_maybe_hide/2, FromURI, MaybeReplace).
 
--spec fold_maybe_hide({kz_term:binary(), kz_term:ne_binary(), boolean()}, kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec fold_maybe_hide({kz_term:ne_binary(), kz_term:ne_binary(), boolean()}, kz_term:ne_binary()) -> kz_term:ne_binary().
 fold_maybe_hide({Value, Replacement, 'true'}, FromURI) ->
     case kz_term:is_empty(Value) of
         'true' -> FromURI;

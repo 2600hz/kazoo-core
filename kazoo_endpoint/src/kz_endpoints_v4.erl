@@ -17,7 +17,7 @@
 -spec by_owner_id(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
           kz_endpoint:endpoints().
 by_owner_id(OwnerId, Data, Call) ->
-    by_owner_id(OwnerId, Data, Call, kz_endpoint_v4).
+    by_owner_id(OwnerId, Data, Call, 'kz_endpoint_v4').
 
 by_owner_id(OwnerId, Data, Call, Mod) ->
     lists:foldr(fun(EndpointId, Acc) ->
