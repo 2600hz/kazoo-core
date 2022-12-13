@@ -423,7 +423,8 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, Module) ->
             ],
     CCVs = kz_json:from_list(Props),
 
-    CCVFuns = [{fun endpoint_id/2, Endpoint}
+    CCVFuns = [{fun default_ccvs/2, Endpoint}
+              ,{fun endpoint_id/2, Endpoint}
               ,{fun owner_id/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
               ,{fun hold_music_options/2, Endpoint}
@@ -451,6 +452,13 @@ generate_routing_ccvs(Endpoint, _Options, Module) ->
               ,{fun routing_ccvs/3, Module, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
+
+-spec default_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
+default_ccvs(Endpoint, CCVs) ->
+    case kz_json:get_json_value(<<"default_ccvs">>, Endpoint) of
+        undefined -> CCVs;
+        DefaultCCVs -> kz_json:merge(DefaultCCVs, CCVs)
+    end.
 
 -spec sip_auth(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_auth(Mod, Endpoint, CCVs) ->
