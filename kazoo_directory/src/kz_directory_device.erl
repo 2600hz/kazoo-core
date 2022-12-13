@@ -128,6 +128,13 @@ tags(Endpoint) -> kzd_endpoint:tags(Endpoint).
 call_limit(Endpoint) ->
     kzd_call_limits:max_concurrent(kzd_endpoint:call_limits(Endpoint, kz_json:new())).
 
+-spec call_waiting(kzd_endpoint:endpoint()) -> kz_term:api_boolean().
+call_waiting(Endpoint) ->
+    case kzd_devices:call_waiting(Endpoint) of
+        undefined -> undefined;
+        CW -> kzd_call_waiting:enabled(CW)
+    end.
+
 -spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
 build(EndpointId, AccountId, Endpoint, Options, Module) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options, Module),
@@ -151,6 +158,7 @@ build(EndpointId, AccountId, Endpoint, Options, Module) ->
            ,{<<"Endpoint-DND">>, dnd(Endpoint)}
            ,{<<"Endpoint-Tag-Rules">>, tags(Endpoint)}
            ,{<<"Endpoint-Call-Limit">>, call_limit(Endpoint)}
+           ,{<<"Endpoint-Call-Waiting">>, call_waiting(Endpoint)}
            ],
     Profile = [{<<"Endpoint-Type">>, <<"device">>}
               ,{<<"Domain-Name">>, AccountId}
