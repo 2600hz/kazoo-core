@@ -152,13 +152,21 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options) ->
             ],
     CCVs = kz_json:from_list(Props),
 
-    CCVFuns = [{fun owner_id/2, Endpoint}
+    CCVFuns = [{fun default_ccvs/2, Endpoint}
+              ,{fun owner_id/2, Endpoint}
               ,{fun presence_id/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
               ,{fun hold_music_options/2, Endpoint}
               ,{fun relay_id/2, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
+
+-spec default_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
+default_ccvs(Endpoint, CCVs) ->
+    case kz_json:get_json_value(<<"default_ccvs">>, Endpoint) of
+        undefined -> CCVs;
+        DefaultCCVs -> kz_json:merge(DefaultCCVs, CCVs)
+    end.
 
 -spec presence_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 presence_id(Endpoint, CCVs) ->
