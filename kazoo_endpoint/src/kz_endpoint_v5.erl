@@ -347,6 +347,7 @@ attributes_keys() ->
     ,<<"ringtones">>
     ,<<"account_name">>
     ,<<"account_realm">>
+    ,<<"default_cavs">>
     ,?ATTR_LOWER_KEY
     ].
 
@@ -523,6 +524,8 @@ merge_attribute(<<"call_limits">> = _Key, Account, Endpoint, _Owner) ->
         _ ->
             Endpoint
     end;
+merge_attribute(<<"default_cavs">> = Key, Account, Endpoint, Owner) ->
+    merge_default_cavs(Key, Account, Endpoint, Owner);
 merge_attribute(Key, Account, Endpoint, Owner) ->
     AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
     EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
@@ -1629,3 +1632,62 @@ endpoint_owner_id(Endpoint, <<"user">>) ->
 endpoint_owner_id(Endpoint, <<"device">>) ->
     kz_json:get_ne_binary_value(<<"owner_id">>, Endpoint);
 endpoint_owner_id(_Endpoint,_) -> 'undefined'.
+
+build_default_cav(Key, Value, JObj, Acc) ->
+    case kz_json:get_value(Value, JObj) of
+        undefined -> Acc;
+        V -> kz_json:set_value(Key, V, Acc)
+    end.
+
+build_default_cav_fun(JObj) ->
+    build_default_cav_fun(JObj, []).
+
+build_default_cav_fun(JObj, Keys) ->
+    fun(Key, Value, Acc) ->
+            case kz_json:is_json_object(Value) of
+                true -> kz_json:foldl(build_default_cav_fun(JObj, Keys ++ [Key]), Acc, Value);
+                false -> build_default_cav(Keys ++ [Key], Value, JObj, Acc)
+            end
+    end.
+
+build_default_cavs(undefined, _CAVs) -> undefined;
+build_default_cavs(JObj, CAVs) ->
+    case kz_json:get_json_value(kz_doc:type(JObj), CAVs) of
+        undefined -> undefined;
+        TypeCAVs -> kz_json:foldl(build_default_cav_fun(JObj), kz_json:new(), TypeCAVs)
+    end.
+
+system_default_cavs() ->
+    case kapps_config:get_json(?CONFIG_CAT, <<"default_cavs">>) of
+        undefined -> undefined;
+        Value -> Value
+    end.
+
+account_default_cavs(undefined) ->
+    system_default_cavs();
+account_default_cavs(AccountJObj) ->
+    case kz_json:get_json_value(<<"default_cavs">>, AccountJObj) of
+        undefined -> system_default_cavs();
+        CAVs -> kz_json:merge(lists:filter(fun kz_term:is_not_empty/1, [system_default_cavs(), CAVs]))
+    end.
+
+merge_default_cavs(Key, Account, Endpoint, Owner) ->
+    merge_default_cavs(Key, Account, Endpoint, Owner, account_default_cavs(Account)).
+
+merge_default_cavs(_Key, _Account, Endpoint, _Owner, undefined) -> Endpoint;
+merge_default_cavs(Key, Account, Endpoint, Owner, CAVs) ->
+    JObjs = [Account, Endpoint, Owner],
+    JSON = merge_cavs([build_default_cavs(JObj, CAVs) || JObj <- JObjs]),
+    case kz_json:is_json_object(JSON)
+        andalso kz_json:is_not_empty(JSON)
+    of
+        true -> kz_json:set_value(Key, JSON, Endpoint);
+        false -> Endpoint
+    end.
+
+merge_cavs([]) -> undefined;
+merge_cavs(JSONs) ->
+    case lists:filter(fun kz_term:is_not_empty/1, JSONs) of
+        [] -> undefined;
+        Filtered -> kz_json:merge(Filtered)
+    end.

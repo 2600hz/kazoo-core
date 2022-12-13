@@ -140,6 +140,7 @@ build(EndpointId, AccountId, Endpoint, Options, Module) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options, Module),
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Options, Module),
     CRVs = generate_routing_ccvs(Endpoint, Options, Module),
+    CAVs = kz_json:get_json_value(<<"default_cavs">>, Endpoint),
 
     {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
     {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
@@ -165,6 +166,7 @@ build(EndpointId, AccountId, Endpoint, Options, Module) ->
               ,{<<"User-ID">>, EndpointId}
               ,{<<"Account-ID">>, AccountId}
               ,{<<"Custom-Channel-Vars">>, CCVs}
+              ,{<<"Custom-Application-Vars">>, CAVs}
               ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
               ,{<<"Custom-Routing-Vars">>, CRVs}
               ,{<<"Custom-SIP-Headers">>, SIPHeaders}
