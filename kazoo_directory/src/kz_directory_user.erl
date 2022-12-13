@@ -105,6 +105,7 @@ call_waiting(Endpoint) ->
 build(EndpointId, AccountId, Endpoint, Options) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options),
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Options),
+    CAVs = kz_json:get_json_value(<<"default_cavs">>, Endpoint),
 
     {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
     {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
@@ -130,6 +131,7 @@ build(EndpointId, AccountId, Endpoint, Options) ->
               ,{<<"User-ID">>, EndpointId}
               ,{<<"Members">>, Endpoints}
               ,{<<"Custom-Channel-Vars">>, CCVs}
+              ,{<<"Custom-Application-Vars">>, CAVs}
               ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
               ,{<<"Custom-SIP-Headers">>, SIPHeaders}
               ,{<<"CallForward">> , kz_directory_cfwd:call_forward(EndpointId, AccountId, Endpoint)}
