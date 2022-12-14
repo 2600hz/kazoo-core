@@ -126,7 +126,7 @@ tags(Endpoint) -> kzd_endpoint:tags(Endpoint).
 
 -spec call_limit(kzd_endpoint:endpoint()) -> kz_term:api_integer().
 call_limit(Endpoint) ->
-    kzd_call_limits:max_concurrent(kzd_endpoint:call_limits(Endpoint, kz_json:new())).
+    kzd_endpoint:call_limits(Endpoint).
 
 -spec call_waiting(kzd_endpoint:endpoint()) -> kz_term:api_boolean().
 call_waiting(Endpoint) ->

@@ -93,6 +93,16 @@
         ,publish_usurp_publisher/2
         ,publish_usurp_publisher/3
         ]).
+-export([count_req/1
+        ,count_req_v/1
+        ,publish_count_req/1
+        ,publish_count_req/2
+        ]).
+-export([count_resp/1
+        ,count_resp_v/1
+        ,publish_count_resp/2
+        ,publish_count_resp/3
+        ]).
 
 -export([bind_q/2, unbind_q/2]).
 -export([declare_exchanges/0]).
@@ -135,6 +145,8 @@ api_definitions() ->
     ,query_channels_resp_definition()
     ,usurp_control_definition()
     ,usurp_publisher_definition()
+    ,count_req_definition()
+    ,count_resp_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -147,6 +159,10 @@ api_definition(Name) when not is_binary(Name) ->
     api_definition(kz_term:to_binary(Name));
 api_definition(<<"event">>) ->
     event_definition();
+api_definition(<<"count_req">>) ->
+    count_req_definition();
+api_definition(<<"count_resp">>) ->
+    count_resp_definition();
 api_definition(<<"channel_status_req">>) ->
     channel_status_req_definition();
 api_definition(<<"channel_status_resp">>) ->
@@ -693,6 +709,55 @@ usurp_publisher_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+-spec count_req_definition() -> kapi_definition:api().
+count_req_definition() ->
+    EventName = <<"count_req">>,
+    Category = <<"channel">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Count Channels Req">>}
+              ,{fun kapi_definition:set_description/2, <<"Count Channels">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun count_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun count_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_count_req/1}
+              ,{fun kapi_definition:set_binding/2, fun query_routing_key/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Device-ID">>
+                                                            ,<<"Owner-ID">>
+                                                            ,<<"User-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Direction">>, [<<"inbound">>, <<"outbound">>]}
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Account-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Device-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Owner-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"User-ID">>, fun kz_term:is_ne_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec count_resp_definition() -> kapi_definition:api().
+count_resp_definition() ->
+    EventName = <<"count_resp">>,
+    Category = <<"channel">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Count Channels Resp">>}
+              ,{fun kapi_definition:set_description/2, <<"Count Channels Result">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun count_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun count_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_count_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Count">>]}
+              ,{fun kapi_definition:set_values/2, kapi_definition:event_type_headers(Category, EventName)}
+              ,{fun kapi_definition:set_types/2, [{<<"Count">>, fun kz_json:is_json_object/1}]}
+              ],
+    kapi_definition:setters(Setters).
+
 %%------------------------------------------------------------------------------
 %% @doc Format a call event from the switch for the listener.
 %% Takes {@link lz_term:proplist()}, creates JSON string or error.
@@ -1142,6 +1207,61 @@ publish_usurp_publisher(CallId, JObj, ContentType) ->
                                 ,Payload
                                 ,ContentType
                                 ).
+
+%%------------------------------------------------------------------------------
+%% @doc Inquire into the status of a call.
+%% Takes {@link lz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec count_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+count_req(Req) ->
+    kapi_definition:build_message(Req, count_req_definition()).
+
+-spec count_req_v(kz_term:api_terms()) -> boolean().
+count_req_v(Req) ->
+    kapi_definition:validate(Req, count_req_definition()).
+
+-spec publish_count_req(kz_term:api_terms()) -> 'ok'.
+publish_count_req(API) ->
+    publish_count_req(API, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_count_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_count_req(Req, ContentType) ->
+    Definition = count_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:channels_publish((kapi_definition:binding(Definition))('status_req', <<>>)
+                                 ,Payload
+                                 ,ContentType
+                                 ).
+
+%%------------------------------------------------------------------------------
+%% @doc Inquire into the status of a call.
+%% Takes {@link lz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec count_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+count_resp(Req) ->
+    kapi_definition:build_message(Req, count_resp_definition()).
+
+-spec count_resp_v(kz_term:api_terms()) -> boolean().
+count_resp_v(Req) ->
+    kapi_definition:validate(Req, count_resp_definition()).
+
+-spec publish_count_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_count_resp(RespQ, JObj) ->
+    publish_count_resp(RespQ, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_count_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_count_resp(RespQ, Resp, ContentType) ->
+    Definition = count_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Resp
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
 -spec bind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, Props) ->

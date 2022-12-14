@@ -510,21 +510,8 @@ merge_attribute(<<"outbound_flags">>, Account, Endpoint, Owner) ->
                             ,kzd_devices:outbound_dynamic_flags(Endpoint)
                             ]),
     kzd_devices:set_outbound_flags(Endpoint, Static, Dynamic);
-merge_attribute(<<"call_limits">> = _Key, Account, Endpoint, _Owner) ->
-    %% If endpoint_type=device, and assigned, ignore owner’s and account’s configuration for this
-    %% parameter. If endpoint is unassigned, use endpoint’s configuration if set, otherwise, use
-    %% account’s configuration if set.
-    EndpointAttr = kzd_endpoint:call_limits(Endpoint, kz_json:new()),
-    case kzd_call_limits:max_concurrent(EndpointAttr) of
-        'undefined' ->
-            AccountAttr = kzd_endpoint:call_limits(Account, kz_json:new()),
-            Merged = kz_json:merge_recursive([AccountAttr, EndpointAttr]
-                                            ,fun(_, V) -> not kz_term:is_empty(V) end
-                                            ),
-            kzd_endpoint:set_call_limits(Endpoint, Merged);
-        _ ->
-            Endpoint
-    end;
+merge_attribute(<<"call_limits">> = Key, Account, Endpoint, Owner) ->
+    merge_call_limits(Key, Account, Endpoint, Owner);
 merge_attribute(<<"default_cavs">> = Key, Account, Endpoint, Owner) ->
     merge_default_cavs(Key, Account, Endpoint, Owner);
 merge_attribute(<<"default_ccvs">> = Key, Account, Endpoint, Owner) ->
@@ -1728,4 +1715,56 @@ merge_default_ccvs(Key, Account, Endpoint, Owner, CCVs) ->
     of
         true -> kz_json:set_value(Key, JSON, Endpoint);
         false -> Endpoint
+    end.
+
+merge_call_limits(Key, Account, Endpoint, Owner) ->
+    merge_call_limits(Key, Account, Endpoint, Owner, account_default_call_limits(Account)).
+
+merge_call_limits(Key, Account, Endpoint, Owner, Limits) ->
+    JObjs = [Account, Endpoint | merge_owner_call_limits(kz_doc:type(Endpoint), Owner)],
+    JSON = build_call_limits(JObjs, Limits),
+    case kz_json:is_json_object(JSON)
+        andalso kz_json:is_not_empty(JSON)
+    of
+        true -> kz_json:set_value(Key, JSON, Endpoint);
+        false -> kz_json:set_value(Key, null, Endpoint)
+    end.
+
+merge_owner_call_limits(<<"user">>, _Owner) -> [];
+merge_owner_call_limits(_, Owner) -> [Owner].
+
+account_default_call_limits(undefined) -> system_default_call_limits();
+account_default_call_limits(AccountJObj) ->
+    case kz_json:get_json_value(<<"default_call_limits">>, AccountJObj) of
+        undefined -> system_default_call_limits();
+        Limits -> kz_json:merge(lists:filter(fun kz_term:is_not_empty/1, [system_default_call_limits(), Limits]))
+    end.
+
+system_default_call_limits() ->
+    kapps_config:get_json(?CONFIG_CAT, <<"default_call_limits">>, kz_json:new()).
+
+type_default_call_limits(undefined, _Limits) -> undefined;
+type_default_call_limits(JObj, DefaultLimits) ->
+    case kz_json:get_json_value(kz_doc:type(JObj), DefaultLimits) of
+        undefined -> undefined;
+        TypeLimit -> {kz_doc:type(JObj), TypeLimit}
+    end.
+
+build_call_limits(JObjs, Limits) ->
+    lists:foldl(build_call_limits_fold_fun(Limits), kz_json:new(), JObjs).
+
+build_call_limits_fold_fun(Limits) ->
+    fun(undefined, Acc) -> Acc;
+       (JObj, Acc) ->
+            case build_call_limit(JObj, Limits) of
+                undefined -> Acc;
+                {_, undefined} -> Acc;
+                {Key, Value} -> kz_json:set_value(Key, Value, Acc)
+            end
+    end.
+
+build_call_limit(JObj, Limits) ->
+    case kz_json:get_json_value(<<"call_limits">>, JObj) of
+        undefined -> type_default_call_limits(JObj, Limits);
+        TypeLimit -> {kz_doc:type(JObj), kzd_call_limits:max_concurrent(TypeLimit)}
     end.

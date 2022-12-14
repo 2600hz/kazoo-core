@@ -26,6 +26,7 @@
         ,get_sip_realm/2, get_sip_realm/3
         ,merge_call_recording/1
         ]).
+-export([channel_count/1, channel_count/2, channel_count/3]).
 
 -ifdef(TEST).
 -export([attributes_keys/0
@@ -163,3 +164,19 @@ get_sip_realm(SIPJObj, AccountId, Default) -> ?MOD:get_sip_realm(SIPJObj, Accoun
 %%------------------------------------------------------------------------------
 -spec merge_call_recording(kzd_call_recording:doc()) -> kzd_call_recording:doc().
 merge_call_recording(RecordingSettings) -> ?MOD:merge_call_recording(RecordingSettings).
+
+-spec channel_count(kapps_call:call()) -> integer().
+channel_count(Call) ->
+    maps:get(endpoint, kz_channels:count(Call), 0).
+
+-spec channel_count(kz_term:ne_binary(), kz_term:ne_binary() | kapps_call:call()) -> integer().
+channel_count(EndpointId, AccountId) when is_binary(AccountId) ->
+    maps:get(endpoint, kz_channels:count(AccountId, EndpointId), 0);
+channel_count(EndpointId, Call) ->
+    channel_count(EndpointId, kapps_call:account_id(Call)).
+
+-spec channel_count(kz_term:ne_binary(), kz_term:ne_binary() | kapps_call:call(), kz_term:api_ne_binary()) -> integer().
+channel_count(EndpointId, AccountId, Direction) when is_binary(AccountId) ->
+    maps:get(endpoint, kz_channels:count(#{account => AccountId, endpoint => EndpointId, direction => Direction}), 0);
+channel_count(EndpointId, Call, Direction) ->
+    channel_count(EndpointId, kapps_call:account_id(Call), Direction).

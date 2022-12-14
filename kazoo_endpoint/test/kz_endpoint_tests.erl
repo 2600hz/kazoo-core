@@ -29,48 +29,6 @@ call_recording_test_() ->
     ,empty_device()
     ].
 
-merge_attribute_call_limits_test_() ->
-    TestFun = fun(InAccount, InEndpoint, InOwner) ->
-                      kz_endpoint_v5:merge_attribute(<<"call_limits">>, InAccount, InEndpoint, InOwner)
-              end,
-    Value = fun(JObj) -> kzd_call_limits:max_concurrent(kzd_endpoint:call_limits(JObj)) end,
-    AccountLimit = kz_term:rand_integer(1, 10),
-    OwnerLimit = kz_term:rand_integer(1, 10),
-    EndpointLimit = kz_term:rand_integer(1, 10),
-    NotLimit = new_limited_entity(),
-    Account = new_limited_entity(AccountLimit),
-    Owner = new_limited_entity(OwnerLimit),
-    Endpoint = new_limited_entity(EndpointLimit),
-
-    [{"not configured at any level"
-     ,?_assertEqual('undefined', Value(TestFun(NotLimit, NotLimit, NotLimit)))
-     }
-    ,{"configured at account level"
-     ,?_assertEqual(AccountLimit, Value(TestFun(Account, NotLimit, NotLimit)))
-     }
-    ,{"configured at owner level"
-     ,?_assertEqual('undefined', Value(TestFun(NotLimit, NotLimit, Owner)))
-     }
-    ,{"configured at endpoint level"
-     ,?_assertEqual(EndpointLimit, Value(TestFun(NotLimit, Endpoint, NotLimit)))
-     }
-    ,{"configured at account and owner level"
-     ,?_assertEqual(AccountLimit, Value(TestFun(Account, NotLimit, Owner)))
-     }
-    ,{"configured at account and endpoint level"
-     ,?_assertEqual(EndpointLimit, Value(TestFun(Account, Endpoint, NotLimit)))
-     }
-    ,{"configured at owner and endpoint level"
-     ,?_assertEqual(EndpointLimit, Value(TestFun(NotLimit, Endpoint, Owner)))
-     }
-    ,{"configured at all levels"
-     ,?_assertEqual(EndpointLimit, Value(TestFun(Account, Endpoint, Owner)))
-     }
-    ,{"configured at all levels with the same limit"
-     ,?_assertEqual(EndpointLimit, Value(TestFun(Endpoint, Endpoint, Endpoint)))
-     }
-    ].
-
 device_on() ->
     Expectations = [{<<"account">>, <<"inbound">>, <<"offnet">>,   'false'}
                    ,{<<"account">>, <<"inbound">>, <<"onnet">>,    'false'}
@@ -270,13 +228,3 @@ all_on_object() ->
                        ]
                       ,kz_json:new()
                       ).
-
--spec new_limited_entity() -> kz_json:object().
-new_limited_entity() ->
-    new_limited_entity('undefined').
-
--spec new_limited_entity(kz_term:api_pos_integer()) -> kz_json:object().
-new_limited_entity(CallLimit) ->
-    kz_json:from_list_recursive([{<<"call_limits">>
-                                 ,[{<<"max_concurrent">>, CallLimit}]
-                                 }]).
