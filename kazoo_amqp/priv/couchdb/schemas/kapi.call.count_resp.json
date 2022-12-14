@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.call.count_resp",
+    "description": "AMQP API for call.count_resp",
+    "properties": {
+        "Count": {
+            "type": "object"
+        },
+        "Event-Category": {
+            "enum": [
+                "channel"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "count_resp"
+            ]
+        }
+    },
+    "required": [
+        "Count"
+    ],
+    "type": "object"
+}

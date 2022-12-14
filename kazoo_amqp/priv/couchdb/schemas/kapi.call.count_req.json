@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.call.count_req",
+    "description": "AMQP API for call.count_req",
+    "properties": {
+        "Account-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Device-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Direction": {
+            "enum": [
+                "inbound",
+                "outbound"
+            ]
+        },
+        "Event-Category": {
+            "enum": [
+                "channel"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "count_req"
+            ]
+        },
+        "Owner-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "User-ID": {
+            "minLength": 1,
+            "type": "string"
+        }
+    },
+    "required": [
+        "Account-ID"
+    ],
+    "type": "object"
+}
