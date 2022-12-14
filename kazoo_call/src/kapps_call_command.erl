@@ -64,7 +64,7 @@
         ]).
 -export([page/2, page/3, page/4, page/5, page/6, page/7, page/8]).
 -export([hold/1, hold/2
-        ,hold_command/1, hold_command/2
+        ,hold_command/1, hold_command/2, hold_command/3
         ,b_hold/1, b_hold/2, b_hold/3
         ,park/1
         ,park_command/1
@@ -1386,14 +1386,10 @@ hold_command(Call) ->
 
 -spec hold_command(kz_term:api_binary(), kapps_call:call() | kz_term:ne_binary()) ->
           kz_json:object().
-hold_command(MOH, <<CallId/binary>>) ->
-    hold_command(MOH, 'undefined', CallId);
 hold_command(MOH, Call) ->
-    hold_command(kz_media_util:media_path(MOH, kapps_call:account_id(Call))
-                ,kapps_call:call_id_direct(Call)
-                ).
+    hold_command(MOH, 'undefined', Call).
 
--spec hold_command(kz_term:api_binary(), kz_term:api_ne_binaries(), kz_term:ne_binary()) -> kz_json:object().
+-spec hold_command(kz_term:api_binary(), kz_term:api_ne_binaries(), kapps_call:call() | kz_term:ne_binary()) -> kz_json:object().
 hold_command(MOH, MOHOptions, <<CallId/binary>>) ->
     kz_json:from_list(
       [{<<"Application-Name">>, <<"hold">>}
@@ -1401,7 +1397,12 @@ hold_command(MOH, MOHOptions, <<CallId/binary>>) ->
       ,{<<"Hold-Media">>, MOH}
       ,{<<"Hold-Media-Options">>, MOHOptions}
       ,{<<"Call-ID">>, CallId}
-      ]).
+      ]);
+hold_command(MOH, MOHOptions, Call) ->
+    hold_command(kz_media_util:media_path(MOH, kapps_call:account_id(Call))
+                ,MOHOptions
+                ,kapps_call:call_id_direct(Call)
+                ).
 
 -spec b_hold(kapps_call:call()) ->
           kapps_api_std_return().
