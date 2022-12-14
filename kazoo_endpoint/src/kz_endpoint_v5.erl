@@ -1648,13 +1648,9 @@ build_default_cavs(JObj, CAVs) ->
     end.
 
 system_default_cavs() ->
-    case kapps_config:get_json(?CONFIG_CAT, <<"default_cavs">>) of
-        undefined -> undefined;
-        Value -> Value
-    end.
+    kapps_config:get_json(?CONFIG_CAT, <<"default_cavs">>).
 
-account_default_cavs(undefined) ->
-    system_default_cavs();
+account_default_cavs(undefined) -> system_default_cavs();
 account_default_cavs(AccountJObj) ->
     case kz_json:get_json_value(<<"default_cavs">>, AccountJObj) of
         undefined -> system_default_cavs();
