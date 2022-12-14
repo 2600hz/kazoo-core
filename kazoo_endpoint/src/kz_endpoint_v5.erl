@@ -1686,10 +1686,7 @@ build_default_ccvs(JObj, CCVs) ->
     end.
 
 system_default_ccvs() ->
-    case kapps_config:get_json(?CONFIG_CAT, <<"default_ccvs">>) of
-        undefined -> undefined;
-        Value -> Value
-    end.
+    kapps_config:get_json(?CONFIG_CAT, <<"default_ccvs">>).
 
 account_default_ccvs(undefined) -> system_default_ccvs();
 account_default_ccvs(AccountJObj) ->
