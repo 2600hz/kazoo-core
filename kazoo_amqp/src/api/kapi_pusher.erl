@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2022, 2600Hz
+%%% @copyright (C) 2013-2023, 2600Hz
 %%% @doc
 %%% @author Luis Azedo
 %%%
@@ -18,6 +18,11 @@
         ,publish_endpoint_push_req/1
         ,publish_endpoint_push_req/2
         ]).
+-export([endpoint_push_resp/1
+        ,endpoint_push_resp_v/1
+        ,publish_endpoint_push_resp/2
+        ,publish_endpoint_push_resp/3
+        ]).
 -export([push_req/1, push_req_v/1]).
 -export([push_resp/1, push_resp_v/1]).
 -export([publish_push_req/1, publish_push_req/2]).
@@ -33,7 +38,8 @@
 -define(PUSH_EXCHANGE, <<"pushes">>).
 -define(PUSH_EVENT_CATEGORY, <<"notification">>).
 
--define(ENDPOINT_PUSH_EVENT_NAME, <<"endpoint_push_req">>).
+-define(ENDPOINT_PUSH_REQ_EVENT_NAME, <<"endpoint_push_req">>).
+-define(ENDPOINT_PUSH_RESP_EVENT_NAME, <<"endpoint_push_resp">>).
 -define(ENDPOINT_PUSH_BINDING, <<"notification.endpoint_push">>).
 
 -type binding_restrictions() :: ['endpoint_push' | 'push'] | 'undefined'.
@@ -44,7 +50,9 @@
 %%------------------------------------------------------------------------------
 -spec api_definitions() -> kapi_definition:apis().
 api_definitions() ->
-    [endpoint_push_req_definition()].
+    [endpoint_push_req_definition()
+    ,endpoint_push_resp_definition()
+    ].
 
 %%------------------------------------------------------------------------------
 %% @doc Get API definition of the given `Name'.
@@ -54,8 +62,10 @@ api_definitions() ->
 -spec api_definition(kz_term:text()) -> kapi_definition:api().
 api_definition(Name) when not is_binary(Name) ->
     api_definition(kz_term:to_binary(Name));
-api_definition(?ENDPOINT_PUSH_EVENT_NAME) ->
-    endpoint_push_req_definition().
+api_definition(?ENDPOINT_PUSH_REQ_EVENT_NAME) ->
+    endpoint_push_req_definition();
+api_definition(?ENDPOINT_PUSH_RESP_EVENT_NAME) ->
+    endpoint_push_resp_definition().
 
 %%------------------------------------------------------------------------------
 %% @doc Create the `kapi' definition for an `endpoint_push_req'.
@@ -63,7 +73,7 @@ api_definition(?ENDPOINT_PUSH_EVENT_NAME) ->
 %%------------------------------------------------------------------------------
 -spec endpoint_push_req_definition() -> kapi_definition:api().
 endpoint_push_req_definition() ->
-    EventName = ?ENDPOINT_PUSH_EVENT_NAME,
+    EventName = ?ENDPOINT_PUSH_REQ_EVENT_NAME,
     Category = ?PUSH_EVENT_CATEGORY,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Endpoint Push Req">>}
@@ -111,7 +121,38 @@ endpoint_push_req_definition() ->
                 ,{<<"Endpoint">>, fun is_endpoint/1}
                 ,{<<"FCM">>, fun is_fcm_payload/1}
                 ,{<<"Sound">>, fun is_binary/1}
-                ,{<<"TTL">>, fun is_integer/1}
+                ,{<<"TTL">>, fun is_ttl/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+%%------------------------------------------------------------------------------
+%% @doc Create the `kapi' definition for an `endpoint_push_resp'.
+%% @end
+%%------------------------------------------------------------------------------
+-spec endpoint_push_resp_definition() -> kapi_definition:api().
+endpoint_push_resp_definition() ->
+    EventName = ?ENDPOINT_PUSH_RESP_EVENT_NAME,
+    Category = ?PUSH_EVENT_CATEGORY,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Endpoint Push Resp">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"Respond with the status of sending a push notification to a device or a user's devices">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun endpoint_push_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun endpoint_push_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_endpoint_push_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Overall-Status">>
+                                                            ,<<"Results">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Overall-Status">>, fun kz_term:is_pos_integer/1}
+                ,{<<"Results">>, fun is_endpoint_push_results/1}
                 ]
                }
               ],
@@ -219,6 +260,35 @@ is_maybe_fcm_android_payload(Term) ->
                    ]).
 
 %%------------------------------------------------------------------------------
+%% @doc Validate that `Term' is a valid time-to-live (in seconds) during which
+%% delivery of the push notification can be retried. FCM has an upper limit of
+%% 4 weeks.
+%% @end
+%%------------------------------------------------------------------------------
+-spec is_ttl(kz_json:json_term()) -> boolean().
+is_ttl(Term) ->
+    is_integer(Term)
+        andalso Term >= 0
+        andalso Term =< 2419200.
+
+%%------------------------------------------------------------------------------
+%% @doc Validate that `Term' is a valid list of results from push notification
+%% attempts.
+%% @end
+%%------------------------------------------------------------------------------
+-spec is_endpoint_push_results(kz_json:json_term()) -> boolean().
+is_endpoint_push_results(Results) when is_list(Results) ->
+    lists:all(fun is_endpoint_push_result/1, Results);
+is_endpoint_push_results(_) -> 'false'.
+
+-spec is_endpoint_push_result(kz_json:json_term()) -> boolean().
+is_endpoint_push_result(Result) ->
+    validate(Result, [{<<"Device-ID">>, fun is_endpoint_id/1}
+                     ,{<<"Status">>, fun kz_term:is_pos_integer/1}
+                     ,{<<"Message">>, fun is_binary/1}
+                     ]).
+
+%%------------------------------------------------------------------------------
 %% @doc Build an `endpoint_push_req'.
 %% @end
 %%------------------------------------------------------------------------------
@@ -254,6 +324,39 @@ publish_endpoint_push_req(Req, ContentType) ->
                               ,Payload
                               ,ContentType
                               ).
+
+%%------------------------------------------------------------------------------
+%% @doc Build an `endpoint_push_resp'.
+%% @end
+%%------------------------------------------------------------------------------
+-spec endpoint_push_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+endpoint_push_resp(Req) ->
+    kapi_definition:build_message(Req, endpoint_push_resp_definition()).
+
+%%------------------------------------------------------------------------------
+%% @doc Validate that `Req' is an `endpoint_push_resp'.
+%% @end
+%%------------------------------------------------------------------------------
+-spec endpoint_push_resp_v(kz_term:api_terms()) -> boolean().
+endpoint_push_resp_v(Req) ->
+    kapi_definition:validate(Req, endpoint_push_resp_definition()).
+
+%%------------------------------------------------------------------------------
+%% @doc Publish an `endpoint_push_resp'.
+%% @end
+%%------------------------------------------------------------------------------
+-spec publish_endpoint_push_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_endpoint_push_resp(RespQ, API) ->
+    publish_endpoint_push_resp(RespQ, API, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_endpoint_push_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_endpoint_push_resp(RespQ, Req, ContentType) ->
+    Definition = endpoint_push_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
 -define(PUSH_REQ_HEADERS, [<<"Token-ID">>
                           ,<<"Token-Type">>
@@ -391,6 +494,7 @@ unbind_q(_Queue, _Type, _Token, []) -> 'ok'.
 
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->
+    kz_amqp_util:targeted_exchange(),
     kz_amqp_util:new_exchange(?PUSH_EXCHANGE, <<"topic">>).
 
 %%------------------------------------------------------------------------------

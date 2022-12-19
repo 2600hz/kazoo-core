@@ -1,0 +1,60 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.pusher.endpoint_push_resp",
+    "description": "AMQP API for pusher.endpoint_push_resp",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "notification"
+            ],
+            "type": "string"
+        },
+        "Event-Name": {
+            "enum": [
+                "endpoint_push_resp"
+            ],
+            "type": "string"
+        },
+        "Overall-Status": {
+            "description": "The HTTP response code reflecting the overall status of all the push notification attempts.",
+            "minimum": 1,
+            "type": "integer"
+        },
+        "Results": {
+            "items": {
+                "properties": {
+                    "Device-ID": {
+                        "description": "The endpoint that the push notification was being sent to.",
+                        "maxLength": 32,
+                        "minLength": 32,
+                        "type": "string"
+                    },
+                    "Error": {
+                        "description": "A more detailed description of the error result.",
+                        "type": "string"
+                    },
+                    "Message": {
+                        "description": "A summary description of the result.",
+                        "type": "string"
+                    },
+                    "Status": {
+                        "description": "The HTTP response code reflecting the status of the push notification attempt.",
+                        "minimum": 1,
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "Device-ID",
+                    "Message",
+                    "Status"
+                ]
+            },
+            "type": "array"
+        }
+    },
+    "required": [
+        "Overall-Status",
+        "Results"
+    ],
+    "type": "object"
+}
