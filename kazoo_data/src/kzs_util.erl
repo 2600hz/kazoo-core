@@ -105,6 +105,10 @@ db_classification(?MATCH_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month)) -> 'mo
 db_classification(?MATCH_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month)) -> 'modb';%   "account..." then the
 db_classification(?MATCH_MODB_SUFFIX_encoded(_A,_B,_Rest,_Year,_Month)) -> 'modb';%   right size.
 db_classification(?MATCH_MODB_SUFFIX_RAW(_Account,_Year,_Month)) -> 'modb';%   right size.
+db_classification(?MATCH_TYPE_MODB_SUFFIX_RAW(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_encoded(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
 db_classification(?MATCH_YODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year)) -> 'yodb';% these only need to match
 db_classification(?MATCH_YODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year)) -> 'yodb';%   "account..." then the
 db_classification(?MATCH_YODB_SUFFIX_encoded(_A,_B,_Rest,_Year)) -> 'yodb';%   right size.
@@ -386,8 +390,9 @@ raw_account_modb(?MATCH_MODB_SUFFIX_RAW(_, _, _) = AccountId) ->
 raw_account_modb(?MATCH_MODB_SUFFIX_ENCODED(A, B, Rest, Year, Month)) ->
     ?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month);
 raw_account_modb(?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month)) ->
-    ?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month).
-
+    ?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month);
+raw_account_modb(?MATCH_TYPE_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month, Any)) ->
+    ?MATCH_TYPE_MODB_SUFFIX_RAW(A, B, Rest, Year, Month, Any).
 %%------------------------------------------------------------------------------
 %% `(yodb()) -> yodb_id() when yodb() :: yodb_id() | yodb_db() | yodb_db_unencoded()'
 %% Crashes if given anything else.
@@ -560,11 +565,18 @@ format_account_yodb(AccountId) ->
 format_account_modb(AccountId, 'raw') ->
     raw_account_modb(AccountId);
 format_account_modb(AccountId, 'unencoded') ->
-    ?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month) = raw_account_modb(AccountId),
-    ?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month);
+    format_account_raw_modb(raw_account_modb(AccountId), 'unencoded');
 format_account_modb(AccountId, 'encoded') ->
-    ?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month) = raw_account_modb(AccountId),
-    ?MATCH_MODB_SUFFIX_ENCODED(A, B, Rest, Year, Month).
+    format_account_raw_modb(raw_account_modb(AccountId), 'encoded').
+
+format_account_raw_modb(?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month), 'unencoded') ->
+    ?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month);
+format_account_raw_modb(?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month), 'encoded') ->
+    ?MATCH_MODB_SUFFIX_ENCODED(A, B, Rest, Year, Month);
+format_account_raw_modb(?MATCH_TYPE_MODB_SUFFIX_RAW(A, B, Rest, Year, Month, Any), 'unencoded') ->
+    ?MATCH_TYPE_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month, Any);
+format_account_raw_modb(?MATCH_TYPE_MODB_SUFFIX_RAW(A, B, Rest, Year, Month, Any), 'encoded') ->
+    ?MATCH_TYPE_MODB_SUFFIX_ENCODED(A, B, Rest, Year, Month, Any).
 
 %%------------------------------------------------------------------------------
 %% @doc Given a representation of an YODb, returns the YODb in the specified format.

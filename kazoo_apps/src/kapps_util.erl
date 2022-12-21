@@ -25,6 +25,8 @@
         ,get_all_account_yods/1
         ,get_account_mods/1
         ,get_account_mods/2
+        ,get_all_account_type_mods/1
+        ,get_all_account_type_mods/2
         ,get_account_yods/1
         ,get_account_yods/2
         ]).
@@ -343,6 +345,21 @@ get_account_mods(Account, Encoding) ->
         is_matched_account_mod(Encoding, MOD, AccountId)
     ].
 
+-spec get_all_account_type_mods(kz_term:ne_binary()) -> kz_term:ne_binaries().
+get_all_account_type_mods(Account) ->
+    get_all_account_type_mods(Account, ?REPLICATE_ENCODING).
+
+-spec get_all_account_type_mods(kz_term:ne_binary(), kzs_util:account_format()) -> kz_term:ne_binaries().
+get_all_account_type_mods(Account, Encoding) ->
+    AccountId = kzs_util:format_account_id(Account, Encoding),
+    {'ok', Databases} = kz_datamgr:db_info(),
+    [kzs_util:format_account_modb(Db, Encoding)
+     || Db <- Databases,
+        kzs_util:is_account_mod(Db)
+            orelse kzs_util:db_classification(Db) =:= 'type_modb',
+        is_matched_account_mod(Encoding, Db, AccountId)
+    ].
+
 -spec get_account_yods(kz_term:ne_binary()) -> kz_term:ne_binaries().
 get_account_yods(Account) ->
     get_account_yods(Account, ?REPLICATE_ENCODING).
@@ -371,6 +388,11 @@ is_matched_account_mod('encoded'
 is_matched_account_mod('raw'
                       ,?MATCH_MODB_SUFFIX_RAW(A, B, Rest, _, _)
                       ,?MATCH_ACCOUNT_RAW(A, B, Rest)
+                      ) ->
+    'true';
+is_matched_account_mod('encoded'
+                      ,?MATCH_TYPE_MODB_SUFFIX_UNENCODED(A, B, Rest, _, _, _)
+                      ,?MATCH_ACCOUNT_ENCODED(A, B, Rest)
                       ) ->
     'true';
 is_matched_account_mod(_, _, _) ->
