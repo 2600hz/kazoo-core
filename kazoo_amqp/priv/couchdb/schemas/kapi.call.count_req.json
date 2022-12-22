@@ -15,7 +15,12 @@
             "enum": [
                 "inbound",
                 "outbound"
-            ]
+            ],
+            "type": "string"
+        },
+        "Endpoint-ID": {
+            "minLength": 1,
+            "type": "string"
         },
         "Event-Category": {
             "enum": [

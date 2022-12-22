@@ -725,6 +725,8 @@ count_req_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, [<<"Device-ID">>
                                                             ,<<"Owner-ID">>
                                                             ,<<"User-ID">>
+                                                            ,<<"Endpoint-ID">>
+                                                            ,<<"Direction">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Direction">>, [<<"inbound">>, <<"outbound">>]}
@@ -736,6 +738,7 @@ count_req_definition() ->
                 ,{<<"Device-ID">>, fun kz_term:is_ne_binary/1}
                 ,{<<"Owner-ID">>, fun kz_term:is_ne_binary/1}
                 ,{<<"User-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Endpoint-ID">>, fun kz_term:is_ne_binary/1}
                 ]
                }
               ],
