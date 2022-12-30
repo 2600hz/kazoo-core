@@ -371,6 +371,7 @@
                 "      defaultValue.post_call_extension_time = doc.post_call_extension_time;",
                 "      defaultValue.type_screenpops = doc.type_screenpops;",
                 "      defaultValue.show_location_call_time = doc.show_location_call_time;",
+                "      defaultValue.permissions = doc.permissions;",
                 "      break;",
                 "    case 'service_plan':",
                 "      /* service_plans/crossbar_listing */",
