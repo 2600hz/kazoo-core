@@ -1,9 +1,10 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc Store routing keys/pid bindings. When a binding is fired,
 %%% pass the payload to the pid for evaluation, accumulating
 %%% the results for the response to the running process.
 %%%
+%%% ```
 %%% foo.erl -> bind("module.init").
 %%% *** Later ***
 %%% module.erl
@@ -12,6 +13,7 @@
 %%%                receive -> Resp
 %%%   init() <- [Resp]
 %%%   init() -> Decides what to do with responses
+%%% '''
 %%%
 %%% @author James Aimonetti
 %%% @author Karl Anderson

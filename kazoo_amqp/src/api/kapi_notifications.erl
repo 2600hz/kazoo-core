@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc Notification messages, like voicemail left.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -3419,11 +3419,18 @@ publish_number_feature_manual_action(API, ContentType) ->
 find_publisher(TemplateId) ->
     [PubFun
      || PubFun <- kazoo_bindings:map(binding_kapi_publisher(TemplateId), [TemplateId]),
-        (is_tuple(PubFun)
-         andalso erlang:tuple_size(PubFun) =:= 2
-        )
-            orelse is_function(PubFun, 1)
+        is_callable(PubFun)
     ].
+
+-spec is_callable({module(), atom()} | fun((kz_term:api_terms()) -> 'ok') | any()) -> boolean().
+is_callable({Module, Function})
+  when is_atom(Module)
+       andalso is_function(Function, 1) ->
+    kz_module:is_exported(Module, Function, 1);
+is_callable(Function) when is_function(Function, 1) ->
+    'true';
+is_callable(_) ->
+    'false'.
 
 binding_kapi_publisher(TemplateId) ->
     <<"kapi.publisher.", TemplateId/binary>>.

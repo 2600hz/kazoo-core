@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc data plan
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -46,6 +46,15 @@
 -define(KZS_PLAN_INIT_VIEW, <<"storage/accounts">>).
 -define(KZS_PLAN_ACCOUNT_VIEW, <<"storage/storage_by_account">>).
 
+-type dataplan() :: #{tag := kz_term:ne_binary()
+                     ,server := server() | map() | {atom(), kz_data:connection()}
+                     ,others => [{kz_term:ne_binary(), server() | map()}]
+                     ,classification => atom()
+                     ,account_id => kz_term:ne_binary()
+                     }.
+
+-export_type([dataplan/0]).
+
 -spec should_allow_validation_overrides() -> boolean().
 should_allow_validation_overrides() ->
     kapps_config:get_boolean(?KZ_DATA_DB, <<"allow_validation_overrides">>, 'false').
@@ -60,11 +69,11 @@ disallow_validation_overrides() ->
     {'ok', _} = kapps_config:set_default(?KZ_DATA_DB, <<"allow_validation_overrides">>, 'false'),
     'false'.
 
--spec plan() -> map().
+-spec plan() -> dataplan().
 plan() ->
     system_dataplan().
 
--spec plan(kz_term:ne_binary()) -> map().
+-spec plan(kz_term:ne_binary()) -> dataplan().
 plan(DBName) ->
     get_dataplan(DBName).
 
@@ -107,7 +116,7 @@ get_dataplan(DBName) ->
         Else -> system_dataplan(Database, Else)
     end.
 
--spec get_dataplan(kz_term:ne_binary(), kz_term:api_ne_binary()) -> map().
+-spec get_dataplan(kz_term:ne_binary(), kz_term:api_ne_binary()) -> dataplan().
 get_dataplan(DBName, 'undefined') ->
     get_dataplan(DBName);
 get_dataplan(DBName, DocType) ->
@@ -133,7 +142,7 @@ get_dataplan(DBName, DocType, DocOwner) ->
         Else -> system_dataplan(Database, Else)
     end.
 
--spec system_dataplan() -> map().
+-spec system_dataplan() -> dataplan().
 system_dataplan() ->
     #{<<"connections_map">> := Connections} = ?CACHED_SYSTEM_DATAPLAN,
     SysTag = <<"local">>,

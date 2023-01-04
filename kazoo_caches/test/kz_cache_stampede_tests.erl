@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -70,7 +70,7 @@ init() ->
 %% No appreciable difference
 %%
 %% Interestingly, if you remove the timer:sleep() from the beginning of the
-%% `stampede_worker` function, DB_WRITE_TIME can be quite large and all workers
+%% `stampede_worker' function, DB_WRITE_TIME can be quite large and all workers
 %% succeed. Introducing that variability sends the world into chaos.
 %%
 %% Given the above table, and since most DB fetches are ~100-150ms, setting the

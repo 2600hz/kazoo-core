@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2022, 2600Hz
+%%% @copyright (C) 2023, 2600Hz
 %%% @doc Implements KAZOO style as an elvis rules module. This is used by the
 %%% elvis config to check some styles that are not build in by default.
 %%% @end

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,7 +14,7 @@
 -export([extract/0]).
 
 -define(MEMBERSHIP_DOC, <<"_membership">>).
--define(MEMBERSHIP_DB, <<"">>).
+-define(MEMBERSHIP_DB, <<>>).
 
 %%------------------------------------------------------------------------------
 %% @doc gen_extractor callback
@@ -28,7 +28,7 @@ extract() ->
 %% @doc dataplan and normalize servers for summary generation
 %% @end
 %%------------------------------------------------------------------------------
--spec resolve_database_topology(map()) -> kz_json:objects().
+-spec resolve_database_topology(kzs_plan:dataplan()) -> kz_json:objects().
 resolve_database_topology(Plan) ->
     Clusters = maybe_extract_servers(Plan),
     maybe_resolve_clusters(Clusters, []).
@@ -37,7 +37,7 @@ resolve_database_topology(Plan) ->
 %% @doc extract server maps into a list
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_extract_servers(map()) -> [map()].
+-spec maybe_extract_servers(kzs_plan:dataplan()) -> [kzs_plan:dataplan()].
 maybe_extract_servers(#{'server' := _Server, 'others' := Others}=Plan) ->
     Others0 = [S || {_Tag, S} <- Others],
     [Plan | Others0].
@@ -46,7 +46,7 @@ maybe_extract_servers(#{'server' := _Server, 'others' := Others}=Plan) ->
 %% @doc maybe generate a summary for each server in the plan
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_resolve_clusters([map()], kz_json:objects()) -> kz_json:objects().
+-spec maybe_resolve_clusters([kzs_plan:dataplan()], kz_json:objects()) -> kz_json:objects().
 maybe_resolve_clusters(Servers, Acc) ->
     lists:foldl(fun generate_cluster_summary/2, Acc, Servers).
 
@@ -54,7 +54,7 @@ maybe_resolve_clusters(Servers, Acc) ->
 %% @doc generates a summary for a given server map
 %% @end
 %%------------------------------------------------------------------------------
--spec generate_cluster_summary(map(), kz_json:objects()) -> kz_json:objects().
+-spec generate_cluster_summary(kzs_plan:dataplan(), kz_json:objects()) -> kz_json:objects().
 generate_cluster_summary(#{'server' := {_App, Conn}}=Server, Acc) ->
     Summary = resolve_nodes(Server),
     JObj = kz_json:from_list([{server_tag(Conn), Summary}]),
@@ -66,15 +66,15 @@ generate_cluster_summary(#{'server' := {_App, Conn}}=Server, Acc) ->
 %%------------------------------------------------------------------------------
 -spec server_tag({'server', kz_term:ne_binary(), kz_term:proplist()}) -> kz_term:ne_binary().
 server_tag({'server', _, Props}) ->
-    proplists:get_value('tag', Props).
+    props:get_value('tag', Props).
 
 %%------------------------------------------------------------------------------
 %% @doc extract all_node and cluster_nodes values from cluster metadata
 %% @end
 %%------------------------------------------------------------------------------
--spec resolve_nodes(map()) -> kz_json:object().
-resolve_nodes(#{'server' := {'kazoo_couch'=App, Conn}}=Server) ->
-    {'ok', Nodes} = App:open_doc(Conn, ?MEMBERSHIP_DB, ?MEMBERSHIP_DOC, []),
+-spec resolve_nodes(kzs_plan:dataplan()) -> kz_json:object().
+resolve_nodes(#{'server' := {'kazoo_couch', Conn}}=Server) ->
+    Nodes = kazoo_couch:membership(Conn),
     kz_json:from_list([{<<"all_nodes">>, kz_json:get_value(<<"all_nodes">>, Nodes)}
                       ,{<<"cluster_nodes">>, kz_json:get_value(<<"cluster_nodes">>, Nodes)}
                       ,{<<"version">>, resolve_version(Server)}
@@ -85,6 +85,6 @@ resolve_nodes(#{'server' := {'kazoo_couch'=App, Conn}}=Server) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec resolve_version(map()) -> kz_term:ne_binary().
-resolve_version(#{'server' := {'kazoo_couch'=App, Conn}}) ->
-    {'ok', ServerInfo} = App:server_info(Conn),
+resolve_version(#{'server' := {'kazoo_couch', Conn}}) ->
+    {'ok', ServerInfo} = kazoo_couch:server_info(Conn),
     kz_json:get_value(<<"version">>, ServerInfo).

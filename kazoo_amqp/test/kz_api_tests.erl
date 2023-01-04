@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @Copyright (C) 2010-2015, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc Kazoo API Tests
 %%% @author James Aimonetti
 %%% @author Karl Anderson

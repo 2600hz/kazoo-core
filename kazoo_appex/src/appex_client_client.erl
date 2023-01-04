@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc HTTP client for the app exchange
 %%% 1. Fetches the listing of available apps for the cluster
 %%% 2. Loads the app when requested via kapps_controller
@@ -370,8 +370,8 @@ maybe_redirect({'redirect', LocationUrl}, #{app_name := AppName}=FetchParams) ->
             lager:error("failed to query for ~s: ~p", [AppName, _Reason]),
             Error
     end;
-maybe_redirect(Other, _) ->
-    Other.
+maybe_redirect({'ok', _}=OK, _) ->
+    OK.
 
 %%%=============================================================================
 %%% Fetch License Functions

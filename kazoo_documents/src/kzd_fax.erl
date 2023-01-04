@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2021, 2600Hz
+%%% @copyright (C) 2014-2023, 2600Hz
 %%% @doc Fax document manipulation
 %%% @author Luis Azedo
 %%% This Source Code Form is subject to the terms of the Mozilla Public

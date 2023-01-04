@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc A Number Manager module for carrier: VoIPInnovations.com
 %%% @author Pierre Fenoll, Joe Black
 %%% This Source Code Form is subject to the terms of the Mozilla Public

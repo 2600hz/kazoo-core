@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2020, 2600Hz
+%%% @copyright (C) 2013-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@
 -module(kapi_route_tests).
 
 -include_lib("eunit/include/eunit.hrl").
--include("src/api/kapi_route.hrl"). %% ?KEY_ROUTE_REQ
+-include_lib("kazoo_amqp/src/api/kapi_route.hrl"). %% ?KEY_ROUTE_REQ
 
 get_route_req_account_routing_test_() ->
     Test = fun kapi_route:get_route_req_account_routing/2,
