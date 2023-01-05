@@ -24,9 +24,9 @@ cmd_vars_test_() ->
                   )
     ].
 cmd_stream_test_() ->
-    [?_assertMatch({'ok', <<"hello">>}, kz_os:cmd(<<"echo -n hello">>, [], [{<<"read_mode">>, stream}]))].
+    [?_assertMatch({'ok', <<"hello">>}, kz_os:cmd(<<"echo -n hello">>, [], [{<<"read_mode">>, 'stream'}]))].
 cmd_stream_newline_test_() ->
-    [?_assertMatch({'ok', <<"hello\n">>}, kz_os:cmd(<<"echo hello">>, [], [{<<"read_mode">>, stream}]))].
+    [?_assertMatch({'ok', <<"hello\n">>}, kz_os:cmd(<<"echo hello">>, [], [{<<"read_mode">>, 'stream'}]))].
 cmd_timeout_test_() ->
     [?_assertMatch({'error', 'timeout', _}, kz_os:cmd(<<"tail -f /dev/null">>
                                                      ,[{<<"var">>, <<"hello">>}]

@@ -199,7 +199,7 @@ maybe_kill_cmd(Port) ->
         {'os_pid', OsPid} -> kill(OsPid);
         _ -> 'ok'
     catch
-        _ -> 'ok'
+        _:_ -> 'ok'
     end.
 
 -spec kill(integer()) -> 'ok'.

@@ -24,6 +24,12 @@
         ]).
 -export([redactor/1]).
 
+-elvis([{elvis_style, no_debug_call, disable}]).
+
+-ifdef(TEST).
+-export([restart_check/0]).
+-endif.
+
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_amqp/include/kz_api_literals.hrl").
@@ -71,7 +77,7 @@
 change_sink_level(<<SinkHandler/binary>>, Level) ->
     Sink = kz_term:to_atom(<<SinkHandler/binary, "_lager_event">>, 'true'),
 
-    Handlers = lager_config:global_get(handlers, []),
+    Handlers = lager_config:global_get('handlers', []),
 
     %% [{Backend, Pid, Sink}]
     case lists:keyfind(Sink, 3, Handlers) of
@@ -277,3 +283,35 @@ log_format('rfc3339', Acc) ->
     [RFC3339 | Acc];
 log_format(Term, Acc) ->
     [Term | Acc].
+
+-ifdef(TEST).
+
+%% to be run in a running KAZOO VM (dev env obviously)
+
+%% sometimes the syslog driver will crash (typically around a wonky
+%% UTF-8 character) and be restarted, but it reverts back to the
+%% sys.config defined value (default 'debug'). If syslog was running
+%% in a different priority level (info, notice, etc), that runtime
+%% change will be lost.
+
+%% KAZOO should monitor the syslog process and at least re-read
+%% KAZOO's config.ini setting for the log level
+-spec restart_check() -> boolean().
+restart_check() ->
+    SyslogBackend = {'lager_syslog_backend',{"2600hz",'local0'}},
+    [{'syslog', SyslogPid, 'worker', ['syslog']}] = supervisor:which_children('syslog_sup'),
+
+    CurrentLevel = lager:get_loglevel(SyslogBackend),
+    change_syslog_log_level('notice'),
+
+    'notice' = lager:get_loglevel(SyslogBackend),
+
+    exit(SyslogPid, 'restart'),
+
+    timer:sleep(100),
+    RestartLevel = lager:get_loglevel(SyslogBackend),
+    io:format("start level: ~p~nchanged to notice and killed syslog gen_server ~p~nrestart level: ~p~n"
+             ,[CurrentLevel, SyslogPid, RestartLevel]
+             ),
+    RestartLevel =:= 'notice'.
+-endif.
