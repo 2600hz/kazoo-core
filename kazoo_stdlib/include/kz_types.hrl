@@ -264,6 +264,11 @@
         >>
        ).
 
+-define(MATCH_RFC4122_UUID, ?MATCH_RFC4122_UUID(_, _, _, _, _)).
+-define(MATCH_RFC4122_UUID(S1, S2, S3, S4, S5)
+       ,<<S1:8/binary, $-, S2:4/binary, $-, S3:4/binary, $-, S4:4/binary, $-, S5:12/binary>>
+       ).
+
 -define(FAKE_CALLID(C), kz_term:to_hex_binary(crypto:hash('md5', C))).
 
 -define(IPV4(A, B, C, D), {A, B, C, D}).

@@ -42,6 +42,7 @@
         ,is_api_binary/1, is_ne_binary/1, is_api_ne_binary/1
         ,is_ne_binaries/1
         ,is_ne_binary_or_binaries/1
+        ,is_rfc4122_uuid/1
         ,is_empty/1, is_not_empty/1
         ,is_proplist/1, is_ne_list/1
         ,is_pos_integer/1
@@ -476,6 +477,10 @@ is_ne_binaries(_) -> 'false'.
 is_ne_binary_or_binaries(V) ->
     is_ne_binary(V)
         orelse is_ne_binaries(V).
+
+-spec is_rfc4122_uuid(any()) -> boolean().
+is_rfc4122_uuid(?MATCH_RFC4122_UUID) -> 'true';
+is_rfc4122_uuid(_) -> 'false'.
 
 -spec is_boolean(binary() | string() | atom()) -> boolean().
 is_boolean(<<"true">>) -> 'true';
