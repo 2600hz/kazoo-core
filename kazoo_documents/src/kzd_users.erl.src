@@ -252,7 +252,7 @@ set_email(Doc, Email) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -324,7 +324,7 @@ set_hotdesk(Doc, Hotdesk) ->
 
 -spec hotdesk_enabled(doc()) -> boolean().
 hotdesk_enabled(Doc) ->
-    hotdesk_enabled(Doc, false).
+    hotdesk_enabled(Doc, 'false').
 
 -spec hotdesk_enabled(doc(), Default) -> boolean() | Default.
 hotdesk_enabled(Doc, Default) ->
@@ -348,7 +348,7 @@ set_hotdesk_id(Doc, HotdeskId) ->
 
 -spec hotdesk_keep_logged_in_elsewhere(doc()) -> boolean().
 hotdesk_keep_logged_in_elsewhere(Doc) ->
-    hotdesk_keep_logged_in_elsewhere(Doc, false).
+    hotdesk_keep_logged_in_elsewhere(Doc, 'false').
 
 -spec hotdesk_keep_logged_in_elsewhere(doc(), Default) -> boolean() | Default.
 hotdesk_keep_logged_in_elsewhere(Doc, Default) ->
@@ -372,7 +372,7 @@ set_hotdesk_pin(Doc, HotdeskPin) ->
 
 -spec hotdesk_require_pin(doc()) -> boolean().
 hotdesk_require_pin(Doc) ->
-    hotdesk_require_pin(Doc, false).
+    hotdesk_require_pin(Doc, 'false').
 
 -spec hotdesk_require_pin(doc(), Default) -> boolean() | Default.
 hotdesk_require_pin(Doc, Default) ->
@@ -540,7 +540,7 @@ set_pronounced_name_media_id(Doc, PronouncedNameMediaId) ->
 
 -spec require_password_update(doc()) -> boolean().
 require_password_update(Doc) ->
-    require_password_update(Doc, false).
+    require_password_update(Doc, 'false').
 
 -spec require_password_update(doc(), Default) -> boolean() | Default.
 require_password_update(Doc, Default) ->
@@ -624,7 +624,7 @@ set_username(Doc, Username) ->
 
 -spec verified(doc()) -> boolean().
 verified(Doc) ->
-    verified(Doc, false).
+    verified(Doc, 'false').
 
 -spec verified(doc(), Default) -> boolean() | Default.
 verified(Doc, Default) ->
@@ -636,7 +636,7 @@ set_verified(Doc, Verified) ->
 
 -spec vm_to_email_enabled(doc()) -> boolean().
 vm_to_email_enabled(Doc) ->
-    vm_to_email_enabled(Doc, true).
+    vm_to_email_enabled(Doc, 'true').
 
 -spec vm_to_email_enabled(doc(), Default) -> boolean() | Default.
 vm_to_email_enabled(Doc, Default) ->

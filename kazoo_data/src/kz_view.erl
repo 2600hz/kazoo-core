@@ -71,7 +71,7 @@
                      {'end', kz_term:proplist()}
                     ].
 
--type result_value() :: kz_json:objects() | kz_json:path().
+-type result_value() :: kz_json:objects() | kz_json:get_key().
 -type result() :: kz_either:either(error(), result_value()).
 -type single_result() :: kz_either:either(any(), kz_json:object()).
 
@@ -157,17 +157,17 @@ find_next(Cursor) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec find_one(kz_term:ne_binary(), ddoc()) ->
-          kz_either:either(error(), kz_json:object() | any()).
+          result().
 find_one(DbName, DesignDoc) ->
     find_one(DbName, DesignDoc, []).
 
 -spec find_one(kz_term:ne_binary(), ddoc(), selector()) ->
-          kz_either:either(error(), kz_json:object() | any()).
+          result().
 find_one(DbName, DesignDoc, Selector) ->
     find_one(DbName, DesignDoc, Selector, []).
 
 -spec find_one(kz_term:ne_binary(), ddoc(), selector(), options()) ->
-          kz_either:either(error(), kz_json:object() | any()).
+          result().
 find_one(DbName, DesignDoc, Selector, Options) ->
     lager(Options),
     ?MAYBE_LOG("~s:find_one(~100p, ~100p, ~1000p, ~1000p)", [?MODULE, DbName, DesignDoc, Selector, Options]),
@@ -290,7 +290,7 @@ direction(Options) ->
 %% Filtermap calls a Fun on a list of result JObjs. Fun must return either
 %% a Boolean or a tuple {true, Value} or a Tuple {error, any} or the whole Acc.
 %% The filtermap returns the list of result for which Fun returns a new value,
-%% where a value of true is synonymous with {true, Elem}.
+%% where a value of 'true' is synonymous with {true, Elem}.
 %%
 %% If result_key is passed instead, a filtermap Fun will be created. Result key
 %% contains the a JSON path to fetch the result.
@@ -323,8 +323,8 @@ filtermap(Options) ->
 %%
 %% fields option is a list with elements of value:
 %% * JObj path
-%% * a tuple {Path, false} specifies the exclusion of a field
-%% * a tuple {Path, true} specifies the inclusion of a field
+%% * a tuple {Path, 'false'} specifies the exclusion of a field
+%% * a tuple {Path, 'true'} specifies the inclusion of a field
 %% * a tuple {Path, Fun}, Fun is a function Fun(Path, PathValue)
 %%     and must return a tuple {NewKeyName, New Value}.
 %% @end

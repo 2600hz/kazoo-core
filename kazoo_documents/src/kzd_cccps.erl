@@ -32,7 +32,7 @@ new() ->
 
 -spec active(doc()) -> boolean().
 active(Doc) ->
-    active(Doc, false).
+    active(Doc, 'false').
 
 -spec active(doc(), Default) -> boolean() | Default.
 active(Doc, Default) ->

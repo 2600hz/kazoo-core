@@ -22,7 +22,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_token_bucket_pqc).
 
--define(DO_NOT_RUN_QC_TOKEN_BUCKETS, true).
+-define(DO_NOT_RUN_QC_TOKEN_BUCKETS, 'true').
 -ifndef(DO_NOT_RUN_QC_TOKEN_BUCKETS).
 
 %% -include_lib("kazoo_token_buckets/src/kz_buckets.hrl").

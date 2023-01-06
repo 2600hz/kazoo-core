@@ -138,6 +138,7 @@
              ,map_results/0
              ,matches_fun/0
              ,payload/0
+             ,responder_fun/0
              ,unbind_result/0
              ]).
 

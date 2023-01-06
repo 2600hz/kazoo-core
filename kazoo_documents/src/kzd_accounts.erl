@@ -1338,7 +1338,7 @@ update(?NE_BINARY = Account, UpdateProps) ->
                                      )
     end.
 
-%% @equiv is_in_account_hierarchy(CheckFor, InAccount, false)
+%% @equiv is_in_account_hierarchy(CheckFor, InAccount, 'false')
 
 -spec is_in_account_hierarchy(kz_term:api_binary(), kz_term:api_binary()) -> boolean().
 is_in_account_hierarchy(CheckFor, InAccount) ->

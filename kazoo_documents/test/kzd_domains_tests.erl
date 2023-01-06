@@ -76,7 +76,7 @@ init() ->
 
 crossbar_load(Filename) ->
     File = <<Filename/binary,".json">>,
-    kz_json:load_fixture_from_file(crossbar, "couchdb/schemas", File).
+    kz_json:load_fixture_from_file('crossbar', "couchdb/schemas", File).
 
 stop(_) -> 'ok'.
 

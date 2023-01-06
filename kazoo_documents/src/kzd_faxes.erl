@@ -304,7 +304,7 @@ set_tx_result_fax_bad_rows(Doc, TxResultFaxBadRows) ->
 
 -spec tx_result_fax_error_correction(doc()) -> boolean().
 tx_result_fax_error_correction(Doc) ->
-    tx_result_fax_error_correction(Doc, false).
+    tx_result_fax_error_correction(Doc, 'false').
 
 -spec tx_result_fax_error_correction(doc(), Default) -> boolean() | Default.
 tx_result_fax_error_correction(Doc, Default) ->
@@ -352,7 +352,7 @@ set_tx_result_pages_sent(Doc, TxResultPagesSent) ->
 
 -spec tx_result_success(doc()) -> boolean().
 tx_result_success(Doc) ->
-    tx_result_success(Doc, false).
+    tx_result_success(Doc, 'false').
 
 -spec tx_result_success(doc(), Default) -> boolean() | Default.
 tx_result_success(Doc, Default) ->

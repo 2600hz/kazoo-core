@@ -121,7 +121,7 @@ parse_erl_terms_from_arg(Arg) ->
 -spec in_kazoo(atom(), module(), atom(), kz_term:binaries()) -> no_return().
 in_kazoo(SUPName, M, F, As) ->
     kz_log:put_callid(SUPName),
-    erlang:put('is_sup_call', true),
+    erlang:put('is_sup_call', 'true'),
     lager:notice("~s: ~s ~s ~s", [?MODULE, M, F, kz_term:iolist_join($,, As)]),
     R = apply(M, F, As),
     lager:notice("~s result: ~p", [?MODULE, R]),
@@ -309,7 +309,7 @@ use_short(Options) ->
     props:get_value('use_short', Options).
 
 %%------------------------------------------------------------------------------
-%% @doc Return true if the erl_term_args flag is passed by the user, else false
+%% @doc Return 'true' if the erl_term_args flag is passed by the user, else false
 %% @end
 %%------------------------------------------------------------------------------
 -spec erl_term_args(kz_term:proplist()) -> kz_term:api_boolean().

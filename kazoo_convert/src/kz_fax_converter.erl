@@ -72,8 +72,8 @@ convert(From, To, Content, #{<<"from_format">> := From, <<"to_format">> := To, <
     end;
 convert(From, To, Content, Options) when is_map(Options) ->
     case maps:is_key(<<"job_id">>, Options) of
-        true -> convert(From, To, Content, Options#{<<"from_format">> => From, <<"to_format">> => To});
-        false -> convert(From, To, Content, Options#{<<"from_format">> => From, <<"to_format">> => To, <<"job_id">> => kz_binary:rand_hex(12)})
+        'true' -> convert(From, To, Content, Options#{<<"from_format">> => From, <<"to_format">> => To});
+        'false' -> convert(From, To, Content, Options#{<<"from_format">> => From, <<"to_format">> => To, <<"job_id">> => kz_binary:rand_hex(12)})
     end;
 convert(From, To, Content, Opts) ->
     Options = maps:from_list(

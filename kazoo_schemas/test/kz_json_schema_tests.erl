@@ -95,24 +95,24 @@ validate_sub_array_test_() ->
     ].
 
 valid_task_data() ->
-    kz_json:from_list([{<<"do_it_now">>, true}]).
+    kz_json:from_list([{<<"do_it_now">>, 'true'}]).
 
 invalid_task_data1() ->
     kz_json:from_list([{<<"records">>, []}]).
 
 invalid_task_data2() ->
     kz_json:from_list([{<<"records">>, []}
-                      ,{<<"do_it_now">>, true}
+                      ,{<<"do_it_now">>, 'true'}
                       ]).
 
 invalid_task_data3() ->
     kz_json:from_list([{<<"file_name">>, <<>>}
-                      ,{<<"do_it_now">>, true}
+                      ,{<<"do_it_now">>, 'true'}
                       ]).
 
 invalid_task_data4() ->
     kz_json:from_list([{<<"file_name">>, 42}
-                      ,{<<"do_it_now">>, true}
+                      ,{<<"do_it_now">>, 'true'}
                       ]).
 
 validate_v3_test_() ->

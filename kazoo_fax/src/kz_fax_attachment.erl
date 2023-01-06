@@ -53,7 +53,7 @@
           {'ok', kz_json:object()} |
           {'error', any()}.
 save_outbound(Db, Doc, 'undefined', _) ->
-    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_url_document">>, true) of
+    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_url_document">>, 'true') of
         'true' ->
             case fetch_url(Doc) of
                 {'ok', Content, ContentType} ->
@@ -66,8 +66,8 @@ save_outbound(Db, Doc, Original, ContentType) ->
     Id = kz_doc:id(Doc),
     Name = <<?ORIGINAL_FILE_PREFIX, ".", (kz_mime:to_extension(ContentType))/binary>>,
     Att = {Original, ContentType, Name},
-    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_tiff">>, true)
-        orelse kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_pdf">>, true) of
+    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_tiff">>, 'true')
+        orelse kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_pdf">>, 'true') of
         'true' ->
             case convert_to_fax(ContentType, Original, Id) of
                 {'ok', Tiff, Props} ->
@@ -91,7 +91,7 @@ update_fax_props(Doc, Props) ->
 -spec maybe_store_fax_tiff(kz_term:ne_binary()) ->
           [{kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()}] | [].
 maybe_store_fax_tiff(Content) ->
-    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_tiff">>, true) of
+    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_tiff">>, 'true') of
         'true' -> [{Content, <<"image/tiff">>, ?FAX_FILENAME}];
         'false' -> []
     end.
@@ -99,7 +99,7 @@ maybe_store_fax_tiff(Content) ->
 -spec maybe_convert_to_pdf(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           [{kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()}] | [].
 maybe_convert_to_pdf(ContentType, Content, Id) ->
-    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_pdf">>, true) of
+    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_pdf">>, 'true') of
         'true' ->
             case convert_to_pdf(ContentType, Content, Id) of
                 {'ok', Pdf} -> [{Pdf, <<"application/pdf">>, ?PDF_FILENAME}];
@@ -204,7 +204,7 @@ fetch_received(Db, Doc, []) ->
 %%------------------------------------------------------------------------------
 %% @doc Helper function for accessing attachments suitable for fax transmission.
 %%
-%% Saves the document if it is not present and store_fax_tiff is true.
+%% Saves the document if it is not present and store_fax_tiff is 'true'.
 %%
 %% @end
 %%------------------------------------------------------------------------------
@@ -240,7 +240,7 @@ fetch_faxable(Db, Doc, []) ->
 
 -spec maybe_save_faxable(kz_term:ne_binary(), kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
 maybe_save_faxable(Db, Doc, Content) ->
-    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_tiff">>, true) of
+    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_tiff">>, 'true') of
         'true' ->
             case save_fax_doc(Db, Doc, Content, <<"image/tiff">>, ?FAX_FILENAME) of
                 {'ok', NewDoc} -> NewDoc;
@@ -254,7 +254,7 @@ maybe_save_faxable(Db, Doc, Content) ->
 %%------------------------------------------------------------------------------
 %% @doc Helper function for accessing/creating a pdf file of a transmitted fax.
 %%
-%% Saves the document if it is not present and store_fax_pdf is true.
+%% Saves the document if it is not present and store_fax_pdf is 'true'.
 %%
 %% @end
 %%------------------------------------------------------------------------------
@@ -290,7 +290,7 @@ fetch_pdf(Db, Doc, []) ->
 -spec maybe_save_pdf(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
           kz_json:object().
 maybe_save_pdf(Db, Pdf, Doc) ->
-    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_pdf">>, true) of
+    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_fax_pdf">>, 'true') of
         'true' ->
             case save_fax_doc(Db, Doc, Pdf, <<"application/pdf">>, ?PDF_FILENAME) of
                 {'ok', NewDoc} -> NewDoc;
@@ -305,7 +305,7 @@ maybe_save_pdf(Db, Pdf, Doc) ->
 %%------------------------------------------------------------------------------
 %% @doc Helper function for accessing/creating a pdf file of a received fax
 %%
-%% Saves the document if it is not present and store_fax_pdf is true.
+%% Saves the document if it is not present and store_fax_pdf is 'true'.
 %%
 %% @end
 %%------------------------------------------------------------------------------
@@ -406,7 +406,7 @@ fetch_legacy(Db, Doc, []) ->
 %%------------------------------------------------------------------------------
 %% @doc Helper function for accessing a url attachment document.
 %%
-%% Saves the document if it is not present and store_url_doc is true.
+%% Saves the document if it is not present and store_url_doc is 'true'.
 %%
 %% @end
 %%------------------------------------------------------------------------------
@@ -451,8 +451,8 @@ fetch_url(Url, FetchRequest) ->
 -spec maybe_store_url_attachment(kz_term:ne_binary(), kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           kz_json:object().
 maybe_store_url_attachment(Db, Doc, Content, ContentType) ->
-    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_url_document">>, true) of
-        true ->
+    case kapps_config:get_is_true(?FAX_CONFIG_CAT, <<"store_url_document">>, 'true') of
+        'true' ->
             Name = <<?ORIGINAL_FILE_PREFIX, ".", (kz_mime:to_extension(ContentType))/binary>>,
             case save_fax_doc(Db, Doc, Content, ContentType, Name) of
                 {'ok', NewDoc} ->

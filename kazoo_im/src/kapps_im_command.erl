@@ -11,10 +11,6 @@
 %%%-----------------------------------------------------------------------------
 -module(kapps_im_command).
 
--include("kapps_im_command.hrl").
-
--type im() :: kapps_im:im().
-
 -export([send_sms/2, send_sms/3, send_sms/4]).
 
 -export([relay_event/2, relay_event/3]).
@@ -23,6 +19,10 @@
         ,default_message_timeout/0
         ,default_application_timeout/0
         ]).
+
+-include("kapps_im_command.hrl").
+
+-type im() :: kapps_im:im().
 
 -define(CONFIG_CAT, <<"sms_command">>).
 
@@ -70,7 +70,8 @@ default_application_timeout() ->
 send_sms(Endpoints, Im) -> send_sms(Endpoints, ?DEFAULT_STRATEGY, Im).
 
 -spec send_sms(kz_json:objects(), binary(), im()) -> kapps_api_std_return().
-send_sms(EndpointList, Strategy, Im) -> send_sms(EndpointList, Strategy, default_message_timeout(), Im).
+send_sms(EndpointList, Strategy, Im) ->
+    send_sms(EndpointList, Strategy, default_message_timeout(), Im).
 
 -spec send_sms(kz_json:objects(), binary(), integer(), im()) -> kapps_api_std_return().
 send_sms(EndpointList, Strategy, Timeout, Im) ->
@@ -80,7 +81,7 @@ send_sms(EndpointList, Strategy, Timeout, Im) ->
 
 -spec send(binary(), kz_term:proplist(), kz_json:objects(), integer()) -> kapps_api_std_return().
 send(_ , _API, [], _Timeout) ->
-    {'error', 'no endpoints available'};
+    {'error', 'no_endpoints_available'};
 send(<<"single">>, API, [Endpoint| Others], Timeout) ->
     case send_and_wait(API, Endpoint, Timeout) of
         {'error', _R}=Err when Others =:= [] ->
@@ -101,7 +102,7 @@ send(API, Endpoint) ->
     Payload = create_payload(API, Endpoint),
     send(Payload).
 
--spec send(kz_json:object()) -> ok.
+-spec send(kz_term:api_terms()) -> 'ok'.
 send(Payload) ->
     kapi_im:publish_outbound(Payload).
 
@@ -110,7 +111,7 @@ send_and_wait(API, Endpoint, Timeout) ->
     Payload = create_payload(API, Endpoint),
     send_and_wait(Payload, Timeout).
 
--spec send_and_wait(kz_json:object(), integer()) -> kapps_api_std_return().
+-spec send_and_wait(kz_term:api_terms(), integer()) -> kapps_api_std_return().
 send_and_wait(Payload, Timeout) ->
     lager:info("sending sms and waiting for response"),
     send(Payload),
@@ -119,9 +120,9 @@ send_and_wait(Payload, Timeout) ->
 
 create_payload(API, Endpoint) ->
     Options = kz_json:to_proplist(kz_json:get_value(<<"Endpoint-Options">>, Endpoint, [])),
-    props:set_values( [{<<"Endpoints">>, [Endpoint]} | Options], API).
+    props:set_values([{<<"Endpoints">>, [Endpoint]} | Options], API).
 
--spec create_sms(im()) -> kz_term:proplist().
+-spec create_sms(im()) -> kz_term:api_terms().
 create_sms(Im) ->
     kapps_im:to_payload(kapps_im:set_direction(<<"outbound">>, Im)).
 
@@ -159,7 +160,7 @@ lookup_reg(TokenId) ->
         {'error', _E}=E ->
             lager:debug("error getting registration: ~p", [_E]),
             E;
-        {_, JObj} -> {ok, kz_api:node(JObj)}
+        {_, JObj} -> {'ok', kz_api:node(JObj)}
     end.
 
 -spec get_correlated_msg_type(kz_json:object()) ->

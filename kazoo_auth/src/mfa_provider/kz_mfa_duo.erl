@@ -103,7 +103,7 @@ sign_value(Key, Value, Prefix, Exp) ->
 
 -spec signature(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
 signature(Key, Cookie) ->
-    kz_binary:hexencode(crypto:mac(hmac, 'sha', Key, Cookie)).
+    kz_binary:hexencode(crypto:mac('hmac', 'sha', Key, Cookie)).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -200,7 +200,7 @@ verify_signature(#{response_signature := UserSig
 
 -spec extract_cookie(map()) -> map().
 extract_cookie(#{response_cookie := Cookie}=Maps) ->
-    case binary:split(base64:decode(Cookie), ?VAL_PART_SEP, [global]) of
+    case binary:split(base64:decode(Cookie), ?VAL_PART_SEP, ['global']) of
         ?SIG_PARTS(UserId, UserIKey, UserExpire) ->
             Maps#{user_name => UserId
                  ,user_ikey => UserIKey

@@ -126,7 +126,7 @@ set_classifiers(Doc, Classifiers) ->
 
 -spec classifier_emergency(doc(), kz_json:key()) -> boolean().
 classifier_emergency(Doc, ClassifierName) ->
-    classifier_emergency(Doc, ClassifierName, false).
+    classifier_emergency(Doc, ClassifierName, 'false').
 
 -spec classifier_emergency(doc(), kz_json:key(), Default) -> boolean() | Default.
 classifier_emergency(Doc, ClassifierName, Default) ->
@@ -138,7 +138,7 @@ set_classifier_emergency(Doc, ClassifierName, ClassifiersEmergency) ->
 
 -spec classifier_enabled(doc(), kz_json:key()) -> boolean().
 classifier_enabled(Doc, ClassifierName) ->
-    classifier_enabled(Doc, ClassifierName, true).
+    classifier_enabled(Doc, ClassifierName, 'true').
 
 -spec classifier_enabled(doc(), kz_json:key(), Default) -> boolean() | Default.
 classifier_enabled(Doc, ClassifierName, Default) ->
@@ -198,7 +198,7 @@ set_classifier_weight_cost(Doc, ClassifierName, ClassifiersWeightCost) ->
 
 -spec emergency(doc()) -> boolean().
 emergency(Doc) ->
-    emergency(Doc, false).
+    emergency(Doc, 'false').
 
 -spec emergency(doc(), Default) -> boolean() | Default.
 emergency(Doc, Default) ->
@@ -210,7 +210,7 @@ set_emergency(Doc, Emergency) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -458,7 +458,7 @@ media_video_codecs(Doc, Default) ->
 
 -spec ccvs(doc()) -> kz_term:api_object().
 ccvs(Doc) ->
-    ccvs(Doc, undefined).
+    ccvs(Doc, 'undefined').
 
 -spec ccvs(doc(), Default) -> kz_json:object() | Default.
 ccvs(Doc, Default) ->
@@ -468,9 +468,9 @@ ccvs(Doc, Default) ->
 set_ccvs(Doc, CCVs) ->
     kz_json:set_value([<<"custom_channel_vars">>], CCVs, Doc).
 
--spec ccv(doc(), kz_term:ne_binary()) -> kz_json:json_term() | undefined.
+-spec ccv(doc(), kz_term:ne_binary()) -> kz_json:api_json_term().
 ccv(Doc, Key) ->
-    ccv(Doc, Key, undefined).
+    ccv(Doc, Key, 'undefined').
 
 -spec ccv(doc(), kz_term:ne_binary(), Default) -> kz_json:json_term() | Default.
 ccv(Doc, Key, Default) ->
@@ -482,7 +482,7 @@ set_ccv(Doc, Key, Value) ->
 
 -spec cshs(doc()) -> kz_term:api_object().
 cshs(Doc) ->
-    cshs(Doc, undefined).
+    cshs(Doc, 'undefined').
 
 -spec cshs(doc(), Default) -> kz_json:object() | Default.
 cshs(Doc, Default) ->
@@ -492,9 +492,9 @@ cshs(Doc, Default) ->
 set_cshs(Doc, CSHs) ->
     kz_json:set_value([<<"custom_sip_headers">>], CSHs, Doc).
 
--spec csh(doc(), kz_term:ne_binary()) -> kz_json:json_term() | undefined.
+-spec csh(doc(), kz_term:ne_binary()) -> kz_json:api_json_term().
 csh(Doc, Key) ->
-    csh(Doc, Key, undefined).
+    csh(Doc, Key, 'undefined').
 
 -spec csh(doc(), kz_term:ne_binary(), Default) -> kz_json:json_term() | Default.
 csh(Doc, Key, Default) ->

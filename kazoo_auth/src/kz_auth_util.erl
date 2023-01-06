@@ -53,7 +53,7 @@ fetch_access_code(AppId, AuthorizationCode) ->
 fetch_access_code(AppId, AuthorizationCode, RedirectUri)
   when is_binary(AppId) ->
     lager:debug("getting auth-app ~p",[AppId]),
-    case kz_auth_apps:get_auth_app(AppId, app_and_provider) of
+    case kz_auth_apps:get_auth_app(AppId, 'app_and_provider') of
         #{} = Map -> fetch_access_code(Map, AuthorizationCode, RedirectUri);
         Error -> Error
     end;

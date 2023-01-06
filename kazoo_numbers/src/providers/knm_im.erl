@@ -79,7 +79,7 @@ update_im(Type, PN) ->
     NotChanged = kz_json:are_equal(CurrentFeature, Feature),
     case kz_term:is_empty(Feature) of
         'true'
-          when CurrentFeature =/= undefined ->
+          when CurrentFeature =/= 'undefined' ->
             deactivate(Type, PN);
         'true' ->
             PN;
@@ -89,7 +89,7 @@ update_im(Type, PN) ->
         'false' ->
             case kz_json:is_true(?FEATURE_ENABLED, Feature) of
                 'false'
-                  when CurrentFeature =/= undefined ->
+                  when CurrentFeature =/= 'undefined' ->
                     deactivate(Type, PN);
                 'false' ->
                     PN;
@@ -125,8 +125,8 @@ available(Type, PN) ->
         andalso feature_available(AccountId, Type, Config).
 
 -spec available(im_type(), module(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
-available(_Type, _Module, _State, undefined) -> false;
-available(_Type, undefined, _State, _AccountId) -> false;
+available(_Type, _Module, _State, 'undefined') -> false;
+available(_Type, 'undefined', _State, _AccountId) -> false;
 available(Type, Module, State, AccountId) ->
     Config = knm_gen_carrier:configuration(Module),
     number_available(State, AccountId)
@@ -141,7 +141,7 @@ carrier_has_feature_enabled(Type, Config) ->
     kz_term:is_true(carrier_feature(Type, ?FEATURE_ENABLED, Config)).
 
 carrier_feature(Type, Key, Config) ->
-    carrier_feature(Type, Key, Config, undefined).
+    carrier_feature(Type, Key, Config, 'undefined').
 
 carrier_feature(Type, Key, Config, Default) ->
     K = [<<"features">>, ?KEY, Key],

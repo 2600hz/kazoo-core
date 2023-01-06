@@ -496,12 +496,12 @@ maybe_copy_to_vmboxes(AccountId, FromId, OldBoxId, NewBoxIds, CopyMap, Funs, Ret
         {'true', {'ok', JObj}} ->
             _ = do_update(JObj, [fun(J) -> kvm_util:enforce_retention(J, 'true') end]),
             IdReason = {FromId, <<"prior_to_retention_duration">>},
-            maps:update_with(failed, fun(List) -> [IdReason|List] end, [IdReason], CopyMap);
+            maps:update_with('failed', fun(List) -> [IdReason|List] end, [IdReason], CopyMap);
         {'false', {'ok', _}} ->
             copy_to_vmboxes(AccountId, FromId, OldBoxId, NewBoxIds, CopyMap, Funs);
         {_, {'error', Reason}} ->
             IdReason = {FromId, kz_term:to_binary(Reason)},
-            maps:update_with(failed, fun(List) -> [IdReason|List] end, [IdReason], CopyMap)
+            maps:update_with('failed', fun(List) -> [IdReason|List] end, [IdReason], CopyMap)
     end.
 
 -spec copy_to_vmboxes(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries(), bulk_map(), update_funs()) -> bulk_map().
@@ -527,7 +527,7 @@ copy_to_vmbox(_AccountId, FromId, _OldBoxId, NBId, CopyMap
              ) ->
     lager:warning("could not open destination vmbox ~s", [NBId]),
     IdReason = {FromId, kz_term:to_binary(Reason)},
-    maps:update_with(failed, fun(List) -> [IdReason|List] end, [IdReason], CopyMap);
+    maps:update_with('failed', fun(List) -> [IdReason|List] end, [IdReason], CopyMap);
 copy_to_vmbox(AccountId, FromId, OldBoxId, NBId, CopyMap
              ,{'ok', NBox}
              ,Funs
@@ -738,8 +738,8 @@ forward_to_vmbox(Call, Metadata, SrcBoxId, Props, Funs) ->
                              ,kz_datamgr:open_cache_doc(kzs_util:format_account_db(AccountId), DestBoxId)
                              ,Funs
                              ),
-    Failed = maps:get(failed, ResultMap, []),
-    Succeeded = maps:get(succeeded, ResultMap, []),
+    Failed = maps:get('failed', ResultMap, []),
+    Succeeded = maps:get('succeeded', ResultMap, []),
     case {Failed, Succeeded} of
         {[], []} -> {'error', Call, 'internal_error'};
         {[], [ForwardId]} ->

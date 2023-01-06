@@ -25,30 +25,30 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec patch_lexer(binary()) -> undefined | list().
+-spec patch_lexer(binary()) -> 'undefined' | list().
 patch_lexer(Expr) ->
     case kz_json_query_lexer:string(kz_term:to_list(Expr)) of
         {ok, Tokens, _} -> Tokens;
-        _ -> undefined
+        _ -> 'undefined'
     end.
 
--spec patch_parser(list()) -> undefined | tuple().
+-spec patch_parser(list()) -> 'undefined' | tuple().
 patch_parser(Tokens) ->
     case kz_json_patch_parser:parse(Tokens) of
         {ok, Patch} -> Patch;
-        _ -> undefined
+        _ -> 'undefined'
     end.
 
 -spec patch(kz_json:object(), op(), any(), any()) -> kz_json:object().
-patch(JObj, _Op, undefined, _Value) -> JObj;
+patch(JObj, _Op, 'undefined', _Value) -> JObj;
 patch(JObj, Op, Expr, Value)
   when is_binary(Expr);
        is_list(Expr) ->
     case patch_lexer(Expr) of
-        undefined -> JObj;
+        'undefined' -> JObj;
         Tokens ->
             case patch_parser(Tokens) of
-                undefined -> JObj;
+                'undefined' -> JObj;
                 Patch -> patch(JObj, Op, Patch, Value)
             end
     end;

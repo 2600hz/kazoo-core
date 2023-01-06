@@ -134,7 +134,7 @@ e911() ->
 
 cnam() ->
     CNAM = kz_json:from_list(
-             [{?CNAM_INBOUND_LOOKUP, true}
+             [{?CNAM_INBOUND_LOOKUP, 'true'}
              ,{?CNAM_DISPLAY_NAME, <<"my CNAM">>}
              ]),
     JObj = kz_json:from_list([{?FEATURE_CNAM, CNAM}]),
@@ -145,8 +145,8 @@ cnam() ->
     [PN1] = knm_pipe:succeeded(knm_ops:create([?TEST_TELNYX_NUM], Options)),
     #{'succeeded' := [PN2]} = knm_ops:update([PN1], [{fun knm_phone_number:reset_doc/2, JObj}]),
     Deactivate = kz_json:from_list(
-                   [{?CNAM_INBOUND_LOOKUP, false}
-                   ,{?CNAM_DISPLAY_NAME, undefined}
+                   [{?CNAM_INBOUND_LOOKUP, 'false'}
+                   ,{?CNAM_DISPLAY_NAME, 'undefined'}
                    ]),
     #{'succeeded' := [PN3]} = knm_ops:update([PN2], [{fun knm_phone_number:reset_doc/2, Deactivate}]),
     [?_assert(knm_phone_number:is_dirty(PN1))

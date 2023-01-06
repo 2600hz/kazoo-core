@@ -316,14 +316,14 @@ load() ->
 
 -spec zone() -> atom().
 zone() ->
-    case persistent_term:get(amqp_zone, undefined) of
-        undefined -> set_zone();
+    case persistent_term:get('amqp_zone', 'undefined') of
+        'undefined' -> set_zone();
         Zone -> Zone
     end.
 
 set_zone() ->
     Zone = get_zone(),
-    persistent_term:put(amqp_zone, Zone),
+    persistent_term:put('amqp_zone', Zone),
     Zone.
 
 get_zone() ->

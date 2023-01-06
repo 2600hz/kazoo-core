@@ -595,7 +595,7 @@ init() ->
 
 -spec onload() -> 'ok'.
 onload() ->
-    onload(persistent_term:get(kz_datamgr_bootstrap, false)).
+    onload(persistent_term:get('kz_datamgr_bootstrap', 'false')).
 
 -spec onload(boolean()) -> 'ok'.
 onload('false') -> 'ok';

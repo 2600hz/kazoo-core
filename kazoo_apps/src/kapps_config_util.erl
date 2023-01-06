@@ -52,28 +52,32 @@ get_reseller_config(Account, Config) ->
     Schema = account_schema(Config),
     kz_json_schema:filter(get_config(Account, Config, Programm), Schema).
 
--spec load_config_from_account(kz_term:api_binary(), kz_term:ne_binary()) -> {ok, kz_json:object()} | {error, any()}.
-load_config_from_account(undefined, _Config) -> {ok, kz_json:new()};
+-spec load_config_from_account(kz_term:api_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+load_config_from_account('undefined', _Config) -> {'ok', kz_json:new()};
 load_config_from_account(Account, Config) ->
     AccountDb = kzs_util:format_account_db(Account),
-    kz_datamgr:open_cache_doc(AccountDb, account_doc_id(Config), [{cache_failures, [not_found]}]).
+    kz_datamgr:open_cache_doc(AccountDb, account_doc_id(Config), [{'cache_failures', ['not_found']}]).
 
--spec load_config_from_reseller(kz_term:api_binary(), kz_term:ne_binary()) -> {ok, kz_json:object()} | {error, any()}.
-load_config_from_reseller(undefined, _Config) -> {error, not_found};
+-spec load_config_from_reseller(kz_term:api_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', 'not_found'}.
+load_config_from_reseller('undefined', _Config) -> {'error', 'not_found'};
 load_config_from_reseller(Account, Config) ->
     case kz_services_reseller:get_id(Account) of
-        undefined -> {error, not_found};
+        'undefined' -> {'error', 'not_found'};
         %% should get from direct reseller only
         %% same logic as kapps_account_config:get_from_reseller
-        Account -> {error, not_found};
+        Account -> {'error', 'not_found'};
         ResellerId -> load_config_from_account(ResellerId, Config)
     end.
 
--spec load_config_from_system(kz_term:api_binary(), kz_term:ne_binary()) -> {ok, kz_json:object()}.
+-spec load_config_from_system(kz_term:api_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()}.
 load_config_from_system(_Account, Config) ->
     {'ok', kz_json:get_value(<<"default">>, maybe_new(kapps_config:get_category(Config)), kz_json:new())}.
 
--spec load_default_config(kz_term:api_binary(), kz_term:ne_binary()) -> {ok, kz_json:object()}.
+-spec load_default_config(kz_term:api_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()}.
 load_default_config(_Account, Config) ->
     Schema = system_schema(Config),
     {'ok', kz_doc:set_id(kz_json_schema:default_object(Schema), account_doc_id(Config))}.

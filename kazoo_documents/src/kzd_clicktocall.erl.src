@@ -42,7 +42,7 @@ new() ->
 
 -spec auth_required(doc()) -> boolean().
 auth_required(Doc) ->
-    auth_required(Doc, true).
+    auth_required(Doc, 'true').
 
 -spec auth_required(doc(), Default) -> boolean() | Default.
 auth_required(Doc, Default) ->

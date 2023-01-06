@@ -32,12 +32,14 @@ fetch_attachment(Server, DbName, DocId, AName) ->
     Db = kz_fixturedb_server:get_db(Server, DbName),
     kz_fixturedb_util:open_attachment(Db, DocId, AName).
 
--spec stream_attachment(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), pid()) -> {ok, reference()} | fixture_error().
+-spec stream_attachment(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), pid()) ->
+          {'ok', reference()} |
+          fixture_error().
 stream_attachment(Server, DbName, DocId, AName, Caller) ->
     AttResult = fetch_attachment(Server, DbName, DocId, AName),
     Ref = erlang:make_ref(),
     kz_process:spawn(fun relay_stream_attachment/3, [Caller, Ref, AttResult]),
-    {ok, Ref}.
+    {'ok', Ref}.
 
 -spec put_attachment(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> doc_resp().
 put_attachment(Server, DbName, DocId, AName, Contents, Options) ->
@@ -62,35 +64,39 @@ attachment_url(Server, DbName, DocId, AName, _Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec relay_stream_attachment(pid(), reference(), {ok, reference()} | fixture_error()) -> any().
+-spec relay_stream_attachment(pid(), Ref, AttResult) ->
+          {Ref, AttResult}
+              when Ref :: reference(),
+                   AttResult :: {'ok', reference()} | fixture_error().
 relay_stream_attachment(Caller, Ref, AttResult) ->
     Caller ! {Ref, AttResult}.
 
--spec prepare_att_doc(doc_resp(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> doc_resp().
-prepare_att_doc({ok, Doc}, AName, Contents, Options) ->
+-spec prepare_att_doc(doc_resp(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) ->
+          doc_resp().
+prepare_att_doc({'ok', Doc}, AName, Contents, Options) ->
     JObj = kz_fixturedb_util:update_revision(Doc),
     Rev = kz_doc:revision(JObj),
     Att = kz_json:from_list_recursive(
             [{<<"_attachments">>
-             ,[{AName, [{<<"content_type">>, props:get_value(content_type, Options, <<"application/octet-stream">>)}
+             ,[{AName, [{<<"content_type">>, props:get_value('content_type', Options, <<"application/octet-stream">>)}
                        ,{<<"revpos">>, Rev}
-                       ,{<<"digest">>, <<"md5-", (base64:encode(crypto:hash(md5, Contents)))/binary>>}
+                       ,{<<"digest">>, <<"md5-", (base64:encode(crypto:hash('md5', Contents)))/binary>>}
                        ,{<<"length">>, erlang:size(Contents)}
-                       ,{<<"stub">>, true}
+                       ,{<<"stub">>, 'true'}
                        ]
                }]
              }
             ]),
     NewAtt = kz_json:merge(kz_json:get_json_value(<<"_attachments">>, JObj, kz_json:new()), Att),
-    {ok, kz_json:set_value(<<"_attachments">>, NewAtt, JObj)};
-prepare_att_doc({error, _}=Error, _, _, _) ->
+    {'ok', kz_json:set_value(<<"_attachments">>, NewAtt, JObj)};
+prepare_att_doc({'error', _}=Error, _, _, _) ->
     Error.
 
-del_att_response({ok, JObj}) ->
-    {ok, kz_json:from_list(
-           [{<<"id">>, kz_doc:id(JObj)}
-           ,{<<"rev">>, kz_doc:revision(kz_fixturedb_util:update_revision(JObj))}
-           ])
+del_att_response({'ok', JObj}) ->
+    {'ok', kz_json:from_list(
+             [{<<"id">>, kz_doc:id(JObj)}
+             ,{<<"rev">>, kz_doc:revision(kz_fixturedb_util:update_revision(JObj))}
+             ])
     };
-del_att_response({error, _}=Error) ->
+del_att_response({'error', _}=Error) ->
     Error.

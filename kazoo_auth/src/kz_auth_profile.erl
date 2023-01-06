@@ -139,7 +139,7 @@ maybe_load_profile(#{} = Token) -> Token#{profile => kz_json:new()}.
 
 -spec profile_authorization(map(), kz_term:ne_binary()) -> binary().
 profile_authorization(#{auth_provider := Provider} = Token, AccessToken) ->
-    case maps:get(profile_access_auth_type, Provider, <<"token">>) of
+    case maps:get('profile_access_auth_type', Provider, <<"token">>) of
         <<"token">> ->
             lager:debug("using profile access token authorization header"),
             DefaultTokenType = maps:get('profile_access_token_type', Provider, <<"Bearer">>),

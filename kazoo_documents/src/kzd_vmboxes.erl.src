@@ -80,7 +80,7 @@ set_aliases(Doc, Aliases) ->
 
 -spec announcement_only(doc()) -> boolean().
 announcement_only(Doc) ->
-    announcement_only(Doc, false).
+    announcement_only(Doc, 'false').
 
 -spec announcement_only(doc(), Default) -> boolean() | Default.
 announcement_only(Doc, Default) ->
@@ -92,7 +92,7 @@ set_announcement_only(Doc, AnnouncementOnly) ->
 
 -spec check_if_owner(doc()) -> boolean().
 check_if_owner(Doc) ->
-    check_if_owner(Doc, true).
+    check_if_owner(Doc, 'true').
 
 -spec check_if_owner(doc(), Default) -> boolean() | Default.
 check_if_owner(Doc, Default) ->
@@ -104,7 +104,7 @@ set_check_if_owner(Doc, CheckIfOwner) ->
 
 -spec delete_after_notify(doc()) -> boolean().
 delete_after_notify(Doc) ->
-    delete_after_notify(Doc, false).
+    delete_after_notify(Doc, 'false').
 
 -spec delete_after_notify(doc(), Default) -> boolean() | Default.
 delete_after_notify(Doc, Default) ->
@@ -140,7 +140,7 @@ set_flags(Doc, Flags) ->
 
 -spec include_message_on_notify(doc()) -> boolean().
 include_message_on_notify(Doc) ->
-    include_message_on_notify(Doc, true).
+    include_message_on_notify(Doc, 'true').
 
 -spec include_message_on_notify(doc(), Default) -> boolean() | Default.
 include_message_on_notify(Doc, Default) ->
@@ -152,7 +152,7 @@ set_include_message_on_notify(Doc, IncludeMessageOnNotify) ->
 
 -spec include_transcription_on_notify(doc()) -> boolean().
 include_transcription_on_notify(Doc) ->
-    include_transcription_on_notify(Doc, true).
+    include_transcription_on_notify(Doc, 'true').
 
 -spec include_transcription_on_notify(doc(), Default) -> boolean() | Default.
 include_transcription_on_notify(Doc, Default) ->
@@ -164,7 +164,7 @@ set_include_transcription_on_notify(Doc, IncludeTranscriptionOnNotify) ->
 
 -spec is_setup(doc()) -> boolean().
 is_setup(Doc) ->
-    is_setup(Doc, false).
+    is_setup(Doc, 'false').
 
 -spec is_setup(doc(), Default) -> boolean() | Default.
 is_setup(Doc, Default) ->
@@ -176,7 +176,7 @@ set_is_setup(Doc, IsSetup) ->
 
 -spec is_voicemail_ff_rw_enabled(doc()) -> boolean().
 is_voicemail_ff_rw_enabled(Doc) ->
-    is_voicemail_ff_rw_enabled(Doc, false).
+    is_voicemail_ff_rw_enabled(Doc, 'false').
 
 -spec is_voicemail_ff_rw_enabled(doc(), Default) -> boolean() | Default.
 is_voicemail_ff_rw_enabled(Doc, Default) ->
@@ -248,7 +248,7 @@ set_name(Doc, Name) ->
 
 -spec not_configurable(doc()) -> boolean().
 not_configurable(Doc) ->
-    not_configurable(Doc, false).
+    not_configurable(Doc, 'false').
 
 -spec not_configurable(doc(), Default) -> boolean() | Default.
 not_configurable(Doc, Default) ->
@@ -296,7 +296,7 @@ set_notify_email_addresses(Doc, NotifyEmailAddresses) ->
 
 -spec oldest_message_first(doc()) -> boolean().
 oldest_message_first(Doc) ->
-    oldest_message_first(Doc, false).
+    oldest_message_first(Doc, 'false').
 
 -spec oldest_message_first(doc(), Default) -> boolean() | Default.
 oldest_message_first(Doc, Default) ->
@@ -344,7 +344,7 @@ set_pin(Doc, Pin) ->
 
 -spec require_pin(doc()) -> boolean().
 require_pin(Doc) ->
-    require_pin(Doc, false).
+    require_pin(Doc, 'false').
 
 -spec require_pin(doc(), Default) -> boolean() | Default.
 require_pin(Doc, Default) ->
@@ -356,7 +356,7 @@ set_require_pin(Doc, RequirePin) ->
 
 -spec save_after_notify(doc()) -> boolean().
 save_after_notify(Doc) ->
-    save_after_notify(Doc, false).
+    save_after_notify(Doc, 'false').
 
 -spec save_after_notify(doc(), Default) -> boolean() | Default.
 save_after_notify(Doc, Default) ->
@@ -404,7 +404,7 @@ set_silence_threshold(Doc, SilenceThreshold) ->
 
 -spec skip_envelope(doc()) -> boolean().
 skip_envelope(Doc) ->
-    skip_envelope(Doc, false).
+    skip_envelope(Doc, 'false').
 
 -spec skip_envelope(doc(), Default) -> boolean() | Default.
 skip_envelope(Doc, Default) ->
@@ -416,7 +416,7 @@ set_skip_envelope(Doc, SkipEnvelope) ->
 
 -spec skip_greeting(doc()) -> boolean().
 skip_greeting(Doc) ->
-    skip_greeting(Doc, false).
+    skip_greeting(Doc, 'false').
 
 -spec skip_greeting(doc(), Default) -> boolean() | Default.
 skip_greeting(Doc, Default) ->
@@ -428,7 +428,7 @@ set_skip_greeting(Doc, SkipGreeting) ->
 
 -spec skip_instructions(doc()) -> boolean().
 skip_instructions(Doc) ->
-    skip_instructions(Doc, false).
+    skip_instructions(Doc, 'false').
 
 -spec skip_instructions(doc(), Default) -> boolean() | Default.
 skip_instructions(Doc, Default) ->
@@ -452,7 +452,7 @@ set_timezone(Doc, Timezone) ->
 
 -spec transcribe(doc()) -> boolean().
 transcribe(Doc) ->
-    transcribe(Doc, false).
+    transcribe(Doc, 'false').
 
 -spec transcribe(doc(), Default) -> boolean() | Default.
 transcribe(Doc, Default) ->

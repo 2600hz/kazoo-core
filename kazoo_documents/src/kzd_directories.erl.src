@@ -28,7 +28,7 @@ new() ->
 
 -spec confirm_match(doc()) -> boolean().
 confirm_match(Doc) ->
-    confirm_match(Doc, true).
+    confirm_match(Doc, 'true').
 
 -spec confirm_match(doc(), Default) -> boolean() | Default.
 confirm_match(Doc, Default) ->

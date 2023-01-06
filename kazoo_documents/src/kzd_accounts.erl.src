@@ -236,7 +236,7 @@ set_do_not_disturb_enabled(Doc, DoNotDisturbEnabled) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -368,7 +368,7 @@ set_notifications_first_occurrence(Doc, NotificationsFirstOccurrence) ->
 
 -spec notifications_first_occurrence_sent_initial_call(doc()) -> boolean().
 notifications_first_occurrence_sent_initial_call(Doc) ->
-    notifications_first_occurrence_sent_initial_call(Doc, false).
+    notifications_first_occurrence_sent_initial_call(Doc, 'false').
 
 -spec notifications_first_occurrence_sent_initial_call(doc(), Default) -> boolean() | Default.
 notifications_first_occurrence_sent_initial_call(Doc, Default) ->
@@ -380,7 +380,7 @@ set_notifications_first_occurrence_sent_initial_call(Doc, NotificationsFirstOccu
 
 -spec notifications_first_occurrence_sent_initial_registration(doc()) -> boolean().
 notifications_first_occurrence_sent_initial_registration(Doc) ->
-    notifications_first_occurrence_sent_initial_registration(Doc, false).
+    notifications_first_occurrence_sent_initial_registration(Doc, 'false').
 
 -spec notifications_first_occurrence_sent_initial_registration(doc(), Default) -> boolean() | Default.
 notifications_first_occurrence_sent_initial_registration(Doc, Default) ->

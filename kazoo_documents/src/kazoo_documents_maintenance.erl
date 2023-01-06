@@ -602,10 +602,10 @@ maybe_fix_SUPP_212(AccountId, #{app_ids := AppIds}=Acc, AppsStoreDoc) ->
             ToDeleteIds = maps:keys(ToDelete),
             NewAppsStoreJObj = kz_json:delete_keys([[<<"apps">>, AppId] || AppId <- ToDeleteIds], AppsStoreDoc),
             case kz_datamgr:save_doc(AccountId, NewAppsStoreJObj) of
-                {ok, _Saved} ->
+                {'ok', _Saved} ->
                     ?SUP_LOG_INFO("        removed wrongfully installed apps"),
                     kz_maps:put(['fixed', AccountId], NewAcc, ToDelete);
-                {error, E} ->
+                {'error', E} ->
                     ?SUP_LOG_INFO("        failed to write and fix apps_store:~n        ~p", [E]),
                     kz_maps:put(['errors', AccountId], NewAcc, kz_binary:format("failed to save and fix apps_store ~p", [E]))
             end

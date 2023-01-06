@@ -46,7 +46,7 @@ new() ->
 
 -spec allow_record_from_offnet(doc()) -> boolean().
 allow_record_from_offnet(Doc) ->
-    allow_record_from_offnet(Doc, false).
+    allow_record_from_offnet(Doc, 'false').
 
 -spec allow_record_from_offnet(doc(), Default) -> boolean() | Default.
 allow_record_from_offnet(Doc, Default) ->
@@ -58,7 +58,7 @@ set_allow_record_from_offnet(Doc, AllowRecordFromOffnet) ->
 
 -spec branch_extension(doc()) -> boolean().
 branch_extension(Doc) ->
-    branch_extension(Doc, false).
+    branch_extension(Doc, 'false').
 
 -spec branch_extension(doc(), Default) -> boolean() | Default.
 branch_extension(Doc, Default) ->
@@ -82,7 +82,7 @@ set_flags(Doc, Flags) ->
 
 -spec hunt(doc()) -> boolean().
 hunt(Doc) ->
-    hunt(Doc, true).
+    hunt(Doc, 'true').
 
 -spec hunt(doc(), Default) -> boolean() | Default.
 hunt(Doc, Default) ->

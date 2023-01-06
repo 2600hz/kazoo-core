@@ -9,26 +9,26 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_directory_device_spec).
 
--callback codecs(kzd_endpoint:type()) -> kz_term:ne_binaries().
+-callback codecs(kzd_endpoint:endpoint()) -> kz_term:ne_binaries().
 
--callback sip_interface(kzd_endpoint:type()) -> kz_term:api_ne_binary().
+-callback sip_interface(kzd_endpoint:endpoint()) -> kz_term:api_ne_binary().
 
--callback sip_route(kzd_endpoint:type()) -> kz_term:api_ne_binary().
+-callback sip_route(kzd_endpoint:endpoint()) -> kz_term:api_ne_binary().
 
--callback sip_route_uri(kzd_endpoint:type()) -> kz_term:api_ne_binary().
+-callback sip_route_uri(kzd_endpoint:endpoint()) -> kz_term:api_ne_binary().
 
--callback invite_format(kzd_endpoint:type()) -> kz_term:api_ne_binary().
+-callback invite_format(kzd_endpoint:endpoint()) -> kz_term:api_ne_binary().
 
--callback authorizing_type(kzd_endpoint:type()) -> kz_term:api_ne_binary().
+-callback authorizing_type(kzd_endpoint:endpoint()) -> kz_term:api_ne_binary().
 
--callback ignore_early_media(kzd_endpoint:type()) -> boolean().
+-callback ignore_early_media(kzd_endpoint:endpoint()) -> boolean().
 
--callback bypass_media(kzd_endpoint:type()) -> boolean().
+-callback bypass_media(kzd_endpoint:endpoing()) -> boolean().
 
--callback routing_ccvs(kzd_endpoint:type(), kz_json:object()) -> kz_json:object().
+-callback routing_ccvs(kzd_endpoint:endpoint(), kz_json:object()) -> kz_json:object().
 
--callback sip_headers(kzd_endpoint:type(), kz_json:object()) -> kz_json:object().
+-callback sip_headers(kzd_endpoint:endpoint(), kz_json:object()) -> kz_json:object().
 
--callback invite_uri(kzd_endpoint:type(), kz_json:object()) -> kz_json:object().
+-callback invite_uri(kzd_endpoint:endpoint(), kz_json:object()) -> kz_json:object().
 
--callback sip_auth(kzd_endpoint:type(), kz_json:object()) -> kz_json:object().
+-callback sip_auth(kzd_endpoint:endpoint(), kz_json:object()) -> kz_json:object().

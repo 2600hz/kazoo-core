@@ -27,7 +27,7 @@ new() ->
 
 -spec direct_calls_only(doc()) -> boolean().
 direct_calls_only(Doc) ->
-    direct_calls_only(Doc, false).
+    direct_calls_only(Doc, 'false').
 
 -spec direct_calls_only(doc(), Default) -> boolean() | Default.
 direct_calls_only(Doc, Default) ->
@@ -39,7 +39,7 @@ set_direct_calls_only(Doc, DirectCallsOnly) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, false).
+    enabled(Doc, 'false').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -51,7 +51,7 @@ set_enabled(Doc, Enabled) ->
 
 -spec ignore_early_media(doc()) -> boolean().
 ignore_early_media(Doc) ->
-    ignore_early_media(Doc, true).
+    ignore_early_media(Doc, 'true').
 
 -spec ignore_early_media(doc(), Default) -> boolean() | Default.
 ignore_early_media(Doc, Default) ->
@@ -63,7 +63,7 @@ set_ignore_early_media(Doc, IgnoreEarlyMedia) ->
 
 -spec keep_caller_id(doc()) -> boolean().
 keep_caller_id(Doc) ->
-    keep_caller_id(Doc, true).
+    keep_caller_id(Doc, 'true').
 
 -spec keep_caller_id(doc(), Default) -> boolean() | Default.
 keep_caller_id(Doc, Default) ->
@@ -87,7 +87,7 @@ set_number(Doc, Number) ->
 
 -spec require_keypress(doc()) -> boolean().
 require_keypress(Doc) ->
-    require_keypress(Doc, true).
+    require_keypress(Doc, 'true').
 
 -spec require_keypress(doc(), Default) -> boolean() | Default.
 require_keypress(Doc, Default) ->

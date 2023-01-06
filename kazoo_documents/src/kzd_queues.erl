@@ -229,7 +229,7 @@ set_connection_timeout(Doc, ConnectionTimeout) ->
 
 -spec enter_when_empty(doc()) -> boolean().
 enter_when_empty(Doc) ->
-    enter_when_empty(Doc, true).
+    enter_when_empty(Doc, 'true').
 
 -spec enter_when_empty(doc(), Default) -> boolean() | Default.
 enter_when_empty(Doc, Default) ->
@@ -289,7 +289,7 @@ set_name(Doc, Name) ->
 
 -spec record_caller(doc()) -> boolean().
 record_caller(Doc) ->
-    record_caller(Doc, false).
+    record_caller(Doc, 'false').
 
 -spec record_caller(doc(), Default) -> boolean() | Default.
 record_caller(Doc, Default) ->

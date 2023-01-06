@@ -62,7 +62,7 @@ new() ->
 
 -spec allow_shareable_link(doc()) -> boolean().
 allow_shareable_link(Doc) ->
-    allow_shareable_link(Doc, false).
+    allow_shareable_link(Doc, 'false').
 
 -spec allow_shareable_link(doc(), Default) -> boolean() | Default.
 allow_shareable_link(Doc, Default) ->
@@ -218,7 +218,7 @@ set_member(Doc, Member) ->
 
 -spec member_join_deaf(doc()) -> boolean().
 member_join_deaf(Doc) ->
-    member_join_deaf(Doc, false).
+    member_join_deaf(Doc, 'false').
 
 -spec member_join_deaf(doc(), Default) -> boolean() | Default.
 member_join_deaf(Doc, Default) ->
@@ -230,7 +230,7 @@ set_member_join_deaf(Doc, MemberJoinDeaf) ->
 
 -spec member_join_muted(doc()) -> boolean().
 member_join_muted(Doc) ->
-    member_join_muted(Doc, true).
+    member_join_muted(Doc, 'true').
 
 -spec member_join_muted(doc(), Default) -> boolean() | Default.
 member_join_muted(Doc, Default) ->
@@ -290,7 +290,7 @@ set_moderator(Doc, Moderator) ->
 
 -spec moderator_join_deaf(doc()) -> boolean().
 moderator_join_deaf(Doc) ->
-    moderator_join_deaf(Doc, false).
+    moderator_join_deaf(Doc, 'false').
 
 -spec moderator_join_deaf(doc(), Default) -> boolean() | Default.
 moderator_join_deaf(Doc, Default) ->
@@ -302,7 +302,7 @@ set_moderator_join_deaf(Doc, ModeratorJoinDeaf) ->
 
 -spec moderator_join_muted(doc()) -> boolean().
 moderator_join_muted(Doc) ->
-    moderator_join_muted(Doc, false).
+    moderator_join_muted(Doc, 'false').
 
 -spec moderator_join_muted(doc(), Default) -> boolean() | Default.
 moderator_join_muted(Doc, Default) ->
@@ -398,7 +398,7 @@ set_play_exit_tone(Doc, PlayExitTone) ->
 
 -spec play_name(doc()) -> boolean().
 play_name(Doc) ->
-    play_name(Doc, false).
+    play_name(Doc, 'false').
 
 -spec play_name(doc(), Default) -> boolean() | Default.
 play_name(Doc, Default) ->
@@ -480,8 +480,8 @@ wait_for_moderator(Doc, Default) ->
 set_wait_for_moderator(Doc, WaitForModerator) ->
     kz_json:set_value([<<"wait_for_moderator">>], WaitForModerator, Doc).
 
--spec on_enter_extension(doc() | undefined) -> kz_term:api_ne_binary().
-on_enter_extension(undefined) -> undefined;
+-spec on_enter_extension(doc() | 'undefined') -> kz_term:api_ne_binary().
+on_enter_extension('undefined') -> 'undefined';
 on_enter_extension(Doc) ->
     kz_json:get_ne_binary_value([<<"on_enter_extension">>], Doc).
 

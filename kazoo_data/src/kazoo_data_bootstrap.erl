@@ -30,6 +30,6 @@ start_link() ->
 
     Server = #{tag => Tag, server => kz_dataconnections:get_server(Tag)},
     kz_datamgr:init_dbs(Server),
-    persistent_term:put(kz_datamgr_bootstrap, true),
+    persistent_term:put('kz_datamgr_bootstrap', 'true'),
     kzs_plan:init(),
     'ignore'.

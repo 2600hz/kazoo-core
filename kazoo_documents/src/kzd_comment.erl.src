@@ -40,7 +40,7 @@ set_account_id(Doc, AccountId) ->
 
 -spec action_required(doc()) -> boolean().
 action_required(Doc) ->
-    action_required(Doc, false).
+    action_required(Doc, 'false').
 
 -spec action_required(doc(), Default) -> boolean() | Default.
 action_required(Doc, Default) ->
@@ -76,7 +76,7 @@ set_content(Doc, Content) ->
 
 -spec is_private(doc()) -> boolean().
 is_private(Doc) ->
-    is_private(Doc, false).
+    is_private(Doc, 'false').
 
 -spec is_private(doc(), Default) -> boolean() | Default.
 is_private(Doc, Default) ->

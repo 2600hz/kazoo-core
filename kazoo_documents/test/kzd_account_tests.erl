@@ -21,7 +21,7 @@
 -define(TREE, <<"pvt_tree">>).
 
 kz_account_test_() ->
-    {setup
+    {'setup'
     ,fun kzd_test_fixtures:setup/0
     ,fun kzd_test_fixtures:cleanup/1
     ,fun(_) ->
@@ -47,30 +47,30 @@ kz_account_test_() ->
     }.
 
 normalize_account_name_test_() ->
-    [?_assertEqual(undefined, kzd_accounts:normalize_name(undefined))
+    [?_assertEqual('undefined', kzd_accounts:normalize_name('undefined'))
     ,?_assertEqual(<<"blip2blop">>, kzd_accounts:normalize_name(<<"Blip#2!Blop">>))
     ].
 
 is_in_account_hierarchy_test_() ->
-    [?_assertEqual(false, kzd_accounts:is_in_account_hierarchy(undefined, ?AN_ACCOUNT_ID))
-    ,?_assertEqual(false, kzd_accounts:is_in_account_hierarchy(undefined, ?AN_ACCOUNT_ID))
-    ,?_assertEqual(false, kzd_accounts:is_in_account_hierarchy(undefined, ?AN_ACCOUNT_ID, true))
-    ,?_assertEqual(false, kzd_accounts:is_in_account_hierarchy(undefined, ?AN_ACCOUNT_ID, false))
-    ,?_assertEqual(false, kzd_accounts:is_in_account_hierarchy(?AN_ACCOUNT_ID, undefined, false))
-    ,?_assertEqual(false, kzd_accounts:is_in_account_hierarchy(?AN_ACCOUNT_ID, undefined, true))
-    ,?_assertEqual(true, kzd_accounts:is_in_account_hierarchy(?AN_ACCOUNT_ID, ?AN_ACCOUNT_ID, true))
+    [?_assertEqual('false', kzd_accounts:is_in_account_hierarchy('undefined', ?AN_ACCOUNT_ID))
+    ,?_assertEqual('false', kzd_accounts:is_in_account_hierarchy('undefined', ?AN_ACCOUNT_ID))
+    ,?_assertEqual('false', kzd_accounts:is_in_account_hierarchy('undefined', ?AN_ACCOUNT_ID, 'true'))
+    ,?_assertEqual('false', kzd_accounts:is_in_account_hierarchy('undefined', ?AN_ACCOUNT_ID, 'false'))
+    ,?_assertEqual('false', kzd_accounts:is_in_account_hierarchy(?AN_ACCOUNT_ID, 'undefined', 'false'))
+    ,?_assertEqual('false', kzd_accounts:is_in_account_hierarchy(?AN_ACCOUNT_ID, 'undefined', 'true'))
+    ,?_assertEqual('true', kzd_accounts:is_in_account_hierarchy(?AN_ACCOUNT_ID, ?AN_ACCOUNT_ID, 'true'))
     ].
 
 is_system_admin_test_() ->
-    [?_assertEqual(false, kzd_accounts:is_superduper_admin(undefined))
+    [?_assertEqual('false', kzd_accounts:is_superduper_admin('undefined'))
     ].
 
 is_account_enabled_test_() ->
-    [?_assertEqual(false, kzd_accounts:is_enabled(undefined))
+    [?_assertEqual('false', kzd_accounts:is_enabled('undefined'))
     ].
 
 is_account_expired_test_() ->
-    [?_assertEqual(false, kzd_accounts:is_expired(undefined))
+    [?_assertEqual('false', kzd_accounts:is_expired('undefined'))
     ].
 
 test_account_doc_against_fixture() ->
@@ -84,9 +84,9 @@ test_account_doc_against_fixture() ->
     ].
 
 test_undefined_account_id() ->
-    [?_assertEqual({error,invalid_db_name}, kzd_accounts:fetch(undefined))
-    ,?_assertEqual(undefined, kzd_accounts:fetch_realm(undefined))
-    ,?_assertEqual(undefined, kzd_accounts:fetch_name(undefined))
+    [?_assertEqual({'error','invalid_db_name'}, kzd_accounts:fetch('undefined'))
+    ,?_assertEqual('undefined', kzd_accounts:fetch_realm('undefined'))
+    ,?_assertEqual('undefined', kzd_accounts:fetch_name('undefined'))
     ].
 
 new_test_() ->

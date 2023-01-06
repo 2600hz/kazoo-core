@@ -2,6 +2,8 @@
 
 -type api_error() :: 'timeout' |
                      'not_found' |
+                     'no_endpoints_available' |
+                     'strategy_not_implemented' |
                      kz_json:object().
 -type kapps_api_error() :: {'error', api_error()}.
 -type kapps_api_std_return() :: kapps_api_error() |

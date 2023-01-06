@@ -93,7 +93,7 @@ number_exists(DID) ->
     throw({'error', 'number_exists', DID}).
 
 -spec invalid_state_transition(knm_phone_number:pn_record() | knm_phone_number:pn_record(), kz_term:api_ne_binary(), kz_term:ne_binary()) -> no_return().
-invalid_state_transition(PN, undefined, ToState) ->
+invalid_state_transition(PN, 'undefined', ToState) ->
     invalid_state_transition(PN, <<"(nothing)">>, ToState);
 invalid_state_transition(PN, FromState, ToState) ->
     Reason = <<"from ", FromState/binary, " to ", ToState/binary>>,

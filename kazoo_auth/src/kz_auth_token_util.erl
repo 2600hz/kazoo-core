@@ -81,7 +81,7 @@ access_code(#{} = Token) -> Token.
 maybe_fix_token_type(#{auth_provider := #{static_token_type := TokenType}} = Token) ->
     Token#{token_type => TokenType};
 maybe_fix_token_type(#{token_type := <<"bearer">>
-                      ,auth_provider := #{fix_token_type_caps := true}
+                      ,auth_provider := #{fix_token_type_caps := 'true'}
                       } = Token) ->
     Token#{token_type => <<"Bearer">>};
 maybe_fix_token_type(Token) -> Token.
@@ -89,7 +89,7 @@ maybe_fix_token_type(Token) -> Token.
 -spec access_token(map()) -> map().
 access_token(#{access_token := AccessToken
               ,token_type := TokenType
-              ,auth_provider := #{static_tokens := true}
+              ,auth_provider := #{static_tokens := 'true'}
               } = Token) ->
     Token#{static_token => kz_json:from_list([{<<"token_type">>, TokenType}
                                              ,{<<"access_token">>, AccessToken}

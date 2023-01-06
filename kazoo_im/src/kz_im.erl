@@ -90,7 +90,7 @@ set_to(Payload, To)
   when is_binary(To) ->
     kz_json:set_value([<<"To">>], [To], Payload);
 set_to(Payload, []) ->
-    kz_json:set_value([<<"To">>], null, Payload);
+    kz_json:set_value([<<"To">>], 'null', Payload);
 set_to(Payload, To)
   when is_list(To) ->
     kz_json:set_value([<<"To">>], To, Payload).
@@ -181,9 +181,9 @@ set_originator_property(Payload, Key, Value) ->
 
 -spec remove_originator_property(payload(), kz_term:ne_binary()) -> payload().
 remove_originator_property(Payload, Key) ->
-    JObj = kz_json:set_value(Key, null, originator_properties(Payload)),
+    JObj = kz_json:set_value(Key, 'null', originator_properties(Payload)),
     case kz_json:is_empty(JObj) of
-        'true' -> kz_json:set_value(<<"Originator-Properties">>, null, Payload);
+        'true' -> kz_json:set_value(<<"Originator-Properties">>, 'null', Payload);
         'false' -> set_originator_properties(Payload, JObj)
     end.
 

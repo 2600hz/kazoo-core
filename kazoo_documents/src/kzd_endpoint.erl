@@ -25,7 +25,10 @@
 -export([build_options/1]).
 
 -type endpoint() :: kz_json:object().
--export_type([endpoint/0]).
+-type type() :: kz_term:ne_binary().
+-export_type([endpoint/0
+             ,type/0
+             ]).
 
 -spec id(endpoint()) -> kz_term:ne_binary().
 id(Endpoint) ->

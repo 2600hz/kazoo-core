@@ -78,7 +78,7 @@ get(<<EndpointId/binary>>, AccountDb) when is_binary(AccountDb) ->
     end;
 get(<<EndpointId/binary>>, Call) ->
     AccountDb = kapps_call:account_db(Call),
-    Options = props:filter_undefined([{token, kapps_call:custom_auth_header(<<"JWT-Token">>, Call)}]),
+    Options = props:filter_undefined([{'token', kapps_call:custom_auth_header(<<"JWT-Token">>, Call)}]),
     get(EndpointId, AccountDb, Options);
 get(Endpoint, Call) ->
     lager:info("checking endpoint ~s", [kz_doc:id(Endpoint)]),
@@ -264,15 +264,16 @@ cache_option(_) -> 'false'.
 
 -spec cache_origin(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> list().
 cache_origin(JObj, EndpointId, AccountDb, Options) ->
-    Routines = [fun(P) -> [{'db', AccountDb, EndpointId} | P] end
-               ,fun(P) ->
-                        [{'db', AccountDb, kzs_util:format_account_id(AccountDb)} | P]
-                end
-               ,fun(P) -> maybe_owner_id_cache_origin(P, JObj, AccountDb) end
+    Routines = [fun(P) -> maybe_owner_id_cache_origin(P, JObj, AccountDb) end
                ,fun(P) -> maybe_hotdesk_ids_cache_origin(P, JObj, AccountDb) end
                ,fun(P) -> maybe_options_cache_origin(P, JObj, AccountDb, Options) end
                ],
-    lists:foldl(fun(F, P) -> F(P) end, [], Routines).
+    lists:foldl(fun(F, P) -> F(P) end
+               ,[{'db', AccountDb, kzs_util:format_account_id(AccountDb)}
+                ,{'db', AccountDb, EndpointId}
+                ]
+               ,Routines
+               ).
 
 -spec maybe_owner_id_cache_origin(kz_term:proplist(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
 maybe_owner_id_cache_origin(Props, JObj, AccountDb) ->
@@ -355,23 +356,23 @@ attributes_keys() ->
 -spec merge_attributes(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:object().
 merge_attributes(Owner, <<"user">>, Keys) ->
     case kzd_accounts:fetch(kz_doc:account_id(Owner)) of
-        {'ok', Account} -> merge_attributes(Keys, Account, Owner, Owner);
+        {'ok', AccountDoc} -> merge_attributes(Keys, AccountDoc, Owner, Owner);
         {'error', _} -> merge_attributes(Keys, kz_json:new(), Owner, Owner)
     end;
 merge_attributes(Device, <<"device">>, Keys) ->
     Owner = get_user(kz_doc:account_db(Device), Device),
     Endpoint = kz_json:set_value(<<"owner_id">>, kz_doc:id(Owner), Device),
     case kzd_accounts:fetch(kz_doc:account_id(Device)) of
-        {'ok', Account} -> merge_attributes(Keys, Account, Endpoint, Owner);
+        {'ok', AccountDoc} -> merge_attributes(Keys, AccountDoc, Endpoint, Owner);
         {'error', _} -> merge_attributes(Keys, kz_json:new(), Endpoint, Owner)
     end;
-merge_attributes(Account, <<"account">>, Keys) ->
-    merge_attributes(Keys, Account, kz_json:new(), kz_json:new());
+merge_attributes(AccountDoc, <<"account">>, Keys) ->
+    merge_attributes(Keys, AccountDoc, kz_json:new(), kz_json:new());
 merge_attributes(Endpoint, Type, _Keys) ->
     lager:debug("unhandled endpoint type on merge attributes : ~p : ~p", [Type, Endpoint]),
     kz_json:new().
 
--spec merge_attributes(kz_term:ne_binaries(), kz_term:api_object(), kz_term:api_object(), kz_term:api_object()) ->
+-spec merge_attributes(kz_term:ne_binaries(), kz_json:object(), kz_term:api_object(), kz_term:api_object()) ->
           kz_json:object().
 merge_attributes(Keys, AccountDoc, EndpointDoc, OwnerDoc) ->
     Account = merge_account_tree(AccountDoc),
@@ -1625,7 +1626,7 @@ endpoint_owner_id(_Endpoint,_) -> 'undefined'.
 
 build_default_cav(Key, Value, JObj, Acc) ->
     case kz_json:get_value(Value, JObj) of
-        undefined -> Acc;
+        'undefined' -> Acc;
         V -> kz_json:set_value(Key, V, Acc)
     end.
 
@@ -1635,70 +1636,68 @@ build_default_cav_fun(JObj) ->
 build_default_cav_fun(JObj, Keys) ->
     fun(Key, Value, Acc) ->
             case kz_json:is_json_object(Value) of
-                true -> kz_json:foldl(build_default_cav_fun(JObj, Keys ++ [Key]), Acc, Value);
-                false -> build_default_cav(Keys ++ [Key], Value, JObj, Acc)
+                'true' -> kz_json:foldl(build_default_cav_fun(JObj, Keys ++ [Key]), Acc, Value);
+                'false' -> build_default_cav(Keys ++ [Key], Value, JObj, Acc)
             end
     end.
 
-build_default_cavs(undefined, _CAVs) -> undefined;
+build_default_cavs('undefined', _CAVs) -> 'undefined';
 build_default_cavs(JObj, CAVs) ->
     case kz_json:get_json_value(kz_doc:type(JObj), CAVs) of
-        undefined -> undefined;
+        'undefined' -> 'undefined';
         TypeCAVs -> kz_json:foldl(build_default_cav_fun(JObj), kz_json:new(), TypeCAVs)
     end.
 
 system_default_cavs() ->
     kapps_config:get_json(?CONFIG_CAT, <<"default_cavs">>).
 
-account_default_cavs(undefined) -> system_default_cavs();
 account_default_cavs(AccountJObj) ->
     case kz_json:get_json_value(<<"default_cavs">>, AccountJObj) of
-        undefined -> system_default_cavs();
+        'undefined' -> system_default_cavs();
         CAVs -> kz_json:merge(lists:filter(fun kz_term:is_not_empty/1, [system_default_cavs(), CAVs]))
     end.
 
 merge_default_cavs(Key, Account, Endpoint, Owner) ->
     merge_default_cavs(Key, Account, Endpoint, Owner, account_default_cavs(Account)).
 
-merge_default_cavs(_Key, _Account, Endpoint, _Owner, undefined) -> Endpoint;
+merge_default_cavs(_Key, _Account, Endpoint, _Owner, 'undefined') -> Endpoint;
 merge_default_cavs(Key, Account, Endpoint, Owner, CAVs) ->
     JObjs = [Account, Endpoint, Owner],
     JSON = merge_cavs([build_default_cavs(JObj, CAVs) || JObj <- JObjs]),
     case kz_json:is_json_object(JSON)
         andalso kz_json:is_not_empty(JSON)
     of
-        true -> kz_json:set_value(Key, JSON, Endpoint);
-        false -> Endpoint
+        'true' -> kz_json:set_value(Key, JSON, Endpoint);
+        'false' -> Endpoint
     end.
 
-merge_cavs([]) -> undefined;
+merge_cavs([]) -> 'undefined';
 merge_cavs(JSONs) ->
     case lists:filter(fun kz_term:is_not_empty/1, JSONs) of
-        [] -> undefined;
+        [] -> 'undefined';
         Filtered -> kz_json:merge(Filtered)
     end.
 
-build_default_ccvs(undefined, _CCVs) -> undefined;
+build_default_ccvs('undefined', _CCVs) -> 'undefined';
 build_default_ccvs(JObj, CCVs) ->
     case kz_json:get_json_value(kz_doc:type(JObj), CCVs) of
-        undefined -> kz_json:get_json_value(<<"default_ccvs">>, JObj);
+        'undefined' -> kz_json:get_json_value(<<"default_ccvs">>, JObj);
         TypeCCVs -> kz_json:merge([TypeCCVs, kz_json:get_json_value(<<"default_ccvs">>, JObj, kz_json:new())])
     end.
 
 system_default_ccvs() ->
     kapps_config:get_json(?CONFIG_CAT, <<"default_ccvs">>).
 
-account_default_ccvs(undefined) -> system_default_ccvs();
 account_default_ccvs(AccountJObj) ->
     case kz_json:get_json_value(<<"default_ccvs">>, AccountJObj) of
-        undefined -> system_default_ccvs();
+        'undefined' -> system_default_ccvs();
         CCVs -> kz_json:merge(lists:filter(fun kz_term:is_not_empty/1, [system_default_ccvs(), CCVs]))
     end.
 
 merge_default_ccvs(Key, Account, Endpoint, Owner) ->
     merge_default_ccvs(Key, Account, Endpoint, Owner, account_default_ccvs(Account)).
 
-merge_default_ccvs(_Key, _Account, Endpoint, _Owner, undefined) -> Endpoint;
+merge_default_ccvs(_Key, _Account, Endpoint, _Owner, 'undefined') -> Endpoint;
 merge_default_ccvs(Key, Account, Endpoint, Owner, CCVs) ->
     JObjs = [Account, Endpoint, Owner],
     JSONs = [build_default_ccvs(JObj, CCVs) || JObj <- JObjs],
@@ -1706,8 +1705,8 @@ merge_default_ccvs(Key, Account, Endpoint, Owner, CCVs) ->
     case kz_json:is_json_object(JSON)
         andalso kz_json:is_not_empty(JSON)
     of
-        true -> kz_json:set_value(Key, JSON, Endpoint);
-        false -> Endpoint
+        'true' -> kz_json:set_value(Key, JSON, Endpoint);
+        'false' -> Endpoint
     end.
 
 merge_call_limits(Key, Account, Endpoint, Owner) ->
@@ -1719,27 +1718,25 @@ merge_call_limits(Key, Account, Endpoint, Owner, Limits) ->
     case kz_json:is_json_object(JSON)
         andalso kz_json:is_not_empty(JSON)
     of
-        true -> kz_json:set_value(Key, JSON, Endpoint);
-        false -> kz_json:set_value(Key, null, Endpoint)
+        'true' -> kz_json:set_value(Key, JSON, Endpoint);
+        'false' -> kz_json:set_value(Key, 'null', Endpoint)
     end.
 
 merge_owner_call_limits(<<"user">>, _Owner) -> [];
 merge_owner_call_limits(_, Owner) -> [Owner].
 
-account_default_call_limits(undefined) -> system_default_call_limits();
 account_default_call_limits(AccountJObj) ->
     case kz_json:get_json_value(<<"default_call_limits">>, AccountJObj) of
-        undefined -> system_default_call_limits();
+        'undefined' -> system_default_call_limits();
         Limits -> kz_json:merge(lists:filter(fun kz_term:is_not_empty/1, [system_default_call_limits(), Limits]))
     end.
 
 system_default_call_limits() ->
     kapps_config:get_json(?CONFIG_CAT, <<"default_call_limits">>, kz_json:new()).
 
-type_default_call_limits(undefined, _Limits) -> undefined;
 type_default_call_limits(JObj, DefaultLimits) ->
     case kz_json:get_json_value(kz_doc:type(JObj), DefaultLimits) of
-        undefined -> undefined;
+        'undefined' -> 'undefined';
         TypeLimit -> {kz_doc:type(JObj), TypeLimit}
     end.
 
@@ -1747,17 +1744,17 @@ build_call_limits(JObjs, Limits) ->
     lists:foldl(build_call_limits_fold_fun(Limits), kz_json:new(), JObjs).
 
 build_call_limits_fold_fun(Limits) ->
-    fun(undefined, Acc) -> Acc;
+    fun('undefined', Acc) -> Acc;
        (JObj, Acc) ->
             case build_call_limit(JObj, Limits) of
-                undefined -> Acc;
-                {_, undefined} -> Acc;
+                'undefined' -> Acc;
+                {_, 'undefined'} -> Acc;
                 {Key, Value} -> kz_json:set_value(Key, Value, Acc)
             end
     end.
 
 build_call_limit(JObj, Limits) ->
     case kz_json:get_json_value(<<"call_limits">>, JObj) of
-        undefined -> type_default_call_limits(JObj, Limits);
+        'undefined' -> type_default_call_limits(JObj, Limits);
         TypeLimit -> {kz_doc:type(JObj), kzd_call_limits:max_concurrent(TypeLimit)}
     end.

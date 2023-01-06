@@ -49,7 +49,7 @@ set_post_call_extension_time(Doc, PostCallExtensionTime) ->
 
 -spec show_location_call_time(doc()) -> boolean().
 show_location_call_time(Doc) ->
-    show_location_call_time(Doc, false).
+    show_location_call_time(Doc, 'false').
 
 -spec show_location_call_time(doc(), Default) -> boolean() | Default.
 show_location_call_time(Doc, Default) ->

@@ -159,8 +159,8 @@ sip_auth(Endpoint, CCVs) ->
          ,kzd_devices:sip_password(Endpoint)
          }
     of
-        {undefined, _} -> CCVs;
-        {_, undefined} -> CCVs;
+        {'undefined', _} -> CCVs;
+        {_, 'undefined'} -> CCVs;
         {Username, Password} ->
             KVs = [{<<"Auth-User">>, Username}
                   ,{<<"Auth-Password">>, Password}

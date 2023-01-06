@@ -126,7 +126,7 @@ set_cc_type(Doc, CcType) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->

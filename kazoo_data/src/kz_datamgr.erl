@@ -440,15 +440,15 @@ db_view_update(DbName, Views0, Remove) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Replicate a DB from one host to another.
-%% IMPORTANT: Use the atom true, not binary `<<"true">>' (though it may be changing in couch to allow `<<"true">>')
+%% IMPORTANT: Use the atom 'true', not binary `<<"true">>' (though it may be changing in couch to allow `<<"true">>')
 %%
 %% Proplist description:
 %% <dl>
 %%   <dt>`{<<"source">>, <<"http://some.couch.server:5984/source_db">>}'</dt><dd>URL to source CouchDB database.</dd>
 %%   <dt>`{<<"target">>, <<"target_db">>}'</dt><dd>Target database.</dd>
-%%   <dt>`{<<"create_target">>, true}'</dt><dd>Optional, creates the DB on target if it is existent already.</dd>
-%%   <dt>`{<<"continuous">>, true}'</dt><dd>Optional, continuously update target from source.</dd>
-%%   <dt>`{<<"cancel">>, true}'</dt><dd>Optional, will cancel a replication (one-time or continuous).</dd>
+%%   <dt>`{<<"create_target">>, 'true'}'</dt><dd>Optional, creates the DB on target if it is existent already.</dd>
+%%   <dt>`{<<"continuous">>, 'true'}'</dt><dd>Optional, continuously update target from source.</dd>
+%%   <dt>`{<<"cancel">>, 'true'}'</dt><dd>Optional, will cancel a replication (one-time or continuous).</dd>
 %%   <dt>`{<<"filter">>, <<"source_design_doc/source_filter_name">>}'</dt><dd>Optional, filter what documents are sent from source to target.</dd>
 %%   <dt>`<<"query_params">>, {struct, [{<<"key1">>, <<"value1">>}, {<<"key2">>, <<"value2">>}]}}'</dt>
 %%     <dd>Optional, send params to filter function

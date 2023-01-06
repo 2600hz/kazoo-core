@@ -107,8 +107,8 @@ settings(PhoneNumber, Features) ->
                   Module = provider_module(Feature, AccountId),
                   JObj = knm_gen_provider:settings(Module, PhoneNumber),
                   case kz_json:is_empty(JObj) of
-                      true -> false;
-                      false -> {true, {Feature, JObj}}
+                      'true' -> 'false';
+                      'false' -> {true, {Feature, JObj}}
                   end
           end,
     kz_json:from_list(lists:filtermap(Fun, Features)).
@@ -123,8 +123,8 @@ available_features(PhoneNumber) ->
     AccountId = knm_phone_number:assigned_to(PhoneNumber),
     Fun = fun(Feature) ->
                   case lists:member(Feature, ?PROVIDERS_WITH_AVAILABLE) of
-                      false -> true;
-                      true ->
+                      'false' -> 'true';
+                      'true' ->
                           Module = provider_module(Feature, AccountId),
                           knm_gen_provider:available(Module, PhoneNumber)
                   end
@@ -245,10 +245,10 @@ feature_parameters(IsLocal, IsAdmin, AssignedTo, UsedBy, Allowed, Denied, Contex
 
 -spec feature_parameters_from_context(map()) -> feature_parameters().
 feature_parameters_from_context(Context) ->
-    #feature_parameters{is_local = maps:get(is_local, Context, true)
-                       ,is_admin = maps:get(is_admin, Context, false)
-                       ,assigned_to = maps:get(assigned_to, Context, undefined)
-                       ,used_by = maps:get(used_by, Context, undefined)
+    #feature_parameters{is_local = maps:get(is_local, Context, 'true')
+                       ,is_admin = maps:get(is_admin, Context, 'false')
+                       ,assigned_to = maps:get(assigned_to, Context, 'undefined')
+                       ,used_by = maps:get(used_by, Context, 'undefined')
                        ,allowed_features = maps:get(allowed_features, Context, [])
                        ,denied_features = maps:get(denied_features, Context, [])
                        ,context = Context
@@ -356,10 +356,10 @@ reseller_denied_features(#feature_parameters{assigned_to = AccountId}=Parameters
 -spec local_denied_features(feature_parameters()) -> kz_term:ne_binaries().
 local_denied_features(#feature_parameters{is_local = 'false'}) -> [];
 local_denied_features(#feature_parameters{is_local = 'true'
-                                         ,context = #{local_feature_override := true}
+                                         ,context = #{local_feature_override := 'true'}
                                          }) -> [];
 local_denied_features(#feature_parameters{is_local = 'true'
-                                         ,context = #{local_feature_override := false}
+                                         ,context = #{local_feature_override := 'false'}
                                          }) ->
     Features = ?EXTERNAL_NUMBER_FEATURES,
     ?LOG_DEV("denying external features for local number: ~s", [?PP(Features)]),
@@ -521,10 +521,10 @@ exec(PN, Action='save') ->
 remove_deprecated_features(PN) ->
     Features = knm_phone_number:features(PN),
     case lists:any(fun(K) -> kz_json:is_defined(K, Features) end, ?DEPRECATED_FEATURES) of
-        true ->
+        'true' ->
             lager:info("removing deprecated features from ~s",[knm_phone_number:number(PN)]),
             knm_phone_number:set_features(PN, kz_json:delete_keys(?DEPRECATED_FEATURES, Features));
-        false -> PN
+        'false' -> PN
     end.
 
 -spec maybe_rename_carrier_and_strip_denied(knm_phone_number:pn_record()) -> {knm_phone_number:pn_record(), kz_term:ne_binaries(), kz_term:ne_binaries()}.
@@ -613,7 +613,7 @@ deactivate_features(PhoneNumber, Features) ->
 
 -spec setup_account_context(kz_term:ne_binary()) -> map().
 setup_account_context(AccountId) ->
-    setup_account_context(AccountId, false).
+    setup_account_context(AccountId, 'false').
 
 -spec setup_account_context(kz_term:ne_binary(), boolean()) -> map().
 setup_account_context(AccountId, Admin) ->
@@ -656,8 +656,8 @@ filter_available_features(Features, #{with_available := Check
                                      }) ->
     Fun = fun(Feature) ->
                   case lists:member(Feature, Check) of
-                      false -> true;
-                      true -> knm_gen_provider:available(Feature, Carrier, State, AccountId)
+                      'false' -> 'true';
+                      'true' -> knm_gen_provider:available(Feature, Carrier, State, AccountId)
                   end
           end,
     lists:filter(Fun, Features);

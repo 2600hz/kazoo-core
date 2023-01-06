@@ -182,7 +182,7 @@ maybe_cached(#{key_id := KeyId}=Token) ->
         {'ok', Key} ->
             lager:debug("public key '~s' fetched from cache", [KeyId]),
             Token#{key => Key, cached => 'true'};
-        _ -> Token#{cached => false}
+        _ -> Token#{cached => 'false'}
     end;
 maybe_cached(#{}=Token) -> Token#{cached => 'false'}.
 
@@ -446,7 +446,7 @@ reset_private_key(<<KeyId/binary>>) ->
 -spec data_output(kz_json:object()) -> search_result_row().
 data_output(JObj) ->
     KeyId = kz_doc:id(JObj),
-    {ok, Key} = private_key(KeyId),
+    {'ok', Key} = private_key(KeyId),
     {KeyId, Key}.
 
 -spec search(kz_term:ne_binary()) -> search_result().

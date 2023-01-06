@@ -167,7 +167,7 @@ call_forward(Doc, Default) ->
 
 -spec call_forward_direct_calls_only(doc()) -> boolean().
 call_forward_direct_calls_only(Doc) ->
-    call_forward_direct_calls_only(Doc, false).
+    call_forward_direct_calls_only(Doc, 'false').
 
 -spec call_forward_direct_calls_only(doc(), Default) -> boolean() | Default.
 call_forward_direct_calls_only(Doc, Default) ->
@@ -184,7 +184,7 @@ set_call_forward_direct_calls_only(Doc, CallForwardDirectCallsOnly) ->
 
 -spec call_forward_enabled(doc()) -> boolean().
 call_forward_enabled(Doc) ->
-    call_forward_enabled(Doc, false).
+    call_forward_enabled(Doc, 'false').
 
 -spec call_forward_enabled(doc(), Default) -> boolean() | Default.
 call_forward_enabled(Doc, Default) ->
@@ -200,7 +200,7 @@ set_call_forward_enabled(Doc, CallForwardEnabled) ->
 
 -spec call_forward_failover(doc()) -> boolean().
 call_forward_failover(Doc) ->
-    call_forward_failover(Doc, false).
+    call_forward_failover(Doc, 'false').
 
 -spec call_forward_failover(doc(), Default) -> boolean() | Default.
 call_forward_failover(Doc, Default) ->
@@ -216,7 +216,7 @@ set_call_forward_failover(Doc, CallForwardEnabled) ->
 
 -spec call_forward_ignore_early_media(doc()) -> boolean().
 call_forward_ignore_early_media(Doc) ->
-    call_forward_ignore_early_media(Doc, true).
+    call_forward_ignore_early_media(Doc, 'true').
 
 -spec call_forward_ignore_early_media(doc(), Default) -> boolean() | Default.
 call_forward_ignore_early_media(Doc, Default) ->
@@ -232,7 +232,7 @@ set_call_forward_ignore_early_media(Doc, CallForwardIgnoreEarlyMedia) ->
 
 -spec call_forward_keep_caller_id(doc()) -> boolean().
 call_forward_keep_caller_id(Doc) ->
-    call_forward_keep_caller_id(Doc, true).
+    call_forward_keep_caller_id(Doc, 'true').
 
 -spec call_forward_keep_caller_id(doc(), Default) -> boolean() | Default.
 call_forward_keep_caller_id(Doc, Default) ->
@@ -264,7 +264,7 @@ set_call_forward_number(Doc, CallForwardNumber) ->
 
 -spec call_forward_require_keypress(doc()) -> boolean().
 call_forward_require_keypress(Doc) ->
-    call_forward_require_keypress(Doc, true).
+    call_forward_require_keypress(Doc, 'true').
 
 -spec call_forward_require_keypress(doc(), Default) -> boolean() | Default.
 call_forward_require_keypress(Doc, Default) ->
@@ -280,7 +280,7 @@ set_call_forward_require_keypress(Doc, CallForwardRequireKeypress) ->
 
 -spec call_forward_substitute(doc()) -> boolean().
 call_forward_substitute(Doc) ->
-    call_forward_substitute(Doc, true).
+    call_forward_substitute(Doc, 'true').
 
 -spec call_forward_substitute(doc(), Default) -> boolean() | Default.
 call_forward_substitute(Doc, Default) ->
@@ -444,7 +444,7 @@ set_email(Doc, Email) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -516,7 +516,7 @@ set_hotdesk(Doc, Hotdesk) ->
 
 -spec hotdesk_enabled(doc()) -> boolean().
 hotdesk_enabled(Doc) ->
-    hotdesk_enabled(Doc, false).
+    hotdesk_enabled(Doc, 'false').
 
 -spec hotdesk_enabled(doc(), Default) -> boolean() | Default.
 hotdesk_enabled(Doc, Default) ->
@@ -540,7 +540,7 @@ set_hotdesk_id(Doc, HotdeskId) ->
 
 -spec hotdesk_keep_logged_in_elsewhere(doc()) -> boolean().
 hotdesk_keep_logged_in_elsewhere(Doc) ->
-    hotdesk_keep_logged_in_elsewhere(Doc, false).
+    hotdesk_keep_logged_in_elsewhere(Doc, 'false').
 
 -spec hotdesk_keep_logged_in_elsewhere(doc(), Default) -> boolean() | Default.
 hotdesk_keep_logged_in_elsewhere(Doc, Default) ->
@@ -564,7 +564,7 @@ set_hotdesk_pin(Doc, HotdeskPin) ->
 
 -spec hotdesk_require_pin(doc()) -> boolean().
 hotdesk_require_pin(Doc) ->
-    hotdesk_require_pin(Doc, false).
+    hotdesk_require_pin(Doc, 'false').
 
 -spec hotdesk_require_pin(doc(), Default) -> boolean() | Default.
 hotdesk_require_pin(Doc, Default) ->
@@ -734,7 +734,7 @@ set_pronounced_name_media_id(Doc, PronouncedNameMediaId) ->
 
 -spec require_password_update(doc()) -> boolean().
 require_password_update(Doc) ->
-    require_password_update(Doc, false).
+    require_password_update(Doc, 'false').
 
 -spec require_password_update(doc(), Default) -> boolean() | Default.
 require_password_update(Doc, Default) ->
@@ -827,7 +827,7 @@ set_username(Doc, Username) ->
 
 -spec verified(doc()) -> boolean().
 verified(Doc) ->
-    verified(Doc, false).
+    verified(Doc, 'false').
 
 -spec verified(doc(), Default) -> boolean() | Default.
 verified(Doc, Default) ->
@@ -839,7 +839,7 @@ set_verified(Doc, Verified) ->
 
 -spec vm_to_email_enabled(doc()) -> boolean().
 vm_to_email_enabled(Doc) ->
-    vm_to_email_enabled(Doc, true).
+    vm_to_email_enabled(Doc, 'true').
 
 -spec vm_to_email_enabled(doc(), Default) -> boolean() | Default.
 vm_to_email_enabled(Doc, Default) ->
@@ -1218,8 +1218,8 @@ get_setters() ->
     kzd_module_utils:get_setters(?MODULE).
 
 %%------------------------------------------------------------------------------
-%% @doc Return true if a user's username is unique within an account, else
-%% return false.
+%% @doc Return 'true' if a user's username is unique within an account, else
+%% return 'false'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec is_username_unique(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> boolean().
@@ -1349,8 +1349,8 @@ maybe_validate_hotdesk_id_is_unique(AccountId, UserId, {Doc, Errors}) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @doc Return true if a user's hotdesk id is unique within an account, else
-%% return false.
+%% @doc Return 'true' if a user's hotdesk id is unique within an account, else
+%% return 'false'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec is_hotdesk_id_unique(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().

@@ -39,7 +39,7 @@
 
 
 key() ->
-    {ok, Key} = kz_auth_keys:gen_private_key(),
+    {'ok', Key} = kz_auth_keys:gen_private_key(),
     Key.
 
 token(Key, Claims) ->
@@ -49,7 +49,7 @@ token(Key, Claims) ->
           ,kid => kz_binary:rand_hex(16)
           ,key => Key
           },
-    {ok, Token} = kz_auth_jwt:encode(TK),
+    {'ok', Token} = kz_auth_jwt:encode(TK),
     Token.
 
 transform_test_() ->
@@ -71,7 +71,7 @@ has_test_() ->
     Scope = kz_auth_scope:to_str(?ISSUED_SCOPES),
     Claims = [{<<"scope">>, Scope} | ?CLAIMS],
     Encoded = token(Key, Claims),
-    {ok, T0} = kz_auth_jwt:parse(Encoded),
+    {'ok', T0} = kz_auth_jwt:parse(Encoded),
     T1 = T0#{jwt_public_key => PK},
     Decoded = T1#{scopes_available => ?AVAILABLE_SCOPES},
 
@@ -79,37 +79,36 @@ has_test_() ->
      ,?_assertEqual(kz_auth_scope:scopes(Decoded), ?EXPECTED_SCOPES)
      }
     ,{"has foo"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"foo">>), true)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"foo">>), 'true')
      }
     ,{"has foo & bar"
-     ,?_assertEqual(kz_auth_scope:all(Decoded, [<<"foo">>, <<"bar">>]), true)
+     ,?_assertEqual(kz_auth_scope:all(Decoded, [<<"foo">>, <<"bar">>]), 'true')
      }
     ,{"composed baz:qux"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"baz:qux">>), true)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"baz:qux">>), 'true')
      }
     ,{"composed baz:qux has baz"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"baz">>), true)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"baz">>), 'true')
      }
     ,{"composed baz:qux doesn't have qux"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"qux">>), false)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"qux">>), 'false')
      }
     ,{"resolved simple"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"corge">>), true)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"corge">>), 'true')
      }
     ,{"resolve composed"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"grault:garply">>), true)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"grault:garply">>), 'true')
      }
     ,{"resolve composed base"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"grault">>), true)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"grault">>), 'true')
      }
     ,{"resolve composed extended"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"garply">>), false)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"garply">>), 'false')
      }
     ,{"resolve recursive"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"waldo">>), true)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"waldo">>), 'true')
      }
     ,{"composed 3 levels"
-     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"z:y">>), true)
+     ,?_assertEqual(kz_auth_scope:has(Decoded, <<"z:y">>), 'true')
      }
     ].
-

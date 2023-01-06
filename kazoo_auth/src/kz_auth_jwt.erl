@@ -138,7 +138,7 @@ verify_identity(Token) ->
     case Verified of
         'true' -> Token1;
         'false' ->
-            IdentityError = maps:get(identity_error, Token1, 'invalid_identity'),
+            IdentityError = maps:get('identity_error', Token1, 'invalid_identity'),
             lager:info("claimed identity could not be verified: ~p", [IdentityError]),
             Token1#{verify_result => 'false', verify_error => IdentityError}
     end.

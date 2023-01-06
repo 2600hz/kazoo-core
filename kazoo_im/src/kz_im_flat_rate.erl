@@ -63,8 +63,8 @@ create_ledger(_IM, _AccountId, _Rate) -> 'ok'.
 
 quantity(IM) ->
     case kapps_im:direction(IM) of
-        inbound -> length(kapps_im:to_numbers(IM));
-        outbound -> length(kapps_im:to(IM))
+        'inbound' -> length(kapps_im:to_numbers(IM));
+        'outbound' -> length(kapps_im:to(IM))
     end.
 
 -spec description(kapps_im:im()) -> kz_term:ne_binary().

@@ -188,7 +188,7 @@ handle_inbound_cnam(PN, 'true') ->
                                                   ,?CNAM_INBOUND_LOOKUP
                                                   ]);
         'true' ->
-            FeatureData = kz_json:from_list([{?CNAM_INBOUND_LOOKUP, true}]),
+            FeatureData = kz_json:from_list([{?CNAM_INBOUND_LOOKUP, 'true'}]),
             knm_providers:activate_feature(PN, {?FEATURE_CNAM_INBOUND, FeatureData})
     end;
 handle_inbound_cnam(PN, 'false') ->
@@ -292,7 +292,7 @@ process_xml_content_tag(PN, #xmlElement{name='content'
             Msg = knm_vitelity_util:xml_resp_error_msg(Els),
             knm_errors:unspecified(Msg, PN);
         <<"ok">> ->
-            FeatureData = kz_json:from_list([{?CNAM_INBOUND_LOOKUP, true}]),
+            FeatureData = kz_json:from_list([{?CNAM_INBOUND_LOOKUP, 'true'}]),
             knm_providers:activate_feature(PN, {?FEATURE_CNAM_INBOUND, FeatureData})
     end.
 

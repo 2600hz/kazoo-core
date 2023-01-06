@@ -54,7 +54,7 @@
 
 -record(state, {table_id :: atom()
                ,give_away_pid :: kz_term:api_pid()
-               ,find_me_fun :: find_me_fun() | undefined
+               ,find_me_fun :: find_me_fun() | 'undefined'
                ,find_me_pid_ref :: kz_term:api_pid_ref()
                ,gift_data :: any()
                }).

@@ -100,7 +100,7 @@ route(Pid, Payload) ->
 %%------------------------------------------------------------------------------
 -spec init([]) -> {'ok', state()}.
 init([]) ->
-    {'ok', #{count => 1, pids => #{}, registered => false}}.
+    {'ok', #{count => 1, pids => #{}, registered => 'false'}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -122,21 +122,23 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'gen_listener', {'created_queue', ?QUEUE_NAME}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener', {'is_consuming', 'false'}}, #{registered := true, count := Count} = State) ->
+handle_cast({'gen_listener', {'is_consuming', 'false'}}
+           ,#{registered := 'true', count := Count} = State
+           ) ->
     lager:debug("deactivating onnet worker"),
     _ = gproc:unreg({'p', 'l', 'im_onnet'}),
     Ack = #'basic.ack'{delivery_tag = Count, multiple = 'true'},
-    {'noreply', handle_confirm(Ack, State#{registered => false, count => 0})};
-handle_cast({'gen_listener', {'is_consuming', 'false'}}, #{registered := false} = State) ->
+    {'noreply', handle_confirm(Ack, State#{registered => 'false', count => 0})};
+handle_cast({'gen_listener', {'is_consuming', 'false'}}, #{registered := 'false'} = State) ->
     lager:warning("unexpected state => ~p", [State]),
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', 'true'}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'server_confirms', 'true'}}, #{registered := false} = State) ->
+handle_cast({'gen_listener',{'server_confirms', 'true'}}, #{registered := 'false'} = State) ->
     lager:debug("broker can confirm deliveries, activating onnet worker"),
     'true' = gproc:reg({'p', 'l', 'im_onnet'}),
-    {'noreply', State#{registered => true, count => 1}};
-handle_cast({'gen_listener',{'server_confirms', 'true'}}, #{registered := true} = State) ->
+    {'noreply', State#{registered => 'true', count => 1}};
+handle_cast({'gen_listener',{'server_confirms', 'true'}}, #{registered := 'true'} = State) ->
     lager:warning("unexpected state => ~p", [State]),
     {'noreply', State};
 handle_cast({'gen_listener',{'server_confirms', 'false'}}, State) ->
@@ -242,7 +244,7 @@ handle_outbound_route(JObj, Props) ->
         _Exception:_Reason:_Stack ->
             lager:warning("exception ~p / ~p handling outbound request", [_Exception, _Reason]),
             kz_log:log_stacktrace(_Stack),
-            nack
+            'nack'
     end.
 
 
@@ -283,14 +285,14 @@ trusted_application(#{payload := JObj} = Map) ->
 
 account_fetch(#{account_id := AccountId} = Map) ->
     case kzd_accounts:fetch(AccountId) of
-        {'error', Error} -> maps:without([account_id], Map#{error => Error});
+        {'error', Error} -> maps:without(['account_id'], Map#{error => Error});
         {'ok', Account} -> Map#{account => Account}
     end;
 account_fetch(Map) -> Map.
 
 reseller_fetch(#{reseller_id := ResellerId} = Map) ->
     case kzd_accounts:fetch(ResellerId) of
-        {'error', Error} -> maps:without([reseller_id], Map#{error => Error});
+        {'error', Error} -> maps:without(['reseller_id'], Map#{error => Error});
         {'ok', Reseller} -> Map#{reseller => Reseller}
     end;
 reseller_fetch(Map) -> Map.
@@ -324,7 +326,7 @@ reseller_has_im(#{reseller_id := ResellerId, im := IM} = Map) ->
     end;
 reseller_has_im(Map) -> Map.
 
--define(STANDING_ACCEPTABLE_OPTIONS, #{cache_acceptable => true}).
+-define(STANDING_ACCEPTABLE_OPTIONS, #{cache_acceptable => 'true'}).
 
 account_standing_is_acceptable(#{account_id := AccountId} = Map) ->
     case kz_services_standing:acceptable(AccountId, ?STANDING_ACCEPTABLE_OPTIONS) of

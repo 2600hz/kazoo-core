@@ -364,7 +364,7 @@ set_do_not_disturb_enabled(Doc, DoNotDisturbEnabled) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -376,7 +376,7 @@ set_enabled(Doc, Enabled) ->
 
 -spec exclude_from_queues(doc()) -> boolean().
 exclude_from_queues(Doc) ->
-    exclude_from_queues(Doc, false).
+    exclude_from_queues(Doc, 'false').
 
 -spec exclude_from_queues(doc(), Default) -> boolean() | Default.
 exclude_from_queues(Doc, Default) ->
@@ -556,7 +556,7 @@ set_music_on_hold_options(Doc, MusicOnHoldOptions) ->
 
 -spec mwi_unsolicited_updates(doc()) -> boolean().
 mwi_unsolicited_updates(Doc) ->
-    mwi_unsolicited_updates(Doc, true).
+    mwi_unsolicited_updates(Doc, 'true').
 
 -spec mwi_unsolicited_updates(doc(), Default) -> boolean() | Default.
 mwi_unsolicited_updates(Doc, Default) ->
@@ -760,7 +760,7 @@ set_provision_id(Doc, ProvisionId) ->
 
 -spec register_overwrite_notify(doc()) -> boolean().
 register_overwrite_notify(Doc) ->
-    register_overwrite_notify(Doc, false).
+    register_overwrite_notify(Doc, 'false').
 
 -spec register_overwrite_notify(doc(), Default) -> boolean() | Default.
 register_overwrite_notify(Doc, Default) ->
@@ -1024,7 +1024,7 @@ set_sip_username(Doc, SipUsername) ->
 
 -spec suppress_unregister_notifications(doc()) -> boolean().
 suppress_unregister_notifications(Doc) ->
-    suppress_unregister_notifications(Doc, false).
+    suppress_unregister_notifications(Doc, 'false').
 
 -spec suppress_unregister_notifications(doc(), Default) -> boolean() | Default.
 suppress_unregister_notifications(Doc, Default) ->

@@ -46,7 +46,7 @@ set_custom_data(Doc, CustomData) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -94,7 +94,7 @@ set_http_verb(Doc, HttpVerb) ->
 
 -spec include_internal_legs(doc()) -> boolean().
 include_internal_legs(Doc) ->
-    include_internal_legs(Doc, true).
+    include_internal_legs(Doc, 'true').
 
 -spec include_internal_legs(doc(), Default) -> boolean() | Default.
 include_internal_legs(Doc, Default) ->

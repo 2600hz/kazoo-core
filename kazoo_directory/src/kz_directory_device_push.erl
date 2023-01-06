@@ -52,7 +52,7 @@ bypass_media(Endpoint) ->
 
 -spec invite_format(kz_json:object()) -> kz_term:api_ne_binary().
 invite_format(_Endpoint) ->
-    undefined.
+    'undefined'.
 
 -spec sip_route(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route(Endpoint) ->
@@ -111,8 +111,8 @@ sip_auth(Endpoint, CCVs) ->
          ,kzd_devices:sip_password(Endpoint)
          }
     of
-        {undefined, _} -> CCVs;
-        {_, undefined} -> CCVs;
+        {'undefined', _} -> CCVs;
+        {_, 'undefined'} -> CCVs;
         {Username, Password} ->
             KVs = [{<<"Auth-User">>, Username}
                   ,{<<"Auth-Password">>, Password}

@@ -134,9 +134,8 @@ db_info(Server, DbName) ->
 db_exists(Server, DbName) ->
     kz_fixturedb_db:db_exists(ensure_server(Server), DbName).
 
--spec db_archive(server_map(), kz_term:ne_binary(), kz_term:ne_binary()) -> ok.
-db_archive(_, _, _) ->
-    ok.
+-spec db_archive(server_map(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+db_archive(_, _, _) -> 'ok'.
 
 -spec db_list(server_map(), kz_data:options()) -> {'ok', kz_term:ne_binaries()}.
 db_list(Server, Options) ->

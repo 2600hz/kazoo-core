@@ -25,7 +25,7 @@ new() ->
 
 -spec account_wide(doc()) -> boolean().
 account_wide(Doc) ->
-    account_wide(Doc, true).
+    account_wide(Doc, 'true').
 
 -spec account_wide(doc(), Default) -> boolean() | Default.
 account_wide(Doc, Default) ->

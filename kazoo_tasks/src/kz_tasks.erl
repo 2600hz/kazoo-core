@@ -52,7 +52,7 @@
                  ,total_rows => kz_term:api_pos_integer() %% CSV rows (undefined for a noinput task)
                  ,total_rows_failed => kz_term:api_non_neg_integer() %% Rows that crashed or didn't return ok
                  ,total_rows_succeeded => kz_term:api_non_neg_integer() %% Rows that returned 'ok'
-                 ,was_stopped => kz_term:api_boolean() %% true if stopped, undefined of false otherwise
+                 ,was_stopped => kz_term:api_boolean() %% true if stopped, 'undefined' of false otherwise
                  }.
 
 -type input() :: kz_term:api_ne_binary() | kz_json:objects().

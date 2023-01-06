@@ -122,7 +122,7 @@ init_crashed() ->
     _W1 = spawn_monitor(fun() ->
                                 'ok' = kz_cache:mitigate_stampede_local(?MODULE, Key),
                                 timer:sleep(50), % db operation fails
-                                exit(crash)
+                                exit('crash')
                         end),
     W2 = spawn_monitor(fun() ->
                                timer:sleep(1),

@@ -39,8 +39,8 @@ query(Query)
            ],
     query_exec(Funs, Query).
 
--spec eval(kz_json:object(), undefined | tuple()) -> boolean().
-eval(_JObj, undefined) ->
+-spec eval(kz_json:object(), 'undefined' | tuple()) -> boolean().
+eval(_JObj, 'undefined') ->
     true;
 eval(JObj, {'query', Condition}) ->
     eval(JObj, Condition);
@@ -89,7 +89,7 @@ parser(#{lex := Tokens} = Map) ->
         {error, {_, kz_json_query_parser, Error}} -> {error, list_to_binary(Error)};
         {ok, AST} -> Map#{ast => AST}
     end;
-parser(Map) -> Map#{ast => undefined}.
+parser(Map) -> Map#{ast => 'undefined'}.
 
 collect(#{collection := _} = Map) -> Map;
 collect(#{collector := #{'fun' := Fun, params := Params}} = Map) ->
@@ -173,7 +173,7 @@ scope(#{scope := []} = Map) -> Map;
 scope(#{scope := Scope
        ,collection := Collection
        } = Map) ->
-    Map#{collection => [Scoped || JObj <- Collection, (Scoped = kz_json:get_json_value(Scope, JObj)) =/= undefined]};
+    Map#{collection => [Scoped || JObj <- Collection, (Scoped = kz_json:get_json_value(Scope, JObj)) =/= 'undefined']};
 scope(Map) -> Map.
 
 run(#{collection := Collection, ast := AST} = Map) ->
@@ -185,8 +185,8 @@ patch(#{patch := #{op := Op, path := Path} = Patch
        ,result := Collection
        } = Map) ->
     Value = maps:get(value, Patch, null),
-    Scope = case maps:get(scope, Patch, undefined) of
-                undefined -> undefined;
+    Scope = case maps:get(scope, Patch, 'undefined') of
+                'undefined' -> 'undefined';
                 Binary
                   when is_binary(Binary) ->
                     binary:split(Binary,<<".">>, ['global']);
@@ -199,28 +199,28 @@ patch(#{patch := #{op := Op, path := Path} = Patch
                 String
                   when is_list(String) ->
                     binary:split(list_to_binary(String),<<".">>, ['global']);
-                _Else -> undefined
+                _Else -> 'undefined'
             end,
     try
         Results = [begin
                        case Scope of
-                           undefined ->
+                           'undefined' ->
                                case kz_json_patch:patch(JObj, Op, Path, Value) of
-                                   JObj -> undefined;
+                                   JObj -> 'undefined';
                                    Changed -> Changed
                                end;
                            Scope ->
                                case kz_json:get_json_value(Scope, JObj) of
-                                   undefined -> undefined;
+                                   'undefined' -> 'undefined';
                                    Scoped ->
                                        case kz_json_patch:patch(Scoped, Op, Path, Value) of
-                                           Scoped -> undefined;
+                                           Scoped -> 'undefined';
                                            Changed -> kz_json:set_value(Scope, Changed, JObj)
                                        end
                                end
                        end
                    end  || JObj <- Collection],
-        Map#{result => [Result || Result <- Results, Result =/= undefined]}
+        Map#{result => [Result || Result <- Results, Result =/= 'undefined']}
     catch
         _Exc:_Err:_ST ->
             Map#{error => _Err}

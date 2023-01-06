@@ -102,7 +102,7 @@ stop(Srv) ->
 %%------------------------------------------------------------------------------
 -spec init(list()) -> {'ok', state()}.
 init([]) ->
-    kapps_maintenance:bind({'refresh', ?KZ_OAUTH_DB}, ?MODULE, 'refresh'),
+    _ = kapps_maintenance:bind({'refresh', ?KZ_OAUTH_DB}, ?MODULE, 'refresh'),
     refresh(),
     {'ok', #state{}}.
 
@@ -144,7 +144,7 @@ handle_info(_Info, _State) ->
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
 terminate(_Reason, #state{}) ->
-    kapps_maintenance:unbind({'refresh', ?KZ_OAUTH_DB}, ?MODULE, 'refresh'),
+    _ = kapps_maintenance:unbind({'refresh', ?KZ_OAUTH_DB}, ?MODULE, 'refresh'),
     lager:debug("~s going down: ~p", [?MODULE, _Reason]).
 
 %%------------------------------------------------------------------------------

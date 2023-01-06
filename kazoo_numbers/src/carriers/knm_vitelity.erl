@@ -103,7 +103,7 @@ disconnect_number(PN) ->
 %%------------------------------------------------------------------------------
 -spec should_lookup_cnam() -> boolean().
 should_lookup_cnam() ->
-    kapps_config:get_is_true(?KNM_VITELITY_CONFIG_CAT, <<"use_stepswitch_cnam">>, false).
+    kapps_config:get_is_true(?KNM_VITELITY_CONFIG_CAT, <<"use_stepswitch_cnam">>, 'false').
 
 %%------------------------------------------------------------------------------
 %% @doc

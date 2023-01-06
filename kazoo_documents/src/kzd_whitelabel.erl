@@ -97,7 +97,7 @@ set_fake_api_url(Doc, FakeAPIUrl) ->
 
 -spec hide_credits(doc()) -> boolean().
 hide_credits(Doc) ->
-    hide_credits(Doc, false).
+    hide_credits(Doc, 'false').
 
 -spec hide_credits(doc(), Default) -> boolean() | Default.
 hide_credits(Doc, Default) ->
@@ -109,7 +109,7 @@ set_hide_credits(Doc, HideCredits) ->
 
 -spec hide_powered(doc()) -> boolean().
 hide_powered(Doc) ->
-    hide_powered(Doc, false).
+    hide_powered(Doc, 'false').
 
 -spec hide_powered(doc(), Default) -> boolean() | Default.
 hide_powered(Doc, Default) ->
@@ -121,7 +121,7 @@ set_hide_powered(Doc, HidePowered) ->
 
 -spec hide_registration(doc()) -> boolean().
 hide_registration(Doc) ->
-    hide_registration(Doc, false).
+    hide_registration(Doc, 'false').
 
 -spec hide_registration(doc(), Default) -> boolean() | Default.
 hide_registration(Doc, Default) ->

@@ -34,5 +34,5 @@ start(_Type, _Args) ->
 %%------------------------------------------------------------------------------
 -spec stop(any()) -> any().
 stop(_State) ->
-    kapps_maintenance:unbind('register_views', 'kazoo_auth_maintenance', 'register_views'),
+    _ = kapps_maintenance:unbind('register_views', 'kazoo_auth_maintenance', 'register_views'),
     'ok'.

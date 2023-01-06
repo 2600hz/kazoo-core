@@ -34,7 +34,7 @@ decode_base64(Base64) ->
 -spec get_content_type(kz_term:ne_binary()) -> kz_term:api_binary() | {'error', 'badarg'}.
 get_content_type(CT) ->
     %% stripping white-spaces for lazy developers
-    MediaType = binary:replace(CT, <<$\s>>, <<>>, [global]),
+    MediaType = binary:replace(CT, <<$\s>>, <<>>, ['global']),
     get_content_type(MediaType, kz_binary:truncate_left(MediaType, 6)).
 
 get_content_type(MediaType, <<"base64">>) ->
@@ -52,7 +52,7 @@ get_content_type(MediaType, _) ->
 -spec strip_base64(kz_term:ne_binary()) -> kz_term:ne_binary().
 strip_base64(Base64) ->
     %% Why Cowboy is not doing this?
-    binary:replace(Base64, [<<$\s>>, <<$\r>>, <<$\n>>], <<>>, [global]).
+    binary:replace(Base64, [<<$\s>>, <<$\r>>, <<$\n>>], <<>>, ['global']).
 
 -spec corrected_base64_decode(kz_term:ne_binary()) -> kz_term:ne_binary().
 corrected_base64_decode(Base64) when byte_size(Base64) rem 4 =:= 3 ->

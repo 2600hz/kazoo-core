@@ -88,7 +88,7 @@ create(Subject, SubjectPublicKey, Days, Issuer, IssuerPrivateKey, Extensions) ->
             | Extensions
             ]),
     TBSCertificate = #'TBSCertificate'
-        { version = v3
+        { version = 'v3'
         , serialNumber = serial()
         , signature = #'AlgorithmIdentifier'
           { algorithm = ?sha256WithRSAEncryption
@@ -98,8 +98,8 @@ create(Subject, SubjectPublicKey, Days, Issuer, IssuerPrivateKey, Extensions) ->
         , validity = Validity
         , subject = Subject
         , subjectPublicKeyInfo = SubjectPublicKeyInfo
-        , issuerUniqueID = asn1_NOVALUE
-        , subjectUniqueID = asn1_NOVALUE
+        , issuerUniqueID = 'asn1_NOVALUE'
+        , subjectUniqueID = 'asn1_NOVALUE'
         , extensions = Ext
         },
     Message = public_key:der_encode('TBSCertificate', TBSCertificate),
@@ -113,7 +113,7 @@ create(Subject, SubjectPublicKey, Days, Issuer, IssuerPrivateKey, Extensions) ->
         , signature = Signature
         }.
 
--spec subject(cert()) -> {ok, subject(), pub_key()}.
+-spec subject(cert()) -> {'ok', subject(), pub_key()}.
 subject(Certificate = #'Certificate'{}) ->
     #'Certificate'
         { tbsCertificate = TBSCertificate
@@ -122,9 +122,9 @@ subject(Certificate = #'Certificate'{}) ->
         } = Certificate,
     case Algorithm of
         ?sha256WithRSAEncryption ->
-            true;
+            'true';
         ?sha1WithRSAEncryption ->
-            true
+            'true'
     end,
     #'TBSCertificate'
         { subject = Subject
@@ -136,7 +136,7 @@ subject(Certificate = #'Certificate'{}) ->
         , subjectPublicKey = PublicKeyDER
         } = PublicKeyInfo,
     PublicKey = der_to_public_key(PublicKeyDER),
-    {ok, Subject, PublicKey}.
+    {'ok', Subject, PublicKey}.
 
 -spec to_der(cert()) -> binary().
 to_der(Certificate = #'Certificate'{}) ->
@@ -145,61 +145,56 @@ to_der(Certificate = #'Certificate'{}) ->
 -spec to_pem(cert()) -> binary().
 to_pem(Certificate = #'Certificate'{}) ->
     DER = to_der(Certificate),
-    PEMEntry = {'Certificate', DER, not_encrypted},
+    PEMEntry = {'Certificate', DER, 'not_encrypted'},
     public_key:pem_encode([PEMEntry]).
 
--spec to_file(Cert, Filename) -> ok | {error, Reason} when
+-spec to_file(Cert, Filename) -> 'ok' | {'error', Reason} when
       Cert :: cert() | [cert()],
       Filename :: file:filename_all(),
-      Reason :: file:posix() | badarg | terminated | system_limit.
+      Reason :: file:posix() | 'badarg' | 'terminated' | 'system_limit'.
 to_file(Certificates, FileName)
   when is_list(Certificates) ->
-    PEMEntries = [{'Certificate', to_der(Certificate), not_encrypted} || Certificate <- Certificates],
+    PEMEntries = [{'Certificate', to_der(Certificate), 'not_encrypted'} || Certificate <- Certificates],
     PEM = public_key:pem_encode(PEMEntries),
     file:write_file(FileName, PEM);
 to_file(Certificate = #'Certificate'{}, FileName) ->
     DER = to_der(Certificate),
-    PEMEntry = {'Certificate', DER, not_encrypted},
+    PEMEntry = {'Certificate', DER, 'not_encrypted'},
     PEM = public_key:pem_encode([PEMEntry]),
     file:write_file(FileName, PEM).
 
--spec to_file(Cert, PrivateKey, Filename) -> ok | {error, Reason} when
+-spec to_file(Cert, PrivateKey, Filename) -> 'ok' | {'error', Reason} when
       Cert :: cert(),
       PrivateKey :: priv_key(),
       Filename :: file:filename_all(),
-      Reason :: file:posix() | badarg | terminated | system_limit.
+      Reason :: file:posix() | 'badarg' | 'terminated' | 'system_limit'.
 to_file(Certificate = #'Certificate'{}, #'RSAPrivateKey'{}=PrivateKey, FileName) ->
     DER = to_der(Certificate),
-    PEMEntry = {'Certificate', DER, not_encrypted},
+    PEMEntry = {'Certificate', DER, 'not_encrypted'},
     PEM = public_key:pem_encode([PEMEntry]),
     PKPEM = kz_auth_keys:to_pem(PrivateKey),
     case file:write_file(FileName, PKPEM) of
-        ok -> file:write_file(FileName, PEM, [append]);
+        'ok' -> file:write_file(FileName, PEM, ['append']);
         Error -> Error
     end.
 
--spec verify(cert(), pub_key()) -> {ok, subject(), pub_key()} | {error, verify_failed}.
+-spec verify(cert(), pub_key()) -> {'ok', subject(), pub_key()} | {'error', 'verify_failed'}.
 verify(Certificate = #'Certificate'{}, IssuerPublicKey = #'RSAPublicKey'{}) ->
-    #'Certificate'
-        { tbsCertificate = TBSCertificate
-        , signatureAlgorithm = #'AlgorithmIdentifier'
-          { algorithm = ?sha256WithRSAEncryption }
-        , signature = Signature
-        } = Certificate,
-    #'TBSCertificate'
-        { subject = Subject
-        , subjectPublicKeyInfo = PublicKeyInfo
-        } = TBSCertificate,
-    #'SubjectPublicKeyInfo'
-        { algorithm = #'AlgorithmIdentifier'
-          { algorithm = ?rsaEncryption }
-        , subjectPublicKey = PublicKeyDER
-        } = PublicKeyInfo,
+    #'Certificate'{tbsCertificate = TBSCertificate
+                  ,signatureAlgorithm = #'AlgorithmIdentifier'{algorithm = ?sha256WithRSAEncryption}
+                  ,signature = Signature
+                  } = Certificate,
+    #'TBSCertificate'{subject = Subject
+                     ,subjectPublicKeyInfo = PublicKeyInfo
+                     } = TBSCertificate,
+    #'SubjectPublicKeyInfo'{algorithm = #'AlgorithmIdentifier'{algorithm = ?rsaEncryption}
+                           ,subjectPublicKey = PublicKeyDER
+                           } = PublicKeyInfo,
     PublicKey = der_to_public_key(PublicKeyDER),
     Message = public_key:der_encode('TBSCertificate', TBSCertificate),
     case public_key:verify(Message, 'sha256', Signature, IssuerPublicKey) of
-        true -> {ok, Subject, PublicKey};
-        false -> {error, verify_failed}
+        'true' -> {'ok', Subject, PublicKey};
+        'false' -> {'error', 'verify_failed'}
     end.
 
 -spec from_der(binary()) -> cert().
@@ -214,24 +209,22 @@ der_to_public_key(DER)
 
 -spec public_key(cert()) -> pub_key().
 public_key(Certificate = #'Certificate'{}) ->
-    #'Certificate'{ tbsCertificate = TBSCertificate } = Certificate,
-    #'TBSCertificate'{ subjectPublicKeyInfo = PublicKeyInfo } = TBSCertificate,
-    #'SubjectPublicKeyInfo'
-        { algorithm = #'AlgorithmIdentifier'
-          { algorithm = ?rsaEncryption }
-        , subjectPublicKey = PublicKeyDER
-        } = PublicKeyInfo,
+    #'Certificate'{tbsCertificate = TBSCertificate} = Certificate,
+    #'TBSCertificate'{subjectPublicKeyInfo = PublicKeyInfo} = TBSCertificate,
+    #'SubjectPublicKeyInfo'{algorithm = #'AlgorithmIdentifier'{algorithm = ?rsaEncryption}
+                           ,subjectPublicKey = PublicKeyDER
+                           } = PublicKeyInfo,
     der_to_public_key(PublicKeyDER).
 
 -spec from_file(file:filename_all()) -> cert().
 from_file(FileName) ->
-    {ok, PEM} = file:read_file(FileName),
+    {'ok', PEM} = file:read_file(FileName),
     from_pem(PEM).
 
 -spec from_pem(binary()) -> cert().
 from_pem(PEM) ->
     [PEMEntry] = public_key:pem_decode(PEM),
-    {'Certificate', DER, not_encrypted} = PEMEntry,
+    {'Certificate', DER, 'not_encrypted'} = PEMEntry,
     from_der(DER).
 
 -spec public_key_to_der(pub_key()) -> binary().
@@ -242,7 +235,7 @@ public_key_to_der(PublicKey = #'RSAPublicKey'{}) ->
 
 datetime_to_utc_time({{Y, M, D}, {H, N, S}}) when Y >= 2000 ->
     IOList = io_lib:format("~2.10.0B~2.10.0B~2.10.0B~2.10.0B~2.10.0B~2.10.0BZ", [Y-2000, M, D, H, N, S]),
-    {utcTime, lists:flatten(IOList)}.
+    {'utcTime', lists:flatten(IOList)}.
 
 minute_before({Date, {0,0,_}}) ->
     {Date, {0,0,0}};
@@ -258,15 +251,13 @@ validity(Days) ->
     StartDays = calendar:date_to_gregorian_days(Date),
     EndDays = StartDays + Days,
     End = {calendar:gregorian_days_to_date(EndDays), Time},
-    #'Validity'
-        { notBefore = datetime_to_utc_time(Start)
-        , notAfter = datetime_to_utc_time(End)
-        }.
+    #'Validity'{notBefore = datetime_to_utc_time(Start)
+               ,notAfter = datetime_to_utc_time(End)
+               }.
 
 -spec cn(string() | binary()) -> subject().
 cn(Name) ->
-    Opts = [{name,  Name}
-           ],
+    Opts = [{'name',  Name}],
     subject_encode(Opts).
 
 -spec subject_encode([tuple()]) -> subject().
@@ -275,42 +266,42 @@ subject_encode(SubjectOpts)
     Encode = fun(Opt) ->
                      {Type,Value} = subject_enc(Opt),
                      Attr = #'AttributeTypeAndValue'{type=Type, value=Value},
-                     [pubkey_cert_records:transform(Attr, encode)]
+                     [pubkey_cert_records:transform(Attr, 'encode')]
              end,
-    {rdnSequence, [Encode(Opt) || Opt <- SubjectOpts]}.
+    {'rdnSequence', [Encode(Opt) || Opt <- SubjectOpts]}.
 
-subject_enc({name,  Name}) ->
-    {?'id-at-commonName', {printableString, Name}};
-subject_enc({email, Email}) ->
+subject_enc({'name',  Name}) ->
+    {?'id-at-commonName', {'printableString', Name}};
+subject_enc({'email', Email}) ->
     {?'id-emailAddress', Email};
-subject_enc({city,  City}) ->
-    {?'id-at-localityName', {printableString, City}};
-subject_enc({org, Org}) ->
-    {?'id-at-organizationName', {printableString, Org}};
-subject_enc({org_unit, OrgUnit}) ->
-    {?'id-at-organizationalUnitName', {printableString, OrgUnit}};
-subject_enc({country, Country}) ->
+subject_enc({'city',  City}) ->
+    {?'id-at-localityName', {'printableString', City}};
+subject_enc({'org', Org}) ->
+    {?'id-at-organizationName', {'printableString', Org}};
+subject_enc({'org_unit', OrgUnit}) ->
+    {?'id-at-organizationalUnitName', {'printableString', OrgUnit}};
+subject_enc({'country', Country}) ->
     {?'id-at-countryName', Country};
-subject_enc({account_id, AccountId}) ->
+subject_enc({'account_id', AccountId}) ->
     S = byte_size(AccountId),
     {?'id-at-2600hz-accountId', <<19, S, (kz_term:to_binary(AccountId))/binary>>};
-subject_enc({endpoint_id, EndpointId}) ->
+subject_enc({'endpoint_id', EndpointId}) ->
     S = byte_size(EndpointId),
     {?'id-at-2600hz-endpointId', <<19, S, (kz_term:to_binary(EndpointId))/binary>>}.
 
 -spec fingerprints(cert() | priv_key() | pub_key()) -> {binary(), binary()}.
 fingerprints(Certificate = #'Certificate'{}) ->
     DER = public_key:der_encode('Certificate', Certificate),
-    SHA = crypto:hash(sha, DER),
-    SHA256 = crypto:hash(sha256, DER),
+    SHA = crypto:hash('sha', DER),
+    SHA256 = crypto:hash('sha256', DER),
     {kz_term:to_upper_binary(hexencode(SHA)), kz_term:to_upper_binary(hexencode(SHA256))};
 fingerprints(PrivateKey = #'RSAPrivateKey'{}) ->
     PublicKey = kz_auth_keys:get_public_key_from_private_key(PrivateKey),
     fingerprints(PublicKey);
 fingerprints(PublicKey = #'RSAPublicKey'{}) ->
     DER = public_key:der_encode('RSAPublicKey', PublicKey),
-    SHA = crypto:hash(sha, DER),
-    SHA256 = crypto:hash(sha256, DER),
+    SHA = crypto:hash('sha', DER),
+    SHA256 = crypto:hash('sha256', DER),
     {kz_term:to_upper_binary(hexencode(SHA)), kz_term:to_upper_binary(hexencode(SHA256))}.
 
 -spec hexencode(kz_term:text()) -> binary().
@@ -324,7 +315,9 @@ hexencode(<<Hi:4, Lo:4, Rest/binary>>, Acc) ->
     hexencode(Rest
              ,[list_to_binary([kz_term:to_hex_char(Hi)
                               ,kz_term:to_hex_char(Lo)
-                              ]) | Acc]
+                              ])
+              | Acc
+              ]
              ).
 
 -spec 'id-at-2600hz'() -> public_key:oid().
@@ -336,7 +329,6 @@ hexencode(<<Hi:4, Lo:4, Rest/binary>>, Acc) ->
 -spec 'id-at-2600hz-endpointId'() -> public_key:oid().
 'id-at-2600hz-endpointId'() -> {1,3,6,1,4,1,41246,2}.
 
-
 serial() ->
     serial(3).
 
@@ -345,21 +337,21 @@ serial(Size) ->
     I.
 
 ca_extensions() ->
-    [key_usage([keyCertSign, cRLSign])
-    ,basic_contraints(true)
+    [key_usage(['keyCertSign', 'cRLSign'])
+    ,basic_contraints('true')
     ].
 
 basic_contraints(CA) ->
     #'Extension'{extnID = ?'id-ce-basicConstraints'
                 ,extnValue = #'BasicConstraints'{cA = CA}
-                ,critical = true
+                ,critical = 'true'
                 }.
 
 key_usage(Bits) ->
-    {ok, Value} = 'OTP-PUB-KEY':encode('KeyUsage', Bits),
+    {'ok', Value} = 'OTP-PUB-KEY':encode('KeyUsage', Bits),
     #'Extension'{extnID = ?'id-ce-keyUsage'
                 ,extnValue = Value
-                ,critical = false
+                ,critical = 'false'
                 }.
 
 authority_key_identifier(PK) ->
@@ -370,7 +362,7 @@ authority_key_identifier(PK) ->
 
 subject_key_identifier(PK) ->
     {_, Key} = fingerprints(PK),
-    {ok, Value} = 'OTP-PUB-KEY':encode('SubjectKeyIdentifier', Key),
+    {'ok', Value} = 'OTP-PUB-KEY':encode('SubjectKeyIdentifier', Key),
     #'Extension'{extnID = ?'id-ce-subjectKeyIdentifier'
                 ,extnValue = Value
                 }.
@@ -381,6 +373,6 @@ encode_extensions(Extensions) ->
 encode_extension(#'Extension'{extnValue=Value0} = Extension)
   when is_tuple(Value0)->
     Type = element(1, Value0),
-    {ok, Value} = 'OTP-PUB-KEY':encode(Type, Value0),
+    {'ok', Value} = 'OTP-PUB-KEY':encode(Type, Value0),
     Extension#'Extension'{extnValue=Value};
 encode_extension(#'Extension'{} = Extension) -> Extension.

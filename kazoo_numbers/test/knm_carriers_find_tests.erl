@@ -30,7 +30,7 @@ db_dependant() ->
 carrier_info() ->
     InfoJObj1 = knm_carriers:info(?MASTER_ACCOUNT_ID, ?RESELLER_ACCOUNT_ID, ?RESELLER_ACCOUNT_ID),
     InfoJObj2 = knm_carriers:info(?MASTER_ACCOUNT_ID, ?CHILD_ACCOUNT_ID, ?RESELLER_ACCOUNT_ID),
-    InfoJObj3 = knm_carriers:info(?MASTER_ACCOUNT_ID, ?CHILD_ACCOUNT_ID, undefined),
+    InfoJObj3 = knm_carriers:info(?MASTER_ACCOUNT_ID, ?CHILD_ACCOUNT_ID, 'undefined'),
     InfoJObj4 = knm_carriers:info(?MASTER_ACCOUNT_ID, ?CHILD_ACCOUNT_ID, ?CHILD_ACCOUNT_ID),
     InfoJObj5 = knm_carriers:info(?RESELLER_ACCOUNT_ID, ?RESELLER_ACCOUNT_ID, ?RESELLER_ACCOUNT_ID),
     InfoJObj6 = knm_carriers:info(?CHILD_ACCOUNT_ID, ?CHILD_ACCOUNT_ID, ?CHILD_ACCOUNT_ID),

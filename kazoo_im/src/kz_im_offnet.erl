@@ -150,21 +150,29 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'gen_listener', {'created_queue', _QueueNAme}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener', {'is_consuming', 'false'}}, #state{registered = true, confirms = #{count := Count} = Confirms} = State) ->
+handle_cast({'gen_listener', {'is_consuming', 'false'}}
+           ,#state{registered = 'true', confirms = #{count := Count} = Confirms} = State
+           ) ->
     lager:debug("deactivating offnet worker"),
     _ = gproc:unreg({'p', 'l', 'im_offnet'}),
     Ack = #'basic.ack'{delivery_tag = Count, multiple = 'true'},
-    {'noreply', handle_confirm(Ack, State#state{registered = false, confirms = Confirms#{count => 0}})};
-handle_cast({'gen_listener', {'is_consuming', 'false'}}, #state{registered = false} = State) ->
+    {'noreply', handle_confirm(Ack, State#state{registered = 'false', confirms = Confirms#{count => 0}})};
+handle_cast({'gen_listener', {'is_consuming', 'false'}}
+           ,#state{registered = 'false'} = State
+           ) ->
     lager:warning("unexpected state => ~p", [State]),
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', 'true'}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'server_confirms', 'true'}}, #state{registered = false, confirms = Confirms} = State) ->
+handle_cast({'gen_listener',{'server_confirms', 'true'}}
+           ,#state{registered = 'false', confirms = Confirms} = State
+           ) ->
     lager:debug("broker can confirm deliveries, activating offnet worker"),
     'true' = gproc:reg({'p', 'l', 'im_offnet'}),
-    {'noreply', State#state{registered = true, confirms = Confirms#{count => 1}}};
-handle_cast({'gen_listener',{'server_confirms', 'true'}}, #state{registered = true} = State) ->
+    {'noreply', State#state{registered = 'true', confirms = Confirms#{count => 1}}};
+handle_cast({'gen_listener',{'server_confirms', 'true'}}
+           ,#state{registered = 'true'} = State
+           ) ->
     lager:warning("unexpected state => ~p", [State]),
     {'noreply', State};
 handle_cast({'gen_listener',{'server_confirms', 'false'}}, State) ->
@@ -262,14 +270,14 @@ maybe_relay_request(JObj) ->
                ],
     try
         case route_errors(kz_maps:exec(Routines, Map)) of
-            true -> 'nack';
-            false -> 'ack'
+            'true' -> 'nack';
+            'false' -> 'ack'
         end
     catch
         _Exception:_Reason:_Stack ->
             lager:warning("exception ~p / ~p handling inbound request", [_Exception, _Reason]),
             kz_log:log_stacktrace(_Stack),
-            nack
+            'nack'
     end.
 
 lookup_numbers(#{numbers := Numbers} = Map) ->
@@ -308,8 +316,8 @@ accounts(#{numbers := Numbers} = Map) ->
 
 account(_Number, #{error := _}, Acc) -> Acc;
 account(Number, #{account_id := AccountId, reseller_id := ResellerId}, Acc) ->
-    case maps:get(AccountId, Acc, undefined) of
-        undefined -> maps:put(AccountId, #{numbers => [Number], reseller_id => ResellerId}, Acc);
+    case maps:get(AccountId, Acc, 'undefined') of
+        'undefined' -> maps:put(AccountId, #{numbers => [Number], reseller_id => ResellerId}, Acc);
         #{numbers := Numbers} = V -> maps:put(AccountId, V#{numbers => [Number | Numbers]}, Acc)
     end.
 
@@ -318,8 +326,8 @@ resellers(#{numbers := Numbers} = Map) ->
 
 reseller(_Number, #{error := _}, Acc) -> Acc;
 reseller(Number, #{reseller_id := ResellerId, account_id := AccountId}, Acc) ->
-    case maps:get(ResellerId, Acc, undefined) of
-        undefined -> maps:put(ResellerId, #{numbers => [Number], accounts => [AccountId]}, Acc);
+    case maps:get(ResellerId, Acc, 'undefined') of
+        'undefined' -> maps:put(ResellerId, #{numbers => [Number], accounts => [AccountId]}, Acc);
         #{numbers := Numbers, accounts := Accounts} = V -> maps:put(ResellerId, V#{numbers => [Number | Numbers], accoounts => [AccountId | Accounts]}, Acc)
     end.
 
@@ -388,7 +396,7 @@ account_standing_is_acceptable(_AccountId, #{error := _} = Map) -> Map;
 account_standing_is_acceptable(AccountId, Map) ->
     case kz_services_standing:acceptable(AccountId) of
         {'true', _} -> Map;
-        {'false', Error} -> Map#{error => maps:get(reason, Error)}
+        {'false', Error} -> Map#{error => maps:get('reason', Error)}
     end.
 
 resellers_standing_are_acceptable(#{resellers := Resellers} = Map) ->
@@ -398,7 +406,7 @@ reseller_standing_is_acceptable(_ResellerId, #{error := _} = Map) -> Map;
 reseller_standing_is_acceptable(ResellerId, Map) ->
     case kz_services_standing:acceptable(ResellerId) of
         {'true', _} -> Map;
-        {'false', Error} -> Map#{error => maps:get(reason, Error)}
+        {'false', Error} -> Map#{error => maps:get('reason', Error)}
     end.
 
 set_accounts_rate(#{accounts := Accounts, im := IM} = Map) ->
@@ -439,15 +447,14 @@ log_error(Number, #{error := Error, account_id := AccountId}, IM) ->
     lager:warning("external ~s request for number ~s validation failed  in account ~s : ~p", [kapps_im:type(IM), Number, AccountId, Error]);
 log_error(Number, #{error := Error}, IM) ->
     lager:warning("validation failed in external ~s request for number ~s : ~p", [kapps_im:type(IM), Number, Error]);
-log_error(_Number, _Map, _IM) -> ok.
+log_error(_Number, _Map, _IM) -> 'ok'.
 
 route_errors(#{accounts := Accounts}) ->
     lists:any(fun route_error/1, maps:to_list(Accounts)).
 
-route_error({_AccountId, #{error := _}}) -> false;
-route_error({_AccountId, #{route_error := _}}) -> true;
-route_error({_AccountId, _Map}) -> false.
-
+route_error({_AccountId, #{error := _}}) -> 'false';
+route_error({_AccountId, #{route_error := _}}) -> 'true';
+route_error({_AccountId, _Map}) -> 'false'.
 
 route_onnet(#{accounts := Accounts} = Map) ->
     Map#{accounts => maps:map(fun(K,V) -> route_onnet(K, V, Map) end, Accounts)}.

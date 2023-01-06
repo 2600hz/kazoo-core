@@ -59,18 +59,18 @@ cached(EndpointId, AccountId, _Options) ->
           {'error', any()}.
 lookup_by_user_realm(Username, Realm) ->
     case lookup_account_id_by_realm(Realm) of
-        undefined -> {'error', 'not_found'};
+        'undefined' -> {'error', 'not_found'};
         AccountId -> lookup_endpoint_id_by_username(Username, AccountId)
     end.
 
 lookup_endpoint_id_by_username(Username, AccountId) ->
-    case kzv_by_sip_usernames:find_one(AccountId, Username, [{result_key, <<"id">>}]) of
-        {ok, EndpointId} -> lookup(EndpointId, AccountId);
+    case kzv_by_sip_usernames:find_one(AccountId, Username, [{'result_key', <<"id">>}]) of
+        {'ok', EndpointId} -> lookup(EndpointId, AccountId);
         _Else -> {'error', 'not_found'}
     end.
 
 lookup_account_id_by_realm(Realm) ->
     case kapps_util:get_account_by_realm(Realm) of
-        {ok, AccountDB} -> kzs_util:format_account_id(AccountDB);
-        _Else -> undefined
+        {'ok', AccountDB} -> kzs_util:format_account_id(AccountDB);
+        _Else -> 'undefined'
     end.

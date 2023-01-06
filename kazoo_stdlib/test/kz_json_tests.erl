@@ -1197,7 +1197,7 @@ get_ne_json_object_test_() ->
 
 -define(MAP_JSON,
         kz_json:from_list([{<<"a">>, <<"zero">>}
-                          ,{<<"B">>, true}
+                          ,{<<"B">>, 'true'}
                           ,{<<"c">>, [1
                                      ,2
                                      ,kz_json:from_list([{42, 24}
@@ -1207,7 +1207,7 @@ get_ne_json_object_test_() ->
                           ])).
 
 -define(JSON_MAP, #{<<"a">> => <<"zero">>
-                   ,<<"B">> => true
+                   ,<<"B">> => 'true'
                    ,<<"c">> => [1
                                ,2
                                ,#{<<"42">> => 24

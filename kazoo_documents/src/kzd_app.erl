@@ -283,7 +283,7 @@ set_license(Doc, License) ->
 
 -spec masqueradable(doc()) -> boolean().
 masqueradable(Doc) ->
-    masqueradable(Doc, true).
+    masqueradable(Doc, 'true').
 
 -spec masqueradable(doc(), Default) -> boolean() | Default.
 masqueradable(Doc, Default) ->

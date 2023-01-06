@@ -117,8 +117,8 @@ handle_info({'timeout', TRef, ?TIMEOUT_DEQUEUE}, #state{queue=Queue, timer_ref=T
             {'noreply', State#state{timer_ref=start_timer(?TIMEOUT_DEQUEUE), queue=NewQueue}}
     end;
 handle_info({'timeout', DropTimerRef, ?TIMEOUT_CANCEL}, #state{queue=Queue}=State) ->
-    Fun = fun({TimerRef, _, _, _}) when DropTimerRef =:= TimerRef -> false;
-             (_) -> true
+    Fun = fun({TimerRef, _, _, _}) when DropTimerRef =:= TimerRef -> 'false';
+             (_) -> 'true'
           end,
     {'noreply', State#state{queue=queue:filter(Fun, Queue)}};
 handle_info(_Info, State) ->

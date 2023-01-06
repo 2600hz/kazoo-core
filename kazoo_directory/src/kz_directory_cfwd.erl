@@ -31,8 +31,8 @@ call_forward(EndpointId, AccountId, Endpoint) ->
 maybe_legacy_failover(EndpointId, AccountId, Endpoint) ->
     CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
     case kz_json:is_true(<<"failover">>, CallForward) of
-        true -> undefined;
-        false -> build_call_forward(EndpointId, AccountId, Endpoint)
+        'true' -> 'undefined';
+        'false' -> build_call_forward(EndpointId, AccountId, Endpoint)
     end.
 
 -spec is_call_forward_enabled(kz_json:object()) -> boolean().

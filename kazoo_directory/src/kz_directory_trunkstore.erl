@@ -76,6 +76,6 @@ generate_profile(EndpointId, AccountId, Endpoint, _Options) ->
 -spec get_realm(kz_json:object()) -> kz_term:ne_binary().
 get_realm(Endpoint) ->
     AccountId = kz_doc:account_id(Endpoint),
-    {ok, Account} = kzd_accounts:fetch(AccountId),
+    {'ok', Account} = kzd_accounts:fetch(AccountId),
     Default = kzd_accounts:realm(Account, <<"norealm">>),
     kzd_trunkstore:account_auth_realm(Endpoint, Default).

@@ -131,7 +131,7 @@ set_custom_sip_interface(Doc, CustomSipInterface) ->
 
 -spec emergency(doc()) -> boolean().
 emergency(Doc) ->
-    emergency(Doc, false).
+    emergency(Doc, 'false').
 
 -spec emergency(doc(), Default) -> boolean() | Default.
 emergency(Doc, Default) ->
@@ -143,7 +143,7 @@ set_emergency(Doc, Emergency) ->
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
-    enabled(Doc, true).
+    enabled(Doc, 'true').
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
@@ -215,7 +215,7 @@ set_formatters(Doc, Formatters) ->
 
 -spec from_account_realm(doc()) -> boolean().
 from_account_realm(Doc) ->
-    from_account_realm(Doc, false).
+    from_account_realm(Doc, 'false').
 
 -spec from_account_realm(doc(), Default) -> boolean() | Default.
 from_account_realm(Doc, Default) ->

@@ -272,8 +272,8 @@ do_update(AccountId, FetchMap, Funs, RetenTimestamp) ->
 bulk_result(Map) ->
     kz_json:from_list(
       props:filter_empty(
-        [{<<"succeeded">>, maps:get(succeeded, Map, [])}
-        ,{<<"failed">>, kz_json:from_list(maps:get(failed, Map, []))}
+        [{<<"succeeded">>, maps:get('succeeded', Map, [])}
+        ,{<<"failed">>, kz_json:from_list(maps:get('failed', Map, []))}
         ])
      ).
 
@@ -405,11 +405,11 @@ do_move(_AccountId, [], _OldboxId, _NewBoxId, _NBoxJ, ResultMap, _, _) ->
 do_move(AccountId, [FromId | FromIds], OldboxId, NewBoxId, NBoxJ, ResultMap, Funs, RetenTimestamp) ->
     case kvm_message:maybe_do_move(AccountId, FromId, OldboxId, NewBoxId, NBoxJ, Funs, RetenTimestamp) of
         {'ok', Moved} ->
-            NewMap = maps:update_with(succeeded, fun(List) -> [kz_doc:id(Moved)|List] end, [kz_doc:id(Moved)], ResultMap),
+            NewMap = maps:update_with('succeeded', fun(List) -> [kz_doc:id(Moved)|List] end, [kz_doc:id(Moved)], ResultMap),
             do_move(AccountId, FromIds, OldboxId, NewBoxId, NBoxJ, NewMap, Funs, RetenTimestamp);
         {'error', Reason} ->
             IdReason = {FromId, kz_term:to_binary(Reason)},
-            NewMap = maps:update_with(failed, fun(List) -> [IdReason|List] end, [IdReason], ResultMap),
+            NewMap = maps:update_with('failed', fun(List) -> [IdReason|List] end, [IdReason], ResultMap),
             do_move(AccountId, FromIds, OldboxId, NewBoxId, NBoxJ, NewMap, Funs, RetenTimestamp)
     end.
 
@@ -527,8 +527,8 @@ normalize_bulk_results(ResultMap, [], _Method, _BoxId, _) ->
     lager:debug("voicemail ~s bulk for mailbox ~s resulted in ~b succeeded and ~b failed docs"
                ,[_Method
                 ,_BoxId
-                ,erlang:length(maps:get(succeeded, ResultMap, []))
-                ,erlang:length(maps:get(failed, ResultMap, []))
+                ,erlang:length(maps:get('succeeded', ResultMap, []))
+                ,erlang:length(maps:get('failed', ResultMap, []))
                 ]),
     ResultMap;
 normalize_bulk_results(#{succeeded := Succeeded
@@ -627,8 +627,8 @@ sum_per_folder(JObj, FolderKeyIndex, BoxIdKeyIndex, ResultMap) ->
 %%------------------------------------------------------------------------------
 -spec split_to_modbs_and_apply_funs(bulk_map(), kz_term:ne_binary(), update_funs(), kz_time:gregorian_seconds()) -> bulk_map().
 split_to_modbs_and_apply_funs(FetchMap, AccountId, Funs, RetenTimestamp) ->
-    Succeeded = maps:get(succeeded, FetchMap, []),
-    Failed = maps:get(failed, FetchMap, []),
+    Succeeded = maps:get('succeeded', FetchMap, []),
+    Failed = maps:get('failed', FetchMap, []),
     Map = #{to_update_map => #{}
            ,failed => Failed
            ,enforce_set => sets:new()

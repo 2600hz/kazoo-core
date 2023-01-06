@@ -1964,7 +1964,7 @@ routing_context_tags(Call, Props) ->
 -spec routing_context_dynamic_cfwd(call(), kz_term:proplist()) -> kz_term:proplist().
 routing_context_dynamic_cfwd(Call, Props) ->
     case dynamic_cfwd(Call) of
-        undefined -> Props;
+        'undefined' -> Props;
         Cfwd -> [{<<"cfwd">>, Cfwd} | Props]
     end.
 
@@ -2031,15 +2031,15 @@ untag(Tags, Call)
 
 -spec dynamic_cfwd(call()) -> kz_term:api_object().
 dynamic_cfwd(Call) ->
-    kvs_fetch('context-dynamic-cfwd', undefined, Call).
+    kvs_fetch('context-dynamic-cfwd', 'undefined', Call).
 
 -spec set_dynamic_cfwd(kz_term:api_object(), call()) -> call().
-set_dynamic_cfwd(undefined, Call) ->
+set_dynamic_cfwd('undefined', Call) ->
     remove_dynamic_cfwd(Call);
 set_dynamic_cfwd(JObj, Call) ->
     case kz_json:is_json_object(JObj) of
-        true -> kvs_store('context-dynamic-cfwd', JObj, Call);
-        false -> remove_dynamic_cfwd(Call)
+        'true' -> kvs_store('context-dynamic-cfwd', JObj, Call);
+        'false' -> remove_dynamic_cfwd(Call)
     end.
 
 -spec remove_dynamic_cfwd(call()) -> call().

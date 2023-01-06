@@ -154,7 +154,7 @@ set_source_type(Doc, SourceType) ->
 
 -spec streamable(doc()) -> boolean().
 streamable(Doc) ->
-    streamable(Doc, true).
+    streamable(Doc, 'true').
 
 -spec streamable(doc(), Default) -> boolean() | Default.
 streamable(Doc, Default) ->

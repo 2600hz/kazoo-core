@@ -6,8 +6,8 @@ RPAREN = \)
 LBRACKET = \[
 RBRACKET = \]
 
-FALSE = false
-TRUE = true
+FALSE = 'false'
+TRUE = 'true'
 NULL = null
 NUMBER = [0-9]+
 STRING = "[^\"]+"
@@ -68,8 +68,8 @@ Rules.
 {STRING}     : {token, {value, TokenLine, {binary, extract_string(TokenChars)}}}.
 {NUMBER}\.{NUMBER} : {token, {value, TokenLine, {float, list_to_float(TokenChars)}}}.
 {NUMBER}        : {token, {value, TokenLine, {integer, list_to_integer(TokenChars)}}}.
-{FALSE} : {token, {value, TokenLine, {boolean, false}}}.
-{TRUE} : {token, {value, TokenLine, {boolean, true}}}.
+{FALSE} : {token, {value, TokenLine, {boolean, 'false'}}}.
+{TRUE} : {token, {value, TokenLine, {boolean, 'true'}}}.
 {NULL} : {token, {value, TokenLine, {is_null, null}}}.
 
 {SCHEMA_URI}     : {token, {schema_uri, TokenLine, list_to_binary(string:trim(TokenChars, trailing, ":"))}}.

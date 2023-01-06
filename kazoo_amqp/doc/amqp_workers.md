@@ -11,7 +11,7 @@ To publish a message, the calling process needs only supply the Request and the 
 
 ```erlang
 Req = [{<<"Key">>, <<"value">>}
-      ,{<<"Important">>, true}
+      ,{<<"Important">>, 'true'}
        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
       ],
 kz_amqp_worker:cast(Req, fun kapi_module:publish_message/1).

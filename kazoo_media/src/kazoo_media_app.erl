@@ -24,7 +24,7 @@
 start(_Type, _Args) ->
     Ret = kazoo_media_sup:start_link(),
     kapps_maintenance:bind_and_register_views('kazoo_media', 'kazoo_media_maintenance', 'register_views'),
-    kapps_maintenance:bind('migrate', 'kazoo_media_maintenance', 'migrate'),
+    _ = kapps_maintenance:bind('migrate', 'kazoo_media_maintenance', 'migrate'),
     kazoo_media_maintenance:refresh(),
     Ret.
 
@@ -34,6 +34,6 @@ start(_Type, _Args) ->
 %%------------------------------------------------------------------------------
 -spec stop(any()) -> any().
 stop(_State) ->
-    kapps_maintenance:unbind('migrate', 'kazoo_media_maintenance', 'migrate'),
-    kapps_maintenance:unbind('register_views', 'kazoo_media_maintenance', 'register_views'),
+    _ = kapps_maintenance:unbind('migrate', 'kazoo_media_maintenance', 'migrate'),
+    _ = kapps_maintenance:unbind('register_views', 'kazoo_media_maintenance', 'register_views'),
     'ok'.

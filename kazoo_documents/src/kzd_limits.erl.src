@@ -29,7 +29,7 @@ new() ->
 
 -spec allow_prepay(doc()) -> boolean().
 allow_prepay(Doc) ->
-    allow_prepay(Doc, true).
+    allow_prepay(Doc, 'true').
 
 -spec allow_prepay(doc(), Default) -> boolean() | Default.
 allow_prepay(Doc, Default) ->

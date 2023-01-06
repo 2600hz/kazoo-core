@@ -114,12 +114,15 @@ req_headers() ->
 -spec build_request_body(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), audioEncoding()) ->
           kz_term:ne_binary().
 build_request_body(Text, Voice, Language, GoogleFormat) ->
-    Req = kz_json:set_values([{<<"input">>, kazoo_tts_google_utils:getJson(#synthesisInput{text=Text})}
+    SetValues =
+        [{K, V} || {K, V} <- [{<<"input">>, kazoo_tts_google_utils:getJson(#synthesisInput{text=Text})}
                              ,{<<"voice">>, kazoo_tts_google_utils:getJson(#voiceSelectionParams{languageCode=Language, name=Voice})}
                              ,{<<"audioConfig">>, kazoo_tts_google_utils:getJson(#audioConfig{audioEncoding=GoogleFormat})}
-                             ]
-                            ,kz_json:new()
-                            ),
+                             ],
+                   kz_json:is_json_object(V)
+        ],
+
+    Req = kz_json:set_values(SetValues, kz_json:new()),
     kz_json:encode(Req).
 
 -spec decode(kz_term:ne_binary(), kz_json:object(), kz_json:object()) -> {kz_term:ne_binary(), kz_json:object()}.

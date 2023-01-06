@@ -117,7 +117,7 @@ retry_store_file(Tries, Timeout, API, Msg, Error, Map) ->
 -spec retry_store_file(integer(), timeout(), kz_term:proplist() | function()
                       ,kz_term:ne_binary(), kz_term:ne_binary(), map(), atom()) ->
           'ok' | {'error', any()}.
-retry_store_file(Tries, Timeout, API, Msg, Error, Map, undefined) ->
+retry_store_file(Tries, Timeout, API, Msg, Error, Map, 'undefined') ->
     retry_store_file(Tries, Timeout, API, Msg, Error, Map);
 retry_store_file(_Tries, _Timeout, _API, Msg, Error, Map, FileError) ->
     lager:critical("~s : ~s : ~s", [Msg, FileError, Error]),
@@ -126,7 +126,7 @@ retry_store_file(_Tries, _Timeout, _API, Msg, Error, Map, FileError) ->
                             ,maps:to_list(Map#{store_error => Error})
                             ,[]
                             ),
-    {error, FileError}.
+    {'error', FileError}.
 
 -spec maybe_add_debug_data(kz_json:object(), map()) -> map().
 maybe_add_debug_data(JObj, Map) ->

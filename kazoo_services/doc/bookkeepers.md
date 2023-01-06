@@ -28,8 +28,8 @@ Assign the http bookkeeper to the master account in the \`system\_config > servi
 
 ```json
 "default": {
-    "sync_services": true,
-    "support_billing_id": true,
+    "sync_services": 'true',
+    "support_billing_id": 'true',
     "should_save_master_audit_logs": false,
     "master_account_bookkeeper": "kz_bookkeeper_http",
     "scan_rate": 20000,
@@ -52,7 +52,7 @@ $connection_ip = "xx.xx.xx.xx";
 
 /* Collect POST header for no particular reason */
 $results = (apache_request_headers());
-file_put_contents('post_header.txt', print_r($results, true));
+file_put_contents('post_header.txt', print_r($results, 'true'));
 
 /* Check Authorization and IP in received POST header via $_SERVER */
 if ($_SERVER['HTTP_AUTHORIZATION'] != $auth || $_SERVER['REMOTE_ADDR'] != $connection_ip) {
@@ -91,10 +91,10 @@ The request payload will be composed of objects with the following fields:
 
 | Name                       | Description                                            | Type            | Required |
 |-------------------------- |------------------------------------------------------ |--------------- |-------- |
-| category                   | The service category                                   | string()        | true     |
-| item                       | The service item                                       | string()        | true     |
-| quantity                   | The quantity of items to purchase                      | integer()       | true     |
-| rate                       | The service plan cost, per-item, for the service items | float()         | true     |
+| category                   | The service category                                   | string()        | 'true'     |
+| item                       | The service item                                       | string()        | 'true'     |
+| quantity                   | The quantity of items to purchase                      | integer()       | 'true'     |
+| rate                       | The service plan cost, per-item, for the service items | float()         | 'true'     |
 | name                       | The service plan's name for the item                   | string()        | false    |
 | single\_discount           | Whether a single item discount applies                 | boolean()       | false    |
 | single\_discount\_rate     | The discount to apply to the item                      | float()         | false    |

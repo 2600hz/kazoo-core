@@ -1018,10 +1018,12 @@ profile_names(AccountId, <<ProfileName/binary>>, Acc) ->
             Acc;
         BaseProfileName ->
             case lists:member(BaseProfileName, Acc) of
-                true ->
-                    lager:error("profile ~s has ~s as base_profile_name which is already in the list, circular dependency", [BaseProfileName, ProfileName]),
+                'true' ->
+                    lager:error("profile ~s has ~s as base_profile_name which is already in the list, circular dependency"
+                               ,[BaseProfileName, ProfileName]
+                               ),
                     Acc;
-                false ->
+                'false' ->
                     profile_names(AccountId, BaseProfileName, [ProfileName | Acc])
             end
     end.
@@ -1049,6 +1051,6 @@ update_language_prompt(<<"dnuos-", _/binary>>, Key, Value, Language, AccountId) 
     {Key, kz_media_util:get_prompt(Value, Language, AccountId)};
 update_language_prompt(_, Key, Value, Language, AccountId) ->
     case kz_json:is_json_object(Value) of
-        true -> {Key, update_language_prompts(Language, AccountId, Value)};
-        false -> {Key, Value}
+        'true' -> {Key, update_language_prompts(Language, AccountId, Value)};
+        'false' -> {Key, Value}
     end.

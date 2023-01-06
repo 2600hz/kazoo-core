@@ -47,7 +47,7 @@ set_invite_uri(URI, CCVs) ->
 -spec invite_uri(kz_json:object(), kz_json:object()) -> kz_json:object().
 invite_uri(Endpoint, CCVs) ->
     case mobile_route(Endpoint) of
-        {error, _} -> CCVs;
+        {'error', _} -> CCVs;
         Route -> set_invite_uri(Route, CCVs)
     end.
 
@@ -83,10 +83,10 @@ build_mobile_route(MDN) ->
     end.
 
 -spec ignore_early_media(kz_json:object()) -> boolean().
-ignore_early_media(_Endpoint) -> true.
+ignore_early_media(_Endpoint) -> 'true'.
 
 -spec bypass_media(kz_json:object()) -> boolean().
-bypass_media(_Endpoint) -> false.
+bypass_media(_Endpoint) -> 'false'.
 
 -spec invite_format(kz_json:object()) -> kz_term:api_ne_binary().
 invite_format(_Endpoint) -> <<"route">>.
@@ -94,7 +94,7 @@ invite_format(_Endpoint) -> <<"route">>.
 -spec sip_route(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route(Endpoint) ->
     case mobile_route(Endpoint) of
-        {error, _} -> undefined;
+        {'error', _} -> 'undefined';
         Route -> Route
     end.
 
@@ -103,7 +103,7 @@ sip_route_uri(_Endpoint) ->
     Path = kapps_config:get_binary(?MOBILE_CONFIG_CAT, <<"path">>, ?DEFAULT_MOBILE_PATH),
     case kz_term:is_empty(Path) of
         'false' -> <<"sip:", Path/binary>>;
-        'true' -> undefined
+        'true' -> 'undefined'
     end.
 
 -spec sip_interface(kz_json:object()) -> kz_term:api_ne_binary().
@@ -128,8 +128,8 @@ sip_auth(Endpoint, CCVs) ->
          ,kzd_devices:sip_password(Endpoint)
          }
     of
-        {undefined, _} -> CCVs;
-        {_, undefined} -> CCVs;
+        {'undefined', _} -> CCVs;
+        {_, 'undefined'} -> CCVs;
         {Username, Password} ->
             KVs = [{<<"Auth-User">>, Username}
                   ,{<<"Auth-Password">>, Password}

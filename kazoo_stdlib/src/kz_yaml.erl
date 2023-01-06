@@ -778,7 +778,7 @@ is_plain_safe(Char) ->
         andalso Char =/= ?CHAR_COLON
         andalso Char =/= ?CHAR_SHARP.
 
-%% Returns true if the character can be printed without escaping.
+%% Returns 'true' if the character can be printed without escaping.
 %% From YAML 1.2: "any allowed characters known to be non-printable
 %% should also be escaped. [However,] This isn’t mandatory" <- LOL
 %% Derived from nb-char - \t - #x85 - #xA0 - #x2028 - #x2029.
@@ -827,7 +827,7 @@ start_state(#{}=Options) ->
      ,indent           => Indent
      ,string_style     => maps:get('string_style', Options, literal)
      ,key_string_style => maps:get('key_string_style', Options, plain)
-     ,sort_keys        => maps:get('sort_keys', Options, true)
+     ,sort_keys        => maps:get('sort_keys', Options, 'true')
      ,line_width       => maps:get('line_width', Options, 80)
      ,bool_style       => maps:get('bool_style', Options, 'lowercase')
      ,null_style       => maps:get('null_style', Options, 'lowercase')

@@ -252,9 +252,9 @@ inception(#kapps_im{inception=Inception}) ->
     Inception.
 
 -spec set_application_id(kz_term:api_ne_binary(), im()) -> im().
-set_application_id(<<_/binary>> = ApplicationId, #kapps_im{}=Im) ->
-    Props = [{<<"Account-ID">>, null}
-            ,{<<"Reseller-ID">>, null}
+set_application_id(<<ApplicationId/binary>>, #kapps_im{}=Im) ->
+    Props = [{<<"Account-ID">>, 'null'}
+            ,{<<"Reseller-ID">>, 'null'}
             ],
     set_custom_vars(Props, Im#kapps_im{application_id=ApplicationId});
 set_application_id(_, #kapps_im{}=Im) -> Im.

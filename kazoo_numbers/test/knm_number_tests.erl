@@ -242,9 +242,9 @@ update_used_by_from_defined() ->
 
     %% FIXME: update these tests to work on knm_numbers successes jobjs
     [PN0] = knm_pipe:succeeded(knm_ops:get([Num])),
-    [PN1a] = knm_pipe:succeeded(knm_ops:update([PN0], [{fun knm_phone_number:set_used_by/2, undefined}])),
+    [PN1a] = knm_pipe:succeeded(knm_ops:update([PN0], [{fun knm_phone_number:set_used_by/2, 'undefined'}])),
     [PN1b] = knm_pipe:succeeded(knm_ops:update([PN0], [{fun knm_phone_number:set_used_by/2, MyApp}])),
-    [PN2] = knm_pipe:succeeded(knm_ops:update([PN1b], [{fun knm_phone_number:set_used_by/2, undefined}])),
+    [PN2] = knm_pipe:succeeded(knm_ops:update([PN1b], [{fun knm_phone_number:set_used_by/2, 'undefined'}])),
 
     [?_assertEqual(<<"callflow">>, knm_phone_number:used_by(PN0))
     ,?_assert(not knm_phone_number:is_dirty(PN0))
@@ -262,9 +262,9 @@ update_used_by_from_undefined() ->
 
     %% FIXME: update these tests to work on knm_numbers successes jobjs
     [PN0] = knm_pipe:succeeded(knm_ops:get([Num])),
-    [PN1a] = knm_pipe:succeeded(knm_ops:update([PN0], [{fun knm_phone_number:set_used_by/2, undefined}])),
+    [PN1a] = knm_pipe:succeeded(knm_ops:update([PN0], [{fun knm_phone_number:set_used_by/2, 'undefined'}])),
     [PN1b] = knm_pipe:succeeded(knm_ops:update([PN0], [{fun knm_phone_number:set_used_by/2, MyApp}])),
-    [PN2] = knm_pipe:succeeded(knm_ops:update([PN1b], [{fun knm_phone_number:set_used_by/2, undefined}])),
+    [PN2] = knm_pipe:succeeded(knm_ops:update([PN1b], [{fun knm_phone_number:set_used_by/2, 'undefined'}])),
 
     [?_assertEqual(undefined, knm_phone_number:used_by(PN0))
     ,?_assert(not knm_phone_number:is_dirty(PN0))

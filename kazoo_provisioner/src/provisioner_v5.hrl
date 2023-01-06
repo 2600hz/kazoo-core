@@ -7,7 +7,7 @@
 -define(FEATURE_KEYS, kapps_config:get_json(?MOD_CONFIG_CAT, <<"feature_keys">>, ?LOCAL_FEATURE_KEYS)).
 -define(COMBO_KEYS, kapps_config:get_json(?MOD_CONFIG_CAT, <<"combo_keys">>, ?LOCAL_COMBO_KEYS)).
 
--define(KEYS_FUN(A, B, C, D), ?KEYS_FUN(A, B, C, D, undefined)).
+-define(KEYS_FUN(A, B, C, D), ?KEYS_FUN(A, B, C, D, 'undefined')).
 -define(KEYS_FUN(A, B, C, D, E), kz_json:from_list(
                                    [{<<"presence">>, A}
                                    ,{<<"speed_dial">>, B}

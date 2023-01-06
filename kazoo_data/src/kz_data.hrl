@@ -29,7 +29,7 @@
 
 -type data_connection() :: #data_connection{}.
 -type data_connections() :: [data_connection()].
--type server() :: {atom(), any()} | 'undefined'.
+-type server() :: {atom(), kz_data:connection()} | 'undefined'.
 -type db() :: #db{}.
 
 -record(copy_doc, {source_dbname  :: kz_term:ne_binary()

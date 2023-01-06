@@ -141,7 +141,7 @@ add_scope(#{}=Map) -> Map.
 add_subject(#{auth_app := #{name := AppId}
              ,options := #{subject := {AccountId, OwnerId}}
              }=Map) ->
-    Options = [{key, [AppId, AccountId, OwnerId]}
+    Options = [{'key', [AppId, AccountId, OwnerId]}
               ,'include_docs'
               ],
     case kz_datamgr:get_single_result(?KZ_AUTH_DB, ?AUTH_BY_SYSTEM_IDS, Options) of

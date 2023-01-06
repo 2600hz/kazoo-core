@@ -38,7 +38,7 @@
 -type account_or_not() :: kz_term:ne_binary() | 'no_account_id'.
 -type config_key() :: kz_json:get_key().
 
-%% @equiv get_ne_binary(Account, Category, Path, undefined)
+%% @equiv get_ne_binary(Account, Category, Path, 'undefined')
 
 -spec get_ne_binary(api_account(), kz_term:ne_binary(), config_key()) -> kz_term:api_ne_binary().
 get_ne_binary(Account, Category, Path) ->
@@ -58,7 +58,7 @@ get_ne_binary(Account, Category, Path, Default) ->
         'false' -> kz_term:to_binary(Value)
     end.
 
-%% @equiv get_ne_binaries(Account, Category, Path, undefined)
+%% @equiv get_ne_binaries(Account, Category, Path, 'undefined')
 
 -spec get_ne_binaries(api_account(), kz_term:ne_binary(), config_key()) -> kz_term:ne_binaries().
 get_ne_binaries(Account, Category, Path) ->
@@ -104,7 +104,7 @@ to_pos_integer(Value, Default) ->
         _:_ -> Default
     end.
 
-%% @equiv get_global(Account, Category, Key, undefined)
+%% @equiv get_global(Account, Category, Key, 'undefined')
 
 -spec get_global(api_account(), kz_term:ne_binary(), config_key()) ->
           kz_json:api_json_term().
@@ -148,7 +148,7 @@ get_global(Account, Category) ->
             end
     end.
 
-%% @equiv get_from_reseller(Account, Category, Key, undefined)
+%% @equiv get_from_reseller(Account, Category, Key, 'undefined')
 
 -spec get_from_reseller(api_account(), kz_term:ne_binary(), config_key()) -> kz_json:api_json_term().
 get_from_reseller(Account, Category, Key) ->
@@ -172,7 +172,7 @@ get_from_reseller(Account, Category, Key, Default) ->
 maybe_load_config_from_reseller(Account, Category) ->
     load_config_from_reseller(Account, Category).
 
-%% @equiv get_hierarchy(Account, Category, Key, undefined)
+%% @equiv get_hierarchy(Account, Category, Key, 'undefined')
 
 -spec get_hierarchy(api_account(), kz_term:ne_binary(), config_key()) -> kz_json:json_term().
 get_hierarchy(Account, Category, Key) ->
@@ -184,7 +184,7 @@ get_hierarchy(Account, Category, Key) ->
 get_hierarchy(Account, Category, Key, Default) ->
     get_with_strategy(<<"hierarchy_merge">>, Account, Category, Key, Default).
 
-%% @equiv get_with_strategy(Strategy, Account, Category, Key, undefined)
+%% @equiv get_with_strategy(Strategy, Account, Category, Key, 'undefined')
 
 -spec get_with_strategy(kz_term:ne_binary(), api_account(), kz_term:ne_binary(), config_key()) ->
           kz_json:api_json_term().
@@ -274,7 +274,7 @@ get_global_from_doc(Category, Key, Default, JObj) ->
             Value
     end.
 
-%% @equiv get(Account, Category, Key, undefined)
+%% @equiv get(Account, Category, Key, 'undefined')
 
 -spec get(api_account(), kz_term:ne_binary(), config_key()) -> kz_json:api_json_term().
 get(Account, Category, Key) ->

@@ -144,4 +144,4 @@ start_distribution() ->
 
 -spec set_config() -> 'ok'.
 set_config() ->
-    persistent_term:put(kz_config, fun kapps_config:get/2).
+    persistent_term:put('kz_config', fun kapps_config:get/2).

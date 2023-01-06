@@ -225,9 +225,9 @@ resolve_scopes(Scopes, Available, Visited) ->
 %%------------------------------------------------------------------------------
 resolve_scopes_fold(Scope, {Available, Visited}) ->
     case lists:member(Scope, Visited) of
-        true ->
+        'true' ->
             {[Scope], {Available, Visited}};
-        false ->
+        'false' ->
             case props:get_value(Scope, Available, []) of
                 [] -> {[Scope], {Available, [Scope | Visited]}};
                 Scopes -> {[Scope | resolve_scopes(Scopes, Available, [Scope | Visited])], {Available, [Scope | Visited]}}

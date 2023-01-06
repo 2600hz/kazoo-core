@@ -131,7 +131,7 @@ call_limit(Endpoint) ->
 -spec call_waiting(kzd_endpoint:endpoint()) -> kz_term:api_boolean().
 call_waiting(Endpoint) ->
     case kzd_devices:call_waiting(Endpoint) of
-        undefined -> undefined;
+        'undefined' -> 'undefined';
         CW -> kzd_call_waiting:enabled(CW)
     end.
 
@@ -456,7 +456,7 @@ generate_routing_ccvs(Endpoint, _Options, Module) ->
 -spec default_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
 default_ccvs(Endpoint, CCVs) ->
     case kz_json:get_json_value(<<"default_ccvs">>, Endpoint) of
-        undefined -> CCVs;
+        'undefined' -> CCVs;
         DefaultCCVs -> kz_json:merge(DefaultCCVs, CCVs)
     end.
 

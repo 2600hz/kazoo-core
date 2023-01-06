@@ -271,10 +271,11 @@ handle_load_app(ExternalApp, From, #state{fetchings=Fetchings}=State) ->
 
 -spec start_fetch_process(external_app(), kz_term:pid_ref()) -> kz_term:pid_ref().
 start_fetch_process(ExternalApp, From) ->
-    ParentApp = external_parent_app(ExternalApp),
-    App = external_app(ExternalApp),
     spawn_monitor(
       fun() ->
+              ParentApp = external_parent_app(ExternalApp),
+              App = external_app(ExternalApp),
+
               case appex_client_client:load_app(ParentApp, App) of
                   {'ok', _Loaded} ->
                       gen_server:reply(From, 'true');

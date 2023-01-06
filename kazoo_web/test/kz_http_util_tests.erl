@@ -189,9 +189,9 @@ resolve_uri_test_() ->
     Relative = <<"script2.php">>,
     [?_assertEqual(<<"http://pivot/script2.php">>, kz_http_util:resolve_uri(RawPath, Relative))
     ,?_assertEqual(<<"http://pivot/script2.php">>, kz_http_util:resolve_uri(RawPath, <<"/", Relative/binary>>))
-    ,?_assertEqual(Relative, kz_http_util:resolve_uri(Relative, undefined))
+    ,?_assertEqual(Relative, kz_http_util:resolve_uri(Relative, 'undefined'))
     ,?_assertEqual(RawPath, kz_http_util:resolve_uri(Relative, RawPath))
-    ,?_assertEqual(Relative, kz_http_util:resolve_uri(kz_term:to_list(Relative), undefined))
+    ,?_assertEqual(Relative, kz_http_util:resolve_uri(kz_term:to_list(Relative), 'undefined'))
     ,?_assertEqual(RawPath, kz_http_util:resolve_uri(kz_term:to_list(Relative), RawPath))
     ,?_assertEqual(RawPath, kz_http_util:resolve_uri(Relative, kz_term:to_list(RawPath)))
     ,?_assertEqual(<<"http://host/d1/d2/a">>, kz_http_util:resolve_uri(<<"http://host/d1/d2/d3/file.ext">>, <<"../.././a">>))
@@ -257,7 +257,7 @@ simple_nested_objects() ->
 
 mix_and_match() ->
     [{"correctly detect object and add key to object"
-     ,[?_assertEqual(p_from_l([{<<"a">>, [{<<"b">>, <<"c">>}, {<<"d">>, true}]}]), parse_arrays(<<"a[b]=c&a=d">>))]
+     ,[?_assertEqual(p_from_l([{<<"a">>, [{<<"b">>, <<"c">>}, {<<"d">>, 'true'}]}]), parse_arrays(<<"a[b]=c&a=d">>))]
      }
     ,{"compacts sparse arrays"
      ,[?_assertEqual(p_from_l([{<<"a">>, [<<"2">>, <<"1">>]}]), parse_arrays(<<"a[10]=1&a[2]=2">>))

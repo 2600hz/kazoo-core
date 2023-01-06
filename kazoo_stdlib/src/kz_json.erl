@@ -212,7 +212,7 @@ canonicalize(Key, [_|_]=List) ->
 canonicalize(Key, Value) ->
     canonicalize_true(Key, Value, kz_term:is_true(Value)).
 
-%% 3.2.2.1 - literals true, false, and null
+%% 3.2.2.1 - literals true, 'false', and null
 canonicalize_true(Key, _Value, 'true') -> {Key, 'true'};
 canonicalize_true(Key, Value, 'false') ->
     canonicalize_false(Key, Value, kz_term:is_false(Value)).
@@ -801,7 +801,7 @@ do_qsjs_merge(ValueA, ValueB, Options) when is_list(ValueB) ->
     case is_json_object(ValueA) of
         'true' ->
             do_qsjs_merge(ValueA, array_to_object(ValueB, Options), Options);
-        'false' -> %% true, null, undefined
+        'false' -> %% true, null, 'undefined'
             list_append([ValueA], ValueB)
     end;
 
@@ -960,7 +960,7 @@ default_sumer(Value1, _) ->
 %%------------------------------------------------------------------------------
 %% @doc Sum two (deep) JSON objects.
 %% Default sumer function only sums numbers. For other kinds of values,
-%% the value from `JObj1' is kept untouched. If it is undefined it's the
+%% the value from `JObj1' is kept untouched. If it is 'undefined' it's the
 %% one from `JObj2'.
 %% @end
 %%------------------------------------------------------------------------------
@@ -1004,7 +1004,7 @@ sum_jobjs([FirstJObj|JObjs], Sumer)
 %%------------------------------------------------------------------------------
 %% @doc Reorder JSON objects according to the given sort function.
 %% Returns a sorted list of JObjs, according to the ordering function Fun.
-%% Fun(A, B) is to return true if A compares less than or equal to B in the ordering, otherwise false.
+%% Fun(A, B) is to return true if A compares less than or equal to B in the ordering, otherwise 'false'.
 %% @end
 %%------------------------------------------------------------------------------
 -type sort_fun() :: fun((object(), object()) -> boolean()).

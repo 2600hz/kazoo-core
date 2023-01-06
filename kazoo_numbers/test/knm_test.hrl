@@ -97,7 +97,7 @@
             ,{[<<"pvt_request_id">>], <<"d19e1a27e72d6042288d9c5347d9e6d4">>}
             ,{[<<"pvt_auth_user_id">>], <<"aaaaad7435c9d8822406d27e72a1e91d">>}
             ,{[<<"pvt_auth_account_id">>], ?MASTER_ACCOUNT_ID}
-            ,{[<<"pvt_is_authenticated">>], true}
+            ,{[<<"pvt_is_authenticated">>], 'true'}
             ,{[<<"_attachments">>]
              ,kz_json:from_list(
                 [{<<"resporg.pdf">>
@@ -106,7 +106,7 @@
                     ,{<<"revpos">>, 4}
                     ,{<<"digest">>, <<"md5-eEYd+NQg/SR6QXReENaxKQ==">>}
                     ,{<<"length">>, 81352}
-                    ,{<<"stub">>, true}
+                    ,{<<"stub">>, 'true'}
                     ])
                  }
                 ,{<<"loa.pdf">>
@@ -115,7 +115,7 @@
                     ,{<<"revpos">>, 3}
                     ,{<<"digest">>, <<"md5-eEYd+NQg/SR6QXReENaxKQ==">>}
                     ,{<<"length">>, 81352}
-                    ,{<<"stub">>, true}
+                    ,{<<"stub">>, 'true'}
                     ])
                  }
                 ,{<<"bill.pdf">>
@@ -124,7 +124,7 @@
                     ,{<<"revpos">>, 2}
                     ,{<<"digest">>, <<"md5-eEYd+NQg/SR6QXReENaxKQ==">>}
                     ,{<<"length">>, 81352}
-                    ,{<<"stub">>, true}
+                    ,{<<"stub">>, 'true'}
                     ])
                  }])
              }])
