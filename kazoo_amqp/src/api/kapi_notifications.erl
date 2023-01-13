@@ -240,6 +240,12 @@
         ,publish_ephemeral_report_generated/1
         ,publish_ephemeral_report_generated/2
         ]).
+%% Max Agent count notifications
+-export([max_agent_count/1
+        ,max_agent_count_v/1
+        ,publish_max_agent_count/1
+        ,publish_max_agent_count/2
+        ]).
 %% published on completion of notification
 -export([notify_update/1
         ,notify_update_v/1
@@ -1811,6 +1817,32 @@ ephemeral_report_generated_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+%%------------------------------------------------------------------------------
+%% @doc Notification Get Max Agent Count API definition.
+%% @end
+%%------------------------------------------------------------------------------
+-spec max_agent_count_definition() -> kapi_definition:api().
+max_agent_count_definition() ->
+    EventName = <<"max_agent_count_generated">>,
+    Category = <<"qubicle">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Max Agent Count">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"This event is triggered when max agent count is generated">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun max_agent_count/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun max_agent_count_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_max_agent_count/1}
+              ,{fun kapi_definition:set_binding/2, ?BINDING_STRING(Category, <<"created">>)}
+              ,{fun kapi_definition:set_restrict_to/2, 'max_agent_count'}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>]}
+              ,{fun kapi_definition:set_optional_headers/2, ?DEFAULT_OPTIONAL_HEADERS}
+              ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
 %%%=============================================================================
 %%% Customer Defined Notifications Definitions
 %%%=============================================================================
@@ -1949,6 +1981,7 @@ api_definitions() ->
     ,webhook_definition()
     ,webhook_disabled_definition()
     ,ephemeral_report_generated_definition()
+    ,max_agent_count_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -2045,6 +2078,8 @@ api_definition(<<"webhook_disabled">>) ->
     webhook_disabled_definition();
 api_definition(<<"ephemeral_report_generated">>) ->
     ephemeral_report_generated_definition();
+api_definition(<<"max_agent_count_generated">>) ->
+    max_agent_count_definition();
 api_definition(<<"cf_notification">>) ->
     cf_notification_definition();
 api_definition(<<"number_feature_manual_action">>) ->
@@ -3351,6 +3386,35 @@ publish_ephemeral_report_generated(JObj) ->
 -spec publish_ephemeral_report_generated(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_ephemeral_report_generated(API, ContentType) ->
     Definition = ephemeral_report_generated_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
+
+%%%=============================================================================
+%%% Max Agent Count Functions
+%%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc Takes proplist, creates JSON string and publish it on AMQP.
+%% @end
+%%------------------------------------------------------------------------------
+-spec max_agent_count(kz_term:api_terms()) -> api_formatter_return().
+max_agent_count(Prop) ->
+    kapi_definition:build_message(Prop, max_agent_count_definition()).
+
+-spec max_agent_count_v(kz_term:api_terms()) -> boolean().
+max_agent_count_v(Prop) ->
+    kapi_definition:validate(Prop, max_agent_count_definition()).
+
+-spec publish_max_agent_count(kz_term:api_terms()) -> 'ok'.
+publish_max_agent_count(JObj) ->
+    publish_max_agent_count(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_max_agent_count(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_max_agent_count(API, ContentType) ->
+    Definition = max_agent_count_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(API
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
