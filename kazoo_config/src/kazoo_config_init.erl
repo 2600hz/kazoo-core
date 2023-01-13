@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -95,8 +95,11 @@ cleanup_section_prop({<<"uri">>, URI}) ->
     {<<"uri">>, strip_quotes(URI)};
 cleanup_section_prop({<<"ip">>, IP}) ->
     {<<"ip">>, strip_quotes(IP)};
-cleanup_section_prop({<<"zone">>, Zone}=Prop) when is_atom(Zone) ->
-    Prop;
+cleanup_section_prop({<<"zone">>, Zone}=Prop)
+  when is_atom(Zone) -> Prop;
+cleanup_section_prop({<<"zone">>, Zone})
+  when not is_binary(Zone) ->
+    cleanup_section_prop({<<"zone">>, kz_term:to_binary(Zone)});
 cleanup_section_prop({<<"zone">>, Zone}) ->
     {<<"zone">>, kz_term:to_atom(strip_quotes(Zone), 'true')};
 cleanup_section_prop({<<"host">>, Host}) ->
@@ -109,7 +112,11 @@ cleanup_section_prop(Prop) -> Prop.
 
 cleanup_zone(Zone) ->
     [cleanup_zone_prop(Prop) || Prop <- Zone].
-cleanup_zone_prop({<<"name">>, Name}=Prop) when is_atom(Name) -> Prop;
+cleanup_zone_prop({<<"name">>, Name}=Prop)
+  when is_atom(Name) -> Prop;
+cleanup_zone_prop({<<"name">>, Name})
+  when not is_binary(Name) ->
+    cleanup_zone_prop({<<"name">>, kz_term:to_binary(Name)});
 cleanup_zone_prop({<<"name">>, Name}) ->
     {<<"name">>, kz_term:to_atom(strip_quotes(Name), 'true')};
 cleanup_zone_prop({<<"amqp_uri">>, URI}) ->
