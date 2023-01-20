@@ -24,8 +24,6 @@ merge_attribute_tests(<<"call_limits">>=Key) ->
     Account = new_limited_entity(AccountLimit),
     Owner = new_limited_entity(OwnerLimit),
     Endpoint = new_limited_entity(EndpointLimit),
-    Resp = Test(Account, NotLimit, NotLimit),
-    ?debugFmt("Resp: ~p", [Resp]), %% TODO: Remove this debug line
 
     [{"not configured at any level"
      ,?_assert(match_merge_call_limits_response([], Test(NotLimit, NotLimit, NotLimit)))
