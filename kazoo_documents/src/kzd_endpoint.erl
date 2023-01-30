@@ -21,6 +21,7 @@
 -export([call_failover/1, call_failover/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
 -export([tags/1, tags/2]).
+-export([meta_id/1]).
 
 -export([build_options/1]).
 
@@ -151,3 +152,7 @@ tags(Endpoint) ->
 -spec tags(endpoint(), Default) -> kz_json:ne_objects() | Default.
 tags(Endpoint, Default) ->
     kz_json:get_ne_json_list([<<"tags">>], Endpoint, Default).
+
+-spec meta_id(endpoint()) -> kz_term:api_ne_binary().
+meta_id(Endpoint) ->
+    kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, Endpoint).
