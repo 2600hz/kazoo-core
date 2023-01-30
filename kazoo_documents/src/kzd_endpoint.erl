@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,8 @@
 -export([get_prompt/2, get_prompt_url/2]).
 -export([moh/1, moh_media_path/1, moh_url/1, moh_options/1]).
 -export([presence_id/1]).
+-export([meta_id/1]).
+
 -export([build_options/1]).
 
 -type endpoint() :: kz_json:object().
@@ -107,3 +109,7 @@ presence_id(Endpoint) ->
 -spec build_options(endpoint()) -> kz_term:api_object().
 build_options(Endpoint) ->
     kz_json:get_json_value(<<"Endpoint-Build-Options">>, Endpoint).
+
+-spec meta_id(endpoint()) -> kz_term:api_ne_binary().
+meta_id(Endpoint) ->
+    kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, Endpoint).
