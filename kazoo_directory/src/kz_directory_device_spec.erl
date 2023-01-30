@@ -23,7 +23,7 @@
 
 -callback ignore_early_media(kzd_endpoint:endpoint()) -> boolean().
 
--callback bypass_media(kzd_endpoint:endpoing()) -> boolean().
+-callback bypass_media(kzd_endpoint:endpoint()) -> boolean().
 
 -callback routing_ccvs(kzd_endpoint:endpoint(), kz_json:object()) -> kz_json:object().
 
