@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,6 +19,7 @@
 -export([presence_id/1]).
 -export([call_forward/1, call_forward/2]).
 -export([call_failover/1, call_failover/2]).
+-export([meta_id/1]).
 
 -export([build_options/1]).
 
@@ -126,3 +127,7 @@ call_forward(Endpoint) ->
 -spec call_forward(endpoint(), Default) -> kz_json:object() | Default.
 call_forward(Endpoint, Default) ->
     kz_json:get_json_value([<<"call_forward">>], Endpoint, Default).
+
+-spec meta_id(endpoint()) -> kz_term:api_ne_binary().
+meta_id(Endpoint) ->
+    kz_json:get_ne_binary_value(<<"endpoint_meta_id">>, Endpoint).
