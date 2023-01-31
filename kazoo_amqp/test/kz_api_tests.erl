@@ -51,7 +51,7 @@ get_event_type_test_() ->
 normalize_amqp_test_() ->
     Test = fun kz_api:normalize_amqp/1,
     Test2 = fun kz_api:normalize_amqp/2,
-    ToJSON = fun(Prop) -> kz_json:from_list_recursive(Prop) end,
+    ToJSON = fun kz_json:from_list_recursive/1,
 
     TestJObj = ToJSON([{<<"apns">>
                        ,[{<<"alert">>
