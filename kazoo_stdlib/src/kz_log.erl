@@ -260,7 +260,11 @@ redact_json_credit_card_number(Line) ->
 
 -spec redact_basic_auth(kz_term:text()) -> kz_term:ne_binary().
 redact_basic_auth(Line) ->
-    case re:run(Line, <<"(https?://)([^:]+:[^@]+@)(.+)">>, [{'capture', 'all_but_first', 'binary'}]) of
+    case re:run(Line
+               ,<<"((?:amqp|http)s?://)([^:]+:[^@]+@)(.+)">>
+               ,[{'capture', 'all_but_first', 'binary'}]
+               )
+    of
         {'match', [Scheme, _Creds, URL]} ->
             <<Scheme/binary, URL/binary>>;
         _ -> Line
