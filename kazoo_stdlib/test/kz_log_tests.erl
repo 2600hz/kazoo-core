@@ -42,6 +42,9 @@ log_redacted_test_() ->
     ,?_assertEqual(<<"http://", URL/binary>>, kz_log:redactor(<<"http://", User/binary, ":", Pass/binary, "@", URL/binary>>))
     ,?_assertEqual(<<"https://", URL/binary>>, kz_log:redactor(<<"https://", User/binary, ":", Pass/binary, "@", URL/binary>>))
 
+    ,?_assertEqual(<<"amqp://", URL/binary>>, kz_log:redactor(<<"amqp://", User/binary, ":", Pass/binary, "@", URL/binary>>))
+    ,?_assertEqual(<<"amqps://", URL/binary>>, kz_log:redactor(<<"amqps://", User/binary, ":", Pass/binary, "@", URL/binary>>))
+
      %% redact JSON password field
     ,?_assertEqual(<<"{\"password\":\"***REDACTED***\",\"foo\":\"bar\"}">>
                   ,kz_log:redactor(<<"{\"password\":\"", Pass/binary, "\",\"foo\":\"bar\"}">>)
