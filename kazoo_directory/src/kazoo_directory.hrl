@@ -17,5 +17,8 @@
 -define(DIRECORY_CACHE_TIME_MS_KEY, <<"directory_cache_time_in_ms">>).
 -define(DIRECORY_CACHE_TIME_MS, kz_app_config:get_integer(?APP, ?DIRECORY_CACHE_TIME_MS_KEY)).
 
+-define(DEFAULT_SIP_PROFILE, <<"sipinterface_1">>).
+-define(NO_ENDPOINTS, <<"error/no_endpoints">>).
+
 -define(KAZOO_DIRECTORY_HRL, 'true').
 -endif.

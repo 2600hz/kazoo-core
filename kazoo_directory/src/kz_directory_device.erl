@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -110,32 +110,89 @@ maybe_cached_hotdesk_ids(Props, JObj, AccountDb) ->
     end.
 
 -spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
-build(EndpointId, AccountId, Endpoint, _Options, Module) ->
+build(EndpointId, AccountId, Endpoint, Options, Module) ->
+    Context = #{endpoint_id => EndpointId
+               ,account_id => AccountId
+               ,endpoint => Endpoint
+               ,options => Options
+               ,module => Module
+               ,endpoint_uri => list_to_binary([EndpointId, "@", AccountId])
+               },
+    build(Context).
+
+-spec build(map()) -> {'ok', kz_json:object()}.
+build(Context) ->
+    Routines = [fun build_profile/1
+               ,fun dial_string/1
+               ],
+    #{profile := Profile} = kz_maps:exec(Routines, Context),
+    {'ok', Profile}.
+
+
+dial_string(#{profile := Profile, endpoint := Endpoint} = Context) ->
+    DialString = dial_string(Context, kzd_devices:device_type(Endpoint)),
+    Context#{profile => kz_json:set_value(<<"Endpoint-Dial-String">>, DialString, Profile)}.
+
+is_meta_dial_enabled(#{endpoint := Endpoint}) ->
+    kz_json:is_true([<<"settings">>, <<"directory">>, <<"metadial">>, <<"device">>], Endpoint)
+        orelse kz_app_config:is_true(?APP, <<"metadial.device">>).
+
+meta_dial_string(#{endpoint_id := Id}, Default) ->
+    list_to_binary(["${kz_meta_dialstring(", Id, " ", Default, ")}"]).
+
+meta_dial_string(#{endpoint_id := Id}) ->
+    list_to_binary(["${kz_meta_dialstring(", Id, ")}"]).
+
+dial_string(Context, <<"meta">>) ->
+    meta_dial_string(Context, ?NO_ENDPOINTS);
+dial_string(#{profile := Profile} = Context, _Other) ->
+    case kz_json:get_ne_binary_value(<<"SIP-Invite-Route-URI">>, Profile) of
+        undefined -> kz_dial_string(Context);
+        Uri -> sip_dial_string(Context, Uri)
+    end.
+
+default_sip_interface() ->
+    kz_app_config:get_ne_binary(?APP, <<"sip.default_interface">>, ?DEFAULT_SIP_PROFILE).
+
+sip_dial_string(#{profile := Profile}, Uri) ->
+    SIPInterface = kz_json:get_ne_binary_value(<<"SIP-Interface">>, Profile, default_sip_interface()),
+    list_to_binary(["sofia/", SIPInterface, "/", Uri]).
+
+kz_dial_string(Context) ->
+    case is_meta_dial_enabled(Context) of
+        true -> kz_binary:join([kz_contact(Context), meta_dial_string(Context)], <<",">>);
+        false -> kz_contact(Context)
+    end.
+
+default_kz_contact_api() ->
+    kz_app_config:get_ne_binary(?APP, <<"contact_api">>, <<"kz_proxy_contact">>).
+
+kz_contact_api(#{endpoint := Endpoint}) ->
+    kz_json:get_ne_binary_value([<<"settings">>, <<"directory">>, <<"contact_api">>], Endpoint, default_kz_contact_api()).
+
+kz_contact(#{endpoint_uri := Uri} = Context) ->
+    list_to_binary(["${", kz_contact_api(Context), "(", Uri, ")}"]).
+
+build_profile(Context) ->
+    #{endpoint_id := EndpointId
+     ,account_id := AccountId
+     ,endpoint := Endpoint
+     ,options := _Options
+     ,module := Module
+     } = Context,
+
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Module),
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Module),
     CRVs = generate_routing_ccvs(Endpoint, Module),
+    CAVs = kz_json:get_json_value(<<"default_cavs">>, Endpoint),
+    CPVs = build_profile_vars(AccountId, EndpointId, Endpoint, CCVs),
 
-    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
-    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
-
-    CPVs = [{<<"Internal-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Internal-Caller-ID-Name">>, CIDName}
-           ,{<<"External-Caller-ID-Number">>, CEDNumber}
-           ,{<<"External-Caller-ID-Name">>, CEDName}
-           ,{<<"Account-ID">>, AccountId}
-           ,{<<"Endpoint-ID">>, EndpointId}
-           ,{<<"Endpoint-Type">>, <<"device">>}
-           ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
-           ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
-           ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
-           ,{<<"Endpoint-DND">>, dnd(Endpoint)}
-           ],
     Profile = [{<<"Endpoint-Type">>, <<"device">>}
               ,{<<"Domain-Name">>, AccountId}
               ,{<<"User-ID">>, EndpointId}
               ,{<<"Account-ID">>, AccountId}
               ,{<<"Custom-Channel-Vars">>, CCVs}
+              ,{<<"Custom-Application-Vars">>, CAVs}
               ,{<<"Custom-Profile-Vars">>, kz_json:from_list(CPVs)}
               ,{<<"Custom-Routing-Vars">>, CRVs}
               ,{<<"Custom-SIP-Headers">>, SIPHeaders}
@@ -146,7 +203,26 @@ build(EndpointId, AccountId, Endpoint, _Options, Module) ->
               ,{<<"CallForward">> , kz_directory_cfwd:call_forward(EndpointId, AccountId, Endpoint)}
               ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
               ],
-    {'ok', kz_json:from_list(Profile)}.
+    Context#{profile => kz_json:from_list(Profile)}.
+
+build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
+    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
+    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
+
+    [{<<"Internal-Caller-ID-Number">>, CIDNumber}
+    ,{<<"Internal-Caller-ID-Name">>, CIDName}
+    ,{<<"External-Caller-ID-Number">>, CEDNumber}
+    ,{<<"External-Caller-ID-Name">>, CEDName}
+    ,{<<"Account-ID">>, AccountId}
+    ,{<<"Endpoint-ID">>, EndpointId}
+    ,{<<"Endpoint-Type">>, <<"device">>}
+    ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
+    ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
+    ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
+    ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
+    ,{<<"Endpoint-Presence-IDs">>, kz_json:get_ne_binaries(<<"Presence-IDs">>, CCVs)}
+    ,{<<"Endpoint-DND">>, dnd(Endpoint)}
+    ].
 
 -spec get_device_module(kz_json:object()) -> atom().
 get_device_module(Endpoint) ->
@@ -186,11 +262,7 @@ maybe_endpoint_type_is_push(Endpoint) ->
 
 -spec get_endpoint_type_property(kz_json:object()) -> kz_term:api_ne_binary().
 get_endpoint_type_property(Endpoint) ->
-    kz_json:get_first_defined([<<"endpoint_type">>
-                              ,<<"device_type">>
-                              ]
-                             ,Endpoint
-                             ).
+    kzd_devices:device_type(Endpoint, <<"sip_device">>).
 
 -spec convert_endpoint_type(kz_term:ne_binary()) -> kz_term:api_ne_binary().
 convert_endpoint_type(<<"push">>) -> <<"push">>;
@@ -203,6 +275,7 @@ convert_endpoint_type(<<"fax">>) -> <<"sip">>;
 convert_endpoint_type(<<"ata">>) -> <<"sip">>;
 convert_endpoint_type(<<"mobile">>) -> <<"mobile">>;
 convert_endpoint_type(<<"application">>) -> <<"sip">>;
+convert_endpoint_type(<<"meta">>) -> <<"sip">>;
 convert_endpoint_type(_Else) ->
     lager:info("failed to convert endpoint type ~s", [_Else]),
     'undefined'.
