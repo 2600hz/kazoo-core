@@ -103,29 +103,64 @@ call_waiting(Endpoint) ->
 
 -spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
 build(EndpointId, AccountId, Endpoint, Options) ->
+    Context = #{endpoint_id => EndpointId
+               ,account_id => AccountId
+               ,endpoint => Endpoint
+               ,options => Options
+               ,endpoint_uri => list_to_binary([EndpointId, "@", AccountId])
+               },
+    build(Context).
+
+-spec build(map()) -> {'ok', kz_json:object()}.
+build(Context) ->
+    Routines = [fun build_profile/1
+               ,fun dial_string/1
+               ],
+    #{profile := Profile} = kz_maps:exec(Routines, Context),
+    {'ok', Profile}.
+
+dial_string(#{profile := Profile} = Context) ->
+    DialString = dial_string(Context, dial_members(Context), is_meta_dial_enabled(Context)),
+    Context#{profile => kz_json:set_value(<<"Endpoint-Dial-String">>, DialString, Profile)}.
+
+dial_members(#{profile := Profile}) ->
+    kz_json:get_ne_binaries(<<"Members">>, Profile, []).
+
+is_meta_dial_enabled(#{endpoint := Endpoint}) ->
+    kz_json:is_true([<<"settings">>, <<"directory">>, <<"metadial">>, <<"user">>], Endpoint)
+        orelse kz_app_config:is_true(?APP, <<"metadial.user">>).
+
+meta_dial_string(#{endpoint_id := Id}, Default) ->
+    list_to_binary(["${kz_meta_dialstring(", Id, " ", Default, ")}"]).
+
+meta_dial_string(#{endpoint_id := Id}) ->
+    list_to_binary(["${kz_meta_dialstring(", Id, ")}"]).
+
+dial_string(_Context, [], false) ->
+    ?NO_ENDPOINTS;
+dial_string(Context, [], true) ->
+    meta_dial_string(Context, ?NO_ENDPOINTS);
+dial_string(Context, Members, true) ->
+    kz_binary:join(kz_dial_string(Context, Members) ++ [meta_dial_string(Context)], <<",">>);
+dial_string(Context, Members, false) ->
+    kz_binary:join(kz_dial_string(Context, Members), <<",">>).
+
+kz_dial_string(#{account_id := AccountId}, Members) ->
+    [list_to_binary(["kz/", Member, "@", AccountId]) || Member <- Members].
+
+build_profile(Context) ->
+    #{endpoint_id := EndpointId
+     ,account_id := AccountId
+     ,endpoint := Endpoint
+     ,options := Options
+     } = Context,
+
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options),
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Options),
     CAVs = kz_json:get_json_value(<<"default_cavs">>, Endpoint),
-
-    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
-    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
+    CPVs = build_profile_vars(AccountId, EndpointId, Endpoint, CCVs),
     Endpoints = owned_by_query(EndpointId, AccountId),
 
-    CPVs = [{<<"Internal-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Internal-Caller-ID-Name">>, CIDName}
-           ,{<<"External-Caller-ID-Number">>, CEDNumber}
-           ,{<<"External-Caller-ID-Name">>, CEDName}
-           ,{<<"Account-ID">>, AccountId}
-           ,{<<"Endpoint-ID">>, EndpointId}
-           ,{<<"Endpoint-Type">>, <<"user">>}
-           ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
-           ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
-           ,{<<"Endpoint-DND">>, dnd(Endpoint)}
-           ,{<<"Endpoint-Tag-Rules">>, tags(Endpoint)}
-           ,{<<"Endpoint-Call-Limit">>, call_limit(Endpoint)}
-           ,{<<"Endpoint-Call-Waiting">>, call_waiting(Endpoint)}
-           ],
     Profile = [{<<"Endpoint-Type">>, <<"user">>}
               ,{<<"Domain-Name">>, AccountId}
               ,{<<"User-ID">>, EndpointId}
@@ -138,7 +173,27 @@ build(EndpointId, AccountId, Endpoint, Options) ->
               ,{<<"Failover">> , kz_directory_failover:failover(EndpointId, AccountId, Endpoint)}
               ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
               ],
-    {'ok', kz_json:from_list(Profile)}.
+    Context#{profile => kz_json:from_list(Profile)}.
+
+build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
+    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
+    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
+
+    [{<<"Internal-Caller-ID-Number">>, CIDNumber}
+    ,{<<"Internal-Caller-ID-Name">>, CIDName}
+    ,{<<"External-Caller-ID-Number">>, CEDNumber}
+    ,{<<"External-Caller-ID-Name">>, CEDName}
+    ,{<<"Account-ID">>, AccountId}
+    ,{<<"Endpoint-ID">>, EndpointId}
+    ,{<<"Endpoint-Type">>, <<"user">>}
+    ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
+    ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
+    ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
+    ,{<<"Endpoint-DND">>, dnd(Endpoint)}
+    ,{<<"Endpoint-Tag-Rules">>, tags(Endpoint)}
+    ,{<<"Endpoint-Call-Limit">>, call_limit(Endpoint)}
+    ,{<<"Endpoint-Call-Waiting">>, call_waiting(Endpoint)}
+    ].
 
 -spec generate_ccvs(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> kz_json:object().
 generate_ccvs(_EndpointId, AccountId, Endpoint, _Options) ->
