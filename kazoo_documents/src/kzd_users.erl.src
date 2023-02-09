@@ -13,6 +13,9 @@
 -export([call_waiting/1, call_waiting/2, set_call_waiting/2]).
 -export([caller_id/1, caller_id/2, set_caller_id/2]).
 -export([caller_id_options/1, caller_id_options/2, set_caller_id_options/2]).
+-export([chat/1, chat/2, set_chat/2]).
+-export([chat_getstream/1, chat_getstream/2, set_chat_getstream/2]).
+-export([chat_getstream_enabled/1, chat_getstream_enabled/2, set_chat_getstream_enabled/2]).
 -export([contact_list/1, contact_list/2, set_contact_list/2]).
 -export([contact_list_exclude/1, contact_list_exclude/2, set_contact_list_exclude/2]).
 -export([dial_plan/1, dial_plan/2, set_dial_plan/2]).
@@ -152,6 +155,42 @@ caller_id_options(Doc, Default) ->
 -spec set_caller_id_options(doc(), kz_json:object()) -> doc().
 set_caller_id_options(Doc, CallerIdOptions) ->
     kz_json:set_value([<<"caller_id_options">>], CallerIdOptions, Doc).
+
+-spec chat(doc()) -> kz_term:api_object().
+chat(Doc) ->
+    chat(Doc, 'undefined').
+
+-spec chat(doc(), Default) -> kz_json:object() | Default.
+chat(Doc, Default) ->
+    kz_json:get_json_value([<<"chat">>], Doc, Default).
+
+-spec set_chat(doc(), kz_json:object()) -> doc().
+set_chat(Doc, Chat) ->
+    kz_json:set_value([<<"chat">>], Chat, Doc).
+
+-spec chat_getstream(doc()) -> kz_term:api_object().
+chat_getstream(Doc) ->
+    chat_getstream(Doc, 'undefined').
+
+-spec chat_getstream(doc(), Default) -> kz_json:object() | Default.
+chat_getstream(Doc, Default) ->
+    kz_json:get_json_value([<<"chat">>, <<"getstream">>], Doc, Default).
+
+-spec set_chat_getstream(doc(), kz_json:object()) -> doc().
+set_chat_getstream(Doc, ChatGetstream) ->
+    kz_json:set_value([<<"chat">>, <<"getstream">>], ChatGetstream, Doc).
+
+-spec chat_getstream_enabled(doc()) -> boolean().
+chat_getstream_enabled(Doc) ->
+    chat_getstream_enabled(Doc, 'false').
+
+-spec chat_getstream_enabled(doc(), Default) -> boolean() | Default.
+chat_getstream_enabled(Doc, Default) ->
+    kz_json:get_boolean_value([<<"chat">>, <<"getstream">>, <<"enabled">>], Doc, Default).
+
+-spec set_chat_getstream_enabled(doc(), boolean()) -> doc().
+set_chat_getstream_enabled(Doc, ChatGetstreamEnabled) ->
+    kz_json:set_value([<<"chat">>, <<"getstream">>, <<"enabled">>], ChatGetstreamEnabled, Doc).
 
 -spec contact_list(doc()) -> kz_json:object().
 contact_list(Doc) ->
