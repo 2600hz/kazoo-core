@@ -109,10 +109,10 @@ db_classification(?MATCH_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month)) -> 'mo
 db_classification(?MATCH_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month)) -> 'modb';%   "account..." then the
 db_classification(?MATCH_MODB_SUFFIX_encoded(_A,_B,_Rest,_Year,_Month)) -> 'modb';%   right size.
 db_classification(?MATCH_MODB_SUFFIX_RAW(_Account,_Year,_Month)) -> 'modb';%   right size.
-db_classification(?MATCH_TYPE_MODB_SUFFIX_RAW(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
-db_classification(?MATCH_TYPE_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
-db_classification(?MATCH_TYPE_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
-db_classification(?MATCH_TYPE_MODB_SUFFIX_encoded(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_RAW(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_encoded(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
 db_classification(?MATCH_YODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year)) -> 'yodb';% these only need to match
 db_classification(?MATCH_YODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year)) -> 'yodb';%   "account..." then the
 db_classification(?MATCH_YODB_SUFFIX_encoded(_A,_B,_Rest,_Year)) -> 'yodb';%   right size.

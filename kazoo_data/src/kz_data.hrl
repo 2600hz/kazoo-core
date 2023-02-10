@@ -132,7 +132,7 @@
                              'deprecated' |
                              'external' |
                              'modb' |
-                             'type_modb' |
+                             'modb_ish' |
                              'yodb' |
                              'numbers' |
                              'provisioner' |

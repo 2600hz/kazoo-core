@@ -362,7 +362,7 @@ get_all_account_type_mods(Account, Encoding) ->
     [kzs_util:format_account_modb(Db, Encoding)
      || Db <- Databases,
         kzs_util:is_account_mod(Db)
-            orelse kzs_util:db_classification(Db) =:= 'type_modb',
+            orelse kzs_util:db_classification(Db) =:= 'modb_ish',
         is_matched_account_mod(Encoding, Db, AccountId)
     ].
 
