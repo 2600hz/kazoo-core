@@ -218,6 +218,7 @@ req_definition() ->
                                       ]}
                 ,{?KEY_APPLICATION_NAME, [?APPLICATION_BRIDGE
                                          ,?APPLICATION_EAVESDROP
+                                         ,?APPLICATION_EXTENSION
                                          ,?APPLICATION_FAX
                                          ,?APPLICATION_PARK
                                          ,?APPLICATION_SMS

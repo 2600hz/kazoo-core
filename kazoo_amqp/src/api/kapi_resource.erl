@@ -160,6 +160,7 @@ originate_req_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, [<<"bridge">>
                                           ,<<"eavesdrop">>
+                                          ,<<"extension">>
                                           ,<<"fax">>
                                           ,<<"park">>
                                           ,<<"transfer">>
