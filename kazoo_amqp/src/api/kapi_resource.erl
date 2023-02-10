@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2021, 2600Hz
+%%% @copyright (C) 2012-2023, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -153,6 +153,7 @@ originate_req_definition() ->
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, [<<"bridge">>
                                           ,<<"eavesdrop">>
+                                          ,<<"extension">>
                                           ,<<"fax">>
                                           ,<<"park">>
                                           ,<<"transfer">>
