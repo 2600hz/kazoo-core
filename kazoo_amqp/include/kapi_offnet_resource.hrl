@@ -77,6 +77,7 @@
 -define(APPLICATION_PARK, <<"park">>).
 -define(APPLICATION_SMS, <<"sms">>).
 -define(APPLICATION_TRANSFER, <<"transfer">>).
+-define(APPLICATION_EXTENSION, <<"extension">>).
 
 -define(MEDIA_AUTO, <<"auto">>).
 -define(MEDIA_BYPASS, <<"bypass">>).
