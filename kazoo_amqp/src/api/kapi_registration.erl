@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc Handle registration-related APIs, like `reg_success' and `reg_lookup'.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -335,6 +335,7 @@ search_req_definition() ->
                ,[{<<"Search-Type">>, [<<"detail">>
                                      ,<<"summary">>
                                      ,<<"token">>
+                                     ,<<"metas">>
                                      ]
                  }
                 |kapi_definition:event_type_headers(Category, EventName)
