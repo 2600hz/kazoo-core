@@ -247,7 +247,7 @@ build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
     ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
     ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
     ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
-    ,{<<"Endpoint-Presence-IDs">>, kz_json:get_ne_binaries(<<"Presence-IDs">>, CCVs)}
+    ,{<<"Endpoint-Presence-Aliases">>, presence_aliases(Endpoint)}
     ,{<<"Endpoint-DND">>, dnd(Endpoint)}
     ,{<<"Endpoint-Tag-Rules">>, tags(Endpoint)}
     ,{<<"Endpoint-Call-Limit">>, call_limit(Endpoint)}
@@ -359,9 +359,24 @@ owner_id(Endpoint, CCVs) ->
         OwnerId -> kz_json:set_value(<<"Owner-ID">>, OwnerId, CCVs)
     end.
 
+-spec is_calculate_presence_id_enabled(kz_json:object()) -> boolean().
+is_calculate_presence_id_enabled(Endpoint) ->
+    kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"calculate">>], Endpoint)
+        orelse kz_app_config:is_true(?APP, <<"presence_id.calculate">>).
+
 -spec presence_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 presence_id(Endpoint, CCVs) ->
-    kz_json:set_value(<<"Presence-ID">>, kzd_devices:calculate_presence_id(Endpoint), CCVs).
+    presence_id(is_calculate_presence_id_enabled(Endpoint), Endpoint, CCVs).
+
+-spec presence_id(boolean(), kz_json:object(), kz_json:object()) -> kz_json:object().
+presence_id(true, Endpoint, CCVs) ->
+    kz_json:set_value(<<"Presence-ID">>, kzd_devices:calculate_presence_id(Endpoint), CCVs);
+presence_id(false, Endpoint, CCVs) ->
+    kz_json:set_value(<<"Presence-ID">>, kzd_endpoint:presence_id(Endpoint), CCVs).
+
+-spec presence_aliases(kz_json:object()) -> kz_term:api_ne_binaries().
+presence_aliases(Endpoint) ->
+    kzd_endpoint:presence_aliases(Endpoint).
 
 -spec hold_music(kz_json:object(), kz_json:object()) -> kz_json:object().
 hold_music(Endpoint, CCVs) ->
