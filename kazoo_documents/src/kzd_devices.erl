@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -49,6 +49,7 @@
 -export([presence_id/1, presence_id/2, set_presence_id/2
         ,calculate_presence_id/1, calculate_presence_id/2
         ]).
+-export([presence_aliases/1, presence_aliases/2, set_presence_aliases/2]).
 -export([provision/1, provision/2, set_provision/2]).
 -export([provision_check_sync_event/1, provision_check_sync_event/2, set_provision_check_sync_event/2]).
 -export([provision_check_sync_reboot/1, provision_check_sync_reboot/2, set_provision_check_sync_reboot/2]).
@@ -1290,3 +1291,20 @@ outbound_dynamic_flags(JObj) ->
 set_outbound_dynamic_flags(JObj, Flags) when is_list(Flags) ->
     OutboundFlags = outbound_flags(JObj),
     set_outbound_flags(JObj, kz_json:set_value(?DYNAMIC_FLAGS, Flags, OutboundFlags)).
+
+-spec presence_aliases(doc()) -> kz_term:api_ne_binaries().
+presence_aliases(Doc) ->
+    presence_aliases(Doc, 'undefined').
+
+-spec presence_aliases(doc(), Default) -> kz_term:ne_binaries() | Default.
+presence_aliases(Doc, Default) ->
+    kz_json:get_ne_binaries([<<"presence_aliases">>], Doc, Default).
+
+-spec set_presence_aliases(doc(), kz_term:ne_binaries()) -> doc().
+set_presence_aliases(Doc, []) ->
+    kz_json:set_value([<<"presence_aliases">>], null, Doc);
+set_presence_aliases(Doc, PresenceAliases) ->
+    case kz_term:is_ne_binaries(PresenceAliases) of
+        true -> kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc);
+        false -> kz_json:set_value([<<"presence_aliases">>], null, Doc)
+    end.
