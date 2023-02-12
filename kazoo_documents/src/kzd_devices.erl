@@ -119,6 +119,13 @@
         ,outbound_dynamic_flags/1, set_outbound_dynamic_flags/2
         ]).
 
+-export([application/1, application/2
+        ,application_name/1, application_name/2
+        ,application_data/1, application_data/2
+        ,application_dialstring/1, application_dialstring/2
+        ]).
+
+
 -deprecated([{'call_forward_direct_calls_only'     , 1, 'next_major_release'}
             ,{'call_forward_direct_calls_only'     , 2, 'next_major_release'}
             ,{'set_call_forward_direct_calls_only' , 2, 'next_major_release'}
@@ -1466,3 +1473,38 @@ set_presence_aliases(Doc, PresenceAliases) ->
         true -> kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc);
         false -> kz_json:set_value([<<"presence_aliases">>], null, Doc)
     end.
+
+-spec application(doc()) -> kz_term:api_object().
+application(Doc) ->
+    application(Doc, undefined).
+
+-spec application(doc(), Default) -> kz_json:object() | Default.
+application(Doc, Default) ->
+    case device_type(Doc) of
+        <<"application">> -> kz_json:get_json_value([<<"pvt_application">>], Doc);
+        _Other -> Default
+    end.
+
+-spec application_name(doc()) -> kz_term:api_ne_binary().
+application_name(Doc) ->
+    application_name(Doc, undefined).
+
+-spec application_name(doc(), Default) -> kz_term:ne_binary() | Default.
+application_name(Doc, Default) ->
+    kz_json:get_ne_binary_value(<<"name">>, application(Doc, kz_json:new()), Default).
+
+-spec application_data(doc()) -> kz_term:api_object().
+application_data(Doc) ->
+    application_data(Doc, undefined).
+
+-spec application_data(doc(), Default) -> kz_json:object() | Default.
+application_data(Doc, Default) ->
+    kz_json:get_json_value(<<"data">>, application(Doc, kz_json:new()), Default).
+
+-spec application_dialstring(doc()) -> kz_term:api_ne_binary().
+application_dialstring(Doc) ->
+    application_dialstring(Doc, undefined).
+
+-spec application_dialstring(doc(), Default) -> kz_term:ne_binary() | Default.
+application_dialstring(Doc, Default) ->
+    kz_json:get_ne_binary_value(<<"dialstring">>, application(Doc, kz_json:new()), Default).
