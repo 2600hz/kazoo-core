@@ -174,6 +174,7 @@ build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
     ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
     ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
     ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
+    ,{<<"Endpoint-Presence-Aliases">>, presence_aliases(Endpoint)}
     ,{<<"Endpoint-DND">>, dnd(Endpoint)}
     ].
 
@@ -198,8 +199,11 @@ generate_ccvs(_EndpointId, AccountId, Endpoint) ->
 
 -spec presence_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 presence_id(Endpoint, CCVs) ->
-    PresenceId = kzd_devices:presence_id(Endpoint),
-    kz_json:set_value(<<"Presence-ID">>, PresenceId, CCVs).
+    kz_json:set_value(<<"Presence-ID">>, kzd_endpoint:presence_id(Endpoint), CCVs).
+
+-spec presence_aliases(kz_json:object()) -> kz_term:api_ne_binaries().
+presence_aliases(Endpoint) ->
+    kzd_endpoint:presence_aliases(Endpoint).
 
 -spec owner_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 owner_id(Endpoint, CCVs) ->
