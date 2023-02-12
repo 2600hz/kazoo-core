@@ -123,14 +123,14 @@ build(EndpointId, AccountId, Endpoint, Options, Module) ->
 -spec build(map()) -> {'ok', kz_json:object()}.
 build(Context) ->
     Routines = [fun build_profile/1
-               ,fun dial_string/1
+               ,fun build_dial_string/1
                ],
     #{profile := Profile} = kz_maps:exec(Routines, Context),
     {'ok', Profile}.
 
 
-dial_string(#{profile := Profile, endpoint := Endpoint} = Context) ->
-    DialString = dial_string(Context, kzd_devices:device_type(Endpoint)),
+build_dial_string(#{profile := Profile, endpoint := Endpoint} = Context) ->
+    DialString = dial_string_by_type(Context, kzd_devices:device_type(Endpoint)),
     Context#{profile => kz_json:set_value(<<"Endpoint-Dial-String">>, DialString, Profile)}.
 
 is_meta_dial_enabled(#{endpoint := Endpoint}) ->
@@ -143,9 +143,20 @@ meta_dial_string(#{endpoint_id := Id}, Default) ->
 meta_dial_string(#{endpoint_id := Id}) ->
     list_to_binary(["${kz_meta_dialstring(", Id, ")}"]).
 
-dial_string(Context, <<"meta">>) ->
+dial_string_by_type(Context, <<"meta">>) ->
     meta_dial_string(Context, ?NO_ENDPOINTS);
-dial_string(#{profile := Profile} = Context, _Other) ->
+dial_string_by_type(Context, <<"application">>) ->
+    app_dial_string(Context);
+dial_string_by_type(Context, _Other) ->
+    dial_string(Context).
+
+app_dial_string(#{endpoint := Endpoint} = Context) ->
+    case kz_json:get_ne_binary_value([<<"pvt_application">>, <<"dialstring">>], kz_doc:private_fields(Endpoint)) of
+        undefined -> dial_string(Context);
+        AppDialString -> AppDialString
+    end.
+
+dial_string(#{profile := Profile} = Context) ->
     case kz_json:get_ne_binary_value(<<"SIP-Invite-Route-URI">>, Profile) of
         undefined -> kz_dial_string(Context);
         Uri -> sip_dial_string(Context, Uri)
@@ -217,6 +228,8 @@ build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
     ,{<<"Account-ID">>, AccountId}
     ,{<<"Endpoint-ID">>, EndpointId}
     ,{<<"Endpoint-Type">>, <<"device">>}
+    ,{<<"Endpoint-Device-Type">>, kzd_devices:device_type(Endpoint)}
+    ,{<<"Endpoint-Application">>, kzd_devices:application_name(Endpoint)}
     ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
     ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
     ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
