@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -332,6 +332,7 @@ attributes_keys() ->
     ,<<"call_forward">>
     ,<<"call_recording">>
     ,<<"call_restriction">>
+    ,<<"call_settings">>
     ,<<"call_waiting">>
     ,<<"caller_id">>
     ,<<"caller_id_options">>
@@ -457,6 +458,15 @@ merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
                 'true' -> kz_json:set_value(Key, Merged, Endpoint);
                 'false' -> Endpoint
             end
+    end;
+merge_attribute(<<"call_settings">> = Key, Account, Endpoint, Owner) ->
+    EndpointAttr = kz_json:get_json_value(Key, Endpoint, kz_json:new()),
+    AccountAttr = kz_json:get_json_value(Key, Account, kz_json:new()),
+    OwnerAttr = kz_json:get_json_value(Key, Owner, kz_json:new()),
+    Merged = kz_json:merge([AccountAttr, OwnerAttr, EndpointAttr]),
+    case kz_term:is_empty(Merged) of
+        'true' -> Endpoint;
+        'false' -> kz_json:set_value(Key, Merged, Endpoint)
     end;
 merge_attribute(<<"call_waiting">> = Key, Account, Endpoint, Owner) ->
     AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),

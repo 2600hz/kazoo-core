@@ -113,7 +113,7 @@ dial_members(#{profile := Profile}) ->
     kz_json:get_ne_binaries(<<"Members">>, Profile, []).
 
 is_meta_dial_enabled(#{endpoint := Endpoint}) ->
-    kz_json:is_true([<<"settings">>, <<"directory">>, <<"metadial">>, <<"user">>], Endpoint)
+    kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"user">>], Endpoint)
         orelse kz_app_config:is_true(?APP, <<"metadial.user">>).
 
 meta_dial_string(#{endpoint_id := Id}, Default) ->
