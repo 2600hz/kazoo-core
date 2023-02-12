@@ -335,6 +335,7 @@ search_req_definition() ->
                ,[{<<"Search-Type">>, [<<"detail">>
                                      ,<<"summary">>
                                      ,<<"token">>
+                                     ,<<"metas">>
                                      ]
                  }
                 |kapi_definition:event_type_headers(Category, EventName)
