@@ -134,7 +134,7 @@ dial_string(#{profile := Profile, endpoint := Endpoint} = Context) ->
     Context#{profile => kz_json:set_value(<<"Endpoint-Dial-String">>, DialString, Profile)}.
 
 is_meta_dial_enabled(#{endpoint := Endpoint}) ->
-    kz_json:is_true([<<"settings">>, <<"directory">>, <<"metadial">>, <<"device">>], Endpoint)
+    kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"device">>], Endpoint)
         orelse kz_app_config:is_true(?APP, <<"metadial.device">>).
 
 meta_dial_string(#{endpoint_id := Id}, Default) ->
