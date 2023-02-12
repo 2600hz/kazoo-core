@@ -51,6 +51,7 @@
 -export([music_on_hold_media_id/1, music_on_hold_media_id/2, set_music_on_hold_media_id/2]).
 -export([password/1, password/2, set_password/2]).
 -export([presence_id/1, presence_id/2, set_presence_id/2]).
+-export([presence_aliases/1, presence_aliases/2, set_presence_aliases/2]).
 -export([priv_level/1, priv_level/2, set_priv_level/2]).
 -export([profile/1, profile/2, set_profile/2]).
 -export([pronounced_name/1, pronounced_name/2, set_pronounced_name/2]).
@@ -683,6 +684,23 @@ presence_id(Doc, Default) ->
 -spec set_presence_id(doc(), binary()) -> doc().
 set_presence_id(Doc, PresenceId) ->
     kz_json:set_value([<<"presence_id">>], PresenceId, Doc).
+
+-spec presence_aliases(doc()) -> kz_term:api_ne_binaries().
+presence_aliases(Doc) ->
+    presence_aliases(Doc, 'undefined').
+
+-spec presence_aliases(doc(), Default) -> kz_term:ne_binaries() | Default.
+presence_aliases(Doc, Default) ->
+    kz_json:get_ne_binaries([<<"presence_aliases">>], Doc, Default).
+
+-spec set_presence_aliases(doc(), kz_term:ne_binaries()) -> doc().
+set_presence_aliases(Doc, []) ->
+    kz_json:set_value([<<"presence_aliases">>], null, Doc);
+set_presence_aliases(Doc, PresenceAliases) ->
+    case kz_term:is_ne_binaries(PresenceAliases) of
+        true -> kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc);
+        false -> kz_json:set_value([<<"presence_aliases">>], null, Doc)
+    end.
 
 -spec priv_level(doc()) -> binary().
 priv_level(Doc) ->

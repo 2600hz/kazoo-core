@@ -17,6 +17,7 @@
 -export([get_prompt/2, get_prompt_url/2]).
 -export([moh/1, moh_media_path/1, moh_url/1, moh_options/1]).
 -export([presence_id/1]).
+-export([presence_aliases/1, presence_aliases/2]).
 -export([call_forward/1, call_forward/2]).
 -export([call_failover/1, call_failover/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
@@ -112,6 +113,14 @@ moh_playback_url(MediaPath) ->
 -spec presence_id(endpoint()) -> kz_term:api_ne_binary().
 presence_id(Endpoint) ->
     kz_json:get_ne_binary_value(<<"presence_id">>, Endpoint).
+
+-spec presence_aliases(endpoint()) -> kz_term:api_ne_binaries().
+presence_aliases(Endpoint) ->
+    presence_aliases(Endpoint, undefined).
+
+-spec presence_aliases(endpoint(), Default) -> kz_term:ne_binaries() | Default.
+presence_aliases(Endpoint, Default) ->
+    kz_json:get_ne_binaries([<<"presence_aliases">>], Endpoint, Default).
 
 -spec build_options(endpoint()) -> kz_term:api_object().
 build_options(Endpoint) ->
