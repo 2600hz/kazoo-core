@@ -347,6 +347,7 @@ calculate_updates(Services, JObj) ->
                        ,fun calculate_faxbox_updates/2
                        ,fun calculate_conference_updates/2
                        ,fun calculate_port_request_updates/2
+                       ,fun calculate_chat_updates/2
                        ],
             Updates = exec_routines(Routines, JObj),
             case has_substitute_values(Updates) of
@@ -649,6 +650,13 @@ is_first_transition_to_state(JObj) ->
                                         ,kzd_port_requests:pvt_port_state(JObj)
                                         ),
     length(StateTransitions) =:= 1.
+
+-spec calculate_chat_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
+calculate_chat_updates(JObj, Updates) ->
+    case kz_json:is_true([<<"chat">>, <<"getstream">>, <<"enabled">>], JObj, 'false') of
+        'true' -> [{[<<"chat">>, <<"getstream">>], 1} | Updates];
+        'false' -> Updates
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
