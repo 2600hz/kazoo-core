@@ -114,21 +114,21 @@ attempts(FaxDoc) ->
 attempts(FaxDoc, Default) ->
     kz_json:get_integer_value(?KEY_ATTEMPTS, FaxDoc, Default).
 
--spec from_number(doc()) -> kz_term:api_binary().
+-spec from_number(doc()) -> kz_term:api_ne_binary().
 from_number(FaxDoc) ->
     from_number(FaxDoc, 'undefined').
 
--spec from_number(doc(), Default) -> kz_term:api_binary() | Default.
+-spec from_number(doc(), Default) -> kz_term:ne_binary() | Default.
 from_number(FaxDoc, Default) ->
-    kz_json:get_value(?KEY_FROM_NUMBER, FaxDoc, Default).
+    kz_json:get_ne_binary_value(?KEY_FROM_NUMBER, FaxDoc, Default).
 
--spec to_number(doc()) -> kz_term:api_binary().
+-spec to_number(doc()) -> kz_term:api_ne_binary().
 to_number(FaxDoc) ->
     to_number(FaxDoc, 'undefined').
 
--spec to_number(doc(), Default) -> kz_term:api_binary() | Default.
+-spec to_number(doc(), Default) -> kz_term:ne_binary() | Default.
 to_number(FaxDoc, Default) ->
-    kz_json:get_value(?KEY_TO_NUMBER, FaxDoc, Default).
+    kz_json:get_ne_binary_value(?KEY_TO_NUMBER, FaxDoc, Default).
 
 -spec from_name(doc()) -> kz_term:api_binary().
 from_name(FaxDoc) ->
