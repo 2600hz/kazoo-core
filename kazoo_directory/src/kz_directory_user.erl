@@ -127,8 +127,10 @@ dial_members(#{profile := Profile}) ->
     kz_json:get_ne_binaries(<<"Members">>, Profile, []).
 
 is_meta_dial_enabled(#{endpoint := Endpoint}) ->
-    kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"user">>], Endpoint)
-        orelse kz_app_config:is_true(?APP, <<"metadial.user">>).
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"user">>], Endpoint, undefined) of
+        undefined -> kz_app_config:is_true(?APP, <<"metadial.user">>, true);
+        Override -> Override
+    end.
 
 meta_dial_string(#{endpoint_id := Id}, Default) ->
     list_to_binary(["${kz_meta_dialstring(", Id, " ", Default, ")}"]).
@@ -226,7 +228,38 @@ default_ccvs(Endpoint, CCVs) ->
 
 -spec presence_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 presence_id(Endpoint, CCVs) ->
-    kz_json:set_value(<<"Presence-ID">>, kzd_endpoint:presence_id(Endpoint), CCVs).
+    kz_json:set_value(<<"Presence-ID">>, presence_id(Endpoint), CCVs).
+
+-spec presence_id(kz_json:object()) -> kz_term:api_ne_binary().
+presence_id(Endpoint) ->
+    maybe_fix_presence_id(Endpoint, kzd_endpoint:presence_id(Endpoint)).
+
+-spec is_presence_id_ensure_realm_enabled(kz_json:object()) -> boolean().
+is_presence_id_ensure_realm_enabled(Endpoint) ->
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"ensure_realm">>], Endpoint, undefined) of
+        undefined -> kz_app_config:is_true(?APP, <<"presence_id.ensure_realm">>, true);
+        Override -> Override
+    end.
+
+-spec maybe_fix_presence_id(kz_json:object(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+maybe_fix_presence_id(_Endpoint, undefined) ->
+    undefined;
+maybe_fix_presence_id(Endpoint, PresenceId) ->
+    case is_presence_id_ensure_realm_enabled(Endpoint) of
+        true -> ensure_presence_id_realm(Endpoint, PresenceId);
+        false -> PresenceId
+    end.
+
+ensure_presence_id_realm(Endpoint, PresenceId) ->
+    case binary:match(PresenceId, <<"@">>) of
+        'nomatch' -> fix_presence_id_realm(Endpoint, PresenceId);
+        _Match -> PresenceId
+    end.
+
+-spec fix_presence_id_realm(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary().
+fix_presence_id_realm(Endpoint, PresenceId) ->
+    Realm = kz_json:get_ne_binary_value(<<"realm">>, Endpoint),
+    <<PresenceId/binary, "@", Realm/binary>>.
 
 -spec presence_aliases(kz_json:object()) -> kz_term:api_ne_binaries().
 presence_aliases(Endpoint) ->
