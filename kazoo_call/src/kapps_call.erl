@@ -173,6 +173,7 @@
 -endif.
 
 -include("kapps_call_command.hrl").
+-include("kapps_call_recording.hrl").
 -include_lib("kazoo_sip/include/kzsip_uri.hrl").
 
 -elvis([{elvis_style, god_modules, disable}]).
@@ -244,11 +245,15 @@
                     }).
 
 -type call() :: #kapps_call{}.
--export_type([call/0]).
+-export_type([call/0
+             ,inception_type/0
+             ]).
 
 -export_type([kapps_api_std_return/0]).
 
 -type kapps_helper_function() :: fun((kz_term:api_binary(), call()) -> kz_term:api_binary()).
+-type inception_type() :: kz_term:ne_binary().
+-type media_name() :: kz_term:ne_binary().
 
 -define(SPECIAL_VARS, [{<<"Account-ID">>, #kapps_call.account_id}
                       ,{<<"Authorizing-ID">>, #kapps_call.authorizing_id}
@@ -1688,7 +1693,6 @@ retrieve(CallId) ->
 retrieve(CallId, AppName) ->
     kz_cache:fetch_local(?KAPPS_CALL_CACHE, {?MODULE, 'call', AppName, CallId}).
 
--define(RECORDING_ID_KEY, <<"media_name">>).
 -define(RECORDINGS_KEY, <<"recordings">>).
 
 -spec start_recording(call()) -> call().
@@ -1798,20 +1802,19 @@ unmask_recording(LegId, OriginalCall, _OriginalCallId) ->
     kapps_call_command:unmask_record_call(API, OriginalCall),
     OriginalCall.
 
--spec store_recording(kz_term:ne_binary(), call()) -> call().
+-spec store_recording(media_name(), call()) -> call().
 store_recording(MediaName, Call) ->
     Q = queue:in(MediaName, get_recordings(Call)),
     kvs_store(?RECORDINGS_KEY, Q, Call).
 
--type recording_ref() :: kz_term:ne_binary().
--type store_return() :: {'ok', recording_ref(), call()} | {'empty', call()}.
+-type store_return() :: {'ok', media_name(), call()} | {'empty', call()}.
 
 -spec retrieve_recording(call()) -> store_return().
 retrieve_recording(Call) ->
     case queue:out_r(get_recordings(Call)) of
-        {{'value', MediaRef}, Q} ->
+        {{'value', MediaName}, Q} ->
             Routines = [{fun kvs_store/3, ?RECORDINGS_KEY, Q}],
-            {'ok', MediaRef, exec(Routines, Call)};
+            {'ok', MediaName, exec(Routines, Call)};
         {'empty', _} ->
             {'empty', Call}
     end.
@@ -1844,7 +1847,7 @@ is_feature_call(_) -> 'false'.
 should_record_feature_calls(Data) ->
     kz_json:is_true(<<"should_record_feature_calls">>, Data, 'true').
 
--spec inception_type(call()) -> kz_term:ne_binary().
+-spec inception_type(call()) -> inception_type().
 inception_type(#kapps_call{inception='undefined'}) -> <<"onnet">>;
 inception_type(#kapps_call{}) -> <<"offnet">>.
 

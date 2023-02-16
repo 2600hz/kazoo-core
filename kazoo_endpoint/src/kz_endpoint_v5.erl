@@ -623,7 +623,7 @@ get_user_record_call_properties(UserDoc) ->
 -spec get_device_record_call_properties(kzd_devices:doc() | 'undefined') -> kz_json:object().
 get_device_record_call_properties('undefined') -> kz_json:new();
 get_device_record_call_properties(DeviceDoc) ->
-    case kzd_users:call_recording(DeviceDoc) of
+    case kzd_devices:call_recording(DeviceDoc) of
         'undefined' -> get_legacy_record_call_properties(DeviceDoc);
         CallRecording -> endpoint_recording(CallRecording)
     end.

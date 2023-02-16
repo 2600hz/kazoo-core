@@ -13,21 +13,16 @@
         ,get_media_name/2
         ,get_format/1
         ,get_timelimit/1
-        ,should_store_recording/0, should_store_recording/2
+        ,handler_from_url/1
+        ,should_store_recording/2
         ]).
 
 -include("kapps_call_command.hrl").
+-include("kapps_call_recording.hrl").
 
 -type store_url() :: 'false' |
                      {'true', 'local'} |
                      {'true', 'other', kz_term:ne_binary()}.
-
--define(STORAGE_RETRY_TIMES(AccountId)
-       ,kz_media_config:storage_retry_times(AccountId)
-       ).
-
--define(RECORDING_ID_KEY, <<"media_name">>).
-
 
 %%%=============================================================================
 %%% Internal functions
@@ -64,7 +59,8 @@ get_media_name(Name, Ext) ->
         _ -> <<Name/binary, ".", Ext/binary>>
     end.
 
--spec handler_from_url(kz_term:ne_binary()) -> 'kz_att_ftp' | 'kz_att_sftp' |'kz_att_http' | 'undefined'.
+-spec handler_from_url(kz_term:ne_binary()) ->
+          'kz_att_ftp' | 'kz_att_sftp' | 'kz_att_http' | 'undefined'.
 handler_from_url(Url) ->
     case kz_http_util:urlsplit(Url) of
         {<<"ftp">>, _, _, _, _} -> 'kz_att_ftp';
@@ -93,9 +89,10 @@ should_store_recording(AccountId, Url) ->
 -spec maybe_storage_plan(kz_term:ne_binary()) -> store_url().
 maybe_storage_plan(AccountId) ->
     AccountDb = kzs_util:format_account_mod_id(AccountId),
-    Plan = kzs_plan:get_dataplan(AccountDb, <<"call_recording">>),
+    Plan = kzs_plan:get_dataplan(AccountDb, kzd_call_recordings:type()),
     case maps:get('tag', Plan, <<"local">>) =/= <<"local">>
-        orelse maps:is_key('att_handler', Plan) of
+        orelse maps:is_key('att_handler', Plan)
+    of
         'true' -> {'true', 'local'};
         'false' -> should_store_recording()
     end.
