@@ -134,8 +134,10 @@ build_dial_string(#{profile := Profile, endpoint := Endpoint} = Context) ->
     Context#{profile => kz_json:set_value(<<"Endpoint-Dial-String">>, DialString, Profile)}.
 
 is_meta_dial_enabled(#{endpoint := Endpoint}) ->
-    kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"device">>], Endpoint)
-        orelse kz_app_config:is_true(?APP, <<"metadial.device">>).
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"device">>], Endpoint, undefined) of
+        undefined -> kz_app_config:is_true(?APP, <<"metadial.device">>, true);
+        Override -> Override
+    end.
 
 meta_dial_string(#{endpoint_id := Id}, Default) ->
     list_to_binary(["${kz_meta_dialstring(", Id, " ", Default, ")}"]).
@@ -343,8 +345,10 @@ owner_id(Endpoint, CCVs) ->
 
 -spec is_calculate_presence_id_enabled(kz_json:object()) -> boolean().
 is_calculate_presence_id_enabled(Endpoint) ->
-    kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"calculate">>], Endpoint)
-        orelse kz_app_config:is_true(?APP, <<"presence_id.calculate">>).
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"calculate">>], Endpoint, undefined) of
+        undefined -> kz_app_config:is_true(?APP, <<"presence_id.calculate">>, true);
+        Override -> Override
+    end.
 
 -spec presence_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 presence_id(Endpoint, CCVs) ->
@@ -352,9 +356,47 @@ presence_id(Endpoint, CCVs) ->
 
 -spec presence_id(boolean(), kz_json:object(), kz_json:object()) -> kz_json:object().
 presence_id(true, Endpoint, CCVs) ->
-    kz_json:set_value(<<"Presence-ID">>, kzd_devices:calculate_presence_id(Endpoint), CCVs);
+    kz_json:set_value(<<"Presence-ID">>, calculate_presence_id(Endpoint), CCVs);
 presence_id(false, Endpoint, CCVs) ->
-    kz_json:set_value(<<"Presence-ID">>, kzd_endpoint:presence_id(Endpoint), CCVs).
+    kz_json:set_value(<<"Presence-ID">>, presence_id(Endpoint), CCVs).
+
+-spec calculate_presence_id(kz_json:object()) -> kz_term:api_ne_binary().
+calculate_presence_id(Endpoint) ->
+    case kzd_endpoint:presence_id(Endpoint) of
+        undefined -> kzd_devices:calculate_presence_id(Endpoint);
+        PresenceId -> maybe_fix_presence_id(Endpoint, PresenceId)
+    end.
+
+-spec presence_id(kz_json:object()) -> kz_term:api_ne_binary().
+presence_id(Endpoint) ->
+    maybe_fix_presence_id(Endpoint, kzd_endpoint:presence_id(Endpoint)).
+
+-spec is_presence_id_ensure_realm_enabled(kz_json:object()) -> boolean().
+is_presence_id_ensure_realm_enabled(Endpoint) ->
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"ensure_realm">>], Endpoint, undefined) of
+        undefined -> kz_app_config:is_true(?APP, <<"presence_id.ensure_realm">>, true);
+        Override -> Override
+    end.
+
+-spec maybe_fix_presence_id(kz_json:object(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+maybe_fix_presence_id(_Endpoint, undefined) ->
+    undefined;
+maybe_fix_presence_id(Endpoint, PresenceId) ->
+    case is_presence_id_ensure_realm_enabled(Endpoint) of
+        true -> ensure_presence_id_realm(Endpoint, PresenceId);
+        false -> PresenceId
+    end.
+
+ensure_presence_id_realm(Endpoint, PresenceId) ->
+    case binary:match(PresenceId, <<"@">>) of
+        'nomatch' -> fix_presence_id_realm(Endpoint, PresenceId);
+        _Match -> PresenceId
+    end.
+
+-spec fix_presence_id_realm(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary().
+fix_presence_id_realm(Endpoint, PresenceId) ->
+    Realm = kz_json:get_ne_binary_value(<<"realm">>, Endpoint),
+    <<PresenceId/binary, "@", Realm/binary>>.
 
 -spec presence_aliases(kz_json:object()) -> kz_term:api_ne_binaries().
 presence_aliases(Endpoint) ->
