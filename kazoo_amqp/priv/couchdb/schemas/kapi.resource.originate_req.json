@@ -94,6 +94,9 @@
             ],
             "type": "string"
         },
+        "Emergency-Address": {
+            "type": "string"
+        },
         "Enable-T38-Fax": {
             "type": "string"
         },

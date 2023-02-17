@@ -201,6 +201,9 @@
         "Duration": {
             "type": "string"
         },
+        "Emergency-Address": {
+            "type": "string"
+        },
         "Enable-DTMF": {
             "type": "string"
         },

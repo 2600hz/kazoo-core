@@ -343,7 +343,8 @@ account_tree_keys() ->
 
 -spec attributes_keys() -> kz_term:ne_binaries().
 attributes_keys() ->
-    [<<"call_failover">>
+    [<<"addresses">>
+    ,<<"call_failover">>
     ,<<"call_forward">>
     ,<<"call_limits">>
     ,<<"call_recording">>
@@ -542,6 +543,11 @@ merge_attribute(<<"default_cavs">> = Key, Account, Endpoint, Owner) ->
     merge_default_cavs(Key, Account, Endpoint, Owner);
 merge_attribute(<<"default_ccvs">> = Key, Account, Endpoint, Owner) ->
     merge_default_ccvs(Key, Account, Endpoint, Owner);
+merge_attribute(<<"addresses">> = _Key, Account, Endpoint, Owner) ->
+    lists:foldl(fun(AddrType, Acc) -> merge_address_fold(AddrType, Account, Acc, Owner) end
+               ,Endpoint
+               ,kz_json:get_keys(kzd_endpoint:addresses(Endpoint, kz_json:new()))
+               );
 merge_attribute(Key, Account, Endpoint, Owner) ->
     AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
     EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
@@ -1837,3 +1843,24 @@ build_call_limit(JObj, Limits) ->
         'undefined' -> type_default_call_limits(JObj, Limits);
         TypeLimit -> {kz_doc:type(JObj), kzd_call_limits:max_concurrent(TypeLimit)}
     end.
+
+%% Addresses {
+-spec merge_address_fold(kz_term:ne_binary(), kz_json:object(), kz_json:object(), kz_json:object()) ->
+          kz_json:object().
+merge_address_fold(<<"emergency">>, Account, Endpoint, Owner) ->
+    Empty = kz_json:new(),
+    EndpointAddresses = kzd_endpoint:addresses(Endpoint, Empty),
+    %% Precedence order: Endpoint > Owner (if any) > Account.
+    AccountEmerAddr = kzd_addresses:emergency(kzd_accounts:addresses(Account, Empty), Empty),
+    OwnerEmerAddr = kzd_addresses:emergency(kzd_users:addresses(Owner, Empty), AccountEmerAddr),
+    EndpointEmerAddr = kzd_addresses:emergency(EndpointAddresses, OwnerEmerAddr),
+    case kz_term:is_empty(EndpointEmerAddr) of
+        'true' ->
+            Endpoint;
+        'false' ->
+            NewAddresses = kzd_addresses:set_emergency(EndpointAddresses, EndpointEmerAddr),
+            kzd_endpoint:set_addresses(Endpoint, NewAddresses)
+    end;
+merge_address_fold(_, _Account, Endpoint, _Owner) ->
+    Endpoint.
+%% }

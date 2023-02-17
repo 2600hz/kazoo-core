@@ -16,6 +16,7 @@
 -define(KEY_CONTROL_QUEUE, <<"Control-Queue">>).
 -define(KEY_CSHS, <<"Custom-SIP-Headers">>).
 -define(KEY_DENIED_CALL_RESTRICTIONS, <<"Denied-Call-Restrictions">>).
+-define(KEY_EMERGENCY_ADDRESS, <<"Emergency-Address">>).
 -define(KEY_EMERGENCY_RESOURCE, <<"Emergency-Resource">>).
 -define(KEY_ENABLE_T38 ,<<"Enable-T38-Fax">>).
 -define(KEY_ENABLE_T38_GATEWAY, <<"Enable-T38-Gateway">>).

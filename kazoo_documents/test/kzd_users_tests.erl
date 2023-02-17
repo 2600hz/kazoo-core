@@ -9,7 +9,7 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(kzd_user_tests).
+-module(kzd_users_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -19,6 +19,17 @@
                                 ,{<<"vm_to_email_enabled">>, 'true'}]
                                ,kz_json:new()
                                )
+       ).
+-define(ADR_DOC
+       ,kz_json:set_values([{<<"addresses">>
+                            ,kz_json:from_list([{<<"vcard">>
+                                                ,[kz_json:from_list([{<<"address">>, <<"test addr">>}])]
+                                                }
+                                               ])
+                            }
+                           ]
+                          ,?DOC
+                          )
        ).
 -define(EMPTY, kz_json:new()).
 
@@ -34,13 +45,24 @@ voicemail_notification_enabled_test_() ->
     ,?_assertEqual('true',    kzd_users:vm_to_email_enabled(?EMPTY, 'true'))
     ].
 
-to_vcard_test() ->
-    ?assertEqual(<<"BEGIN:VCARD\n"
-                   "VERSION:3.0\n"
-                   "FN:F L\n"
-                   "N:L;F\n"
-                   "EMAIL:email@example.com\n"
-                   "END:VCARD"
-                 >>
-                ,kzd_users:to_vcard(?DOC)
-                ).
+to_vcard_test_() ->
+    BaseBin = <<"BEGIN:VCARD\n"
+                "VERSION:3.0\n"
+                "FN:F L\n"
+                "N:L;F\n"
+                "EMAIL:email@example.com\n"
+              >>,
+    EndBin = <<"END:VCARD">>,
+    [{"without addresses.vcard"
+     ,?_assertEqual(<<BaseBin/binary, EndBin/binary>>, kzd_users:to_vcard(?DOC))
+     }
+    ,{"with addresses.vcard"
+     ,?_assertEqual(<<BaseBin/binary, "ADR;TYPE=intl,postal,parcel,work:test addr\n", EndBin/binary>>
+                   ,kzd_users:to_vcard(?ADR_DOC)
+                   )
+     }
+    ].
+
+maybe_migrate_user_addresses_test_() ->
+    %% TODO: Write test cases for kzd_users:maybe_migrate_user_addresses/1.
+    [].
