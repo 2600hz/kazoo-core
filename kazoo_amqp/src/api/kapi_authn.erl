@@ -226,6 +226,7 @@ resp_definition() ->
                ,[{<<"Auth-Method">>, [<<"password">>, <<"ip">>
                                      ,<<"a1-hash">>, <<"error">>
                                      ,<<"gsm">>, <<"nonce">>, <<"a3a8">>
+                                     ,<<"mdn">>, <<"mdn-trusted">>, <<"trusted">>
                                      ]}
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
