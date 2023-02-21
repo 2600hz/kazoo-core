@@ -33,7 +33,6 @@
 -define(DEFAULT_MOBILE_PREFIX, <<>>).
 -define(DEFAULT_MOBILE_SUFFIX, <<>>).
 -define(DEFAULT_MOBILE_REALM, <<"mobile.k.zswitch.net">>).
--define(DEFAULT_MOBILE_PATH, <<>>).
 -define(DEFAULT_MOBILE_CODECS, [<<"PCMU">>]).
 -define(DEFAULT_CALLER_ID_NAME, <<"unknown">>).
 
@@ -98,12 +97,16 @@ sip_route(Endpoint) ->
         Route -> Route
     end.
 
+mobile_route_uri() ->
+    kapps_config:get_ne_binary(?MOBILE_CONFIG_CAT, <<"path">>).
+
 -spec sip_route_uri(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route_uri(_Endpoint) ->
-    Path = kapps_config:get_binary(?MOBILE_CONFIG_CAT, <<"path">>, ?DEFAULT_MOBILE_PATH),
-    case kz_term:is_empty(Path) of
-        'false' -> <<"sip:", Path/binary>>;
-        'true' -> 'undefined'
+    case mobile_route_uri() of
+        undefined -> undefined;
+        <<"sip:", _/binary>> = Path -> Path;
+        <<"<sip:", _/binary>> = Path -> Path;
+        Path -> <<"sip:", Path/binary>>
     end.
 
 -spec sip_interface(kz_json:object()) -> kz_term:api_ne_binary().
@@ -120,7 +123,8 @@ routing_ccvs(Endpoint, CCVs) ->
 
 -spec sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_headers(_Endpoint, Headers) ->
-    Headers.
+    CSHs = kapps_config:get_json(?MOBILE_CONFIG_CAT, <<"custom_sip_headers">>, kz_json:new()),
+    kz_json:merge(Headers, CSHs).
 
 -spec sip_auth(kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_auth(Endpoint, CCVs) ->
