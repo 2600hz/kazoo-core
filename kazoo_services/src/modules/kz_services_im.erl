@@ -43,7 +43,7 @@
 -spec fetch(kz_services:services() | kz_term:ne_binary()) -> kz_json:object().
 fetch(?NE_BINARY=AccountId) ->
     case cache(AccountId) of
-        not_found ->
+        'not_found' ->
             FetchOptions = ['hydrate_plans'],
             Services = kz_services:fetch(AccountId, FetchOptions),
             fetch(Services);
@@ -125,13 +125,13 @@ is_enabled(_AccountId, _) -> 'false'.
 
 cache(AccountId) ->
     case kz_cache:peek_local(?CACHE_NAME, {?MODULE, AccountId}) of
-        {error, not_found} -> not_found;
-        {ok, Value} -> Value
+        {'error', 'not_found'} -> 'not_found';
+        {'ok', Value} -> Value
     end.
 
 cache(AccountId, Caches, Plan) ->
     CacheProps = [{'origin', cache_origin(AccountId, Caches)}
-                 ,{'expires', infinity}
+                 ,{'expires', 'infinity'}
                  ],
     catch kz_cache:store_local(?CACHE_NAME, {?MODULE, AccountId}, Plan, CacheProps),
     Plan.
@@ -141,7 +141,7 @@ cache_origin(AccountId, Caches) ->
     | [{'db', DB, Id}|| {DB, Id} <- lists:usort(Caches)]
     ].
 
-policy_for_no_plan(true, Type) ->
+policy_for_no_plan('true', Type) ->
     ?RESELLER_POLICY_FOR_NO_PLAN(Type);
-policy_for_no_plan(false, Type) ->
+policy_for_no_plan('false', Type) ->
     ?ACCOUNT_POLICY_FOR_NO_PLAN(Type).
