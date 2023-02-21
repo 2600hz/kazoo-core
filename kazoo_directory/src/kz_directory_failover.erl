@@ -29,10 +29,9 @@ failover(EndpointId, AccountId, Endpoint) ->
 
 -spec maybe_legacy_failover(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_object().
 maybe_legacy_failover(EndpointId, AccountId, Endpoint) ->
-    CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
-    case kz_json:is_true(<<"failover">>, CallForward) of
+    case kz_json:is_true([<<"call_forward">>, <<"failover">>], Endpoint, 'false') of
         'false' -> 'undefined';
-        'true' -> build_legacy_failover(EndpointId, AccountId, Endpoint, CallForward)
+        'true' -> build_legacy_failover(EndpointId, AccountId, Endpoint, kz_json:get_json_value(<<"call_forward">>, Endpoint))
     end.
 
 build_legacy_failover(EndpointId, AccountId, Endpoint, CallForward) ->

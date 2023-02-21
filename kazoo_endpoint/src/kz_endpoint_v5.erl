@@ -435,31 +435,31 @@ merge_attribute(<<"name">> = Key, Account, Endpoint, Owner) ->
                                ,kz_json:get_ne_value(Key, Account)
                                ),
     kz_json:set_value(Key, Name, Endpoint);
-merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
-    EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
-    case kz_json:is_true(<<"enabled">>, EndpointAttr) of
+merge_attribute(<<"call_failover">> = _Key, Account, Endpoint, Owner) ->
+    EndpointAttr = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
+    case kzd_call_failover:enabled(EndpointAttr) of
         'true' -> Endpoint;
         'false' ->
-            AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
-            OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
+            AccountAttr = kzd_endpoint:call_failover(Account, kz_json:new()),
+            OwnerAttr = kzd_endpoint:call_failover(Owner, kz_json:new()),
             Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kz_json:is_true(<<"enabled">>, Merged) of
-                'true' -> kz_json:set_value(Key, Merged, Endpoint);
+            case kzd_call_failover:enabled(Merged) of
+                'true' -> kzd_endpoint:set_call_failover(Endpoint, Merged);
                 'false' -> Endpoint
             end
     end;
-merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
-    EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
-    case kz_json:is_true(<<"enabled">>, EndpointAttr) of
-        'true' -> Endpoint;
-        'false' ->
-            AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
-            OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
-            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kz_json:is_true(<<"enabled">>, Merged) of
-                'true' -> kz_json:set_value(Key, Merged, Endpoint);
+merge_attribute(<<"call_forward">> = _Key, Account, Endpoint, Owner) ->
+    case find_always_on_call_forward(Endpoint) of
+        'undefined' ->
+            AccountCfwd = find_always_on_call_forward(Account, kz_json:new()),
+            OwnerCfwd = find_always_on_call_forward(Owner, kz_json:new()),
+            Merged = kz_json:merge([AccountCfwd, OwnerCfwd]),
+            case kzd_call_forward:match_list_enabled(Merged, 'false') of
+                'true' -> kzd_endpoint:set_call_forward(Endpoint, [Merged]);
                 'false' -> Endpoint
-            end
+            end;
+        _CallForward ->
+            Endpoint
     end;
 merge_attribute(<<"call_settings">> = Key, Account, Endpoint, Owner) ->
     EndpointAttr = kz_json:get_json_value(Key, Endpoint, kz_json:new()),
@@ -1119,10 +1119,9 @@ maybe_start_metaflow(Call, Endpoint) ->
                                  {'error', _} | kz_json:object()).
 -spec try_create_endpoint(ep_routine(), kz_json:objects(), kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:objects().
-try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call) when is_function(Routine, 3) ->
+try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call)
+  when is_function(Routine, 3) ->
     try Routine(Endpoint, Properties, Call) of
-        %% {'error', 'call_forward_not_appropriate'} -> Endpoints;
-        %% {'error', 'call_forward_substitute'} -> Endpoints;
         {'error', _R} ->
             lager:warning("failed to create endpoint: ~p", [_R]),
             Endpoints;
@@ -1176,9 +1175,9 @@ get_clid(Endpoint, Properties, Call, Type) ->
 
 -spec maybe_move_privacy(kz_json:object(), kz_json:object(), kapps_call:call(), clid()) -> clid().
 maybe_move_privacy(Endpoint, _Properties, Call, Clid) ->
-    CallForward = kz_json:get_ne_value(<<"call_forward">>, Endpoint, kz_json:new()),
+    CallForward = find_always_on_call_forward(Endpoint, kz_json:new()),
     CCVs = kapps_call:custom_channel_vars(Call),
-    RetainCID = kz_json:is_true(<<"keep_caller_id">>, CallForward)
+    RetainCID = kzd_call_forward:keep_caller_id(CallForward, 'false')
         orelse kz_json:is_true(<<"Retain-CID">>, CCVs),
     HideName = kz_privacy:should_hide_name(CCVs),
     HideNumber = kz_privacy:should_hide_number(CCVs),
@@ -1256,16 +1255,31 @@ maybe_get_t38(Endpoint, Call) ->
 -spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
 create_call_fwd_endpoint(Endpoint, Properties, Call) ->
-    CallForward = kz_json:get_ne_value(<<"call_forward">>, Endpoint, kz_json:new()),
-    Route = kz_json:get_value(<<"number">>, CallForward),
+    create_call_fwd_endpoint(Endpoint, Properties, Call, find_always_on_call_forward(Endpoint)).
+
+find_always_on_call_forward(Endpoint) ->
+    find_always_on_call_forward(Endpoint, 'undefined').
+
+find_always_on_call_forward(Endpoint, Default) ->
+    case [CallForward
+          || CallForward <- kzd_endpoint:call_forward(Endpoint, []),
+             kzd_call_forward:match_list_enabled(CallForward, 'false')
+         ]
+    of
+        [] -> Default;
+        [CF | _] -> CF
+    end.
+
+create_call_fwd_endpoint(_Endpoint, _Properties, _Call, 'undefined') ->
+    lager:info("no call forwarding settings available"),
+    kz_json:new();
+create_call_fwd_endpoint(Endpoint, Properties, Call, CallForward) ->
+    Route = kzd_call_forward:number(CallForward),
     ToDID = kz_json:get_value(<<"number">>, Endpoint, kapps_call:request_user(Call)),
     lager:info("call forwarding endpoint to ~s : ~s", [Route, ToDID]),
-    IgnoreEarlyMedia = case kz_json:is_true(<<"require_keypress">>, CallForward)
-                           orelse not kz_json:is_true(<<"substitute">>, CallForward)
-                       of
-                           'true' -> <<"true">>;
-                           'false' -> kz_json:get_binary_boolean(<<"ignore_early_media">>, CallForward)
-                       end,
+
+    IgnoreEarlyMedia = should_ignore_early_media(CallForward),
+
     Clid = case kapps_call:inception(Call) of
                'undefined' -> get_clid(Endpoint, Properties, Call, <<"external">>);
                _Else -> maybe_move_privacy(Endpoint, Properties, Call, #clid{})
@@ -1293,6 +1307,14 @@ create_call_fwd_endpoint(Endpoint, Properties, Call) ->
       ,{<<"Custom-SIP-Headers">>, generate_sip_headers(Endpoint, <<"forward">>, Call)}
       ,{<<"Custom-Channel-Vars">>, generate_ccvs(Endpoint, Call, CallForward)}
       ]).
+
+should_ignore_early_media(CallForward) ->
+    case kzd_call_forward:require_keypress(CallForward)
+        orelse not kzd_call_forward:substitute(CallForward, 'false')
+    of
+        'true' -> 'true';
+        'false' -> kzd_call_forward:ignore_early_media(CallForward)
+    end.
 
 -spec create_sip_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
@@ -1329,9 +1351,12 @@ generate_sip_headers(_Endpoint, <<"endpoint">>, Acc, Call) ->
 
 -spec maybe_add_diversion(kz_json:object(), kz_json:object(), kz_term:api_binary(), kapps_call:call()) -> kz_json:object().
 maybe_add_diversion(JObj, Endpoint, _Inception, Call) ->
+    CallForward = find_always_on_call_forward(Endpoint, kz_json:new()),
+
     ShouldAddDiversion = kapps_call:authorizing_id(Call) =:= 'undefined'
-        andalso kz_json:is_true([<<"call_forward">>, <<"keep_caller_id">>], Endpoint, 'false')
+        andalso kzd_call_forward:keep_caller_id(CallForward, 'false')
         andalso kapps_config:get_is_true(?CONFIG_CAT, <<"should_add_diversion_header">>, 'false'),
+
     case ShouldAddDiversion of
         'true' ->
             Diversion = list_to_binary(["<sip:", kapps_call:request(Call), ">", ";reason=unconditional"]),
@@ -1412,10 +1437,10 @@ generate_ccvs(Endpoint, Call) ->
 
 -spec generate_ccvs(kz_json:object(), kapps_call:call(), kz_term:api_object()) -> kz_json:object().
 generate_ccvs(Endpoint, Call, 'undefined' = CallFwd) ->
-    CCVFuns = [fun maybe_auto_answer/1
-              ],
+    CCVFuns = [fun maybe_auto_answer/1],
     Acc0 = {Endpoint, Call, CallFwd, kz_json:new()},
-    {_Endpoint, _Call, _CallFwd, CCVs} = lists:foldr(fun(F, Acc) -> F(Acc) end, Acc0, CCVFuns),
+    {_Endpoint, _Call, _CallFwd, CCVs}
+        = lists:foldr(fun(F, Acc) -> F(Acc) end, Acc0, CCVFuns),
     CCVs;
 generate_ccvs(Endpoint, Call, CallFwd) ->
     CCVFuns = [fun maybe_retain_caller_id/1
@@ -1464,7 +1489,7 @@ maybe_set_account_id({Endpoint, Call, CallFwd, CCVs}) ->
 maybe_set_call_forward({_Endpoint, _Call, 'undefined', _CCVs}=Acc) ->
     Acc;
 maybe_set_call_forward({_Endpoint, _Call, CallFwd, _CCVs} = Acc) ->
-    Number = kz_json:get_ne_binary_value(<<"number">>, CallFwd),
+    Number = kzd_call_forward:number(CallFwd),
     maybe_set_call_forward(Acc, Number).
 
 -spec maybe_set_call_forward(ccv_acc(), kz_term:api_ne_binary()) -> ccv_acc().
@@ -1499,7 +1524,7 @@ maybe_auto_answer({Endpoint, Call, CallFwd, CCVs}=Acc) ->
 
 -spec maybe_set_confirm_properties(ccv_acc()) -> ccv_acc().
 maybe_set_confirm_properties({Endpoint, Call, CallFwd, CCVs}=Acc) ->
-    case kz_json:is_true(<<"require_keypress">>, CallFwd) of
+    case kzd_call_forward:require_keypress(CallFwd) of
         'false' -> Acc;
         'true' ->
             lager:info("call forwarding configured to require key press"),

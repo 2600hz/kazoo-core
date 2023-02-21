@@ -18,8 +18,8 @@
 -export([moh/1, moh_media_path/1, moh_url/1, moh_options/1]).
 -export([presence_id/1]).
 -export([presence_aliases/1, presence_aliases/2]).
--export([call_forward/1, call_forward/2]).
--export([call_failover/1, call_failover/2]).
+-export([call_forward/1, call_forward/2, set_call_forward/2]).
+-export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
 -export([tags/1, tags/2]).
 -export([meta_id/1]).
@@ -116,7 +116,7 @@ presence_id(Endpoint) ->
 
 -spec presence_aliases(endpoint()) -> kz_term:api_ne_binaries().
 presence_aliases(Endpoint) ->
-    presence_aliases(Endpoint, undefined).
+    presence_aliases(Endpoint, 'undefined').
 
 -spec presence_aliases(endpoint(), Default) -> kz_term:ne_binaries() | Default.
 presence_aliases(Endpoint, Default) ->
@@ -134,13 +134,28 @@ call_failover(Endpoint) ->
 call_failover(Endpoint, Default) ->
     kz_json:get_json_value([<<"call_failover">>], Endpoint, Default).
 
--spec call_forward(endpoint()) -> kz_term:api_object().
-call_forward(Endpoint) ->
-    call_forward(Endpoint, 'undefined').
+-spec set_call_failover(endpoint(), kzd_call_failover:doc()) -> endpoint().
+set_call_failover(Endpoint, Failover) ->
+    kz_json:set_value([<<"call_failover">>], Failover, Endpoint).
 
--spec call_forward(endpoint(), Default) -> kz_json:object() | Default.
-call_forward(Endpoint, Default) ->
-    kz_json:get_json_value([<<"call_forward">>], Endpoint, Default).
+-spec call_forward(endpoint()) -> kz_term:api_objects().
+call_forward(Doc) ->
+    call_forward(Doc, 'undefined').
+
+-spec call_forward(endpoint(), Default) -> kz_json:objects() | Default.
+call_forward(Doc, Default) ->
+    case kz_json:get_json_list([<<"call_forward">>], Doc) of
+        'undefined' ->
+            case kz_json:get_json_value([<<"call_forward">>], Doc) of
+                'undefined' -> Default;
+                Legacy -> [Legacy]
+            end;
+        Rules -> Rules
+    end.
+
+-spec set_call_forward(endpoint(), kz_json:objects()) -> endpoint().
+set_call_forward(Doc, CallForward) ->
+    kz_json:set_value([<<"call_forward">>], CallForward, Doc).
 
 -spec call_limits(endpoint()) -> kz_term:api_object().
 call_limits(Doc) ->

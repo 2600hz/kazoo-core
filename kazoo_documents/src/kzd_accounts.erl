@@ -185,11 +185,11 @@ call_forward(Doc) ->
 
 -spec call_forward(doc(), Default) -> kz_json:objects() | Default.
 call_forward(Doc, Default) ->
-    kz_json:get_json_list([<<"call_forward">>], Doc, Default).
+    kzd_endpoint:call_forward(Doc, Default).
 
 -spec set_call_forward(doc(), kz_json:objects()) -> doc().
 set_call_forward(Doc, CallForward) ->
-    kz_json:set_value([<<"call_forward">>], CallForward, Doc).
+    kzd_endpoint:set_call_forward(Doc, CallForward).
 
 -spec call_limits(doc()) -> kz_term:api_object().
 call_limits(Doc) ->
@@ -1633,19 +1633,7 @@ validate_call_failover(_AccountId, {Doc, Errors}) ->
 -spec validate_call_forward(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
 validate_call_forward(_AccountId, {Doc, Errors}) ->
-    Callforward = call_forward(Doc, kz_json:new()),
-    CallForwardNumber = kzd_call_forward:number(Callforward),
-    case kzd_call_forward:enabled(Callforward)
-        andalso not kz_term:is_ne_binary(CallForwardNumber)
-    of
-        'true' ->
-            Msg = kz_json:from_list(
-                    [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
-                    ,{<<"cause">>, CallForwardNumber}
-                    ]),
-            {Doc, [{[<<"call_forward.number">>], <<"required">>, Msg} | Errors]};
-        'false' -> {Doc, Errors}
-    end.
+    kzd_call_forward:validate({Doc, Errors}).
 
 %%------------------------------------------------------------------------------
 %% @doc This function returns the private fields to be added to a new account

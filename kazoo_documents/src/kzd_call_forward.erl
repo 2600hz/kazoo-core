@@ -17,6 +17,7 @@
 -export([require_keypress/1, require_keypress/2, set_require_keypress/2]).
 -export([substitute/1, substitute/2, set_substitute/2]).
 
+-export([validate/1]).
 
 -include("kz_documents.hrl").
 
@@ -148,3 +149,40 @@ substitute(Doc, Default) ->
 -spec set_substitute(doc(), boolean()) -> doc().
 set_substitute(Doc, Substitute) ->
     kz_json:set_value([<<"substitute">>], Substitute, Doc).
+
+%% @doc validate an endpoint (account/user/device) doc's call forwarding settings
+-spec validate(kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+validate({EndpointDoc, Errors}) ->
+    validate_call_forward_settings(kzd_endpoint:call_forward(EndpointDoc, [])
+                                  ,1
+                                  ,{EndpointDoc, Errors}
+                                  ).
+
+validate_call_forward_settings([], _Index, Acc) -> Acc;
+validate_call_forward_settings([CallForward | CallForwards], Index, {Doc, Errors}) ->
+    CallForwardNumber = number(CallForward, <<>>),
+    Enabled = kz_term:is_true(match_list_enabled(CallForward)),
+    UpdatedErrors = validate_enabled_setting(Enabled, CallForwardNumber, Index, Errors),
+    validate_call_forward_settings(CallForwards, Index+1, {Doc, UpdatedErrors}).
+
+validate_enabled_setting('true', <<>>, Index, Errors) ->
+    [{[<<"call_forward.", (kz_term:to_binary(Index))/binary, ".number">>]
+     ,<<"required">>
+     ,kz_json:from_list(
+        [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
+        ,{<<"value">>, <<>>}
+        ])
+     }
+    ,{[<<"call_forward.", (kz_term:to_binary(Index))/binary, ".number">>]
+     ,<<"minLength">>
+     ,kz_json:from_list(
+        [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
+        ,{<<"cause">>, <<>>}
+        ,{<<"value">>, <<>>}
+        ,{<<"target">>, 3}
+        ])
+     }
+    | Errors
+    ];
+validate_enabled_setting(_Enabled, _Number, _Index, Errors) -> Errors.
