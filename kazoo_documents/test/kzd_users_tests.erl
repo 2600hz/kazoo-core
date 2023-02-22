@@ -20,17 +20,8 @@
                                ,kz_json:new()
                                )
        ).
--define(ADR_DOC
-       ,kz_json:set_values([{<<"addresses">>
-                            ,kz_json:from_list([{<<"vcard">>
-                                                ,[kz_json:from_list([{<<"address">>, <<"test addr">>}])]
-                                                }
-                                               ])
-                            }
-                           ]
-                          ,?DOC
-                          )
-       ).
+-define(USER_ADDRESSES_LIST, [kz_json:from_list([{<<"address">>, <<"test addr">>}])]).
+-define(DOC_WITH_ADDRESSES(Addresses), kz_json:set_value(<<"addresses">>, Addresses, ?DOC)).
 -define(EMPTY, kz_json:new()).
 
 email_test_() ->
@@ -53,16 +44,31 @@ to_vcard_test_() ->
                 "EMAIL:email@example.com\n"
               >>,
     EndBin = <<"END:VCARD">>,
-    [{"without addresses.vcard"
+    AddressesJObj = kz_json:from_list([{<<"vcard">>, ?USER_ADDRESSES_LIST}]),
+    [{"without addresses"
      ,?_assertEqual(<<BaseBin/binary, EndBin/binary>>, kzd_users:to_vcard(?DOC))
      }
-    ,{"with addresses.vcard"
+    ,{"with addresses.vcard (object)"
      ,?_assertEqual(<<BaseBin/binary, "ADR;TYPE=intl,postal,parcel,work:test addr\n", EndBin/binary>>
-                   ,kzd_users:to_vcard(?ADR_DOC)
+                   ,kzd_users:to_vcard(?DOC_WITH_ADDRESSES(AddressesJObj))
+                   )
+     }
+    ,{"with addresses (list)"
+     ,?_assertEqual(<<BaseBin/binary, "ADR;TYPE=intl,postal,parcel,work:test addr\n", EndBin/binary>>
+                   ,kzd_users:to_vcard(?DOC_WITH_ADDRESSES(?USER_ADDRESSES_LIST))
                    )
      }
     ].
 
 maybe_migrate_user_addresses_test_() ->
-    %% TODO: Write test cases for kzd_users:maybe_migrate_user_addresses/1.
-    [].
+    Test = fun kzd_users:maybe_migrate_user_addresses/1,
+    AddressesJObj = kz_json:from_list([{<<"vcard">>, ?USER_ADDRESSES_LIST}]),
+    Expected = kz_json:set_value(<<"addresses">>, AddressesJObj, ?DOC),
+
+    [{"old schema"
+     ,?_assert(kz_json:are_equal(Expected, Test(?DOC_WITH_ADDRESSES(?USER_ADDRESSES_LIST))))
+     },
+     {"new schema"
+     ,?_assert(kz_json:are_equal(Expected, Test(Expected)))
+     }
+    ].

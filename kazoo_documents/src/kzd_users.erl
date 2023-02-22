@@ -774,7 +774,9 @@ fetch(Account, UserId=?NE_BINARY) ->
     kz_datamgr:open_cache_doc(AccountDb, UserId).
 
 -spec to_vcard(doc()) -> binary().
-to_vcard(User) ->
+to_vcard(UserDoc) ->
+    %% Handle scenario when trying to build vcard for existing user with old addresses schema.
+    User = maybe_migrate_user_addresses(UserDoc),
     %% TODO add SOUND, AGENT (X-ASSISTANT), X-MANAGER
     Fields = [<<"BEGIN">>
              ,<<"VERSION">>
@@ -1454,15 +1456,12 @@ validate_call_forward(CallForward) -> kzd_call_forward:validate(CallForward).
 %%------------------------------------------------------------------------------
 -spec maybe_migrate_user_addresses(doc()) -> doc().
 maybe_migrate_user_addresses(User) ->
-    %% TODO:
-    %% - Add unitary tests for this function.
-    %% - Look for the places calling kzd_users:to_vcard/1 function and call this function first before to_vcard/1.
     Key = <<"addresses">>,
     case kz_json:get_value(Key, User) of
-        [_|_] = Addresses ->
-            NewAddresses = kz_json:from_list([{<<"vcard">>, Addresses}]),
-            lager:debug("migrating user's addresses from ~p to ~p", [Addresses, NewAddresses]),
-            kz_json:set_value(Key, NewAddresses, User);
+        [_|_] = AddressesList ->
+            AddressesJObj = kz_json:from_list([{<<"vcard">>, AddressesList}]),
+            lager:debug("migrating user's addresses from ~p to ~p", [AddressesList, AddressesJObj]),
+            kz_json:set_value(Key, AddressesJObj, User);
         _ ->
             %% 'undefined' or already using new implementation. Not need to migrate it.
             User
