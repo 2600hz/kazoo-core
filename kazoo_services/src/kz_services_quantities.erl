@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2022, 2600Hz
+%%% @copyright (C) 2012-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -559,8 +559,9 @@ calculate_qubicle_queue_updates(JObj, Updates) ->
     case kz_doc:type(JObj) =:= <<"qubicle_queue">> of
         'false' -> Updates;
         'true' ->
-            Features = kz_json:get_ne_value(<<"features">>, JObj, [<<"basic">>]),
-            Offering = case lists:member(<<"pro">>, Features) of
+            Features = kz_json:get_ne_value(<<"features">>, JObj, kz_json:new()),
+            FeatureKeys = kz_json:get_keys(Features),
+            Offering = case lists:member(<<"pro">>, FeatureKeys) of
                            'true' -> <<"pro">>;
                            'false' -> <<"basic">>
                        end,
@@ -575,8 +576,9 @@ calculate_qubicle_recipient_updates(JObj, Updates) ->
     of
         'false' -> Updates;
         'true' ->
-            Features = kz_json:get_ne_value([<<"qubicle">>, <<"recipient">>, <<"features">>], JObj, [<<"basic">>]),
-            Offering = case lists:member(<<"pro">>, Features) of
+            Features = kz_json:get_ne_value([<<"qubicle">>, <<"recipient">>, <<"features">>], JObj, kz_json:new()),
+            FeatureKeys = kz_json:get_keys(Features),
+            Offering = case lists:member(<<"pro">>, FeatureKeys) of
                            'true' -> <<"pro">>;
                            'false' -> <<"basic">>
                        end,
