@@ -11,6 +11,7 @@
 
 -export([new/0]).
 -export([addresses/1, addresses/2, set_addresses/2]).
+-export([addresses_vcard/1, addresses_vcard/2, set_addresses_vcard/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
@@ -120,6 +121,18 @@ addresses(Doc, Default) ->
 -spec set_addresses(doc(), kz_json:object()) -> doc().
 set_addresses(Doc, Addresses) ->
     kz_json:set_value([<<"addresses">>], Addresses, Doc).
+
+-spec addresses_vcard(doc()) -> kz_term:api_objects().
+addresses_vcard(Doc) ->
+    addresses_vcard(Doc, 'undefined').
+
+-spec addresses_vcard(doc(), Default) -> kz_json:objects() | Default.
+addresses_vcard(Doc, Default) ->
+    kz_json:get_list_value([<<"addresses">>, <<"vcard">>], Doc, Default).
+
+-spec set_addresses_vcard(doc(), kz_json:objects()) -> doc().
+set_addresses_vcard(Doc, AddressesVcard) ->
+    kz_json:set_value([<<"addresses">>, <<"vcard">>], AddressesVcard, Doc).
 
 -spec call_failover(doc()) -> kz_term:api_object().
 call_failover(Doc) ->
