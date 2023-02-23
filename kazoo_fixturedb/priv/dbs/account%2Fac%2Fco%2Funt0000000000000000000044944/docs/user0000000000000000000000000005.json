@@ -1,14 +1,18 @@
 {
     "_id": "user0000000000000000000000000005",
     "_rev": "1-7280940a25dcb8eac5ab129dd8fbe5c6",
-    "call_failover": {
-        "direct_calls_only": false,
-        "enabled": true,
-        "ignore_early_media": true,
-        "keep_caller_id": true,
-        "number": "+13334445555",
-        "require_keypress": false
-    },
+    "call_failover": [
+        {
+            "direct_calls_only": false,
+            "ignore_early_media": true,
+            "keep_caller_id": true,
+            "match_list": {
+                "enabled": true
+            },
+            "number": "+13334445555",
+            "require_keypress": false
+        }
+    ],
     "call_forward": {
         "direct_calls_only": false,
         "enabled": true,
