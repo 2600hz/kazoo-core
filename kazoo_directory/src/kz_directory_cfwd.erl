@@ -73,6 +73,7 @@ call_forward_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable)
     ,{<<"Require-Ignore-Early-Media">>, 'true'}
     ,{<<"Ignore-Early-Media">>, 'true'}
     ,{<<"Call-Forward-From">>, <<"${kz_ctx_Inception}">>}
+    ,{<<"Call-Forward-Number">>, <<"${kz_ctx_request_e164}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
     ].
 

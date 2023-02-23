@@ -1473,6 +1473,7 @@ maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
                         ,{<<"Authorizing-Type">>, <<"device">>}
                         ,{<<"Authorizing-ID">>, kz_doc:id(Endpoint)}
                         ,{<<"Call-Forward-From">>, kapps_call:inception_type(Call)}
+                        ,{<<"Call-Forward-Number">>, kapps_call:caller_id_number(Call)}
                         ,{<<"Call-Forward-For-UUID">>, kapps_call:other_leg_call_id(Call)}
                         ,{<<"Require-Ignore-Early-Media">>, <<"true">>}
                         ,{<<"Loopback-Request-URI">>, LoopBackUri}
