@@ -58,6 +58,7 @@
 -define(KEY_REQUESTOR_CSHS, <<"Requestor-Custom-SIP-Headers">>).
 -define(KEY_RESOURCE_TYPE, <<"Resource-Type">>).
 -define(KEY_RINGBACK, <<"Ringback">>).
+-define(KEY_SIP_DIVERSIONS, <<"SIP-Diversions">>).
 -define(KEY_T38_ENABLED, <<"Fax-T38-Enabled">>).
 -define(KEY_TIMEOUT, <<"Timeout">>).
 -define(KEY_TO_DID, <<"To-DID">>).

@@ -68,6 +68,7 @@
         ,resource_type/1, resource_type/2
         ,ringback/1, ringback/2
         ,timeout/1, timeout/2
+        ,sip_diversions/1, sip_diversions/2
         ,t38_enabled/1, t38_enabled/2
         ,to_did/1, to_did/2
         ,denied_call_restrictions/1, denied_call_restrictions/2
@@ -200,6 +201,7 @@ req_definition() ->
                                                             ,?KEY_REQUESTOR_CCVS
                                                             ,?KEY_REQUESTOR_CSHS
                                                             ,?KEY_RINGBACK
+                                                            ,?KEY_SIP_DIVERSIONS
                                                             ,?KEY_T38_ENABLED
                                                             ,?KEY_TIMEOUT
                                                             ,?KEY_CONTINUE_AFTER
@@ -251,6 +253,7 @@ req_definition() ->
                 ,{?KEY_OUTBOUND_ACTIONS, fun kz_json:is_json_object/1}
                 ,{?KEY_REQUESTOR_CCVS, fun kz_json:is_json_object/1}
                 ,{?KEY_REQUESTOR_CSHS, fun kz_json:is_json_object/1}
+                ,{?KEY_SIP_DIVERSIONS, fun kz_term:is_ne_binaries/1}
                 ,{?KEY_TO_DID, fun kz_term:is_ne_binary/1}
                 ,{?KEY_CONTINUE_AFTER, fun kz_term:is_boolean/1}
                 ,{?KEY_FAIL_ON_SINGLE_REJECT, fun is_valid_fail_on_single_reject/1}
@@ -583,6 +586,14 @@ timeout(Req) ->
 -spec timeout(req(), Default) -> integer() | Default.
 timeout(?REQ_TYPE(JObj), Default) ->
     kz_json:get_integer_value(?KEY_TIMEOUT, JObj, Default).
+
+-spec sip_diversions(req()) -> kz_term:api_ne_binaries().
+sip_diversions(Req) ->
+    sip_diversions(Req, 'undefined').
+
+-spec sip_diversions(req(), Default) -> kz_term:ne_binaries() | Default.
+sip_diversions(?REQ_TYPE(JObj), Default) ->
+    kz_json:get_ne_binaries(?KEY_SIP_DIVERSIONS, JObj, Default).
 
 -spec ignore_early_media(req()) -> kz_term:api_boolean().
 ignore_early_media(Req) ->
