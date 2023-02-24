@@ -75,6 +75,7 @@ call_forward_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable)
     ,{<<"Call-Forward-From">>, <<"${kz_ctx_Inception}">>}
     ,{<<"Call-Forward-Number">>, <<"${kz_ctx_request_e164}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
+    ,{<<"Call-Forward-Diversions">>, <<"${sip_diversions}">>}
     ].
 
 -spec call_forward_cid_type_name(boolean()) -> kz_term:ne_binary().
