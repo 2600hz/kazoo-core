@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -164,6 +164,8 @@
 -export([endpoint_id/1]).
 -export([restricted_endpoint_id/1]).
 
+-export([diversions/1]).
+
 -ifdef(TEST).
 -export([eq/2]).
 -export([updateable_ccvs/2]).
@@ -236,6 +238,7 @@
                     ,is_call_forward = 'false' :: boolean()             %% is this call forward call
                     ,is_transfer = 'false' :: boolean()                 %% is this call a transfer
                     ,endpoint_id :: kz_term:api_ne_binary()             %% if a refer/redirect, find the endpoint id (esp if no authz-id
+                    ,diversions :: kz_term:api_ne_binaries()
                     }).
 
 -type call() :: #kapps_call{}.
@@ -360,6 +363,7 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                     ,is_call_forward = kz_json:is_true(<<"Call-Forward">>, CCVs, is_call_forward(Call))
                     ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, RouteReq, is_transfer(Call))
                     ,endpoint_id = EndpointId
+                    ,diversions = kz_json:get_ne_binaries(<<"SIP-Diversions">>, RouteReq, diversions(Call))
                     }.
 
 -spec from_route_win(kz_json:object()) -> call().
@@ -595,6 +599,7 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                    ,is_call_forward = kz_json:is_true(<<"Is-Call-Forward">>, JObj, is_call_forward(Call))
                    ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, JObj, is_transfer(Call))
                    ,endpoint_id = kz_json:get_ne_binary_value(<<"Endpoint-ID">>, JObj, endpoint_id(Call))
+                   ,diversions = kz_json:get_ne_binaries(<<"SIP-Diversions">>, JObj, diversions(Call))
                    }.
 
 %%------------------------------------------------------------------------------
@@ -678,6 +683,7 @@ to_proplist(#kapps_call{}=Call) ->
     ,{<<"To-Realm">>, to_realm(Call)}
     ,{<<"To-Tag">>, to_tag(Call)}
     ,{<<"To-User">>, to_user(Call)}
+    ,{<<"SIP-Diversions">>, diversions(Call)}
     ].
 
 -spec is_call(any()) -> boolean().
@@ -1990,3 +1996,7 @@ inception_route_forwarded(CCVs) ->
         <<"onnet">> -> 'undefined';
         <<"offnet">> -> <<"call-forward-from-offnet">>
     end.
+
+-spec diversions(call()) -> kz_term:api_ne_binaries().
+diversions(#kapps_call{diversions=Diversions}) ->
+    Diversions.

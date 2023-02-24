@@ -538,6 +538,12 @@
         "Ringback": {
             "type": "string"
         },
+        "SIP-Diversions": {
+            "items": {
+                "type": "string"
+            },
+            "type": "string"
+        },
         "SIP-Invite-Contact-User": {
             "type": "string"
         },
