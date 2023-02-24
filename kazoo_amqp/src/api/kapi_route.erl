@@ -167,6 +167,7 @@ req_definition() ->
                                                             ,<<"User-Agent">>
                                                             ,<<"Destination-Number">>
                                                             ,<<"Is-Transfer">>
+                                                            ,<<"SIP-Diversions">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Resource-Type">>, [<<"mms">>
@@ -193,6 +194,7 @@ req_definition() ->
                 ,{<<"From">>, fun erlang:is_binary/1}
                 ,{<<"Request">>, fun erlang:is_binary/1}
                 ,{<<"To">>, fun erlang:is_binary/1}
+                ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
                 ,{?KEY_CALL_ID, fun erlang:is_binary/1}
                 ]
                }

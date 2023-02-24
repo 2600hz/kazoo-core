@@ -141,6 +141,12 @@
         "Ringback-Media": {
             "type": "string"
         },
+        "SIP-Diversions": {
+            "items": {
+                "type": "string"
+            },
+            "type": "string"
+        },
         "SIP-Request-Host": {
             "type": "string"
         },

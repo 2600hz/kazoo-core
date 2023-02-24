@@ -159,6 +159,9 @@
         "Route": {
             "type": "string"
         },
+        "SIP-Diversions": {
+            "type": "string"
+        },
         "SIP-Interface": {
             "type": "string"
         },
