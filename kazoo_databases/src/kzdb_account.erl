@@ -136,15 +136,31 @@ delete_mod_dbs({AccountJObj, _Errors}=Acc) ->
 delete_remove_from_accounts({AccountJObj, Errors}=Acc) ->
     case kzd_accounts:fetch(kz_doc:id(AccountJObj), 'accounts') of
         {'ok', AccountsJObj} ->
-            _Deleted = kz_datamgr:del_doc(?KZ_ACCOUNTS_DB, AccountsJObj),
-            lager:info("deleted 'accounts' account doc: ~p", [_Deleted]),
-            Acc;
+            ensure_deleted(Acc, AccountsJObj, kz_datamgr:del_doc(?KZ_ACCOUNTS_DB, AccountsJObj));
         {'error', 'not_found'} ->
             lager:info("'accounts' account doc not found"),
             Acc;
         {'error', _R} ->
             lager:info("failed to fetch 'accounts' account doc: ~p", [_R]),
             {AccountJObj, [{'datastore_fault', <<"unable to remove account definition">>} | Errors]}
+    end.
+
+ensure_deleted({_AccountJObj, _Errors}=Acc, AccountsJObj, {'ok', DeleteJObj}) ->
+    case kz_json:is_true(<<"ok">>, DeleteJObj) of
+        'true' -> Acc;
+        'false' ->
+            case kz_json:get_ne_binary_value(<<"error">>, DeleteJObj) of
+                <<"conflict">> ->
+                    lager:info("accounts doc rev tried: ~s", [kz_doc:revision(AccountsJObj)]),
+                    delete_remove_from_accounts(Acc);
+                _Error ->
+                    lager:error("error deleting 'accounts' account doc: ~s: ~s"
+                               ,[_Error
+                                ,kz_json:get_ne_binary_value(<<"reason">>, DeleteJObj)
+                                ]
+                               ),
+                    Acc
+            end
     end.
 
 -spec create(kz_term:ne_binary(), kz_json:object()) -> kzd_accounts:doc() | 'undefined'.
