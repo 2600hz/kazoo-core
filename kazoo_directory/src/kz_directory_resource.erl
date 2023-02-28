@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -107,14 +107,17 @@ find_resource_id(#{endpoint_id := EndpointId, realm_id := MasterId, master_id :=
                                    ,?KZ_OFFNET_DB
                                    ], EndpointId
                                   )
+        ,is_global => true
         };
 find_resource_id(#{endpoint_id := EndpointId, realm_id := AccountId} = Map) ->
-    Map#{resource => kz_datamgr:open_cache_doc(kzs_util:format_account_db(AccountId), EndpointId)}.
+    Map#{resource => kz_datamgr:open_cache_doc(kzs_util:format_account_db(AccountId), EndpointId)
+        ,is_global => false
+        }.
 
 -spec set_resource_id(resource_context()) -> resource_context().
-set_resource_id(#{resource := {'ok', Resource}, ccvs := CCVs, profile := Profile} = Map) ->
+set_resource_id(#{resource := {'ok', Resource}, ccvs := CCVs, profile := Profile, is_global := IsGlobal} = Map) ->
     Map#{ccvs => [{<<"Resource-ID">>, kz_doc:id(Resource)}
-                 ,{<<"Global-Resource">>, kz_json:is_true(<<"Is-Global">>, Resource)}
+                 ,{<<"Global-Resource">>, IsGlobal}
                  ,{<<"Authorizing-Type">>, <<"resource">>}
                  | CCVs
                  ]
@@ -129,9 +132,10 @@ set_resource_id(#{resource := {'error', _}
                  ,profile := Profile
                  ,realm_id := MasterId
                  ,master_id := MasterId
+                 ,is_global := IsGlobal
                  } = Map) ->
     Map#{ccvs => [{<<"Resource-ID">>, EndpointId}
-                 ,{<<"Global-Resource">>, 'true'}
+                 ,{<<"Global-Resource">>, IsGlobal}
                  ,{<<"Authorizing-Type">>, <<"resource">>}
                  | CCVs
                  ]
