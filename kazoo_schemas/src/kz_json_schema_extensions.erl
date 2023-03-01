@@ -248,6 +248,8 @@ is_valid_client_url({Scheme, Host, _Path, _QueryString, _Fragment}) ->
               ,{fun is_valid_host/1, Host}
               ]
              );
+is_valid_client_url({'error', 'invalid_uri'}) ->
+    'false';
 is_valid_client_url(<<URL/binary>>) ->
     is_valid_client_url(kz_http_util:urlsplit(URL)).
 

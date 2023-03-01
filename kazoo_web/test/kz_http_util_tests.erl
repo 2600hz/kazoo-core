@@ -87,12 +87,20 @@ encode_decode(Decoded, Encoded) ->
     ].
 
 urlsplit_test_() ->
-    [?_assertEqual({<<"">>, <<"">>, <<"/foo">>, <<"">>, <<"bar?baz">>}, kz_http_util:urlsplit(<<"/foo#bar?baz">>))
-    ,?_assertEqual({<<"http">>, {<<"host">>, 345}, <<"/foo">>, <<"">>, <<"bar?baz">>}, kz_http_util:urlsplit(<<"http://host:345/foo#bar?baz">>))
-    ,?_assertEqual({<<"http">>, <<"host">>, <<"">>, <<"">>, <<"">>}, kz_http_util:urlsplit(<<"http://host">>))
-    ,?_assertEqual({<<"">>, <<"">>, <<"/wiki/Category:Fruit">>, <<"">>, <<"">>}, kz_http_util:urlsplit(<<"/wiki/Category:Fruit">>))
+    [?_assertEqual({<<>>, <<>>, <<"/foo">>, <<>>, <<"bar?baz">>}
+                  ,kz_http_util:urlsplit(<<"/foo#bar?baz">>)
+                  )
+    ,?_assertEqual({<<"http">>, {<<"host">>, 345}, <<"/foo">>, <<>>, <<"bar?baz">>}
+                  ,kz_http_util:urlsplit(<<"http://host:345/foo#bar?baz">>)
+                  )
+    ,?_assertEqual({<<"http">>, <<"host">>, <<>>, <<>>, <<>>}
+                  ,kz_http_util:urlsplit(<<"http://host">>)
+                  )
+    ,?_assertEqual({<<>>, <<>>, <<"/wiki/Category:Fruit">>, <<"">>, <<"">>}
+                  ,kz_http_util:urlsplit(<<"/wiki/Category:Fruit">>)
+                  )
     ,?_assertEqual({<<"https">>, {{<<"client.host">>, 1234}, <<"username">>, <<"password">>}, <<>>, <<>>, <<>>}
-                  ,kz_http_util:urlsplit(<<"https://username@password:client.host:1234">>)
+                  ,kz_http_util:urlsplit(<<"https://username:password@client.host:1234">>)
                   )
     ].
 
@@ -236,13 +244,13 @@ simple_array() ->
     ,?_assertEqual(p_from_l([{<<"a">>, <<"b,c">>}]), parse_arrays(<<"a=b,c">>, #{comma_array => 'false'}))
     ,?_assertEqual(p_from_l([{<<"a">>,[<<>>,<<"b">>,<<"c">>]}]), parse_arrays(<<"a[]=&a[]=b&a[]=c">>))
     ,?_assertEqual(p_from_l([{<<"a">>,[<<"b">>,<<>>,<<"c">>]}]), parse_arrays(<<"a[]=b&a[]=&a[]=c">>))
-    ,?_assertEqual(p_from_l([{<<"a">>,[<<"b">>,true,<<"c">>,<<>>]}]), parse_arrays(<<"a[]=b&a[]&a[]=c&a[]=">>))
+    ,?_assertEqual(p_from_l([{<<"a">>,[<<"b">>,'true',<<"c">>,<<>>]}]), parse_arrays(<<"a[]=b&a[]&a[]=c&a[]=">>))
     ,?_assertEqual([{<<"a">>,<<"[\"b\"]">>}], parse_arrays(<<"a=[\"b\"]">>))
-    ,?_assertEqual([{<<"a">>,{[{<<"b c">>,<<"d">>}]}}], parse_arrays(<<"a[b%20c]=d">>))
-    ,?_assertEqual([{<<"a">>,{[{<<"30">>,<<"b">>}]}}], parse_arrays(<<"a[30]=b">>))
-    ,?_assertEqual([{<<"a">>,{[{<<"12b">>,<<"c">>}]}}], parse_arrays(<<"a[12b]=c">>))
+    ,?_assertEqual([{<<"a">>,kz_json:from_list([{<<"b c">>,<<"d">>}])}], parse_arrays(<<"a[b%20c]=d">>))
+    ,?_assertEqual([{<<"a">>,kz_json:from_list([{<<"30">>,<<"b">>}])}], parse_arrays(<<"a[30]=b">>))
+    ,?_assertEqual([{<<"a">>,kz_json:from_list([{<<"12b">>,<<"c">>}])}], parse_arrays(<<"a[12b]=c">>))
     ,?_assertEqual(p_from_l([{<<"a">>, [{<<"0">>, <<"b">>}, {<<"b">>, <<"c">>}]}]), parse_arrays(<<"a[0]=b&a[b]=c">>))
-    ,?_assertEqual(p_from_l([{<<"a">>,{[{<<"b">>,[<<"c">>,<<"d">>]}]}}]), parse_arrays(<<"a[b][]=c&a[b][]=d">>))
+    ,?_assertEqual(p_from_l([{<<"a">>,kz_json:from_list([{<<"b">>,[<<"c">>,<<"d">>]}])}]), parse_arrays(<<"a[b][]=c&a[b][]=d">>))
     ].
 
 simple_nested_objects() ->
@@ -321,10 +329,15 @@ mix_and_match() ->
       ]
      }
     ,{"correctly compact array when converting array to object and array limit is hit"
-     ,[?_assertEqual(p_from_l([{<<"a">>,{[{<<"2">>,<<"b">>},{<<"50">>,<<"c">>}]}}]), parse_arrays(<<"a[2]=b&a[50]=c">>))]
+     ,[?_assertEqual(p_from_l([{<<"a">>,kz_json:from_list([{<<"2">>,<<"b">>},{<<"50">>,<<"c">>}])}])
+                    ,parse_arrays(<<"a[2]=b&a[50]=c">>)
+                    )
+      ]
      }
     ,{"order array correctly when array indices are specified"
-     ,[?_assertEqual(p_from_l([{<<"a">>,[<<"b">>,<<"c">>,<<"d">>]}]), parse_arrays(<<"a[1]=c&a[0]=b&a[2]=d">>))
+     ,[?_assertEqual(p_from_l([{<<"a">>,[<<"b">>,<<"c">>,<<"d">>]}])
+                    ,parse_arrays(<<"a[1]=c&a[0]=b&a[2]=d">>)
+                    )
       ]
      }
     ,{"explicit array"
