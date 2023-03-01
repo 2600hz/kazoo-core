@@ -454,7 +454,7 @@ merge_attribute(<<"call_forward">> = _Key, Account, Endpoint, Owner) ->
             AccountCfwd = find_always_on_call_forward(Account, kz_json:new()),
             OwnerCfwd = find_always_on_call_forward(Owner, kz_json:new()),
             Merged = kz_json:merge([AccountCfwd, OwnerCfwd]),
-            case kzd_call_forward:match_list_enabled(Merged, 'false') of
+            case kzd_call_forward:enabled(Merged, 'false') of
                 'true' -> kzd_endpoint:set_call_forward(Endpoint, [Merged]);
                 'false' -> Endpoint
             end;
@@ -1263,7 +1263,7 @@ find_always_on_call_forward(Endpoint) ->
 find_always_on_call_forward(Endpoint, Default) ->
     case [CallForward
           || CallForward <- kzd_endpoint:call_forward(Endpoint, []),
-             kzd_call_forward:match_list_enabled(CallForward, 'false')
+             kzd_call_forward:enabled(CallForward, 'false')
          ]
     of
         [] -> Default;
