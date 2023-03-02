@@ -36,7 +36,8 @@ find_call_forward(Endpoint) ->
 
 find_enabled_call_forward([]) -> 'undefined';
 find_enabled_call_forward([CallForward | CallForwards]) ->
-    case kzd_call_forward:enabled(CallForward)
+    case kzd_call_forward:match_list_id(CallForward) =:= 'undefined'
+        andalso kzd_call_forward:enabled(CallForward)
         andalso not kz_term:is_empty(kzd_call_forward:number(CallForward))
     of
         'true' -> CallForward;

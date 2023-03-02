@@ -1263,6 +1263,7 @@ find_always_on_call_forward(Endpoint) ->
 find_always_on_call_forward(Endpoint, Default) ->
     case [CallForward
           || CallForward <- kzd_endpoint:call_forward(Endpoint, []),
+             kzd_call_forward:match_list_id(CallForward) =:= 'undefined',
              kzd_call_forward:enabled(CallForward, 'false')
          ]
     of
