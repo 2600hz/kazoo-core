@@ -52,17 +52,17 @@ reserved() ->
 
 uri_encode(Char, Reserved) ->
     case sets:is_element(Char, Reserved) of
-        true ->
+        'true' ->
             [ $% | http_util:integer_to_hexlist(Char)];
-        false ->
+        'false' ->
             [Char]
     end.
 
 uri_encode_binary(Char, Reserved) ->
     case sets:is_element(Char, Reserved) of
-        true ->
+        'true' ->
             << $%, (integer_to_binary(Char, 16))/binary >>;
-        false ->
+        'false' ->
             <<Char>>
     end.
 

@@ -14,6 +14,8 @@
         ,show_client_blacklists/0
         ]).
 
+-elvis([{elvis_style, no_debug_call, disable}]).
+
 -spec blacklist_client_ip(kz_term:ne_binary()) -> kz_term:ne_binaries() | 'error'.
 blacklist_client_ip(CIDR) ->
     blacklist_client_ip(CIDR, kz_network_utils:is_cidr(CIDR)).
@@ -32,7 +34,7 @@ blacklist_client_host(Host) ->
 
 -spec show_client_blacklists() -> 'ok'.
 show_client_blacklists() ->
-    io:format("CLient Blacklists:~nCIDRS: ~p~nHosts: ~p~n"
+    io:format("Client Blacklists:~nCIDRS: ~p~nHosts: ~p~n"
              ,[kz_http_util:client_ip_blacklist()
               ,kz_http_util:client_host_blacklist()
               ]).
