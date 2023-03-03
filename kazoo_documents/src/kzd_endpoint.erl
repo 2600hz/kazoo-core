@@ -138,19 +138,21 @@ call_failover(Endpoint, Default) ->
 set_call_failover(Endpoint, Failover) ->
     kz_json:set_value([<<"call_failover">>], Failover, Endpoint).
 
--spec call_forward(endpoint()) -> kz_term:api_objects().
+-spec call_forward(endpoint()) -> kz_term:api_object().
 call_forward(Doc) ->
     call_forward(Doc, 'undefined').
 
--spec call_forward(endpoint(), Default) -> kz_json:objects() | Default.
+-spec call_forward(endpoint(), Default) -> kz_json:object() | Default.
 call_forward(Doc, Default) ->
-    case kz_json:get_json_list([<<"call_forward">>], Doc) of
-        'undefined' ->
-            case kz_json:get_json_value([<<"call_forward">>], Doc) of
-                'undefined' -> Default;
-                Legacy -> [Legacy]
-            end;
-        Rules -> Rules
+    case kz_json:get_json_value([<<"call_forward">>], Doc) of
+        'undefined' -> Default;
+        CallForward ->
+            case kz_json:get_value(<<"enabled">>, CallForward) of
+                'undefined' -> CallForward;
+                _Legacy ->
+                    %% migrate legacy to 'unconditional' call forwarding type
+                    kz_json:set_value(<<"unconditional">>, CallForward, kz_json:new())
+            end
     end.
 
 -spec set_call_forward(endpoint(), kz_json:objects()) -> endpoint().
