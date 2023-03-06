@@ -4,9 +4,9 @@
     "call_forward": {
         "unconditional": {
             "direct_calls_only": false,
+            "enabled": false,
             "ignore_early_media": true,
             "keep_caller_id": true,
-            "enabled": false,
             "require_keypress": true,
             "substitute": true
         }
