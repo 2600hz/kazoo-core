@@ -283,7 +283,8 @@ xml_elements_to_endpoints(Call
                                 ,{<<"require_keypress">>, 'false'}
                                 ,{<<"substitute">>, 'true'}
                                 ]),
-    Endpoint = kzd_endpoint:set_call_forward(kz_json:new(), [CallFwd]),
+    Unconditional = kzd_call_forward_types:set_unconditional(kz_json:new(), CallFwd),
+    Endpoint = kzd_endpoint:set_call_forward(kz_json:new(), Unconditional),
     EP = kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call),
 
     xml_elements_to_endpoints(Call, EPs, [EP|Acc]);
