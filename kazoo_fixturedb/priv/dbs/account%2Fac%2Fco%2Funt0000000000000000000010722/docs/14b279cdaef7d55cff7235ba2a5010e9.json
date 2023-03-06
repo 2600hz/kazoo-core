@@ -1,18 +1,16 @@
 {
     "_id": "14b279cdaef7d55cff7235ba2a5010e9",
     "_rev": "1-2e2b7c3dece9d5e8653700e5eb08552f",
-    "call_forward": [
-        {
+    "call_forward": {
+        "unconditional": {
             "direct_calls_only": false,
             "ignore_early_media": true,
             "keep_caller_id": true,
-            "match_list": {
-                "enabled": false
-            },
+            "enabled": false,
             "require_keypress": true,
             "substitute": true
         }
-    ],
+    },
     "call_restriction": {
         "caribbean": {
             "action": "deny"

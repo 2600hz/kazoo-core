@@ -9,8 +9,8 @@
         "number": "+18887776666",
         "require_keypress": false
     },
-    "call_forward": [
-        {
+    "call_forward": {
+        "unconditional": {
             "direct_calls_only": false,
             "ignore_early_media": true,
             "keep_caller_id": true,
@@ -21,7 +21,7 @@
             "require_keypress": false,
             "substitute": false
         }
-    ],
+    },
     "call_restriction": {
         "caribbean": {
             "action": "inherit"
