@@ -128,27 +128,36 @@ set_substitute(Doc, Substitute) ->
 -spec validate(kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
 validate({EndpointDoc, Errors}) ->
-    validate_call_forward_settings(kzd_endpoint:call_forward(EndpointDoc, [])
-                                  ,1
+    validate_call_forward_settings(kzd_endpoint:call_forward(EndpointDoc)
                                   ,{EndpointDoc, Errors}
                                   ).
 
-validate_call_forward_settings([], _Index, Acc) -> Acc;
-validate_call_forward_settings([CallForward | CallForwards], Index, {Doc, Errors}) ->
+validate_call_forward_settings('undefined', Acc) -> Acc;
+validate_call_forward_settings(CallForwardTypes, {Doc, Errors}) ->
+    lists:foldl(fun(Type, Acc) -> validate_call_forward_type_settings(Type
+                                                                     ,Acc
+                                                                     ,kz_json:get_json_value(Type, CallForwardTypes)
+                                                                     )
+                end
+               ,{Doc, Errors}
+               ,kz_json:get_keys(CallForwardTypes)
+               ).
+
+validate_call_forward_type_settings(Type, {Doc, Errors}, CallForward) ->
     CallForwardNumber = number(CallForward, <<>>),
     Enabled = enabled(CallForward),
-    UpdatedErrors = validate_enabled_setting(Enabled, CallForwardNumber, Index, Errors),
-    validate_call_forward_settings(CallForwards, Index+1, {Doc, UpdatedErrors}).
+    UpdatedErrors = validate_enabled_setting(Enabled, CallForwardNumber, Type, Errors),
+    {Doc, UpdatedErrors}.
 
-validate_enabled_setting('true', <<>>, Index, Errors) ->
-    [{[<<"call_forward.", (kz_term:to_binary(Index))/binary, ".number">>]
+validate_enabled_setting('true', <<>>, Type, Errors) ->
+    [{[<<"call_forward.", Type/binary, ".number">>]
      ,<<"required">>
      ,kz_json:from_list(
         [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
         ,{<<"value">>, <<>>}
         ])
      }
-    ,{[<<"call_forward.", (kz_term:to_binary(Index))/binary, ".number">>]
+    ,{[<<"call_forward.", Type/binary, ".number">>]
      ,<<"minLength">>
      ,kz_json:from_list(
         [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
