@@ -155,7 +155,7 @@ call_forward(Doc, Default) ->
             end
     end.
 
--spec set_call_forward(endpoint(), kz_json:objects()) -> endpoint().
+-spec set_call_forward(endpoint(), kz_json:object()) -> endpoint().
 set_call_forward(Doc, CallForward) ->
     kz_json:set_value([<<"call_forward">>], CallForward, Doc).
 
