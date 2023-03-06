@@ -25,6 +25,7 @@
         ,encryption_method_map/2
         ,get_sip_realm/2, get_sip_realm/3
         ,merge_call_recording/1
+        ,merge_call_forward/3
         ]).
 
 -ifdef(TEST).
@@ -449,20 +450,7 @@ merge_attribute(<<"call_failover">> = _Key, Account, Endpoint, Owner) ->
             end
     end;
 merge_attribute(<<"call_forward">> = _Key, Account, Endpoint, Owner) ->
-    case unconditional_call_forward(Endpoint) of
-        'undefined' ->
-            AccountCfwd = unconditional_call_forward(Account, kz_json:new()),
-            OwnerCfwd = unconditional_call_forward(Owner, kz_json:new()),
-            Merged = kz_json:merge([AccountCfwd, OwnerCfwd]),
-            case kzd_call_forward:enabled(Merged, 'false') of
-                'false' -> Endpoint;
-                'true' ->
-                    Unconditional = kzd_call_forward_types:set_unconditional(kz_json:new(), Merged),
-                    kzd_endpoint:set_call_forward(Endpoint, Unconditional)
-            end;
-        _CallForward ->
-            Endpoint
-    end;
+    merge_call_forward(Account, Endpoint, Owner);
 merge_attribute(<<"call_settings">> = Key, Account, Endpoint, Owner) ->
     EndpointAttr = kz_json:get_json_value(Key, Endpoint, kz_json:new()),
     AccountAttr = kz_json:get_json_value(Key, Account, kz_json:new()),
@@ -667,6 +655,24 @@ get_record_call_properties(JObj) ->
                       ]
                      )
             end
+    end.
+
+-spec merge_call_forward(kzd_accounts:doc(), kzd_endpoint:doc(), kzd_users:doc()) ->
+          kz_json:object().
+merge_call_forward(Account, Endpoint, Owner) ->
+    case unconditional_call_forward(Endpoint) of
+        'undefined' ->
+            AccountCfwd = unconditional_call_forward(Account, kz_json:new()),
+            OwnerCfwd = unconditional_call_forward(Owner, kz_json:new()),
+            Merged = kz_json:merge([AccountCfwd, OwnerCfwd]),
+            case kzd_call_forward:enabled(Merged, 'false') of
+                'false' -> Endpoint;
+                'true' ->
+                    Unconditional = kzd_call_forward_types:set_unconditional(kz_json:new(), Merged),
+                    kzd_endpoint:set_call_forward(Endpoint, Unconditional)
+            end;
+        _CallForward ->
+            Endpoint
     end.
 
 -spec merge_value(kz_term:ne_binary(), kz_term:api_object(), kz_json:object(), kz_term:api_object()) ->

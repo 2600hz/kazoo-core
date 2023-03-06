@@ -14,9 +14,7 @@
             "direct_calls_only": false,
             "ignore_early_media": true,
             "keep_caller_id": true,
-            "match_list": {
-                "enabled": true
-            },
+            "enabled": true,
             "number": "+13334445555",
             "require_keypress": false,
             "substitute": false
