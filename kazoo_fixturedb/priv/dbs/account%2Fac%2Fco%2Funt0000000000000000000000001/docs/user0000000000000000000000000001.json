@@ -6,9 +6,7 @@
             "direct_calls_only": false,
             "ignore_early_media": true,
             "keep_caller_id": true,
-            "match_list": {
-                "enabled": false
-            },
+            "enabled": false,
             "number": "+18554642600",
             "require_keypress": true,
             "substitute": false
