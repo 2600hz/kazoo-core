@@ -10,7 +10,6 @@
 -export([enabled/1, enabled/2, set_enabled/2]).
 -export([ignore_early_media/1, ignore_early_media/2, set_ignore_early_media/2]).
 -export([keep_caller_id/1, keep_caller_id/2, set_keep_caller_id/2]).
--export([match_list_id/1, match_list_id/2, set_match_list_id/2]).
 -export([number/1, number/2, set_number/2]).
 -export([require_keypress/1, require_keypress/2, set_require_keypress/2]).
 -export([substitute/1, substitute/2, set_substitute/2]).
@@ -75,18 +74,6 @@ keep_caller_id(Doc, Default) ->
 -spec set_keep_caller_id(doc(), boolean()) -> doc().
 set_keep_caller_id(Doc, KeepCallerId) ->
     kz_json:set_value([<<"keep_caller_id">>], KeepCallerId, Doc).
-
--spec match_list_id(doc()) -> kz_term:api_binary().
-match_list_id(Doc) ->
-    match_list_id(Doc, 'undefined').
-
--spec match_list_id(doc(), Default) -> binary() | Default.
-match_list_id(Doc, Default) ->
-    kz_json:get_binary_value([<<"match_list_id">>], Doc, Default).
-
--spec set_match_list_id(doc(), binary()) -> doc().
-set_match_list_id(Doc, MatchListId) ->
-    kz_json:set_value([<<"match_list_id">>], MatchListId, Doc).
 
 -spec number(doc()) -> kz_term:api_binary().
 number(Doc) ->
