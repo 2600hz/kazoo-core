@@ -60,15 +60,15 @@ selective(Doc, Default) ->
 set_selective(Doc, Selective) ->
     kz_json:set_value([<<"selective">>], Selective, Doc).
 
--spec selective_rules(doc()) -> kz_term:api_list().
+-spec selective_rules(doc()) -> kz_term:api_objects().
 selective_rules(Doc) ->
     selective_rules(Doc, 'undefined').
 
--spec selective_rules(doc(), Default) -> list() | Default.
+-spec selective_rules(doc(), Default) -> kz_json:objects() | Default.
 selective_rules(Doc, Default) ->
     kz_json:get_list_value([<<"selective">>, <<"rules">>], Doc, Default).
 
--spec set_selective_rules(doc(), list()) -> doc().
+-spec set_selective_rules(doc(), kz_json:objects()) -> doc().
 set_selective_rules(Doc, SelectiveRules) ->
     kz_json:set_value([<<"selective">>, <<"rules">>], SelectiveRules, Doc).
 
