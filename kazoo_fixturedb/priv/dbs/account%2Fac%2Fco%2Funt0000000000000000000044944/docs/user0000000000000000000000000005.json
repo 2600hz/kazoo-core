@@ -12,9 +12,9 @@
     "call_forward": {
         "unconditional": {
             "direct_calls_only": false,
+            "enabled": true,
             "ignore_early_media": true,
             "keep_caller_id": true,
-            "enabled": true,
             "number": "+13334445555",
             "require_keypress": false,
             "substitute": false
