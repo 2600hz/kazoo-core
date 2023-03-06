@@ -455,8 +455,10 @@ merge_attribute(<<"call_forward">> = _Key, Account, Endpoint, Owner) ->
             OwnerCfwd = unconditional_call_forward(Owner, kz_json:new()),
             Merged = kz_json:merge([AccountCfwd, OwnerCfwd]),
             case kzd_call_forward:enabled(Merged, 'false') of
-                'true' -> kzd_endpoint:set_call_forward(Endpoint, [Merged]);
-                'false' -> Endpoint
+                'false' -> Endpoint;
+                'true' ->
+                    Unconditional = kzd_call_forward_types:set_unconditional(kz_json:new(), Merged),
+                    kzd_endpoint:set_call_forward(Endpoint, Unconditional)
             end;
         _CallForward ->
             Endpoint
