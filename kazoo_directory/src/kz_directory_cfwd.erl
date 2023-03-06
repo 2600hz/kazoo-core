@@ -30,20 +30,12 @@ call_forward(EndpointId, AccountId, Endpoint) ->
 find_call_forward(Endpoint) ->
     case kzd_endpoint:call_forward(Endpoint) of
         'undefined' -> 'undefined';
-        CallForwards ->
-            find_enabled_call_forward(CallForwards)
+        CallForwardTypes ->
+            unconditional_call_forward(CallForwardTypes)
     end.
 
-find_enabled_call_forward([]) -> 'undefined';
-find_enabled_call_forward([CallForward | CallForwards]) ->
-    case kzd_call_forward:match_list_id(CallForward) =:= 'undefined'
-        andalso kzd_call_forward:enabled(CallForward)
-        andalso not kz_term:is_empty(kzd_call_forward:number(CallForward))
-    of
-        'true' -> CallForward;
-        'false' ->
-            find_enabled_call_forward(CallForwards)
-    end.
+unconditional_call_forward(CallForwardTypes) ->
+    kzd_call_forward_types:unconditional(CallForwardTypes).
 
 -spec build_call_forward(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kzd_call_forward:doc()) ->
           kz_json:object().
@@ -75,9 +67,9 @@ call_forward_properties(EndpointId, AccountId, Endpoint, CallForward, IsReconcil
     kz_json:from_list(Props).
 
 -spec call_forward_base_properties(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kzd_call_forward:doc(), boolean()) -> kz_term:proplist().
-call_forward_base_properties(_EndpointId, _AccountId, Endpoint, CallForward, _IsReconcilable) ->
+call_forward_base_properties(_EndpointId, _AccountId, _Endpoint, CallForward, _IsReconcilable) ->
     [{<<"Call-Forward">>, 'true'}
-    ,{<<"Is-Substitute">>, call_forward_is_substitute(Endpoint)}
+    ,{<<"Is-Substitute">>, call_forward_is_substitute(CallForward)}
     ,{<<"Direct-Calls-Only">>, kzd_call_forward:direct_calls_only(CallForward)}
     ,{<<"Require-Ignore-Early-Media">>, 'true'}
     ,{<<"Ignore-Early-Media">>, 'true'}
@@ -91,11 +83,9 @@ call_forward_base_properties(_EndpointId, _AccountId, Endpoint, CallForward, _Is
 call_forward_cid_type_name('true') -> <<"External">>;
 call_forward_cid_type_name('false') -> <<"Internal">>.
 
--spec call_forward_is_substitute(kz_json:object()) -> boolean().
-call_forward_is_substitute(Endpoint) ->
-    kzd_call_forward:substitute(
-      kzd_endpoint:call_forward(Endpoint, kz_json:new())
-     ).
+-spec call_forward_is_substitute(kzd_call_forward:doc()) -> boolean().
+call_forward_is_substitute(CallForward) ->
+    kzd_call_forward:substitute(CallForward).
 
 -spec cfw_single_reject() -> kz_term:ne_binaries().
 cfw_single_reject() ->

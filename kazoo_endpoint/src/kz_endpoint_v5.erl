@@ -449,10 +449,10 @@ merge_attribute(<<"call_failover">> = _Key, Account, Endpoint, Owner) ->
             end
     end;
 merge_attribute(<<"call_forward">> = _Key, Account, Endpoint, Owner) ->
-    case find_always_on_call_forward(Endpoint) of
+    case unconditional_call_forward(Endpoint) of
         'undefined' ->
-            AccountCfwd = find_always_on_call_forward(Account, kz_json:new()),
-            OwnerCfwd = find_always_on_call_forward(Owner, kz_json:new()),
+            AccountCfwd = unconditional_call_forward(Account, kz_json:new()),
+            OwnerCfwd = unconditional_call_forward(Owner, kz_json:new()),
             Merged = kz_json:merge([AccountCfwd, OwnerCfwd]),
             case kzd_call_forward:enabled(Merged, 'false') of
                 'true' -> kzd_endpoint:set_call_forward(Endpoint, [Merged]);
@@ -1175,7 +1175,7 @@ get_clid(Endpoint, Properties, Call, Type) ->
 
 -spec maybe_move_privacy(kz_json:object(), kz_json:object(), kapps_call:call(), clid()) -> clid().
 maybe_move_privacy(Endpoint, _Properties, Call, Clid) ->
-    CallForward = find_always_on_call_forward(Endpoint, kz_json:new()),
+    CallForward = unconditional_call_forward(Endpoint, kz_json:new()),
     CCVs = kapps_call:custom_channel_vars(Call),
     RetainCID = kzd_call_forward:keep_caller_id(CallForward, 'false')
         orelse kz_json:is_true(<<"Retain-CID">>, CCVs),
@@ -1255,20 +1255,20 @@ maybe_get_t38(Endpoint, Call) ->
 -spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
 create_call_fwd_endpoint(Endpoint, Properties, Call) ->
-    create_call_fwd_endpoint(Endpoint, Properties, Call, find_always_on_call_forward(Endpoint)).
+    create_call_fwd_endpoint(Endpoint, Properties, Call, unconditional_call_forward(Endpoint)).
 
-find_always_on_call_forward(Endpoint) ->
-    find_always_on_call_forward(Endpoint, 'undefined').
+unconditional_call_forward(Endpoint) ->
+    unconditional_call_forward(Endpoint, 'undefined').
 
-find_always_on_call_forward(Endpoint, Default) ->
-    case [CallForward
-          || CallForward <- kzd_endpoint:call_forward(Endpoint, []),
-             kzd_call_forward:match_list_id(CallForward) =:= 'undefined',
-             kzd_call_forward:enabled(CallForward, 'false')
-         ]
+unconditional_call_forward(Endpoint, Default) ->
+    CallForwardTypes = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
+    Unconditional = kzd_call_forward_types:unconditional(CallForwardTypes, kz_json:new()),
+
+    case kzd_call_forward:enabled(Unconditional, 'false')
+        andalso not kz_term:is_empty(kzd_call_forward:number(Unconditional))
     of
-        [] -> Default;
-        [CF | _] -> CF
+        'false' -> Default;
+        'true' -> Unconditional
     end.
 
 create_call_fwd_endpoint(_Endpoint, _Properties, _Call, 'undefined') ->
@@ -1352,7 +1352,7 @@ generate_sip_headers(_Endpoint, <<"endpoint">>, Acc, Call) ->
 
 -spec maybe_add_diversion(kz_json:object(), kz_json:object(), kz_term:api_binary(), kapps_call:call()) -> kz_json:object().
 maybe_add_diversion(JObj, Endpoint, _Inception, Call) ->
-    CallForward = find_always_on_call_forward(Endpoint, kz_json:new()),
+    CallForward = unconditional_call_forward(Endpoint, kz_json:new()),
 
     ShouldAddDiversion = kapps_call:authorizing_id(Call) =:= 'undefined'
         andalso kzd_call_forward:keep_caller_id(CallForward, 'false')
