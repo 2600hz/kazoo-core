@@ -657,7 +657,7 @@ get_record_call_properties(JObj) ->
             end
     end.
 
--spec merge_call_forward(kzd_accounts:doc(), kzd_endpoint:doc(), kzd_users:doc()) ->
+-spec merge_call_forward(kzd_accounts:doc(), kzd_endpoint:endpoint(), kzd_users:doc()) ->
           kz_json:object().
 merge_call_forward(Account, Endpoint, Owner) ->
     case unconditional_call_forward(Endpoint) of
