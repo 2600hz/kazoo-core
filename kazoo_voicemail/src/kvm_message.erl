@@ -22,7 +22,7 @@
         ]).
 
 -include("kz_voicemail.hrl").
--include("kazoo_media/include/kz_media.hrl").
+-include_lib("kazoo_media/include/kz_media.hrl").
 
 -export_type([vm_folder/0
              ,db_ret/0
