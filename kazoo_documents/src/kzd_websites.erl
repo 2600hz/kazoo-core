@@ -14,6 +14,7 @@
 -export([type/0]).
 -export([account_wide/1, account_wide/2, set_account_wide/2]).
 -export([name/1, name/2, set_name/2]).
+-export([open_in_browser/1, open_in_browser/2, set_open_in_browser/2]).
 -export([users/1, users/2, set_users/2]).
 -export([web_url/1, web_url/2, set_web_url/2]).
 
@@ -64,6 +65,18 @@ schema() -> ?SCHEMA.
 -spec set_name(doc(), kz_term:ne_binary()) -> doc().
 set_name(Doc, Name) ->
     kz_json:set_value([<<"name">>], Name, Doc).
+
+-spec open_in_browser(doc()) -> boolean().
+open_in_browser(Doc) ->
+    open_in_browser(Doc, 'false').
+
+-spec open_in_browser(doc(), Default) -> boolean() | Default.
+open_in_browser(Doc, Default) ->
+    kz_json:get_boolean_value([<<"open_in_browser">>], Doc, Default).
+
+-spec set_open_in_browser(doc(), boolean()) -> doc().
+set_open_in_browser(Doc, OpenInBrowser) ->
+    kz_json:set_value([<<"open_in_browser">>], OpenInBrowser, Doc).
 
 -spec users(doc()) -> kz_term:ne_binaries().
 users(Doc) ->
