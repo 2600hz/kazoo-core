@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -193,7 +193,7 @@ maybe_discovery(#{key_id := _KeyId
     lager:debug("getting discovery document from ~s", [DiscoveryUrl]),
     case kz_auth_util:get_json_from_url(DiscoveryUrl) of
         {'ok', JObj} ->
-            lager:debug_unsafe("obtained discovery document : ~s", [kz_json:encode(JObj,[pretty])]),
+            lager:debug_unsafe("obtained discovery document : ~s", [kz_json:encode(JObj)]),
             Token#{discovery => JObj};
         _ -> Token
     end;
@@ -205,7 +205,7 @@ maybe_discovery(#{payload := #{<<"iss">> := <<"http", _/binary>> = Issuer}}=Toke
     DiscoveryUrl = <<Issuer/binary, "/.well-known/openid-configuration">>,
     case kz_auth_util:get_json_from_url(DiscoveryUrl) of
         {'ok', JObj} ->
-            lager:debug_unsafe("obtained discovery document : ~s", [kz_json:encode(JObj,[pretty])]),
+            lager:debug_unsafe("obtained discovery document : ~s", [kz_json:encode(JObj)]),
             Token#{discovery => JObj};
         _ -> Token
     end;
