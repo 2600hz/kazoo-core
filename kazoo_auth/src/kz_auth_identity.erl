@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -344,6 +344,15 @@ token(#{payload := Payload
                   ,identity_error => Error
                   };
         Token1 -> verify_identity_signature(Token1, Secret, Hash, IdentitySig)
+    end;
+token(#{auth_provider := #{jwt_service_account := true}
+       ,payload := #{<<"aud">> := [Aud]} = Payload
+       }=Token) ->
+    case kzd_accounts:fetch(Aud, accounts) of
+        {ok, _Doc} -> Token#{payload => Payload#{<<"account_id">> => Aud}
+                            ,identify_verified => 'true'
+                            };
+        _Other -> Token
     end;
 token(#{}=Token) -> Token#{identify_verified => 'true'}.
 
