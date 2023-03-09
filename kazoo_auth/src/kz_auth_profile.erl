@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2022, 2600Hz
+%%% @copyright (C) 2012-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -163,32 +163,15 @@ profile_url(#{auth_provider := #{profile_url := ProfileURL} = Provider
              ,access_token := AccessToken
              }=Token) ->
     case maps:get('profile_access_auth_type', Provider, <<"token">>) of
-        <<"token">> -> maybe_compose_profile_url(ProfileURL, Token);
-        <<"api_key">> -> maybe_compose_profile_url(ProfileURL, Token);
-        <<"url">> -> maybe_compose_profile_url(<<ProfileURL/binary, AccessToken/binary>>, Token)
+        <<"token">> -> compose_profile_url(ProfileURL, Token);
+        <<"api_key">> -> compose_profile_url(ProfileURL, Token);
+        <<"url">> -> compose_profile_url(<<ProfileURL/binary, AccessToken/binary>>, Token)
     end.
 
--define(PROFILE_URL_REGEX, <<"\/\:([^\/]+)">>).
--define(PROFILE_URL_REGEX_OPTIONS, [{'capture', 'all_but_first', 'binary'}, 'global']).
--define(PROFILE_URL_REPLACE_OPTIONS, ['global', {'return', 'binary'}]).
-
--spec maybe_compose_profile_url(kz_term:ne_binary(), map()) -> binary().
-maybe_compose_profile_url(Url, Token) ->
-    case re:run(Url, ?PROFILE_URL_REGEX, ?PROFILE_URL_REGEX_OPTIONS) of
-        {'match', [_ | _] = Fields} -> compose_profile_url(Url, lists:flatten(Fields), Token);
-        _ -> Url
-    end.
-
--spec compose_profile_url(kz_term:ne_binary(), kz_term:ne_binaries(), map()) -> binary().
-compose_profile_url(Url, Fields, Token) ->
-    Payload = maps:get('payload', Token, #{}),
-    lists:foldl(fun(Field, Acc) ->
-                        V = kz_maps:get(Field, Payload, <<>>),
-                        re:replace(Acc, <<":", Field/binary>>, V, ?PROFILE_URL_REPLACE_OPTIONS)
-                end
-               ,Url
-               ,Fields
-               ).
+-spec compose_profile_url(kz_term:ne_binary(), map()) -> binary().
+compose_profile_url(Url, Token) ->
+    Params = maps:get('payload', Token, #{}),
+    kz_auth_util:compose_url(Url, Params).
 
 -spec maybe_add_user_identity(map()) -> map().
 maybe_add_user_identity(#{user_identity := _Identity} = Token) -> Token;
