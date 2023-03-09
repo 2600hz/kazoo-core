@@ -18,6 +18,7 @@
 -export([get_json_from_url/1, get_json_from_url/2]).
 -export([fetch_access_code/2, fetch_access_code/3]).
 -export([run/2]).
+-export([compose_url/2]).
 
 -spec get_json_from_url(kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
 get_json_from_url(Url) ->
@@ -78,15 +79,6 @@ fetch_access_code(#{auth_app := #{name := ClientId
             {'error', Else}
     end.
 
-
-%%==============================================================================
-%% Internal functions
-%%==============================================================================
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
 -spec run(map(), list()) -> {'ok' | 'error', map()}.
 run(Token, []) -> {'ok', Token};
 run(Token, [Fun | Routines]) ->
@@ -102,3 +94,24 @@ run(Token, [Fun | Routines]) ->
         kz_log:log_stacktrace(ST),
         {'error', Token}
         end.
+
+-define(COMPOSE_URL_REGEX, <<"\/\:([^\/]+)">>).
+-define(COMPOSE_URL_REGEX_OPTIONS, [{'capture', 'all_but_first', 'binary'}, 'global']).
+-define(COMPOSE_URL_REPLACE_OPTIONS, ['global', {'return', 'binary'}]).
+
+-spec compose_url(kz_term:ne_binary(), map()) -> binary().
+compose_url(Url, Params) ->
+    case re:run(Url, ?COMPOSE_URL_REGEX, ?COMPOSE_URL_REGEX_OPTIONS) of
+        {'match', [_ | _] = Fields} -> compose_url(Url, lists:flatten(Fields), Params);
+        _ -> Url
+    end.
+
+-spec compose_url(kz_term:ne_binary(), kz_term:ne_binaries(), map()) -> binary().
+compose_url(Url, Fields, Params) ->
+    lists:foldl(compose_url_fun(Params), Url ,Fields).
+
+compose_url_fun(Params) ->
+    fun(Field, Acc) ->
+            V = kz_maps:get(Field, Params, <<>>),
+            re:replace(Acc, <<":", Field/binary>>, V, ?COMPOSE_URL_REPLACE_OPTIONS)
+    end.
