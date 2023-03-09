@@ -345,6 +345,15 @@ token(#{payload := Payload
                   };
         Token1 -> verify_identity_signature(Token1, Secret, Hash, IdentitySig)
     end;
+token(#{auth_provider := #{jwt_service_account := true}
+       ,payload := #{<<"aud">> := [Aud]} = Payload
+       }=Token) ->
+    case kzd_accounts:fetch(Aud, accounts) of
+        {ok, _Doc} -> Token#{payload => Payload#{<<"account_id">> => Aud}
+                            ,identify_verified => 'true'
+                            };
+        _Other -> Token
+    end;
 token(#{}=Token) -> Token#{identify_verified => 'true'}.
 
 -spec verify_identity_signature(map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> map().
