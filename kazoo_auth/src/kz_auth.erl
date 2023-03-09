@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2022, 2600Hz
+%%% @copyright (C) 2012-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -181,10 +181,10 @@ include_claims(Claims) ->
 include_identity_sign(Claims) ->
     case kz_auth_identity:sign(Claims) of
         {'ok', Signature} ->
-            [{<<"identity_sig">>, kz_base64url:encode(Signature)} | Claims];
+            props:set_value(<<"identity_sig">>, kz_base64url:encode(Signature), Claims);
         _Else ->
             lager:debug("identity signing json token failed : ~p", [_Else]),
-            Claims
+            props:delete(<<"identity_sig">>, Claims)
     end.
 
 -spec ensure_issuer(kz_term:proplist()) -> kz_term:proplist().
