@@ -181,10 +181,10 @@ include_claims(Claims) ->
 include_identity_sign(Claims) ->
     case kz_auth_identity:sign(Claims) of
         {'ok', Signature} ->
-            [{<<"identity_sig">>, kz_base64url:encode(Signature)} | Claims];
+            props:set_value(<<"identity_sig">>, kz_base64url:encode(Signature), Claims);
         _Else ->
             lager:debug("identity signing json token failed : ~p", [_Else]),
-            Claims
+            props:delete(<<"identity_sig">>, Claims)
     end.
 
 -spec ensure_issuer(kz_term:proplist()) -> kz_term:proplist().
