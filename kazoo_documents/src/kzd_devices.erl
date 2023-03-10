@@ -247,11 +247,11 @@ call_forward(Doc) ->
 
 -spec call_forward(doc(), Default) -> kz_json:object() | Default.
 call_forward(Doc, Default) ->
-    kzd_endpoint:call_forward(Doc, Default).
+    kz_json:get_json_value([<<"call_forward">>], Doc, Default).
 
 -spec set_call_forward(doc(), kz_json:object()) -> doc().
 set_call_forward(Doc, CallForward) ->
-    kzd_endpoint:set_call_forward(Doc, CallForward).
+    kz_json:set_value([<<"call_forward">>], CallForward, Doc).
 
 -spec call_limits(doc()) -> kz_term:api_object().
 call_limits(Doc) ->
