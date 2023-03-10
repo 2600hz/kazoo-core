@@ -295,6 +295,7 @@ require_keypress(Doc, Default) ->
 -spec set_require_keypress(doc(), boolean()) -> doc().
 set_require_keypress(Doc, RequireKeypress) ->
     kz_json:set_value([<<"require_keypress">>], RequireKeypress, Doc).
+<<<<<<< HEAD
 
 -spec selective(doc()) -> kz_term:api_object().
 selective(Doc) ->
@@ -499,3 +500,5 @@ unconditional_substitute(Doc, Default) ->
 -spec set_unconditional_substitute(doc(), boolean()) -> doc().
 set_unconditional_substitute(Doc, UnconditionalSubstitute) ->
     kz_json:set_value([<<"unconditional">>, <<"substitute">>], UnconditionalSubstitute, Doc).
+=======
+>>>>>>> no endpoint changes
