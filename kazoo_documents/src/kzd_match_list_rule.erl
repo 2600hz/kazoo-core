@@ -28,7 +28,7 @@ name(Doc) ->
 
 -spec name(doc(), Default) -> kz_term:ne_binary() | Default.
 name(Doc, Default) ->
-    kz_json:get_list_value([<<"name">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"name">>], Doc, Default).
 
 -spec set_name(doc(), kz_term:ne_binary()) -> doc().
 set_name(Doc, Name) ->
@@ -40,7 +40,7 @@ type(Doc) ->
 
 -spec type(doc(), Default) -> kz_term:ne_binary() | Default.
 type(Doc, Default) ->
-    kz_json:get_list_value([<<"type">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"type">>], Doc, Default).
 
 -spec set_type(doc(), kz_term:ne_binary()) -> doc().
 set_type(Doc, Type) ->
@@ -52,7 +52,7 @@ regex(Doc) ->
 
 -spec regex(doc(), Default) -> kz_term:ne_binary() | Default.
 regex(Doc, Default) ->
-    kz_json:get_list_value([<<"regex">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"regex">>], Doc, Default).
 
 -spec set_regex(doc(), kz_term:ne_binary()) -> doc().
 set_regex(Doc, Regex) ->
@@ -64,7 +64,7 @@ target(Doc) ->
 
 -spec target(doc(), Default) -> kz_term:ne_binary() | Default.
 target(Doc, Default) ->
-    kz_json:get_list_value([<<"target">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"target">>], Doc, Default).
 
 -spec set_target(doc(), kz_term:ne_binary()) -> doc().
 set_target(Doc, Target) ->

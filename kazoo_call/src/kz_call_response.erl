@@ -125,7 +125,6 @@ send_default(_Call, 'undefined') ->
 send_default(Call, Cause) ->
     case get_response(Cause, Call) of
         'undefined' ->
-            lager:debug("no default response for '~s' found", [Cause]),
             {'error', 'no_response'};
         Response ->
             lager:debug("sending default response for '~s': ~p", [Cause, Response]),
@@ -162,7 +161,7 @@ get_response(Cause, Call) ->
 %% @doc Returns the default action given the error.
 %% @end
 %%------------------------------------------------------------------------------
--spec default_response(kz_term:ne_binary()) -> 'undefined' | kz_term:proplist().
+-spec default_response(kz_term:ne_binary()) -> kz_term:api_proplist().
 default_response(<<"RESPONSE_TO_STATUS_ENQUIRY">>) -> 'undefined';
 default_response(<<"FACILITY_NOT_SUBSCRIBED">>) -> 'undefined';
 default_response(<<"INVALID_MSG_UNSPECIFIED">>) -> 'undefined';
@@ -189,6 +188,7 @@ default_response(<<"USER_CHALLENGE">>) -> 'undefined';
 default_response(<<"BLIND_TRANSFER">>) -> 'undefined';
 default_response(<<"WRONG_MESSAGE">>) -> 'undefined';
 default_response(<<"INTERWORKING">>) -> 'undefined';
+default_response(<<"NO_ENDPOINTS">>) -> 'undefined';
 default_response(<<"UNSPECIFIED">>) -> 'undefined';
 default_response(<<"IE_NONEXIST">>) -> 'undefined';
 default_response(<<"PICKED_OFF">>) -> 'undefined';
@@ -353,4 +353,7 @@ default_response(<<"PROGRESS_TIMEOUT">>) ->
     [{<<"Code">>, <<"486">>}
     ,{<<"Message">>, <<"Progress timeout">>}
     ,{<<"Media">>, <<"fault-can_not_be_completed_at_this_time">>}
-    ].
+    ];
+default_response(_Cause) ->
+    lager:debug("no default response for '~s' found", [_Cause]),
+    'undefined'.

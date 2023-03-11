@@ -19,7 +19,7 @@
         ,flush_local/2
         ]).
 -export([build/2, build/3]).
--export([create_call_fwd_endpoint/3
+-export([create_call_fwd_endpoint/3, create_call_fwd_endpoint/4
         ,create_sip_endpoint/3
         ,maybe_start_metaflow/2
         ,encryption_method_map/2
@@ -36,7 +36,6 @@
 -include("kazoo_endpoint.hrl").
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
-
 
 -define(CONFIRM_FILE(Call)
        ,kapps_call:get_prompt(Call, <<"ivr-group_confirm">>)
@@ -69,7 +68,7 @@ get('undefined', _Call) ->
 get(<<EndpointId/binary>>, ?MATCH_ACCOUNT_RAW(AccountId)) ->
     get(EndpointId, kzs_util:format_account_db(AccountId));
 get(<<EndpointId/binary>>, AccountDb) when is_binary(AccountDb) ->
-    case kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
+    case cached_endpoint(EndpointId, AccountDb) of
         {'ok', _Endpoint}=Ok ->
             lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
             Ok;
@@ -88,7 +87,7 @@ get(Endpoint, Call) ->
 get(EndpointId, ?MATCH_ACCOUNT_RAW(AccountId), Options) ->
     get(EndpointId, kzs_util:format_account_db(AccountId), Options);
 get(EndpointId, AccountDb, Options) when is_binary(AccountDb) ->
-    case kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
+    case cached_endpoint(EndpointId, AccountDb, Options) of
         {'ok', _Endpoint}=Ok ->
             lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
             Ok;
@@ -97,6 +96,15 @@ get(EndpointId, AccountDb, Options) when is_binary(AccountDb) ->
     end;
 get(EndpointId, Call, Options) ->
     get(EndpointId, kapps_call:account_db(Call), Options).
+
+cached_endpoint(EndpointId, AccountId) ->
+    cached_endpoint(EndpointId, AccountId, []).
+
+cached_endpoint(EndpointId, AccountId, Options) ->
+    case props:is_defined('no_cache', Options) of
+        true -> {'error', 'not_found'};
+        false -> kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountId, EndpointId})
+    end.
 
 -spec fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
@@ -108,12 +116,21 @@ fetch_endpoint(EndpointId, AccountDb) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 fetch_endpoint(EndpointId, AccountDb, Options) ->
-    case kz_datamgr:open_cache_doc(AccountDb, EndpointId) of
+    case fetch_endpoint_document(EndpointId, AccountDb, Options) of
         {'ok', JObj} ->
             lager:debug("fetched endpoint ~s: ~s", [EndpointId, kz_doc:revision(JObj)]),
             check_endpoint_type(JObj, EndpointId, AccountDb, Options);
         {'error', _} ->
             maybe_fetch_from_token(EndpointId, AccountDb, Options)
+    end.
+
+-spec fetch_endpoint_document(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+fetch_endpoint_document(EndpointId, AccountDb, Options) ->
+    case props:is_defined('no_cache', Options) of
+        true -> kz_datamgr:open_doc(AccountDb, EndpointId);
+        false -> kz_datamgr:open_cache_doc(AccountDb, EndpointId)
     end.
 
 -spec maybe_fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
@@ -122,24 +139,24 @@ fetch_endpoint(EndpointId, AccountDb, Options) ->
 maybe_fetch_from_token(EndpointId, AccountDb, Options) ->
     case props:get_value('token', Options) of
         'undefined' -> {'error', 'not_found'};
-        Token -> fetch_from_token(EndpointId, AccountDb, kz_auth:validate_token(Token))
+        Token -> fetch_from_token(EndpointId, AccountDb, Options, kz_auth:validate_token(Token))
     end.
 
 -type validate_token_result() :: {'ok', kz_json:object()} | {'error', any()}.
 
--spec fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), validate_token_result()) ->
+-spec fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), validate_token_result()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
-fetch_from_token(_EndpointId, _AccountDb, {'error', _Error} = Error) -> Error;
-fetch_from_token(EndpointId, AccountDb, {'ok', Claims}) ->
+fetch_from_token(_EndpointId, _AccountDb, _Options, {'error', _Error} = Error) -> Error;
+fetch_from_token(EndpointId, AccountDb, Options, {'ok', Claims}) ->
     lager:debug("fetching endpoint ~s / ~s from token", [EndpointId, AccountDb]),
     MetaId = kz_auth_claims:meta_id(Claims),
     Endpoint = token_endpoint(EndpointId, Claims),
-    Options = [{'claims', Claims}
-              ,{'endpoint', Endpoint}
-              ,{'meta_id', MetaId}
-              ],
-    maybe_fetch_meta_endpoint(EndpointId, AccountDb, props:filter_undefined(Options)).
+    TokenOptions = props:set_values([{'claims', Claims}
+                                    ,{'endpoint', Endpoint}
+                                    ,{'meta_id', MetaId}
+                                    ], Options),
+    maybe_fetch_meta_endpoint(EndpointId, AccountDb, TokenOptions).
 
 token_endpoint(EndpointId, Claims) ->
     SIPInfo = kz_json:normalize(kz_json:get_json_value(<<"SIP-Info">>, Claims)),
@@ -167,7 +184,7 @@ maybe_fetch_meta_endpoint(EndpointId, AccountDb, Options) ->
           {'error', any()}.
 fetch_meta_endpoint(MetaId, EndpointId, AccountDb, Options) ->
     lager:debug("fetching endpoint ~s / ~s from meta_id ~s ", [EndpointId, AccountDb, MetaId]),
-    case kz_datamgr:open_cache_doc(AccountDb, MetaId) of
+    case fetch_endpoint_document(MetaId, AccountDb, Options) of
         {'error', _} = Error -> Error;
         {'ok', MetaJObj} ->
             lager:debug("fetched meta endpoint ~s: ~s", [MetaId, kz_doc:revision(MetaJObj)]),
@@ -245,7 +262,7 @@ cache_store_endpoint(JObj, EndpointId, AccountDb, EndpointType, Options) ->
              ,{<<"Endpoint-Type">>, EndpointType}
              ,{<<"Endpoint-Build-Options">>, cache_build_options(Options)}
              ],
-    Endpoint = kz_json:set_values(Values, merge_attributes(JObj, EndpointType)),
+    Endpoint = kz_json:set_values(Values, merge_attributes(JObj, EndpointType, Options)),
     CacheProps = [{'origin', cache_origin(JObj, EndpointId, AccountDb, Options)}],
     catch kz_cache:store_local_async(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}, Endpoint, CacheProps),
     lager:debug("cached endpoint: ~s _rev: ~s", [EndpointId, kz_doc:revision(Endpoint)]),
@@ -314,9 +331,9 @@ maybe_format_endpoint(Endpoint, 'undefined') ->
 maybe_format_endpoint(Endpoint, Formatters) ->
     kz_formatters:apply(Endpoint, Formatters, 'outbound').
 
--spec merge_attributes(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
-merge_attributes(Endpoint, Type) ->
-    merge_attributes(Endpoint, Type, attributes_keys()).
+-spec merge_attributes(kz_json:object(), kz_term:ne_binary(), kz_term:proplist()) -> kz_json:object().
+merge_attributes(Endpoint, Type, Options) ->
+    merge_attributes(Endpoint, Type, Options, attributes_keys()).
 
 account_keys() ->
     [<<"realm">>].
@@ -355,28 +372,30 @@ attributes_keys() ->
     ,?ATTR_LOWER_KEY
     ].
 
--spec merge_attributes(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:object().
-merge_attributes(Owner, <<"user">>, Keys) ->
-    case kzd_accounts:fetch(kz_doc:account_id(Owner)) of
-        {'ok', AccountDoc} -> merge_attributes(Keys, AccountDoc, Owner, Owner);
-        {'error', _} -> merge_attributes(Keys, kz_json:new(), Owner, Owner)
-    end;
-merge_attributes(Device, <<"device">>, Keys) ->
-    Owner = get_user(kz_doc:account_db(Device), Device),
+endpoint_account(undefined, _Options) ->
+    kz_json:new();
+endpoint_account(AccountId, Options) ->
+    case fetch_endpoint_document(AccountId, ?KZ_ACCOUNTS_DB, Options) of
+        {'ok', AccountDoc} -> AccountDoc;
+        {'error', _} -> kz_json:new()
+    end.
+
+-spec merge_attributes(kz_json:object(), kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binaries()) -> kz_json:object().
+merge_attributes(Owner, <<"user">>, Options, Keys) ->
+    merge_attributes(Keys, Options, endpoint_account(kz_doc:account_id(Owner), Options), Owner, Owner);
+merge_attributes(Device, <<"device">>, Options, Keys) ->
+    Owner = get_user(kz_doc:account_db(Device), Device, Options),
     Endpoint = kz_json:set_value(<<"owner_id">>, kz_doc:id(Owner), Device),
-    case kzd_accounts:fetch(kz_doc:account_id(Device)) of
-        {'ok', AccountDoc} -> merge_attributes(Keys, AccountDoc, Endpoint, Owner);
-        {'error', _} -> merge_attributes(Keys, kz_json:new(), Endpoint, Owner)
-    end;
-merge_attributes(AccountDoc, <<"account">>, Keys) ->
-    merge_attributes(Keys, AccountDoc, kz_json:new(), kz_json:new());
-merge_attributes(Endpoint, Type, _Keys) ->
+    merge_attributes(Keys, Options, endpoint_account(kz_doc:account_id(Device), Options), Endpoint, Owner);
+merge_attributes(AccountDoc, <<"account">>, Options, Keys) ->
+    merge_attributes(Keys, Options, AccountDoc, kz_json:new(), kz_json:new());
+merge_attributes(Endpoint, Type, _Keys, _Options) ->
     lager:debug("unhandled endpoint type on merge attributes : ~p : ~p", [Type, Endpoint]),
     kz_json:new().
 
--spec merge_attributes(kz_term:ne_binaries(), kz_json:object(), kz_term:api_object(), kz_term:api_object()) ->
+-spec merge_attributes(kz_term:ne_binaries(), kz_term:proplist(), kz_json:object(), kz_term:api_object(), kz_term:api_object()) ->
           kz_json:object().
-merge_attributes(Keys, AccountDoc, EndpointDoc, OwnerDoc) ->
+merge_attributes(Keys, _Options, AccountDoc, EndpointDoc, OwnerDoc) ->
     Account = merge_account_tree(AccountDoc),
     lists:foldl(fun(Key, EP) ->
                         merge_attribute(Key, Account, EP, OwnerDoc)
@@ -449,18 +468,7 @@ merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
             end
     end;
 merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
-    EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
-    case kz_json:is_true(<<"enabled">>, EndpointAttr) of
-        'true' -> Endpoint;
-        'false' ->
-            AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
-            OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
-            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kz_json:is_true(<<"enabled">>, Merged) of
-                'true' -> kz_json:set_value(Key, Merged, Endpoint);
-                'false' -> Endpoint
-            end
-    end;
+    merge_call_forward(Key, Account, Endpoint, Owner);
 merge_attribute(<<"call_settings">> = Key, Account, Endpoint, Owner) ->
     EndpointAttr = kz_json:get_json_value(Key, Endpoint, kz_json:new()),
     AccountAttr = kz_json:get_json_value(Key, Account, kz_json:new()),
@@ -542,6 +550,37 @@ merge_attribute(Key, Account, Endpoint, Owner) ->
                                     ,fun(_, V) -> not kz_term:is_empty(V) end
                                     ),
     kz_json:set_value(Key, Merged, Endpoint).
+
+merge_call_forward(Key, Account, Endpoint, Owner) ->
+    EndpointAttr = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
+    case kzd_call_forward:enabled(EndpointAttr) of
+        'true' -> Endpoint;
+        'false' ->
+            AccountAttr = kzd_accounts:call_forward(Account, kz_json:new()),
+            OwnerAttr = kzd_users:call_forward(Owner, kz_json:new()),
+            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
+            case kzd_call_forward:enabled(Merged) of
+                'true' -> kz_json:set_value(Key, Merged, Endpoint);
+                'false' -> Endpoint
+            end
+    end.
+
+%% @doc fetch unconditional call forward; if disabled, check selective call forwarding
+unconditional_call_forward(Endpoint) ->
+    Unconditional = get_unconditional_call_forward(Endpoint),
+    case kzd_call_forward:enabled(Unconditional) of
+        'true' ->
+            lager:info("using unconditional call forwarding"),
+            Unconditional;
+        'false' ->
+            kz_json:new()
+    end.
+
+get_unconditional_call_forward(Endpoint) ->
+    kzd_call_forward:merged(kzd_endpoint:call_forward(Endpoint, kz_json:new())
+                           ,fun kzd_call_forward:unconditional/1
+                           ,kz_json:new()
+                           ).
 
 -spec merge_attribute_caller_id(kz_term:api_object(), kz_term:api_object(), kz_term:api_object(), kz_term:api_object()) -> kz_term:api_object().
 merge_attribute_caller_id(AccountJObj, AccountJAttr, UserJAttr, EndpointJAttr) ->
@@ -734,32 +773,41 @@ add_allowed_classifier(Classifier, JObj) ->
     Path = [<<"call_restriction">>, Classifier, <<"action">>],
     kz_json:set_value(Path, <<"allow">>, JObj).
 
--spec get_user(kz_term:ne_binary(), kz_term:api_binary() | kz_json:object()) -> kz_json:object().
-get_user(_AccountDb, 'undefined') -> kz_json:new();
-get_user(AccountDb, OwnerId) when is_binary(OwnerId) ->
-    case kzd_users:fetch(AccountDb, OwnerId) of
+-spec get_user(kz_term:ne_binary(), kz_term:api_binary() | kz_json:object(), kz_term:proplist()) -> kz_json:object().
+get_user(_AccountDb, 'undefined', _Options) -> kz_json:new();
+get_user(AccountDb, OwnerId, Options) when is_binary(OwnerId) ->
+    case fetch_endpoint_document(OwnerId, AccountDb, Options) of
         {'ok', JObj} -> JObj;
         {'error', _R} ->
             lager:warning("failed to load endpoint owner ~s: ~p", [OwnerId, _R]),
             kz_json:new()
     end;
-get_user(AccountDb, Endpoint) ->
+get_user(AccountDb, Endpoint, Options) ->
     case kz_json:get_keys([<<"hotdesk">>, <<"users">>], Endpoint) of
         [] ->
-            get_user(AccountDb, kz_json:get_ne_binary_value(<<"owner_id">>, Endpoint));
+            get_user(AccountDb, kz_json:get_ne_binary_value(<<"owner_id">>, Endpoint), Options);
         [OwnerId] ->
-            fix_user_restrictions(get_user(AccountDb, OwnerId));
+            fix_user_restrictions(get_user(AccountDb, OwnerId, Options));
         [_|_]=OwnerIds->
-            UserJObj = convert_to_single_user(get_users(AccountDb, OwnerIds)),
+            UserJObj = convert_to_single_user(get_users(AccountDb, OwnerIds, Options)),
             fix_user_restrictions(UserJObj)
     end.
 
--spec get_users(kz_term:ne_binary(), kz_term:ne_binaries()) -> kzd_users:docs().
-get_users(AccountDb, OwnerIds) ->
-    %% Bulk fetch to fill the cache
+-spec flush_users(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:proplist() | boolean()) -> 'ok'.
+flush_users(AccountDb, OwnerIds, false) ->
     _ = kz_datamgr:open_cache_docs(AccountDb, OwnerIds),
+    'ok';
+flush_users(AccountDb, OwnerIds, true) ->
+    _ = kz_datamgr:flush_cache_docs(AccountDb, OwnerIds),
+    'ok';
+flush_users(AccountDb, OwnerIds, Options) ->
+    flush_users(AccountDb, OwnerIds, props:is_defined('no_cache', Options)).
+
+-spec get_users(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:proplist()) -> kzd_users:docs().
+get_users(AccountDb, OwnerIds, Options) ->
+    flush_users(AccountDb, OwnerIds, Options),
     F = fun (UserId, UsersAcc) ->
-                case kzd_users:fetch(AccountDb, UserId) of
+                case fetch_endpoint_document(UserId, AccountDb, Options) of
                     {'ok', UserJObj} -> [UserJObj|UsersAcc];
                     {'error', _R} ->
                         lager:warning("failed to load endpoint owner ~s: ~p", [UserId, _R]),
@@ -888,7 +936,6 @@ flush_local(Db, Id) ->
                       | 'invalid_endpoint_id' | 'not_found' | 'owner_called_self'
                       | 'do_not_disturb' | 'no_resource_type'.
 
-
 -spec build(kz_term:api_ne_binary() | kz_json:object(), kapps_call:call()) ->
           {'ok', kz_json:objects()} |
           {'error', build_errors()}.
@@ -964,7 +1011,7 @@ should_create_endpoint_fold(Routine, {Endpoint, Properties, Call}=Acc) when is_f
     end;
 should_create_endpoint_fold(_Routine, Error) -> Error.
 
--spec maybe_missing_resource_type(kz_json:object(), kz_json:object(),  kapps_call:call()) ->
+-spec maybe_missing_resource_type(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           'ok' |
           {'error', 'no_resource_type'}.
 maybe_missing_resource_type(_Endpoint, _Properties, Call) ->
@@ -1078,8 +1125,7 @@ maybe_exclude_from_queues(Endpoint, _Properties, Call) ->
           {'ok', kz_json:objects()} |
           {'error', 'no_endpoints'}.
 create_endpoints(Endpoint, Properties, Call) ->
-    Routines = [fun create_endpoint/3
-               ],
+    Routines = [fun create_endpoint/3],
     Fun = fun(Routine, Endpoints) ->
                   try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call)
           end,
@@ -1124,10 +1170,10 @@ try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call) when is_func
         %% {'error', 'call_forward_not_appropriate'} -> Endpoints;
         %% {'error', 'call_forward_substitute'} -> Endpoints;
         {'error', _R} ->
-            lager:warning("failed to create endpoint: ~p", [_R]),
+            lager:warning("failed to create endpoint: ~p: ~p", [_R, Routine]),
             Endpoints;
         JObj ->
-            lager:debug("created endpoint from ~s", [kz_doc:id(Endpoint)]),
+            lager:debug("created endpoint from ~s: ~p", [kz_doc:id(Endpoint), Routine]),
             [JObj|Endpoints]
     catch
         _E:_R:ST ->
@@ -1176,9 +1222,9 @@ get_clid(Endpoint, Properties, Call, Type) ->
 
 -spec maybe_move_privacy(kz_json:object(), kz_json:object(), kapps_call:call(), clid()) -> clid().
 maybe_move_privacy(Endpoint, _Properties, Call, Clid) ->
-    CallForward = kz_json:get_ne_value(<<"call_forward">>, Endpoint, kz_json:new()),
+    CallForward = unconditional_call_forward(Endpoint),
     CCVs = kapps_call:custom_channel_vars(Call),
-    RetainCID = kz_json:is_true(<<"keep_caller_id">>, CallForward)
+    RetainCID = kzd_call_forward:keep_caller_id(CallForward)
         orelse kz_json:is_true(<<"Retain-CID">>, CCVs),
     HideName = kz_privacy:should_hide_name(CCVs),
     HideNumber = kz_privacy:should_hide_number(CCVs),
@@ -1256,43 +1302,63 @@ maybe_get_t38(Endpoint, Call) ->
 -spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
 create_call_fwd_endpoint(Endpoint, Properties, Call) ->
-    CallForward = kz_json:get_ne_value(<<"call_forward">>, Endpoint, kz_json:new()),
-    Route = kz_json:get_value(<<"number">>, CallForward),
+    create_call_fwd_endpoint(Endpoint, Properties, Call
+                            ,unconditional_call_forward(Endpoint)
+                            ).
+
+-spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call(), kzd_call_forward:doc()) ->
+          kz_json:object().
+create_call_fwd_endpoint(Endpoint, Properties, Call, CallForward) ->
+    Route = kzd_call_forward:number(CallForward),
     ToDID = kz_json:get_value(<<"number">>, Endpoint, kapps_call:request_user(Call)),
     lager:info("call forwarding endpoint to ~s : ~s", [Route, ToDID]),
-    IgnoreEarlyMedia = case kz_json:is_true(<<"require_keypress">>, CallForward)
-                           orelse not kz_json:is_true(<<"substitute">>, CallForward)
-                       of
-                           'true' -> <<"true">>;
-                           'false' -> kz_json:get_binary_boolean(<<"ignore_early_media">>, CallForward)
-                       end,
-    Clid = case kapps_call:inception(Call) of
-               'undefined' -> get_clid(Endpoint, Properties, Call, <<"external">>);
-               _Else -> maybe_move_privacy(Endpoint, Properties, Call, #clid{})
-           end,
+    IgnoreEarlyMedia = should_ignore_early_media(CallForward),
 
     kz_json:from_list(
-      [{<<"Invite-Format">>, <<"loopback">>}
-      ,{<<"To-DID">>, ToDID}
-      ,{<<"Route">>, Route}
-      ,{<<"Ignore-Early-Media">>, IgnoreEarlyMedia}
+      [{<<"Account-ID">>, kapps_call:account_id(Call)}
       ,{<<"Bypass-Media">>, <<"false">>}
+      ,{<<"Custom-Channel-Vars">>, generate_ccvs(Endpoint, Call, CallForward)}
+      ,{<<"Custom-SIP-Headers">>, generate_sip_headers(Endpoint, <<"forward">>, Call)}
+      ,{<<"Endpoint-Delay">>, get_delay(Properties)}
+      ,{<<"Endpoint-ID">>, kz_doc:id(Endpoint)}
       ,{<<"Endpoint-Progress-Timeout">>, get_progress_timeout(Endpoint)}
       ,{<<"Endpoint-Timeout">>, get_timeout(Properties)}
-      ,{<<"Endpoint-Delay">>, get_delay(Properties)}
-      ,{<<"Account-ID">>, kapps_call:account_id(Call)}
-      ,{<<"Endpoint-ID">>, kz_doc:id(Endpoint)}
+      ,{<<"Ignore-Early-Media">>, IgnoreEarlyMedia}
+      ,{<<"Invite-Format">>, <<"loopback">>}
       ,{<<"Presence-ID">>, kz_attributes:presence_id(Endpoint, Call)}
-      ,{<<"Outbound-Callee-ID-Name">>, Clid#clid.callee_name}
-      ,{<<"Outbound-Callee-ID-Number">>, Clid#clid.callee_number}
-      ,{<<"Outbound-Caller-ID-Number">>, Clid#clid.caller_number}
-      ,{<<"Outbound-Caller-ID-Name">>, Clid#clid.caller_name}
-      ,{<<"Privacy-Hide-Name">>, Clid#clid.hide_name}
-      ,{<<"Privacy-Hide-Number">>, Clid#clid.hide_number}
       ,{<<"Privacy-Method">>, kz_privacy:get_method(Endpoint)}
-      ,{<<"Custom-SIP-Headers">>, generate_sip_headers(Endpoint, <<"forward">>, Call)}
-      ,{<<"Custom-Channel-Vars">>, generate_ccvs(Endpoint, Call, CallForward)}
+      ,{<<"Route">>, Route}
+      ,{<<"To-DID">>, ToDID}
+      | call_forward_cid_properties(Endpoint, Properties, Call)
       ]).
+
+should_ignore_early_media(CallForward) ->
+    case kzd_call_forward:require_keypress(CallForward)
+        orelse not kzd_call_forward:substitute(CallForward)
+    of
+        'true' -> <<"true">>;
+        'false' -> kzd_call_forward:ignore_early_media(CallForward)
+    end.
+
+call_forward_cid_properties(Endpoint, Properties, Call) ->
+    #clid{callee_name=CalleeName
+         ,callee_number=CalleeNumber
+         ,caller_name=CallerName
+         ,caller_number=CallerNumber
+         ,hide_name=HideName
+         ,hide_number=HideNumber
+         } =
+        case kapps_call:inception(Call) of
+            'undefined' -> get_clid(Endpoint, Properties, Call, <<"external">>);
+            _Else -> maybe_move_privacy(Endpoint, Properties, Call, #clid{})
+        end,
+    [{<<"Outbound-Callee-ID-Name">>, CalleeName}
+    ,{<<"Outbound-Callee-ID-Number">>, CalleeNumber}
+    ,{<<"Outbound-Caller-ID-Name">>, CallerName}
+    ,{<<"Outbound-Caller-ID-Number">>, CallerNumber}
+    ,{<<"Privacy-Hide-Name">>, HideName}
+    ,{<<"Privacy-Hide-Number">>, HideNumber}
+    ].
 
 -spec create_sip_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
@@ -1314,31 +1380,32 @@ generate_sip_headers(Endpoint, Type, Call) ->
 generate_sip_headers(Endpoint, <<"forward">>, Acc, Call) ->
     Inception = kapps_call:inception(Call),
 
-    HeaderFuns = [fun(J) -> add_sip_inbound_headers(J, Endpoint) end
-                 ,fun(J) -> add_sip_outbound_headers(J, Call) end
-                 ,fun(J) -> maybe_add_aor(J, Endpoint, Call) end
-                 ,fun(J) -> maybe_add_invite_format(J, Endpoint, Call) end
-                 ,fun(J) -> maybe_add_diversion(J, Endpoint, Inception, Call) end
+    HeaderFuns = [{fun add_sip_inbound_headers/2, Endpoint}
+                 ,{fun add_sip_outbound_headers/2, Call}
+                 ,{fun maybe_add_aor/3, Endpoint, Call}
+                 ,{fun maybe_add_invite_format/3, Endpoint, Call}
+                 ,{fun maybe_add_diversion/2, {Endpoint, Inception, Call}}
                  ],
-    lists:foldr(fun(F, JObj) -> F(JObj) end, Acc, HeaderFuns);
+    kz_json:exec_first(HeaderFuns, Acc);
 generate_sip_headers(_Endpoint, <<"endpoint">>, Acc, Call) ->
-    HeaderFuns = [fun(J) -> add_sip_outbound_headers(J, Call) end
-                 ,fun(J) -> maybe_add_alert_info(J, Call) end
+    HeaderFuns = [{fun add_sip_outbound_headers/2, Call}
+                 ,{fun maybe_add_alert_info/2, Call}
                  ],
-    lists:foldr(fun(F, JObj) -> F(JObj) end, Acc, HeaderFuns).
+    kz_json:exec_first(HeaderFuns, Acc).
 
--spec maybe_add_diversion(kz_json:object(), kz_json:object(), kz_term:api_binary(), kapps_call:call()) -> kz_json:object().
-maybe_add_diversion(JObj, Endpoint, _Inception, Call) ->
+-spec maybe_add_diversion(kz_json:object(), {kz_json:object(), kz_term:api_binary(), kapps_call:call()}) -> kz_json:object().
+maybe_add_diversion(JObj, {Endpoint, _Inception, Call}) ->
+    CallForward = unconditional_call_forward(Endpoint),
     ShouldAddDiversion = kapps_call:authorizing_id(Call) =:= 'undefined'
-        andalso kz_json:is_true([<<"call_forward">>, <<"keep_caller_id">>], Endpoint, 'false')
+        andalso kzd_call_forward:keep_caller_id(CallForward, 'false')
         andalso kapps_config:get_is_true(?CONFIG_CAT, <<"should_add_diversion_header">>, 'false'),
     case ShouldAddDiversion of
+        'false' -> JObj;
         'true' ->
             Diversion = list_to_binary(["<sip:", kapps_call:request(Call), ">", ";reason=unconditional"]),
             lager:debug("add diversion as ~s", [Diversion]),
             Diversions = kz_json:get_list_value(<<"Diversions">>, JObj, []),
-            kz_json:set_value(<<"Diversions">>, [Diversion | Diversions], JObj);
-        'false' -> JObj
+            kz_json:set_value(<<"Diversions">>, [Diversion | Diversions], JObj)
     end.
 
 -spec add_sip_inbound_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
@@ -1412,8 +1479,7 @@ generate_ccvs(Endpoint, Call) ->
 
 -spec generate_ccvs(kz_json:object(), kapps_call:call(), kz_term:api_object()) -> kz_json:object().
 generate_ccvs(Endpoint, Call, 'undefined' = CallFwd) ->
-    CCVFuns = [fun maybe_auto_answer/1
-              ],
+    CCVFuns = [fun maybe_auto_answer/1],
     Acc0 = {Endpoint, Call, CallFwd, kz_json:new()},
     {_Endpoint, _Call, _CallFwd, CCVs} = lists:foldr(fun(F, Acc) -> F(Acc) end, Acc0, CCVFuns),
     CCVs;
@@ -1436,7 +1502,7 @@ maybe_retain_caller_id({_Endpoint, _Call, 'undefined', _JObj}=Acc) ->
     Acc;
 maybe_retain_caller_id({Endpoint, Call, CallFwd, CCVs}) ->
     {Endpoint, Call, CallFwd
-    ,case kz_json:is_true(<<"keep_caller_id">>, CallFwd) of
+    ,case kzd_call_forward:keep_caller_id(CallFwd) of
          'true' ->
              lager:info("call forwarding will retain caller id"),
              kz_json:set_value(<<"Retain-CID">>, <<"true">>, CCVs);
@@ -1447,7 +1513,7 @@ maybe_retain_caller_id({Endpoint, Call, CallFwd, CCVs}) ->
 -spec maybe_set_owner_id(ccv_acc()) -> ccv_acc().
 maybe_set_owner_id({Endpoint, Call, CallFwd, CCVs}) ->
     {Endpoint, Call, CallFwd
-    ,case kz_json:get_value(<<"owner_id">>, Endpoint) of
+    ,case kzd_endpoint:owner_id(Endpoint) of
          'undefined' -> CCVs;
          OwnerId -> kz_json:set_value(<<"Owner-ID">>, OwnerId, CCVs)
      end
@@ -1464,17 +1530,13 @@ maybe_set_account_id({Endpoint, Call, CallFwd, CCVs}) ->
 maybe_set_call_forward({_Endpoint, _Call, 'undefined', _CCVs}=Acc) ->
     Acc;
 maybe_set_call_forward({_Endpoint, _Call, CallFwd, _CCVs} = Acc) ->
-    Number = kz_json:get_ne_binary_value(<<"number">>, CallFwd),
+    Number = kzd_call_forward:number(CallFwd),
     maybe_set_call_forward(Acc, Number).
 
 -spec maybe_set_call_forward(ccv_acc(), kz_term:api_ne_binary()) -> ccv_acc().
 maybe_set_call_forward(Acc, 'undefined') -> Acc;
 maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
-    LoopBackUri = list_to_binary(["sip:"
-                                 ,Number
-                                 ,"@"
-                                 ,kapps_call:account_realm(Call)
-                                 ]),
+    LoopbackURI = list_to_binary(["sip:", Number, "@", kapps_call:account_realm(Call)]),
     {Endpoint, Call, CallFwd
     ,kz_json:set_values([{<<"Call-Forward">>, <<"true">>}
                         ,{<<"Authorizing-Type">>, <<"device">>}
@@ -1482,7 +1544,7 @@ maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
                         ,{<<"Call-Forward-From">>, kapps_call:inception_type(Call)}
                         ,{<<"Call-Forward-For-UUID">>, kapps_call:other_leg_call_id(Call)}
                         ,{<<"Require-Ignore-Early-Media">>, <<"true">>}
-                        ,{<<"Loopback-Request-URI">>, LoopBackUri}
+                        ,{<<"Loopback-Request-URI">>, LoopbackURI}
                         ,{<<"Ignore-Early-Media">>, <<"true">>}
                         ]
                        ,CCVs
@@ -1499,7 +1561,7 @@ maybe_auto_answer({Endpoint, Call, CallFwd, CCVs}=Acc) ->
 
 -spec maybe_set_confirm_properties(ccv_acc()) -> ccv_acc().
 maybe_set_confirm_properties({Endpoint, Call, CallFwd, CCVs}=Acc) ->
-    case kz_json:is_true(<<"require_keypress">>, CallFwd) of
+    case kzd_call_forward:require_keypress(CallFwd) of
         'false' -> Acc;
         'true' ->
             lager:info("call forwarding configured to require key press"),
