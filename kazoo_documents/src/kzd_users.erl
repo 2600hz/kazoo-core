@@ -1404,5 +1404,12 @@ validate_call_failover(_AccountId, _UserId, {Doc, Errors}) ->
 %%------------------------------------------------------------------------------
 -spec validate_call_forward(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
-validate_call_forward(_AccountId, _UserId, {Doc, Errors}) ->
-    kzd_call_forward:validate({Doc, Errors}).
+validate_call_forward(_AccountId, _UserId, {Doc, AccErrors} = Acc) ->
+    case validate_call_forward(call_forward(Doc)) of
+        ok -> Acc;
+        Errors -> {Doc, Errors ++ AccErrors}
+    end.
+
+-spec validate_call_forward(kz_term:api_object()) -> 'ok' | kazoo_documents:doc_validation_errors().
+validate_call_forward(undefined) -> ok;
+validate_call_forward(CallForward) -> kzd_call_forward:validate(CallForward).

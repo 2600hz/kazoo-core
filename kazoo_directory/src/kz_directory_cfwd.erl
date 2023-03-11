@@ -22,24 +22,33 @@
 
 -spec call_forward(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_object().
 call_forward(EndpointId, AccountId, Endpoint) ->
-    case is_call_forward_enabled(Endpoint) of
-        'false' -> 'undefined';
-        'true' -> maybe_legacy_failover(EndpointId, AccountId, Endpoint)
+    case is_legacy_failover(Endpoint) of
+        'true' -> 'undefined';
+        'false' -> maybe_build_call_forward(EndpointId, AccountId, Endpoint)
     end.
 
--spec maybe_legacy_failover(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_object().
-maybe_legacy_failover(EndpointId, AccountId, Endpoint) ->
-    CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
-    case kz_json:is_true(<<"failover">>, CallForward) of
-        'true' -> 'undefined';
-        'false' -> build_call_forward(EndpointId, AccountId, Endpoint)
+-spec is_legacy_failover(kz_json:object()) -> boolean().
+is_legacy_failover(Endpoint) ->
+    kz_json:is_true(<<"failover">>, kzd_endpoint:call_forward(Endpoint, kz_json:new())).
+
+maybe_build_call_forward(EndpointId, AccountId, Endpoint) ->
+    case is_call_forward_enabled(Endpoint) of
+        true -> build_call_forward(EndpointId, AccountId, Endpoint);
+        false -> undefined
     end.
 
 -spec call_forward(kz_json:object()) -> kz_term:api_object().
 call_forward(Endpoint) ->
     CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
-    Unconditional = kzd_call_forward_types:unconditional(CallForward, kz_json:new()),
-    kz_json:merge(CallForward, Unconditional).
+    call_forward(CallForward, kzd_call_forward:is_legacy(CallForward)).
+
+call_forward(CallForward, true) ->
+    CallForward;
+call_forward(CallForward, false) ->
+    case kzd_call_forward:enabled(CallForward) of
+        true -> kzd_call_forward:merged(CallForward, fun kzd_call_forward:unconditional/1, kz_json:new());
+        false -> kz_json:new()
+    end.
 
 -spec is_call_forward_enabled(kz_json:object()) -> boolean().
 is_call_forward_enabled(Endpoint) ->
