@@ -206,15 +206,15 @@ call_failover(Doc, Default) ->
 set_call_failover(Doc, CallFailover) ->
     kz_json:set_value([<<"call_failover">>], CallFailover, Doc).
 
--spec call_forward(doc()) -> any().
+-spec call_forward(doc()) -> kz_term:api_object().
 call_forward(Doc) ->
     call_forward(Doc, 'undefined').
 
--spec call_forward(doc(), Default) -> any() | Default.
+-spec call_forward(doc(), Default) -> kz_json:object() | Default.
 call_forward(Doc, Default) ->
-    kz_json:get_value([<<"call_forward">>], Doc, Default).
+    kz_json:get_json_value([<<"call_forward">>], Doc, Default).
 
--spec set_call_forward(doc(), any()) -> doc().
+-spec set_call_forward(doc(), kz_json:object()) -> doc().
 set_call_forward(Doc, CallForward) ->
     kz_json:set_value([<<"call_forward">>], CallForward, Doc).
 
