@@ -123,7 +123,7 @@ set_call_failover(Doc, CallFailover) ->
 call_forward(Doc) ->
     call_forward(Doc, 'undefined').
 
-    -spec call_forward(doc(), Default) -> kz_json:object() | Default.
+-spec call_forward(doc(), Default) -> kz_json:object() | Default.
 call_forward(Doc, Default) ->
     kz_json:get_json_value([<<"call_forward">>], Doc, Default).
 

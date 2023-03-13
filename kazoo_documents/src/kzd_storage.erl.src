@@ -24,6 +24,18 @@
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
+-spec index(doc(), kz_json:key()) -> any().
+index(Doc, Index) ->
+    index(Doc, Index, 'undefined').
+
+-spec index(doc(), kz_json:key(), Default) -> any() | Default.
+index(Doc, Index, Default) ->
+    kz_json:get_value([Index], Doc, Default).
+
+-spec set_index(doc(), kz_json:key(), any()) -> doc().
+set_index(Doc, Index, Value) ->
+    kz_json:set_value([Index], Value, Doc).
+
 -spec attachments(doc()) -> kz_term:api_object().
 attachments(Doc) ->
     attachments(Doc, 'undefined').
@@ -60,6 +72,7 @@ id(Doc, Default) ->
 set_id(Doc, Id) ->
     kz_json:set_value([<<"id">>], Id, Doc).
 
+<<<<<<< HEAD
 -spec index(doc(), kz_json:key()) -> any().
 index(Doc, Index) ->
     index(Doc, Index, 'undefined').
@@ -72,6 +85,8 @@ index(Doc, Index, Default) ->
 set_index(Doc, Index, Value) ->
     kz_json:set_value([Index], Value, Doc).
 
+=======
+>>>>>>> update accessors
 -spec plan(doc()) -> kz_term:api_object().
 plan(Doc) ->
     plan(Doc, 'undefined').

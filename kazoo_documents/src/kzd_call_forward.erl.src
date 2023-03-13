@@ -295,7 +295,175 @@ require_keypress(Doc, Default) ->
 -spec set_require_keypress(doc(), boolean()) -> doc().
 set_require_keypress(Doc, RequireKeypress) ->
     kz_json:set_value([<<"require_keypress">>], RequireKeypress, Doc).
-<<<<<<< HEAD
+
+-spec busy(doc()) -> kz_term:api_object().
+busy(Doc) ->
+    busy(Doc, 'undefined').
+
+-spec busy(doc(), Default) -> kz_json:object() | Default.
+busy(Doc, Default) ->
+    kz_json:get_json_value([<<"busy">>], Doc, Default).
+
+-spec set_busy(doc(), kz_json:object()) -> doc().
+set_busy(Doc, Busy) ->
+    kz_json:set_value([<<"busy">>], Busy, Doc).
+
+-spec busy_direct_calls_only(doc()) -> boolean().
+busy_direct_calls_only(Doc) ->
+    busy_direct_calls_only(Doc, 'false').
+
+-spec busy_direct_calls_only(doc(), Default) -> boolean() | Default.
+busy_direct_calls_only(Doc, Default) ->
+    kz_json:get_boolean_value([<<"busy">>, <<"direct_calls_only">>], Doc, Default).
+
+-spec set_busy_direct_calls_only(doc(), boolean()) -> doc().
+set_busy_direct_calls_only(Doc, BusyDirectCallsOnly) ->
+    kz_json:set_value([<<"busy">>, <<"direct_calls_only">>], BusyDirectCallsOnly, Doc).
+
+-spec busy_enabled(doc()) -> boolean().
+busy_enabled(Doc) ->
+    busy_enabled(Doc, 'false').
+
+-spec busy_enabled(doc(), Default) -> boolean() | Default.
+busy_enabled(Doc, Default) ->
+    kz_json:get_boolean_value([<<"busy">>, <<"enabled">>], Doc, Default).
+
+-spec set_busy_enabled(doc(), boolean()) -> doc().
+set_busy_enabled(Doc, BusyEnabled) ->
+    kz_json:set_value([<<"busy">>, <<"enabled">>], BusyEnabled, Doc).
+
+-spec busy_ignore_early_media(doc()) -> boolean().
+busy_ignore_early_media(Doc) ->
+    busy_ignore_early_media(Doc, 'true').
+
+-spec busy_ignore_early_media(doc(), Default) -> boolean() | Default.
+busy_ignore_early_media(Doc, Default) ->
+    kz_json:get_boolean_value([<<"busy">>, <<"ignore_early_media">>], Doc, Default).
+
+-spec set_busy_ignore_early_media(doc(), boolean()) -> doc().
+set_busy_ignore_early_media(Doc, BusyIgnoreEarlyMedia) ->
+    kz_json:set_value([<<"busy">>, <<"ignore_early_media">>], BusyIgnoreEarlyMedia, Doc).
+
+-spec busy_keep_caller_id(doc()) -> boolean().
+busy_keep_caller_id(Doc) ->
+    busy_keep_caller_id(Doc, 'true').
+
+-spec busy_keep_caller_id(doc(), Default) -> boolean() | Default.
+busy_keep_caller_id(Doc, Default) ->
+    kz_json:get_boolean_value([<<"busy">>, <<"keep_caller_id">>], Doc, Default).
+
+-spec set_busy_keep_caller_id(doc(), boolean()) -> doc().
+set_busy_keep_caller_id(Doc, BusyKeepCallerId) ->
+    kz_json:set_value([<<"busy">>, <<"keep_caller_id">>], BusyKeepCallerId, Doc).
+
+-spec busy_number(doc()) -> kz_term:api_binary().
+busy_number(Doc) ->
+    busy_number(Doc, 'undefined').
+
+-spec busy_number(doc(), Default) -> binary() | Default.
+busy_number(Doc, Default) ->
+    kz_json:get_binary_value([<<"busy">>, <<"number">>], Doc, Default).
+
+-spec set_busy_number(doc(), binary()) -> doc().
+set_busy_number(Doc, BusyNumber) ->
+    kz_json:set_value([<<"busy">>, <<"number">>], BusyNumber, Doc).
+
+-spec busy_require_keypress(doc()) -> boolean().
+busy_require_keypress(Doc) ->
+    busy_require_keypress(Doc, 'true').
+
+-spec busy_require_keypress(doc(), Default) -> boolean() | Default.
+busy_require_keypress(Doc, Default) ->
+    kz_json:get_boolean_value([<<"busy">>, <<"require_keypress">>], Doc, Default).
+
+-spec set_busy_require_keypress(doc(), boolean()) -> doc().
+set_busy_require_keypress(Doc, BusyRequireKeypress) ->
+    kz_json:set_value([<<"busy">>, <<"require_keypress">>], BusyRequireKeypress, Doc).
+
+-spec no_answer(doc()) -> kz_term:api_object().
+no_answer(Doc) ->
+    no_answer(Doc, 'undefined').
+
+-spec no_answer(doc(), Default) -> kz_json:object() | Default.
+no_answer(Doc, Default) ->
+    kz_json:get_json_value([<<"no_answer">>], Doc, Default).
+
+-spec set_no_answer(doc(), kz_json:object()) -> doc().
+set_no_answer(Doc, NoAnswer) ->
+    kz_json:set_value([<<"no_answer">>], NoAnswer, Doc).
+
+-spec no_answer_direct_calls_only(doc()) -> boolean().
+no_answer_direct_calls_only(Doc) ->
+    no_answer_direct_calls_only(Doc, 'false').
+
+-spec no_answer_direct_calls_only(doc(), Default) -> boolean() | Default.
+no_answer_direct_calls_only(Doc, Default) ->
+    kz_json:get_boolean_value([<<"no_answer">>, <<"direct_calls_only">>], Doc, Default).
+
+-spec set_no_answer_direct_calls_only(doc(), boolean()) -> doc().
+set_no_answer_direct_calls_only(Doc, NoAnswerDirectCallsOnly) ->
+    kz_json:set_value([<<"no_answer">>, <<"direct_calls_only">>], NoAnswerDirectCallsOnly, Doc).
+
+-spec no_answer_enabled(doc()) -> boolean().
+no_answer_enabled(Doc) ->
+    no_answer_enabled(Doc, 'false').
+
+-spec no_answer_enabled(doc(), Default) -> boolean() | Default.
+no_answer_enabled(Doc, Default) ->
+    kz_json:get_boolean_value([<<"no_answer">>, <<"enabled">>], Doc, Default).
+
+-spec set_no_answer_enabled(doc(), boolean()) -> doc().
+set_no_answer_enabled(Doc, NoAnswerEnabled) ->
+    kz_json:set_value([<<"no_answer">>, <<"enabled">>], NoAnswerEnabled, Doc).
+
+-spec no_answer_ignore_early_media(doc()) -> boolean().
+no_answer_ignore_early_media(Doc) ->
+    no_answer_ignore_early_media(Doc, 'true').
+
+-spec no_answer_ignore_early_media(doc(), Default) -> boolean() | Default.
+no_answer_ignore_early_media(Doc, Default) ->
+    kz_json:get_boolean_value([<<"no_answer">>, <<"ignore_early_media">>], Doc, Default).
+
+-spec set_no_answer_ignore_early_media(doc(), boolean()) -> doc().
+set_no_answer_ignore_early_media(Doc, NoAnswerIgnoreEarlyMedia) ->
+    kz_json:set_value([<<"no_answer">>, <<"ignore_early_media">>], NoAnswerIgnoreEarlyMedia, Doc).
+
+-spec no_answer_keep_caller_id(doc()) -> boolean().
+no_answer_keep_caller_id(Doc) ->
+    no_answer_keep_caller_id(Doc, 'true').
+
+-spec no_answer_keep_caller_id(doc(), Default) -> boolean() | Default.
+no_answer_keep_caller_id(Doc, Default) ->
+    kz_json:get_boolean_value([<<"no_answer">>, <<"keep_caller_id">>], Doc, Default).
+
+-spec set_no_answer_keep_caller_id(doc(), boolean()) -> doc().
+set_no_answer_keep_caller_id(Doc, NoAnswerKeepCallerId) ->
+    kz_json:set_value([<<"no_answer">>, <<"keep_caller_id">>], NoAnswerKeepCallerId, Doc).
+
+-spec no_answer_number(doc()) -> kz_term:api_binary().
+no_answer_number(Doc) ->
+    no_answer_number(Doc, 'undefined').
+
+-spec no_answer_number(doc(), Default) -> binary() | Default.
+no_answer_number(Doc, Default) ->
+    kz_json:get_binary_value([<<"no_answer">>, <<"number">>], Doc, Default).
+
+-spec set_no_answer_number(doc(), binary()) -> doc().
+set_no_answer_number(Doc, NoAnswerNumber) ->
+    kz_json:set_value([<<"no_answer">>, <<"number">>], NoAnswerNumber, Doc).
+
+-spec no_answer_require_keypress(doc()) -> boolean().
+no_answer_require_keypress(Doc) ->
+    no_answer_require_keypress(Doc, 'true').
+
+-spec no_answer_require_keypress(doc(), Default) -> boolean() | Default.
+no_answer_require_keypress(Doc, Default) ->
+    kz_json:get_boolean_value([<<"no_answer">>, <<"require_keypress">>], Doc, Default).
+
+-spec set_no_answer_require_keypress(doc(), boolean()) -> doc().
+set_no_answer_require_keypress(Doc, NoAnswerRequireKeypress) ->
+    kz_json:set_value([<<"no_answer">>, <<"require_keypress">>], NoAnswerRequireKeypress, Doc).
+>>>>>>> update accessors
 
 -spec selective(doc()) -> kz_term:api_object().
 selective(Doc) ->
@@ -500,5 +668,15 @@ unconditional_substitute(Doc, Default) ->
 -spec set_unconditional_substitute(doc(), boolean()) -> doc().
 set_unconditional_substitute(Doc, UnconditionalSubstitute) ->
     kz_json:set_value([<<"unconditional">>, <<"substitute">>], UnconditionalSubstitute, Doc).
-=======
->>>>>>> no endpoint changes
+
+-spec substitute(doc()) -> kz_term:api_boolean().
+substitute(Doc) ->
+    substitute(Doc, 'undefined').
+
+-spec substitute(doc(), Default) -> boolean() | Default.
+substitute(Doc, Default) ->
+    kz_json:get_boolean_value([<<"substitute">>], Doc, Default).
+
+-spec set_substitute(doc(), boolean()) -> doc().
+set_substitute(Doc, Substitute) ->
+    kz_json:set_value([<<"substitute">>], Substitute, Doc).

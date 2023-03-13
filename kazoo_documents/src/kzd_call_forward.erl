@@ -447,7 +447,6 @@ validate(CallForward) ->
             ,{<<"no_answer">>, fun no_answer/1}
             ,{<<"busy">>, fun busy/1}
             ,{<<"selective">>, fun selective/1, <<"rules">>, fun selective_rules/1}
-            %% TODO selective
             ],
     validate(CallForward, Types).
 
@@ -459,24 +458,24 @@ validate_return(Errors) -> Errors.
 
 validate_fun(CallForward) ->
     fun({Name, Fun}, Acc) when is_function(Fun)->
-        case merged_call_forward_settings(CallForward, Fun(CallForward)) of
-            undefined -> Acc;
-            JObj -> validate_call_forward(Name, JObj, Acc)
-        end;
+            case merged_call_forward_settings(CallForward, Fun(CallForward)) of
+                undefined -> Acc;
+                JObj -> validate_call_forward(Name, JObj, Acc)
+            end;
        ({Name, ItemObj}, Acc) ->
-        case merged_call_forward_settings(CallForward, ItemObj) of
-            undefined -> Acc;
-            JObj -> validate_call_forward(Name, JObj, Acc)
-        end;    
+            case merged_call_forward_settings(CallForward, ItemObj) of
+                undefined -> Acc;
+                JObj -> validate_call_forward(Name, JObj, Acc)
+            end;
        ({Name, Fun, ItemName, ArrayFun}, Acc) ->
-        case merged_call_forward_settings(CallForward, Fun(CallForward)) of
-            undefined -> Acc;
-            JObj ->
-                case ArrayFun(JObj) of
-                    undefined -> Acc;
-                    Items -> validate_array(JObj, Name, ItemName, Items, Acc)
-                end
-        end
+            case merged_call_forward_settings(CallForward, Fun(CallForward)) of
+                undefined -> Acc;
+                JObj ->
+                    case ArrayFun(JObj) of
+                        undefined -> Acc;
+                        Items -> validate_array(JObj, Name, ItemName, Items, Acc)
+                    end
+            end
     end.
 
 validate_array(JObj, Name, ItemName, Array, Acc) ->
@@ -485,7 +484,7 @@ validate_array(JObj, Name, ItemName, Array, Acc) ->
 
 validate_array_fun(Name, ItemName) ->
     fun(Item, {N, Acc}) ->
-        {N+1, [{array_index_name(Name, ItemName, N), Item} | Acc]}
+            {N+1, [{array_index_name(Name, ItemName, N), Item} | Acc]}
     end.
 
 array_index_name(Name, ItemName, N) ->
@@ -530,14 +529,13 @@ merged_call_forward_settings(Top, Type) ->
                  ],
     Merged = lists:foldl(merge_call_forward_setting_fun(Type), Top, Properties),
     lists:foldl(merge_call_forward_setting_fun(Merged), kz_json:new(), Properties).
-    
 
 merge_call_forward_setting_fun(Override) ->
     fun({Getter, Setter}, Acc) ->
-        case Getter(Override) of
-            undefined -> Acc;
-            Value -> Setter(Acc, Value)
-        end
+            case Getter(Override) of
+                undefined -> Acc;
+                Value -> Setter(Acc, Value)
+            end
     end.
 
 -spec is_legacy(kz_json:object()) -> boolean().

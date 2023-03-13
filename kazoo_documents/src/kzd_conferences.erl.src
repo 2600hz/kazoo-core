@@ -623,6 +623,33 @@ profile_muted_sound(Doc, Default) ->
 set_profile_muted_sound(Doc, ProfileMutedSound) ->
     kz_json:set_value([<<"profile">>, <<"muted_sound">>], ProfileMutedSound, Doc).
 
+<<<<<<< HEAD
+=======
+-spec profile_rate(doc()) -> kz_term:api_integer().
+profile_rate(Doc) ->
+    profile_rate(Doc, 'undefined').
+
+-spec profile_rate(doc(), Default) -> integer() | Default.
+profile_rate(Doc, Default) ->
+    kz_json:get_integer_value([<<"profile">>, <<"rate">>], Doc, Default).
+
+-spec set_profile_rate(doc(), integer()) -> doc().
+set_profile_rate(Doc, ProfileRate) ->
+    kz_json:set_value([<<"profile">>, <<"rate">>], ProfileRate, Doc).
+
+-spec profile_unmuted_sound(doc()) -> kz_term:api_binary().
+profile_unmuted_sound(Doc) ->
+    profile_unmuted_sound(Doc, 'undefined').
+
+-spec profile_unmuted_sound(doc(), Default) -> binary() | Default.
+profile_unmuted_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"unmuted_sound">>], Doc, Default).
+
+-spec set_profile_unmuted_sound(doc(), binary()) -> doc().
+set_profile_unmuted_sound(Doc, ProfileUnmutedSound) ->
+    kz_json:set_value([<<"profile">>, <<"unmuted_sound">>], ProfileUnmutedSound, Doc).
+
+>>>>>>> update accessors
 -spec profile_name(doc()) -> kz_term:api_binary().
 profile_name(Doc) ->
     profile_name(Doc, 'undefined').
