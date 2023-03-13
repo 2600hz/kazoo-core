@@ -25,6 +25,7 @@
 -export([feature_level/1, feature_level/2, set_feature_level/2]).
 -export([first_name/1, first_name/2, set_first_name/2]).
 -export([flags/1, flags/2, set_flags/2]).
+-export([formatter/2, formatter/3, set_formatter/3]).
 -export([formatters/1, formatters/2, set_formatters/2]).
 -export([hotdesk/1, hotdesk/2, set_hotdesk/2]).
 -export([hotdesk_enabled/1, hotdesk_enabled/2, set_hotdesk_enabled/2]).
@@ -297,6 +298,18 @@ flags(Doc, Default) ->
 -spec set_flags(doc(), kz_term:ne_binaries()) -> doc().
 set_flags(Doc, Flags) ->
     kz_json:set_value([<<"flags">>], Flags, Doc).
+
+-spec formatter(doc(), kz_json:key()) -> any().
+formatter(Doc, Formatter) ->
+    formatter(Doc, Formatter, 'undefined').
+
+-spec formatter(doc(), kz_json:key(), Default) -> any() | Default.
+formatter(Doc, Formatter, Default) ->
+    kz_json:get_value([<<"formatters">>, Formatter], Doc, Default).
+
+-spec set_formatter(doc(), kz_json:key(), any()) -> doc().
+set_formatter(Doc, Formatter, Value) ->
+    kz_json:set_value([<<"formatters">>, Formatter], Value, Doc).
 
 -spec formatters(doc()) -> kz_term:api_object().
 formatters(Doc) ->
