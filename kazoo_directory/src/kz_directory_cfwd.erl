@@ -37,7 +37,7 @@ maybe_build_call_forward(EndpointId, AccountId, Endpoint) ->
         false -> undefined
     end.
 
--spec call_forward(kz_json:object()) -> kz_term:api_object().
+-spec call_forward(kz_json:object()) -> kz_json:object().
 call_forward(Endpoint) ->
     CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
     call_forward(CallForward, kzd_call_forward:is_legacy(CallForward)).
