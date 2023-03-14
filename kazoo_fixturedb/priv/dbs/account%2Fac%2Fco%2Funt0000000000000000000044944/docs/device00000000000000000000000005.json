@@ -1,19 +1,14 @@
 {
     "_id": "device00000000000000000000000005",
     "_rev": "1-7280940a25dcb8eac5ab129dd8fbe5d6",
-    "call_forward": [
-        {
-            "direct_calls_only": false,
-            "ignore_early_media": true,
-            "keep_caller_id": true,
-            "match_list": {
-                "enabled": true
-            },
-            "number": "+12223334455",
-            "require_keypress": false,
-            "substitute": false
-        }
-    ],
+    "call_failover": {
+        "direct_calls_only": false,
+        "enabled": true,
+        "ignore_early_media": true,
+        "keep_caller_id": true,
+        "number": "+12223334455",
+        "require_keypress": false
+    },
     "call_recording": {},
     "call_restriction": {
         "caribbean": {

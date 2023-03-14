@@ -13,7 +13,6 @@
 -export([number/1, number/2, set_number/2]).
 -export([require_keypress/1, require_keypress/2, set_require_keypress/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

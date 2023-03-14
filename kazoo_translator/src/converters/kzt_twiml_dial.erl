@@ -279,11 +279,13 @@ xml_elements_to_endpoints(Call
 
     lager:debug("maybe add number ~s: send ~s", [DialMe, SendDigits]),
 
-    CallFwd = kz_json:from_list([{<<"number">>, DialMe}
+    CallFwd = kz_json:from_list([{<<"enabled">>, true}
+                                ,{<<"number">>, DialMe}
                                 ,{<<"require_keypress">>, 'false'}
                                 ,{<<"substitute">>, 'true'}
                                 ]),
-    Endpoint = kz_json:from_list([{<<"call_forward">>, CallFwd}]),
+    Unconditional = kzd_call_forward:set_unconditional(CallFwd, CallFwd),
+    Endpoint = kzd_endpoint:set_call_forward(kz_json:new(), Unconditional),
     EP = kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call),
 
     xml_elements_to_endpoints(Call, EPs, [EP|Acc]);
