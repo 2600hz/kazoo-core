@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc kazoo data utils
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -34,6 +34,10 @@
         ,is_account_db/1
         ,is_account_mod/1
         ,is_account_yod/1
+        ]).
+
+-export([raw_account_modb/1
+        ,raw_account_yodb/1
         ]).
 
 -include_lib("kazoo_numbers/include/knm_phone_number.hrl").
