@@ -243,9 +243,9 @@ no_answer_substitute(Doc, Default) ->
 set_no_answer_substitute(Doc, NoAnswerSubstitute) ->
     kz_json:set_value([<<"no_answer">>, <<"substitute">>], NoAnswerSubstitute, Doc).
 
--spec selective(doc()) -> kz_json:object().
+-spec selective(doc()) -> kz_term:api_object().
 selective(Doc) ->
-    selective(Doc, {"enabled":false}).
+    selective(Doc, 'undefined').
 
 -spec selective(doc(), Default) -> kz_json:object() | Default.
 selective(Doc, Default) ->
