@@ -108,8 +108,8 @@ maybe_override_plan(Plan, #{}=Map) ->
 get_dataplan(DBName) ->
     Database = kzs_util:to_database(DBName),
     case kzs_util:db_classification(Database) of
-        'modb' -> account_modb_dataplan(Database);
-        'yodb' -> account_yodb_dataplan(Database);
+        'modb' -> account_modb_dataplan(kzs_util:raw_account_modb(DBName));
+        'yodb' -> account_yodb_dataplan(kzs_util:raw_account_yodb(DBName));
         'account' -> account_dataplan(Database);
         'resource_selectors' -> account_dataplan(Database);
         'aggregate' -> aggregate_dataplan(Database);
@@ -122,8 +122,8 @@ get_dataplan(DBName, 'undefined') ->
 get_dataplan(DBName, DocType) ->
     Database = kzs_util:to_database(DBName),
     case kzs_util:db_classification(Database) of
-        'modb' -> account_modb_dataplan(Database, DocType);
-        'yodb' -> account_yodb_dataplan(Database, DocType);
+        'modb' -> account_modb_dataplan(kzs_util:raw_account_modb(DBName), DocType);
+        'yodb' -> account_yodb_dataplan(kzs_util:raw_account_yodb(DBName), DocType);
         'account' -> account_dataplan(Database, DocType);
         'resource_selectors' -> account_dataplan(Database, DocType);
         'aggregate' -> aggregate_dataplan(Database, DocType);
@@ -135,8 +135,8 @@ get_dataplan(DBName, DocType, 'undefined') ->
 get_dataplan(DBName, DocType, DocOwner) ->
     Database = kzs_util:to_database(DBName),
     case kzs_util:db_classification(Database) of
-        'modb' -> account_modb_dataplan(Database, DocType, DocOwner);
-        'yodb' -> account_yodb_dataplan(Database, DocType, DocOwner);
+        'modb' -> account_modb_dataplan(kzs_util:raw_account_modb(DBName), DocType, DocOwner);
+        'yodb' -> account_yodb_dataplan(kzs_util:raw_account_yodb(DBName), DocType, DocOwner);
         'account' -> account_dataplan(Database, DocType, DocOwner);
         'resource_selectors' -> account_dataplan(Database, DocType, DocOwner);
         Else -> system_dataplan(Database, Else)
@@ -202,40 +202,40 @@ aggregate_dataplan(DBName, DocType) ->
 account_modb_dataplan(AccountMODB) ->
     AccountId = kzs_util:format_account_id(AccountMODB),
     Plan = ?CACHED_ACCOUNT_DATAPLAN(AccountId),
-    dataplan_match(<<"modb">>, Plan, AccountId).
+    dataplan_match(<<"modb">>, Plan, AccountMODB).
 
 account_modb_dataplan(AccountMODB, 'undefined') ->
     account_modb_dataplan(AccountMODB);
 account_modb_dataplan(AccountMODB, DocType) ->
     AccountId = kzs_util:format_account_id(AccountMODB),
     Plan = ?CACHED_ACCOUNT_DATAPLAN(AccountId),
-    dataplan_type_match(<<"modb">>, DocType, Plan, AccountId).
+    dataplan_type_match(<<"modb">>, DocType, Plan, AccountMODB).
 
 account_modb_dataplan(AccountMODB, DocType, 'undefined') ->
     account_modb_dataplan(AccountMODB, DocType);
 account_modb_dataplan(AccountMODB, DocType, StorageId) ->
     AccountId = kzs_util:format_account_id(AccountMODB),
     Plan = ?CACHED_STORAGE_DATAPLAN(AccountId, StorageId),
-    dataplan_type_match(<<"modb">>, DocType, Plan, AccountId).
+    dataplan_type_match(<<"modb">>, DocType, Plan, AccountMODB).
 
 account_yodb_dataplan(AccountYODB) ->
     AccountId = kzs_util:format_account_id(AccountYODB),
     Plan = ?CACHED_ACCOUNT_DATAPLAN(AccountId),
-    dataplan_match(<<"yodb">>, Plan, AccountId).
+    dataplan_match(<<"yodb">>, Plan, AccountYODB).
 
 account_yodb_dataplan(AccountYODB, 'undefined') ->
     account_yodb_dataplan(AccountYODB);
 account_yodb_dataplan(AccountYODB, DocType) ->
     AccountId = kzs_util:format_account_id(AccountYODB),
     Plan = ?CACHED_ACCOUNT_DATAPLAN(AccountId),
-    dataplan_type_match(<<"yodb">>, DocType, Plan, AccountId).
+    dataplan_type_match(<<"yodb">>, DocType, Plan, AccountYODB).
 
 account_yodb_dataplan(AccountYODB, DocType, 'undefined') ->
-    account_modb_dataplan(AccountYODB, DocType);
+    account_yodb_dataplan(AccountYODB, DocType);
 account_yodb_dataplan(AccountYODB, DocType, StorageId) ->
     AccountId = kzs_util:format_account_id(AccountYODB),
     Plan = ?CACHED_STORAGE_DATAPLAN(AccountId, StorageId),
-    dataplan_type_match(<<"yodb">>, DocType, Plan, AccountId).
+    dataplan_type_match(<<"yodb">>, DocType, Plan, AccountYODB).
 
 -spec dataplan_connections(map()) -> [{kz_term:ne_binary(), server()}].
 dataplan_connections(#{<<"plan">> := _
@@ -265,36 +265,58 @@ dataplan_match_by_classification(Classification, Plan, DBName, #{<<"database">> 
                                             ,ClassificationPlan#{<<"database">> => maps:remove(<<"names">>, DBProperties)}
                                             )
     end;
+dataplan_match_by_classification(Classification, Plan, DBName, #{<<"regex">> := RegExes}=ClassificationPlan) ->
+    case dataplan_regex(Classification, DBName, RegExes) of
+        'undefined' ->
+            dataplan_match_by_classification(Classification, Plan, DBName, maps:without([<<"regex">>], ClassificationPlan));
+        #{} = Map ->
+            ToMerge = maps:with([<<"connection">>, <<"attachments">>], ClassificationPlan),
+            Merged = maps:without([<<"regex">>], kz_maps:merge(ToMerge, Map)),
+            dataplan_match_by_classification(Classification, Plan, DBName, Merged)
+    end;
+dataplan_match_by_classification(Classification, Plan, DBName, #{<<"range">> := Ranges}=ClassificationPlan) ->
+    case dataplan_range(Classification, db_range_index(DBName), Ranges) of
+        'undefined' ->
+            dataplan_match_by_classification(Classification, Plan, DBName, maps:without([<<"range">>], ClassificationPlan));
+        #{} = Map ->
+            ToMerge = maps:with([<<"connection">>, <<"attachments">>], ClassificationPlan),
+            Merged = maps:without([<<"range">>], kz_maps:merge(ToMerge, Map)),
+            dataplan_match_by_classification(Classification, Plan, DBName, Merged)
+    end;
 dataplan_match_by_classification(Classification
                                 ,#{<<"connections">> := Connections
                                   ,<<"connections_map">> := ConnectionsMap
                                   ,<<"attachments">> := Attachments
                                   }
-                                ,AccountId
+                                ,DBName
                                 ,#{}=ClassificationPlan
                                 ) ->
-    DocTypes = plan_types(ClassificationPlan),
+    AccountId = kzs_util:format_account_id(DBName),
     ClassificationTag = plan_connection(ClassificationPlan),
     ClassificationAttachments = plan_attachments(ClassificationPlan),
 
     Server = maps:get(ClassificationTag, ConnectionsMap, #{}),
 
-    Others = [{ConnectionId, #{server => maps:get(ConnectionId, ConnectionsMap, #{})}}
-              || {_DocType, #{<<"connection">> := ConnectionId}} <- lists:usort(maps:to_list(DocTypes)),
-                 ConnectionId =/= ClassificationTag,
-                 'undefined' =/= maps:get(ConnectionId, Connections, 'undefined')
-             ],
-
     BasePlan = #{tag => ClassificationTag
                 ,server => Server
-                ,others => Others
                 ,classification => Classification
                 ,account_id => AccountId
                 },
+
+    Plan = case plan_types(ClassificationPlan) of
+               undefined -> BasePlan;
+               DocTypes -> BasePlan#{others => [{ConnectionId, #{server => maps:get(ConnectionId, ConnectionsMap, #{})}}
+                                                || {_DocType, #{<<"connection">> := ConnectionId}} <- lists:usort(maps:to_list(DocTypes)),
+                                                   ConnectionId =/= ClassificationTag,
+                                                   'undefined' =/= maps:get(ConnectionId, Connections, 'undefined')
+                                               ]
+                                    }
+           end,
+
     case attachment_handler(ClassificationAttachments) of
-        'undefined' -> BasePlan;
+        'undefined' -> Plan;
         AttachmentConnection ->
-            add_attachment_proxy(BasePlan, Attachments, ClassificationAttachments, AttachmentConnection)
+            add_attachment_proxy(Plan, Attachments, ClassificationAttachments, AttachmentConnection)
     end.
 
 attachment_handler(#{<<"handler">> := Handler}) -> Handler;
@@ -344,14 +366,42 @@ plan_attachments(_Plan, Default) -> Default.
           map() | {'error', 'no_plan'}.
 dataplan_type_match_by_classification(_Classification, _DocType, _Plan, _AccountId, 'undefined') ->
     {'error', 'no_plan'};
+dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<<"database">> := #{<<"names">> := [_|_]=DBNames}=DBProperties}=ClassificationPlan) ->
+    case lists:member(DBName, DBNames) of
+        'false' ->
+            {'error', 'no_plan'};
+        'true' ->
+            dataplan_type_match_by_classification(Classification, DocType, Plan, DBName
+                                                 ,ClassificationPlan#{<<"database">> => maps:remove(<<"names">>, DBProperties)}
+                                                 )
+    end;
+dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<<"regex">> := RegExes}=ClassificationPlan) ->
+    case dataplan_regex(Classification, DBName, RegExes) of
+        'undefined' ->
+            dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, maps:without([<<"regex">>], ClassificationPlan));
+        #{} = Map ->
+            ToMerge = maps:with([<<"connection">>, <<"attachments">>], ClassificationPlan),
+            Merged = maps:without([<<"regex">>], kz_maps:merge(ToMerge, Map)),
+            dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, Merged)
+    end;
+dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<<"range">> := Ranges}=ClassificationPlan) ->
+    case dataplan_range(Classification, db_range_index(DBName), Ranges) of
+        'undefined' ->
+            dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, maps:without([<<"range">>], ClassificationPlan));
+        #{} = Map ->
+            ToMerge = maps:with([<<"connection">>, <<"attachments">>], ClassificationPlan),
+            Merged = maps:without([<<"range">>], kz_maps:merge(ToMerge, Map)),
+            dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, Merged)
+    end;
 dataplan_type_match_by_classification(Classification
                                      ,DocType
                                      ,#{<<"connections_map">> := ConnectionsMap
                                        ,<<"attachments">> := Attachments
                                        }=_Plan
-                                     ,AccountId
+                                     ,DBName
                                      ,ClassificationPlan
                                      ) ->
+    AccountId = kzs_util:format_account_id(DBName),
     DocTypes = plan_types(ClassificationPlan),
     ClassificationConnection = plan_connection(ClassificationPlan),
     ClassificationAttachments = plan_attachments(ClassificationPlan, #{}),
@@ -475,7 +525,7 @@ cache_callback('system', _V, 'flush') ->
 %%     lager:warning("received flush dataplan cache for system plan"),
 %%     reload();
 cache_callback(_Key, _V, _Action) ->
-    lager:warning_unsafe("unhandled cache callback : ~p , ~p , ~p", [_Key, _V, _Action]).
+    lager:warning("unhandled cache callback : ~p , ~p , ~p", [_Key, _V, _Action]).
 
 -spec fetch_simple_dataplan(kz_term:ne_binary()) -> fetch_dataplan_ret().
 fetch_simple_dataplan(?SYSTEM_DATAPLAN_ID) ->
@@ -672,7 +722,7 @@ reload() ->
     case kz_datamgr:get_result_ids(?KZ_DATA_DB, ?KZS_PLAN_INIT_VIEW, []) of
         {'ok', []} -> lager:info("no account dataplans to load");
         {'ok', Accounts} -> load_accounts(Accounts);
-        Error -> lager:error_unsafe("error reloading account dataplans ~p", [Error])
+        Error -> lager:error("error reloading account dataplans ~p", [Error])
     end.
 
 -spec reset_system_dataplan() -> 'ok'.
@@ -726,3 +776,40 @@ load_storage('undefined', ?SYSTEM_DATAPLAN_ID) ->
 load_storage(AccountId, StorageId) ->
     _ = load_dataplan({AccountId, StorageId}, fun fetch_storage_dataplan/1),
     'ok'.
+
+dataplan_regex(_Classification, _DBName, none) -> undefined;
+dataplan_regex(_Classification, _DBName, Regexes)
+  when is_map(Regexes), map_size(Regexes) =:= 0 -> undefined;
+dataplan_regex(Classification, DBName, Regexes)
+  when is_map(Regexes) ->
+    dataplan_regex(Classification, DBName, maps:next(maps:iterator(Regexes)));
+dataplan_regex(Classification, DBName, {Regex, Map, Iterator}) ->
+    case re:run(DBName, Regex) of
+        nomatch -> dataplan_regex(Classification, DBName, maps:next(Iterator));
+        _Match -> Map
+    end.
+
+dataplan_range(_Classification, 0, _Range) -> undefined;
+dataplan_range(_Classification, _DBRangeIndex, none) -> undefined;
+dataplan_range(_Classification, _DBRangeIndex, Ranges)
+  when is_map(Ranges), map_size(Ranges) =:= 0 -> undefined;
+dataplan_range(Classification, DBRangeIndex, Ranges)
+  when is_map(Ranges) ->
+    dataplan_range(Classification, DBRangeIndex, maps:next(maps:iterator(Ranges)));
+dataplan_range(Classification, DBRangeIndex, {<<Lower:6/binary, "-", Upper:6/binary>>, #{} = Map, Iterator}) ->
+    case DBRangeIndex >= kz_term:to_integer(Lower)
+        andalso DBRangeIndex =< kz_term:to_integer(Upper)
+    of
+        false -> dataplan_range(Classification, DBRangeIndex, maps:next(Iterator));
+        true -> Map
+    end;
+dataplan_range(Classification, DBRangeIndex, {_Key, _Map, Iterator}) ->
+    dataplan_range(Classification, DBRangeIndex, maps:next(Iterator)).
+
+db_range_index(?MATCH_MODB_SUFFIX_RAW(_Account, Year, Month)) ->
+    kz_term:to_integer(list_to_binary([Year, Month]));
+db_range_index(?MATCH_MODB_SUFFIX_UNENCODED(_Account, Year, Month)) ->
+    kz_term:to_integer(list_to_binary([Year, Month]));
+db_range_index(?MATCH_MODB_SUFFIX_ENCODED(_Account, Year, Month)) ->
+    kz_term:to_integer(list_to_binary([Year, Month]));
+db_range_index(_) -> 0.
