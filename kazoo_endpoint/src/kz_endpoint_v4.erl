@@ -19,7 +19,8 @@
         ,flush_local/2
         ]).
 -export([build/2, build/3]).
--export([create_sip_endpoint/3
+-export([create_call_fwd_endpoint/3
+        ,create_sip_endpoint/3
         ,maybe_start_metaflow/2
         ,encryption_method_map/2
         ,get_sip_realm/2, get_sip_realm/3
@@ -249,7 +250,6 @@ account_tree_keys() ->
 
 attributes_keys() ->
     [<<"call_forward">>
-    ,<<"call_failover">>
     ,<<"call_recording">>
     ,<<"call_restriction">>
     ,<<"call_waiting">>
@@ -346,20 +346,14 @@ merge_attribute(<<"name">> = Key, Account, Endpoint, Owner) ->
                                ,kzd_accounts:name(Account)
                                ),
     kz_json:set_value(Key, Name, Endpoint);
-merge_attribute(<<"call_forward">> = _Key, Account, Endpoint, Owner) ->
-    kz_endpoint_v5:merge_call_forward(Account, Endpoint, Owner);
-merge_attribute(<<"call_failover">> = _Key, Account, Endpoint, Owner) ->
-    EndpointAttr = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
-    case kzd_call_failover:enabled(EndpointAttr) of
+merge_attribute(<<"call_forward">> = Key, _Account, Endpoint, Owner) ->
+    case kzd_call_forward:enabled(kzd_devices:call_forward(Endpoint, kz_json:new())) of
         'true' -> Endpoint;
         'false' ->
-            AccountAttr = kzd_endpoint:call_failover(Account, kz_json:new()),
-            OwnerAttr = kzd_endpoint:call_failover(Owner, kz_json:new()),
-            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kzd_call_failover:enabled(Merged) of
-                'true' -> kzd_endpoint:set_call_failover(Endpoint, Merged);
-                'false' -> Endpoint
-            end
+            OwnerAttr = kzd_users:call_forward(Owner, kz_json:new()),
+            EndpointAttr = kzd_devices:call_forward(Endpoint, kz_json:new()),
+            Merged = kz_json:merge([EndpointAttr, OwnerAttr]),
+            kz_json:set_value(Key, Merged, Endpoint)
     end;
 merge_attribute(<<"call_waiting">> = Key, Account, Endpoint, Owner) ->
     AccountAttr = kzd_accounts:call_waiting(Account, kz_json:new()),
@@ -1060,7 +1054,7 @@ maybe_create_fwd_endpoint(Endpoint, Properties, Call) ->
         'false' -> {'error', 'call_forward_not_appropriate'};
         'true' ->
             lager:info("creating call forwarding endpoint"),
-            create_call_fwd_endpoint(Endpoint, kzd_endpoint:call_forward(Endpoint), Properties, Call)
+            create_call_fwd_endpoint(Endpoint, Properties, Call)
     end.
 
 -spec maybe_create_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
@@ -1313,13 +1307,13 @@ maybe_get_t38(Endpoint, Call) ->
 
 -spec maybe_build_failover(kz_json:object(), kapps_call:call()) -> kz_term:api_object().
 maybe_build_failover(Endpoint, Call) ->
-    Failover = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
+    Failover = kzd_devices:call_failover(Endpoint, kz_json:new()),
     Number = kzd_call_failover:number(Failover),
     case kzd_call_failover:enabled(Endpoint)
         andalso not kz_term:is_empty(Number)
     of
         'false' -> 'undefined';
-        'true' -> create_call_fwd_endpoint(Endpoint, Failover, kz_json:new(), Call)
+        'true' -> create_call_fwd_endpoint(Endpoint, kz_json:new(), Call)
     end.
 
 -spec create_push_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) -> kz_term:api_object().
@@ -1437,16 +1431,17 @@ create_skype_endpoint(Endpoint, Properties, _Call) ->
 %% the callflow.
 %% @end
 %%------------------------------------------------------------------------------
--spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kz_json:object(), kapps_call:call()) ->
+-spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
-create_call_fwd_endpoint(Endpoint, CallForward, Properties, Call) ->
-    ToDID = kzd_call_failover:number(CallForward),
+create_call_fwd_endpoint(Endpoint, Properties, Call) ->
+    CallForward = kz_json:get_ne_value(<<"call_forward">>, Endpoint, kz_json:new()),
+    ToDID = kzd_call_forward:number(kzd_devices:call_forward(Endpoint, kz_json:new())),
     lager:info("call forwarding endpoint to ~s", [ToDID]),
-    IgnoreEarlyMedia = case kzd_call_forward:require_keypress(CallForward, 'false')
-                           orelse not kzd_call_forward:substitute(CallForward, 'false')
+    IgnoreEarlyMedia = case kzd_call_forward:require_keypress(kzd_devices:call_forward(Endpoint, kz_json:new()), 'false')
+                           orelse not kzd_call_forward:substitute(kzd_devices:call_forward(Endpoint, kz_json:new()), 'false')
                        of
                            'true' -> 'true';
-                           'false' -> kzd_call_forward:ignore_early_media(CallForward, 'false')
+                           'false' -> kzd_call_forward:ignore_early_media(kzd_devices:call_forward(Endpoint, kz_json:new()), 'false')
                        end,
     Clid = case kapps_call:inception(Call) of
                'undefined' -> get_clid(Endpoint, Properties, Call, <<"external">>);

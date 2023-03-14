@@ -185,11 +185,11 @@ call_forward(Doc) ->
 
 -spec call_forward(doc(), Default) -> kz_json:object() | Default.
 call_forward(Doc, Default) ->
-    kzd_endpoint:call_forward(Doc, Default).
+    kz_json:get_json_value([<<"call_forward">>], Doc, Default).
 
 -spec set_call_forward(doc(), kz_json:object()) -> doc().
 set_call_forward(Doc, CallForward) ->
-    kzd_endpoint:set_call_forward(Doc, CallForward).
+    kz_json:set_value([<<"call_forward">>], CallForward, Doc).
 
 -spec call_limits(doc()) -> kz_term:api_object().
 call_limits(Doc) ->
@@ -1632,8 +1632,15 @@ validate_call_failover(_AccountId, {Doc, Errors}) ->
 %%------------------------------------------------------------------------------
 -spec validate_call_forward(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
-validate_call_forward(_AccountId, {Doc, Errors}) ->
-    kzd_call_forward:validate({Doc, Errors}).
+validate_call_forward(_AccountId, {Doc, AccErrors} = Acc) ->
+    case validate_call_forward(call_forward(Doc)) of
+        ok -> Acc;
+        Errors -> {Doc, Errors ++ AccErrors}
+    end.
+
+-spec validate_call_forward(kz_term:api_object()) -> 'ok' | kazoo_documents:doc_validation_errors().
+validate_call_forward(undefined) -> ok;
+validate_call_forward(CallForward) -> kzd_call_forward:validate(CallForward).
 
 %%------------------------------------------------------------------------------
 %% @doc This function returns the private fields to be added to a new account

@@ -10,6 +10,7 @@
         "require_keypress": false
     },
     "call_forward": {
+        "enabled": true,
         "unconditional": {
             "direct_calls_only": false,
             "enabled": true,

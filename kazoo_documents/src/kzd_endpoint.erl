@@ -19,7 +19,7 @@
 -export([presence_id/1]).
 -export([presence_aliases/1, presence_aliases/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
--export([call_failover/1, call_failover/2, set_call_failover/2]).
+-export([call_failover/1, call_failover/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
 -export([tags/1, tags/2]).
 -export([meta_id/1]).
@@ -134,26 +134,13 @@ call_failover(Endpoint) ->
 call_failover(Endpoint, Default) ->
     kz_json:get_json_value([<<"call_failover">>], Endpoint, Default).
 
--spec set_call_failover(endpoint(), kzd_call_failover:doc()) -> endpoint().
-set_call_failover(Endpoint, Failover) ->
-    kz_json:set_value([<<"call_failover">>], Failover, Endpoint).
-
 -spec call_forward(endpoint()) -> kz_term:api_object().
-call_forward(Doc) ->
-    call_forward(Doc, 'undefined').
+call_forward(Endpoint) ->
+    call_forward(Endpoint, 'undefined').
 
 -spec call_forward(endpoint(), Default) -> kz_json:object() | Default.
-call_forward(Doc, Default) ->
-    case kz_json:get_json_value([<<"call_forward">>], Doc) of
-        'undefined' -> Default;
-        CallForward ->
-            case kz_json:get_value(<<"enabled">>, CallForward) of
-                'undefined' -> CallForward;
-                _Legacy ->
-                    %% migrate legacy to 'unconditional' call forwarding type
-                    kz_json:set_value(<<"unconditional">>, CallForward, kz_json:new())
-            end
-    end.
+call_forward(Endpoint, Default) ->
+    kz_json:get_json_value([<<"call_forward">>], Endpoint, Default).
 
 -spec set_call_forward(endpoint(), kz_json:object()) -> endpoint().
 set_call_forward(Doc, CallForward) ->
