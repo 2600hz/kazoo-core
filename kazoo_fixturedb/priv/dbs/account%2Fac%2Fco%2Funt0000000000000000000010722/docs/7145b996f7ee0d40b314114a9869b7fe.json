@@ -10,15 +10,13 @@
         "require_keypress": false
     },
     "call_forward": {
-        "unconditional": {
-            "direct_calls_only": false,
-            "enabled": false,
-            "ignore_early_media": true,
-            "keep_caller_id": true,
-            "number": "+18887776666",
-            "require_keypress": false,
-            "substitute": false
-        }
+        "direct_calls_only": false,
+        "enabled": false,
+        "ignore_early_media": true,
+        "keep_caller_id": true,
+        "number": "+18887776666",
+        "require_keypress": false,
+        "substitute": false
     },
     "call_restriction": {
         "caribbean": {
