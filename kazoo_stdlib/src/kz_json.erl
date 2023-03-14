@@ -2084,8 +2084,8 @@ diff_deep(J1, J2) ->
     expand_deep(from_list(sets:to_list(UniqueSet1))).
 
 -type exec_fun_1() :: fun((object()) -> object()).
--type exec_fun_2() :: {fun((_, object()) -> object()), _}.
--type exec_fun_3() :: {fun((_, _, object()) -> object()), _, _}.
+-type exec_fun_2() :: {fun((Value, object()) -> object()), Value}.
+-type exec_fun_3() :: {fun((Key, Value, object()) -> object()), Key, Value}.
 -type exec_fun() :: exec_fun_1() | exec_fun_2() | exec_fun_3().
 -type exec_funs() :: [exec_fun(),...].
 
@@ -2099,8 +2099,8 @@ exec_fold({F, V}, JObj) when is_function(F, 2) -> F(V, JObj);
 exec_fold(F, JObj) when is_function(F, 1) -> F(JObj).
 
 -type exec_first_fun_1() :: fun((object()) -> object()).
--type exec_first_fun_2() :: {fun((_, object()) -> object()), _}.
--type exec_first_fun_3() :: {fun((_, _, object()) -> object()), _, _}.
+-type exec_first_fun_2() :: {fun((Value, object()) -> object()), Value}.
+-type exec_first_fun_3() :: {fun((Key, Value, object()) -> object()), Key, Value}.
 -type exec_first_fun() :: exec_first_fun_1() | exec_first_fun_2() | exec_first_fun_3().
 -type exec_first_funs() :: [exec_first_fun(),...].
 

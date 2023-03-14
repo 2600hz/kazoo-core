@@ -19,7 +19,7 @@
         ,flush_local/2
         ]).
 -export([build/2, build/3]).
--export([create_call_fwd_endpoint/3
+-export([create_call_fwd_endpoint/3, create_call_fwd_endpoint/4
         ,create_sip_endpoint/3
         ,maybe_start_metaflow/2
         ,encryption_method_map/2
@@ -449,14 +449,14 @@ merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
             end
     end;
 merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
-    EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
-    case kz_json:is_true(<<"enabled">>, EndpointAttr) of
+    EndpointAttr = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
+    case kzd_call_forward:enabled(EndpointAttr) of
         'true' -> Endpoint;
         'false' ->
-            AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
-            OwnerAttr = kz_json:get_ne_value(Key, Owner, kz_json:new()),
+            AccountAttr = kzd_accounts:call_forward(Account, kz_json:new()),
+            OwnerAttr = kzd_users:call_forward(Owner, kz_json:new()),
             Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kz_json:is_true(<<"enabled">>, Merged) of
+            case kzd_call_forward:enabled(Merged) of
                 'true' -> kz_json:set_value(Key, Merged, Endpoint);
                 'false' -> Endpoint
             end
@@ -542,6 +542,12 @@ merge_attribute(Key, Account, Endpoint, Owner) ->
                                     ,fun(_, V) -> not kz_term:is_empty(V) end
                                     ),
     kz_json:set_value(Key, Merged, Endpoint).
+
+unconditional_call_forward(Endpoint) ->
+    kzd_call_forward:merged(kzd_endpoint:call_forward(Endpoint, kz_json:new())
+                           ,fun kzd_call_forward:unconditional/1
+                           ,kz_json:new()
+                           ).
 
 -spec merge_attribute_caller_id(kz_term:api_object(), kz_term:api_object(), kz_term:api_object(), kz_term:api_object()) -> kz_term:api_object().
 merge_attribute_caller_id(AccountJObj, AccountJAttr, UserJAttr, EndpointJAttr) ->
@@ -1078,8 +1084,7 @@ maybe_exclude_from_queues(Endpoint, _Properties, Call) ->
           {'ok', kz_json:objects()} |
           {'error', 'no_endpoints'}.
 create_endpoints(Endpoint, Properties, Call) ->
-    Routines = [fun create_endpoint/3
-               ],
+    Routines = [fun create_endpoint/3],
     Fun = fun(Routine, Endpoints) ->
                   try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call)
           end,
@@ -1176,9 +1181,9 @@ get_clid(Endpoint, Properties, Call, Type) ->
 
 -spec maybe_move_privacy(kz_json:object(), kz_json:object(), kapps_call:call(), clid()) -> clid().
 maybe_move_privacy(Endpoint, _Properties, Call, Clid) ->
-    CallForward = kz_json:get_ne_value(<<"call_forward">>, Endpoint, kz_json:new()),
+    CallForward = unconditional_call_forward(Endpoint),
     CCVs = kapps_call:custom_channel_vars(Call),
-    RetainCID = kz_json:is_true(<<"keep_caller_id">>, CallForward)
+    RetainCID = kzd_call_forward:keep_caller_id(CallForward)
         orelse kz_json:is_true(<<"Retain-CID">>, CCVs),
     HideName = kz_privacy:should_hide_name(CCVs),
     HideNumber = kz_privacy:should_hide_number(CCVs),
@@ -1256,43 +1261,63 @@ maybe_get_t38(Endpoint, Call) ->
 -spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
 create_call_fwd_endpoint(Endpoint, Properties, Call) ->
-    CallForward = kz_json:get_ne_value(<<"call_forward">>, Endpoint, kz_json:new()),
-    Route = kz_json:get_value(<<"number">>, CallForward),
+    create_call_fwd_endpoint(Endpoint, Properties, Call
+                            ,unconditional_call_forward(Endpoint)
+                            ).
+
+-spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call(), kzd_call_forward:doc()) ->
+          kz_json:object().
+create_call_fwd_endpoint(Endpoint, Properties, Call, CallForward) ->
+    Route = kzd_call_forward:number(CallForward),
     ToDID = kz_json:get_value(<<"number">>, Endpoint, kapps_call:request_user(Call)),
     lager:info("call forwarding endpoint to ~s : ~s", [Route, ToDID]),
-    IgnoreEarlyMedia = case kz_json:is_true(<<"require_keypress">>, CallForward)
-                           orelse not kz_json:is_true(<<"substitute">>, CallForward)
-                       of
-                           'true' -> <<"true">>;
-                           'false' -> kz_json:get_binary_boolean(<<"ignore_early_media">>, CallForward)
-                       end,
-    Clid = case kapps_call:inception(Call) of
-               'undefined' -> get_clid(Endpoint, Properties, Call, <<"external">>);
-               _Else -> maybe_move_privacy(Endpoint, Properties, Call, #clid{})
-           end,
+    IgnoreEarlyMedia = should_ignore_early_media(CallForward),
 
     kz_json:from_list(
-      [{<<"Invite-Format">>, <<"loopback">>}
-      ,{<<"To-DID">>, ToDID}
-      ,{<<"Route">>, Route}
-      ,{<<"Ignore-Early-Media">>, IgnoreEarlyMedia}
+      [{<<"Account-ID">>, kapps_call:account_id(Call)}
       ,{<<"Bypass-Media">>, <<"false">>}
+      ,{<<"Custom-Channel-Vars">>, generate_ccvs(Endpoint, Call, CallForward)}
+      ,{<<"Custom-SIP-Headers">>, generate_sip_headers(Endpoint, <<"forward">>, Call)}
+      ,{<<"Endpoint-Delay">>, get_delay(Properties)}
+      ,{<<"Endpoint-ID">>, kz_doc:id(Endpoint)}
       ,{<<"Endpoint-Progress-Timeout">>, get_progress_timeout(Endpoint)}
       ,{<<"Endpoint-Timeout">>, get_timeout(Properties)}
-      ,{<<"Endpoint-Delay">>, get_delay(Properties)}
-      ,{<<"Account-ID">>, kapps_call:account_id(Call)}
-      ,{<<"Endpoint-ID">>, kz_doc:id(Endpoint)}
+      ,{<<"Ignore-Early-Media">>, IgnoreEarlyMedia}
+      ,{<<"Invite-Format">>, <<"loopback">>}
       ,{<<"Presence-ID">>, kz_attributes:presence_id(Endpoint, Call)}
-      ,{<<"Outbound-Callee-ID-Name">>, Clid#clid.callee_name}
-      ,{<<"Outbound-Callee-ID-Number">>, Clid#clid.callee_number}
-      ,{<<"Outbound-Caller-ID-Number">>, Clid#clid.caller_number}
-      ,{<<"Outbound-Caller-ID-Name">>, Clid#clid.caller_name}
-      ,{<<"Privacy-Hide-Name">>, Clid#clid.hide_name}
-      ,{<<"Privacy-Hide-Number">>, Clid#clid.hide_number}
       ,{<<"Privacy-Method">>, kz_privacy:get_method(Endpoint)}
-      ,{<<"Custom-SIP-Headers">>, generate_sip_headers(Endpoint, <<"forward">>, Call)}
-      ,{<<"Custom-Channel-Vars">>, generate_ccvs(Endpoint, Call, CallForward)}
+      ,{<<"Route">>, Route}
+      ,{<<"To-DID">>, ToDID}
+      | call_forward_cid_properties(Endpoint, Properties, Call)
       ]).
+
+should_ignore_early_media(CallForward) ->
+    case kzd_call_forward:require_keypress(CallForward)
+        orelse not kzd_call_forward:substitute(CallForward)
+    of
+        'true' -> <<"true">>;
+        'false' -> kzd_call_forward:ignore_early_media(CallForward)
+    end.
+
+call_forward_cid_properties(Endpoint, Properties, Call) ->
+    #clid{callee_name=CalleeName
+         ,callee_number=CalleeNumber
+         ,caller_name=CallerName
+         ,caller_number=CallerNumber
+         ,hide_name=HideName
+         ,hide_number=HideNumber
+         } =
+        case kapps_call:inception(Call) of
+            'undefined' -> get_clid(Endpoint, Properties, Call, <<"external">>);
+            _Else -> maybe_move_privacy(Endpoint, Properties, Call, #clid{})
+        end,
+    [{<<"Outbound-Callee-ID-Name">>, CalleeName}
+    ,{<<"Outbound-Callee-ID-Number">>, CalleeNumber}
+    ,{<<"Outbound-Caller-ID-Name">>, CallerName}
+    ,{<<"Outbound-Caller-ID-Number">>, CallerNumber}
+    ,{<<"Privacy-Hide-Name">>, HideName}
+    ,{<<"Privacy-Hide-Number">>, HideNumber}
+    ].
 
 -spec create_sip_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
@@ -1314,31 +1339,32 @@ generate_sip_headers(Endpoint, Type, Call) ->
 generate_sip_headers(Endpoint, <<"forward">>, Acc, Call) ->
     Inception = kapps_call:inception(Call),
 
-    HeaderFuns = [fun(J) -> add_sip_inbound_headers(J, Endpoint) end
-                 ,fun(J) -> add_sip_outbound_headers(J, Call) end
-                 ,fun(J) -> maybe_add_aor(J, Endpoint, Call) end
-                 ,fun(J) -> maybe_add_invite_format(J, Endpoint, Call) end
-                 ,fun(J) -> maybe_add_diversion(J, Endpoint, Inception, Call) end
+    HeaderFuns = [{fun add_sip_inbound_headers/2, Endpoint}
+                 ,{fun add_sip_outbound_headers/2, Call}
+                 ,{fun maybe_add_aor/3, Endpoint, Call}
+                 ,{fun maybe_add_invite_format/3, Endpoint, Call}
+                 ,{fun maybe_add_diversion/2, {Endpoint, Inception, Call}}
                  ],
-    lists:foldr(fun(F, JObj) -> F(JObj) end, Acc, HeaderFuns);
+    kz_json:exec_first(HeaderFuns, Acc);
 generate_sip_headers(_Endpoint, <<"endpoint">>, Acc, Call) ->
-    HeaderFuns = [fun(J) -> add_sip_outbound_headers(J, Call) end
-                 ,fun(J) -> maybe_add_alert_info(J, Call) end
+    HeaderFuns = [{fun add_sip_outbound_headers/2, Call}
+                 ,{fun maybe_add_alert_info/2, Call}
                  ],
-    lists:foldr(fun(F, JObj) -> F(JObj) end, Acc, HeaderFuns).
+    kz_json:exec_first(HeaderFuns, Acc).
 
--spec maybe_add_diversion(kz_json:object(), kz_json:object(), kz_term:api_binary(), kapps_call:call()) -> kz_json:object().
-maybe_add_diversion(JObj, Endpoint, _Inception, Call) ->
+-spec maybe_add_diversion(kz_json:object(), {kz_json:object(), kz_term:api_binary(), kapps_call:call()}) -> kz_json:object().
+maybe_add_diversion(JObj, {Endpoint, _Inception, Call}) ->
+    CallForward = unconditional_call_forward(Endpoint),
     ShouldAddDiversion = kapps_call:authorizing_id(Call) =:= 'undefined'
-        andalso kz_json:is_true([<<"call_forward">>, <<"keep_caller_id">>], Endpoint, 'false')
+        andalso kzd_call_forward:keep_caller_id(CallForward, 'false')
         andalso kapps_config:get_is_true(?CONFIG_CAT, <<"should_add_diversion_header">>, 'false'),
     case ShouldAddDiversion of
+        'false' -> JObj;
         'true' ->
             Diversion = list_to_binary(["<sip:", kapps_call:request(Call), ">", ";reason=unconditional"]),
             lager:debug("add diversion as ~s", [Diversion]),
             Diversions = kz_json:get_list_value(<<"Diversions">>, JObj, []),
-            kz_json:set_value(<<"Diversions">>, [Diversion | Diversions], JObj);
-        'false' -> JObj
+            kz_json:set_value(<<"Diversions">>, [Diversion | Diversions], JObj)
     end.
 
 -spec add_sip_inbound_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
@@ -1412,8 +1438,7 @@ generate_ccvs(Endpoint, Call) ->
 
 -spec generate_ccvs(kz_json:object(), kapps_call:call(), kz_term:api_object()) -> kz_json:object().
 generate_ccvs(Endpoint, Call, 'undefined' = CallFwd) ->
-    CCVFuns = [fun maybe_auto_answer/1
-              ],
+    CCVFuns = [fun maybe_auto_answer/1],
     Acc0 = {Endpoint, Call, CallFwd, kz_json:new()},
     {_Endpoint, _Call, _CallFwd, CCVs} = lists:foldr(fun(F, Acc) -> F(Acc) end, Acc0, CCVFuns),
     CCVs;
@@ -1436,7 +1461,7 @@ maybe_retain_caller_id({_Endpoint, _Call, 'undefined', _JObj}=Acc) ->
     Acc;
 maybe_retain_caller_id({Endpoint, Call, CallFwd, CCVs}) ->
     {Endpoint, Call, CallFwd
-    ,case kz_json:is_true(<<"keep_caller_id">>, CallFwd) of
+    ,case kzd_call_forward:keep_caller_id(CallFwd) of
          'true' ->
              lager:info("call forwarding will retain caller id"),
              kz_json:set_value(<<"Retain-CID">>, <<"true">>, CCVs);
@@ -1447,7 +1472,7 @@ maybe_retain_caller_id({Endpoint, Call, CallFwd, CCVs}) ->
 -spec maybe_set_owner_id(ccv_acc()) -> ccv_acc().
 maybe_set_owner_id({Endpoint, Call, CallFwd, CCVs}) ->
     {Endpoint, Call, CallFwd
-    ,case kz_json:get_value(<<"owner_id">>, Endpoint) of
+    ,case kzd_endpoint:owner_id(Endpoint) of
          'undefined' -> CCVs;
          OwnerId -> kz_json:set_value(<<"Owner-ID">>, OwnerId, CCVs)
      end
@@ -1464,17 +1489,13 @@ maybe_set_account_id({Endpoint, Call, CallFwd, CCVs}) ->
 maybe_set_call_forward({_Endpoint, _Call, 'undefined', _CCVs}=Acc) ->
     Acc;
 maybe_set_call_forward({_Endpoint, _Call, CallFwd, _CCVs} = Acc) ->
-    Number = kz_json:get_ne_binary_value(<<"number">>, CallFwd),
+    Number = kzd_call_forward:number(CallFwd),
     maybe_set_call_forward(Acc, Number).
 
 -spec maybe_set_call_forward(ccv_acc(), kz_term:api_ne_binary()) -> ccv_acc().
 maybe_set_call_forward(Acc, 'undefined') -> Acc;
 maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
-    LoopBackUri = list_to_binary(["sip:"
-                                 ,Number
-                                 ,"@"
-                                 ,kapps_call:account_realm(Call)
-                                 ]),
+    LoopbackURI = list_to_binary(["sip:", Number, "@", kapps_call:account_realm(Call)]),
     {Endpoint, Call, CallFwd
     ,kz_json:set_values([{<<"Call-Forward">>, <<"true">>}
                         ,{<<"Authorizing-Type">>, <<"device">>}
@@ -1482,7 +1503,7 @@ maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
                         ,{<<"Call-Forward-From">>, kapps_call:inception_type(Call)}
                         ,{<<"Call-Forward-For-UUID">>, kapps_call:other_leg_call_id(Call)}
                         ,{<<"Require-Ignore-Early-Media">>, <<"true">>}
-                        ,{<<"Loopback-Request-URI">>, LoopBackUri}
+                        ,{<<"Loopback-Request-URI">>, LoopbackURI}
                         ,{<<"Ignore-Early-Media">>, <<"true">>}
                         ]
                        ,CCVs
@@ -1499,7 +1520,7 @@ maybe_auto_answer({Endpoint, Call, CallFwd, CCVs}=Acc) ->
 
 -spec maybe_set_confirm_properties(ccv_acc()) -> ccv_acc().
 maybe_set_confirm_properties({Endpoint, Call, CallFwd, CCVs}=Acc) ->
-    case kz_json:is_true(<<"require_keypress">>, CallFwd) of
+    case kzd_call_forward:require_keypress(CallFwd) of
         'false' -> Acc;
         'true' ->
             lager:info("call forwarding configured to require key press"),

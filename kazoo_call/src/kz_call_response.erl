@@ -161,7 +161,7 @@ get_response(Cause, Call) ->
 %% @doc Returns the default action given the error.
 %% @end
 %%------------------------------------------------------------------------------
--spec default_response(kz_term:ne_binary()) -> 'undefined' | kz_term:proplist().
+-spec default_response(kz_term:ne_binary()) -> kz_term:api_proplist().
 default_response(<<"RESPONSE_TO_STATUS_ENQUIRY">>) -> 'undefined';
 default_response(<<"FACILITY_NOT_SUBSCRIBED">>) -> 'undefined';
 default_response(<<"INVALID_MSG_UNSPECIFIED">>) -> 'undefined';
@@ -188,6 +188,7 @@ default_response(<<"USER_CHALLENGE">>) -> 'undefined';
 default_response(<<"BLIND_TRANSFER">>) -> 'undefined';
 default_response(<<"WRONG_MESSAGE">>) -> 'undefined';
 default_response(<<"INTERWORKING">>) -> 'undefined';
+default_response(<<"NO_ENDPOINTS">>) -> 'undefined';
 default_response(<<"UNSPECIFIED">>) -> 'undefined';
 default_response(<<"IE_NONEXIST">>) -> 'undefined';
 default_response(<<"PICKED_OFF">>) -> 'undefined';

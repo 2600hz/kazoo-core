@@ -28,7 +28,12 @@
 -export([no_answer_number/1, no_answer_number/2, set_no_answer_number/2]).
 -export([no_answer_require_keypress/1, no_answer_require_keypress/2, set_no_answer_require_keypress/2]).
 -export([selective/1, selective/2, set_selective/2]).
+-export([selective_direct_calls_only/1, selective_direct_calls_only/2, set_selective_direct_calls_only/2]).
 -export([selective_enabled/1, selective_enabled/2, set_selective_enabled/2]).
+-export([selective_ignore_early_media/1, selective_ignore_early_media/2, set_selective_ignore_early_media/2]).
+-export([selective_keep_caller_id/1, selective_keep_caller_id/2, set_selective_keep_caller_id/2]).
+-export([selective_number/1, selective_number/2, set_selective_number/2]).
+-export([selective_require_keypress/1, selective_require_keypress/2, set_selective_require_keypress/2]).
 -export([selective_rules/1, selective_rules/2, set_selective_rules/2]).
 -export([unconditional/1, unconditional/2, set_unconditional/2]).
 -export([unconditional_direct_calls_only/1, unconditional_direct_calls_only/2, set_unconditional_direct_calls_only/2]).
@@ -44,6 +49,8 @@
 -export([merged/2, merged/3]).
 
 -include("kz_documents.hrl").
+
+-elvis([{elvis_style, god_modules, disable}]).
 
 -type doc() :: kz_json:object().
 -export_type([doc/0]).
@@ -70,6 +77,7 @@ set_direct_calls_only(Doc, DirectCallsOnly) ->
 enabled(Doc) ->
     enabled(Doc, 'false').
 
+%% @doc global is-cfwd-enabled flag, 'false' means all cfwd is off
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
     kz_json:get_boolean_value([<<"enabled">>], Doc, Default).
@@ -140,7 +148,7 @@ set_substitute(Doc, Substitute) ->
 
 -spec busy(doc()) -> kz_term:api_object().
 busy(Doc) ->
-    busy(Doc, undefined).
+    busy(Doc, 'undefined').
 
 -spec busy(doc(), Default) -> kz_json:object() | Default.
 busy(Doc, Default) ->
@@ -224,7 +232,7 @@ set_busy_require_keypress(Doc, BusyRequireKeypress) ->
 
 -spec no_answer(doc()) -> kz_term:api_object().
 no_answer(Doc) ->
-    no_answer(Doc, undefined).
+    no_answer(Doc, 'undefined').
 
 -spec no_answer(doc(), Default) -> kz_json:object() | Default.
 no_answer(Doc, Default) ->
@@ -308,7 +316,7 @@ set_no_answer_require_keypress(Doc, NoAnswerRequireKeypress) ->
 
 -spec selective(doc()) -> kz_term:api_object().
 selective(Doc) ->
-    selective(Doc, undefined).
+    selective(Doc, 'undefined').
 
 -spec selective(doc(), Default) -> kz_json:object() | Default.
 selective(Doc, Default) ->
@@ -317,6 +325,18 @@ selective(Doc, Default) ->
 -spec set_selective(doc(), kz_json:object()) -> doc().
 set_selective(Doc, Selective) ->
     kz_json:set_value([<<"selective">>], Selective, Doc).
+
+-spec selective_direct_calls_only(doc()) -> boolean().
+selective_direct_calls_only(Doc) ->
+    selective_direct_calls_only(Doc, 'false').
+
+-spec selective_direct_calls_only(doc(), Default) -> boolean() | Default.
+selective_direct_calls_only(Doc, Default) ->
+    kz_json:get_boolean_value([<<"selective">>, <<"direct_calls_only">>], Doc, Default).
+
+-spec set_selective_direct_calls_only(doc(), boolean()) -> doc().
+set_selective_direct_calls_only(Doc, SelectiveDirectCallsOnly) ->
+    kz_json:set_value([<<"selective">>, <<"direct_calls_only">>], SelectiveDirectCallsOnly, Doc).
 
 -spec selective_enabled(doc()) -> boolean().
 selective_enabled(Doc) ->
@@ -329,6 +349,54 @@ selective_enabled(Doc, Default) ->
 -spec set_selective_enabled(doc(), boolean()) -> doc().
 set_selective_enabled(Doc, SelectiveEnabled) ->
     kz_json:set_value([<<"selective">>, <<"enabled">>], SelectiveEnabled, Doc).
+
+-spec selective_ignore_early_media(doc()) -> boolean().
+selective_ignore_early_media(Doc) ->
+    selective_ignore_early_media(Doc, 'true').
+
+-spec selective_ignore_early_media(doc(), Default) -> boolean() | Default.
+selective_ignore_early_media(Doc, Default) ->
+    kz_json:get_boolean_value([<<"selective">>, <<"ignore_early_media">>], Doc, Default).
+
+-spec set_selective_ignore_early_media(doc(), boolean()) -> doc().
+set_selective_ignore_early_media(Doc, SelectiveIgnoreEarlyMedia) ->
+    kz_json:set_value([<<"selective">>, <<"ignore_early_media">>], SelectiveIgnoreEarlyMedia, Doc).
+
+-spec selective_keep_caller_id(doc()) -> boolean().
+selective_keep_caller_id(Doc) ->
+    selective_keep_caller_id(Doc, 'true').
+
+-spec selective_keep_caller_id(doc(), Default) -> boolean() | Default.
+selective_keep_caller_id(Doc, Default) ->
+    kz_json:get_boolean_value([<<"selective">>, <<"keep_caller_id">>], Doc, Default).
+
+-spec set_selective_keep_caller_id(doc(), boolean()) -> doc().
+set_selective_keep_caller_id(Doc, SelectiveKeepCallerId) ->
+    kz_json:set_value([<<"selective">>, <<"keep_caller_id">>], SelectiveKeepCallerId, Doc).
+
+-spec selective_number(doc()) -> kz_term:api_binary().
+selective_number(Doc) ->
+    selective_number(Doc, 'undefined').
+
+-spec selective_number(doc(), Default) -> binary() | Default.
+selective_number(Doc, Default) ->
+    kz_json:get_binary_value([<<"selective">>, <<"number">>], Doc, Default).
+
+-spec set_selective_number(doc(), binary()) -> doc().
+set_selective_number(Doc, SelectiveNumber) ->
+    kz_json:set_value([<<"selective">>, <<"number">>], SelectiveNumber, Doc).
+
+-spec selective_require_keypress(doc()) -> boolean().
+selective_require_keypress(Doc) ->
+    selective_require_keypress(Doc, 'true').
+
+-spec selective_require_keypress(doc(), Default) -> boolean() | Default.
+selective_require_keypress(Doc, Default) ->
+    kz_json:get_boolean_value([<<"selective">>, <<"require_keypress">>], Doc, Default).
+
+-spec set_selective_require_keypress(doc(), boolean()) -> doc().
+set_selective_require_keypress(Doc, SelectiveRequireKeypress) ->
+    kz_json:set_value([<<"selective">>, <<"require_keypress">>], SelectiveRequireKeypress, Doc).
 
 -spec selective_rules(doc()) -> kz_term:api_objects().
 selective_rules(Doc) ->
@@ -344,7 +412,7 @@ set_selective_rules(Doc, SelectiveRules) ->
 
 -spec unconditional(doc()) -> kz_term:api_object().
 unconditional(Doc) ->
-    unconditional(Doc, undefined).
+    unconditional(Doc, 'undefined').
 
 -spec unconditional(doc(), Default) -> kz_json:object() | Default.
 unconditional(Doc, Default) ->
@@ -426,9 +494,9 @@ unconditional_require_keypress(Doc, Default) ->
 set_unconditional_require_keypress(Doc, UnconditionalRequireKeypress) ->
     kz_json:set_value([<<"unconditional">>, <<"require_keypress">>], UnconditionalRequireKeypress, Doc).
 
--spec unconditional_substitute(doc()) -> boolean().
+-spec unconditional_substitute(doc()) -> kz_term:api_boolean().
 unconditional_substitute(Doc) ->
-    unconditional_substitute(Doc, 'true').
+    unconditional_substitute(Doc, 'undefined').
 
 -spec unconditional_substitute(doc(), Default) -> boolean() | Default.
 unconditional_substitute(Doc, Default) ->
@@ -437,8 +505,6 @@ unconditional_substitute(Doc, Default) ->
 -spec set_unconditional_substitute(doc(), boolean()) -> doc().
 set_unconditional_substitute(Doc, UnconditionalSubstitute) ->
     kz_json:set_value([<<"unconditional">>, <<"substitute">>], UnconditionalSubstitute, Doc).
-
-
 
 %% @doc validate an endpoint (account/user/device) doc's call forwarding settings
 -spec validate(doc()) -> 'ok' | kazoo_documents:doc_validation_errors().
@@ -459,20 +525,20 @@ validate_return(Errors) -> Errors.
 validate_fun(CallForward) ->
     fun({Name, Fun}, Acc) when is_function(Fun)->
             case merged_call_forward_settings(CallForward, Fun(CallForward)) of
-                undefined -> Acc;
+                'undefined' -> Acc;
                 JObj -> validate_call_forward(Name, JObj, Acc)
             end;
        ({Name, ItemObj}, Acc) ->
             case merged_call_forward_settings(CallForward, ItemObj) of
-                undefined -> Acc;
+                'undefined' -> Acc;
                 JObj -> validate_call_forward(Name, JObj, Acc)
             end;
        ({Name, Fun, ItemName, ArrayFun}, Acc) ->
             case merged_call_forward_settings(CallForward, Fun(CallForward)) of
-                undefined -> Acc;
+                'undefined' -> Acc;
                 JObj ->
                     case ArrayFun(JObj) of
-                        undefined -> Acc;
+                        'undefined' -> Acc;
                         Items -> validate_array(JObj, Name, ItemName, Items, Acc)
                     end
             end
@@ -517,8 +583,8 @@ validate_enabled_setting('true', <<>>, Type, Errors) ->
 validate_enabled_setting(_Enabled, _Number, _Index, Errors) -> Errors.
 
 -spec merged_call_forward_settings(doc(), kz_term:api_object()) -> kz_term:api_object().
-merged_call_forward_settings(_Top, undefined) -> undefined;
-merged_call_forward_settings(Top, Type) ->
+merged_call_forward_settings(_Top, 'undefined') -> 'undefined';
+merged_call_forward_settings(Top, CfwdType) ->
     Properties = [{fun direct_calls_only/2, fun set_direct_calls_only/2}
                  ,{fun enabled/2, fun set_enabled/2}
                  ,{fun ignore_early_media/2, fun set_ignore_early_media/2}
@@ -527,14 +593,14 @@ merged_call_forward_settings(Top, Type) ->
                  ,{fun require_keypress/2, fun set_require_keypress/2}
                  ,{fun substitute/2, fun set_substitute/2}
                  ],
-    Merged = lists:foldl(merge_call_forward_setting_fun(Type), Top, Properties),
+    Merged = lists:foldl(merge_call_forward_setting_fun(CfwdType), Top, Properties),
     lists:foldl(merge_call_forward_setting_fun(Merged), kz_json:new(), Properties).
 
 merge_call_forward_setting_fun(Override) ->
-    fun({Getter, Setter}, Acc) ->
-            case Getter(Override, undefined) of
-                undefined -> Acc;
-                Value -> Setter(Acc, Value)
+    fun({Getter, Setter}, MergedCfwd) ->
+            case Getter(Override, 'undefined') of
+                'undefined' -> MergedCfwd;
+                Value -> Setter(MergedCfwd, Value)
             end
     end.
 
@@ -545,17 +611,17 @@ is_legacy(CallForward) ->
             ,fun busy/1
             ,fun selective/1
             ],
-    not lists:any(fun(TypeFun) -> TypeFun(CallForward) =/= undefined end, Types).
+    not lists:any(fun(TypeFun) -> TypeFun(CallForward) =/= 'undefined' end, Types).
 
 -type merged_getter() :: fun((kz_json:object()) -> kz_term:api_object()).
 
 -spec merged(kz_json:object(), merged_getter()) -> kz_term:api_object().
 merged(CallForward, Fun) ->
-    merged(CallForward, Fun, undefined).
+    merged(CallForward, Fun, 'undefined').
 
 -spec merged(kz_json:object(), merged_getter(), Default) -> kz_json:object() | Default.
 merged(CallForward, Fun, Default) ->
     case merged_call_forward_settings(CallForward, Fun(CallForward)) of
-        undefined -> Default;
+        'undefined' -> Default;
         JObj -> JObj
     end.
