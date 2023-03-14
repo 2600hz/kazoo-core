@@ -519,20 +519,20 @@ validate_enabled_setting(_Enabled, _Number, _Index, Errors) -> Errors.
 -spec merged_call_forward_settings(doc(), kz_term:api_object()) -> kz_term:api_object().
 merged_call_forward_settings(_Top, undefined) -> undefined;
 merged_call_forward_settings(Top, Type) ->
-    Properties = [{fun direct_calls_only/1, fun set_direct_calls_only/2}
-                 ,{fun enabled/1, fun set_enabled/2}
-                 ,{fun ignore_early_media/1, fun set_ignore_early_media/2}
-                 ,{fun keep_caller_id/1, fun set_keep_caller_id/2}
-                 ,{fun number/1, fun set_number/2}
-                 ,{fun require_keypress/1, fun set_require_keypress/2}
-                 ,{fun substitute/1, fun set_substitute/2}
+    Properties = [{fun direct_calls_only/2, fun set_direct_calls_only/2}
+                 ,{fun enabled/2, fun set_enabled/2}
+                 ,{fun ignore_early_media/2, fun set_ignore_early_media/2}
+                 ,{fun keep_caller_id/2, fun set_keep_caller_id/2}
+                 ,{fun number/2, fun set_number/2}
+                 ,{fun require_keypress/2, fun set_require_keypress/2}
+                 ,{fun substitute/2, fun set_substitute/2}
                  ],
     Merged = lists:foldl(merge_call_forward_setting_fun(Type), Top, Properties),
     lists:foldl(merge_call_forward_setting_fun(Merged), kz_json:new(), Properties).
 
 merge_call_forward_setting_fun(Override) ->
     fun({Getter, Setter}, Acc) ->
-            case Getter(Override) of
+            case Getter(Override, undefined) of
                 undefined -> Acc;
                 Value -> Setter(Acc, Value)
             end
