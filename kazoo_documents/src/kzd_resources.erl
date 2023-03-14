@@ -16,12 +16,13 @@
 -export([caller_id_options_type/1, caller_id_options_type/2, set_caller_id_options_type/2]).
 -export([cid_rules/1, cid_rules/2, set_cid_rules/2]).
 -export([classifiers/1, classifiers/2, set_classifiers/2]).
--export([classifier_emergency/2,   classifier_emergency/3,   set_classifier_emergency/3]).
--export([classifier_enabled/2,     classifier_enabled/3,     set_classifier_enabled/3]).
--export([classifier_prefix/2,      classifier_prefix/3,      set_classifier_prefix/3]).
--export([classifier_regex/2,       classifier_regex/3,       set_classifier_regex/3]).
--export([classifier_suffix/2,      classifier_suffix/3,      set_classifier_suffix/3]).
--export([classifier_weight_cost/2, classifier_weight_cost/3, set_classifier_weight_cost/3]).
+-export([classifier_emergency/2,      classifier_emergency/3,   set_classifier_emergency/3]).
+-export([classifier_enabled/2,        classifier_enabled/3,     set_classifier_enabled/3]).
+-export([classifier_include_pidflo/2, classifier_include_pidflo/3, set_classifier_include_pidflo/3]).
+-export([classifier_prefix/2,         classifier_prefix/3,      set_classifier_prefix/3]).
+-export([classifier_regex/2,          classifier_regex/3,       set_classifier_regex/3]).
+-export([classifier_suffix/2,         classifier_suffix/3,      set_classifier_suffix/3]).
+-export([classifier_weight_cost/2,    classifier_weight_cost/3, set_classifier_weight_cost/3]).
 -export([emergency/1, emergency/2, set_emergency/2]).
 -export([enabled/1, enabled/2, set_enabled/2]).
 -export([flags/1, flags/2, set_flags/2]).
@@ -148,6 +149,18 @@ classifier_enabled(Doc, ClassifierName, Default) ->
 -spec set_classifier_enabled(doc(), kz_json:key(), boolean()) -> doc().
 set_classifier_enabled(Doc, ClassifierName, ClassifiersEnabled) ->
     kz_json:set_value([<<"classifiers">>, ClassifierName, <<"enabled">>], ClassifiersEnabled, Doc).
+
+-spec classifier_include_pidflo(doc(), kz_json:key()) -> boolean().
+classifier_include_pidflo(Doc, ClassifierName) ->
+    classifier_include_pidflo(Doc, ClassifierName, 'false').
+
+-spec classifier_include_pidflo(doc(), kz_json:key(), Default) -> boolean() | Default.
+classifier_include_pidflo(Doc, ClassifierName, Default) ->
+    kz_json:get_boolean_value([<<"classifiers">>, ClassifierName, <<"include_pidflo">>], Doc, Default).
+
+-spec set_classifier_include_pidflo(doc(), kz_json:key(), boolean()) -> doc().
+set_classifier_include_pidflo(Doc, ClassifierName, ClassifiersIncludePidflo) ->
+    kz_json:set_value([<<"classifiers">>, ClassifierName, <<"include_pidflo">>], ClassifiersIncludePidflo, Doc).
 
 -spec classifier_prefix(doc(), kz_json:key()) -> kz_term:api_binary().
 classifier_prefix(Doc, ClassifierName) ->
