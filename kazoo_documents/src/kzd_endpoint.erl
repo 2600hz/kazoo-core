@@ -116,7 +116,7 @@ presence_id(Endpoint) ->
 
 -spec presence_aliases(endpoint()) -> kz_term:api_ne_binaries().
 presence_aliases(Endpoint) ->
-    presence_aliases(Endpoint, undefined).
+    presence_aliases(Endpoint, 'undefined').
 
 -spec presence_aliases(endpoint(), Default) -> kz_term:ne_binaries() | Default.
 presence_aliases(Endpoint, Default) ->
