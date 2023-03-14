@@ -2,14 +2,12 @@
     "_id": "239d0734328f7043629d425ce7d93a4d",
     "_rev": "1-30a6a72134263f12b9a770950d5f410e",
     "call_forward": {
-        "unconditional": {
-            "direct_calls_only": false,
-            "enabled": false,
-            "ignore_early_media": true,
-            "keep_caller_id": true,
-            "require_keypress": true,
-            "substitute": true
-        }
+        "direct_calls_only": false,
+        "enabled": false,
+        "ignore_early_media": true,
+        "keep_caller_id": true,
+        "require_keypress": true,
+        "substitute": true
     },
     "call_restriction": {
         "caribbean": {

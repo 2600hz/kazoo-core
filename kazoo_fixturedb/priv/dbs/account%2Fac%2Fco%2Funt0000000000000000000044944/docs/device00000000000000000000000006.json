@@ -2,9 +2,7 @@
     "_id": "device00000000000000000000000006",
     "_rev": "1-7280940a25dcb8eac5ab129dd8fbf5c6",
     "call_forward": {
-        "unconditional": {
-            "enabled": false
-        }
+        "enabled": false
     },
     "call_restriction": {
         "caribbean": {

@@ -10,16 +10,13 @@
         "require_keypress": false
     },
     "call_forward": {
+        "direct_calls_only": false,
         "enabled": true,
-        "unconditional": {
-            "direct_calls_only": false,
-            "enabled": true,
-            "ignore_early_media": true,
-            "keep_caller_id": true,
-            "number": "+13334445555",
-            "require_keypress": false,
-            "substitute": false
-        }
+        "ignore_early_media": true,
+        "keep_caller_id": true,
+        "number": "+13334445555",
+        "require_keypress": false,
+        "substitute": false
     },
     "call_recording": {},
     "call_restriction": {

@@ -9,6 +9,15 @@
         "number": "+12223334455",
         "require_keypress": false
     },
+    "call_forward": {
+        "direct_calls_only": false,
+        "enabled": true,
+        "ignore_early_media": true,
+        "keep_caller_id": true,
+        "number": "+12223334455",
+        "require_keypress": false,
+        "substitute": false
+    },
     "call_recording": {},
     "call_restriction": {
         "caribbean": {
