@@ -133,7 +133,7 @@ record_call_command(Data, Call) ->
            ,{<<"Recorder">>, Recorder}
            ,{<<"ID">>, MediaDocId}
            ,{<<"Data">>, base64:encode(term_to_binary(Data))}
-            | kz_json:get_list_value(<<"recording_vars">>, Data, [])
+           | kz_json:get_list_value(<<"recording_vars">>, Data, [])
            ],
     Media = props:filter_undefined(
               [{<<"Application-Name">>, <<"record_call">>}
@@ -149,7 +149,7 @@ record_call_command(Data, Call) ->
               ,{<<"Channels-As-Stereo">>, RecordAsStereo}
               ,{<<"Call-ID">>, CallId}
               ,{<<"Msg-ID">>, kz_binary:rand_hex(16)}
-               | kz_api:default_headers(<<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
+              | kz_api:default_headers(<<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
               ]
              ),
     kz_json:from_list(Media).
