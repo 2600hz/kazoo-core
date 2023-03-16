@@ -108,6 +108,9 @@ to_pos_integer(Value, Default) ->
 
 -spec get_global(api_account(), kz_term:ne_binary(), config_key()) ->
           kz_json:api_json_term().
+get_global(Account, Category, Key)
+  when not is_binary(Category) ->
+    get_global(Account, kz_term:to_binary(Category), Key);
 get_global(Account, Category, Key) ->
     get_global(Account, Category, Key, 'undefined').
 
