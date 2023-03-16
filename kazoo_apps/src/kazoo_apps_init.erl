@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2021, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc Init to be done.
 %%% @author James Aimonetti
 %%%
@@ -144,4 +144,10 @@ start_distribution() ->
 
 -spec set_config() -> 'ok'.
 set_config() ->
-    persistent_term:put(kz_config, fun kapps_config:get/2).
+    Terms = [{'kz_account_config', fun kapps_account_config:get_global/3}
+            ,{'kz_config', fun kapps_config:get/2}
+            ],
+    lists:foreach(fun set_config/1, Terms).
+
+set_config({Key, Value}) ->
+    persistent_term:put(Key, Value).

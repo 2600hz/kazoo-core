@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,7 +29,8 @@
 
 -compile({no_auto_import, [get/1]}).
 
--type app() :: atom().
+-type account_id() :: kz_term:api_ne_binary().
+-type app() :: atom() | {atom(), account_id()}.
 -type app_key() :: binary() | kz_term:binaries().
 
 -spec get_pos_integer(app(), app_key()) -> kz_term:api_pos_integer().
@@ -254,7 +255,28 @@ as_boolean(Value, _Default)
   when is_boolean(Value) -> Value;
 as_boolean(_Value, Default) -> Default.
 
+-spec fetch_account_value(app(), account_id(), app_key()) -> 'undefined' | {'ok', term()}.
+fetch_account_value(App, AccountId, Key) ->
+    %% default getter is to fetch Key from the app's environment
+    Default = persistent_term:get('kz_account_config', fun get_env/3),
+    Fun = persistent_term:get({'kz_account_config', App}, Default),
+    fetch_account_value(App, AccountId, Key, Fun).
+
+fetch_account_value(App, AccountId, Key, Fun) ->
+    case Fun(AccountId, App, Key) of
+        'undefined' -> 'undefined';
+        {'ok', Value} -> {'ok', Value};
+        Value -> {'ok', Value}
+    end.
+
 -spec fetch_value(app(), app_key()) -> 'undefined' | {'ok', term()}.
+fetch_value({App, undefined}, Key) ->
+    fetch_value(App, Key);
+fetch_value({App, AccountId}, Key)
+  when not is_binary(AccountId) ->
+    fetch_value({App, kz_term:to_binary(AccountId)}, Key);
+fetch_value({App, AccountId}, Key) ->
+    fetch_account_value(App, AccountId, Key);
 fetch_value(App, Key) ->
     %% default getter is to fetch Key from the app's environment
     Default = persistent_term:get('kz_config', fun get_env/2),
@@ -267,6 +289,9 @@ fetch_value(App, Key, Fun) ->
         {'ok', Value} -> {'ok', Value};
         Value -> {'ok', Value}
     end.
+
+get_env(AccountId, App, Keys) ->
+    get_env(App, [AccountId | Keys]).
 
 get_env(App, Keys) ->
     case from_app_env(App, Keys) of
