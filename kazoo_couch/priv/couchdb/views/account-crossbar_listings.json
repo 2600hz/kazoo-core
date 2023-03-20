@@ -189,7 +189,7 @@
                 "  if (doc.ctu && doc.ctu.enabled) features.push('ctu');",
                 "  if (doc.desktop && doc.desktop.enabled) features.push('desktop');",
                 "  if (doc._attachments && doc._attachments.photo) features.push('avatar');",
-                "  if (doc.chat && doc.chat.getstream && doc.chat.getstream.enabled) features.push('getstream');",
+                "  if (doc.pvt_chat && doc.pvt_chat.getstream && doc.pvt_chat.getstream.enabled) features.push('getstream');",
                 "  /* END KEEP IN SYNC */",
                 "",
                 "  var defaultKey = [doc.pvt_type, doc._id];",
