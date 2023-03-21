@@ -95,9 +95,11 @@ push_properties(Endpoint) ->
     case kz_json:get_ne_binary_value(<<"Token-Type">>, PushJObj) of
         'undefined' -> PushJObj;
         _ ->
-            Headers = kz_json:from_list([{<<"Endpoint-ID">>, kzd_endpoint:id(Endpoint)}
-                                        ,{<<"Account-ID">>, kzd_endpoint:account_id(Endpoint)}
-                                        ]),
+            Headers = kz_json:from_list(
+                        [{<<"Endpoint-ID">>, kzd_endpoint:id(Endpoint)}
+                        ,{<<"Account-ID">>, kzd_endpoint:account_id(Endpoint)}
+                        ]
+                       ),
             kz_json:merge(PushJObj, Headers)
     end.
 

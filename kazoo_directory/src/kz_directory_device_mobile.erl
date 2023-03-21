@@ -99,12 +99,16 @@ sip_route(Endpoint) ->
         Route -> Route
     end.
 
+mobile_route_uri() ->
+    kapps_config:get_ne_binary(?MOBILE_CONFIG_CAT, <<"path">>).
+
 -spec sip_route_uri(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route_uri(_Endpoint) ->
-    Path = kapps_config:get_binary(?MOBILE_CONFIG_CAT, <<"path">>, ?DEFAULT_MOBILE_PATH),
-    case kz_term:is_empty(Path) of
-        'false' -> <<"sip:", Path/binary>>;
-        'true' -> undefined
+    case mobile_route_uri() of
+        'undefined' -> 'undefined';
+        <<"sip:", _/binary>> = Path -> Path;
+        <<"<sip:", _/binary>> = Path -> Path;
+        Path -> <<"sip:", Path/binary>>
     end.
 
 -spec sip_interface(kz_json:object()) -> kz_term:api_ne_binary().

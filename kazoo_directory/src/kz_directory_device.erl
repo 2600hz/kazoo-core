@@ -23,36 +23,67 @@ profile(EndpointId, AccountId) ->
 
 -spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
+    lager:debug("looking up device profile ~s@~s"
+               ,[EndpointId, AccountId]
+               ),
     case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
         {'ok', Profile} -> {'ok', Profile};
-        {'error', 'not_found'} -> fetch_profile(EndpointId, AccountId, Options)
+        {'error', 'not_found'} ->
+            fetch_profile(EndpointId, AccountId, Options)
     end.
 
 -spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 fetch_profile(EndpointId, AccountId, Options) ->
     case kz_endpoint:get(EndpointId, AccountId, Options) of
         {'ok', Endpoint} -> fetch_profile(EndpointId, AccountId, Endpoint, Options);
-        Error -> Error
+        Error ->
+            lager:warning("unabled to fetch endpoint ~s in account ~s: ~p"
+                         ,[EndpointId, AccountId, Error]
+                         ),
+            Error
     end.
 
 -spec fetch_profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
 fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
     case kz_json:get_ne_binary_value(<<"Endpoint-Type">>, Endpoint) of
-        <<"device">> ->
-            case get_device_module(Endpoint) of
-                'undefined' -> {'error', 'no_device_module'};
-                Module -> build_and_cache(EndpointId, AccountId, Endpoint, Options, Module)
-            end;
+        <<"device">> -> build_and_cache(EndpointId, AccountId, Endpoint, Options);
         _Type ->
-            lager:debug("endpoint type ~s", [_Type]),
+            lager:warning("expected a device endpoint but ~s is of type ~s"
+                         ,[EndpointId, _Type]
+                         ),
             {'error', 'not_device'}
     end.
 
--spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
+-spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
+          {'ok', kz_json:object()}.
+build_and_cache(EndpointId, AccountId, Endpoint, Options) ->
+    case get_device_module(Endpoint) of
+        'undefined' ->
+            lager:warning("unable to determine endpoint module for ~s@~s"
+                         ,[EndpointId, AccountId]
+                         ),
+            {'error', 'no_device_module'};
+        Module ->
+            build_and_cache(EndpointId, AccountId, Endpoint, Options, Module)
+    end.
+
+-spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) ->
+          {'ok', kz_json:object()}.
 build_and_cache(EndpointId, AccountId, Endpoint, Options, Module) ->
+    lager:debug("building profile ~s@~s with module ~s"
+               ,[EndpointId, AccountId, Module]
+               ),
     {'ok', Profile} = build(EndpointId, AccountId, Endpoint, Options, Module),
     Origins = cache_origin(EndpointId, AccountId, Endpoint),
-    cache(EndpointId, AccountId, Profile, Origins).
+    ProfileUpdates = [{<<"Endpoint-Options">>, kz_json:from_list(Options)}
+                     ,{<<"Users">>
+                      ,[<<UserId/binary, "@", AccountId/binary>>
+                            || {'db', _Db, UserId} <- Origins
+                                   ,not lists:member(UserId, [EndpointId, AccountId])
+                       ]
+                      }
+                     ],
+    cache(EndpointId, AccountId, kz_json:set_values(ProfileUpdates, Profile), Origins).
 
 -spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), list()) -> {'ok', kz_json:object()}.
 cache(EndpointId, AccountId, Profile, Origins) ->
@@ -63,27 +94,62 @@ cache(EndpointId, AccountId, Profile, Origins) ->
     {'ok', Profile}.
 
 -spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> 'ok'.
-cache_callback({EndpointId, AccountId}, CachedValue, 'erase') ->
-    lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
+cache_callback({EndpointId, AccountId}, CachedProfile, 'erase') ->
+    lager:debug("profile ~s@~s erased from cache, rebuilding"
+               ,[EndpointId, AccountId]
+               ),
     timer:sleep(kz_term:to_integer(?MILLISECONDS_IN_SECOND * 0.15)),
-    case kz_endpoint:get(EndpointId, AccountId) of
-        {'ok', Endpoint} ->
-            Module = get_device_module(Endpoint),
-            {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, [], Module),
-            maybe_notify(EndpointId, AccountId, kz_json:are_equal(NewProfile, CachedValue)),
-            Origins = cache_origin(EndpointId, AccountId, Endpoint),
-            cache(EndpointId, AccountId, NewProfile, Origins);
-        _Error -> notify(EndpointId, AccountId)
+    Options = kz_json:to_proplist(
+                kz_json:get_ne_json_value(<<"Endpoint-Options">>, CachedProfile, kz_json:new())
+               ),
+    case fetch_profile(EndpointId, AccountId, Options) of
+        {'ok', UpdatedProfile} ->
+            maybe_clear(UpdatedProfile, CachedProfile);
+        _Error -> clear(CachedProfile)
     end;
 cache_callback(_, _, _) -> 'ok'.
 
-maybe_notify(EndpointId, AccountId, 'true') ->
-    lager:debug("directory cache erased key hasn't changed (~s / ~s)", [EndpointId, AccountId]);
-maybe_notify(EndpointId, AccountId, 'false') -> notify(EndpointId, AccountId).
+-spec maybe_clear(kz_json:object(), kz_json:object()) -> 'ok'.
+maybe_clear(UpdatedProfile, CachedProfile) ->
+    case kz_json:are_equal(UpdatedProfile, CachedProfile) of
+        'true' -> 'ok';
+        'false' ->
+            erase_new_users(UpdatedProfile, CachedProfile),
+            clear(CachedProfile)
+    end.
 
-notify(EndpointId, AccountId) ->
-    kz_directory_cache:clear(<<EndpointId/binary, "@", AccountId/binary>>),
-    lager:debug("directory cache erased key changed (~s / ~s)", [EndpointId, AccountId]).
+-spec erase_new_users(kz_json:object(), kz_json:object()) -> 'ok'.
+erase_new_users(UpdatedProfile, CachedProfile) ->
+    UpdatedUsers =
+        sets:from_list(
+          kz_json:get_ne_binaries(<<"Users">>, UpdatedProfile, [])
+         ),
+    CachedUsers =
+        sets:from_list(
+          kz_json:get_ne_binaries(<<"Users">>, CachedProfile, [])
+         ),
+    NewUsers = sets:to_list(
+                 sets:subtract(UpdatedUsers, CachedUsers)
+                ),
+    _ = lists:map(fun erase_new_user/1, NewUsers),
+    'ok'.
+
+-spec erase_new_user(kz_term:ne_binary()) -> 'ok'.
+erase_new_user(User) ->
+    case binary:split(User, <<"@">>) of
+        [UserId, AccountId] ->
+            lager:debug("erasing associated cached user profile ~s@~s"
+                       ,[UserId, AccountId]
+                       ),
+            kz_cache:erase_local(?CACHE_NAME, {UserId, AccountId});
+        _Else -> 'ok'
+    end.
+
+-spec clear(kz_json:object()) -> 'ok'.
+clear(Profile) ->
+    EndpointId = kz_json:get_ne_binary_value(<<"User-ID">>, Profile),
+    AccountId = kz_json:get_ne_binary_value(<<"Domain-Name">>, Profile),
+    kz_directory_cache:clear(<<EndpointId/binary, "@", AccountId/binary>>).
 
 -spec cache_origin(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> list().
 cache_origin(EndpointId, AccountId, JObj) ->
@@ -134,8 +200,8 @@ build_dial_string(#{profile := Profile, endpoint := Endpoint} = Context) ->
     Context#{profile => kz_json:set_value(<<"Endpoint-Dial-String">>, DialString, Profile)}.
 
 is_meta_dial_enabled(#{endpoint := Endpoint}) ->
-    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"device">>], Endpoint, undefined) of
-        undefined -> kz_app_config:is_true(?APP, <<"metadial.device">>, true);
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"device">>], Endpoint, 'undefined') of
+        'undefined' -> kz_app_config:is_true(?APP, <<"metadial.device">>, 'true');
         Override -> Override
     end.
 
@@ -154,13 +220,13 @@ dial_string_by_type(Context, _Other) ->
 
 app_dial_string(#{endpoint := Endpoint} = Context) ->
     case kz_json:get_ne_binary_value([<<"pvt_application">>, <<"dialstring">>], kz_doc:private_fields(Endpoint)) of
-        undefined -> dial_string(Context);
+        'undefined' -> dial_string(Context);
         AppDialString -> AppDialString
     end.
 
 dial_string(#{profile := Profile} = Context) ->
     case kz_json:get_ne_binary_value(<<"SIP-Invite-Route-URI">>, Profile) of
-        undefined -> kz_dial_string(Context);
+        'undefined' -> kz_dial_string(Context);
         Uri -> sip_dial_string(Context, Uri)
     end.
 
@@ -173,8 +239,8 @@ sip_dial_string(#{profile := Profile}, Uri) ->
 
 kz_dial_string(Context) ->
     case is_meta_dial_enabled(Context) of
-        true -> kz_binary:join([kz_contact(Context), meta_dial_string(Context)], <<",">>);
-        false -> kz_contact(Context)
+        'true' -> kz_binary:join([kz_contact(Context), meta_dial_string(Context)], <<",">>);
+        'false' -> kz_contact(Context)
     end.
 
 default_kz_contact_api() ->
@@ -293,7 +359,7 @@ convert_endpoint_type(<<"mobile">>) -> <<"mobile">>;
 convert_endpoint_type(<<"application">>) -> <<"sip">>;
 convert_endpoint_type(<<"meta">>) -> <<"sip">>;
 convert_endpoint_type(_Else) ->
-    lager:info("failed to convert endpoint type ~s", [_Else]),
+    lager:info("unexpected endpoint type ~s", [_Else]),
     'undefined'.
 
 -spec maybe_guess_endpoint_type(kz_json:object()) -> kz_term:ne_binary().
@@ -346,8 +412,8 @@ owner_id(Endpoint, CCVs) ->
 
 -spec is_calculate_presence_id_enabled(kz_json:object()) -> boolean().
 is_calculate_presence_id_enabled(Endpoint) ->
-    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"calculate">>], Endpoint, undefined) of
-        undefined -> kz_app_config:is_true(?APP, <<"presence_id.calculate">>, true);
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"calculate">>], Endpoint, 'undefined') of
+        'undefined' -> kz_app_config:is_true(?APP, <<"presence_id.calculate">>, 'true');
         Override -> Override
     end.
 
@@ -364,7 +430,7 @@ presence_id(false, Endpoint, CCVs) ->
 -spec calculate_presence_id(kz_json:object()) -> kz_term:api_ne_binary().
 calculate_presence_id(Endpoint) ->
     case kzd_endpoint:presence_id(Endpoint) of
-        undefined -> kzd_devices:calculate_presence_id(Endpoint);
+        'undefined' -> kzd_devices:calculate_presence_id(Endpoint);
         PresenceId -> maybe_fix_presence_id(Endpoint, PresenceId)
     end.
 
@@ -374,18 +440,18 @@ presence_id(Endpoint) ->
 
 -spec is_presence_id_ensure_realm_enabled(kz_json:object()) -> boolean().
 is_presence_id_ensure_realm_enabled(Endpoint) ->
-    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"ensure_realm">>], Endpoint, undefined) of
-        undefined -> kz_app_config:is_true(?APP, <<"presence_id.ensure_realm">>, true);
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"ensure_realm">>], Endpoint, 'undefined') of
+        'undefined' -> kz_app_config:is_true(?APP, <<"presence_id.ensure_realm">>, true);
         Override -> Override
     end.
 
 -spec maybe_fix_presence_id(kz_json:object(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
-maybe_fix_presence_id(_Endpoint, undefined) ->
-    undefined;
+maybe_fix_presence_id(_Endpoint, 'undefined') ->
+    'undefined';
 maybe_fix_presence_id(Endpoint, PresenceId) ->
     case is_presence_id_ensure_realm_enabled(Endpoint) of
-        true -> ensure_presence_id_realm(Endpoint, PresenceId);
-        false -> PresenceId
+        'true' -> ensure_presence_id_realm(Endpoint, PresenceId);
+        'false' -> PresenceId
     end.
 
 ensure_presence_id_realm(Endpoint, PresenceId) ->
