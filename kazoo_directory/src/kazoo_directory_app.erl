@@ -26,7 +26,7 @@
 %%------------------------------------------------------------------------------
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_Type, _Args) ->
-    _ = kz_directory_cache:bind(),
+    _ = kz_directory_cache:clear(),
     kapi_directory:declare_exchanges(),
     kazoo_directory_sup:start_link().
 
@@ -36,5 +36,4 @@ start(_Type, _Args) ->
 %%------------------------------------------------------------------------------
 -spec stop(any()) -> 'ok'.
 stop(_State) ->
-    kz_directory_cache:unbind(),
     'ok'.
