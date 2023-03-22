@@ -125,7 +125,6 @@ send_default(_Call, 'undefined') ->
 send_default(Call, Cause) ->
     case get_response(Cause, Call) of
         'undefined' ->
-            lager:debug("no default response for '~s' found", [Cause]),
             {'error', 'no_response'};
         Response ->
             lager:debug("sending default response for '~s': ~p", [Cause, Response]),
@@ -353,4 +352,7 @@ default_response(<<"PROGRESS_TIMEOUT">>) ->
     [{<<"Code">>, <<"486">>}
     ,{<<"Message">>, <<"Progress timeout">>}
     ,{<<"Media">>, <<"fault-can_not_be_completed_at_this_time">>}
-    ].
+    ];
+default_response(_Cause) ->
+    lager:debug("no default response for '~s' found", [_Cause]),
+    'undefined'.
