@@ -138,10 +138,10 @@ set_resource_id(#{resource := {'error', _}
     Map#{ccvs => [{<<"Resource-ID">>, EndpointId}
                  ,{<<"Global-Resource">>, IsGlobal}
                  ,{<<"Authorizing-Type">>, <<"resource">>}
-                  | CCVs
+                 | CCVs
                  ]
         ,profile => [{<<"Resource-ID">>, EndpointId}
-                     | Profile
+                    | Profile
                     ]
         };
 set_resource_id(Map) -> Map.
