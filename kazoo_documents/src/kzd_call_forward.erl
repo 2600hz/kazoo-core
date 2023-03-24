@@ -44,6 +44,10 @@
 -export([unconditional_require_keypress/1, unconditional_require_keypress/2, set_unconditional_require_keypress/2]).
 -export([unconditional_substitute/1, unconditional_substitute/2, set_unconditional_substitute/2]).
 
+-export([validate/1]).
+-export([is_legacy/1]).
+-export([merged/2, merged/3]).
+-export([rules/1, rules/2]).
 
 -include("kz_documents.hrl").
 
@@ -407,6 +411,19 @@ selective_rules(Doc, Default) ->
 set_selective_rules(Doc, SelectiveRules) ->
     kz_json:set_value([<<"selective">>, <<"rules">>], SelectiveRules, Doc).
 
+-spec rules(doc()) -> kz_json:objects().
+rules(Doc) ->
+    rules(Doc, []).
+
+-spec rules(doc(), Default) -> kz_json:objects() | Default.
+rules(Doc, Default) ->
+    kz_json:get_list_value([<<"rules">>], Doc, Default).
+
+%% for internal merge of selective onto top-level settings
+-spec set_rules(doc(), kz_json:objects()) -> doc().
+set_rules(Doc, SelectiveRules) ->
+    kz_json:set_value([<<"rules">>], SelectiveRules, Doc).
+
 -spec unconditional(doc()) -> kz_term:api_object().
 unconditional(Doc) ->
     unconditional(Doc, 'undefined').
@@ -589,6 +606,7 @@ merged_call_forward_settings(Top, CfwdType) ->
                  ,{fun number/2, fun set_number/2}
                  ,{fun require_keypress/2, fun set_require_keypress/2}
                  ,{fun substitute/2, fun set_substitute/2}
+                 ,{fun selective_rules/2, fun set_rules/2}
                  ],
     Merged = lists:foldl(merge_call_forward_setting_fun(CfwdType), Top, Properties),
     lists:foldl(merge_call_forward_setting_fun(Merged), kz_json:new(), Properties).
