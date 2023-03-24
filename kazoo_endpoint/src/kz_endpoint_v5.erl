@@ -37,7 +37,6 @@
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 
-
 -define(CONFIRM_FILE(Call)
        ,kapps_call:get_prompt(Call, <<"ivr-group_confirm">>)
        ).
@@ -469,18 +468,7 @@ merge_attribute(<<"call_failover">> = Key, Account, Endpoint, Owner) ->
             end
     end;
 merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
-    EndpointAttr = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
-    case kzd_call_forward:enabled(EndpointAttr) of
-        'true' -> Endpoint;
-        'false' ->
-            AccountAttr = kzd_accounts:call_forward(Account, kz_json:new()),
-            OwnerAttr = kzd_users:call_forward(Owner, kz_json:new()),
-            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
-            case kzd_call_forward:enabled(Merged) of
-                'true' -> kz_json:set_value(Key, Merged, Endpoint);
-                'false' -> Endpoint
-            end
-    end;
+    merge_call_forward(Key, Account, Endpoint, Owner);
 merge_attribute(<<"call_settings">> = Key, Account, Endpoint, Owner) ->
     EndpointAttr = kz_json:get_json_value(Key, Endpoint, kz_json:new()),
     AccountAttr = kz_json:get_json_value(Key, Account, kz_json:new()),
@@ -563,7 +551,32 @@ merge_attribute(Key, Account, Endpoint, Owner) ->
                                     ),
     kz_json:set_value(Key, Merged, Endpoint).
 
+merge_call_forward(Key, Account, Endpoint, Owner) ->
+    EndpointAttr = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
+    case kzd_call_forward:enabled(EndpointAttr) of
+        'true' -> Endpoint;
+        'false' ->
+            AccountAttr = kzd_accounts:call_forward(Account, kz_json:new()),
+            OwnerAttr = kzd_users:call_forward(Owner, kz_json:new()),
+            Merged = kz_json:merge([AccountAttr, EndpointAttr, OwnerAttr]),
+            case kzd_call_forward:enabled(Merged) of
+                'true' -> kz_json:set_value(Key, Merged, Endpoint);
+                'false' -> Endpoint
+            end
+    end.
+
+%% @doc fetch unconditional call forward; if disabled, check selective call forwarding
 unconditional_call_forward(Endpoint) ->
+    Unconditional = get_unconditional_call_forward(Endpoint),
+    case kzd_call_forward:enabled(Unconditional) of
+        'true' ->
+            lager:info("using unconditional call forwarding"),
+            Unconditional;
+        'false' ->
+            kz_json:new()
+    end.
+
+get_unconditional_call_forward(Endpoint) ->
     kzd_call_forward:merged(kzd_endpoint:call_forward(Endpoint, kz_json:new())
                            ,fun kzd_call_forward:unconditional/1
                            ,kz_json:new()
@@ -923,7 +936,6 @@ flush_local(Db, Id) ->
                       | 'invalid_endpoint_id' | 'not_found' | 'owner_called_self'
                       | 'do_not_disturb' | 'no_resource_type'.
 
-
 -spec build(kz_term:api_ne_binary() | kz_json:object(), kapps_call:call()) ->
           {'ok', kz_json:objects()} |
           {'error', build_errors()}.
@@ -999,7 +1011,7 @@ should_create_endpoint_fold(Routine, {Endpoint, Properties, Call}=Acc) when is_f
     end;
 should_create_endpoint_fold(_Routine, Error) -> Error.
 
--spec maybe_missing_resource_type(kz_json:object(), kz_json:object(),  kapps_call:call()) ->
+-spec maybe_missing_resource_type(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           'ok' |
           {'error', 'no_resource_type'}.
 maybe_missing_resource_type(_Endpoint, _Properties, Call) ->
@@ -1113,7 +1125,9 @@ maybe_exclude_from_queues(Endpoint, _Properties, Call) ->
           {'ok', kz_json:objects()} |
           {'error', 'no_endpoints'}.
 create_endpoints(Endpoint, Properties, Call) ->
-    Routines = [fun create_endpoint/3],
+    Routines = [fun create_endpoint/3
+               ,fun create_call_fwd_endpoint/3
+               ],
     Fun = fun(Routine, Endpoints) ->
                   try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call)
           end,
@@ -1158,10 +1172,10 @@ try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call) when is_func
         %% {'error', 'call_forward_not_appropriate'} -> Endpoints;
         %% {'error', 'call_forward_substitute'} -> Endpoints;
         {'error', _R} ->
-            lager:warning("failed to create endpoint: ~p", [_R]),
+            lager:warning("failed to create endpoint: ~p: ~p", [_R, Routine]),
             Endpoints;
         JObj ->
-            lager:debug("created endpoint from ~s", [kz_doc:id(Endpoint)]),
+            lager:debug("created endpoint from ~s: ~p", [kz_doc:id(Endpoint), Routine]),
             [JObj|Endpoints]
     catch
         _E:_R:ST ->
