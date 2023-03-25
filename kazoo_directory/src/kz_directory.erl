@@ -41,6 +41,7 @@ lookup([], _EndpointId, _AccountId, _Options) ->
     {'error', 'not_found'};
 lookup([Fun | Routines], EndpointId, AccountId, Options) ->
     try Fun(EndpointId, AccountId, Options) of
+        {'ok', {Endpoint, _Options}} -> {'ok', Endpoint};
         {'ok', _Endpoint} = OK -> OK;
         _Error -> lookup(Routines, EndpointId, AccountId, Options)
     catch
