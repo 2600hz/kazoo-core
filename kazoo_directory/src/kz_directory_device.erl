@@ -28,7 +28,7 @@ profile(EndpointId, AccountId) ->
           {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
     case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
-        {'ok', Profile} -> {'ok', Profile};
+        {'ok', {Profile, _Options}} -> {'ok', Profile};
         {'error', 'not_found'} -> fetch_profile(EndpointId, AccountId, Options)
     end.
 
@@ -60,28 +60,26 @@ fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
 build_and_cache(EndpointId, AccountId, Endpoint, Options, Module) ->
     {'ok', Profile} = build(EndpointId, AccountId, Endpoint, Options, Module),
     Origins = cache_origin(EndpointId, AccountId, Endpoint),
-    cache(EndpointId, AccountId, Profile, Origins).
+    cache(EndpointId, AccountId, Profile, Origins, Options).
 
--spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_cache:origin_tuples()) ->
+-spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_cache:origin_tuples(), kz_term:proplist()) ->
           {'ok', kz_json:object()}.
-cache(EndpointId, AccountId, Profile, Origins) ->
+cache(EndpointId, AccountId, Profile, Origins, Options) ->
     CacheProps = [{'origin', Origins}
                  ,{'callback', fun cache_callback/3}
                  ],
-    kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, Profile, CacheProps),
+    kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, {Profile, Options}, CacheProps),
     {'ok', Profile}.
 
 -spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> 'ok'.
-cache_callback({EndpointId, AccountId}, CachedValue, 'erase') ->
+cache_callback({EndpointId, AccountId}, {CachedValue, Options}, 'erase') ->
     lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
-    timer:sleep(kz_term:to_integer(?MILLISECONDS_IN_SECOND * 0.15)),
-    case kz_endpoint:get(EndpointId, AccountId) of
+    case kz_endpoint:get(EndpointId, AccountId, props:set_value('no_cache', Options)) of
         {'ok', Endpoint} ->
-            Module = get_device_module(Endpoint),
-            {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, [], Module),
+            {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, Options),
             maybe_notify(EndpointId, AccountId, kz_json:are_equal(NewProfile, CachedValue)),
             Origins = cache_origin(EndpointId, AccountId, Endpoint),
-            cache(EndpointId, AccountId, NewProfile, Origins);
+            cache(EndpointId, AccountId, NewProfile, Origins, Options);
         _Error -> notify(EndpointId, AccountId)
     end;
 cache_callback(_, _, _) -> 'ok'.
@@ -134,6 +132,10 @@ call_waiting(Endpoint) ->
         'undefined' -> 'undefined';
         CW -> kzd_call_waiting:enabled(CW)
     end.
+
+-spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+build(EndpointId, AccountId, Endpoint, Options) ->
+    build(EndpointId, AccountId, Endpoint, Options, get_device_module(Endpoint)).
 
 -spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
 build(EndpointId, AccountId, Endpoint, Options, Module) ->
