@@ -24,7 +24,7 @@ profile(EndpointId, AccountId) ->
 -spec profile(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
     case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
-        {'ok', Profile} -> {'ok', Profile};
+        {'ok', {Profile, _Options}} -> {'ok', Profile};
         {'error', 'not_found'} -> fetch_profile(EndpointId, AccountId, Options)
     end.
 
@@ -44,27 +44,26 @@ fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
 
 -spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
 build_and_cache(EndpointId, AccountId, Endpoint, Options) ->
-    {ok, Profile} = build(EndpointId, AccountId, Endpoint, Options),
-    cache(EndpointId, AccountId, Profile).
+    {'ok', Profile} = build(EndpointId, AccountId, Endpoint, Options),
+    cache(EndpointId, AccountId, Profile, Options).
 
--spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> {'ok', kz_json:object()}.
-cache(EndpointId, AccountId, Profile) ->
+-spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+cache(EndpointId, AccountId, Profile, Options) ->
     Origins = cache_origin(EndpointId, AccountId, Profile),
     CacheProps = [{'origin', Origins}
                  ,{'callback', fun cache_callback/3}
                  ],
-    kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, Profile, CacheProps),
-    {ok, Profile}.
+    kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, {Profile, Options}, CacheProps),
+    {'ok', Profile}.
 
--spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> ok.
-cache_callback({EndpointId, AccountId}, CachedValue, 'erase') ->
+-spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> 'ok'.
+cache_callback({EndpointId, AccountId}, {CachedValue, Options}, 'erase') ->
     lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
-    timer:sleep(kz_term:to_integer(?MILLISECONDS_IN_SECOND * 0.15)),
-    case kz_endpoint:get(EndpointId, AccountId) of
+    case kz_endpoint:get(EndpointId, AccountId, props:set_value('no_cache', Options)) of
         {'ok', Endpoint} ->
-            {ok, NewProfile} = build(EndpointId, AccountId, Endpoint, []),
+            {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, Options),
             maybe_notify(EndpointId, AccountId, kz_json:are_equal(NewProfile, CachedValue)),
-            cache(EndpointId, AccountId, NewProfile);
+            cache(EndpointId, AccountId, NewProfile, Options);
         _Error -> notify(EndpointId, AccountId)
     end;
 cache_callback(_, _, _) -> ok.
@@ -272,8 +271,7 @@ add_sip_headers(Endpoint, Headers) ->
 -spec owned_by_query(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:api_binaries().
 owned_by_query(OwnerId, AccountId) ->
     ViewOptions = [{'key', [OwnerId, <<"device">>]}],
-    AccountDb = kzs_util:format_account_db(AccountId),
-    case kz_datamgr:get_result_ids(AccountDb, <<"attributes/owned">>, ViewOptions) of
+    case kz_datamgr:get_result_ids(AccountId, <<"attributes/owned">>, ViewOptions) of
         {'ok', Ids} -> Ids;
         {'error', _R} -> []
     end.
