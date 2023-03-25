@@ -1,6 +1,7 @@
 -ifndef(KAZOO_ENDPOINT_HRL).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_databases.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_numbers/include/knm_phone_number.hrl").
 
