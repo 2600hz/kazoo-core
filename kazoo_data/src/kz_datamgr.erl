@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc Manage data connections.
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -43,7 +43,7 @@
         ,open_cache_docs/2, open_cache_docs/3
         ,update_cache_doc/3
         ,flush_cache_doc/2, flush_cache_doc/3
-        ,flush_cache_docs/0, flush_cache_docs/1
+        ,flush_cache_docs/0, flush_cache_docs/1, flush_cache_docs/2
         ,add_to_doc_cache/3
         ,open_doc/2,open_doc/3
         ,open_docs/2, open_docs/3
@@ -600,6 +600,10 @@ flush_cache_docs() -> kzs_cache:flush_cache_docs().
 -spec flush_cache_docs(database_name()) -> 'ok' | {'error', 'invalid_db_name'}.
 flush_cache_docs(DbName) ->
     kzs_cache:flush_cache_docs(kzs_util:to_database(DbName)).
+
+-spec flush_cache_docs(database_name(), kz_term:ne_binaries()) -> 'ok' | {'error', 'invalid_db_name'}.
+flush_cache_docs(DbName, DocIds) ->
+    kzs_cache:flush_cache_docs(kzs_util:to_database(DbName), DocIds).
 
 -ifdef(TEST).
 %% -define(OPEN_DOC_LOG(DbName, DocId, Options),

@@ -70,7 +70,7 @@ get('undefined', _Call) ->
 get(<<EndpointId/binary>>, ?MATCH_ACCOUNT_RAW(AccountId)) ->
     get(EndpointId, kzs_util:format_account_db(AccountId));
 get(<<EndpointId/binary>>, AccountDb) when is_binary(AccountDb) ->
-    case kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
+    case cached_endpoint(EndpointId, AccountDb) of
         {'ok', _Endpoint}=Ok ->
             lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
             Ok;
@@ -89,7 +89,7 @@ get(Endpoint, Call) ->
 get(EndpointId, ?MATCH_ACCOUNT_RAW(AccountId), Options) ->
     get(EndpointId, kzs_util:format_account_db(AccountId), Options);
 get(EndpointId, AccountDb, Options) when is_binary(AccountDb) ->
-    case kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}) of
+    case cached_endpoint(EndpointId, AccountDb, Options) of
         {'ok', _Endpoint}=Ok ->
             lager:debug("loading cached endpoint ~s: ~s", [EndpointId, kz_doc:revision(_Endpoint)]),
             Ok;
@@ -98,6 +98,15 @@ get(EndpointId, AccountDb, Options) when is_binary(AccountDb) ->
     end;
 get(EndpointId, Call, Options) ->
     get(EndpointId, kapps_call:account_db(Call), Options).
+
+cached_endpoint(EndpointId, AccountId) ->
+    cached_endpoint(EndpointId, AccountId, []).
+
+cached_endpoint(EndpointId, AccountId, Options) ->
+    case props:is_defined('no_cache', Options) of
+        true -> {'error', 'not_found'};
+        false -> kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountId, EndpointId})
+    end.
 
 -spec fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
@@ -109,7 +118,7 @@ fetch_endpoint(EndpointId, AccountDb) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 fetch_endpoint(EndpointId, AccountDb, Options) ->
-    case kz_datamgr:open_cache_doc(AccountDb, EndpointId) of
+    case fetch_endpoint_document(EndpointId, AccountDb, Options) of
         {'ok', JObj} ->
             lager:debug("fetched endpoint ~s: ~s", [EndpointId, kz_doc:revision(JObj)]),
             check_endpoint_type(JObj, EndpointId, AccountDb, Options);
@@ -117,30 +126,39 @@ fetch_endpoint(EndpointId, AccountDb, Options) ->
             maybe_fetch_from_token(EndpointId, AccountDb, Options)
     end.
 
+-spec fetch_endpoint_document(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+fetch_endpoint_document(EndpointId, AccountDb, Options) ->
+    case props:is_defined('no_cache', Options) of
+        true -> kz_datamgr:open_doc(AccountDb, EndpointId);
+        false -> kz_datamgr:open_cache_doc(AccountDb, EndpointId)
+    end.
+
 -spec maybe_fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 maybe_fetch_from_token(EndpointId, AccountDb, Options) ->
-    case props:get_value(token, Options) of
-        undefined -> {error, not_found};
-        Token -> fetch_from_token(EndpointId, AccountDb, kz_auth:validate_token(Token))
+    case props:get_value('token', Options) of
+        'undefined' -> {'error', 'not_found'};
+        Token -> fetch_from_token(EndpointId, AccountDb, Options, kz_auth:validate_token(Token))
     end.
 
 -type validate_token_result() :: {'ok', kz_json:object()} | {'error', any()}.
 
--spec fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), validate_token_result()) ->
+-spec fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), validate_token_result()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
-fetch_from_token(_EndpointId, _AccountDb, {error, _Error} = Error) -> Error;
-fetch_from_token(EndpointId, AccountDb, {'ok', Claims}) ->
+fetch_from_token(_EndpointId, _AccountDb, _Options, {'error', _Error} = Error) -> Error;
+fetch_from_token(EndpointId, AccountDb, Options, {'ok', Claims}) ->
     lager:debug("fetching endpoint ~s / ~s from token", [EndpointId, AccountDb]),
     MetaId = kz_auth_claims:meta_id(Claims),
     Endpoint = token_endpoint(EndpointId, Claims),
-    Options = [{'claims', Claims}
-              ,{'endpoint', Endpoint}
-              ,{'meta_id', MetaId}
-              ],
-    maybe_fetch_meta_endpoint(EndpointId, AccountDb, props:filter_undefined(Options)).
+    TokenOptions = props:set_values([{'claims', Claims}
+                                    ,{'endpoint', Endpoint}
+                                    ,{'meta_id', MetaId}
+                                    ], Options),
+    maybe_fetch_meta_endpoint(EndpointId, AccountDb, TokenOptions).
 
 token_endpoint(EndpointId, Claims) ->
     SIPInfo = kz_json:normalize(kz_json:get_json_value(<<"SIP-Info">>, Claims)),
@@ -168,8 +186,8 @@ maybe_fetch_meta_endpoint(EndpointId, AccountDb, Options) ->
           {'error', any()}.
 fetch_meta_endpoint(MetaId, EndpointId, AccountDb, Options) ->
     lager:debug("fetching endpoint ~s / ~s from meta_id ~s ", [EndpointId, AccountDb, MetaId]),
-    case kz_datamgr:open_cache_doc(AccountDb, MetaId) of
-        {error, _} = Error -> Error;
+    case fetch_endpoint_document(MetaId, AccountDb, Options) of
+        {'error', _} = Error -> Error;
         {'ok', MetaJObj} ->
             lager:debug("fetched meta endpoint ~s: ~s", [MetaId, kz_doc:revision(MetaJObj)]),
             Endpoint = build_meta_endpoint(MetaJObj, Options),
@@ -247,7 +265,7 @@ cache_store_endpoint(JObj, EndpointId, AccountDb, EndpointType, Options) ->
              ,{<<"Endpoint-Type">>, EndpointType}
              ,{<<"Endpoint-Build-Options">>, cache_build_options(Options)}
              ],
-    Endpoint = kz_json:set_values(Values, merge_attributes(JObj, EndpointType)),
+    Endpoint = kz_json:set_values(Values, merge_attributes(JObj, EndpointType, Options)),
     CacheProps = [{'origin', cache_origin(JObj, EndpointId, AccountDb, Options)}],
     catch kz_cache:store_local_async(?CACHE_NAME, {?MODULE, AccountDb, EndpointId}, Endpoint, CacheProps),
     lager:debug("cached endpoint: ~s _rev: ~s", [EndpointId, kz_doc:revision(Endpoint)]),
@@ -317,9 +335,9 @@ maybe_format_endpoint(Endpoint, 'undefined') ->
 maybe_format_endpoint(Endpoint, Formatters) ->
     kz_formatters:apply(Endpoint, Formatters, 'outbound').
 
--spec merge_attributes(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
-merge_attributes(Endpoint, Type) ->
-    merge_attributes(Endpoint, Type, attributes_keys()).
+-spec merge_attributes(kz_json:object(), kz_term:ne_binary(), kz_term:proplist()) -> kz_json:object().
+merge_attributes(Endpoint, Type, Options) ->
+    merge_attributes(Endpoint, Type, Options, attributes_keys()).
 
 account_keys() ->
     [<<"realm">>].
@@ -354,28 +372,30 @@ attributes_keys() ->
     ,?ATTR_LOWER_KEY
     ].
 
--spec merge_attributes(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:object().
-merge_attributes(Owner, <<"user">>, Keys) ->
-    case kzd_accounts:fetch(kz_doc:account_id(Owner)) of
-        {'ok', Account} -> merge_attributes(Keys, Account, Owner, Owner);
-        {'error', _} -> merge_attributes(Keys, kz_json:new(), Owner, Owner)
-    end;
-merge_attributes(Device, <<"device">>, Keys) ->
-    Owner = get_user(kz_doc:account_db(Device), Device),
+endpoint_account(undefined, _Options) ->
+    kz_json:new();
+endpoint_account(AccountId, Options) ->
+    case fetch_endpoint_document(AccountId, ?KZ_ACCOUNTS_DB, Options) of
+        {'ok', AccountDoc} -> AccountDoc;
+        {'error', _} -> kz_json:new()
+    end.
+
+-spec merge_attributes(kz_json:object(), kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binaries()) -> kz_json:object().
+merge_attributes(Owner, <<"user">>, Options, Keys) ->
+    merge_attributes(Keys, Options, endpoint_account(kz_doc:account_id(Owner), Options), Owner, Owner);
+merge_attributes(Device, <<"device">>, Options, Keys) ->
+    Owner = get_user(kz_doc:account_db(Device), Device, Options),
     Endpoint = kz_json:set_value(<<"owner_id">>, kz_doc:id(Owner), Device),
-    case kzd_accounts:fetch(kz_doc:account_id(Device)) of
-        {'ok', Account} -> merge_attributes(Keys, Account, Endpoint, Owner);
-        {'error', _} -> merge_attributes(Keys, kz_json:new(), Endpoint, Owner)
-    end;
-merge_attributes(Account, <<"account">>, Keys) ->
-    merge_attributes(Keys, Account, kz_json:new(), kz_json:new());
-merge_attributes(Endpoint, Type, _Keys) ->
+    merge_attributes(Keys, Options, endpoint_account(kz_doc:account_id(Device), Options), Endpoint, Owner);
+merge_attributes(AccountDoc, <<"account">>, Options, Keys) ->
+    merge_attributes(Keys, Options, AccountDoc, kz_json:new(), kz_json:new());
+merge_attributes(Endpoint, Type, _Keys, _Options) ->
     lager:debug("unhandled endpoint type on merge attributes : ~p : ~p", [Type, Endpoint]),
     kz_json:new().
 
--spec merge_attributes(kz_term:ne_binaries(), kz_term:api_object(), kz_term:api_object(), kz_term:api_object()) ->
+-spec merge_attributes(kz_term:ne_binaries(), kz_term:proplist(), kz_json:object(), kz_term:api_object(), kz_term:api_object()) ->
           kz_json:object().
-merge_attributes(Keys, AccountDoc, EndpointDoc, OwnerDoc) ->
+merge_attributes(Keys, _Options, AccountDoc, EndpointDoc, OwnerDoc) ->
     Account = merge_account_tree(AccountDoc),
     lists:foldl(fun(Key, EP) ->
                         merge_attribute(Key, Account, EP, OwnerDoc)
@@ -727,32 +747,41 @@ add_allowed_classifier(Classifier, JObj) ->
     Path = [<<"call_restriction">>, Classifier, <<"action">>],
     kz_json:set_value(Path, <<"allow">>, JObj).
 
--spec get_user(kz_term:ne_binary(), kz_term:api_binary() | kz_json:object()) -> kz_json:object().
-get_user(_AccountDb, 'undefined') -> kz_json:new();
-get_user(AccountDb, OwnerId) when is_binary(OwnerId) ->
-    case kzd_users:fetch(AccountDb, OwnerId) of
+-spec get_user(kz_term:ne_binary(), kz_term:api_binary() | kz_json:object(), kz_term:proplist()) -> kz_json:object().
+get_user(_AccountDb, 'undefined', _Options) -> kz_json:new();
+get_user(AccountDb, OwnerId, Options) when is_binary(OwnerId) ->
+    case fetch_endpoint_document(OwnerId, AccountDb, Options) of
         {'ok', JObj} -> JObj;
         {'error', _R} ->
             lager:warning("failed to load endpoint owner ~s: ~p", [OwnerId, _R]),
             kz_json:new()
     end;
-get_user(AccountDb, Endpoint) ->
+get_user(AccountDb, Endpoint, Options) ->
     case kz_json:get_keys([<<"hotdesk">>, <<"users">>], Endpoint) of
         [] ->
-            get_user(AccountDb, kz_json:get_ne_binary_value(<<"owner_id">>, Endpoint));
+            get_user(AccountDb, kz_json:get_ne_binary_value(<<"owner_id">>, Endpoint), Options);
         [OwnerId] ->
-            fix_user_restrictions(get_user(AccountDb, OwnerId));
+            fix_user_restrictions(get_user(AccountDb, OwnerId, Options));
         [_|_]=OwnerIds->
-            UserJObj = convert_to_single_user(get_users(AccountDb, OwnerIds)),
+            UserJObj = convert_to_single_user(get_users(AccountDb, OwnerIds, Options)),
             fix_user_restrictions(UserJObj)
     end.
 
--spec get_users(kz_term:ne_binary(), kz_term:ne_binaries()) -> kzd_users:docs().
-get_users(AccountDb, OwnerIds) ->
-    %% Bulk fetch to fill the cache
+-spec flush_users(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:proplist() | boolean()) -> 'ok'.
+flush_users(AccountDb, OwnerIds, false) ->
     _ = kz_datamgr:open_cache_docs(AccountDb, OwnerIds),
+    'ok';
+flush_users(AccountDb, OwnerIds, true) ->
+    _ = kz_datamgr:flush_cache_docs(AccountDb, OwnerIds),
+    'ok';
+flush_users(AccountDb, OwnerIds, Options) ->
+    flush_users(AccountDb, OwnerIds, props:is_defined('no_cache', Options)).
+
+-spec get_users(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:proplist()) -> kzd_users:docs().
+get_users(AccountDb, OwnerIds, Options) ->
+    flush_users(AccountDb, OwnerIds, Options),
     F = fun (UserId, UsersAcc) ->
-                case kzd_users:fetch(AccountDb, UserId) of
+                case fetch_endpoint_document(UserId, AccountDb, Options) of
                     {'ok', UserJObj} -> [UserJObj|UsersAcc];
                     {'error', _R} ->
                         lager:warning("failed to load endpoint owner ~s: ~p", [UserId, _R]),
