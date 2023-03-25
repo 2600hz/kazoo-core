@@ -1125,9 +1125,7 @@ maybe_exclude_from_queues(Endpoint, _Properties, Call) ->
           {'ok', kz_json:objects()} |
           {'error', 'no_endpoints'}.
 create_endpoints(Endpoint, Properties, Call) ->
-    Routines = [fun create_endpoint/3
-               ,fun create_call_fwd_endpoint/3
-               ],
+    Routines = [fun create_endpoint/3],
     Fun = fun(Routine, Endpoints) ->
                   try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call)
           end,
