@@ -30,6 +30,8 @@
 .idea/
 **/.vscode/
 
+erlang_ls.config
+
 sup.bash
 
 _rel/
