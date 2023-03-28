@@ -60,3 +60,4 @@ erlang.mk
 /kazoo_web/src/kz_mime.erl
 /sup/sup
 /kazoo_amqp/doc/.org/gen_listener.md
+erlang_ls.config
