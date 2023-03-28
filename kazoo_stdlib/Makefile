@@ -11,11 +11,13 @@ all: compile
 
 clean: lex-clean
 
-compile: $(LEX_FILES)
+compile: lex-compile
 
 compile-test: $(LEX_FILES)
 
 compile-test-direct: $(LEX_FILES)
+
+lex-compile: $(LEX_FILES)
 
 lex-clean:
 	@rm -f $(LEX_FILES)

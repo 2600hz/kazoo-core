@@ -12,15 +12,17 @@ SOURCES = $(wildcard src/*.erl) $(GEN_ERL)
 
 all: compile
 
-compile: $(GEN_ERL)
+compile: generate-kz-mime
 
-compile-test: $(GEN_ERL)
+compile-test: generate-kz-mime
 
-compile-test-direct: $(GEN_ERL)
+compile-test-direct: generate-kz-mime
 
 include $(ROOT)/make/kz.mk
 
-clean-generated:
+generate-kz-mime: $(GEN_ERL)
+
+clean-kz-mime:
 	$(if $(wildcard $(GEN_ERL)), @rm $(GEN_ERL))
 
 $(GEN_FILE):

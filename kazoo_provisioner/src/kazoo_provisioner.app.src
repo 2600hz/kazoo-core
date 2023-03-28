@@ -2,7 +2,7 @@
              [{applications,[kazoo_amqp,kazoo_apps,kazoo_data,
                              kazoo_documents,kazoo_endpoint,
                              kazoo_numbers,kazoo_services,kazoo_stdlib,
-                             kazoo_web,lager,stdlib]},
+                             kazoo_web,kernel,lager,stdlib]},
               {description,"Kazoo Provisioner - Talks to provisioner backend"},
               {env,[]},
               {modules,[]},

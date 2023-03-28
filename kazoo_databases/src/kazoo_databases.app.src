@@ -1,5 +1,5 @@
 {application,kazoo_databases,
- [{applications,[]},
+ [{applications,[kernel,stdlib]},
   {description,"Kazoo Databases - Common routines for select databases"},
   {env,[]},
   {modules,[]},
