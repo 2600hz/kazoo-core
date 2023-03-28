@@ -1632,7 +1632,6 @@ validate_call_failover(_AccountId, {Doc, Errors}) ->
 %%------------------------------------------------------------------------------
 -spec validate_call_forward(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
-
 validate_call_forward(_AccountId, {Doc, AccErrors} = Acc) ->
     case validate_call_forward(call_forward(Doc)) of
         'ok' -> Acc;
