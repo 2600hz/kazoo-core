@@ -546,7 +546,7 @@ merge_attribute(<<"default_ccvs">> = Key, Account, Endpoint, Owner) ->
 merge_attribute(<<"addresses">> = _Key, Account, Endpoint, Owner) ->
     lists:foldl(fun(AddrType, Acc) -> merge_address_fold(AddrType, Account, Acc, Owner) end
                ,Endpoint
-               ,kz_json:get_keys(kzd_endpoint:addresses(Endpoint, kz_json:new()))
+               ,[<<"emergency">>]
                );
 merge_attribute(Key, Account, Endpoint, Owner) ->
     AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
@@ -1848,11 +1848,11 @@ build_call_limit(JObj, Limits) ->
 -spec merge_address_fold(kz_term:ne_binary(), kz_json:object(), kz_json:object(), kz_json:object()) ->
           kz_json:object().
 merge_address_fold(<<"emergency">>, Account, Endpoint, Owner) ->
-    Empty = kz_json:new(),
-    EndpointAddresses = kzd_endpoint:addresses(Endpoint, Empty),
+    EmptyJObj = kz_json:new(),
+    EndpointAddresses = kzd_endpoint:addresses(Endpoint, EmptyJObj),
     %% Precedence order: Endpoint > Owner (if any) > Account.
-    AccountEmerAddr = kzd_addresses:emergency(kzd_accounts:addresses(Account, Empty), Empty),
-    OwnerEmerAddr = kzd_addresses:emergency(kzd_users:addresses(Owner, Empty), AccountEmerAddr),
+    AccountEmerAddr = kzd_addresses:emergency(kzd_accounts:addresses(Account, EmptyJObj), EmptyJObj),
+    OwnerEmerAddr = kzd_addresses:emergency(kzd_users:addresses(Owner, EmptyJObj), AccountEmerAddr),
     EndpointEmerAddr = kzd_addresses:emergency(EndpointAddresses, OwnerEmerAddr),
     case kz_term:is_empty(EndpointEmerAddr) of
         'true' ->
