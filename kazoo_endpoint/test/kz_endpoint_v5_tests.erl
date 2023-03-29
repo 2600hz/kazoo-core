@@ -12,8 +12,9 @@
 -include_lib("eunit/include/eunit.hrl").
 
 merge_attribute_test_() ->
-    merge_attribute_tests(<<"call_limits">>)
-    ++ merge_attribute_tests(<<"addresses">>).
+    lists:flatten([merge_attribute_tests(<<"call_limits">>)
+                  ,merge_attribute_tests(<<"addresses">>)
+                  ]).
 
 merge_attribute_tests(<<"call_limits">>=Key) ->
     Test = fun(InAccount, InEndpoint, InOwner) ->
@@ -108,8 +109,7 @@ merge_attribute_tests(<<"addresses">>=Key) ->
     ].
 
 
--spec match_merge_attribute_response([{kz_term:api_ne_binary(), kz_term:api_pos_integer()}]
-                                     | kz_json:object()
+-spec match_merge_attribute_response([{kz_term:api_ne_binary(), kz_term:api_pos_integer()}] | kz_json:object()
                                     ,kz_json:api_object()
                                     ) -> boolean().
 match_merge_attribute_response([_ | _]=ExpectedKeys, MergedJObj) ->
