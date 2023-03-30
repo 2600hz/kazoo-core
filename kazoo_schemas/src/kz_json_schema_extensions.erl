@@ -62,6 +62,9 @@ extra_validation(Value, State) ->
     lager:info("extra for ~p : ~p", [Key, Value]),
     extra_validation(Key, Value, State).
 
+extra_validation(<<"accounts.announcement">>, Value, State) ->
+    announcement_validation(Value, State);
+
 extra_validation(<<"metaflow.data">>, Value, State) ->
     JObj = jesse_state:get_current_value(State),
     [_Data | Path] = jesse_state:get_current_path(State),
@@ -156,6 +159,15 @@ extra_validation(<<"storage.attachment.dropbox.oauth_doc_id">>, Value, State) ->
 extra_validation(_Key, _Value, State) ->
     lager:info("extra validation of ~s not handled for value ~p", [_Key, _Value]),
     State.
+
+announcement_validation(Value, State) ->
+    case kz_html_xss:has_any_xss_items(Value) of
+        'false' -> State;
+        'true' ->
+            ErrorMsg = <<"HTML value contains not allowed attributes or tags">>,
+            lager:debug("error validating accounts.announcement, it contains cross-site scripting"),
+            jesse_error:handle_data_invalid({'external_error', ErrorMsg}, Value, State)
+    end.
 
 validate_module_data(Schema, Value, State) ->
     State1 = jesse_state:resolve_ref(State, Schema),

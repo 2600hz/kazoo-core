@@ -303,7 +303,7 @@ move_failover_from_fwd(JObjs) ->
 
 -spec do_move_failover_from_fwd(kz_json:object()) -> kz_term:api_object().
 do_move_failover_from_fwd(JObj) ->
-    Doc = kz_json:get_value(<<"doc">>, JObj),
+    Doc = kz_json:get_json_value(<<"doc">>, JObj),
     OldFailoverPath = [<<"call_forward">>, <<"failover">>],
     case kz_json:is_true(OldFailoverPath, Doc, 'undefined') of
         'undefined' ->

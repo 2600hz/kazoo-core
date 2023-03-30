@@ -10,6 +10,7 @@
 -module(kzd_accounts).
 
 -export([new/0]).
+-export([announcement/1, announcement/2, set_announcement/2]).
 -export([blacklists/1, blacklists/2, set_blacklists/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
@@ -154,6 +155,18 @@ new() ->
                                  ,{'now', kz_time:now_s()}
                                  ]
                                 ).
+
+-spec announcement(doc()) -> kz_term:api_binary().
+announcement(Doc) ->
+    announcement(Doc, 'undefined').
+
+-spec announcement(doc(), Default) -> binary() | Default.
+announcement(Doc, Default) ->
+    kz_json:get_binary_value([<<"announcement">>], Doc, Default).
+
+-spec set_announcement(doc(), binary()) -> doc().
+set_announcement(Doc, Announcement) ->
+    kz_json:set_value([<<"announcement">>], Announcement, Doc).
 
 -spec blacklists(doc()) -> kz_term:api_ne_binaries().
 blacklists(Doc) ->
@@ -1632,20 +1645,15 @@ validate_call_failover(_AccountId, {Doc, Errors}) ->
 %%------------------------------------------------------------------------------
 -spec validate_call_forward(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
-validate_call_forward(_AccountId, {Doc, Errors}) ->
-    Callforward = call_forward(Doc, kz_json:new()),
-    CallForwardNumber = kzd_call_forward:number(Callforward),
-    case kzd_call_forward:enabled(Callforward)
-        andalso not kz_term:is_ne_binary(CallForwardNumber)
-    of
-        'true' ->
-            Msg = kz_json:from_list(
-                    [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
-                    ,{<<"cause">>, CallForwardNumber}
-                    ]),
-            {Doc, [{[<<"call_forward.number">>], <<"required">>, Msg} | Errors]};
-        'false' -> {Doc, Errors}
+validate_call_forward(_AccountId, {Doc, AccErrors} = Acc) ->
+    case validate_call_forward(call_forward(Doc)) of
+        'ok' -> Acc;
+        Errors -> {Doc, Errors ++ AccErrors}
     end.
+
+-spec validate_call_forward(kz_term:api_object()) -> 'ok' | kazoo_documents:doc_validation_errors().
+validate_call_forward('undefined') -> 'ok';
+validate_call_forward(CallForward) -> kzd_call_forward:validate(CallForward).
 
 %%------------------------------------------------------------------------------
 %% @doc This function returns the private fields to be added to a new account

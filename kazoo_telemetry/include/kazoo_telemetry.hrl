@@ -10,8 +10,8 @@
 -ifndef(KAZOO_TELEMETRY_HRL).
 
 -define(TELEMETRY_CAT, <<"telemetry">>).
--define(TM_LEADER_TICK, 60000).
--define(TM_RESPONDERS, [<<"waveguide_responder">>]).
+-define(TM_LEADER_TICK, 60 * ?MILLISECONDS_IN_SECOND).
+-define(TM_RESPONDERS, ['waveguide_responder']).
 
 -define(ANONYMIZE_CLUSTER
        ,kapps_config:get_boolean(?TELEMETRY_CAT, <<"cluster_id_anonymized">>, 'true', <<"default">>)

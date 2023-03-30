@@ -36,6 +36,10 @@
         ,is_account_yod/1
         ]).
 
+-export([raw_account_modb/1
+        ,raw_account_yodb/1
+        ]).
+
 -include_lib("kazoo_numbers/include/knm_phone_number.hrl").
 -include_lib("kazoo_documents/include/kzd_ratedeck.hrl").
 -include("kz_data.hrl").

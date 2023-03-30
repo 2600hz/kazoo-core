@@ -6,6 +6,7 @@
 -module(kzd_accounts).
 
 -export([new/0]).
+-export([announcement/1, announcement/2, set_announcement/2]).
 -export([blacklists/1, blacklists/2, set_blacklists/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
@@ -65,6 +66,18 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec announcement(doc()) -> kz_term:api_binary().
+announcement(Doc) ->
+    announcement(Doc, 'undefined').
+
+-spec announcement(doc(), Default) -> binary() | Default.
+announcement(Doc, Default) ->
+    kz_json:get_binary_value([<<"announcement">>], Doc, Default).
+
+-spec set_announcement(doc(), binary()) -> doc().
+set_announcement(Doc, Announcement) ->
+    kz_json:set_value([<<"announcement">>], Announcement, Doc).
 
 -spec blacklists(doc()) -> kz_term:api_ne_binaries().
 blacklists(Doc) ->

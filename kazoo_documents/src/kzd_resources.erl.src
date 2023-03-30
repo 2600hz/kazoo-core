@@ -8,8 +8,8 @@
 -export([new/0]).
 -export([caller_id_options/1, caller_id_options/2, set_caller_id_options/2]).
 -export([cid_rules/1, cid_rules/2, set_cid_rules/2]).
--export([classifiers/1, classifiers/2, set_classifiers/2]).
 -export([classifier/2, classifier/3, set_classifier/3]).
+-export([classifiers/1, classifiers/2, set_classifiers/2]).
 -export([custom_channel_vars/1, custom_channel_vars/2, set_custom_channel_vars/2]).
 -export([custom_sip_headers/1, custom_sip_headers/2, set_custom_sip_headers/2]).
 -export([custom_sip_interface/1, custom_sip_interface/2, set_custom_sip_interface/2]).
@@ -19,6 +19,7 @@
 -export([flat_rate_blacklist/1, flat_rate_blacklist/2, set_flat_rate_blacklist/2]).
 -export([flat_rate_whitelist/1, flat_rate_whitelist/2, set_flat_rate_whitelist/2]).
 -export([format_from_uri/1, format_from_uri/2, set_format_from_uri/2]).
+-export([formatter/2, formatter/3, set_formatter/3]).
 -export([formatters/1, formatters/2, set_formatters/2]).
 -export([from_account_realm/1, from_account_realm/2, set_from_account_realm/2]).
 -export([from_uri_realm/1, from_uri_realm/2, set_from_uri_realm/2]).
@@ -69,18 +70,6 @@ cid_rules(Doc, Default) ->
 set_cid_rules(Doc, CidRules) ->
     kz_json:set_value([<<"cid_rules">>], CidRules, Doc).
 
--spec classifiers(doc()) -> kz_term:api_object().
-classifiers(Doc) ->
-    classifiers(Doc, 'undefined').
-
--spec classifiers(doc(), Default) -> kz_json:object() | Default.
-classifiers(Doc, Default) ->
-    kz_json:get_json_value([<<"classifiers">>], Doc, Default).
-
--spec set_classifiers(doc(), kz_json:object()) -> doc().
-set_classifiers(Doc, Classifiers) ->
-    kz_json:set_value([<<"classifiers">>], Classifiers, Doc).
-
 -spec classifier(doc(), kz_json:key()) -> kz_term:api_object().
 classifier(Doc, Classifier) ->
     classifier(Doc, Classifier, 'undefined').
@@ -92,6 +81,18 @@ classifier(Doc, Classifier, Default) ->
 -spec set_classifier(doc(), kz_json:key(), kz_json:object()) -> doc().
 set_classifier(Doc, Classifier, Value) ->
     kz_json:set_value([<<"classifiers">>, Classifier], Value, Doc).
+
+-spec classifiers(doc()) -> kz_term:api_object().
+classifiers(Doc) ->
+    classifiers(Doc, 'undefined').
+
+-spec classifiers(doc(), Default) -> kz_json:object() | Default.
+classifiers(Doc, Default) ->
+    kz_json:get_json_value([<<"classifiers">>], Doc, Default).
+
+-spec set_classifiers(doc(), kz_json:object()) -> doc().
+set_classifiers(Doc, Classifiers) ->
+    kz_json:set_value([<<"classifiers">>], Classifiers, Doc).
 
 -spec custom_channel_vars(doc()) -> kz_term:api_object().
 custom_channel_vars(Doc) ->
@@ -200,6 +201,18 @@ format_from_uri(Doc, Default) ->
 -spec set_format_from_uri(doc(), boolean()) -> doc().
 set_format_from_uri(Doc, FormatFromUri) ->
     kz_json:set_value([<<"format_from_uri">>], FormatFromUri, Doc).
+
+-spec formatter(doc(), kz_json:key()) -> any().
+formatter(Doc, Formatter) ->
+    formatter(Doc, Formatter, 'undefined').
+
+-spec formatter(doc(), kz_json:key(), Default) -> any() | Default.
+formatter(Doc, Formatter, Default) ->
+    kz_json:get_value([<<"formatters">>, Formatter], Doc, Default).
+
+-spec set_formatter(doc(), kz_json:key(), any()) -> doc().
+set_formatter(Doc, Formatter, Value) ->
+    kz_json:set_value([<<"formatters">>, Formatter], Value, Doc).
 
 -spec formatters(doc()) -> kz_term:api_object().
 formatters(Doc) ->
