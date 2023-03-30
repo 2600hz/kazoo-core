@@ -127,6 +127,8 @@
 
 -export([start_app/1, stop_app/1, running_apps/0]).
 
+-elvis([{elvis_style, no_debug_call, disable}]).
+
 -include("kazoo_apps.hrl").
 
 -type bind() :: 'migrate' | 'refresh' | 'refresh_account' | 'register_views'.
@@ -309,7 +311,8 @@ do_move_failover_from_fwd(JObj) ->
         'undefined' ->
             'undefined';
         'true' ->
-            CallForward = kzd_devices:call_forward(Doc),
+            %% TODO: migrate legacy failover from legacy cfwd
+            CallForward = kz_json:get_json_value(<<"call_forward">>, Doc),
             Setters = [{fun kzd_call_failover:set_direct_calls_only/2, kzd_call_forward:direct_calls_only(CallForward)}
                       ,{fun kzd_call_failover:set_enabled/2, 'true'}
                       ,{fun kzd_call_failover:set_ignore_early_media/2, kzd_call_forward:ignore_early_media(CallForward)}

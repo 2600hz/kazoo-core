@@ -12,14 +12,6 @@
 -export([new/0]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
--export([call_forward_direct_calls_only/1, call_forward_direct_calls_only/2, set_call_forward_direct_calls_only/2]).
--export([call_forward_enabled/1, call_forward_enabled/2, set_call_forward_enabled/2]).
--export([call_forward_failover/1, call_forward_failover/2, set_call_forward_failover/2]).
--export([call_forward_ignore_early_media/1, call_forward_ignore_early_media/2, set_call_forward_ignore_early_media/2]).
--export([call_forward_keep_caller_id/1, call_forward_keep_caller_id/2, set_call_forward_keep_caller_id/2]).
--export([call_forward_number/1, call_forward_number/2, set_call_forward_number/2]).
--export([call_forward_require_keypress/1, call_forward_require_keypress/2, set_call_forward_require_keypress/2]).
--export([call_forward_substitute/1, call_forward_substitute/2, set_call_forward_substitute/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
 -export([call_recording/1, call_recording/2, set_call_recording/2]).
 -export([call_restriction/1, call_restriction/2, set_call_restriction/2]).
@@ -84,38 +76,7 @@
         ,get_setters/0
         ]).
 
--deprecated([{'call_forward_direct_calls_only'     , 1, 'next_major_release'}
-            ,{'call_forward_direct_calls_only'     , 2, 'next_major_release'}
-            ,{'set_call_forward_direct_calls_only' , 2, 'next_major_release'}
-
-            ,{'call_forward_enabled'               , 1, 'next_major_release'}
-            ,{'call_forward_enabled'               , 2, 'next_major_release'}
-            ,{'set_call_forward_enabled'           , 2, 'next_major_release'}
-
-            ,{'call_forward_failover'              , 1, 'next_major_release'}
-            ,{'call_forward_failover'              , 2, 'next_major_release'}
-            ,{'set_call_forward_failover'          , 2, 'next_major_release'}
-
-            ,{'call_forward_ignore_early_media'    , 1, 'next_major_release'}
-            ,{'call_forward_ignore_early_media'    , 2, 'next_major_release'}
-            ,{'set_call_forward_ignore_early_media', 2, 'next_major_release'}
-
-            ,{'call_forward_keep_caller_id'        , 1, 'next_major_release'}
-            ,{'call_forward_keep_caller_id'        , 2, 'next_major_release'}
-            ,{'set_call_forward_keep_caller_id'    , 2, 'next_major_release'}
-
-            ,{'call_forward_number'                , 1, 'next_major_release'}
-            ,{'call_forward_number'                , 2, 'next_major_release'}
-            ,{'set_call_forward_number'            , 2, 'next_major_release'}
-
-            ,{'call_forward_require_keypress'      , 1, 'next_major_release'}
-            ,{'call_forward_require_keypress'      , 2, 'next_major_release'}
-            ,{'set_call_forward_require_keypress'  , 2, 'next_major_release'}
-
-            ,{'call_forward_substitute'            , 1, 'next_major_release'}
-            ,{'call_forward_substitute'            , 2, 'next_major_release'}
-            ,{'set_call_forward_substitute'        , 2, 'next_major_release'}
-            ]).
+-elvis([{elvis_style, god_modules, disable}]).
 
 -include("kz_documents.hrl").
 
@@ -566,11 +527,11 @@ presence_aliases(Doc, Default) ->
 
 -spec set_presence_aliases(doc(), kz_term:ne_binaries()) -> doc().
 set_presence_aliases(Doc, []) ->
-    kz_json:set_value([<<"presence_aliases">>], null, Doc);
+    kz_json:set_value([<<"presence_aliases">>], 'null', Doc);
 set_presence_aliases(Doc, PresenceAliases) ->
     case kz_term:is_ne_binaries(PresenceAliases) of
-        true -> kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc);
-        false -> kz_json:set_value([<<"presence_aliases">>], null, Doc)
+        'true' -> kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc);
+        'false' -> kz_json:set_value([<<"presence_aliases">>], 'null', Doc)
     end.
 
 -spec priv_level(doc()) -> binary().

@@ -20,14 +20,6 @@
 -export([addresses_emergency_street_address/1, addresses_emergency_street_address/2, set_addresses_emergency_street_address/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
--export([call_forward_direct_calls_only/1, call_forward_direct_calls_only/2, set_call_forward_direct_calls_only/2]).
--export([call_forward_enabled/1, call_forward_enabled/2, set_call_forward_enabled/2]).
--export([call_forward_failover/1, call_forward_failover/2, set_call_forward_failover/2]).
--export([call_forward_ignore_early_media/1, call_forward_ignore_early_media/2, set_call_forward_ignore_early_media/2]).
--export([call_forward_keep_caller_id/1, call_forward_keep_caller_id/2, set_call_forward_keep_caller_id/2]).
--export([call_forward_number/1, call_forward_number/2, set_call_forward_number/2]).
--export([call_forward_require_keypress/1, call_forward_require_keypress/2, set_call_forward_require_keypress/2]).
--export([call_forward_substitute/1, call_forward_substitute/2, set_call_forward_substitute/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
 -export([call_recording/1, call_recording/2, set_call_recording/2]).
 -export([call_restriction/1, call_restriction/2, set_call_restriction/2]).
@@ -124,40 +116,6 @@
         ,application_data/1, application_data/2
         ,application_dialstring/1, application_dialstring/2
         ]).
-
-
--deprecated([{'call_forward_direct_calls_only'     , 1, 'next_major_release'}
-            ,{'call_forward_direct_calls_only'     , 2, 'next_major_release'}
-            ,{'set_call_forward_direct_calls_only' , 2, 'next_major_release'}
-
-            ,{'call_forward_enabled'               , 1, 'next_major_release'}
-            ,{'call_forward_enabled'               , 2, 'next_major_release'}
-            ,{'set_call_forward_enabled'           , 2, 'next_major_release'}
-
-            ,{'call_forward_failover'              , 1, 'next_major_release'}
-            ,{'call_forward_failover'              , 2, 'next_major_release'}
-            ,{'set_call_forward_failover'          , 2, 'next_major_release'}
-
-            ,{'call_forward_ignore_early_media'    , 1, 'next_major_release'}
-            ,{'call_forward_ignore_early_media'    , 2, 'next_major_release'}
-            ,{'set_call_forward_ignore_early_media', 2, 'next_major_release'}
-
-            ,{'call_forward_keep_caller_id'        , 1, 'next_major_release'}
-            ,{'call_forward_keep_caller_id'        , 2, 'next_major_release'}
-            ,{'set_call_forward_keep_caller_id'    , 2, 'next_major_release'}
-
-            ,{'call_forward_number'                , 1, 'next_major_release'}
-            ,{'call_forward_number'                , 2, 'next_major_release'}
-            ,{'set_call_forward_number'            , 2, 'next_major_release'}
-
-            ,{'call_forward_require_keypress'      , 1, 'next_major_release'}
-            ,{'call_forward_require_keypress'      , 2, 'next_major_release'}
-            ,{'set_call_forward_require_keypress'  , 2, 'next_major_release'}
-
-            ,{'call_forward_substitute'            , 1, 'next_major_release'}
-            ,{'call_forward_substitute'            , 2, 'next_major_release'}
-            ,{'set_call_forward_substitute'        , 2, 'next_major_release'}
-            ]).
 
 -include("kz_documents.hrl").
 
@@ -294,135 +252,6 @@ call_forward(Doc, Default) ->
 -spec set_call_forward(doc(), kz_json:object()) -> doc().
 set_call_forward(Doc, CallForward) ->
     kz_json:set_value([<<"call_forward">>], CallForward, Doc).
-
--spec call_forward_direct_calls_only(doc()) -> boolean().
-call_forward_direct_calls_only(Doc) ->
-    call_forward_direct_calls_only(Doc, 'false').
-
--spec call_forward_direct_calls_only(doc(), Default) -> boolean() | Default.
-call_forward_direct_calls_only(Doc, Default) ->
-    kzd_call_forward:direct_calls_only(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_direct_calls_only(doc(), boolean()) -> doc().
-set_call_forward_direct_calls_only(Doc, CallForwardDirectCallsOnly) ->
-    CallForward = call_forward(Doc, kz_json:new()),
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_direct_calls_only(CallForward
-                                                           ,CallForwardDirectCallsOnly
-                                                           )
-                    ).
-
--spec call_forward_enabled(doc()) -> boolean().
-call_forward_enabled(Doc) ->
-    call_forward_enabled(Doc, 'false').
-
--spec call_forward_enabled(doc(), Default) -> boolean() | Default.
-call_forward_enabled(Doc, Default) ->
-    kzd_call_forward:enabled(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_enabled(doc(), boolean()) -> doc().
-set_call_forward_enabled(Doc, CallForwardEnabled) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_enabled(call_forward(Doc, kz_json:new())
-                                                 ,CallForwardEnabled
-                                                 )
-                    ).
-
--spec call_forward_failover(doc()) -> boolean().
-call_forward_failover(Doc) ->
-    call_forward_failover(Doc, 'false').
-
--spec call_forward_failover(doc(), Default) -> boolean() | Default.
-call_forward_failover(Doc, Default) ->
-    kzd_call_failover:enabled(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_failover(doc(), boolean()) -> doc().
-set_call_forward_failover(Doc, CallForwardEnabled) ->
-    set_call_forward(Doc
-                    ,kzd_call_failover:set_enabled(call_forward(Doc, kz_json:new())
-                                                  ,CallForwardEnabled
-                                                  )
-                    ).
-
--spec call_forward_ignore_early_media(doc()) -> boolean().
-call_forward_ignore_early_media(Doc) ->
-    call_forward_ignore_early_media(Doc, 'true').
-
--spec call_forward_ignore_early_media(doc(), Default) -> boolean() | Default.
-call_forward_ignore_early_media(Doc, Default) ->
-    kzd_call_forward:ignore_early_media(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_ignore_early_media(doc(), boolean()) -> doc().
-set_call_forward_ignore_early_media(Doc, CallForwardIgnoreEarlyMedia) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_ignore_early_media(call_forward(Doc, kz_json:new())
-                                                            ,CallForwardIgnoreEarlyMedia
-                                                            )
-                    ).
-
--spec call_forward_keep_caller_id(doc()) -> boolean().
-call_forward_keep_caller_id(Doc) ->
-    call_forward_keep_caller_id(Doc, 'true').
-
--spec call_forward_keep_caller_id(doc(), Default) -> boolean() | Default.
-call_forward_keep_caller_id(Doc, Default) ->
-    kzd_call_forward:keep_caller_id(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_keep_caller_id(doc(), boolean()) -> doc().
-set_call_forward_keep_caller_id(Doc, CallForwardKeepCallerId) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_keep_caller_id(call_forward(Doc, kz_json:new())
-                                                        ,CallForwardKeepCallerId
-                                                        )
-                    ).
-
--spec call_forward_number(doc()) -> kz_term:api_binary().
-call_forward_number(Doc) ->
-    call_forward_number(Doc, 'undefined').
-
--spec call_forward_number(doc(), Default) -> binary() | Default.
-call_forward_number(Doc, Default) ->
-    kzd_call_forward:number(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_number(doc(), binary()) -> doc().
-set_call_forward_number(Doc, CallForwardNumber) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_number(call_forward(Doc, kz_json:new())
-                                                ,CallForwardNumber
-                                                )
-                    ).
-
--spec call_forward_require_keypress(doc()) -> boolean().
-call_forward_require_keypress(Doc) ->
-    call_forward_require_keypress(Doc, 'true').
-
--spec call_forward_require_keypress(doc(), Default) -> boolean() | Default.
-call_forward_require_keypress(Doc, Default) ->
-    kzd_call_forward:require_keypress(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_require_keypress(doc(), boolean()) -> doc().
-set_call_forward_require_keypress(Doc, CallForwardRequireKeypress) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_require_keypress(call_forward(Doc, kz_json:new())
-                                                          ,CallForwardRequireKeypress
-                                                          )
-                    ).
-
--spec call_forward_substitute(doc()) -> boolean().
-call_forward_substitute(Doc) ->
-    call_forward_substitute(Doc, 'true').
-
--spec call_forward_substitute(doc(), Default) -> boolean() | Default.
-call_forward_substitute(Doc, Default) ->
-    kzd_call_forward:substitute(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_substitute(doc(), boolean()) -> doc().
-set_call_forward_substitute(Doc, CallForwardSubstitute) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_substitute(call_forward(Doc, kz_json:new())
-                                                    ,CallForwardSubstitute
-                                                    )
-                    ).
 
 -spec call_limits(doc()) -> kz_term:api_object().
 call_limits(Doc) ->
@@ -1467,16 +1296,16 @@ presence_aliases(Doc, Default) ->
 
 -spec set_presence_aliases(doc(), kz_term:ne_binaries()) -> doc().
 set_presence_aliases(Doc, []) ->
-    kz_json:set_value([<<"presence_aliases">>], null, Doc);
+    kz_json:set_value([<<"presence_aliases">>], 'null', Doc);
 set_presence_aliases(Doc, PresenceAliases) ->
     case kz_term:is_ne_binaries(PresenceAliases) of
-        true -> kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc);
-        false -> kz_json:set_value([<<"presence_aliases">>], null, Doc)
+        'true' -> kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc);
+        'false' -> kz_json:set_value([<<"presence_aliases">>], 'null', Doc)
     end.
 
 -spec application(doc()) -> kz_term:api_object().
 application(Doc) ->
-    application(Doc, undefined).
+    application(Doc, 'undefined').
 
 -spec application(doc(), Default) -> kz_json:object() | Default.
 application(Doc, Default) ->
@@ -1487,7 +1316,7 @@ application(Doc, Default) ->
 
 -spec application_name(doc()) -> kz_term:api_ne_binary().
 application_name(Doc) ->
-    application_name(Doc, undefined).
+    application_name(Doc, 'undefined').
 
 -spec application_name(doc(), Default) -> kz_term:ne_binary() | Default.
 application_name(Doc, Default) ->
@@ -1495,7 +1324,7 @@ application_name(Doc, Default) ->
 
 -spec application_data(doc()) -> kz_term:api_object().
 application_data(Doc) ->
-    application_data(Doc, undefined).
+    application_data(Doc, 'undefined').
 
 -spec application_data(doc(), Default) -> kz_json:object() | Default.
 application_data(Doc, Default) ->
@@ -1503,7 +1332,7 @@ application_data(Doc, Default) ->
 
 -spec application_dialstring(doc()) -> kz_term:api_ne_binary().
 application_dialstring(Doc) ->
-    application_dialstring(Doc, undefined).
+    application_dialstring(Doc, 'undefined').
 
 -spec application_dialstring(doc(), Default) -> kz_term:ne_binary() | Default.
 application_dialstring(Doc, Default) ->
