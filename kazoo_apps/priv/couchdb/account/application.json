@@ -1,0 +1,48 @@
+{
+    "_id": "_design/application",
+    "kazoo": {
+        "view_map": [
+            {
+                "classification": "account"
+            }
+        ]
+    },
+    "language": "javascript",
+    "views": {
+        "blocklists": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type !== 'application_blocklist' || doc.pvt_deleted) return;",
+                "  emit([doc.app_type, doc.app_id], {",
+                "    app_id: doc.app_id,",
+                "    app_type: doc.app_type",
+                "  });",
+                "}"
+            ]
+        },
+        "crossbar_listing": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type !== 'application' || doc.pvt_deleted) return;",
+                "  emit([doc.type, doc.name], {",
+                "    id: doc._id,",
+                "    name: doc.name,",
+                "    type: doc.type",
+                "  });",
+                "}"
+            ]
+        },
+        "entitlements": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type !== 'application_entitlement' || doc.pvt_deleted) return;",
+                "  emit([doc.app_type, doc.app_id], {",
+                "    app_id: doc.app_id,",
+                "    app_type: doc.app_type,",
+                "    type: doc.type,",
+                "  });",
+                "}"
+            ]
+        }
+    }
+}
