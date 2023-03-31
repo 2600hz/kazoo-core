@@ -234,6 +234,9 @@
         "SIP-Invite-Parameters": {
             "type": "string"
         },
+        "SIP-Multipart": {
+            "type": "object"
+        },
         "SIP-Transport": {
             "type": "string"
         },

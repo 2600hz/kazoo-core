@@ -556,6 +556,9 @@
             },
             "type": "string"
         },
+        "SIP-Multipart": {
+            "type": "object"
+        },
         "SIP-Transport": {
             "enum": [
                 "tcp",
