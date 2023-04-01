@@ -128,7 +128,7 @@ record_call_command(Data, Call) ->
     MediaName = kz_json:get_value(?RECORDING_ID_KEY, Data, DefaultMediaName),
     FollowTransfer = kz_json:is_true(<<"follow_transfer">>, Data, kapps_call:kvs_fetch('recording_follow_transfer', 'false', Call)),
     Recorder = kz_json:get_ne_binary_value(<<"media_recorder">>, Data, media_recorder(Data, Call)),
-    RecordAsStereo = kz_json:is_true(<<"stereo">>, Data),
+    RecordAsStereo = kz_json:get_boolean_value(<<"stereo">>, Data),
     Vars = [{<<"Name">>, MediaName}
            ,{<<"Recorder">>, Recorder}
            ,{<<"ID">>, MediaDocId}
