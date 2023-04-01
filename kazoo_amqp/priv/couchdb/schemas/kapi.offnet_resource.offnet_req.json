@@ -268,7 +268,7 @@
         "SIP-Invite-Contact-User": {
             "type": "string"
         },
-        "SIP-Multipart": {
+        "SIP-Multiparts": {
             "type": "object"
         },
         "Timeout": {

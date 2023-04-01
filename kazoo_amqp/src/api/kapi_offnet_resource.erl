@@ -70,7 +70,7 @@
         ,ringback/1, ringback/2
         ,timeout/1, timeout/2
         ,sip_diversions/1, sip_diversions/2
-        ,sip_multipart/1, sip_multipart/2
+        ,sip_multiparts/1, sip_multiparts/2
         ,t38_enabled/1, t38_enabled/2
         ,to_did/1, to_did/2
         ,denied_call_restrictions/1, denied_call_restrictions/2
@@ -211,7 +211,7 @@ req_definition() ->
                                                             ,?KEY_REQUESTOR_CSHS
                                                             ,?KEY_RINGBACK
                                                             ,?KEY_SIP_DIVERSIONS
-                                                            ,?KEY_SIP_MULTIPART
+                                                            ,?KEY_SIP_MULTIPARTS
                                                             ,?KEY_T38_ENABLED
                                                             ,?KEY_TIMEOUT
                                                             ]}
@@ -260,7 +260,7 @@ req_definition() ->
                 ,{?KEY_REQUESTOR_CCVS, fun kz_json:is_json_object/1}
                 ,{?KEY_REQUESTOR_CSHS, fun kz_json:is_json_object/1}
                 ,{?KEY_SIP_DIVERSIONS, fun kz_term:is_ne_binaries/1}
-                ,{?KEY_SIP_MULTIPART, fun kz_json:is_json_object/1}
+                ,{?KEY_SIP_MULTIPARTS, fun kz_json:is_json_object/1}
                 ,{?KEY_TO_DID, fun kz_term:is_ne_binary/1}
                 ,{?KEY_CONTINUE_AFTER, fun kz_term:is_boolean/1}
                 ,{?KEY_FAIL_ON_SINGLE_REJECT, fun is_valid_fail_on_single_reject/1}
@@ -610,13 +610,13 @@ sip_diversions(Req) ->
 sip_diversions(?REQ_TYPE(JObj), Default) ->
     kz_json:get_ne_binaries(?KEY_SIP_DIVERSIONS, JObj, Default).
 
--spec sip_multipart(req()) -> kz_json:api_object().
-sip_multipart(Req) ->
-    sip_multipart(Req, 'undefined').
+-spec sip_multiparts(req()) -> kz_json:api_object().
+sip_multiparts(Req) ->
+    sip_multiparts(Req, 'undefined').
 
--spec sip_multipart(req(), Default) -> kz_json:object() | Default.
-sip_multipart(?REQ_TYPE(JObj), Default) ->
-    kz_json:get_json_value(?KEY_SIP_MULTIPART, JObj, Default).
+-spec sip_multiparts(req(), Default) -> kz_json:object() | Default.
+sip_multiparts(?REQ_TYPE(JObj), Default) ->
+    kz_json:get_json_value(?KEY_SIP_MULTIPARTS, JObj, Default).
 
 -spec ignore_early_media(req()) -> kz_term:api_boolean().
 ignore_early_media(Req) ->

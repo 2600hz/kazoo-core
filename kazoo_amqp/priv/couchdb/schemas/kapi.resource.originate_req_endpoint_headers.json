@@ -171,7 +171,7 @@
         "SIP-Invite-Parameters": {
             "type": "string"
         },
-        "SIP-Multipart": {
+        "SIP-Multiparts": {
             "type": "string"
         },
         "SIP-Transport": {

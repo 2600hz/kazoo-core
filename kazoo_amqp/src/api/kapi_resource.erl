@@ -155,7 +155,7 @@ originate_req_definition() ->
                                                             ,<<"Simplify-Loopback">> %% loopback_bowout flag
                                                             ,<<"Start-Control-Process">>
                                                             ,<<"SIP-Diversions">>
-                                                            ,<<"SIP-Multipart">>
+                                                            ,<<"SIP-Multiparts">>
                                                             ,<<?CALL_INTERACTION_ID>>
                                                             | kapi_dialplan:optional_bridge_req_headers()
                                                             ]}
@@ -181,7 +181,7 @@ originate_req_definition() ->
                 ,{<<"Endpoints">>, fun is_list/1}
                 ,{<<"Simplify-Bowout">>, fun kz_term:is_boolean/1}
                 ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
-                ,{<<"SIP-Multipart">>, fun kz_json:is_json_object/1}
+                ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],
