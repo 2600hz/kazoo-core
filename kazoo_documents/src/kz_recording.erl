@@ -12,6 +12,7 @@
 -export([id/1, id/2
         ,name/1, name/2
         ,origin/1, origin/2
+        ,account_id/1, account_id/2
         ,endpoint_id/1, endpoint_id/2
         ,recorder/1, recorder/2
         ,data/1, data/2
@@ -70,6 +71,14 @@ endpoint_id(JObj) ->
 -spec endpoint_id(event(), Default) -> kz_term:ne_binary() | Default.
 endpoint_id(JObj, Default) ->
     kz_json:get_ne_binary_value([?RECORDING_ROOT, <<"Endpoint-ID">>], JObj, Default).
+
+-spec account_id(event()) -> kz_term:api_ne_binary().
+account_id(JObj) ->
+    account_id(JObj, 'undefined').
+
+-spec account_id(event(), Default) -> kz_term:ne_binary() | Default.
+account_id(JObj, Default) ->
+    kz_json:get_ne_binary_value([?RECORDING_ROOT, <<"Account-ID">>], JObj, kz_ccv:account_id(JObj, Default)).
 
 -spec recorder(event()) -> kz_term:api_ne_binary().
 recorder(JObj) ->
