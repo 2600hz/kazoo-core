@@ -202,7 +202,7 @@ fs_command_definition() ->
                                                             ,<<"Call-ID">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
-               ,[{<<"Command">>, [<<"send_http">>]}
+               ,[{<<"Command">>, [<<"send_http">>, <<"call_command">>]}
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
