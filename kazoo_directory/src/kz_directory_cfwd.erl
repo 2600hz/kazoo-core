@@ -32,9 +32,10 @@ is_legacy_failover(Endpoint) ->
     kz_json:is_true(<<"failover">>, kzd_endpoint:call_forward(Endpoint, kz_json:new())).
 
 maybe_build_call_forward(EndpointId, AccountId, Endpoint) ->
-    case is_call_forward_enabled(Endpoint) of
-        true -> build_call_forward(EndpointId, AccountId, Endpoint);
-        false -> undefined
+    CallForward = call_forward(Endpoint),
+    case is_call_forward_enabled(CallForward) of
+        'true' -> build_call_forward(EndpointId, AccountId, Endpoint, CallForward);
+        'false' -> 'undefined'
     end.
 
 -spec call_forward(kz_json:object()) -> kz_json:object().
@@ -42,23 +43,21 @@ call_forward(Endpoint) ->
     CallForward = kzd_endpoint:call_forward(Endpoint, kz_json:new()),
     call_forward(CallForward, kzd_call_forward:is_legacy(CallForward)).
 
-call_forward(CallForward, true) ->
+call_forward(CallForward, 'true') ->
     CallForward;
-call_forward(CallForward, false) ->
+call_forward(CallForward, 'false') ->
     case kzd_call_forward:enabled(CallForward) of
-        true -> kzd_call_forward:merged(CallForward, fun kzd_call_forward:unconditional/1, kz_json:new());
-        false -> kz_json:new()
+        'true' -> kzd_call_forward:merged(CallForward, fun kzd_call_forward:unconditional/1, kz_json:new());
+        'false' -> kz_json:new()
     end.
 
 -spec is_call_forward_enabled(kz_json:object()) -> boolean().
-is_call_forward_enabled(Endpoint) ->
-    CallForward = call_forward(Endpoint),
+is_call_forward_enabled(CallForward) ->
     kzd_call_forward:number(CallForward) =/= 'undefined'
         andalso kzd_call_forward:enabled(CallForward).
 
--spec build_call_forward(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
-build_call_forward(EndpointId, AccountId, Endpoint) ->
-    CallForward = call_forward(Endpoint),
+-spec build_call_forward(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kzd_call_forward:doc()) -> kz_json:object().
+build_call_forward(EndpointId, AccountId, Endpoint, CallForward) ->
     Number = kzd_call_forward:number(CallForward),
     IsReconcilable = knm_converters:is_reconcilable(Number, AccountId),
     Realm = get_realm(Endpoint),
@@ -80,9 +79,9 @@ call_forward_properties(EndpointId, AccountId, Endpoint, CallForward, IsReconcil
     kz_json:from_list(Props).
 
 -spec call_forward_base_properties(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_json:object(), boolean()) -> kz_term:proplist().
-call_forward_base_properties(_EndpointId, _AccountId, Endpoint, CallForward, _IsReconcilable) ->
+call_forward_base_properties(_EndpointId, _AccountId, _Endpoint, CallForward, _IsReconcilable) ->
     [{<<"Call-Forward">>, 'true'}
-    ,{<<"Is-Substitute">>, kzd_call_forward:substitute(Endpoint)}
+    ,{<<"Is-Substitute">>, kzd_call_forward:substitute(CallForward)}
     ,{<<"Direct-Calls-Only">>, kzd_call_forward:direct_calls_only(CallForward)}
     ,{<<"Require-Ignore-Early-Media">>, 'true'}
     ,{<<"Ignore-Early-Media">>, 'true'}

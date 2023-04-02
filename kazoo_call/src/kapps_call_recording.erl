@@ -122,34 +122,32 @@ record_call_command(Data, Call) ->
     RecordMinSec = kz_json:get_integer_value(<<"record_min_sec">>, Data, DefaultRecordMinSec),
     {Year, Month, _} = erlang:date(),
     CallId = kapps_call:call_id(Call),
-    RecordingId = kz_json:get_ne_binary_value(<<"media_id">>, Data, kz_binary:rand_hex(16)),
+    RecordingId = kz_binary:rand_hex(16),
     MediaDocId = ?MATCH_MODB_PREFIX(kz_term:to_binary(Year), kz_date:pad_month(Month), RecordingId),
     DefaultMediaName = get_media_name(kz_binary:rand_hex(16), Format),
     MediaName = kz_json:get_value(?RECORDING_ID_KEY, Data, DefaultMediaName),
     FollowTransfer = kz_json:is_true(<<"follow_transfer">>, Data, kapps_call:kvs_fetch('recording_follow_transfer', 'false', Call)),
     Recorder = kz_json:get_ne_binary_value(<<"media_recorder">>, Data, media_recorder(Data, Call)),
-    RecordAsStereo = kz_json:is_true(<<"stereo">>, Data),
+    RecordAsStereo = kz_json:get_boolean_value(<<"stereo">>, Data),
     Vars = [{<<"Name">>, MediaName}
            ,{<<"Recorder">>, Recorder}
            ,{<<"ID">>, MediaDocId}
            ,{<<"Data">>, base64:encode(term_to_binary(Data))}
            | kz_json:get_list_value(<<"recording_vars">>, Data, [])
            ],
-    Media = props:filter_undefined(
-              [{<<"Application-Name">>, <<"record_call">>}
-              ,{<<"Record-Action">>, <<"start">>}
-              ,{<<"Follow-Transfer">>, FollowTransfer}
-              ,{<<"Time-Limit">>, TimeLimit}
-              ,{<<"Media-Name">>, MediaName}
-              ,{<<"Media-Recording-ID">>, MediaDocId}
-              ,{<<"Record-Sample-Rate">>, SampleRate}
-              ,{<<"Record-Min-Sec">>, kz_term:to_binary(RecordMinSec)}
-              ,{<<"Media-Recorder">>, Recorder}
-              ,{<<"Recording-Variables">>, kz_json:from_list(Vars)}
-              ,{<<"Channels-As-Stereo">>, RecordAsStereo}
-              ,{<<"Call-ID">>, CallId}
-              ,{<<"Msg-ID">>, kz_binary:rand_hex(16)}
-              | kz_api:default_headers(<<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
-              ]
-             ),
+    Media = [{<<"Application-Name">>, <<"record_call">>}
+            ,{<<"Record-Action">>, <<"start">>}
+            ,{<<"Follow-Transfer">>, FollowTransfer}
+            ,{<<"Time-Limit">>, TimeLimit}
+            ,{<<"Media-Name">>, MediaName}
+            ,{<<"Media-Recording-ID">>, MediaDocId}
+            ,{<<"Record-Sample-Rate">>, SampleRate}
+            ,{<<"Record-Min-Sec">>, kz_term:to_binary(RecordMinSec)}
+            ,{<<"Media-Recorder">>, Recorder}
+            ,{<<"Recording-Variables">>, kz_json:from_list(Vars)}
+            ,{<<"Channels-As-Stereo">>, RecordAsStereo}
+            ,{<<"Call-ID">>, CallId}
+            ,{<<"Msg-ID">>, kz_binary:rand_hex(16)}
+            | kz_api:default_headers(<<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
+            ],
     kz_json:from_list(Media).
