@@ -359,9 +359,9 @@ rules_test(Doc, Default) ->
 set_rules_test(Doc, RulesTest) ->
     kz_json:set_value([<<"rules_test">>], RulesTest, Doc).
 
--spec supports_pidflo(doc()) -> boolean().
+-spec supports_pidflo(doc()) -> kz_term:api_boolean().
 supports_pidflo(Doc) ->
-    supports_pidflo(Doc, 'false').
+    supports_pidflo(Doc, 'undefined').
 
 -spec supports_pidflo(doc(), Default) -> boolean() | Default.
 supports_pidflo(Doc, Default) ->
