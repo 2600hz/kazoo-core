@@ -16,6 +16,7 @@
 -define(KEY_CONTROL_QUEUE, <<"Control-Queue">>).
 -define(KEY_CSHS, <<"Custom-SIP-Headers">>).
 -define(KEY_DENIED_CALL_RESTRICTIONS, <<"Denied-Call-Restrictions">>).
+-define(KEY_EMERGENCY_ADDRESS, <<"Emergency-Address">>).
 -define(KEY_EMERGENCY_RESOURCE, <<"Emergency-Resource">>).
 -define(KEY_ENABLE_T38 ,<<"Enable-T38-Fax">>).
 -define(KEY_ENABLE_T38_GATEWAY, <<"Enable-T38-Gateway">>).
@@ -59,6 +60,7 @@
 -define(KEY_RESOURCE_TYPE, <<"Resource-Type">>).
 -define(KEY_RINGBACK, <<"Ringback">>).
 -define(KEY_SIP_DIVERSIONS, <<"SIP-Diversions">>).
+-define(KEY_SIP_MULTIPARTS, <<"SIP-Multiparts">>).
 -define(KEY_T38_ENABLED, <<"Fax-T38-Enabled">>).
 -define(KEY_TIMEOUT, <<"Timeout">>).
 -define(KEY_TO_DID, <<"To-DID">>).

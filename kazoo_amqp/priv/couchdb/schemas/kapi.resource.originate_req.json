@@ -94,6 +94,9 @@
             ],
             "type": "string"
         },
+        "Emergency-Address": {
+            "type": "string"
+        },
         "Enable-T38-Fax": {
             "type": "string"
         },
@@ -230,6 +233,9 @@
         },
         "SIP-Invite-Parameters": {
             "type": "string"
+        },
+        "SIP-Multiparts": {
+            "type": "object"
         },
         "SIP-Transport": {
             "type": "string"

@@ -10,6 +10,8 @@
 -module(kzd_users).
 
 -export([new/0]).
+-export([addresses/1, addresses/2, set_addresses/2]).
+-export([addresses_vcard/1, addresses_vcard/2, set_addresses_vcard/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
@@ -37,6 +39,7 @@
 -export([hotdesk_require_pin/1, hotdesk_require_pin/2, set_hotdesk_require_pin/2]).
 -export([language/1, language/2, set_language/2]).
 -export([last_name/1, last_name/2, set_last_name/2]).
+-export([maybe_migrate_user_addresses/1]).
 -export([media/1, media/2, set_media/2]).
 -export([metaflows/1, metaflows/2, set_metaflows/2]).
 -export([music_on_hold/1, music_on_hold/2, set_music_on_hold/2]).
@@ -106,6 +109,30 @@
 -spec new() -> doc().
 new() ->
     kz_doc:set_type(kz_json_schema:default_object(?SCHEMA), type()).
+
+-spec addresses(doc()) -> kz_term:api_object().
+addresses(Doc) ->
+    addresses(Doc, 'undefined').
+
+-spec addresses(doc(), Default) -> kz_json:object() | Default.
+addresses(Doc, Default) ->
+    kz_json:get_json_value([<<"addresses">>], Doc, Default).
+
+-spec set_addresses(doc(), kz_json:object()) -> doc().
+set_addresses(Doc, Addresses) ->
+    kz_json:set_value([<<"addresses">>], Addresses, Doc).
+
+-spec addresses_vcard(doc()) -> kz_term:api_objects().
+addresses_vcard(Doc) ->
+    addresses_vcard(Doc, 'undefined').
+
+-spec addresses_vcard(doc(), Default) -> kz_json:objects() | Default.
+addresses_vcard(Doc, Default) ->
+    kz_json:get_list_value([<<"addresses">>, <<"vcard">>], Doc, Default).
+
+-spec set_addresses_vcard(doc(), kz_json:objects()) -> doc().
+set_addresses_vcard(Doc, AddressesVcard) ->
+    kz_json:set_value([<<"addresses">>, <<"vcard">>], AddressesVcard, Doc).
 
 -spec call_failover(doc()) -> kz_term:api_object().
 call_failover(Doc) ->
@@ -747,7 +774,9 @@ fetch(Account, UserId=?NE_BINARY) ->
     kz_datamgr:open_cache_doc(AccountDb, UserId).
 
 -spec to_vcard(doc()) -> binary().
-to_vcard(User) ->
+to_vcard(UserDoc) ->
+    %% Handle scenario when trying to build vcard for existing user with old addresses schema.
+    User = maybe_migrate_user_addresses(UserDoc),
     %% TODO add SOUND, AGENT (X-ASSISTANT), X-MANAGER
     Fields = [<<"BEGIN">>
              ,<<"VERSION">>
@@ -854,7 +883,7 @@ card_field(Key = <<"PHOTO">>, User) ->
             {[Key, {<<"ENCODING">>, <<"B">>}, {<<"TYPE">>, TypeType}], Data}
     end;
 card_field(Key = <<"ADR">>, User) ->
-    Addresses = [normalize_address(A) || A <- kz_json:get_list_value(<<"addresses">>, User, [])],
+    Addresses = [normalize_address(A) || A <- kz_json:get_list_value([<<"addresses">>, <<"vcard">>], User, [])],
     [{[Key, {<<"TYPE">>, Type}], Address} || {Type, Address} <- Addresses];
 card_field(Key = <<"TEL">>, User) ->
     CallerId = caller_id(User, kz_json:new()),
@@ -1413,3 +1442,27 @@ validate_call_forward(_AccountId, _UserId, {Doc, AccErrors} = Acc) ->
 -spec validate_call_forward(kz_term:api_object()) -> 'ok' | kazoo_documents:doc_validation_errors().
 validate_call_forward(undefined) -> ok;
 validate_call_forward(CallForward) -> kzd_call_forward:validate(CallForward).
+
+%%------------------------------------------------------------------------------
+%% @doc As part of KZOO-309/KCRO-164 changes, a new optional `addresses' field can be added to
+%% users, devices, and accounts. Since users already had an 'addresses' field being used to build
+%% the vcard, this function takes care of migrating the existing implementation to match the new
+%% one, if necessary.
+%%
+%% Previous implementation was `addresses = [list_of_objects]'. The new implementation is
+%% `addresses = single_object'. Take a look at 'addresses.json' schema for more details regarding
+%% the new implementation.
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_migrate_user_addresses(doc()) -> doc().
+maybe_migrate_user_addresses(User) ->
+    Key = <<"addresses">>,
+    case kz_json:get_value(Key, User) of
+        [_|_] = AddressesList ->
+            AddressesJObj = kz_json:from_list([{<<"vcard">>, AddressesList}]),
+            lager:debug("migrating user's addresses from ~p to ~p", [AddressesList, AddressesJObj]),
+            kz_json:set_value(Key, AddressesJObj, User);
+        _ ->
+            %% 'undefined' or already using new implementation. Not need to migrate it.
+            User
+    end.

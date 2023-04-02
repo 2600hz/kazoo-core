@@ -16,12 +16,13 @@
 -export([caller_id_options_type/1, caller_id_options_type/2, set_caller_id_options_type/2]).
 -export([cid_rules/1, cid_rules/2, set_cid_rules/2]).
 -export([classifiers/1, classifiers/2, set_classifiers/2]).
--export([classifier_emergency/2,   classifier_emergency/3,   set_classifier_emergency/3]).
--export([classifier_enabled/2,     classifier_enabled/3,     set_classifier_enabled/3]).
--export([classifier_prefix/2,      classifier_prefix/3,      set_classifier_prefix/3]).
--export([classifier_regex/2,       classifier_regex/3,       set_classifier_regex/3]).
--export([classifier_suffix/2,      classifier_suffix/3,      set_classifier_suffix/3]).
--export([classifier_weight_cost/2, classifier_weight_cost/3, set_classifier_weight_cost/3]).
+-export([classifier_emergency/2,      classifier_emergency/3,      set_classifier_emergency/3]).
+-export([classifier_enabled/2,        classifier_enabled/3,        set_classifier_enabled/3]).
+-export([classifier_include_pidflo/2, classifier_include_pidflo/3, set_classifier_include_pidflo/3]).
+-export([classifier_prefix/2,         classifier_prefix/3,         set_classifier_prefix/3]).
+-export([classifier_regex/2,          classifier_regex/3,          set_classifier_regex/3]).
+-export([classifier_suffix/2,         classifier_suffix/3,         set_classifier_suffix/3]).
+-export([classifier_weight_cost/2,    classifier_weight_cost/3,    set_classifier_weight_cost/3]).
 -export([emergency/1, emergency/2, set_emergency/2]).
 -export([enabled/1, enabled/2, set_enabled/2]).
 -export([flags/1, flags/2, set_flags/2]).
@@ -40,6 +41,7 @@
 -export([require_flags/1, require_flags/2, set_require_flags/2]).
 -export([rules/1, rules/2, set_rules/2]).
 -export([rules_test/1, rules_test/2, set_rules_test/2]).
+-export([supports_pidflo/1, supports_pidflo/2, set_supports_pidflo/2]).
 -export([weight_cost/1, weight_cost/2, set_weight_cost/2]).
 
 -export([media_fax_option/1, media_fax_option/2
@@ -147,6 +149,18 @@ classifier_enabled(Doc, ClassifierName, Default) ->
 -spec set_classifier_enabled(doc(), kz_json:key(), boolean()) -> doc().
 set_classifier_enabled(Doc, ClassifierName, ClassifiersEnabled) ->
     kz_json:set_value([<<"classifiers">>, ClassifierName, <<"enabled">>], ClassifiersEnabled, Doc).
+
+-spec classifier_include_pidflo(doc(), kz_json:key()) -> boolean().
+classifier_include_pidflo(Doc, ClassifierName) ->
+    classifier_include_pidflo(Doc, ClassifierName, 'false').
+
+-spec classifier_include_pidflo(doc(), kz_json:key(), Default) -> boolean() | Default.
+classifier_include_pidflo(Doc, ClassifierName, Default) ->
+    kz_json:get_boolean_value([<<"classifiers">>, ClassifierName, <<"include_pidflo">>], Doc, Default).
+
+-spec set_classifier_include_pidflo(doc(), kz_json:key(), boolean()) -> doc().
+set_classifier_include_pidflo(Doc, ClassifierName, ClassifiersIncludePidflo) ->
+    kz_json:set_value([<<"classifiers">>, ClassifierName, <<"include_pidflo">>], ClassifiersIncludePidflo, Doc).
 
 -spec classifier_prefix(doc(), kz_json:key()) -> kz_term:api_binary().
 classifier_prefix(Doc, ClassifierName) ->
@@ -411,6 +425,18 @@ rules_test(Doc, Default) ->
 -spec set_rules_test(doc(), kz_term:ne_binaries()) -> doc().
 set_rules_test(Doc, RulesTest) ->
     kz_json:set_value([<<"rules_test">>], RulesTest, Doc).
+
+-spec supports_pidflo(doc()) -> boolean().
+supports_pidflo(Doc) ->
+    supports_pidflo(Doc, 'false').
+
+-spec supports_pidflo(doc(), Default) -> boolean() | Default.
+supports_pidflo(Doc, Default) ->
+    kz_json:get_boolean_value([<<"supports_pidflo">>], Doc, Default).
+
+-spec set_supports_pidflo(doc(), boolean()) -> doc().
+set_supports_pidflo(Doc, SupportsPidflo) ->
+    kz_json:set_value([<<"supports_pidflo">>], SupportsPidflo, Doc).
 
 -spec weight_cost(doc()) -> integer().
 weight_cost(Doc) ->

@@ -32,6 +32,7 @@
 -export([require_flags/1, require_flags/2, set_require_flags/2]).
 -export([rules/1, rules/2, set_rules/2]).
 -export([rules_test/1, rules_test/2, set_rules_test/2]).
+-export([supports_pidflo/1, supports_pidflo/2, set_supports_pidflo/2]).
 -export([weight_cost/1, weight_cost/2, set_weight_cost/2]).
 
 
@@ -357,6 +358,18 @@ rules_test(Doc, Default) ->
 -spec set_rules_test(doc(), kz_term:ne_binaries()) -> doc().
 set_rules_test(Doc, RulesTest) ->
     kz_json:set_value([<<"rules_test">>], RulesTest, Doc).
+
+-spec supports_pidflo(doc()) -> kz_term:api_boolean().
+supports_pidflo(Doc) ->
+    supports_pidflo(Doc, 'undefined').
+
+-spec supports_pidflo(doc(), Default) -> boolean() | Default.
+supports_pidflo(Doc, Default) ->
+    kz_json:get_boolean_value([<<"supports_pidflo">>], Doc, Default).
+
+-spec set_supports_pidflo(doc(), boolean()) -> doc().
+set_supports_pidflo(Doc, SupportsPidflo) ->
+    kz_json:set_value([<<"supports_pidflo">>], SupportsPidflo, Doc).
 
 -spec weight_cost(doc()) -> integer().
 weight_cost(Doc) ->

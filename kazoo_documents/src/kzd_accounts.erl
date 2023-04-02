@@ -10,6 +10,7 @@
 -module(kzd_accounts).
 
 -export([new/0]).
+-export([addresses/1, addresses/2, set_addresses/2]).
 -export([announcement/1, announcement/2, set_announcement/2]).
 -export([blacklists/1, blacklists/2, set_blacklists/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
@@ -155,6 +156,18 @@ new() ->
                                  ,{'now', kz_time:now_s()}
                                  ]
                                 ).
+
+-spec addresses(doc()) -> kz_term:api_object().
+addresses(Doc) ->
+    addresses(Doc, 'undefined').
+
+-spec addresses(doc(), Default) -> kz_json:object() | Default.
+addresses(Doc, Default) ->
+    kz_json:get_json_value([<<"addresses">>], Doc, Default).
+
+-spec set_addresses(doc(), kz_json:object()) -> doc().
+set_addresses(Doc, Addresses) ->
+    kz_json:set_value([<<"addresses">>], Addresses, Doc).
 
 -spec announcement(doc()) -> kz_term:api_binary().
 announcement(Doc) ->

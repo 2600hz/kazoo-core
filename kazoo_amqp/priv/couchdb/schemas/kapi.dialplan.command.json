@@ -201,6 +201,9 @@
         "Duration": {
             "type": "string"
         },
+        "Emergency-Address": {
+            "type": "string"
+        },
         "Enable-DTMF": {
             "type": "string"
         },
@@ -553,6 +556,9 @@
             },
             "type": "string"
         },
+        "SIP-Multiparts": {
+            "type": "object"
+        },
         "SIP-Transport": {
             "enum": [
                 "tcp",
@@ -639,6 +645,9 @@
                 "type": "string"
             },
             "type": "array"
+        },
+        "Track-Media-Recording": {
+            "type": "string"
         },
         "Transfer-Context": {
             "type": "string"
