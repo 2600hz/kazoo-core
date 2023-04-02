@@ -118,6 +118,7 @@
 -type db_classification() :: 'account' |
                              'acdc' |
                              'aggregate' |
+                             'application' |
                              'deprecated' |
                              'external' |
                              'modb' |
