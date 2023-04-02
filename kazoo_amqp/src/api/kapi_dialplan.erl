@@ -1311,6 +1311,7 @@ record_call_definition() ->
                                                             ,<<"Recording-Variables">>
                                                             ,<<"Record-Min-Sec">>
                                                             ,<<"Record-Sample-Rate">>
+                                                            ,<<"Track-Media-Recording">>
                                                             ,<<"Time-Limit">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
@@ -1329,6 +1330,7 @@ record_call_definition() ->
                }
               ,{fun kapi_definition:set_types/2
                ,[{<<"Record-Sample-Rate">>, fun is_integer/1}
+                ,{<<"Track-Media-Recording">>, fun is_boolean/1}
                 ]
                }
               ],
