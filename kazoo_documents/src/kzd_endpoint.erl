@@ -9,6 +9,8 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_endpoint).
 
+-export([addresses/1, addresses/2, set_addresses/2]).
+-export([addresses_emergency/1, addresses_emergency/2, set_addresses_emergency/2]).
 -export([id/1]).
 -export([type/1]).
 -export([owner_id/1]).
@@ -31,6 +33,30 @@
 -export_type([endpoint/0
              ,type/0
              ]).
+
+-spec addresses(endpoint()) -> kz_term:api_object().
+addresses(Doc) ->
+    addresses(Doc, 'undefined').
+
+-spec addresses(endpoint(), Default) -> kz_json:object() | Default.
+addresses(Doc, Default) ->
+    kz_json:get_json_value([<<"addresses">>], Doc, Default).
+
+-spec set_addresses(endpoint(), kz_json:object()) -> endpoint().
+set_addresses(Doc, Addresses) ->
+    kz_json:set_value([<<"addresses">>], Addresses, Doc).
+
+-spec addresses_emergency(endpoint()) -> kz_json:api_object().
+addresses_emergency(Endpoint) ->
+    addresses_emergency(Endpoint, 'undefined').
+
+-spec addresses_emergency(endpoint(), Default) -> kz_json:object() | Default.
+addresses_emergency(Endpoint, Default) ->
+    kz_json:get_json_value([<<"addresses">>, <<"emergency">>], Endpoint, Default).
+
+-spec set_addresses_emergency(endpoint(), kz_json:api_object()) -> kz_json:object().
+set_addresses_emergency(Endpoint, EmergencyAddr) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>], EmergencyAddr, Endpoint).
 
 -spec id(endpoint()) -> kz_term:ne_binary().
 id(Endpoint) ->

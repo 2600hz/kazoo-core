@@ -42,6 +42,7 @@
         ,custom_sip_header/2
         ,requestor_custom_sip_headers/1, requestor_custom_sip_headers/2
         ,requestor_custom_sip_header/2
+        ,emergency_address/1, emergency_address/2
         ,emergency_caller_id_name/1, emergency_caller_id_name/2
         ,emergency_caller_id_number/1, emergency_caller_id_number/2
         ,fax_identity_name/1, fax_identity_name/2
@@ -69,6 +70,7 @@
         ,ringback/1, ringback/2
         ,timeout/1, timeout/2
         ,sip_diversions/1, sip_diversions/2
+        ,sip_multiparts/1, sip_multiparts/2
         ,t38_enabled/1, t38_enabled/2
         ,to_did/1, to_did/2
         ,denied_call_restrictions/1, denied_call_restrictions/2
@@ -160,17 +162,21 @@ req_definition() ->
                                                             ,?KEY_BODY
                                                             ,?KEY_BYPASS_E164
                                                             ,?KEY_CALL_ID
+                                                            ,?KEY_CALL_INTERACTION_ID
                                                             ,?KEY_CAVS
                                                             ,?KEY_CCVS
+                                                            ,?KEY_CONTINUE_AFTER
                                                             ,?KEY_CONTROL_QUEUE
                                                             ,?KEY_CSHS
                                                             ,?KEY_DENIED_CALL_RESTRICTIONS
                                                             ,?KEY_E_CALLER_ID_NAME
                                                             ,?KEY_E_CALLER_ID_NUMBER
+                                                            ,?KEY_EMERGENCY_ADDRESS
                                                             ,?KEY_ENABLE_T38
                                                             ,?KEY_ENABLE_T38_GATEWAY
                                                             ,?KEY_ENABLE_T38_PASSTHROUGH
                                                             ,?KEY_ENABLE_T38_REQUEST
+                                                            ,?KEY_FAIL_ON_SINGLE_REJECT
                                                             ,?KEY_FAX_IDENTITY_NAME
                                                             ,?KEY_FAX_IDENTITY_NUMBER
                                                             ,?KEY_FAX_TIMEZONE
@@ -184,6 +190,7 @@ req_definition() ->
                                                             ,?KEY_HUNT_ACCOUNT_ID
                                                             ,?KEY_IGNORE_EARLY_MEDIA
                                                             ,?KEY_INCEPTION
+                                                            ,?KEY_INVITE_CONTACT_USER
                                                             ,?KEY_MEDIA
                                                             ,?KEY_MESSAGE_ID
                                                             ,?KEY_MODE
@@ -191,10 +198,10 @@ req_definition() ->
                                                             ,?KEY_ORIGINATE_IMMEDIATE
                                                             ,?KEY_ORIGINATION_CALL_ID
                                                             ,?KEY_OUTBOUND_ACTIONS
-                                                            ,?KEY_OUTBOUND_CALLER_ID_NAME
-                                                            ,?KEY_OUTBOUND_CALLER_ID_NUMBER
                                                             ,?KEY_OUTBOUND_CALLEE_ID_NAME
                                                             ,?KEY_OUTBOUND_CALLEE_ID_NUMBER
+                                                            ,?KEY_OUTBOUND_CALLER_ID_NAME
+                                                            ,?KEY_OUTBOUND_CALLER_ID_NUMBER
                                                             ,?KEY_OUTBOUND_CALL_ID
                                                             ,?KEY_PRESENCE_ID
                                                             ,?KEY_PRIVACY_HIDE_NAME
@@ -204,12 +211,9 @@ req_definition() ->
                                                             ,?KEY_REQUESTOR_CSHS
                                                             ,?KEY_RINGBACK
                                                             ,?KEY_SIP_DIVERSIONS
+                                                            ,?KEY_SIP_MULTIPARTS
                                                             ,?KEY_T38_ENABLED
                                                             ,?KEY_TIMEOUT
-                                                            ,?KEY_CONTINUE_AFTER
-                                                            ,?KEY_FAIL_ON_SINGLE_REJECT
-                                                            ,?KEY_INVITE_CONTACT_USER
-                                                            ,?KEY_CALL_INTERACTION_ID
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{?KEY_RESOURCE_TYPE, [?RESOURCE_TYPE_AUDIO
@@ -256,6 +260,7 @@ req_definition() ->
                 ,{?KEY_REQUESTOR_CCVS, fun kz_json:is_json_object/1}
                 ,{?KEY_REQUESTOR_CSHS, fun kz_json:is_json_object/1}
                 ,{?KEY_SIP_DIVERSIONS, fun kz_term:is_ne_binaries/1}
+                ,{?KEY_SIP_MULTIPARTS, fun kz_json:is_json_object/1}
                 ,{?KEY_TO_DID, fun kz_term:is_ne_binary/1}
                 ,{?KEY_CONTINUE_AFTER, fun kz_term:is_boolean/1}
                 ,{?KEY_FAIL_ON_SINGLE_REJECT, fun is_valid_fail_on_single_reject/1}
@@ -469,6 +474,14 @@ emergency_caller_id_number(Req) ->
 emergency_caller_id_number(?REQ_TYPE(JObj), Default) ->
     kz_json:get_ne_value(?KEY_E_CALLER_ID_NUMBER, JObj, Default).
 
+-spec emergency_address(req()) -> kz_json:api_object().
+emergency_address(Req) ->
+    emergency_address(Req, 'undefined').
+
+-spec emergency_address(req(), Default) -> kz_json:api_object() | Default.
+emergency_address(Req, Default) ->
+    kz_json:get_json_value(?KEY_EMERGENCY_ADDRESS, Req, Default).
+
 -spec emergency_caller_id_name(req()) -> kz_term:api_binary().
 emergency_caller_id_name(Req) ->
     emergency_caller_id_name(Req, 'undefined').
@@ -596,6 +609,14 @@ sip_diversions(Req) ->
 -spec sip_diversions(req(), Default) -> kz_term:ne_binaries() | Default.
 sip_diversions(?REQ_TYPE(JObj), Default) ->
     kz_json:get_ne_binaries(?KEY_SIP_DIVERSIONS, JObj, Default).
+
+-spec sip_multiparts(req()) -> kz_json:api_object().
+sip_multiparts(Req) ->
+    sip_multiparts(Req, 'undefined').
+
+-spec sip_multiparts(req(), Default) -> kz_json:object() | Default.
+sip_multiparts(?REQ_TYPE(JObj), Default) ->
+    kz_json:get_json_value(?KEY_SIP_MULTIPARTS, JObj, Default).
 
 -spec ignore_early_media(req()) -> kz_term:api_boolean().
 ignore_early_media(Req) ->

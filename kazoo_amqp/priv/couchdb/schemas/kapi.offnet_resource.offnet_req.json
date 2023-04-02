@@ -95,6 +95,9 @@
         "Denied-Call-Restrictions": {
             "type": "object"
         },
+        "Emergency-Address": {
+            "type": "string"
+        },
         "Emergency-Caller-ID-Name": {
             "type": "string"
         },
@@ -264,6 +267,9 @@
         },
         "SIP-Invite-Contact-User": {
             "type": "string"
+        },
+        "SIP-Multiparts": {
+            "type": "object"
         },
         "Timeout": {
             "type": "string"

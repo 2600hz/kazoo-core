@@ -201,6 +201,9 @@
         "Duration": {
             "type": "string"
         },
+        "Emergency-Address": {
+            "type": "string"
+        },
         "Enable-DTMF": {
             "type": "string"
         },
@@ -552,6 +555,9 @@
                 "type": "string"
             },
             "type": "string"
+        },
+        "SIP-Multiparts": {
+            "type": "object"
         },
         "SIP-Transport": {
             "enum": [

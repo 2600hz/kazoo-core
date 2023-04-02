@@ -504,6 +504,7 @@ bridge_definition() ->
                                                             ,<<"SIP-Diversions">>
                                                             ,<<"SIP-Invite-Contact-User">>
                                                             ,<<"SIP-Invite-Parameters">>
+                                                            ,<<"SIP-Multiparts">>
                                                             ,<<"SIP-Transport">>
                                                             ,<<"Secure-RTP">>
                                                             ,<<"Simplify-Loopback">>
@@ -532,6 +533,7 @@ bridge_definition() ->
                 ,{<<"Bridge-Actions">>, fun kz_json:is_json_object/1}
                 ,{<<"Hold-Media-Options">>, fun kz_term:is_ne_binaries/1}
                 ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],
@@ -599,6 +601,7 @@ bridge_endpoint_definition() ->
                                                             ,<<"SIP-Interface">>
                                                             ,<<"SIP-Invite-Contact-User">>
                                                             ,<<"SIP-Invite-Parameters">>
+                                                            ,<<"SIP-Multiparts">>
                                                             ,<<"SIP-Transport">>
                                                             ,<<"To-DID">>
                                                             ,<<"To-IP">>
@@ -627,6 +630,7 @@ bridge_endpoint_definition() ->
                 ,{<<"SIP-Invite-Parameters">>, fun erlang:is_list/1}
                 ,{<<"Hold-Media-Options">>, fun kz_term:is_ne_binaries/1}
                 ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],
