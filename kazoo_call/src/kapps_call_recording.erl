@@ -106,32 +106,49 @@ should_store_recording() ->
 
 -spec media_recorder(kz_json:object(), kapps_call:call()) -> kz_term:api_ne_binary().
 media_recorder(Data, Call) ->
+    media_recorder(Data, Call, kapps_call:kvs_fetch('recording_recorder', Call)).
+
+-spec media_recorder(kz_json:object(), kapps_call:call(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+media_recorder(Data, Call, undefined) ->
     AccountId = kapps_call:account_id(Call),
     Url = kz_json:get_ne_binary_value(<<"url">>, Data),
     case should_store_recording(AccountId, Url) of
         'false' -> 'undefined';
         _ -> ?KZ_RECORDER
-    end.
+    end;
+media_recorder(_Data, _Call, Recorder) ->
+    Recorder.
+
+media_name(Data, Call) ->
+    Format = get_format(kz_json:get_ne_binary_value(<<"format">>, Data)),
+    DefaultMediaName = get_media_name(kz_binary:rand_hex(16), Format),
+    MediaName = kz_json:get_ne_binary_value(?RECORDING_ID_KEY, Data, DefaultMediaName),
+    kapps_call:kvs_fetch(recording_media_name, MediaName, Call).
+
+media_doc_id(Data, Call) ->
+    {Year, Month, _} = erlang:date(),
+    DefaultMediaDocId = ?MATCH_MODB_PREFIX(kz_term:to_binary(Year), kz_date:pad_month(Month), kz_binary:rand_hex(16)),
+    MediaDocId = kz_json:get_ne_binary_value(?RECORDING_MEDIA_ID_KEY, Data, DefaultMediaDocId),
+    kapps_call:kvs_fetch(recording_media_doc_id, MediaDocId, Call).
 
 -spec record_call_command(kz_json:object(), kapps_call:call()) -> kz_json:object().
 record_call_command(Data, Call) ->
-    Format = get_format(kz_json:get_ne_binary_value(<<"format">>, Data)),
     TimeLimit = get_timelimit(kz_json:get_integer_value(<<"time_limit">>, Data)),
     SampleRate = kz_json:get_integer_value(<<"record_sample_rate">>, Data),
     DefaultRecordMinSec = kz_media_config:record_min_sec(),
     RecordMinSec = kz_json:get_integer_value(<<"record_min_sec">>, Data, DefaultRecordMinSec),
-    {Year, Month, _} = erlang:date(),
     CallId = kapps_call:call_id(Call),
-    RecordingId = kz_binary:rand_hex(16),
-    MediaDocId = ?MATCH_MODB_PREFIX(kz_term:to_binary(Year), kz_date:pad_month(Month), RecordingId),
-    DefaultMediaName = get_media_name(kz_binary:rand_hex(16), Format),
-    MediaName = kz_json:get_value(?RECORDING_ID_KEY, Data, DefaultMediaName),
+    MediaName = media_name(Data, Call),
+    MediaDocId = media_doc_id(Data, Call),
     FollowTransfer = kapps_call:kvs_fetch('recording_follow_transfer', 'false', Call),
     Recorder = media_recorder(Data, Call),
+    RecordAsStereo = kapps_call:kvs_fetch('recording_stereo', Call),
+    TrackMediaRecording = kapps_call:kvs_fetch('recording_track_media_recordings', true, Call),
     Vars = [{<<"Name">>, MediaName}
            ,{<<"Recorder">>, Recorder}
            ,{<<"ID">>, MediaDocId}
            ,{<<"Data">>, base64:encode(term_to_binary(Data))}
+           | kapps_call:kvs_fetch('recording_variables', [], Call)
            ],
     Media = [{<<"Application-Name">>, <<"record_call">>}
             ,{<<"Record-Action">>, <<"start">>}
@@ -143,6 +160,8 @@ record_call_command(Data, Call) ->
             ,{<<"Record-Min-Sec">>, kz_term:to_binary(RecordMinSec)}
             ,{<<"Media-Recorder">>, Recorder}
             ,{<<"Recording-Variables">>, kz_json:from_list(Vars)}
+            ,{<<"Channels-As-Stereo">>, RecordAsStereo}
+            ,{<<"Track-Media-Recording">>, TrackMediaRecording}
             ,{<<"Call-ID">>, CallId}
             ,{<<"Msg-ID">>, kz_binary:rand_hex(16)}
             | kz_api:default_headers(<<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
