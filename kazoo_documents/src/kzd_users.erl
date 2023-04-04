@@ -1444,14 +1444,15 @@ validate_call_forward(undefined) -> ok;
 validate_call_forward(CallForward) -> kzd_call_forward:validate(CallForward).
 
 %%------------------------------------------------------------------------------
-%% @doc As part of KZOO-309/KCRO-164 changes, a new optional `addresses' field can be added to
-%% users, devices, and accounts. Since users already had an 'addresses' field being used to build
-%% the vcard, this function takes care of migrating the existing implementation to match the new
-%% one, if necessary.
+%% @doc As part of KZOO-309/KCRO-164 changes, a new optional `addresses' field
+%% can be added to users, devices, and accounts. Since users already had an
+%% 'addresses' (optional, non-documented) field being used to build the vcard,
+%% this function takes care of migrating the existing implementation to match
+%% the new one, if necessary.
 %%
-%% Previous implementation was `addresses = [list_of_objects]'. The new implementation is
-%% `addresses = single_object'. Take a look at 'addresses.json' schema for more details regarding
-%% the new implementation.
+%% Previous implementation was `addresses = [list_of_objects]'. The new
+%% implementation is `addresses = single_object'. Take a look at 'addresses.json'
+%% schema for more details regarding the new implementation.
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_migrate_user_addresses(doc()) -> doc().
