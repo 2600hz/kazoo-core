@@ -378,6 +378,10 @@ raw_account_id(?MATCH_RESOURCE_SELECTORS_ENCODED(A, B, Rest)) ->
     ?MATCH_RESOURCE_SELECTORS_RAW(A, B, Rest);
 raw_account_id(<<"number/", _/binary>>=Other) ->
     Other;
+raw_account_id(<<"system_", _/binary>>=Other) ->
+    Other;
+raw_account_id(<<"application_", _/binary>>=Other) ->
+    Other;
 raw_account_id(Other) ->
     case lists:member(Other, ?KZ_SYSTEM_DBS) of
         'true' -> Other;
