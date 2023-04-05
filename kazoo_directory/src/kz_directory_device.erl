@@ -543,6 +543,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, Module) ->
               ,{fun presence_id/2, Endpoint}
               ,{fun relay_id/2, Endpoint}
               ,{fun sip_auth/3, Module, Endpoint}
+              ,{fun inbound_ccvs/3, Module, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
@@ -563,6 +564,10 @@ generate_routing_ccvs(Endpoint, _Options, Module) ->
               ,{fun routing_ccvs/3, Module, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
+
+-spec inbound_ccvs(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+inbound_ccvs(Mod, Endpoint, CCVs) ->
+    Mod:inbound_ccvs(Endpoint, CCVs).
 
 -spec sip_auth(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_auth(Mod, Endpoint, CCVs) ->
