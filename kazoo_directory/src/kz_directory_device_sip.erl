@@ -15,6 +15,7 @@
 
 -behaviour(kz_directory_device_spec).
 
+-export([inbound_ccvs/2]).
 -export([codecs/1]).
 -export([sip_interface/1]).
 -export([sip_route/1, sip_route_uri/1]).
@@ -167,3 +168,9 @@ sip_auth(Endpoint, CCVs) ->
                   ],
             kz_json:set_values(KVs, CCVs)
     end.
+
+-spec inbound_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
+inbound_ccvs(Endpoint, CCVs) ->
+    EndpointCCVs = kzd_devices:sip_custom_channel_vars(Endpoint, kz_json:new()),
+    InboundCCVs = kz_custom_channel_vars:inbound(EndpointCCVs, kz_json:new()),
+    kz_json:merge(CCVs, InboundCCVs).
