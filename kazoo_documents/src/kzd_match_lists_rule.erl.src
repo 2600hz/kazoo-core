@@ -9,6 +9,7 @@
 -export([name/1, name/2, set_name/2]).
 -export([regex/1, regex/2, set_regex/2]).
 -export([target/1, target/2, set_target/2]).
+-export([temporal_route_id/1, temporal_route_id/2, set_temporal_route_id/2]).
 -export([type/1, type/2, set_type/2]).
 
 
@@ -58,6 +59,18 @@ target(Doc, Default) ->
 -spec set_target(doc(), binary()) -> doc().
 set_target(Doc, Target) ->
     kz_json:set_value([<<"target">>], Target, Doc).
+
+-spec temporal_route_id(doc()) -> any().
+temporal_route_id(Doc) ->
+    temporal_route_id(Doc, 'undefined').
+
+-spec temporal_route_id(doc(), Default) -> any() | Default.
+temporal_route_id(Doc, Default) ->
+    kz_json:get_value([<<"temporal_route_id">>], Doc, Default).
+
+-spec set_temporal_route_id(doc(), any()) -> doc().
+set_temporal_route_id(Doc, TemporalRouteId) ->
+    kz_json:set_value([<<"temporal_route_id">>], TemporalRouteId, Doc).
 
 -spec type(doc()) -> kz_term:api_binary().
 type(Doc) ->
