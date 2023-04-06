@@ -380,12 +380,33 @@ prop_to_map() ->
                      )
            ).
 
+prop_utf8_encoding() ->
+    ?FORALL(JObj
+           ,resize(?MAX_OBJECT_DEPTH, kz_json_generators:deep_object())
+           ,begin
+                Json = kz_json:encode(JObj),
+                kz_json:are_equal(JObj, kz_json:decode(Json))
+            end
+           ).
+
+prop_mapped_object_has_no_duplicate_keys() ->
+    ?FORALL(JObj
+           ,resize(?MAX_OBJECT_DEPTH, kz_json_generators:deep_object())
+           ,begin
+                JObj1 = kz_json:map(fun(_K, V) -> {<<"key">>, V} end, JObj),
+                Keys = kz_json:get_keys(JObj1),
+                FlatJObjKeys = kz_json:get_keys(kz_json:flatten(JObj1)),
+                length(Keys) =:= length(lists:usort(Keys))
+                    andalso length(FlatJObjKeys) =:= length(lists:usort(FlatJObjKeys))
+            end
+           ).
+
 are_all_properties_found(Merged, Favored) ->
     kz_json:all(fun({K,V}) -> is_property_found(K, V, Merged) end, Favored).
 
 is_property_found(Key, ?JSON_WRAPPER(_)=Value, Merged) ->
     case kz_json:get_value(Key, Merged) of
-        ?JSON_WRAPPER(_)=MergedV -> are_all_properties_found(Value, MergedV);
+        ?JSON_WRAPPER(_)=MergedV -> are_all_properties_found(MergedV, Value);
         Missing ->
             log_failure(Key, Value, Missing),
             'false'

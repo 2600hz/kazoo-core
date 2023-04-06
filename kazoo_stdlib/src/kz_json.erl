@@ -1243,9 +1243,16 @@ filter(Pred, JObj, Key) ->
 
 -type mapper() :: fun((key(), json_term()) -> {key(), json_term()}).
 
--spec map(mapper(), object() | flat_object()) -> object() | flat_object().
-map(F, ?JSON_WRAPPER(Prop)) when is_function(F, 2) ->
-    from_list([F(K, V) || {K,V} <- Prop]).
+-spec map(mapper(), object()) -> object();
+         (mapper(), flat_object()) -> flat_object().
+map(F, ?JSON_WRAPPER([{Path, _V}]=Prop)) when is_function(F, 2), is_list(Path) ->
+    %% `Path' list indicates `flat_object()'
+    from_list([F(K, V) || {K, V} <- Prop]);
+map(F, ?JSON_WRAPPER(_Prop)=JObj) when is_function(F, 2) ->
+    foldl(fun(K, V, Acc) ->
+                  {K1, V1} = F(K, V),
+                  set_value(K1, V1, Acc)
+          end, new(), JObj).
 
 -type filtermapper() :: fun((key(), json_term()) -> boolean() | {'true', json_term()}).
 
@@ -1689,16 +1696,15 @@ set_value(Keys, Value, JObj, Options) when is_list(Keys) ->
 set_value(Key, Value, JObj, Options) ->
     set_value1([Key], check_value_term(Value), JObj, maps:merge(set_value_options(), Options)).
 
--spec set_value1(keys(), json_term() | 'null', object() | objects()) -> object() | objects().
+-spec set_value1(path(), json_term() | 'null', object() | objects()) -> object() | objects().
 set_value1(Keys, Value, JObj) ->
     set_value1(Keys, check_value_term(Value), JObj, set_value_options()).
 
--spec set_value1(keys(), json_term() | 'null', object() | objects(), set_value_options()) -> object() | objects().
-set_value1([Key|_]=Keys, Value, [], Options) when not is_integer(Key) ->
+-spec set_value1(path(), json_term() | 'null', object() | objects(), set_value_options()) -> object() | objects().
+set_value1([Key|_]=Keys, Value, JObjs, Options) when is_list(JObjs), not is_integer(Key) ->
     set_value1(Keys, Value, new(), Options);
 set_value1([Key|T], Value, JObjs, Options) when is_list(JObjs) ->
-    Key1 = kz_term:to_integer(Key),
-    case Key1 > length(JObjs) of
+    case Key > length(JObjs) of
         %% The object index does not exist so try to add a new one to the list
         'true' ->
             try
@@ -1719,12 +1725,11 @@ set_value1([Key|T], Value, JObjs, Options) when is_list(JObjs) ->
                                          (E, {Pos, Idx}) ->
                                               {E, {Pos + 1, Idx}}
                                       end
-                                     ,{1, Key1}
+                                     ,{1, Key}
                                      ,JObjs
                                      )
                    )
     end;
-
 %% Figure out how to set the current key in an existing object
 set_value1([_|_]=Keys, 'null', JObj, #{'keep_null' := 'false'}) -> delete_key(Keys, JObj);
 set_value1([Key1|T], Value, ?JSON_WRAPPER(Props), #{'deep' := Deep} = Options) ->
@@ -1757,7 +1762,6 @@ set_value1([Key1|T], Value, ?JSON_WRAPPER(Props), #{'deep' := Deep} = Options) -
             %% so continue looping the keys creating the necessary json as we go
             ?JSON_WRAPPER(Props ++ [{Key1, set_value1(T, Value, new(), Options)}])
     end;
-
 %% There are no more keys to iterate through! Override the value here...
 set_value1([], Value, _JObj, _Options) -> Value.
 
@@ -2044,13 +2048,13 @@ keys_to_binary(?JSON_WRAPPER(L)) when is_list(L) ->
 key_to_binary(K) when is_list(K) -> kz_binary:join(K, <<"_">>);
 key_to_binary(K) -> K.
 
--spec join_keys(keys() | key(), key() | integer()) -> keys().
+-spec join_keys(key() | path(), key() | integer()) -> path().
 join_keys(K1, K2) when is_list(K1) -> K1 ++ [K2];
 join_keys(K1, K2) -> [K1, K2].
 
 -type flatten_key_option() :: 'legacy' | 'deep'.
 
--spec flatten_key(key() | keys(), any(), flatten_key_option()) -> flat_proplist().
+-spec flatten_key(key() | path(), json_term(), flatten_key_option()) -> flat_proplist().
 flatten_key(K, V = ?EMPTY_JSON_OBJECT, _Option) when is_list(K) -> [{K, V}];
 flatten_key(K, V = ?EMPTY_JSON_OBJECT, _Option) -> [{[K], V}];
 flatten_key(K, ?JSON_WRAPPER(L), Option) when is_list(L) ->
