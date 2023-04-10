@@ -39,9 +39,6 @@
 -type keys() :: [key(),...].
 -type path() :: [key() | integer(),...].
 
-%% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
--type flat_proplist() :: [{path(), flat_json_term()}].
-
 %% Denotes array in JSON.
 -type json_array() :: json_terms() | [].
 
@@ -52,9 +49,6 @@
 -type keys() :: [key()].
 %% Denotes a path to (or n-th element of) a value in a JSON.
 -type path() :: [key() | integer()].
-
-%% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
--type flat_proplist() :: [{path(), flat_json_term() | 'null'}].
 
 %% Denotes array in JSON.
 -type json_array() :: json_terms().
@@ -71,8 +65,16 @@
 -type json_number() :: integer() | float().
 %% Denotes number in JSON.
 
--type json_proplist() :: [{key(), json_term()}].
+-type json_kv() :: {key(), json_term()}.
+%% Denotes JSON KV Erlang representation.
+
+-type json_proplist() :: [json_kv()].
 %% Denotes proplist of JSON object Erlang representation.
+
+-type json_ne_proplist() :: [json_kv(),...].
+%% Denotes proplist of JSON object Erlang representation.
+
+-type empty_object() :: ?EMPTY_JSON_OBJECT.
 
 -ifdef(PROPER).
 -type object() :: ?JSON_WRAPPER(json_proplist()) | ?EMPTY_JSON_OBJECT.
@@ -81,11 +83,18 @@
 %% Denotes JSON object Erlang representation, {@link json_proplist} wrapped in `{}'.
 -endif.
 
+-type ne_object() :: ?JSON_WRAPPER(json_ne_proplist()).
+
 -type objects() :: [object()].
 %% Denotes a list of {@link object()}.
 
+%% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
+-type flat_proplist() :: [{path(), flat_json_term() | 'null'}].
+-type ne_flat_proplist() :: [{path(), flat_json_term() | 'null'},...].
+
 %% Denotes a JSON of flatten version of JSON proplist, same as {@link flat_proplist()} but wrapped in `{}'.
 -type flat_object() :: ?JSON_WRAPPER(flat_proplist()).
+-type ne_flat_object() :: ?JSON_WRAPPER(ne_flat_proplist()).
 
 %% A list of flatten JSON objects.
 -type flat_objects() :: [flat_object()].
@@ -93,6 +102,7 @@
 %% Denotes a JSON key.
 -type key() :: json_string().
 
+-type ne_path() :: [key() | integer(),...].
 -type paths() :: [path()].
 %% Denotes a list of paths (or n-th element of) a value in a JSON.
 

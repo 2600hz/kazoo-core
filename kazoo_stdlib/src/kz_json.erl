@@ -1098,10 +1098,11 @@ filter(Pred, JObj, Key) ->
 
 -type mapper() :: fun((key(), json_term()) -> {key(), json_term()}).
 
--spec map(mapper(), object()) -> object();
-         (mapper(), flat_object()) -> flat_object().
+-spec map(mapper(), empty_object()) -> empty_object();
+         (mapper(), ne_object()) -> ne_object();
+         (mapper(), ne_flat_object()) -> ne_flat_object().
 map(F, ?JSON_WRAPPER([{Path, _V}]=Prop)) when is_function(F, 2), is_list(Path) ->
-    %% `Path' list indicates `flat_object()'
+    %% `Path' list indicates `ne_flat_object()'
     from_list([F(K, V) || {K, V} <- Prop]);
 map(F, ?JSON_WRAPPER(_Prop)=JObj) when is_function(F, 2) ->
     foldl(fun(K, V, Acc) ->
@@ -1901,7 +1902,7 @@ keys_to_binary(?JSON_WRAPPER(L)) when is_list(L) ->
 key_to_binary(K) when is_list(K) -> kz_binary:join(K, <<"_">>);
 key_to_binary(K) -> K.
 
--spec join_keys(key() | path(), key() | integer()) -> path().
+-spec join_keys(key() | path(), key() | integer()) -> ne_path().
 join_keys(K1, K2) when is_list(K1) -> K1 ++ [K2];
 join_keys(K1, K2) -> [K1, K2].
 
