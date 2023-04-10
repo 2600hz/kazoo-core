@@ -39,9 +39,6 @@
 -type keys() :: [key(),...].
 -type path() :: [key() | integer(),...].
 
-%% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
--type flat_proplist() :: [{path(), flat_json_term()}].
-
 %% Denotes array in JSON.
 -type json_array() :: json_terms() | [].
 
@@ -52,9 +49,6 @@
 -type keys() :: [key()].
 %% Denotes a path to (or n-th element of) a value in a JSON.
 -type path() :: [key() | integer()].
-
-%% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
--type flat_proplist() :: [{path(), flat_json_term() | 'null'}].
 
 %% Denotes array in JSON.
 -type json_array() :: json_terms().
@@ -98,8 +92,13 @@
 -type ne_objects() :: [ne_object(),...].
 %% Denotes a non empty list of {@link object()}.
 
+%% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
+-type flat_proplist() :: [{path(), flat_json_term() | 'null'}].
+-type ne_flat_proplist() :: [{path(), flat_json_term() | 'null'},...].
+
 %% Denotes a JSON of flatten version of JSON proplist, same as {@link flat_proplist()} but wrapped in `{}'.
 -type flat_object() :: ?JSON_WRAPPER(flat_proplist()).
+-type ne_flat_object() :: ?JSON_WRAPPER(ne_flat_proplist()).
 
 %% A list of flatten JSON objects.
 -type flat_objects() :: [flat_object()].
@@ -107,6 +106,7 @@
 %% Denotes a JSON key.
 -type key() :: json_string().
 
+-type ne_path() :: [key() | integer(),...].
 -type paths() :: [path()].
 %% Denotes a list of paths (or n-th element of) a value in a JSON.
 
