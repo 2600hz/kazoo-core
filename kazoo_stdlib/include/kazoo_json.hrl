@@ -39,6 +39,9 @@
 -type keys() :: [key(),...].
 -type path() :: [key() | integer(),...].
 
+%% Denotes a full_path/value pair of a flattened JSON object.
+-type flat_kv() :: {path(), flat_json_term()}.
+
 %% Denotes array in JSON.
 -type json_array() :: json_terms() | [].
 
@@ -49,6 +52,9 @@
 -type keys() :: [key()].
 %% Denotes a path to (or n-th element of) a value in a JSON.
 -type path() :: [key() | integer()].
+
+%% Denotes a full_path/value pair of a flattened JSON object.
+-type flat_kv() :: {path(), flat_json_term() | 'null'}.
 
 %% Denotes array in JSON.
 -type json_array() :: json_terms().
@@ -89,8 +95,8 @@
 %% Denotes a list of {@link object()}.
 
 %% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
--type flat_proplist() :: [{path(), flat_json_term() | 'null'}].
--type ne_flat_proplist() :: [{path(), flat_json_term() | 'null'},...].
+-type flat_proplist() :: [flat_kv()].
+-type ne_flat_proplist() :: [flat_kv(),...].
 
 %% Denotes a JSON of flatten version of JSON proplist, same as {@link flat_proplist()} but wrapped in `{}'.
 -type flat_object() :: ?JSON_WRAPPER(flat_proplist()).

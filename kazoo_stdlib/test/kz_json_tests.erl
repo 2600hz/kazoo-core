@@ -169,7 +169,7 @@ prop_is_object() ->
 
 prop_from_list() ->
     ?FORALL(Prop
-           ,flat_proplist()
+           ,kz_json_generators:valid_flat_proplist()
            ,?WHENFAIL(?debugFmt("Failed prop_from_list with ~p~n", [Prop])
                      ,kz_json:is_valid_json_object(kz_json:expand(kz_json:from_list(Prop)))
                      )
