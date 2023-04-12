@@ -11,6 +11,7 @@
 
 -export([test_object/0
         ,deep_object/0, deep_object/1
+        ,valid_flat_proplist/0
         ,path/1
 
         ,max_depth/1
@@ -40,6 +41,17 @@ deep_object(Depth, JObj) ->
     deep_object(Depth-1
                ,{'$call', 'kz_json', 'set_value', [path(Depth), freq_value(Depth), JObj]}
                ).
+
+%%------------------------------------------------------------------------------
+%% @doc Generate flat proplists that have only binaries for the first key of
+%% each path - this is to ensure that the proplist is valid for
+%% `kz_json:from_list/1'. Otherwise, the proplist seemingly represents a
+%% top-level JSON array, which is unhandled.
+%% @end
+%%------------------------------------------------------------------------------
+-spec valid_flat_proplist() -> proper_types:type().
+valid_flat_proplist() ->
+    ?LET(Proplist, flat_proplist(), ensure_first_keys_are_binary(Proplist)).
 
 path(0) ->
     utf8_json_string();
@@ -114,3 +126,21 @@ ensure_jobj_utf8(JObj) ->
                 end
                ,JObj
                ).
+
+%%------------------------------------------------------------------------------
+%% @doc Ensure that the first key in each proplist path is a binary.
+%% @end
+%%------------------------------------------------------------------------------
+-spec ensure_first_keys_are_binary(flat_proplist()) -> flat_proplist().
+ensure_first_keys_are_binary(Proplist) ->
+    [{ensure_first_key_is_binary(Path), V} || {Path, V} <- Proplist].
+
+%%------------------------------------------------------------------------------
+%% @doc Ensure that the first key in the list is a binary.
+%% @end
+%%------------------------------------------------------------------------------
+-spec ensure_first_key_is_binary(path()) -> path().
+ensure_first_key_is_binary([]) ->
+    [];
+ensure_first_key_is_binary([K|T]) ->
+    [kz_term:to_binary(K) | T].
