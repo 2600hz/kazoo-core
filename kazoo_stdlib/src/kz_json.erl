@@ -2049,7 +2049,7 @@ keys_to_binary(?JSON_WRAPPER(L)) when is_list(L) ->
 key_to_binary(K) when is_list(K) -> kz_binary:join(K, <<"_">>);
 key_to_binary(K) -> K.
 
--spec join_keys(key() | path(), key() | integer()) -> ne_path().
+-spec join_keys(key() | path(), key() | pos_integer()) -> ne_path().
 join_keys(K1, K2) when is_list(K1) -> K1 ++ [K2];
 join_keys(K1, K2) -> [K1, K2].
 

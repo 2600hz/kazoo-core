@@ -37,7 +37,7 @@
 
 %% We want non-empty keys when generating objects
 -type keys() :: [key(),...].
--type path() :: [key() | integer(),...].
+-type path() :: [key() | pos_integer(),...].
 
 %% Denotes a full_path/value pair of a flattened JSON object.
 -type flat_kv() :: {path(), flat_json_term()}.
@@ -51,7 +51,7 @@
 %% Denotes a list of JSON keys.
 -type keys() :: [key()].
 %% Denotes a path to (or n-th element of) a value in a JSON.
--type path() :: [key() | integer()].
+-type path() :: [key() | pos_integer()].
 
 %% Denotes a full_path/value pair of a flattened JSON object.
 -type flat_kv() :: {path(), flat_json_term() | 'null'}.
@@ -112,7 +112,7 @@
 %% Denotes a JSON key.
 -type key() :: json_string().
 
--type ne_path() :: [key() | integer(),...].
+-type ne_path() :: [key() | pos_integer(),...].
 -type paths() :: [path()].
 %% Denotes a list of paths (or n-th element of) a value in a JSON.
 
