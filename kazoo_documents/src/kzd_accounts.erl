@@ -1441,7 +1441,8 @@ is_alphanumeric(_) ->
 %%------------------------------------------------------------------------------
 -spec validate(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc()) -> kazoo_documents:doc_validation_return().
 validate(ParentId, AccountId, ReqJObj) ->
-    ValidateFuns = [fun ensure_account_has_realm/2
+    ValidateFuns = [fun ensure_valid_account_id/2
+                   ,fun ensure_account_has_realm/2
                    ,fun ensure_account_has_timezone/2
                    ,fun remove_spaces/2
                    ,fun cleanup_leaky_keys/2
@@ -1468,6 +1469,23 @@ do_validation(AccountId, ReqJObj, ValidateFuns) ->
                ,{ReqJObj, []}
                ,ValidateFuns
                ).
+
+ensure_valid_account_id('undefined', {Doc, Errors}) ->
+    case kz_doc:id(Doc) of
+        'undefined' -> {Doc, Errors};
+        AccountId ->
+            ensure_account_id_is_new(AccountId, {Doc, Errors})
+    end;
+ensure_valid_account_id(_AccountId, {Doc, Errors}) ->
+    {Doc, Errors}.
+
+ensure_account_id_is_new(AccountId, {Doc, Errors}) ->
+    case kz_datamgr:db_exists(AccountId) of
+        'false' -> {Doc, Errors};
+        'true' ->
+            lager:warning("account ~s exists already, invalid credentials", [AccountId]),
+            throw({'system_error', 'invalid_credentials'})
+    end.
 
 -spec ensure_account_has_realm(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
 ensure_account_has_realm(_AccountId, {Doc, Errors}) ->
