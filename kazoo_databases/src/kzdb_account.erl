@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2022, 2600Hz
+%%% @copyright (C) 2018-2023, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -33,12 +33,19 @@
           {'error', delete_errors()}.
 delete('undefined') -> {'ok', 'undefined'};
 delete(?MATCH_ACCOUNT_RAW(AccountId)) ->
+    {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
+    delete(AccountId, MasterAccountId).
+
+delete(MasterAccountId, MasterAccountId) ->
+    lager:error("deleting master account id forbidden"),
+    {'error', 'unauthorized'};
+delete(AccountId, _MasterAccountId) ->
     case kzd_accounts:fetch(AccountId) of
         {'error', _}=Error ->
             maybe_cleanup_accounts(AccountId, Error);
         {'ok', AccountJObj} ->
             lager:info("attempting to delete ~s(~s)", [AccountId, kz_doc:revision(AccountJObj)]),
-            delete(AccountId, AccountJObj)
+            delete_account(AccountId, AccountJObj)
     end.
 
 maybe_cleanup_accounts(AccountId, Error) ->
@@ -51,10 +58,10 @@ maybe_cleanup_accounts(AccountId, Error) ->
         {'error', _} -> Error
     end.
 
--spec delete(kz_term:ne_binary(), kzd_accounts:doc()) ->
+-spec delete_account(kz_term:ne_binary(), kzd_accounts:doc()) ->
           {'ok', kzd_accounts:doc()} |
           {'error', delete_errors()}.
-delete(_AccountId, AccountJObj) ->
+delete_account(_AccountId, AccountJObj) ->
     DeleteRoutines = [fun delete_remove_services/1
                      ,fun delete_free_numbers/1
                      ,fun delete_remove_sip_aggregates/1

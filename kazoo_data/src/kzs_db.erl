@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -99,7 +99,13 @@ do_db_delete_others(Map, DbName) ->
 
 -spec do_db_delete(map(), kz_term:ne_binary()) -> boolean().
 do_db_delete(#{server := {App, Conn}}, DbName) ->
-    App:db_delete(Conn, DbName).
+    case kapps_util:get_master_account_db() of
+        {'ok', DbName} ->
+            lager:error("deleting master account id forbidden"),
+            'false';
+        {'ok', _MasterDb} ->
+            App:db_delete(Conn, DbName)
+    end.
 
 -spec db_replicate(map(), kz_json:object() | kz_term:proplist()) ->
           {'ok', kz_json:object()} |
