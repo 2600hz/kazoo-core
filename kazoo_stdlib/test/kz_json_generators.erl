@@ -51,7 +51,10 @@ deep_object(Depth, JObj) ->
 %%------------------------------------------------------------------------------
 -spec valid_flat_proplist() -> proper_types:type().
 valid_flat_proplist() ->
-    ?LET(Proplist, flat_proplist(), ensure_first_keys_are_binary(Proplist)).
+    ?LET(Proplist
+        ,flat_proplist()
+        ,ensure_consistent_path_types(Proplist)
+        ).
 
 path(0) ->
     utf8_json_string();
@@ -128,19 +131,76 @@ ensure_jobj_utf8(JObj) ->
                ).
 
 %%------------------------------------------------------------------------------
-%% @doc Ensure that the first key in each proplist path is a binary.
+%% @doc Ensure that the paths in a flat proplist are valid for assignment to the
+%% object generated from earlier paths in the proplist. This is to ensure that
+%% the proplist is valid for `kz_json:from_list/1'. The goal is to restrict the
+%% input generation to avoid attempting to get a key from a non-object term or
+%% get an index from a non-array term.
 %% @end
 %%------------------------------------------------------------------------------
--spec ensure_first_keys_are_binary(flat_proplist()) -> flat_proplist().
-ensure_first_keys_are_binary(Proplist) ->
-    [{ensure_first_key_is_binary(Path), V} || {Path, V} <- Proplist].
+-spec ensure_consistent_path_types(flat_proplist()) -> flat_proplist().
+ensure_consistent_path_types(Proplist) ->
+    {_JObj, Proplist1} = lists:foldl(fun ensure_consistent_path_types/2
+                                    ,{kz_json:new(), []}
+                                    ,Proplist
+                                    ),
+    lists:reverse(Proplist1).
+
+-spec ensure_consistent_path_types({path(), flat_json_term()}
+                                  ,{object(), flat_proplist()}
+                                  ) -> {object(), flat_proplist()}.
+ensure_consistent_path_types({Path, Value}, {JObj, Proplist}) ->
+    try ensure_types_along_path(Path, JObj) of
+        Path1 ->
+            JObj1 = kz_json:set_value(Path1, Value, JObj),
+            {JObj1, [{Path1, Value} | Proplist]}
+    catch
+        {'invalid_path', _InvalidPath, _Term} ->
+            %% Discard invalid paths
+            {JObj, Proplist}
+    end.
 
 %%------------------------------------------------------------------------------
-%% @doc Ensure that the first key in the list is a binary.
+%% @doc Ensure that the types along a path are valid for assignment to the
+%% provided object. Integer and binary types are coerced when appropriate.
 %% @end
 %%------------------------------------------------------------------------------
--spec ensure_first_key_is_binary(path()) -> path().
-ensure_first_key_is_binary([]) ->
-    [];
-ensure_first_key_is_binary([K|T]) ->
-    [kz_term:to_binary(K) | T].
+-spec ensure_types_along_path(path(), object()) -> path().
+ensure_types_along_path(Path, JObj) ->
+    ensure_types_along_path(Path, JObj, []).
+
+-spec ensure_types_along_path(path(), api_json_term(), path()) -> path().
+ensure_types_along_path([], _JObj, NewPath) -> NewPath;
+ensure_types_along_path(Path, 'undefined', NewPath) ->
+    %% Nothing at the target - safe to replace target's value
+    NewPath ++ Path;
+ensure_types_along_path([Key|KVs], List, NewPath)
+  when is_list(List), not is_integer(Key) ->
+    %% Replace object key with array index
+    Key1 = try kz_term:to_integer(Key) of
+               I -> I
+           catch
+               %% Make up a new index for generated input
+               'error':'badarg' -> 1
+           end,
+    ensure_types_along_path([Key1 | KVs], List, NewPath);
+ensure_types_along_path([Key|_KVs]=Path, List, NewPath)
+  when is_list(List), Key > length(List) ->
+    %% Key is after list end - will append value
+    ensure_types_along_path(Path, 'undefined', NewPath);
+ensure_types_along_path([Key|KVs], List, NewPath) when is_list(List) ->
+    %% Recurse into list
+    ensure_types_along_path(KVs, lists:nth(Key, List), NewPath ++ [Key]);
+ensure_types_along_path([Key|KVs]=Path, Term, NewPath) ->
+    case kz_json:is_json_object(Term) of
+        'true' when is_integer(Key) ->
+            %% Replace array index with object key
+            ensure_types_along_path([kz_term:to_binary(Key) | KVs], Term, NewPath);
+        'true' ->
+            %% Recurse into object
+            V = kz_json:get_value(Key, Term),
+            ensure_types_along_path(KVs, V, NewPath ++ [Key]);
+        'false' ->
+            %% Invalid attempt to "subscript" a non-array/object term
+            throw({'invalid_path', Path, Term})
+    end.
