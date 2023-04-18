@@ -97,8 +97,7 @@ utf8_non_object_json_term() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec utf8_json_string() -> proper_types:type().
-utf8_json_string() ->
-    ?LET(Bin, json_string(), ensure_utf8(Bin)).
+utf8_json_string() -> proper_unicode:utf8().
 
 %%------------------------------------------------------------------------------
 %% @doc Replace invalid UTF-8 strings with valid UTF-8 strings in a JSON term.
@@ -108,7 +107,7 @@ utf8_json_string() ->
 ensure_utf8(Bin) when is_binary(Bin) ->
     case unicode:characters_to_binary(Bin) of
         Bin -> Bin;
-        _ -> ?LET(Str, string(), unicode:characters_to_binary(Str))
+        _ -> utf8_json_string()
     end;
 ensure_utf8(List) when is_list(List) ->
     lists:map(fun ensure_utf8/1, List);
