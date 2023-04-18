@@ -1555,10 +1555,11 @@ set_value1(Keys, Value, JObj) ->
     set_value1(Keys, check_value_term(Value), JObj, set_value_options()).
 
 -spec set_value1(path(), json_term() | 'null', object() | objects(), set_value_options()) -> object() | objects().
-set_value1([Key|_]=Keys, Value, JObjs, Options) when is_list(JObjs), not is_integer(Key) ->
+set_value1([Key|_]=Keys, Value, [], Options) when not is_integer(Key) ->
     set_value1(Keys, Value, new(), Options);
 set_value1([Key|T], Value, JObjs, Options) when is_list(JObjs) ->
-    case Key > length(JObjs) of
+    Key1 = kz_term:to_integer(Key),
+    case Key1 > length(JObjs) of
         %% The object index does not exist so try to add a new one to the list
         'true' ->
             try
@@ -1579,7 +1580,7 @@ set_value1([Key|T], Value, JObjs, Options) when is_list(JObjs) ->
                                          (E, {Pos, Idx}) ->
                                               {E, {Pos + 1, Idx}}
                                       end
-                                     ,{1, Key}
+                                     ,{1, Key1}
                                      ,JObjs
                                      )
                    )
