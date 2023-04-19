@@ -1,0 +1,228 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2023, 2600Hz
+%%% @doc Accessors for `conferences_profile' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_conferences_profile).
+
+-export([new/0]).
+-export([alone_sound/1, alone_sound/2, set_alone_sound/2]).
+-export([announce_count/1, announce_count/2, set_announce_count/2]).
+-export([caller_controls/1, caller_controls/2, set_caller_controls/2]).
+-export([comfort_noise/1, comfort_noise/2, set_comfort_noise/2]).
+-export([energy_level/1, energy_level/2, set_energy_level/2]).
+-export([enter_sound/1, enter_sound/2, set_enter_sound/2]).
+-export([exit_sound/1, exit_sound/2, set_exit_sound/2]).
+-export([interval/1, interval/2, set_interval/2]).
+-export([locked_sound/1, locked_sound/2, set_locked_sound/2]).
+-export([max_members/1, max_members/2, set_max_members/2]).
+-export([max_members_sound/1, max_members_sound/2, set_max_members_sound/2]).
+-export([moderator_controls/1, moderator_controls/2, set_moderator_controls/2]).
+-export([moh_sound/1, moh_sound/2, set_moh_sound/2]).
+-export([muted_sound/1, muted_sound/2, set_muted_sound/2]).
+-export([rate/1, rate/2, set_rate/2]).
+-export([unmuted_sound/1, unmuted_sound/2, set_unmuted_sound/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"conferences.profile">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec alone_sound(doc()) -> kz_term:api_binary().
+alone_sound(Doc) ->
+    alone_sound(Doc, 'undefined').
+
+-spec alone_sound(doc(), Default) -> binary() | Default.
+alone_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"alone_sound">>], Doc, Default).
+
+-spec set_alone_sound(doc(), binary()) -> doc().
+set_alone_sound(Doc, AloneSound) ->
+    kz_json:set_value([<<"alone_sound">>], AloneSound, Doc).
+
+-spec announce_count(doc()) -> kz_term:api_integer().
+announce_count(Doc) ->
+    announce_count(Doc, 'undefined').
+
+-spec announce_count(doc(), Default) -> integer() | Default.
+announce_count(Doc, Default) ->
+    kz_json:get_integer_value([<<"announce_count">>], Doc, Default).
+
+-spec set_announce_count(doc(), integer()) -> doc().
+set_announce_count(Doc, AnnounceCount) ->
+    kz_json:set_value([<<"announce_count">>], AnnounceCount, Doc).
+
+-spec caller_controls(doc()) -> kz_term:api_binary().
+caller_controls(Doc) ->
+    caller_controls(Doc, 'undefined').
+
+-spec caller_controls(doc(), Default) -> binary() | Default.
+caller_controls(Doc, Default) ->
+    kz_json:get_binary_value([<<"caller_controls">>], Doc, Default).
+
+-spec set_caller_controls(doc(), binary()) -> doc().
+set_caller_controls(Doc, CallerControls) ->
+    kz_json:set_value([<<"caller_controls">>], CallerControls, Doc).
+
+-spec comfort_noise(doc()) -> kz_term:api_integer().
+comfort_noise(Doc) ->
+    comfort_noise(Doc, 'undefined').
+
+-spec comfort_noise(doc(), Default) -> integer() | Default.
+comfort_noise(Doc, Default) ->
+    kz_json:get_integer_value([<<"comfort_noise">>], Doc, Default).
+
+-spec set_comfort_noise(doc(), integer()) -> doc().
+set_comfort_noise(Doc, ComfortNoise) ->
+    kz_json:set_value([<<"comfort_noise">>], ComfortNoise, Doc).
+
+-spec energy_level(doc()) -> kz_term:api_integer().
+energy_level(Doc) ->
+    energy_level(Doc, 'undefined').
+
+-spec energy_level(doc(), Default) -> integer() | Default.
+energy_level(Doc, Default) ->
+    kz_json:get_integer_value([<<"energy_level">>], Doc, Default).
+
+-spec set_energy_level(doc(), integer()) -> doc().
+set_energy_level(Doc, EnergyLevel) ->
+    kz_json:set_value([<<"energy_level">>], EnergyLevel, Doc).
+
+-spec enter_sound(doc()) -> kz_term:api_binary().
+enter_sound(Doc) ->
+    enter_sound(Doc, 'undefined').
+
+-spec enter_sound(doc(), Default) -> binary() | Default.
+enter_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"enter_sound">>], Doc, Default).
+
+-spec set_enter_sound(doc(), binary()) -> doc().
+set_enter_sound(Doc, EnterSound) ->
+    kz_json:set_value([<<"enter_sound">>], EnterSound, Doc).
+
+-spec exit_sound(doc()) -> kz_term:api_binary().
+exit_sound(Doc) ->
+    exit_sound(Doc, 'undefined').
+
+-spec exit_sound(doc(), Default) -> binary() | Default.
+exit_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"exit_sound">>], Doc, Default).
+
+-spec set_exit_sound(doc(), binary()) -> doc().
+set_exit_sound(Doc, ExitSound) ->
+    kz_json:set_value([<<"exit_sound">>], ExitSound, Doc).
+
+-spec interval(doc()) -> kz_term:api_integer().
+interval(Doc) ->
+    interval(Doc, 'undefined').
+
+-spec interval(doc(), Default) -> integer() | Default.
+interval(Doc, Default) ->
+    kz_json:get_integer_value([<<"interval">>], Doc, Default).
+
+-spec set_interval(doc(), integer()) -> doc().
+set_interval(Doc, Interval) ->
+    kz_json:set_value([<<"interval">>], Interval, Doc).
+
+-spec locked_sound(doc()) -> kz_term:api_binary().
+locked_sound(Doc) ->
+    locked_sound(Doc, 'undefined').
+
+-spec locked_sound(doc(), Default) -> binary() | Default.
+locked_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"locked_sound">>], Doc, Default).
+
+-spec set_locked_sound(doc(), binary()) -> doc().
+set_locked_sound(Doc, LockedSound) ->
+    kz_json:set_value([<<"locked_sound">>], LockedSound, Doc).
+
+-spec max_members(doc()) -> kz_term:api_integer().
+max_members(Doc) ->
+    max_members(Doc, 'undefined').
+
+-spec max_members(doc(), Default) -> integer() | Default.
+max_members(Doc, Default) ->
+    kz_json:get_integer_value([<<"max_members">>], Doc, Default).
+
+-spec set_max_members(doc(), integer()) -> doc().
+set_max_members(Doc, MaxMembers) ->
+    kz_json:set_value([<<"max_members">>], MaxMembers, Doc).
+
+-spec max_members_sound(doc()) -> kz_term:api_binary().
+max_members_sound(Doc) ->
+    max_members_sound(Doc, 'undefined').
+
+-spec max_members_sound(doc(), Default) -> binary() | Default.
+max_members_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"max_members_sound">>], Doc, Default).
+
+-spec set_max_members_sound(doc(), binary()) -> doc().
+set_max_members_sound(Doc, MaxMembersSound) ->
+    kz_json:set_value([<<"max_members_sound">>], MaxMembersSound, Doc).
+
+-spec moderator_controls(doc()) -> kz_term:api_binary().
+moderator_controls(Doc) ->
+    moderator_controls(Doc, 'undefined').
+
+-spec moderator_controls(doc(), Default) -> binary() | Default.
+moderator_controls(Doc, Default) ->
+    kz_json:get_binary_value([<<"moderator_controls">>], Doc, Default).
+
+-spec set_moderator_controls(doc(), binary()) -> doc().
+set_moderator_controls(Doc, ModeratorControls) ->
+    kz_json:set_value([<<"moderator_controls">>], ModeratorControls, Doc).
+
+-spec moh_sound(doc()) -> kz_term:api_binary().
+moh_sound(Doc) ->
+    moh_sound(Doc, 'undefined').
+
+-spec moh_sound(doc(), Default) -> binary() | Default.
+moh_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"moh_sound">>], Doc, Default).
+
+-spec set_moh_sound(doc(), binary()) -> doc().
+set_moh_sound(Doc, MohSound) ->
+    kz_json:set_value([<<"moh_sound">>], MohSound, Doc).
+
+-spec muted_sound(doc()) -> kz_term:api_binary().
+muted_sound(Doc) ->
+    muted_sound(Doc, 'undefined').
+
+-spec muted_sound(doc(), Default) -> binary() | Default.
+muted_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"muted_sound">>], Doc, Default).
+
+-spec set_muted_sound(doc(), binary()) -> doc().
+set_muted_sound(Doc, MutedSound) ->
+    kz_json:set_value([<<"muted_sound">>], MutedSound, Doc).
+
+-spec rate(doc()) -> kz_term:api_integer().
+rate(Doc) ->
+    rate(Doc, 'undefined').
+
+-spec rate(doc(), Default) -> integer() | Default.
+rate(Doc, Default) ->
+    kz_json:get_integer_value([<<"rate">>], Doc, Default).
+
+-spec set_rate(doc(), integer()) -> doc().
+set_rate(Doc, Rate) ->
+    kz_json:set_value([<<"rate">>], Rate, Doc).
+
+-spec unmuted_sound(doc()) -> kz_term:api_binary().
+unmuted_sound(Doc) ->
+    unmuted_sound(Doc, 'undefined').
+
+-spec unmuted_sound(doc(), Default) -> binary() | Default.
+unmuted_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"unmuted_sound">>], Doc, Default).
+
+-spec set_unmuted_sound(doc(), binary()) -> doc().
+set_unmuted_sound(Doc, UnmutedSound) ->
+    kz_json:set_value([<<"unmuted_sound">>], UnmutedSound, Doc).

@@ -1,0 +1,7 @@
+{application,kazoo_temporal_routes,
+             [{applications,[kazoo_documents,kazoo_stdlib,kernel,lager,
+                             stdlib]},
+              {description,"Temporal Route processing"},
+              {vsn,"5.0.0"},
+              {modules,[]},
+              {registered,[]}]}.

@@ -25,7 +25,7 @@
 -export([time_window_stop/1, time_window_stop/2, set_time_window_stop/2]).
 -export([wdays/1, wdays/2, set_wdays/2]).
 
-
+-export([schema/0, type/0]).
 -export([delete_enabled/1]).
 
 -include("kz_documents.hrl").
@@ -38,6 +38,12 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec schema() -> kz_term:ne_binary().
+schema() -> ?SCHEMA.
+
+-spec type() -> kz_term:ne_binary().
+type() -> <<"temporal_rule">>.
 
 -spec cycle(doc()) -> binary().
 cycle(Doc) ->

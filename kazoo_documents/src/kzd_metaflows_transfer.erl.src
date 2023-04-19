@@ -1,0 +1,85 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2023, 2600Hz
+%%% @doc Accessors for `metaflows_transfer' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_metaflows_transfer).
+
+-export([new/0]).
+-export([captures/1, captures/2, set_captures/2]).
+-export([leg/1, leg/2, set_leg/2]).
+-export([target/1, target/2, set_target/2]).
+-export([timeout/1, timeout/2, set_timeout/2]).
+-export([transfer_type/1, transfer_type/2, set_transfer_type/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"metaflows.transfer">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec captures(doc()) -> kz_term:ne_binaries().
+captures(Doc) ->
+    captures(Doc, no_match).
+
+-spec captures(doc(), Default) -> kz_term:ne_binaries() | Default.
+captures(Doc, Default) ->
+    kz_json:get_list_value([<<"captures">>], Doc, Default).
+
+-spec set_captures(doc(), kz_term:ne_binaries()) -> doc().
+set_captures(Doc, Captures) ->
+    kz_json:set_value([<<"captures">>], Captures, Doc).
+
+-spec leg(doc()) -> kz_term:api_binary().
+leg(Doc) ->
+    leg(Doc, 'undefined').
+
+-spec leg(doc(), Default) -> binary() | Default.
+leg(Doc, Default) ->
+    kz_json:get_binary_value([<<"leg">>], Doc, Default).
+
+-spec set_leg(doc(), binary()) -> doc().
+set_leg(Doc, Leg) ->
+    kz_json:set_value([<<"leg">>], Leg, Doc).
+
+-spec target(doc()) -> kz_term:api_binary().
+target(Doc) ->
+    target(Doc, 'undefined').
+
+-spec target(doc(), Default) -> binary() | Default.
+target(Doc, Default) ->
+    kz_json:get_binary_value([<<"target">>], Doc, Default).
+
+-spec set_target(doc(), binary()) -> doc().
+set_target(Doc, Target) ->
+    kz_json:set_value([<<"target">>], Target, Doc).
+
+-spec timeout(doc()) -> kz_term:api_integer().
+timeout(Doc) ->
+    timeout(Doc, 'undefined').
+
+-spec timeout(doc(), Default) -> integer() | Default.
+timeout(Doc, Default) ->
+    kz_json:get_integer_value([<<"timeout">>], Doc, Default).
+
+-spec set_timeout(doc(), integer()) -> doc().
+set_timeout(Doc, Timeout) ->
+    kz_json:set_value([<<"timeout">>], Timeout, Doc).
+
+-spec transfer_type(doc()) -> binary().
+transfer_type(Doc) ->
+    transfer_type(Doc, <<"blind">>).
+
+-spec transfer_type(doc(), Default) -> binary() | Default.
+transfer_type(Doc, Default) ->
+    kz_json:get_binary_value([<<"transfer_type">>], Doc, Default).
+
+-spec set_transfer_type(doc(), binary()) -> doc().
+set_transfer_type(Doc, TransferType) ->
+    kz_json:set_value([<<"transfer_type">>], TransferType, Doc).

@@ -10,6 +10,7 @@
 -export([type/1, type/2, set_type/2]).
 -export([regex/1, regex/2, set_regex/2]).
 -export([target/1, target/2, set_target/2]).
+-export([temporal_route_id/1, temporal_route_id/2, set_temporal_route_id/2]).
 
 -include("kz_documents.hrl").
 
@@ -69,3 +70,15 @@ target(Doc, Default) ->
 -spec set_target(doc(), kz_term:ne_binary()) -> doc().
 set_target(Doc, Target) ->
     kz_json:set_value([<<"target">>], Target, Doc).
+
+-spec temporal_route_id(doc()) -> kz_term:api_ne_binary().
+temporal_route_id(Doc) ->
+    temporal_route_id(Doc, 'undefined').
+
+-spec temporal_route_id(doc(), Default) -> kz_term:ne_binary() | Default.
+temporal_route_id(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"temporal_route_id">>], Doc, Default).
+
+-spec set_temporal_route_id(doc(), kz_term:ne_binary()) -> doc().
+set_temporal_route_id(Doc, Temporal_Route_Id) ->
+    kz_json:set_value([<<"temporal_route_id">>], Temporal_Route_Id, Doc).

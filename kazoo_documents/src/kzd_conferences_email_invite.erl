@@ -1,0 +1,59 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2023, 2600Hz
+%%% @doc Accessors for `conferences_email_invite' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_conferences_email_invite).
+
+-export([new/0]).
+-export([conference_link/1, conference_link/2, set_conference_link/2]).
+-export([guests/1, guests/2, set_guests/2]).
+-export([invite_message/1, invite_message/2, set_invite_message/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"conferences.email_invite">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec conference_link(doc()) -> kz_term:api_binary().
+conference_link(Doc) ->
+    conference_link(Doc, 'undefined').
+
+-spec conference_link(doc(), Default) -> binary() | Default.
+conference_link(Doc, Default) ->
+    kz_json:get_binary_value([<<"conference_link">>], Doc, Default).
+
+-spec set_conference_link(doc(), binary()) -> doc().
+set_conference_link(Doc, ConferenceLink) ->
+    kz_json:set_value([<<"conference_link">>], ConferenceLink, Doc).
+
+-spec guests(doc()) -> kz_term:api_ne_binaries().
+guests(Doc) ->
+    guests(Doc, 'undefined').
+
+-spec guests(doc(), Default) -> kz_term:ne_binaries() | Default.
+guests(Doc, Default) ->
+    kz_json:get_list_value([<<"guests">>], Doc, Default).
+
+-spec set_guests(doc(), kz_term:ne_binaries()) -> doc().
+set_guests(Doc, Guests) ->
+    kz_json:set_value([<<"guests">>], Guests, Doc).
+
+-spec invite_message(doc()) -> kz_term:api_binary().
+invite_message(Doc) ->
+    invite_message(Doc, 'undefined').
+
+-spec invite_message(doc(), Default) -> binary() | Default.
+invite_message(Doc, Default) ->
+    kz_json:get_binary_value([<<"invite_message">>], Doc, Default).
+
+-spec set_invite_message(doc(), binary()) -> doc().
+set_invite_message(Doc, InviteMessage) ->
+    kz_json:set_value([<<"invite_message">>], InviteMessage, Doc).

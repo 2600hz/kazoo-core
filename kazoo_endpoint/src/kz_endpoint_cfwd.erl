@@ -59,7 +59,9 @@ match_list_rule_matches(MatchRule, Call) ->
 
 match_list_rule_matches(MatchRule, Call, <<"regex">>) ->
     lager:info("regex match rule: ~p", [MatchRule]),
-    regex_matches(Call, kzd_match_list_rule:regex(MatchRule), kzd_match_list_rule:target(MatchRule)).
+    regex_matches(Call, kzd_match_list_rule:regex(MatchRule), kzd_match_list_rule:target(MatchRule));
+match_list_rule_matches(MatchRule, Call, <<"temporal_route">>) ->
+    temporal_route_matches(Call, kzd_match_list_rule:temporal_route_id(MatchRule)).
 
 regex_matches(Call, Regex, Target) ->
     case kz_module:is_exported('kapps_call', Target, 1) of
@@ -78,3 +80,38 @@ regex_matches(Call, Regex, Target) ->
                     'true'
             end
     end.
+
+temporal_route_matches(Call, <<TemporalRouteId/binary>>) ->
+    temporal_route_matches(Call, kz_datamgr:open_cache_doc(kapps_call:account_id(Call), TemporalRouteId));
+temporal_route_matches(_Call, {'error', _E}) ->
+    lager:info("failed to load temporal route: ~p", [_E]),
+    'false';
+temporal_route_matches(Call, {'ok', TemporalRouteDoc}) ->
+    TZ = kzd_accounts:timezone(kapps_call:account_id(Call)),
+
+    {LocalDate, _} = LocalDatetime = kz_time:adjust_utc_datetime(calendar:universal_time(), TZ),
+    LocalSeconds = calendar:datetime_to_gregorian_seconds(LocalDatetime),
+
+    StartDate = kz_date:from_gregorian_seconds(kzd_temporal_rules:start_date(TemporalRouteDoc, LocalSeconds), TZ),
+    EndDate = maybe_date_from_gregorian_seconds(kzd_temporal_rules:end_date(TemporalRouteDoc), TZ),
+
+    StartDatetime = {StartDate, {0,0,0}},
+    EndDatetime = {EndDate, {23,59,59}},
+
+    Exclusions = kzd_temporal_rules:exclude(TemporalRouteDoc, []),
+
+    case ktr_rule:should_build_rule(LocalDatetime, StartDatetime, EndDatetime, Exclusions) of
+        'false' -> 'false';
+        'true' ->
+            Rule = ktr_rule:new('true', TemporalRouteDoc, StartDate, EndDate),
+            process_rule(LocalSeconds, LocalDate, Rule)
+    end.
+
+-spec maybe_date_from_gregorian_seconds(kz_time:date() | 'undefined', kz_term:ne_binary()) ->
+          kz_time:gregorian_seconds() | 'undefined'.
+maybe_date_from_gregorian_seconds('undefined', _TZ) -> 'undefined';
+maybe_date_from_gregorian_seconds(EndDate, TZ) -> kz_date:from_gregorian_seconds(EndDate, TZ).
+
+-spec process_rule(kz_time:gregorian_seconds(), kz_time:date(), ktr_rule:rule()) -> boolean().
+process_rule(LocalSeconds, LocalDate, Rule) ->
+    'true' =:= ktr_routes:process(LocalSeconds, LocalDate, [Rule]).
