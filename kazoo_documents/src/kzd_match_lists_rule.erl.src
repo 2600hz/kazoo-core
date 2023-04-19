@@ -1,0 +1,72 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2023, 2600Hz
+%%% @doc Accessors for `match_lists_rule' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_match_lists_rule).
+
+-export([new/0]).
+-export([name/1, name/2, set_name/2]).
+-export([regex/1, regex/2, set_regex/2]).
+-export([target/1, target/2, set_target/2]).
+-export([type/1, type/2, set_type/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"match_lists.rule">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec name(doc()) -> kz_term:api_ne_binary().
+name(Doc) ->
+    name(Doc, 'undefined').
+
+-spec name(doc(), Default) -> kz_term:ne_binary() | Default.
+name(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"name">>], Doc, Default).
+
+-spec set_name(doc(), kz_term:ne_binary()) -> doc().
+set_name(Doc, Name) ->
+    kz_json:set_value([<<"name">>], Name, Doc).
+
+-spec regex(doc()) -> kz_term:api_binary().
+regex(Doc) ->
+    regex(Doc, 'undefined').
+
+-spec regex(doc(), Default) -> binary() | Default.
+regex(Doc, Default) ->
+    kz_json:get_binary_value([<<"regex">>], Doc, Default).
+
+-spec set_regex(doc(), binary()) -> doc().
+set_regex(Doc, Regex) ->
+    kz_json:set_value([<<"regex">>], Regex, Doc).
+
+-spec target(doc()) -> kz_term:api_binary().
+target(Doc) ->
+    target(Doc, 'undefined').
+
+-spec target(doc(), Default) -> binary() | Default.
+target(Doc, Default) ->
+    kz_json:get_binary_value([<<"target">>], Doc, Default).
+
+-spec set_target(doc(), binary()) -> doc().
+set_target(Doc, Target) ->
+    kz_json:set_value([<<"target">>], Target, Doc).
+
+-spec type(doc()) -> kz_term:api_binary().
+type(Doc) ->
+    type(Doc, 'undefined').
+
+-spec type(doc(), Default) -> binary() | Default.
+type(Doc, Default) ->
+    kz_json:get_binary_value([<<"type">>], Doc, Default).
+
+-spec set_type(doc(), binary()) -> doc().
+set_type(Doc, Type) ->
+    kz_json:set_value([<<"type">>], Type, Doc).
