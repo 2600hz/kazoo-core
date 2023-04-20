@@ -370,8 +370,8 @@ maybe_redirect({'redirect', LocationUrl}, #{app_name := AppName}=FetchParams) ->
             lager:error("failed to query for ~s: ~p", [AppName, _Reason]),
             Error
     end;
-maybe_redirect({'ok', _}=OK, _) ->
-    OK.
+maybe_redirect(Other, _) ->
+    Other.
 
 %%%=============================================================================
 %%% Fetch License Functions
