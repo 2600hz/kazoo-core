@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2021, 2600Hz
+%%% @copyright (C) 2014-2023, 2600Hz
 %%% @doc Module for extending schema validation
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -60,6 +60,9 @@ extra_validation(Value, State) ->
     Key = kz_binary:join(lists:filter(fun kz_term:is_not_empty/1, Keys), <<".">>),
     lager:info("extra for ~p : ~p", [Key, Value]),
     extra_validation(Key, Value, State).
+
+extra_validation(<<"accounts.announcement">>, Value, State) ->
+    announcement_validation(Value, State);
 
 extra_validation(<<"metaflow.data">>, Value, State) ->
     JObj = jesse_state:get_current_value(State),
@@ -145,6 +148,15 @@ extra_validation(<<"storage.attachment.dropbox.oauth_doc_id">>, Value, State) ->
 extra_validation(_Key, _Value, State) ->
     lager:info("extra validation of ~s not handled for value ~p", [_Key, _Value]),
     State.
+
+announcement_validation(Value, State) ->
+    case kz_html_xss:has_any_xss_items(Value) of
+        'false' -> State;
+        'true' ->
+            ErrorMsg = <<"HTML value contains not allowed attributes or tags">>,
+            lager:debug("error validating accounts.announcement, it contains cross-site scripting"),
+            jesse_error:handle_data_invalid({'external_error', ErrorMsg}, Value, State)
+    end.
 
 validate_module_data(Schema, Value, State) ->
     State1 = jesse_state:resolve_ref(State, Schema),

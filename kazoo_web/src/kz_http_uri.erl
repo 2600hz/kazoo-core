@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2020, 2600Hz
+%%% @copyright (C) 2015-2023, 2600Hz
 %%% @doc HTTP helper functions for Kazoo
 %%% @author Luis Azedo
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -52,17 +52,17 @@ reserved() ->
 
 uri_encode(Char, Reserved) ->
     case sets:is_element(Char, Reserved) of
-        true ->
+        'true' ->
             [ $% | http_util:integer_to_hexlist(Char)];
-        false ->
+        'false' ->
             [Char]
     end.
 
 uri_encode_binary(Char, Reserved) ->
     case sets:is_element(Char, Reserved) of
-        true ->
+        'true' ->
             << $%, (integer_to_binary(Char, 16))/binary >>;
-        false ->
+        'false' ->
             <<Char>>
     end.
 

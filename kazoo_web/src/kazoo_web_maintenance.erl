@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2020, 2600Hz
+%%% @copyright (C) 2010-2023, 2600Hz
 %%% @doc Kazoo HTTP client
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,6 +13,8 @@
         ,blacklist_client_host/1
         ,show_client_blacklists/0
         ]).
+
+-elvis([{elvis_style, no_debug_call, disable}]).
 
 -spec blacklist_client_ip(kz_term:ne_binary()) -> kz_term:ne_binaries() | 'error'.
 blacklist_client_ip(CIDR) ->
@@ -32,7 +34,7 @@ blacklist_client_host(Host) ->
 
 -spec show_client_blacklists() -> 'ok'.
 show_client_blacklists() ->
-    io:format("CLient Blacklists:~nCIDRS: ~p~nHosts: ~p~n"
+    io:format("Client Blacklists:~nCIDRS: ~p~nHosts: ~p~n"
              ,[kz_http_util:client_ip_blacklist()
               ,kz_http_util:client_host_blacklist()
               ]).
