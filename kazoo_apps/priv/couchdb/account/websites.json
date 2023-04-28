@@ -36,6 +36,7 @@
                 "      web_url: doc.web_url,",
                 "      account_wide: doc.account_wide,",
                 "      users: doc.users,",
+                "      open_in_browser: doc.open_in_browser,",
                 "    })",
                 "  } else {",
                 "    for (var i in users) emit(users[i], {",
