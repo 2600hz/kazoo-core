@@ -18,6 +18,8 @@
 -export([moh/1, moh_media_path/1, moh_url/1, moh_options/1]).
 -export([presence_id/1]).
 -export([presence_aliases/1, presence_aliases/2]).
+-export([presence_monitoring_aliases/1, presence_monitoring_aliases/2]).
+-export([presence_publishing_aliases/1, presence_publishing_aliases/2]).
 -export([call_forward/1, call_forward/2]).
 -export([call_failover/1, call_failover/2]).
 -export([meta_id/1]).
@@ -26,6 +28,10 @@
 
 -type endpoint() :: kz_json:object().
 -export_type([endpoint/0]).
+
+-type presence_aliases() :: kz_json:object() | kz_term:ne_binaries().
+-type api_presence_aliases() :: presence_aliases() | undefined.
+-export_type([presence_aliases/0, api_presence_aliases/0]).
 
 -spec id(endpoint()) -> kz_term:ne_binary().
 id(Endpoint) ->
@@ -109,13 +115,29 @@ moh_playback_url(MediaPath) ->
 presence_id(Endpoint) ->
     kz_json:get_ne_binary_value(<<"presence_id">>, Endpoint).
 
--spec presence_aliases(endpoint()) -> kz_term:api_ne_binaries().
+-spec presence_aliases(endpoint()) -> api_presence_aliases().
 presence_aliases(Endpoint) ->
-    presence_aliases(Endpoint, undefined).
+    kzd_endpoint_aliases:aliases(Endpoint).
 
--spec presence_aliases(endpoint(), Default) -> kz_term:ne_binaries() | Default.
+-spec presence_aliases(endpoint(), Default) -> presence_aliases() | Default.
 presence_aliases(Endpoint, Default) ->
-    kz_json:get_ne_binaries([<<"presence_aliases">>], Endpoint, Default).
+    kzd_endpoint_aliases:aliases(Endpoint, Default).
+
+-spec presence_monitoring_aliases(endpoint()) -> kz_term:api_ne_binaries().
+presence_monitoring_aliases(Endpoint) ->
+    kzd_endpoint_aliases:monitoring(Endpoint).
+
+-spec presence_monitoring_aliases(endpoint(), Default) -> kz_term:ne_binaries() | Default.
+presence_monitoring_aliases(Endpoint, Default) ->
+    kzd_endpoint_aliases:monitoring(Endpoint, Default).
+
+-spec presence_publishing_aliases(endpoint()) -> kz_term:api_ne_binaries().
+presence_publishing_aliases(Endpoint) ->
+    kzd_endpoint_aliases:publishing(Endpoint).
+
+-spec presence_publishing_aliases(endpoint(), Default) -> kz_term:ne_binaries() | Default.
+presence_publishing_aliases(Endpoint, Default) ->
+    kzd_endpoint_aliases:publishing(Endpoint, Default).
 
 -spec build_options(endpoint()) -> kz_term:api_object().
 build_options(Endpoint) ->

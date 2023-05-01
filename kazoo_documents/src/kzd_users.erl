@@ -672,22 +672,17 @@ presence_id(Doc, Default) ->
 set_presence_id(Doc, PresenceId) ->
     kz_json:set_value([<<"presence_id">>], PresenceId, Doc).
 
--spec presence_aliases(doc()) -> kz_term:api_ne_binaries().
+-spec presence_aliases(doc()) -> kzd_endpoint_aliases:presence_aliases() | undefined.
 presence_aliases(Doc) ->
     presence_aliases(Doc, 'undefined').
 
--spec presence_aliases(doc(), Default) -> kz_term:ne_binaries() | Default.
+-spec presence_aliases(doc(), Default) -> kzd_endpoint_aliases:presence_aliases() | Default.
 presence_aliases(Doc, Default) ->
-    kz_json:get_ne_binaries([<<"presence_aliases">>], Doc, Default).
+    kzd_endpoint_aliases:aliases(Doc, Default).
 
--spec set_presence_aliases(doc(), kz_term:ne_binaries()) -> doc().
-set_presence_aliases(Doc, []) ->
-    kz_json:set_value([<<"presence_aliases">>], null, Doc);
-set_presence_aliases(Doc, PresenceAliases) ->
-    case kz_term:is_ne_binaries(PresenceAliases) of
-        true -> kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc);
-        false -> kz_json:set_value([<<"presence_aliases">>], null, Doc)
-    end.
+-spec set_presence_aliases(doc(), kzd_endpoint_aliases:presence_aliases()) -> doc().
+set_presence_aliases(Doc, Aliases) ->
+    kzd_endpoint_aliases:set_aliases(Doc, Aliases).
 
 -spec priv_level(doc()) -> binary().
 priv_level(Doc) ->

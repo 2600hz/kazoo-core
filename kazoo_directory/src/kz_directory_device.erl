@@ -404,7 +404,7 @@ fix_presence_id_realm(Endpoint, PresenceId) ->
 
 -spec presence_aliases(kz_json:object()) -> kz_term:api_ne_binaries().
 presence_aliases(Endpoint) ->
-    kzd_endpoint:presence_aliases(Endpoint).
+    kzd_endpoint:presence_publishing_aliases(Endpoint).
 
 -spec hold_music(kz_json:object(), kz_json:object()) -> kz_json:object().
 hold_music(Endpoint, CCVs) ->

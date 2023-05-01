@@ -518,10 +518,10 @@ merge_attribute(<<"language">> = Key, Account, Endpoint, Owner) ->
 merge_attribute(<<"presence_id">> = Key, Account, Endpoint, Owner) ->
     merge_value(Key, Account, Endpoint, Owner);
 merge_attribute(<<"presence_aliases">> = Key, Account, Endpoint, Owner) ->
-    List = [kzd_endpoint:presence_aliases(J, []) || J <- [Account, Endpoint, Owner]],
-    case lists:usort(lists:flatten(List)) of
-        [] -> Endpoint;
-        Aliases -> kz_json:set_value(Key, Aliases, Endpoint)
+    Aliases = kzd_endpoint_aliases:merge([Account, Owner, Endpoint]),
+    case kz_json:is_empty(Aliases) of
+        true -> Endpoint;
+        false -> kz_json:set_value(Key, Aliases, Endpoint)
     end;
 merge_attribute(<<"record_call">> = Key, Account, Endpoint, Owner) ->
     EndpointAttr = get_record_call_properties(Endpoint),
