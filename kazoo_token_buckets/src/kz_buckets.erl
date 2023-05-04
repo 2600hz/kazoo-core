@@ -23,7 +23,7 @@
         ,exists/1, exists/2
         ,tokens/0
         ,tokens_remaining/2
-
+        ,stop_bucket/2
         ,get_bucket/2, get_bucket/3
         ]).
 
@@ -112,6 +112,16 @@ consume_tokens(<<_/binary>> = Key, Count, StartIfMissing) when is_integer(Count)
 -spec consume_tokens(kz_term:ne_binary(), kz_term:ne_binary(), integer(), boolean()) -> boolean().
 consume_tokens(App, Key, Count, StartIfMissing) ->
     consume_tokens(App, Key, Count, StartIfMissing, fun kz_token_bucket:consume/2).
+
+-spec stop_bucket(kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
+stop_bucket(App, Key) ->
+    case get_bucket(App, Key) of
+        'undefined' -> 'false';
+        Srv ->
+            'ok' = kz_token_bucket:stop(Srv),
+            lager:info("bucket ~p with token ~p is deleted", [App, Key]),
+            'true'
+    end.
 
 %% consume_tokens_until(Name, Count, [StartIfMissing])
 %% Name :: name of the bucket

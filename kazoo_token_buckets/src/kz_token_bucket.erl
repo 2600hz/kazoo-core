@@ -141,6 +141,7 @@ credit(Srv, Tokens) when is_integer(Tokens)
                          andalso Tokens > 0 ->
     gen_server:cast(Srv, {'credit', Tokens, get_callid()}).
 
+-spec get_callid() -> kz_term:ne_binary().
 get_callid() ->
     case kz_log:get_callid() of
         'undefined' -> ?DEFAULT_LOG_SYSTEM_ID;
