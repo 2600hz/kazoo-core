@@ -143,7 +143,13 @@ delete_mod_dbs({AccountJObj, _Errors}=Acc) ->
 delete_remove_from_accounts({AccountJObj, Errors}=Acc) ->
     case kzd_accounts:fetch(kz_doc:id(AccountJObj), 'accounts') of
         {'ok', AccountsJObj} ->
-            ensure_deleted(Acc, AccountsJObj, kz_datamgr:del_doc(?KZ_ACCOUNTS_DB, AccountsJObj));
+            case kz_doc:is_deleted(AccountsJObj) of
+                'true' ->
+                    lager:info("account is already deleted"),
+                    Acc;
+                'false' ->
+                    ensure_deleted(Acc, AccountsJObj, kz_datamgr:del_doc(?KZ_ACCOUNTS_DB, AccountsJObj))
+            end;
         {'error', 'not_found'} ->
             lager:info("'accounts' account doc not found"),
             Acc;
@@ -158,7 +164,8 @@ ensure_deleted({_AccountJObj, _Errors}=Acc, AccountsJObj, {'ok', DeleteJObj}) ->
         'false' ->
             case kz_json:get_ne_binary_value(<<"error">>, DeleteJObj) of
                 <<"conflict">> ->
-                    lager:info("accounts doc rev tried: ~s", [kz_doc:revision(AccountsJObj)]),
+                    lager:info("conflict deleting accounts doc, rev tried: ~s", [kz_doc:revision(AccountsJObj)]),
+                    kz_datamgr:flush_cache_doc(?KZ_ACCOUNTS_DB, kz_doc:id(AccountsJObj)),
                     delete_remove_from_accounts(Acc);
                 _Error ->
                     lager:error("error deleting 'accounts' account doc: ~s: ~s"

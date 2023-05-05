@@ -2031,7 +2031,7 @@ add_presence_alias(Presence, Call) ->
     add_presence_aliases([Presence], Call).
 
 -spec add_presence_aliases(kz_term:ne_binaries(), call()) -> call().
-add_presence_aliases(Presence, #kapps_call{presence_aliases = undefined} = Call) ->
+add_presence_aliases(Presence, #kapps_call{presence_aliases = 'undefined'} = Call) ->
     Call#kapps_call{presence_aliases = Presence};
 add_presence_aliases(Presence, #kapps_call{presence_aliases = Existing} = Call) ->
     Call#kapps_call{presence_aliases = lists:usort(Existing ++ Presence)}.
@@ -2040,13 +2040,13 @@ add_presence_aliases(Presence, #kapps_call{presence_aliases = Existing} = Call) 
 set_presence_alias(Presence, Call) ->
     set_presence_aliases([Presence], Call).
 
--spec set_presence_aliases(kz_term:ne_binaries(), call()) -> kz_term:api_ne_binary().
+-spec set_presence_aliases(kz_term:ne_binaries(), call()) -> call().
 set_presence_aliases(Presence, Call) ->
     Call#kapps_call{presence_aliases = Presence}.
 
 -spec reset_presence_aliases(call()) -> call().
 reset_presence_aliases(Call) ->
-    Call#kapps_call{presence_aliases = undefined}.
+    Call#kapps_call{presence_aliases = 'undefined'}.
 
 -spec routing_context(call()) -> kz_json:object().
 routing_context(Call) ->

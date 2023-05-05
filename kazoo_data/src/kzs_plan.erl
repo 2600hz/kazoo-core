@@ -51,6 +51,7 @@
                      ,others => [{kz_term:ne_binary(), server() | map()}]
                      ,classification => atom()
                      ,account_id => kz_term:ne_binary()
+                     ,att_handler => {atom(), map()}
                      }.
 
 -export_type([dataplan/0]).
@@ -304,7 +305,7 @@ dataplan_match_by_classification(Classification
                 },
 
     Plan = case plan_types(ClassificationPlan) of
-               undefined -> BasePlan;
+               'undefined' -> BasePlan;
                DocTypes -> BasePlan#{others => [{ConnectionId, #{server => maps:get(ConnectionId, ConnectionsMap, #{})}}
                                                 || {_DocType, #{<<"connection">> := ConnectionId}} <- lists:usort(maps:to_list(DocTypes)),
                                                    ConnectionId =/= ClassificationTag,
@@ -777,22 +778,22 @@ load_storage(AccountId, StorageId) ->
     _ = load_dataplan({AccountId, StorageId}, fun fetch_storage_dataplan/1),
     'ok'.
 
-dataplan_regex(_Classification, _DBName, none) -> undefined;
+dataplan_regex(_Classification, _DBName, 'none') -> 'undefined';
 dataplan_regex(_Classification, _DBName, Regexes)
-  when is_map(Regexes), map_size(Regexes) =:= 0 -> undefined;
+  when is_map(Regexes), map_size(Regexes) =:= 0 -> 'undefined';
 dataplan_regex(Classification, DBName, Regexes)
   when is_map(Regexes) ->
     dataplan_regex(Classification, DBName, maps:next(maps:iterator(Regexes)));
 dataplan_regex(Classification, DBName, {Regex, Map, Iterator}) ->
     case re:run(DBName, Regex) of
-        nomatch -> dataplan_regex(Classification, DBName, maps:next(Iterator));
+        'nomatch' -> dataplan_regex(Classification, DBName, maps:next(Iterator));
         _Match -> Map
     end.
 
-dataplan_range(_Classification, 0, _Range) -> undefined;
-dataplan_range(_Classification, _DBRangeIndex, none) -> undefined;
+dataplan_range(_Classification, 0, _Range) -> 'undefined';
+dataplan_range(_Classification, _DBRangeIndex, 'none') -> 'undefined';
 dataplan_range(_Classification, _DBRangeIndex, Ranges)
-  when is_map(Ranges), map_size(Ranges) =:= 0 -> undefined;
+  when is_map(Ranges), map_size(Ranges) =:= 0 -> 'undefined';
 dataplan_range(Classification, DBRangeIndex, Ranges)
   when is_map(Ranges) ->
     dataplan_range(Classification, DBRangeIndex, maps:next(maps:iterator(Ranges)));
@@ -800,8 +801,8 @@ dataplan_range(Classification, DBRangeIndex, {<<Lower:6/binary, "-", Upper:6/bin
     case DBRangeIndex >= kz_term:to_integer(Lower)
         andalso DBRangeIndex =< kz_term:to_integer(Upper)
     of
-        false -> dataplan_range(Classification, DBRangeIndex, maps:next(Iterator));
-        true -> Map
+        'false' -> dataplan_range(Classification, DBRangeIndex, maps:next(Iterator));
+        'true' -> Map
     end;
 dataplan_range(Classification, DBRangeIndex, {_Key, _Map, Iterator}) ->
     dataplan_range(Classification, DBRangeIndex, maps:next(Iterator)).

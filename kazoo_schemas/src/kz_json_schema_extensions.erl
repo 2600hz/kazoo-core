@@ -382,6 +382,12 @@ is_valid_dns(_Host) -> 'true'.
 
 -spec is_valid_dns(kz_term:ne_binary()) -> boolean().
 is_valid_dns(Host) ->
+    is_valid_dns(Host, kapps_config:is_true(<<"kazoo_web">>, <<"should_validate_dns">>, 'true')).
+
+is_valid_dns(_Host, 'false') ->
+    lager:info("configured to not validate DNS"),
+    'true';
+is_valid_dns(Host, 'true') ->
     Options = kz_network_utils:default_options(),
 
     LookupOptions =
