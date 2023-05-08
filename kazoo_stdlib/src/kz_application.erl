@@ -13,7 +13,7 @@
 -export([calling_process/0]).
 -export([get_app/1]).
 -export([hotload/1]).
--export([running_apps/0, is_kapp/1]).
+-export([running_apps/0, loaded_apps/0, is_kapp/1]).
 -export([version/1]).
 -export([application_version/1]).
 -export([application_version_with_otp_release/1, otp_release/0]).
@@ -21,6 +21,7 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -elvis([{'elvis_style', 'no_debug_call', 'disable'}]).
+-type(kapp_version() :: #kapp_version{}).
 
 -spec process_fold([tuple()], atom()) -> tuple() | atom().
 process_fold([], App) -> App;
@@ -132,6 +133,45 @@ running_apps() ->
      || {App, _Desc, _Vsn}=AppData <- application:which_applications(),
         is_kapp(App)
     ].
+
+-spec loaded_apps() -> [kapp_version()].
+loaded_apps() ->
+    lists:foldl(fun loaded_app_from_path/2
+               ,[]
+               ,code:get_path()
+               ).
+
+loaded_app_from_path(Filepath, Acc) ->
+    case "ebin" =:= filename:basename(Filepath) of % rule out "." and the like
+        'false' -> Acc;
+        'true' -> load_from_dotapp(Filepath, Acc)
+    end.
+
+load_from_dotapp(Filepath, Acc) ->
+    AppDir = filename:basename(filename:dirname(Filepath)),
+    [AppName, AppVersion] = binary:split(kz_term:to_binary(AppDir), <<"-">>),
+    DotAppPath = filename:join([Filepath, <<AppName/binary, ".app">>]),
+    {'ok', [{'application', _App, AppConfig}]} = file:consult(DotAppPath),
+
+    Env = props:get_value('env', AppConfig, []),
+    case props:is_true('is_kazoo_app', Env, 'false') of
+        'false' -> Acc;
+        'true' ->
+            [kapp_version({AppName
+                          ,props:get_value('description', AppConfig)
+                          ,props:get_value('vsn', AppConfig, AppVersion)
+                          }
+                         )
+            | Acc
+            ]
+    end.
+
+kapp_version({Name, Desc, Vsn}) ->
+    #kapp_version{
+       name = kz_term:to_binary(Name),
+       description = kz_term:to_binary(Desc),
+       version = kz_term:to_binary(Vsn)
+      }.
 
 -spec version(atom()) -> kz_term:api_ne_binary().
 version(Application) when is_atom(Application) ->

@@ -30,6 +30,8 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 
+-elvis([{elvis_style, no_debug_call, disable}]).
+
 -spec crash() -> no_return().
 crash() ->
     _ = debug_dump(),

@@ -1,4 +1,4 @@
-%%%-----------------------------------------------------------------------------
+%%%------------------------------------------------------------------------------
 %%% @copyright (C) 2012-2023, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
@@ -75,11 +75,11 @@
                ,version :: kz_term:ne_binary()
                ,zones = [] :: kz_term:proplist()
                ,me = 'undefined' :: kz_types:kz_node() | 'undefined'
-               ,is_consuming = false :: boolean()
-               ,has_ets = false :: boolean()
+               ,is_consuming = 'false' :: boolean()
+               ,has_ets = 'false' :: boolean()
                ,waiting = [] :: [kz_term:pid_ref()]
-               ,expires_ref :: timer:tref()
-               ,update_ref :: timer:tref()
+               ,expires_ref :: reference()
+               ,update_ref :: reference()
                }).
 -type nodes_state() :: #state{}.
 
@@ -160,16 +160,21 @@ update_advertised_node(Node, #state{has_ets='true'}) ->
 init([]) ->
     lager:debug("starting nodes watcher"),
     erlang:put('kazoo_bindings_silent_apply', 'true'),
-    {ok, TExpiresRef} = timer:send_interval(?EXPIRE_PERIOD, 'expire_nodes'),
-    {ok, TUpdateRef} = timer:send_interval(?UPDATE_PERIOD, 'update_me'),
+
     _ = net_kernel:monitor_nodes('true', ?MONITOR_NODES_OPTIONS),
     State = #state{zone = kz_nodes:local_zone()
                   ,md5 = kz_nodes:node_encoded()
                   ,version = version()
-                  ,expires_ref = TExpiresRef
-                  ,update_ref = TUpdateRef
+                  ,expires_ref = erlang:send_after(?EXPIRE_PERIOD, self(), 'expire_nodes')
+                  ,update_ref = erlang:send_after(?UPDATE_PERIOD, self(), 'update_me')
                   },
-    {'ok', State}.
+    {'ok', start_update_me_timer(start_expire_nodes_timer(State))}.
+
+start_expire_nodes_timer(State) ->
+    State#state{expires_ref = erlang:send_after(?EXPIRE_PERIOD, self(), 'expire_nodes')}.
+
+start_update_me_timer(State) ->
+    State#state{update_ref = erlang:send_after(?UPDATE_PERIOD, self(), 'update_me')}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -195,7 +200,7 @@ handle_call(_Request, _From, State) ->
 handle_cast({'advertise', Node}, State) ->
     _ = update_advertised_node(Node, State),
     {'noreply', maybe_add_zone(Node, State)};
-handle_cast({update_me, Node}, State) ->
+handle_cast({'update_me', Node}, State) ->
     _ = update_advertised_node(Node, State),
     {'noreply', State#state{me=Node}};
 handle_cast({'gen_listener', {'created_queue', _Q}}, State) ->
@@ -218,17 +223,17 @@ handle_cast(_Msg, State) ->
 handle_info('expire_nodes', #state{node=ThisNode, has_ets='true'}=State) ->
     ExpiredNodes = kz_nodes_ets:expire_nodes(ThisNode),
     _ = kz_process:spawn(fun notify_expire/1, [ExpiredNodes]),
-    {'noreply', State};
+    {'noreply', start_expire_nodes_timer(State)};
 handle_info('expire_nodes', State) ->
-    {'noreply', State};
+    {'noreply', start_expire_nodes_timer(State)};
 
 handle_info('update_me', #state{zone=Zone, version=Version, md5=MD5} = State) ->
     _ = kz_process:spawn(fun create_node/4, [?UPDATE_PERIOD, Zone, Version, MD5]),
-    {'noreply', State};
+    {'noreply', start_update_me_timer(State)};
 
 handle_info({'heartbeat', Ref}
            ,#state{heartbeat_ref=Ref
-                  ,me=undefined
+                  ,me='undefined'
                   }=State
            ) ->
     Reference = next_heartbeat(),
@@ -236,7 +241,7 @@ handle_info({'heartbeat', Ref}
 
 handle_info({'heartbeat', Ref}
            ,#state{heartbeat_ref=Ref
-                  ,is_consuming=false
+                  ,is_consuming='false'
                   }=State
            ) ->
     Reference = next_heartbeat(),
@@ -273,7 +278,7 @@ handle_info({'nodeup', Node}, State) ->
 handle_info({'ETS-TRANSFER', _TblId, _From, _Data}, State) ->
     lager:info("received ets transfer, start heartbeat"),
     self() ! {'heartbeat', State#state.heartbeat_ref},
-    {'noreply', State#state{has_ets=true}};
+    {'noreply', State#state{has_ets='true'}};
 handle_info(_Info, State) ->
     lager:debug("unhandled message: ~p", [_Info]),
     {'noreply', State}.
@@ -283,12 +288,12 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_json:object(), nodes_state()) -> gen_listener:handle_event_return().
-handle_event(_JObj, #state{has_ets=false}) ->
+handle_event(_JObj, #state{has_ets='false'}) ->
     'ignore';
 handle_event(JObj, #state{node=Node}=State) ->
     case kz_api:node(JObj) =:= Node of
-        true -> ignore;
-        false -> {'reply', [{'state', State}]}
+        'true' -> 'ignore';
+        'false' -> {'reply', [{'state', State}]}
     end.
 
 %%------------------------------------------------------------------------------
@@ -322,6 +327,7 @@ code_change(_OldVsn, State, _Extra) ->
 -spec advertise_payload(kz_types:kz_node()) -> kz_term:proplist().
 advertise_payload(#kz_node{expires=Expires
                           ,kapps=Whapps
+                          ,kapps_loaded=KappsLoaded
                           ,media_servers=MediaServers
                           ,used_memory=UsedMemory
                           ,processes=Processes
@@ -339,6 +345,7 @@ advertise_payload(#kz_node{expires=Expires
       [{<<"md5">>, MD5}
       ,{<<"Expires">>, Expires}
       ,{<<"WhApps">>, kapps_to_json(Whapps) }
+      ,{<<"Kapps-Loaded">>, kapp_versions_to_json(KappsLoaded)}
       ,{<<"Media-Servers">>, media_servers_to_json(MediaServers)}
       ,{<<"Used-Memory">>, UsedMemory}
       ,{<<"Processes">>, Processes}
@@ -371,6 +378,7 @@ from_json(JObj, State) ->
             ,md5=kz_json:get_value(<<"md5">>, JObj)
             ,expires=kz_term:to_integer(kz_json:get_integer_value(<<"Expires">>, JObj, 0) * ?FUDGE_FACTOR)
             ,kapps=kapps_from_json(kz_json:get_value(<<"WhApps">>, JObj, []))
+            ,kapps_loaded=kapp_versions_from_json(kz_json:get_json_value(<<"Kapps-Loaded">>, JObj, kz_json:new()))
             ,media_servers=media_servers_from_json(kz_json:get_value(<<"Media-Servers">>, JObj, kz_json:new()))
             ,used_memory=kz_json:get_integer_value(<<"Used-Memory">>, JObj, 0)
             ,processes=kz_json:get_integer_value(<<"Processes">>, JObj, 0)
@@ -431,6 +439,36 @@ whapp_info_to_json(#whapp_info{startup=Start, roles=Roles}) ->
       [{<<"Startup">>, Start}
       ,{<<"Roles">>, Roles}
       ]).
+
+-spec kapp_versions_to_json(kz_types:kapp_versions()) -> kz_json:object().
+kapp_versions_to_json(Kapps) ->
+    List = [{Name, kapp_version_to_json(KappVersion)} || {Name, KappVersion} <- Kapps],
+    kz_json:from_list(List).
+
+-spec kapp_version_to_json(kz_types:kapp_version()) -> kz_json:object().
+kapp_version_to_json(#kapp_version{name=Name, description=Desc, version=Version}) ->
+    kz_json:from_list(
+      [{<<"Name">>, Name}
+      ,{<<"Description">>, Desc}
+      ,{<<"Version">>, Version}
+      ]).
+
+-spec kapp_versions_from_json(kz_json:object()) -> kz_types:kapp_versions().
+kapp_versions_from_json(JObj) ->
+    Keys = kz_json:get_keys(JObj),
+    [kapp_version_tuple(Name, JObj) || Name <- Keys].
+
+kapp_version_tuple(Name, JObj) ->
+    VersionInfo = kz_json:get_value(Name, JObj),
+    {Name, kapp_version_from_json(VersionInfo)}.
+
+-spec kapp_version_from_json(kz_term:object()) -> kz_types:kapp_version().
+kapp_version_from_json(JObj) ->
+    #kapp_version{
+       name = kz_json:get_ne_binary_value(<<"Name">>, JObj)
+      ,description = kz_json:get_ne_binary_value(<<"Description">>, JObj)
+      ,version = kz_json:get_ne_binary_value(<<"Version">>, JObj)
+      }.
 
 -spec get_zone(kz_json:object(), nodes_state()) -> atom().
 get_zone(JObj, #state{zones=Zones, zone=LocalZone}) ->
@@ -503,7 +541,7 @@ wait_for_refresh() ->
 -spec maybe_advertise_node(kz_types:kz_node()) -> 'ok'.
 maybe_advertise_node(#kz_node{broker = <<"disconnected">>}) -> 'ok';
 maybe_advertise_node(Node) ->
-    catch(kapi_nodes:publish_advertise(advertise_payload(Node))).
+    kapi_nodes:publish_advertise(advertise_payload(Node)).
 
 -spec version() -> kz_term:ne_binary().
 version() ->
@@ -521,7 +559,7 @@ create_node(Heartbeat, Zone, Version, MD5) ->
     erlang:put('kazoo_bindings_silent_apply', 'true'),
     try
         Node = #kz_node{} = kz_node:create(Heartbeat, Zone, Version, MD5),
-        gen_listener:cast(?MODULE, {update_me, Node})
+        gen_listener:cast(?MODULE, {'update_me', Node})
     catch
         _E:_N:ST ->
             lager:error("error creating node ~p : ~p", [_E, _N]),

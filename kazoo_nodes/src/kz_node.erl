@@ -35,6 +35,7 @@
           kz_types:kz_node().
 create(Heartbeat, Zone, Version, MD5) ->
     add_kapps_data(#kz_node{expires=Heartbeat
+                           ,kapps_loaded=loaded_apps()
                            ,broker=kz_amqp_util:normalize_amqp_uri(kz_amqp_connections:primary_broker())
                            ,used_memory=erlang:memory('total')
                            ,processes=erlang:system_info('process_count')
@@ -83,6 +84,10 @@ globals() ->
 -spec apps() -> kz_term:atoms().
 apps() ->
     [App || {App, _, _} <- kz_application:running_apps()].
+
+-spec loaded_apps() -> kz_types:kapps_version_info().
+loaded_apps() ->
+    [{KappVersion#kapp_version.name, KappVersion} || KappVersion <- kz_application:loaded_apps()].
 
 -spec node_info() -> kz_json:object().
 node_info() ->
@@ -288,7 +293,7 @@ print_proxy({<<"Listeners">>, Data}) ->
     end;
 print_proxy({<<"proxy-default-uri">>, Data}) ->
     format(?HEADER_COL ++ ": ~s~n", [<<"Default Proxy">>, Data]);
-print_proxy(_Ignore) -> ok.
+print_proxy(_Ignore) -> 'ok'.
 
 -spec print_address_format(pos_integer()) -> kz_term:ne_binary().
 print_address_format(S) ->

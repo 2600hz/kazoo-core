@@ -127,6 +127,9 @@
 -type whapp_info() :: #whapp_info{}.
 -type kapps_info() :: [{binary(), whapp_info()}].
 
+-type kapp_version() :: #kapp_version{}.
+-type kapp_versions() :: [kapp_version()].
+
 -type media_server() :: {kz_term:ne_binary(), kz_json:object()}.
 -type media_servers() :: [media_server()].
 

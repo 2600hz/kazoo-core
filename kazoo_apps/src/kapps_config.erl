@@ -778,7 +778,7 @@ maybe_save_category(Category, JObj, Updates, PvtFields, Looped, _NotLocked) ->
             {'ok', JObj}
     end.
 
--spec update_pvt_fields(config_category(), kz_json:object(), kz_term:api_object()) ->
+-spec update_pvt_fields(config_category(), kz_json:object(), kz_json:api_object()) ->
           kz_json:json_proplist().
 update_pvt_fields(Category, JObj, 'undefined') ->
     kz_doc:get_pvt_updates(kz_doc:set_id(JObj, Category)
