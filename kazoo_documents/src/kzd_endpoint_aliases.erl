@@ -12,16 +12,28 @@
 -export([aliases/1, aliases/2, set_aliases/2]).
 -export([monitoring/1, monitoring/2, set_monitoring/2]).
 -export([publishing/1, publishing/2, set_publishing/2]).
--export([merge/1]).
-
--export([endpoints_to_aliases/1, endpoint_to_aliases/1]).
+-export([merge/1, merge/2]).
 
 -type endpoint() :: kz_json:object().
 -type endpoints() :: [endpoint()].
 -type presence_aliases() :: kz_json:object() | kz_term:ne_binaries().
 -type api_presence_aliases() :: presence_aliases() | undefined.
+-type api_presence_aliases_list() :: [api_presence_aliases()].
 
--export_type([endpoint/0, endpoints/0, presence_aliases/0, api_presence_aliases/0]).
+-type aliases_collector_fun_return() :: api_presence_aliases() | api_presence_aliases_list().
+-type aliases_collector_fun() :: fun((endpoints()) -> aliases_collector_fun_return()).
+-type aliases_collector_funs() :: [aliases_collector_fun()].
+
+-type options() :: #{aliases_collector_funs => aliases_collector_funs()
+                    ,endpoints_only => boolean()
+                    }.
+
+-export_type([endpoint/0
+             ,endpoints/0
+             ,presence_aliases/0
+             ,api_presence_aliases/0
+             ,options/0
+             ]).
 
 -spec aliases(endpoint()) -> api_presence_aliases().
 aliases(Endpoint) ->
@@ -85,18 +97,31 @@ aliases_value(Key, Aliases, Default) ->
         false -> throw(badarg)
     end.
 
+-spec default_merge_options() -> options().
+default_merge_options() ->
+    #{aliases_collector_funs => default_aliases_collectors()}.
+
 -spec merge(endpoints()) -> api_presence_aliases().
 merge(Endpoints) ->
-    case endpoints_to_aliases(Endpoints) of
+    merge(Endpoints, default_merge_options()).
+
+-spec merge(endpoints(), options()) -> api_presence_aliases().
+merge(Endpoints, Options) ->
+    case endpoints_to_aliases(Endpoints, Options) of
         [] -> undefined;
         [One] -> One;
-        Aliases -> merge_aliases(Aliases)
+        Aliases -> merge_aliases(Aliases, Options)
     end.
 
-merge_aliases([First | Aliases]) ->
-    lists:foldl(fun merge_aliases/2, First, Aliases).
+merge_aliases([First | Aliases], Options) ->
+    merge_aliases_result(lists:foldl(fun merge_aliases_fold/2, First, Aliases), Options).
 
-merge_aliases(Aliases, Acc0) ->
+merge_aliases_result(Result, _Options) ->
+    %% TODO
+    %% return list (if possible) or object by looking at options
+    Result.
+
+merge_aliases_fold(Aliases, Acc0) ->
     Acc = merge_aliases_value(<<"monitoring">>, Aliases, Acc0),
     merge_aliases_value(<<"publishing">>, Aliases, Acc).
 
@@ -105,9 +130,29 @@ merge_aliases_value(Key, Aliases, Acc) ->
     V2 = aliases_value(Key, Acc, []),
     kz_json:set_value(Key, lists:umerge(V1, V2), Acc).
 
--spec endpoints_to_aliases(endpoints()) -> api_presence_aliases().
-endpoints_to_aliases(Endpoints) ->
-    lists:filter(fun kz_term:is_not_empty/1, [endpoint_to_aliases(Endpoint) || Endpoint <- Endpoints]).
+-spec default_aliases_collectors() -> aliases_collector_funs().
+default_aliases_collectors() ->
+    [fun from_endpoints/1
+    ,fun from_groups/1
+    ].
+
+-spec aliases_collectors(options()) -> aliases_collector_funs().
+aliases_collectors(#{aliases_collector_funs := Funs}) ->
+    Funs;
+aliases_collectors(#{endpoints_only := true}) ->
+    [fun from_endpoints/1];
+aliases_collectors(_Options) ->
+    default_aliases_collectors().
+
+-spec endpoints_to_aliases(endpoints(), options()) -> api_presence_aliases().
+endpoints_to_aliases(Endpoints, Options) ->
+    Funs = aliases_collectors(Options),
+    Aliases = lists:map(fun(Fun) -> Fun(Endpoints) end, Funs),
+    lists:filter(fun kz_term:is_not_empty/1, lists:flatten(Aliases)).
+
+-spec from_endpoints(endpoints()) -> api_presence_aliases_list().
+from_endpoints(Endpoints) ->
+    lists:map(fun endpoint_to_aliases/1, Endpoints).
 
 -spec endpoint_to_aliases(endpoint() | presence_aliases()) -> presence_aliases().
 endpoint_to_aliases(Aliases)
@@ -120,4 +165,59 @@ endpoint_to_aliases(Endpoint) ->
     case aliases(Endpoint) of
         Aliases when is_list(Aliases) -> endpoint_to_aliases(Aliases);
         Other -> Other
+    end.
+
+-define(GROUP_ENDPOINT_QUERY, <<"groups/listing_by_endpoint">>).
+
+-spec group_account_id(endpoints()) -> kz_term:api_ne_binary().
+group_account_id(Endpoints) ->
+    AccountIdList = lists:map(fun kzd_endpoint:account_id/1, Endpoints),
+    case lists:filter(fun kz_term:is_not_empty/1, AccountIdList) of
+        [] -> undefined;
+        List -> lists:last(List)
+    end.
+
+-spec from_groups(endpoints()) -> api_presence_aliases().
+from_groups(Endpoints) ->
+    case group_account_id(Endpoints) of
+        AccountId when is_binary(AccountId) ->
+            from_groups_query(AccountId, Endpoints);
+        Else -> Else
+    end.
+
+from_groups_query(AccountId, Endpoints) ->
+    QueryOptions = group_query_options(Endpoints),
+    QueryResult = kz_datamgr:get_results(AccountId, ?GROUP_ENDPOINT_QUERY, QueryOptions),
+    group_query_results(QueryResult).
+
+group_query_keys(Endpoints) ->
+    lists:usort(lists:filter(fun kz_term:is_not_empty/1, lists:map(fun kz_doc:id/1, Endpoints))).
+
+group_query_options(Endpoints) ->
+    [{'keys', group_query_keys(Endpoints)}].
+
+group_query_results({error, _}) -> undefined;
+group_query_results({ok, []}) -> undefined;
+group_query_results({ok, Results}) ->
+    case lists:filtermap(fun group_query_result/1, Results) of
+        [] -> undefined;
+        List -> kz_json:from_list([{<<"monitoring">>, lists:usort(List)}])
+    end.
+
+group_query_result_features(Result) ->
+    kz_json:get_ne_binaries([<<"value">>, <<"features">>], Result, []).
+
+group_query_result_has_sca(Result) ->
+    lists:member(<<"sca">>, group_query_result_features(Result)).
+
+group_query_result_name(Result) ->
+    kz_json:get_ne_binary_value([<<"value">>, <<"name">>], Result, []).
+
+group_query_result_alias(Result) ->
+    list_to_binary(["sca.group.", group_query_result_name(Result)]).
+
+group_query_result(Result) ->
+    case group_query_result_has_sca(Result) of
+        true -> {true, group_query_result_alias(Result)};
+        false -> false
     end.
