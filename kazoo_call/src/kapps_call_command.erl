@@ -1202,8 +1202,29 @@ bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHead
     ,{<<"Dial-Endpoint-Method">>, Strategy}
     ,{<<"Custom-SIP-Headers">>, SIPHeaders}
     ,{<<"Ignore-Forward">>, IgnoreForward}
+    ,{<<"Custom-Channel-Vars">>, bridge_ccvs(Call)}
     ,{<<"Call-Context">>, kapps_call:routing_context(Call)}
     ].
+
+bridge_ccvs_routines() ->
+    [{<<"Presence-Aliases">>, fun kapps_call:presence_aliases/1}].
+
+bridge_ccvs(Call) ->
+    bridge_ccvs(bridge_ccvs_routines(), Call).
+
+bridge_ccvs(CCVRoutines, Call) ->
+    case lists:foldl(bridge_ccvs_fold(Call), [], CCVRoutines) of
+        [] -> undefined;
+        CCVs -> kz_json:from_list(CCVs)
+    end.
+
+bridge_ccvs_fold(Call) ->
+    fun({Name, Fun}, Acc) ->
+            case Fun(Call) of
+                undefined -> Acc;
+                Value -> [{Name, Value} | Acc]
+            end
+    end.
 
 -spec bridge(kz_json:objects(), kapps_call:call()) -> 'ok'.
 bridge(Endpoints, Call) ->

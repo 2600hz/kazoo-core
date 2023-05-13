@@ -169,6 +169,11 @@
 
 -export([diversions/1]).
 
+-export([presence_aliases/1, reset_presence_aliases/1
+        ,add_presence_alias/2,add_presence_aliases/2
+        ,set_presence_alias/2, set_presence_aliases/2
+        ]).
+
 -ifdef(TEST).
 -export([eq/2]).
 -export([updateable_ccvs/2]).
@@ -245,6 +250,7 @@
                     ,is_transfer = 'false' :: boolean()                 %% is this call a transfer
                     ,endpoint_id :: kz_term:api_ne_binary()             %% if a refer/redirect, find the endpoint id (esp if no authz-id
                     ,diversions :: kz_term:api_ne_binaries()
+                    ,presence_aliases :: kz_term:api_ne_binaries()
                     }).
 
 -type call() :: #kapps_call{}.
@@ -2015,6 +2021,32 @@ maybe_find_endpoint_id_from_uri(Contact, Id) ->
             end;
         _Else -> Id
     end.
+
+-spec presence_aliases(call()) -> kz_term:api_ne_binaries().
+presence_aliases(#kapps_call{presence_aliases=Presence}) ->
+    Presence.
+
+-spec add_presence_alias(kz_term:ne_binary(), call()) -> call().
+add_presence_alias(Presence, Call) ->
+    add_presence_aliases([Presence], Call).
+
+-spec add_presence_aliases(kz_term:ne_binaries(), call()) -> call().
+add_presence_aliases(Presence, #kapps_call{presence_aliases = undefined} = Call) ->
+    Call#kapps_call{presence_aliases = Presence};
+add_presence_aliases(Presence, #kapps_call{presence_aliases = Existing} = Call) ->
+    Call#kapps_call{presence_aliases = lists:usort(Existing ++ Presence)}.
+
+-spec set_presence_alias(kz_term:ne_binary(), call()) -> call().
+set_presence_alias(Presence, Call) ->
+    set_presence_aliases([Presence], Call).
+
+-spec set_presence_aliases(kz_term:ne_binaries(), call()) -> kz_term:api_ne_binary().
+set_presence_aliases(Presence, Call) ->
+    Call#kapps_call{presence_aliases = Presence}.
+
+-spec reset_presence_aliases(call()) -> call().
+reset_presence_aliases(Call) ->
+    Call#kapps_call{presence_aliases = undefined}.
 
 -spec routing_context(call()) -> kz_json:object().
 routing_context(Call) ->
