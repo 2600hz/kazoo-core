@@ -105,7 +105,8 @@ main(CommandLineArgs, Loops) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec parse_erl_terms_from_args(list(list())) -> term() | no_return().
-parse_erl_terms_from_args(Args) -> lists:map(fun(Arg) -> parse_erl_terms_from_arg(Arg) end, Args).
+parse_erl_terms_from_args(Args) ->
+    [parse_erl_terms_from_arg(Arg) || Arg <- Args].
 
 -spec parse_erl_terms_from_arg(list()) -> term() | no_return().
 parse_erl_terms_from_arg(Arg) ->
