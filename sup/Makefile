@@ -39,14 +39,11 @@ cleanup-after:
 	@rm -f ebin/kazoo_config_init.beam
 	@rm -f ebin/kz_config.beam
 
-
-include $(ROOT)/make/deps.mk
-include $(ROOT)/make/kz.mk
-
 $(ESCRIPT): ebin/sup.beam
-	$(MAKE) V=2 -f $(ROOT)/erlang.mk \
+	$(MAKE) -f $(ROOT)/erlang.mk \
 		DEPS_DIR="$(DEPS_DIR)" \
 		DEPS="$(DEPS)" \
-		SKIP_DEPS=1 \
 		ESCRIPT_ZIP=$(ZIP_CMD) \
 		escript
+
+include $(ROOT)/make/kz.mk
