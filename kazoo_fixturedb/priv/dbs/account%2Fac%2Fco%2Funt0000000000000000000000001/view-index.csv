@@ -5,3 +5,4 @@ attributes/owned, [{key,[<<"user0000000000000000000000000001">>,<<"device">>]}],
 attributes/owned, [{keys,[[<<"user0000000000000000000000000001">>,<<"device">>],[<<"user0000000000000000000000000002">>,<<"device">>]]}], attributes+owned-ba6b56cc16e2f9eeb6d4610aad2bbc7e.json
 attributes/owned, [{startkey,[<<"user0000000000000000000000000001">>]},{endkey,[<<"user0000000000000000000000000001">>,{[]}]}], attributes+owned-8f3d8d0426692f5e519b2e41e77c05a8.json
 maintenance/listing_by_type, [{key,<<"user">>},include_docs], maintenance+listing_by_type-ba9ee0020a95e519332f16eacf0a3324.json
+groups/listing_by_endpoint, [{keys,[<<"account0000000000000000000000001">>,<<"user0000000000000000000000000001">>]}], groups+listing_by_endpoint-cc4e31fa9a2bccfdfefd3d543df4d191.json
