@@ -578,10 +578,12 @@ month(10) -> <<"Oct">>;
 month(11) -> <<"Nov">>;
 month(12) -> <<"Dec">>.
 
--spec pretty_print_elapsed_s(non_neg_integer()) -> kz_term:ne_binary().
+-spec pretty_print_elapsed_s(non_neg_integer() | start_time()) -> kz_term:ne_binary().
 pretty_print_elapsed_s(0) -> <<"0s">>;
 pretty_print_elapsed_s(Seconds) when is_integer(Seconds), Seconds > 0 ->
-    iolist_to_binary(unitfy_seconds(Seconds)).
+    iolist_to_binary(unitfy_seconds(Seconds));
+pretty_print_elapsed_s({'start_time', _}=StartTime) ->
+    pretty_print_elapsed_s(elapsed_s(StartTime)).
 
 -spec unitfy_seconds(non_neg_integer()) -> iolist().
 unitfy_seconds(0) -> "";
