@@ -308,17 +308,16 @@ unsafe_decode(JSON, Options) ->
             throw({'invalid_json', {'error', {0, 'decoder_exit'}}, JSON})
     end.
 
--spec decode(iolist() | kz_term:ne_binary()) -> json_term().
-decode(Thing) when is_list(Thing)
-                   orelse is_binary(Thing) ->
+-spec decode(iodata()) -> json_term().
+decode(Thing) ->
     decode(Thing, []).
 
--spec decode(iolist() | kz_term:ne_binary(), decode_options()) -> api_json_term().
+-spec decode(iodata(), decode_options()) -> api_json_term().
 decode(JSON, Options) ->
     try unsafe_decode(JSON, Options)
     catch
         _:{'invalid_json', {'error', {_Loc, _Msg}}, _JSON} ->
-            ?LOG_WARNING("decode error ~s near char # ~b => ~s", [_Msg, _Loc, _JSON]),
+            ?LOG_WARNING("decode error ~s near char # ~b => ~p", [_Msg, _Loc, _JSON]),
             props:get_value('default', Options, new())
     end.
 
