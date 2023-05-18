@@ -318,7 +318,7 @@ decode(JSON, Options) ->
     try unsafe_decode(JSON, Options)
     catch
         _:{'invalid_json', {'error', {_Loc, _Msg}}, _JSON} ->
-            ?LOG_ERROR("decode error ~s near char # ~b => ~s", [_Msg, _Loc, _JSON]),
+            ?LOG_WARNING("decode error ~s near char # ~b => ~s", [_Msg, _Loc, _JSON]),
             props:get_value('default', Options, new())
     end.
 
