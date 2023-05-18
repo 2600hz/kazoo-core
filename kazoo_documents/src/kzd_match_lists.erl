@@ -7,6 +7,7 @@
 
 -export([new/0]).
 -export([name/1, name/2, set_name/2]).
+-export([owner_id/1, owner_id/2, set_owner_id/2]).
 -export([rules/1, rules/2, set_rules/2]).
 
 -export([schema/0, type/0]).
@@ -41,6 +42,18 @@ name(Doc, Default) ->
 -spec set_name(doc(), binary()) -> doc().
 set_name(Doc, Name) ->
     kz_json:set_value([<<"name">>], Name, Doc).
+
+-spec owner_id(doc()) -> kz_term:api_binary().
+owner_id(Doc) ->
+    owner_id(Doc, 'undefined').
+
+-spec owner_id(doc(), Default) -> binary() | Default.
+owner_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"owner_id">>], Doc, Default).
+
+-spec set_owner_id(doc(), binary()) -> doc().
+set_owner_id(Doc, OwnerId) ->
+    kz_json:set_value([<<"owner_id">>], OwnerId, Doc).
 
 -spec rules(doc()) -> [kzd_match_list_rule:doc()].
 rules(Doc) ->
