@@ -2310,7 +2310,11 @@ wait_for_check(Pid, Ref, StartTime) ->
     end.
 
 run_seq_modules() ->
-    0 = rpc:call(node(), 'properly_maintenance', 'run_seq_modules', []).
+    case rpc:call(node(), 'properly_maintenance', 'run_seq_modules', []) of
+        'no_return' -> 'ok';
+        0 -> 'ok';
+        N -> halt(N)
+    end.
 
 -spec kapps_started() -> boolean().
 kapps_started() ->
