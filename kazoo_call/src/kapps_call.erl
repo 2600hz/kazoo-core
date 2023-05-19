@@ -1656,7 +1656,9 @@ kvs_fetch(Key, Call) -> kvs_fetch(Key, 'undefined', Call).
 
 -spec kvs_fetch(any(), Default, call()) -> any() | Default.
 kvs_fetch(Key, Default, #kapps_call{kvs=Dict}) ->
-    try orddict:fetch(kz_term:to_binary(Key), Dict)
+    try orddict:fetch(kz_term:to_binary(Key), Dict) of
+        'undefined' -> Default;
+        Value -> Value
     catch
         'error':'function_clause' -> Default
     end.
