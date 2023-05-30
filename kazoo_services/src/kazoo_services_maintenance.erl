@@ -990,11 +990,17 @@ prepare_service_doc(JObj) ->
 
 -spec remove_orphaned_services() -> 'no_return'.
 remove_orphaned_services() ->
-    {'ok', ServiceDocs} = kz_datamgr:all_docs(?KZ_SERVICES_DB),
-    Count = lists:foldl(fun maybe_remove_orphan/2, 0, ServiceDocs),
+    BatchSize = kz_datamgr:max_bulk_read(),
+    {'ok', Cursor} = kz_view:find_batch(?KZ_SERVICES_DB, 'all_docs', [], [{'batch_size', BatchSize}]),
+    {'ok', Count} = kz_view_cursor:mapfold(fun remove_orphaned_services/2, 0, Cursor),
     Count > 0
         andalso io:format("removed ~p service docs~n", [Count]),
     'no_return'.
+
+-spec remove_orphaned_services(list(), integer()) -> {'ok', integer()}.
+remove_orphaned_services(Batch, Count) ->
+    NextCount = lists:foldl(fun maybe_remove_orphan/2, Count, Batch),
+    {'ok', NextCount}.
 
 -spec maybe_remove_orphan(kz_json:object() | kz_term:ne_binary(), non_neg_integer()) ->
           non_neg_integer().
