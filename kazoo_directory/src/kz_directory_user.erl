@@ -223,8 +223,22 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options) ->
 default_ccvs(Endpoint, CCVs) ->
     case kz_json:get_json_value(<<"default_ccvs">>, Endpoint) of
         'undefined' -> CCVs;
-        DefaultCCVs -> kz_json:merge(DefaultCCVs, CCVs)
+        DefaultCCVs -> merge_default_ccvs(DefaultCCVs, CCVs)
     end.
+
+-spec merge_default_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
+merge_default_ccvs(DefaultCCVs, CCVs) ->
+    SetCCVs = kz_json:filter(fun default_ccvs_set/1, DefaultCCVs),
+    UnsetCCVs = kz_json:filter(fun default_ccvs_unset/1, DefaultCCVs),
+    kz_json:merge([SetCCVs, CCVs, UnsetCCVs]).
+
+-spec default_ccvs_unset(kz_json:json_kv()) -> boolean().
+default_ccvs_unset({_, null}) -> true;
+default_ccvs_unset(_) -> false.
+
+-spec default_ccvs_set(kz_json:json_kv()) -> boolean().
+default_ccvs_set({_, null}) -> false;
+default_ccvs_set(_) -> true.
 
 -spec presence_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 presence_id(Endpoint, CCVs) ->

@@ -1763,12 +1763,38 @@ merge_cavs(JSONs) ->
         Filtered -> kz_json:merge(Filtered)
     end.
 
-build_default_ccvs('undefined', _CCVs) -> 'undefined';
-build_default_ccvs(JObj, CCVs) ->
-    case kz_json:get_json_value(kz_doc:type(JObj), CCVs) of
-        'undefined' -> kz_json:get_json_value(<<"default_ccvs">>, JObj);
-        TypeCCVs -> kz_json:merge([TypeCCVs, kz_json:get_json_value(<<"default_ccvs">>, JObj, kz_json:new())])
+merge_default_ccvs(Key, Account, Endpoint, Owner) ->
+    merge_default_ccvs(Key, Account, Endpoint, Owner, account_default_ccvs(Account)).
+
+merge_default_ccvs(_Key, _Account, Endpoint, _Owner, 'undefined') -> Endpoint;
+merge_default_ccvs(Key, Account, Endpoint, Owner, CCVs) ->
+    DefaultCCVs = kz_json:filter(fun build_default_ccvs_filter/1, CCVs),
+    JObjs = [Account, Endpoint, Owner],
+    JSONs = [kz_json:get_json_value(kz_doc:type(JObj, <<"any">>), CCVs, DefaultCCVs) || JObj <- JObjs],
+    JSON = merge_default_ccvs(JSONs),
+    case kz_json:is_json_object(JSON)
+        andalso kz_json:is_not_empty(JSON)
+    of
+        'true' -> kz_json:set_value(Key, JSON, Endpoint, #{keep_null => true});
+        'false' -> kz_json:set_value(Key, null, Endpoint)
     end.
+
+merge_default_ccvs(JSONs) ->
+    case lists:filter(fun kz_term:is_not_empty/1, JSONs) of
+        [] -> undefined;
+        [OneJObj] -> OneJObj;
+        Filtered -> kz_json:merge(Filtered,  #{keep_null => true})
+    end.
+
+build_default_ccvs_filter_types() ->
+    [<<"account">>
+    ,<<"user">>
+    ,<<"device">>
+    ].
+
+build_default_ccvs_filter({Key, Value}) ->
+    not (lists:member(Key, build_default_ccvs_filter_types())
+         orelse kz_json:is_json_object(Value)).
 
 system_default_ccvs() ->
     kapps_config:get_json(?CONFIG_CAT, <<"default_ccvs">>).
@@ -1776,22 +1802,7 @@ system_default_ccvs() ->
 account_default_ccvs(AccountJObj) ->
     case kz_json:get_json_value(<<"default_ccvs">>, AccountJObj) of
         'undefined' -> system_default_ccvs();
-        CCVs -> kz_json:merge(lists:filter(fun kz_term:is_not_empty/1, [system_default_ccvs(), CCVs]))
-    end.
-
-merge_default_ccvs(Key, Account, Endpoint, Owner) ->
-    merge_default_ccvs(Key, Account, Endpoint, Owner, account_default_ccvs(Account)).
-
-merge_default_ccvs(_Key, _Account, Endpoint, _Owner, 'undefined') -> Endpoint;
-merge_default_ccvs(Key, Account, Endpoint, Owner, CCVs) ->
-    JObjs = [Account, Endpoint, Owner],
-    JSONs = [build_default_ccvs(JObj, CCVs) || JObj <- JObjs],
-    JSON = kz_json:merge(lists:filter(fun kz_term:is_not_empty/1, JSONs)),
-    case kz_json:is_json_object(JSON)
-        andalso kz_json:is_not_empty(JSON)
-    of
-        'true' -> kz_json:set_value(Key, JSON, Endpoint);
-        'false' -> Endpoint
+        CCVs -> merge_default_ccvs([system_default_ccvs(), CCVs])
     end.
 
 merge_call_limits(Key, Account, Endpoint, Owner) ->
