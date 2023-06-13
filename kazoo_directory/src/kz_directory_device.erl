@@ -214,14 +214,13 @@ kz_contact_api(#{endpoint := Endpoint}) ->
 kz_contact(#{endpoint_uri := Uri} = Context) ->
     list_to_binary(["${", kz_contact_api(Context), "(", Uri, ")}"]).
 
-build_profile(Context) ->
-    #{endpoint_id := EndpointId
-     ,account_id := AccountId
-     ,endpoint := Endpoint
-     ,options := Options
-     ,module := Module
-     } = Context,
-
+build_profile(#{endpoint_id := EndpointId
+               ,account_id := AccountId
+               ,endpoint := Endpoint
+               ,options := Options
+               ,module := Module
+               }=Context
+             ) ->
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options, Module),
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Options, Module),
     CRVs = generate_routing_ccvs(Endpoint, Options, Module),

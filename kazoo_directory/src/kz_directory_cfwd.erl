@@ -46,8 +46,9 @@ call_forward(Endpoint) ->
 call_forward(CallForward, 'true') ->
     CallForward;
 call_forward(CallForward, 'false') ->
-    case kzd_call_forward:enabled(CallForward) of
-        'true' -> kzd_call_forward:merged(CallForward, fun kzd_call_forward:unconditional/1, kz_json:new());
+    Settings = kzd_call_forward:merged(CallForward, fun kzd_call_forward:unconditional/1, kz_json:new()),
+    case kzd_call_forward:enabled(Settings) of
+        'true' -> Settings;
         'false' -> kz_json:new()
     end.
 
@@ -63,6 +64,9 @@ build_call_forward(EndpointId, AccountId, Endpoint, CallForward) ->
     Realm = get_realm(Endpoint),
     CallFwdURI = list_to_binary([Number, "@", Realm]),
     CCVs = call_forward_properties(EndpointId, AccountId, Endpoint, CallForward, IsReconcilable),
+
+    lager:debug("building call forward to ~s", [Number]),
+
     kz_json:set_values([{<<"Call-Forward-Request-URI">>, CallFwdURI}
                        ,{<<"Custom-Channel-Vars">>, CCVs}
                        ]

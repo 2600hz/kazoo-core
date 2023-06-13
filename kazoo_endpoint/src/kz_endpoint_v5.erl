@@ -102,8 +102,8 @@ cached_endpoint(EndpointId, AccountId) ->
 
 cached_endpoint(EndpointId, AccountId, Options) ->
     case props:is_defined('no_cache', Options) of
-        true -> {'error', 'not_found'};
-        false -> kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountId, EndpointId})
+        'true' -> {'error', 'not_found'};
+        'false' -> kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountId, EndpointId})
     end.
 
 -spec fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary()) ->
@@ -129,8 +129,8 @@ fetch_endpoint(EndpointId, AccountDb, Options) ->
           {'error', any()}.
 fetch_endpoint_document(EndpointId, AccountDb, Options) ->
     case props:is_defined('no_cache', Options) of
-        true -> kz_datamgr:open_doc(AccountDb, EndpointId);
-        false -> kz_datamgr:open_cache_doc(AccountDb, EndpointId)
+        'true' -> kz_datamgr:open_doc(AccountDb, EndpointId);
+        'false' -> kz_datamgr:open_cache_doc(AccountDb, EndpointId)
     end.
 
 -spec maybe_fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
@@ -373,7 +373,7 @@ attributes_keys() ->
     ,?ATTR_LOWER_KEY
     ].
 
-endpoint_account(undefined, _Options) ->
+endpoint_account('undefined', _Options) ->
     kz_json:new();
 endpoint_account(AccountId, Options) ->
     case fetch_endpoint_document(AccountId, ?KZ_ACCOUNTS_DB, Options) of
@@ -510,8 +510,8 @@ merge_attribute(<<"presence_id">> = Key, Account, Endpoint, Owner) ->
 merge_attribute(<<"presence_aliases">> = Key, Account, Endpoint, Owner) ->
     Aliases = kzd_endpoint_aliases:merge([Account, Owner, Endpoint]),
     case kz_json:is_empty(Aliases) of
-        true -> Endpoint;
-        false -> kz_json:set_value(Key, Aliases, Endpoint)
+        'true' -> Endpoint;
+        'false' -> kz_json:set_value(Key, Aliases, Endpoint)
     end;
 merge_attribute(<<"record_call">> = Key, Account, Endpoint, Owner) ->
     EndpointAttr = get_record_call_properties(Endpoint),
@@ -576,7 +576,7 @@ unconditional_call_forward(Endpoint) ->
     Unconditional = get_unconditional_call_forward(Endpoint),
     case kzd_call_forward:enabled(Unconditional) of
         'true' ->
-            lager:info("using unconditional call forwarding"),
+            lager:info("using unconditional call forwarding: ~p", [Unconditional]),
             Unconditional;
         'false' ->
             kz_json:new()
@@ -800,10 +800,10 @@ get_user(AccountDb, Endpoint, Options) ->
     end.
 
 -spec flush_users(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:proplist() | boolean()) -> 'ok'.
-flush_users(AccountDb, OwnerIds, false) ->
+flush_users(AccountDb, OwnerIds, 'false') ->
     _ = kz_datamgr:open_cache_docs(AccountDb, OwnerIds),
     'ok';
-flush_users(AccountDb, OwnerIds, true) ->
+flush_users(AccountDb, OwnerIds, 'true') ->
     _ = kz_datamgr:flush_cache_docs(AccountDb, OwnerIds),
     'ok';
 flush_users(AccountDb, OwnerIds, Options) ->
@@ -1369,7 +1369,8 @@ call_forward_cid_properties(Endpoint, Properties, Call) ->
 -spec create_sip_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
 create_sip_endpoint(Endpoint, Properties, Call) ->
-    create_endpoint(Endpoint, Properties, Call).
+    Clid = get_clid(Endpoint, Properties, Call),
+    create_endpoint(Endpoint, Properties, Clid, Call).
 
 %%------------------------------------------------------------------------------
 %% @doc This function will return the sip headers that should be set for
@@ -1775,15 +1776,15 @@ merge_default_ccvs(Key, Account, Endpoint, Owner, CCVs) ->
     case kz_json:is_json_object(JSON)
         andalso kz_json:is_not_empty(JSON)
     of
-        'true' -> kz_json:set_value(Key, JSON, Endpoint, #{keep_null => true});
-        'false' -> kz_json:set_value(Key, null, Endpoint)
+        'true' -> kz_json:set_value(Key, JSON, Endpoint, #{keep_null => 'true'});
+        'false' -> kz_json:set_value(Key, 'null', Endpoint)
     end.
 
 merge_default_ccvs(JSONs) ->
     case lists:filter(fun kz_term:is_not_empty/1, JSONs) of
-        [] -> undefined;
+        [] -> 'undefined';
         [OneJObj] -> OneJObj;
-        Filtered -> kz_json:merge(Filtered,  #{keep_null => true})
+        Filtered -> kz_json:merge(Filtered,  #{keep_null => 'true'})
     end.
 
 build_default_ccvs_filter_types() ->
