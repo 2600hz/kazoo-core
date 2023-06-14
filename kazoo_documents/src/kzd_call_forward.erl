@@ -42,7 +42,6 @@
 -export([unconditional_keep_caller_id/1, unconditional_keep_caller_id/2, set_unconditional_keep_caller_id/2]).
 -export([unconditional_number/1, unconditional_number/2, set_unconditional_number/2]).
 -export([unconditional_require_keypress/1, unconditional_require_keypress/2, set_unconditional_require_keypress/2]).
--export([unconditional_substitute/1, unconditional_substitute/2, set_unconditional_substitute/2]).
 
 -export([validate/1]).
 -export([is_legacy/1]).
@@ -508,18 +507,6 @@ unconditional_require_keypress(Doc, Default) ->
 set_unconditional_require_keypress(Doc, UnconditionalRequireKeypress) ->
     kz_json:set_value([<<"unconditional">>, <<"require_keypress">>], UnconditionalRequireKeypress, Doc).
 
--spec unconditional_substitute(doc()) -> kz_term:api_boolean().
-unconditional_substitute(Doc) ->
-    unconditional_substitute(Doc, 'undefined').
-
--spec unconditional_substitute(doc(), Default) -> boolean() | Default.
-unconditional_substitute(Doc, Default) ->
-    kz_json:get_boolean_value([<<"unconditional">>, <<"substitute">>], Doc, Default).
-
--spec set_unconditional_substitute(doc(), boolean()) -> doc().
-set_unconditional_substitute(Doc, UnconditionalSubstitute) ->
-    kz_json:set_value([<<"unconditional">>, <<"substitute">>], UnconditionalSubstitute, Doc).
-
 %% @doc validate an endpoint (account/user/device) doc's call forwarding settings
 -spec validate(doc()) -> 'ok' | kazoo_documents:doc_validation_errors().
 validate(CallForward) ->
@@ -605,11 +592,13 @@ merged_call_forward_settings(Top, CfwdType) ->
                  ,{fun keep_caller_id/2, fun set_keep_caller_id/2}
                  ,{fun number/2, fun set_number/2}
                  ,{fun require_keypress/2, fun set_require_keypress/2}
-                 ,{fun substitute/2, fun set_substitute/2}
+                 ,{fun always_true/2, fun set_substitute/2}
                  ,{fun selective_rules/2, fun set_rules/2}
                  ],
     Merged = lists:foldl(merge_call_forward_setting_fun(CfwdType), Top, Properties),
     lists:foldl(merge_call_forward_setting_fun(Merged), kz_json:new(), Properties).
+
+always_true(_, _) -> 'true'.
 
 merge_call_forward_setting_fun(Override) ->
     fun({Getter, Setter}, MergedCfwd) ->
