@@ -24,6 +24,8 @@
         ,get_public_configs/0
 
         ,config_cat/0
+
+        ,find_api_url/0
         ]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -75,6 +77,36 @@ set_api_url(URL) ->
     %% TODO: we need to re-configure running mui apps source_url
     {'ok', _} = kapps_config:set_string(?CONFIG_CAT, <<"api_url">>, URL),
     URL.
+
+-spec find_api_url() -> {'ok', kz_term:ne_binary()} | {'error', 'no_api_url'}.
+find_api_url() ->
+    case api_url() of
+        'undefined' ->
+            try kz_network_utils:resolve(kz_term:to_binary(kz_network_utils:get_hostname())
+                                        ,get_resolve_options()
+                                        )
+            of
+                [] ->
+                    lager:error("unable to detect localhost api_url, please configure api_url in appex_client"),
+                    {'error', 'no_api_url'};
+                [IP|_] ->
+                    lager:info("using current hostmachine address ~s as api_url", [IP]),
+                    {'ok', IP}
+            catch
+                _E:_T:_ST ->
+                    lager:error("unable to detect localhost api_url, please configure api_url in appex_client"),
+                    {'error', 'no_api_url'}
+            end;
+        ApiUrl ->
+            {'ok', ApiUrl}
+    end.
+
+-spec get_resolve_options() -> kz_term:proplist().
+get_resolve_options() ->
+    case kapps_config:is_true(?CONFIG_CAT, <<"use_tcp">>, 'false') of
+        'true' -> kz_network_utils:default_options();
+        'false' -> props:set_value('usevc', 'false', kz_network_utils:default_options())
+    end.
 
 -spec marketplace_url() -> kz_term:api_ne_binary().
 marketplace_url() ->

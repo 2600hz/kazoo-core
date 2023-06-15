@@ -29,4 +29,4 @@ start(_Type, _Args) ->
 %%------------------------------------------------------------------------------
 -spec stop(any()) -> 'ok'.
 stop(_State) ->
-    appex_cb_router:stop_link().
+    'ok'.
