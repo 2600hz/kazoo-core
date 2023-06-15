@@ -102,8 +102,8 @@ cached_endpoint(EndpointId, AccountId) ->
 
 cached_endpoint(EndpointId, AccountId, Options) ->
     case props:is_defined('no_cache', Options) of
-        true -> {'error', 'not_found'};
-        false -> kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountId, EndpointId})
+        'true' -> {'error', 'not_found'};
+        'false' -> kz_cache:fetch_local(?CACHE_NAME, {?MODULE, AccountId, EndpointId})
     end.
 
 -spec fetch_endpoint(kz_term:ne_binary(), kz_term:ne_binary()) ->
@@ -129,8 +129,8 @@ fetch_endpoint(EndpointId, AccountDb, Options) ->
           {'error', any()}.
 fetch_endpoint_document(EndpointId, AccountDb, Options) ->
     case props:is_defined('no_cache', Options) of
-        true -> kz_datamgr:open_doc(AccountDb, EndpointId);
-        false -> kz_datamgr:open_cache_doc(AccountDb, EndpointId)
+        'true' -> kz_datamgr:open_doc(AccountDb, EndpointId);
+        'false' -> kz_datamgr:open_cache_doc(AccountDb, EndpointId)
     end.
 
 -spec maybe_fetch_from_token(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
@@ -373,7 +373,7 @@ attributes_keys() ->
     ,?ATTR_LOWER_KEY
     ].
 
-endpoint_account(undefined, _Options) ->
+endpoint_account('undefined', _Options) ->
     kz_json:new();
 endpoint_account(AccountId, Options) ->
     case fetch_endpoint_document(AccountId, ?KZ_ACCOUNTS_DB, Options) of
@@ -446,7 +446,7 @@ merge_attribute(<<"account_name">> = Key, Account, Endpoint, _Owner) ->
 merge_attribute(<<"account_realm">> = Key, Account, Endpoint, _Owner) ->
     kz_json:set_value(Key, kzd_accounts:realm(Account), Endpoint);
 merge_attribute(<<"call_restriction">>, Account, Endpoint, Owner) ->
-    Classifiers = kz_json:get_keys(knm_converters:available_classifiers()),
+    Classifiers = knm_converters:available_classifiers(),
     merge_call_restrictions(Classifiers, Account, Endpoint, Owner);
 merge_attribute(<<"name">> = Key, Account, Endpoint, Owner) ->
     Name = create_endpoint_name(kz_json:get_ne_value(<<"first_name">>, Owner)
@@ -510,8 +510,8 @@ merge_attribute(<<"presence_id">> = Key, Account, Endpoint, Owner) ->
 merge_attribute(<<"presence_aliases">> = Key, Account, Endpoint, Owner) ->
     Aliases = kzd_endpoint_aliases:merge([Account, Owner, Endpoint]),
     case kz_json:is_empty(Aliases) of
-        true -> Endpoint;
-        false -> kz_json:set_value(Key, Aliases, Endpoint)
+        'true' -> Endpoint;
+        'false' -> kz_json:set_value(Key, Aliases, Endpoint)
     end;
 merge_attribute(<<"record_call">> = Key, Account, Endpoint, Owner) ->
     EndpointAttr = get_record_call_properties(Endpoint),
@@ -735,26 +735,30 @@ caller_id_owner_attr(Owner) ->
         _Else -> OwnerAttr
     end.
 
--spec merge_call_restrictions(kz_term:ne_binaries(), kz_json:object(), kz_json:object(), kz_json:object()) ->
+-spec merge_call_restrictions(kz_json:objects(), kz_json:object(), kz_json:object(), kz_json:object()) ->
           kz_json:object().
 merge_call_restrictions([], _, Endpoint, _) -> Endpoint;
 merge_call_restrictions([Classifier|Classifiers], Account, Endpoint, Owner) ->
-    case is_classifier_denied(Classifier, [Account, Owner]) of
+    ClassifierName = classifier_name(Classifier),
+    case is_classifier_denied(ClassifierName, [Account, Owner]) of
         'true' ->
             %% denied at the account or owner level
-            Update = add_denied_classifier(Classifier, Endpoint),
+            Update = add_denied_classifier(ClassifierName, Endpoint),
             merge_call_restrictions(Classifiers, Account, Update, Owner);
         'false' ->
-            case is_classifier_allowed(Classifier, [Owner]) of
+            case is_classifier_allowed(ClassifierName, [Owner]) of
                 'true' ->
                     %% allowed at the owner level
-                    Update = add_allowed_classifier(Classifier, Endpoint),
+                    Update = add_allowed_classifier(ClassifierName, Endpoint),
                     merge_call_restrictions(Classifiers, Account, Update, Owner);
                 'false' ->
                     %% owner inherit or no owner, either way use the device restrictions
                     merge_call_restrictions(Classifiers, Account, Endpoint, Owner)
             end
     end.
+
+classifier_name(Classifier) ->
+    kz_json:get_ne_binary_value(<<"name">>, Classifier).
 
 -spec is_classifier_denied(kz_term:ne_binary(), kz_json:objects()) -> boolean().
 is_classifier_denied(Classifier, JObjs) ->
@@ -800,10 +804,10 @@ get_user(AccountDb, Endpoint, Options) ->
     end.
 
 -spec flush_users(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:proplist() | boolean()) -> 'ok'.
-flush_users(AccountDb, OwnerIds, false) ->
+flush_users(AccountDb, OwnerIds, 'false') ->
     _ = kz_datamgr:open_cache_docs(AccountDb, OwnerIds),
     'ok';
-flush_users(AccountDb, OwnerIds, true) ->
+flush_users(AccountDb, OwnerIds, 'true') ->
     _ = kz_datamgr:flush_cache_docs(AccountDb, OwnerIds),
     'ok';
 flush_users(AccountDb, OwnerIds, Options) ->
@@ -825,16 +829,17 @@ get_users(AccountDb, OwnerIds, Options) ->
 -spec fix_user_restrictions(kzd_users:doc()) -> kzd_users:doc().
 fix_user_restrictions(UserJObj) ->
     lists:foldl(fun(Classifier, User) ->
-                        case kzd_users:classifier_restriction(User, Classifier) of
+                        ClassifierName = classifier_name(Classifier),
+                        case kzd_users:classifier_restriction(User, ClassifierName) of
                             <<"deny">> -> User;
                             _Else ->
                                 %% this ensures we override the device
                                 %% but only when there is a user associated
-                                kzd_users:set_classifier_restriction(User, Classifier, <<"allow">>)
+                                kzd_users:set_classifier_restriction(User, ClassifierName, <<"allow">>)
                         end
                 end
                ,UserJObj
-               ,kz_json:get_keys(knm_converters:available_classifiers())
+               ,knm_converters:available_classifiers()
                ).
 
 -spec convert_to_single_user(kzd_users:docs()) -> kzd_users:doc().
@@ -858,15 +863,16 @@ singlfy_user_attr_keys(UserJObjs, AccJObj) ->
 -spec singlfy_user_restrictions(kzd_users:docs(), kzd_users:doc()) -> kzd_users:doc().
 singlfy_user_restrictions(UserJObjs, AccJObj) ->
     lists:foldl(fun(Classifier, Acc) ->
-                        Fun = fun(Elem) -> do_all_restrict(Classifier, Elem) end,
+                        ClassifierName = classifier_name(Classifier),
+                        Fun = fun(Elem) -> do_all_restrict(ClassifierName, Elem) end,
                         case lists:all(Fun, UserJObjs) of
                             'false' -> Acc;
                             'true' ->
-                                kzd_users:set_classifier_restriction(Acc, Classifier, <<"deny">>)
+                                kzd_users:set_classifier_restriction(Acc, ClassifierName, <<"deny">>)
                         end
                 end
                ,AccJObj
-               ,kz_json:get_keys(knm_converters:available_classifiers())
+               ,knm_converters:available_classifiers()
                ).
 
 -spec do_all_restrict(kz_term:ne_binary(), kzd_users:doc()) -> boolean().
@@ -1775,15 +1781,15 @@ merge_default_ccvs(Key, Account, Endpoint, Owner, CCVs) ->
     case kz_json:is_json_object(JSON)
         andalso kz_json:is_not_empty(JSON)
     of
-        'true' -> kz_json:set_value(Key, JSON, Endpoint, #{keep_null => true});
-        'false' -> kz_json:set_value(Key, null, Endpoint)
+        'true' -> kz_json:set_value(Key, JSON, Endpoint, #{keep_null => 'true'});
+        'false' -> kz_json:set_value(Key, 'null', Endpoint)
     end.
 
 merge_default_ccvs(JSONs) ->
     case lists:filter(fun kz_term:is_not_empty/1, JSONs) of
-        [] -> undefined;
+        [] -> 'undefined';
         [OneJObj] -> OneJObj;
-        Filtered -> kz_json:merge(Filtered,  #{keep_null => true})
+        Filtered -> kz_json:merge(Filtered,  #{keep_null => 'true'})
     end.
 
 build_default_ccvs_filter_types() ->

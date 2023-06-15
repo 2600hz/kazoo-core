@@ -1650,7 +1650,9 @@ migrate() ->
     _ = refresh_numbers_dbs(),
     lager:info("migrating unassigned numbers"),
     migrate_unassigned_numbers(),
-    migrate_carrier_module_settings().
+    migrate_carrier_module_settings(),
+    migrate_classifiers(),
+    io:format("migration complete~n").
 
 -spec migrate_unassigned_numbers() -> 'ok'.
 migrate_unassigned_numbers() ->
@@ -1761,6 +1763,7 @@ escape(?NE_BINARY=Bin0) ->
     Escaped.
 
 -type js_match_block() :: fun((kz_term:ne_binary()) -> iolist()).
+
 -spec number_services_map(js_match_block()) -> kz_term:ne_binary().
 number_services_map(FunMatchBlock) ->
     iolist_to_binary(
@@ -1781,9 +1784,10 @@ number_services_map(FunMatchBlock) ->
 
 -spec generate_js_classifiers(js_match_block()) -> iolist().
 generate_js_classifiers(FunMatchBlock) ->
-    ClassifiersJObj = knm_converters:available_classifiers(), %%TODO: per-account classifiers.
-    Pairs = [{Classification, kz_json:get_value([Classification, <<"regex">>], ClassifiersJObj)}
-             || Classification <- kz_json:get_keys(ClassifiersJObj)
+    ClassifierJObjs = knm_converters:available_classifiers(), %%TODO: per-account classifiers.
+    Pairs = [{kz_json:get_ne_binary_value(<<"name">>, Classifier)
+             ,kz_json:get_ne_binary_value(<<"regex">>, Classifier)}
+             || Classifier <- ClassifierJObjs
             ],
     {Classifications, Regexs} = lists:unzip(Pairs),
     generate_js_classifiers(Classifications, Regexs, FunMatchBlock).
@@ -2090,7 +2094,8 @@ ensure_adminonly_features_are_reachable() ->
         [] -> 'no_return';
         ToAdd ->
             io:format("Adding the following admin-only number features to system_config: ~s"
-                     ,[list_features(ToAdd)]),
+                     ,[list_features(ToAdd)]
+                     ),
             set_features_on_system_config(ToAdd ++ Configured)
     end.
 
@@ -2102,3 +2107,8 @@ migrate_carrier_module_settings() ->
 -spec migrate_port_requests() -> 'ok'.
 migrate_port_requests() ->
     knm_port_request:migrate().
+
+-spec migrate_classifiers() -> 'ok'.
+migrate_classifiers() ->
+    knm_converters:migrate_classifiers(),
+    io:format("classifier migration complete~n").

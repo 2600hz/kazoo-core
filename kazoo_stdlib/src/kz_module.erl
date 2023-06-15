@@ -23,6 +23,8 @@
              ,integrations/0
              ]).
 
+-elvis([{'elvis_style', 'no_debug_call', 'disable'}]).
+
 %% @doc lifted from erlang ML
 %% http://erlang.2086793.n4.nabble.com/What-is-the-fastest-way-to-check-if-a-function-is-defined-in-a-module-tp4723096p4723108.html
 -spec is_exported(module() | kz_term:text(), kz_term:text(), arity()) -> boolean().

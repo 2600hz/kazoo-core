@@ -138,11 +138,99 @@ available_classifiers_test_() ->
 correct_correction({ClassifierName, ClassifierSettings}
                   ,CorrectedClassifiers
                   ) ->
+    Regex = kz_json:get_value(<<"regex">>, ClassifierSettings),
+    FriendlyName = kz_json:get_value(<<"friendly_name">>, ClassifierSettings, ClassifierName),
 
-    [?_assertEqual(kz_json:get_value(<<"friendly_name">>, ClassifierSettings, ClassifierName)
-                  ,kz_json:get_value([ClassifierName, <<"friendly_name">>], CorrectedClassifiers)
-                  )
-    ,?_assertEqual(kz_json:get_value(<<"regex">>, ClassifierSettings)
-                  ,kz_json:get_value([ClassifierName, <<"regex">>], CorrectedClassifiers)
-                  )
+    %% make sure we can find the classifier by name
+    [?_assert('undefined' =/= kz_json:find_value(<<"name">>, ClassifierName, CorrectedClassifiers))
+    ,?_assert('undefined' =/= kz_json:find_value(<<"regex">>, Regex, CorrectedClassifiers))
+    ,?_assert('undefined' =/= kz_json:find_value(<<"friendly_name">>, FriendlyName, CorrectedClassifiers))
+    ].
+
+migrate_classifiers_test_() ->
+    OldConfig = kz_json:from_list([{<<"tollfree_us">>
+                                   ,kz_json:from_list([{<<"regex">>,<<"^\\+1((?:800|88\\d|877|866|855|844|833|822)\\d{7})$">>},
+                                                       {<<"friendly_name">>,<<"US TollFree">>},
+                                                       {<<"pretty_print">>,<<"SS(###) ###-####">>}
+                                                      ])
+                                   }
+                                  ,{<<"toll_us">>
+                                   ,kz_json:from_list([{<<"regex">>,<<"^\\+1(900\\d{7})$">>},
+                                                       {<<"friendly_name">>,<<"US Toll">>},
+                                                       {<<"pretty_print">>,<<"SS(###) ###-####">>}
+                                                      ])
+                                   }
+                                  ,{<<"emergency">>
+                                   ,kz_json:from_list([{<<"regex">>,<<"^(911|922|933|988|833|811|711|999)$">>},
+                                                       {<<"emergency">>,'true'},
+                                                       {<<"friendly_name">>,<<"Emergency Dispatcher">>}
+                                                      ])
+                                   }
+                                  ,{<<"caribbean">>
+                                   ,kz_json:from_list([{<<"regex">>,
+                                                        <<"^\\+?1((?:684|264|268|242|246|441|284|345|767|809|829|849|473|671|876|664|670|787|939|869|758|784|721|868|649|340)\\d{7})$">>},
+                                                       {<<"friendly_name">>,<<"Caribbean">>},
+                                                       {<<"pretty_print">>,<<"SS(###) ###-####">>}
+                                                      ])
+                                   }
+                                  ,{<<"did_us">>
+                                   ,kz_json:from_list([{<<"regex">>,<<"^(\\+?1)?([2-9][0-9]{2}[2-9][0-9]{6})$">>},
+                                                       {<<"friendly_name">>,<<"US DID">>},
+                                                       {<<"pretty_print">>,<<"SS(###) ###-####">>}
+                                                      ])
+                                   }
+                                  ,{<<"international">>
+                                   ,kz_json:from_list([{<<"regex">>,<<"^\\+([2-9]\\d{7,})$">>},
+                                                       {<<"friendly_name">>,<<"International">>}
+                                                      ])
+                                   }
+                                  ,{<<"unknown">>
+                                   ,kz_json:from_list([{<<"regex">>,<<"^(.*)$">>}
+                                                      ,{<<"friendly_name">>,<<"Unknown">>}
+                                                      ])
+                                   }
+                                  ]),
+
+    NewConfig = [kz_json:from_list([{<<"regex">>,<<"^\\+1((?:800|88\\d|877|866|855|844|833|822)\\d{7})$">>}
+                                   ,{<<"friendly_name">>,<<"US TollFree">>}
+                                   ,{<<"pretty_print">>,<<"SS(###) ###-####">>}
+                                   ,{<<"name">>, <<"tollfree_us">>}
+                                   ])
+                ,kz_json:from_list([{<<"regex">>,<<"^\\+1(900\\d{7})$">>}
+                                   ,{<<"friendly_name">>,<<"US Toll">>}
+                                   ,{<<"pretty_print">>,<<"SS(###) ###-####">>}
+                                   ,{<<"name">>, <<"toll_us">>}
+                                   ])
+                ,kz_json:from_list([{<<"regex">>,<<"^(911|922|933|988|833|811|711|999)$">>}
+                                   ,{<<"emergency">>,'true'}
+                                   ,{<<"friendly_name">>,<<"Emergency Dispatcher">>}
+                                   ,{<<"name">>, <<"emergency">>}
+                                   ])
+                ,kz_json:from_list([{<<"regex">>,
+                                     <<"^\\+?1((?:684|264|268|242|246|441|284|345|767|809|829|849|473|671|876|664|670|787|939|869|758|784|721|868|649|340)\\d{7})$">>}
+                                   ,{<<"friendly_name">>,<<"Caribbean">>}
+                                   ,{<<"pretty_print">>,<<"SS(###) ###-####">>}
+                                   ,{<<"name">>, <<"caribbean">>}
+                                   ])
+                ,kz_json:from_list([{<<"regex">>,<<"^(\\+?1)?([2-9][0-9]{2}[2-9][0-9]{6})$">>}
+                                   ,{<<"friendly_name">>,<<"US DID">>}
+                                   ,{<<"pretty_print">>,<<"SS(###) ###-####">>}
+                                   ,{<<"name">>, <<"did_us">>}
+                                   ])
+                ,kz_json:from_list([{<<"regex">>,<<"^\\+([2-9]\\d{7,})$">>}
+                                   ,{<<"friendly_name">>,<<"International">>}
+                                   ,{<<"name">>, <<"international">>}
+                                   ])
+                ,kz_json:from_list([{<<"regex">>,<<"^(.*)$">>}
+                                   ,{<<"friendly_name">>,<<"Unknown">>}
+                                   ,{<<"name">>, <<"unknown">>}
+                                   ])
+                ],
+
+    [?_assert(knm_converters:migrate_classifiers(OldConfig))
+    ,?_assert(knm_converters:migrate_classifiers(NewConfig))
+    ,?_assert(kz_json:are_equal(knm_converters:available_classifiers(OldConfig)
+                               ,NewConfig
+                               )
+             )
     ].

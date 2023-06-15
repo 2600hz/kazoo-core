@@ -27,11 +27,11 @@
 -export([get_ne_binaries/2, get_ne_binaries/3]).
 -export([get_timeout/2, get_timeout/3]).
 
--compile({no_auto_import, [get/1]}).
+-compile({'no_auto_import', [get/1]}).
 
 -type account_id() :: kz_term:api_ne_binary().
 -type app() :: atom() | {atom(), account_id()}.
--type app_key() :: binary() | kz_term:binaries().
+-type app_key() :: kz_term:ne_binary() | kz_term:ne_binaries().
 
 -spec get_pos_integer(app(), app_key()) -> kz_term:api_pos_integer().
 get_pos_integer(App, Key) ->
@@ -270,14 +270,14 @@ fetch_account_value(App, AccountId, Key, Fun) ->
     end.
 
 -spec fetch_value(app(), app_key()) -> 'undefined' | {'ok', term()}.
-fetch_value({App, undefined}, Key) ->
+fetch_value({App, 'undefined'}, Key) ->
     fetch_value(App, Key);
 fetch_value({App, AccountId}, Key)
   when not is_binary(AccountId) ->
     fetch_value({App, kz_term:to_binary(AccountId)}, Key);
-fetch_value({App, AccountId}, Key) ->
+fetch_value({App, AccountId}, Key) when is_atom(App) ->
     fetch_account_value(App, AccountId, Key);
-fetch_value(App, Key) ->
+fetch_value(App, Key) when is_atom(App) ->
     %% default getter is to fetch Key from the app's environment
     Default = persistent_term:get('kz_config', fun get_env/2),
     Fun = persistent_term:get({'kz_config', App}, Default),

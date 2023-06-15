@@ -22,7 +22,7 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec query(map()) -> {ok | error, any()}.
+-spec query(map()) -> {'ok' | 'error', any()}.
 query(Query)
   when is_map(Query) ->
     Funs = [fun lexer/1
@@ -41,7 +41,7 @@ query(Query)
 
 -spec eval(kz_json:object(), 'undefined' | tuple()) -> boolean().
 eval(_JObj, 'undefined') ->
-    true;
+    'true';
 eval(JObj, {'query', Condition}) ->
     eval(JObj, Condition);
 eval(JObj, {'cond', 'not', Expr}) ->
@@ -53,10 +53,10 @@ eval(JObj, {'cond', 'any', Conditions}) ->
     lists:any(fun(Condition) -> eval(JObj, Condition) end, Conditions);
 eval(JObj, {'cond', 'all', Conditions}) ->
     lists:all(fun(Condition) -> eval(JObj, Condition) end, Conditions);
-eval(JObj, {'cond', 'exists', {key, Key}}) ->
+eval(JObj, {'cond', 'exists', {'key', Key}}) ->
     kz_json:is_defined(Key, JObj);
-eval(JObj, {'cond', Operator, {key, Key}, {_Type, Value}}) ->
-    operator(Operator, kz_json:get_value(Key, JObj, null), Value).
+eval(JObj, {'cond', Operator, {'key', Key}, {_Type, Value}}) ->
+    operator(Operator, kz_json:get_value(Key, JObj, 'null'), Value).
 
 %% ====================================================================
 %% Internal functions
@@ -66,36 +66,36 @@ eval(JObj, {'cond', Operator, {key, Key}, {_Type, Value}}) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
-query_exec([], #{error := Error}) -> {error, Error};
-query_exec([], #{output := Output}) -> {ok, Output};
-query_exec([], #{result := Results}) -> {ok, Results};
-query_exec([], #{}) -> {ok, []};
+query_exec([], #{error := Error}) -> {'error', Error};
+query_exec([], #{output := Output}) -> {'ok', Output};
+query_exec([], #{result := Results}) -> {'ok', Results};
+query_exec([], #{}) -> {'ok', []};
 query_exec([Fun | Funs], Query) ->
     case Fun(Query) of
-        #{error := Error}  -> {error, Error};
+        #{error := Error}  -> {'error', Error};
         Next when is_map(Next) -> query_exec(Funs, Next);
-        _Next -> {error, unknown}
+        _Next -> {'error', 'unknown'}
     end.
 
 lexer(#{query := Query} = Map) ->
     case kz_json_query_lexer:string(kz_term:to_list(Query)) of
-        {ok, Tokens, _} -> Map#{lex => Tokens};
-        _ -> {error, <<"invalid query">>}
+        {'ok', Tokens, _} -> Map#{lex => Tokens};
+        _ -> {'error', <<"invalid query">>}
     end;
 lexer(Map) -> Map.
 
 parser(#{lex := Tokens} = Map) ->
     case kz_json_query_parser:parse(Tokens) of
-        {error, {_, kz_json_query_parser, Error}} -> {error, list_to_binary(Error)};
-        {ok, AST} -> Map#{ast => AST}
+        {'error', {_, 'kz_json_query_parser', Error}} -> {'error', list_to_binary(Error)};
+        {'ok', AST} -> Map#{ast => AST}
     end;
 parser(Map) -> Map#{ast => 'undefined'}.
 
 collect(#{collection := _} = Map) -> Map;
 collect(#{collector := #{'fun' := Fun, params := Params}} = Map) ->
     try erlang:apply(Fun, Params) of
-        {error, Error} -> Map#{error => Error};
-        {ok, Collection} -> Map#{collection => Collection}
+        {'error', Error} -> Map#{error => Error};
+        {'ok', Collection} -> Map#{collection => Collection}
     catch
         _Exc:_Err:_ST ->
             Map#{error => _Err}
@@ -103,14 +103,14 @@ collect(#{collector := #{'fun' := Fun, params := Params}} = Map) ->
 collect(#{collector := #{'fun' := _Fun} = Collector} = Map) ->
     collect(Map#{collector => Collector#{params => []}});
 collect(Map) ->
-    Map#{error => no_collection_or_collector}.
+    Map#{error => 'no_collection_or_collector'}.
 
 filter(#{filter := #{'fun' := Fun, params := Params}
         ,collection := Collection
         } = Map) ->
     try erlang:apply(Fun, [Collection | Params]) of
-        {error, Error} -> Map#{error => Error};
-        {ok, Collection} -> Map#{collection => Collection}
+        {'error', Error} -> Map#{error => Error};
+        {'ok', Collection} -> Map#{collection => Collection}
     catch
         _Exc:_Err:_ST ->
             Map#{error => _Err}
@@ -119,8 +119,8 @@ filter(#{filter := #{'fun' := Fun}
         ,collection := Collection
         } = Map) ->
     try erlang:apply(Fun, [Collection]) of
-        {error, Error} -> Map#{error => Error};
-        {ok, Collection} -> Map#{collection => Collection}
+        {'error', Error} -> Map#{error => Error};
+        {'ok', Collection} -> Map#{collection => Collection}
     catch
         _Exc:_Err:_ST ->
             Map#{error => _Err}
@@ -131,8 +131,8 @@ transformer(#{transformer := #{'fun' := Fun, params := Params}
              ,collection := Collection
              } = Map) ->
     try erlang:apply(Fun, [Collection | Params]) of
-        {error, Error} -> Map#{error => Error};
-        {ok, Collection} -> Map#{collection => Collection}
+        {'error', Error} -> Map#{error => Error};
+        {'ok', Collection} -> Map#{collection => Collection}
     catch
         _Exc:_Err:_ST ->
             Map#{error => _Err}
@@ -141,8 +141,8 @@ transformer(#{transformer := #{'fun' := Fun}
              ,collection := Collection
              } = Map) ->
     try erlang:apply(Fun, [Collection]) of
-        {error, Error} -> Map#{error => Error};
-        {ok, Collection} -> Map#{collection => Collection}
+        {'error', Error} -> Map#{error => Error};
+        {'ok', Collection} -> Map#{collection => Collection}
     catch
         _Exc:_Err:_ST ->
             Map#{error => _Err}
@@ -184,8 +184,8 @@ run(Map) ->
 patch(#{patch := #{op := Op, path := Path} = Patch
        ,result := Collection
        } = Map) ->
-    Value = maps:get(value, Patch, null),
-    Scope = case maps:get(scope, Patch, 'undefined') of
+    Value = maps:get('value', Patch, 'null'),
+    Scope = case maps:get('scope', Patch, 'undefined') of
                 'undefined' -> 'undefined';
                 Binary
                   when is_binary(Binary) ->

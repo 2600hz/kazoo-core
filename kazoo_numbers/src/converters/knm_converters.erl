@@ -19,13 +19,13 @@
         ,is_strip_plus/1, to_strip_plus/1
         ,to_db/1
         ,is_reconcilable/1, is_reconcilable/2, are_reconcilable/1
-        ,classify/1, available_classifiers/0
+        ,classify/1, available_classifiers/0, migrate_classifiers/0
         ,available_converters/0
         ,default_converter/0
         ]).
 
 -ifdef(TEST).
--export([available_classifiers/1]).
+-export([available_classifiers/1, migrate_classifiers/1]).
 -endif.
 
 -define(DEFAULT_CONVERTER_B, <<"regex">>).
@@ -38,51 +38,58 @@
         kz_json:from_list([{<<"regex">>, <<"^\\+1((?:800|88\\d|877|866|855|844|833|822)\\d{7})\$">>}
                           ,{<<"friendly_name">>, <<"US TollFree">>}
                           ,{<<"pretty_print">>, ?PRETTY_PRINT_FORMAT_NANP}
+                          ,{<<"name">>, <<"tollfree_us">>}
                           ])).
 
 -define(CLASSIFIER_TOLL_US,
         kz_json:from_list([{<<"regex">>, <<"^\\+1(900\\d{7})\$">>}
                           ,{<<"friendly_name">>, <<"US Toll">>}
                           ,{<<"pretty_print">>, ?PRETTY_PRINT_FORMAT_NANP}
+                          ,{<<"name">>, <<"toll_us">>}
                           ])).
 
 -define(CLASSIFIER_EMERGENCY,
         kz_json:from_list([{<<"regex">>, <<"^(911|922|933|988|833|811|711|999)\$">>}
                           ,{<<"emergency">>, 'true'}
                           ,{<<"friendly_name">>, <<"Emergency Dispatcher">>}
+                          ,{<<"name">>, <<"emergency">>}
                           ])).
 
 -define(CLASSIFIER_CARIBBEAN,
         kz_json:from_list([{<<"regex">>, <<"^\\+?1((?:684|264|268|242|246|441|284|345|767|809|829|849|473|671|876|664|670|787|939|869|758|784|721|868|649|340)\\d{7})\$">>}
                           ,{<<"friendly_name">>, <<"Caribbean">>}
                           ,{<<"pretty_print">>, ?PRETTY_PRINT_FORMAT_NANP}
+                          ,{<<"name">>, <<"caribbean">>}
                           ])).
 
 -define(CLASSIFIER_DID_US,
         kz_json:from_list([{<<"regex">>, <<"^(\\+?1)?([2-9][0-9]{2}[2-9][0-9]{6})\$">>}
                           ,{<<"friendly_name">>, <<"US DID">>}
                           ,{<<"pretty_print">>, ?PRETTY_PRINT_FORMAT_NANP}
+                          ,{<<"name">>, <<"did_us">>}
                           ])).
 
 -define(CLASSIFIER_INTERNATIONAL,
         kz_json:from_list([{<<"regex">>, <<"^\\+([2-9]\\d{7,})\$">>}
                           ,{<<"friendly_name">>, <<"International">>}
+                          ,{<<"name">>, <<"international">>}
                           ])).
 
 -define(CLASSIFIER_UNKNOWN,
         kz_json:from_list([{<<"regex">>, <<"^(.*)\$">>}
                           ,{<<"friendly_name">>, <<"Unknown">>}
+                          ,{<<"name">>, <<"unknown">>}
                           ])).
 
 -define(DEFAULT_CLASSIFIERS,
-        kz_json:from_list([{<<"tollfree_us">>, ?CLASSIFIER_TOLLFREE_US}
-                          ,{<<"toll_us">>, ?CLASSIFIER_TOLL_US}
-                          ,{<<"emergency">>, ?CLASSIFIER_EMERGENCY}
-                          ,{<<"caribbean">>, ?CLASSIFIER_CARIBBEAN}
-                          ,{<<"did_us">>, ?CLASSIFIER_DID_US}
-                          ,{<<"international">>, ?CLASSIFIER_INTERNATIONAL}
-                          ,{<<"unknown">>, ?CLASSIFIER_UNKNOWN}
-                          ])).
+        [?CLASSIFIER_TOLLFREE_US
+        ,?CLASSIFIER_TOLL_US
+        ,?CLASSIFIER_EMERGENCY
+        ,?CLASSIFIER_CARIBBEAN
+        ,?CLASSIFIER_DID_US
+        ,?CLASSIFIER_INTERNATIONAL
+        ,?CLASSIFIER_UNKNOWN
+        ]).
 
 -define(DEFAULT_CONVERTER
        ,kapps_config:get_ne_binary(?KNM_CONFIG_CAT, <<"converter">>, ?DEFAULT_CONVERTER_B)
@@ -97,7 +104,7 @@
 -define(CLASSIFIERS, ?DEFAULT_CLASSIFIERS).
 -else.
 -define(CLASSIFIERS
-       ,kapps_config:get_json(?KNM_CONFIG_CAT, <<"classifiers">>, ?DEFAULT_CLASSIFIERS)
+       ,kapps_config:get(?KNM_CONFIG_CAT, <<"classifiers">>, ?DEFAULT_CLASSIFIERS)
        ).
 -endif.
 
@@ -243,19 +250,54 @@ is_reconcilable_by_regex(Num, Regex) ->
 -spec classify(kz_term:ne_binary()) -> kz_term:api_binary().
 classify(Number) ->
     Num = normalize(Number),
-    classify_number(Num, kz_json:to_proplist(?CLASSIFIERS)).
+    classify_number(Num, available_classifiers()).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec available_classifiers() -> kz_json:object().
+-spec available_classifiers() -> kz_json:objects().
 available_classifiers() ->
     available_classifiers(?CLASSIFIERS).
 
--spec available_classifiers(kz_json:object()) -> kz_json:object().
+-spec available_classifiers(kz_json:objects()) -> kz_json:objects().
+available_classifiers(Cs) when is_list(Cs) -> Cs;
 available_classifiers(Cs) ->
-    kz_json:foldl(fun correct_depreciated_classifiers/3, kz_json:new(), Cs).
+    Updated = kz_json:foldl(fun correct_depreciated_classifiers/3, kz_json:new(), Cs),
+    {Classifiers, _Names} = kz_json:get_values(Updated),
+    Classifiers.
+
+-spec migrate_classifiers() -> boolean().
+migrate_classifiers() ->
+    migrate_classifiers(?CLASSIFIERS).
+
+migrate_classifiers(Cs) when is_list(Cs) ->
+    ensure_classifiers_format(Cs);
+migrate_classifiers(Cs) ->
+    lager:info("migrating classifiers to list of objects"),
+    Migrated = available_classifiers(Cs),
+    ensure_classifiers_format(Migrated).
+
+ensure_classifiers_format(Cs) ->
+    case lists:all(fun ensure_classifier_format/1, Cs) of
+        'false' ->
+            lager:warning("migration of classifiers failed"),
+            'false';
+        'true' ->
+            {'ok', _} = kapps_config:set_default(?KNM_CONFIG_CAT, <<"classifiers">>, Cs),
+            lager:info("classifiers migrated successfully"),
+            'true'
+    end.
+
+ensure_classifier_format(Classifier) ->
+    case 'undefined' =/= kz_json:get_ne_binary_value(<<"name">>, Classifier)
+        andalso 'undefined' =/= kz_json:get_ne_binary_value(<<"regex">>, Classifier)
+    of
+        'true' -> 'true';
+        'false' ->
+            lager:warning("classifier is not in expected format: ~p", [Classifier]),
+            'false'
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -280,14 +322,15 @@ default_converter() -> ?CONVERTER_MOD.
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec classify_number(kz_term:ne_binary(), kz_term:proplist() | kz_term:ne_binary()) -> kz_term:api_binary().
+-spec classify_number(kz_term:ne_binary(), kz_json:objects()) -> kz_term:api_binary().
 classify_number(Num, []) ->
     lager:debug("unable to classify number ~s", [Num]),
     'undefined';
-classify_number(Num, [{Classification, Classifier}|Classifiers]) ->
+classify_number(Num, [Classifier|Classifiers]) ->
     case re:run(Num, get_classifier_regex(Classifier)) of
         'nomatch' -> classify_number(Num, Classifiers);
         _ ->
+            Classification = kz_json:get_ne_binary_value(<<"name">>, Classifier),
             lager:debug("number '~s' is classified as ~s", [Num, Classification]),
             kz_term:to_binary(Classification)
     end.
@@ -296,11 +339,9 @@ classify_number(Num, [{Classification, Classifier}|Classifiers]) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_classifier_regex(kz_term:ne_binary() | kz_json:object()) -> kz_term:ne_binary().
-get_classifier_regex(Classifier) when is_binary(Classifier) ->
-    Classifier;
+-spec get_classifier_regex(kz_json:object()) -> kz_term:ne_binary().
 get_classifier_regex(JObj) ->
-    kz_json:get_value(<<"regex">>, JObj, <<"^$">>).
+    kz_json:get_ne_binary_value(<<"regex">>, JObj, <<"^$">>).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -311,13 +352,21 @@ get_classifier_regex(JObj) ->
 correct_depreciated_classifiers(ClassifierName, <<Regex/binary>>, CorrectedClassifiers) ->
     ClassifierSettings = kz_json:from_list([{<<"regex">>, Regex}
                                            ,{<<"friendly_name">>, ClassifierName}
+                                           ,{<<"name">>, ClassifierName}
                                            ]),
     kz_json:set_value(ClassifierName, ClassifierSettings, CorrectedClassifiers);
 correct_depreciated_classifiers(ClassifierName, ClassifierSettings, CorrectedClassifiers) ->
     case kz_json:get_value(<<"friendly_name">>, ClassifierSettings) of
         'undefined' ->
-            UpdatedSettings = kz_json:set_value(<<"friendly_name">>, ClassifierName, ClassifierSettings),
+            UpdatedSettings = kz_json:set_values([{<<"friendly_name">>, ClassifierName}
+                                                 ,{<<"name">>, ClassifierName}
+                                                 ]
+                                                ,ClassifierSettings
+                                                ),
             kz_json:set_value(ClassifierName, UpdatedSettings, CorrectedClassifiers);
         _Else ->
-            kz_json:set_value(ClassifierName, ClassifierSettings, CorrectedClassifiers)
+            kz_json:set_value(ClassifierName
+                             ,kz_json:set_value(<<"name">>, ClassifierName, ClassifierSettings)
+                             ,CorrectedClassifiers
+                             )
     end.

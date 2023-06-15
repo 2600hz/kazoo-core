@@ -1312,7 +1312,7 @@ set_account_id(<<_/binary>> = AccountId, #kapps_call{}=Call) ->
                                                                        ,account_id=AccountId
                                                                        }).
 
--spec account_id(call()) -> kz_term:api_binary().
+-spec account_id(call()) -> kz_term:api_ne_binary().
 account_id(#kapps_call{account_id=AccountId}) ->
     AccountId.
 
@@ -2207,4 +2207,4 @@ add_diversion(Diversions, Diversion) ->
 should_add_diversion_header(Call) ->
     is_call_forward(Call)
         andalso kz_term:is_not_empty(diversion_number(Call))
-        andalso kz_app_config:is_true({<<"kazoo_endpoint">>, account_id(Call)}, <<"should_add_diversion_header">>).
+        andalso kz_app_config:is_true({'kazoo_endpoint', account_id(Call)}, <<"should_add_diversion_header">>).

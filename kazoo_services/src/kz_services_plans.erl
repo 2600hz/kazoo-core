@@ -500,10 +500,13 @@ editable_fields(ResellerId) ->
 
 -spec editable_phone_numbers_fields(kz_term:proplist(), kz_term:api_binary()) -> kz_term:proplist().
 editable_phone_numbers_fields(Fields, _ResellerId) ->
-    Classifiers = kz_json:get_keys(knm_converters:available_classifiers()),
-    case kz_term:is_empty(Classifiers) of
+    Classifiers = knm_converters:available_classifiers(),
+    ClassifierNames = [kz_json:get_ne_binary_value(<<"name">>, Classifier)
+                       || Classifier <- Classifiers
+                      ],
+    case kz_term:is_empty(ClassifierNames) of
         'true' -> props:delete(<<"phone_numbers">>, Fields);
-        'false' -> props:set_value(<<"phone_numbers">>, Classifiers, Fields)
+        'false' -> props:set_value(<<"phone_numbers">>, ClassifierNames, Fields)
     end.
 
 -spec editable_number_carriers_fields(kz_term:proplist(), kz_term:api_binary()) -> kz_term:proplist().

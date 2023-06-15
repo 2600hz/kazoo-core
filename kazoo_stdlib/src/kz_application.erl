@@ -20,6 +20,8 @@
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
+-elvis([{'elvis_style', 'no_debug_call', 'disable'}]).
+
 -spec process_fold([tuple()], atom()) -> tuple() | atom().
 process_fold([], App) -> App;
 process_fold([{M, _, _, _}=Mod | Others], App) ->

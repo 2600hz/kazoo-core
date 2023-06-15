@@ -17,7 +17,7 @@
 -type endpoint() :: kz_json:object().
 -type endpoints() :: [endpoint()].
 -type presence_aliases() :: kz_json:object() | kz_term:ne_binaries().
--type api_presence_aliases() :: presence_aliases() | undefined.
+-type api_presence_aliases() :: presence_aliases() | 'undefined'.
 -type api_presence_aliases_list() :: [api_presence_aliases()].
 
 -type aliases_collector_fun_return() :: api_presence_aliases() | api_presence_aliases_list().
@@ -41,8 +41,8 @@ aliases(Endpoint) ->
 
 -spec aliases(endpoint(), Default) -> presence_aliases() | Default.
 aliases(Endpoint, Default) ->
-    case kz_json:get_json_value([<<"presence_aliases">>], Endpoint, not_found_or_not_json) of
-        not_found_or_not_json -> kz_json:get_ne_binaries([<<"presence_aliases">>], Endpoint, Default);
+    case kz_json:get_json_value([<<"presence_aliases">>], Endpoint, 'not_found_or_not_json') of
+        'not_found_or_not_json' -> kz_json:get_ne_binaries([<<"presence_aliases">>], Endpoint, Default);
         Value -> Value
     end.
 
@@ -52,13 +52,13 @@ set_aliases(Endpoint, []) ->
 set_aliases(Endpoint, Aliases)
   when is_list(Aliases) ->
     case kz_term:is_ne_binaries(Aliases) of
-        true -> kz_json:set_value([<<"presence_aliases">>], Aliases, Endpoint);
-        false -> throw(badarg)
+        'true' -> kz_json:set_value([<<"presence_aliases">>], Aliases, Endpoint);
+        'false' -> throw('badarg')
     end;
 set_aliases(Endpoint, Aliases) ->
     case kz_json:is_json_object(Aliases) of
-        true -> kz_json:set_value([<<"presence_aliases">>], Aliases, Endpoint);
-        false -> throw(badarg)
+        'true' -> kz_json:set_value([<<"presence_aliases">>], Aliases, Endpoint);
+        'false' -> throw('badarg')
     end.
 
 -spec monitoring(endpoint()) -> kz_term:api_ne_binaries().
@@ -86,15 +86,15 @@ set_publishing(Endpoint, Aliases) ->
     kz_json:set_value([<<"presence_aliases">>, <<"publishing">>], Aliases, Endpoint).
 
 -spec aliases_value(kz_term:ne_binary(), api_presence_aliases(), Default) -> kz_term:ne_binaries() | Default.
-aliases_value(_Key, undefined, Default) ->
+aliases_value(_Key, 'undefined', Default) ->
     Default;
 aliases_value(_Key, Aliases, _Default)
   when is_list(Aliases) ->
     Aliases;
 aliases_value(Key, Aliases, Default) ->
     case kz_json:is_json_object(Aliases) of
-        true -> kz_json:get_ne_binaries([Key], Aliases, Default);
-        false -> throw(badarg)
+        'true' -> kz_json:get_ne_binaries([Key], Aliases, Default);
+        'false' -> throw('badarg')
     end.
 
 -spec default_merge_options() -> options().
@@ -108,7 +108,7 @@ merge(Endpoints) ->
 -spec merge(endpoints(), options()) -> api_presence_aliases().
 merge(Endpoints, Options) ->
     case endpoints_to_aliases(Endpoints, Options) of
-        [] -> undefined;
+        [] -> 'undefined';
         [One] -> One;
         Aliases -> merge_aliases(Aliases, Options)
     end.
@@ -139,7 +139,7 @@ default_aliases_collectors() ->
 -spec aliases_collectors(options()) -> aliases_collector_funs().
 aliases_collectors(#{aliases_collector_funs := Funs}) ->
     Funs;
-aliases_collectors(#{endpoints_only := true}) ->
+aliases_collectors(#{endpoints_only := 'true'}) ->
     [fun from_endpoints/1];
 aliases_collectors(_Options) ->
     default_aliases_collectors().
@@ -173,7 +173,7 @@ endpoint_to_aliases(Endpoint) ->
 group_account_id(Endpoints) ->
     AccountIdList = lists:map(fun kzd_endpoint:account_id/1, Endpoints),
     case lists:filter(fun kz_term:is_not_empty/1, AccountIdList) of
-        [] -> undefined;
+        [] -> 'undefined';
         List -> lists:last(List)
     end.
 
@@ -196,11 +196,11 @@ group_query_keys(Endpoints) ->
 group_query_options(Endpoints) ->
     [{'keys', group_query_keys(Endpoints)}].
 
-group_query_results({error, _}) -> undefined;
-group_query_results({ok, []}) -> undefined;
-group_query_results({ok, Results}) ->
+group_query_results({'error', _}) -> 'undefined';
+group_query_results({'ok', []}) -> 'undefined';
+group_query_results({'ok', Results}) ->
     case lists:filtermap(fun group_query_result/1, Results) of
-        [] -> undefined;
+        [] -> 'undefined';
         List -> kz_json:from_list([{<<"monitoring">>, lists:usort(List)}])
     end.
 
@@ -218,6 +218,6 @@ group_query_result_alias(Result) ->
 
 group_query_result(Result) ->
     case group_query_result_has_sca(Result) of
-        true -> {true, group_query_result_alias(Result)};
-        false -> false
+        'true' -> {'true', group_query_result_alias(Result)};
+        'false' -> 'false'
     end.
