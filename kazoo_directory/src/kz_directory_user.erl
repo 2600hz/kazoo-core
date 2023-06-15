@@ -113,7 +113,7 @@ dial_members(#{profile := Profile}) ->
 
 is_meta_dial_enabled(#{endpoint := Endpoint}) ->
     case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"user">>], Endpoint, undefined) of
-        undefined -> kz_app_config:is_true(?APP, <<"metadial.user">>, true);
+        undefined -> kz_app_config:is_true(?APP, <<"metadial.user">>, false);
         Override -> Override
     end.
 

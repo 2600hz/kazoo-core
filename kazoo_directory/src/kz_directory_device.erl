@@ -138,7 +138,7 @@ build_dial_string(#{profile := Profile, endpoint := Endpoint} = Context) ->
 
 is_meta_dial_enabled(#{endpoint := Endpoint}) ->
     case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"device">>], Endpoint, undefined) of
-        undefined -> kz_app_config:is_true(?APP, <<"metadial.device">>, true);
+        undefined -> kz_app_config:is_true(?APP, <<"metadial.device">>, false);
         Override -> Override
     end.
 
