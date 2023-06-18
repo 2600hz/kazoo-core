@@ -206,7 +206,7 @@ kz_dial_string(Context) ->
     end.
 
 default_kz_contact_api() ->
-    kz_app_config:get_ne_binary(?APP, <<"contact_api">>, <<"kz_proxy_contact">>).
+    kz_app_config:get_ne_binary(?APP, <<"contact_api">>, <<"kz_contact">>).
 
 kz_contact_api(#{endpoint := Endpoint}) ->
     kz_json:get_ne_binary_value([<<"call_settings">>, <<"directory">>, <<"contact_api">>], Endpoint, default_kz_contact_api()).
