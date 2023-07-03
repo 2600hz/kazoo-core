@@ -11,6 +11,7 @@
 
 -export([create/2
         ,delete/1
+        ,force_cleanup_account/1
         ]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -48,12 +49,33 @@ delete(AccountId, _MasterAccountId) ->
             delete_account(AccountId, AccountJObj)
     end.
 
+-spec force_cleanup_account(kz_term:api_ne_binary()) ->
+          {'ok', kzd_accounts:doc() | 'undefined'} |
+          kz_datamgr:data_error() |
+          {'error', delete_errors()}.
+force_cleanup_account('undefined') ->
+    {'ok', 'undefined'};
+force_cleanup_account(?MATCH_ACCOUNT_RAW(AccountId)) ->
+    AccountJObj = kz_doc:setters([{fun kz_doc:set_id/2, AccountId}
+                                 ,{fun kz_doc:set_account_db/2, kzs_util:format_account_db(AccountId)}
+                                 ]
+                                ),
+    case kapps_util:get_master_account_id() of
+        {'ok', AccountId} ->
+            lager:error("deleting master account id forbidden"),
+            {'error', 'unauthorized'};
+        {'ok', _MasterAccountId} ->
+            delete_account(AccountId, AccountJObj);
+        {'error', _}=Error ->
+            Error
+    end.
+
 maybe_cleanup_accounts(AccountId, Error) ->
     case kzd_accounts:fetch(AccountId, 'accounts') of
         {'ok', AccountJObj} ->
             case kz_doc:is_deleted(AccountJObj) of
                 'true' -> {'ok', AccountJObj};
-                'false' -> delete(AccountId, AccountJObj)
+                'false' -> delete_account(AccountId, AccountJObj)
             end;
         {'error', _} -> Error
     end.
@@ -67,6 +89,7 @@ delete_account(_AccountId, AccountJObj) ->
                      ,fun delete_remove_sip_aggregates/1
                      ,fun delete_aux_services/1
                      ,fun delete_mod_dbs/1
+                     ,fun delete_yod_dbs/1
                      ,fun delete_remove_db/1
                      ,fun delete_remove_from_accounts/1
                      ],
@@ -137,6 +160,12 @@ delete_remove_db({AccountJObj, Errors}=Acc) ->
 delete_mod_dbs({AccountJObj, _Errors}=Acc) ->
     MODBs = kapps_util:get_all_account_type_mods(kz_doc:id(AccountJObj), 'encoded'),
     _ = [kz_datamgr:db_delete(MODB) || MODB <- MODBs],
+    Acc.
+
+-spec delete_yod_dbs(delete_acc()) -> delete_acc().
+delete_yod_dbs({AccountJObj, _Errors}=Acc) ->
+    YODBs = kapps_util:get_account_yods(kz_doc:id(AccountJObj), 'encoded'),
+    _ = [kz_datamgr:db_delete(YODB) || YODB <- YODBs],
     Acc.
 
 -spec delete_remove_from_accounts(delete_acc()) -> delete_acc().
