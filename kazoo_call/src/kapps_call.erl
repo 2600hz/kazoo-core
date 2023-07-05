@@ -167,7 +167,7 @@
 -export([tags/1, tag/2, untag/2]).
 -export([dynamic_cfwd/1, set_dynamic_cfwd/2, remove_dynamic_cfwd/1]).
 
--export([diversions/1]).
+-export([diversions/1, bridge_diversions/1]).
 
 -export([presence_aliases/1, reset_presence_aliases/1
         ,add_presence_alias/2,add_presence_aliases/2
@@ -2171,3 +2171,40 @@ remove_dynamic_cfwd(Call) ->
 -spec diversions(call()) -> kz_term:api_ne_binaries().
 diversions(#kapps_call{diversions=Diversions}) ->
     Diversions.
+
+-spec bridge_diversions(call()) -> kz_term:api_ne_binaries().
+bridge_diversions(Call) ->
+    case should_add_diversion_header(Call) of
+        'true' -> add_diversion(Call);
+        'false' -> diversions(Call)
+    end.
+
+diversion(Call) ->
+    Number = diversion_number(Call),
+    Reason = diversion_reason(Call),
+    list_to_binary(["<sip:", Number, "@", account_realm(Call), ">", ";reason=", Reason]).
+
+diversion_number(Call) ->
+    custom_channel_var(<<"Call-Forward-Number">>, Call).
+
+diversion_reason(Call) ->
+    custom_channel_var(<<"Call-Forward-Reason">>, <<"unconditional">>, Call).
+
+-spec add_diversion(call()) -> kz_term:api_ne_binaries().
+add_diversion(Call) ->
+    add_diversion(diversions(Call), diversion(Call)).
+
+-spec add_diversion(kz_term:api_ne_binaries(), kz_term:ne_binary()) ->
+          kz_term:api_ne_binaries().
+add_diversion('undefined', Diversion) ->
+    lager:debug("setting diversion as ~s", [Diversion]),
+    [Diversion];
+add_diversion(Diversions, Diversion) ->
+    lager:debug("add diversion as ~s", [Diversion]),
+    [Diversion | Diversions].
+
+-spec should_add_diversion_header(call()) -> boolean().
+should_add_diversion_header(Call) ->
+    is_call_forward(Call)
+        andalso kz_term:is_not_empty(diversion_number(Call))
+        andalso kz_app_config:is_true({<<"kazoo_endpoint">>, account_id(Call)}, <<"should_add_diversion_header">>).

@@ -1203,6 +1203,7 @@ bridge_command(Endpoints, Timeout, Strategy, IgnoreEarlyMedia, Ringback, SIPHead
     ,{<<"Custom-SIP-Headers">>, SIPHeaders}
     ,{<<"Ignore-Forward">>, IgnoreForward}
     ,{<<"Custom-Channel-Vars">>, bridge_ccvs(Call)}
+    ,{<<"SIP-Diversions">>, kapps_call:bridge_diversions(Call)}
     ,{<<"Call-Context">>, kapps_call:routing_context(Call)}
     ].
 
