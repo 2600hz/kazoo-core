@@ -52,7 +52,7 @@ addresses(Doc, Default) ->
 set_addresses(Doc, Addresses) ->
     kz_json:set_value([<<"addresses">>], Addresses, Doc).
 
--spec addresses_emergency(endpoint()) -> kz_json:api_object().
+-spec addresses_emergency(endpoint()) -> kz_term:api_object().
 addresses_emergency(Endpoint) ->
     addresses_emergency(Endpoint, 'undefined').
 
@@ -60,7 +60,7 @@ addresses_emergency(Endpoint) ->
 addresses_emergency(Endpoint, Default) ->
     kz_json:get_json_value([<<"addresses">>, <<"emergency">>], Endpoint, Default).
 
--spec set_addresses_emergency(endpoint(), kz_json:api_object()) -> kz_json:object().
+-spec set_addresses_emergency(endpoint(), kz_term:api_object()) -> kz_json:object().
 set_addresses_emergency(Endpoint, EmergencyAddr) ->
     kz_json:set_value([<<"addresses">>, <<"emergency">>], EmergencyAddr, Endpoint).
 

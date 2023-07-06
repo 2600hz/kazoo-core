@@ -474,11 +474,11 @@ emergency_caller_id_number(Req) ->
 emergency_caller_id_number(?REQ_TYPE(JObj), Default) ->
     kz_json:get_ne_value(?KEY_E_CALLER_ID_NUMBER, JObj, Default).
 
--spec emergency_address(req()) -> kz_json:api_object().
+-spec emergency_address(req()) -> kz_term:api_object().
 emergency_address(Req) ->
     emergency_address(Req, 'undefined').
 
--spec emergency_address(req(), Default) -> kz_json:api_object() | Default.
+-spec emergency_address(req(), Default) -> kz_term:api_object() | Default.
 emergency_address(Req, Default) ->
     kz_json:get_json_value(?KEY_EMERGENCY_ADDRESS, Req, Default).
 
@@ -610,7 +610,7 @@ sip_diversions(Req) ->
 sip_diversions(?REQ_TYPE(JObj), Default) ->
     kz_json:get_ne_binaries(?KEY_SIP_DIVERSIONS, JObj, Default).
 
--spec sip_multiparts(req()) -> kz_json:api_object().
+-spec sip_multiparts(req()) -> kz_term:api_object().
 sip_multiparts(Req) ->
     sip_multiparts(Req, 'undefined').
 

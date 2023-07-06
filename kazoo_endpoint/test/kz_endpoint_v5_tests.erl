@@ -110,7 +110,7 @@ merge_attribute_tests(<<"addresses">>=Key) ->
 
 
 -spec match_merge_attribute_response([{kz_term:api_ne_binary(), kz_term:api_pos_integer()}] | kz_json:object()
-                                    ,kz_json:api_object()
+                                    ,kz_term:api_object()
                                     ) -> boolean().
 match_merge_attribute_response([_ | _]=ExpectedKeys, MergedJObj) ->
     match_merge_attribute_response(kz_json:from_list(ExpectedKeys), MergedJObj);
@@ -130,7 +130,7 @@ new_limited_entity({DocType, CallLimit}) ->
                                 ,{<<"pvt_type">>, DocType}
                                 ]).
 
--spec new_addressed_entity(kz_term:ne_binary(), kz_json:api_object()) -> kz_json:object().
+-spec new_addressed_entity(kz_term:ne_binary(), kz_term:api_object()) -> kz_json:object().
 new_addressed_entity(Type, Address) ->
     kzd_endpoint:set_addresses_emergency(kz_doc:set_type(kz_json:new(), Type), Address).
 
