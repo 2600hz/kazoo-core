@@ -10,16 +10,13 @@
 -module(kzd_list_entries).
 
 -export([new/0]).
--export([capture_group_key/1, capture_group_key/2, set_capture_group_key/2]).
--export([capture_group_length/1, capture_group_length/2, set_capture_group_length/2]).
--export([displayname/1, displayname/2, set_displayname/2]).
--export([firstname/1, firstname/2, set_firstname/2]).
--export([lastname/1, lastname/2, set_lastname/2]).
+-export([contacts/1, contacts/2, set_contacts/2]).
+-export([description/1, description/2, set_description/2]).
+-export([history/1, history/2, set_history/2]).
 -export([list_id/1, list_id/2, set_list_id/2]).
--export([number/1, number/2, set_number/2]).
--export([pattern/1, pattern/2, set_pattern/2]).
--export([profile/1, profile/2, set_profile/2]).
--export([type/1, type/2, set_type/2]).
+-export([name/1, name/2, set_name/2]).
+-export([organization/1, organization/2, set_organization/2]).
+-export([organization_name/1, organization_name/2, set_organization_name/2]).
 
 
 -include("kz_documents.hrl").
@@ -33,65 +30,41 @@
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
--spec capture_group_key(doc()) -> kz_term:api_binary().
-capture_group_key(Doc) ->
-    capture_group_key(Doc, 'undefined').
+-spec contacts(doc()) -> kz_json:objects().
+contacts(Doc) ->
+    contacts(Doc, []).
 
--spec capture_group_key(doc(), Default) -> binary() | Default.
-capture_group_key(Doc, Default) ->
-    kz_json:get_binary_value([<<"capture_group_key">>], Doc, Default).
+-spec contacts(doc(), Default) -> kz_json:objects() | Default.
+contacts(Doc, Default) ->
+    kz_json:get_list_value([<<"contacts">>], Doc, Default).
 
--spec set_capture_group_key(doc(), binary()) -> doc().
-set_capture_group_key(Doc, CaptureGroupKey) ->
-    kz_json:set_value([<<"capture_group_key">>], CaptureGroupKey, Doc).
+-spec set_contacts(doc(), kz_json:objects()) -> doc().
+set_contacts(Doc, Contacts) ->
+    kz_json:set_value([<<"contacts">>], Contacts, Doc).
 
--spec capture_group_length(doc()) -> kz_term:api_integer().
-capture_group_length(Doc) ->
-    capture_group_length(Doc, 'undefined').
+-spec description(doc()) -> kz_term:api_binary().
+description(Doc) ->
+    description(Doc, 'undefined').
 
--spec capture_group_length(doc(), Default) -> integer() | Default.
-capture_group_length(Doc, Default) ->
-    kz_json:get_integer_value([<<"capture_group_length">>], Doc, Default).
+-spec description(doc(), Default) -> binary() | Default.
+description(Doc, Default) ->
+    kz_json:get_binary_value([<<"description">>], Doc, Default).
 
--spec set_capture_group_length(doc(), integer()) -> doc().
-set_capture_group_length(Doc, CaptureGroupLength) ->
-    kz_json:set_value([<<"capture_group_length">>], CaptureGroupLength, Doc).
+-spec set_description(doc(), binary()) -> doc().
+set_description(Doc, Description) ->
+    kz_json:set_value([<<"description">>], Description, Doc).
 
--spec displayname(doc()) -> kz_term:api_ne_binary().
-displayname(Doc) ->
-    displayname(Doc, 'undefined').
+-spec history(doc()) -> kz_json:objects() | [].
+history(Doc) ->
+    history(Doc, []).
 
--spec displayname(doc(), Default) -> kz_term:ne_binary() | Default.
-displayname(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"displayname">>], Doc, Default).
+-spec history(doc(), Default) -> kz_json:objects() | Default.
+history(Doc, Default) ->
+    kz_json:get_list_value([<<"history">>], Doc, Default).
 
--spec set_displayname(doc(), kz_term:ne_binary()) -> doc().
-set_displayname(Doc, Displayname) ->
-    kz_json:set_value([<<"displayname">>], Displayname, Doc).
-
--spec firstname(doc()) -> kz_term:api_ne_binary().
-firstname(Doc) ->
-    firstname(Doc, 'undefined').
-
--spec firstname(doc(), Default) -> kz_term:ne_binary() | Default.
-firstname(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"firstname">>], Doc, Default).
-
--spec set_firstname(doc(), kz_term:ne_binary()) -> doc().
-set_firstname(Doc, Firstname) ->
-    kz_json:set_value([<<"firstname">>], Firstname, Doc).
-
--spec lastname(doc()) -> kz_term:api_ne_binary().
-lastname(Doc) ->
-    lastname(Doc, 'undefined').
-
--spec lastname(doc(), Default) -> kz_term:ne_binary() | Default.
-lastname(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"lastname">>], Doc, Default).
-
--spec set_lastname(doc(), kz_term:ne_binary()) -> doc().
-set_lastname(Doc, Lastname) ->
-    kz_json:set_value([<<"lastname">>], Lastname, Doc).
+-spec set_history(doc(), kz_json:objects()) -> doc().
+set_history(Doc, History) ->
+    kz_json:set_value([<<"history">>], History, Doc).
 
 -spec list_id(doc()) -> kz_term:api_binary().
 list_id(Doc) ->
@@ -105,50 +78,38 @@ list_id(Doc, Default) ->
 set_list_id(Doc, ListId) ->
     kz_json:set_value([<<"list_id">>], ListId, Doc).
 
--spec number(doc()) -> kz_term:api_binary().
-number(Doc) ->
-    number(Doc, 'undefined').
+-spec name(doc()) -> kz_term:api_binary().
+name(Doc) ->
+    name(Doc, 'undefined').
 
--spec number(doc(), Default) -> binary() | Default.
-number(Doc, Default) ->
-    kz_json:get_binary_value([<<"number">>], Doc, Default).
+-spec name(doc(), Default) -> binary() | Default.
+name(Doc, Default) ->
+    kz_json:get_binary_value([<<"name">>], Doc, Default).
 
--spec set_number(doc(), binary()) -> doc().
-set_number(Doc, Number) ->
-    kz_json:set_value([<<"number">>], Number, Doc).
+-spec set_name(doc(), binary()) -> doc().
+set_name(Doc, Name) ->
+    kz_json:set_value([<<"name">>], Name, Doc).
 
--spec pattern(doc()) -> kz_term:api_binary().
-pattern(Doc) ->
-    pattern(Doc, 'undefined').
+-spec organization(doc()) -> kz_json:object().
+organization(Doc) ->
+    organization(Doc, kz_json:new()).
 
--spec pattern(doc(), Default) -> binary() | Default.
-pattern(Doc, Default) ->
-    kz_json:get_binary_value([<<"pattern">>], Doc, Default).
+-spec organization(doc(), Default) -> kz_json:object() | Default.
+organization(Doc, Default) ->
+    kz_json:get_json_value([<<"organization">>], Doc, Default).
 
--spec set_pattern(doc(), binary()) -> doc().
-set_pattern(Doc, Pattern) ->
-    kz_json:set_value([<<"pattern">>], Pattern, Doc).
+-spec set_organization(doc(), kz_json:object()) -> doc().
+set_organization(Doc, Organization) ->
+    kz_json:set_value([<<"organization">>], Organization, Doc).
 
--spec profile(doc()) -> kz_json:object().
-profile(Doc) ->
-    profile(Doc, kz_json:new()).
+-spec organization_name(doc()) -> kz_term:api_binary().
+organization_name(Doc) ->
+    organization_name(Doc, 'undefined').
 
--spec profile(doc(), Default) -> kz_json:object() | Default.
-profile(Doc, Default) ->
-    kz_json:get_json_value([<<"profile">>], Doc, Default).
+-spec organization_name(doc(), Default) -> binary() | Default.
+organization_name(Doc, Default) ->
+    kz_json:get_binary_value([<<"organization">>, <<"name">>], Doc, Default).
 
--spec set_profile(doc(), kz_json:object()) -> doc().
-set_profile(Doc, Profile) ->
-    kz_json:set_value([<<"profile">>], Profile, Doc).
-
--spec type(doc()) -> kz_term:api_ne_binary().
-type(Doc) ->
-    type(Doc, 'undefined').
-
--spec type(doc(), Default) -> kz_term:ne_binary() | Default.
-type(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"type">>], Doc, Default).
-
--spec set_type(doc(), kz_term:ne_binary()) -> doc().
-set_type(Doc, Type) ->
-    kz_json:set_value([<<"type">>], Type, Doc).
+-spec set_organization_name(doc(), binary()) -> doc().
+set_organization_name(Doc, OrganizationName) ->
+    kz_json:set_value([<<"organization">>, <<"name">>], OrganizationName, Doc).
