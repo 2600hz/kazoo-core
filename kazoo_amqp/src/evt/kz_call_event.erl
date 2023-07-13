@@ -62,6 +62,7 @@
 -export([transfer_disposition/1
         ,transfer_leg/1
         ,transfer_destination/1
+        ,transfer_is_semi_attended/1, transfer_is_semi_attended/2
         ]).
 
 -export([bridge_hangup_cause/1, bridge_hangup_cause/2]).
@@ -354,6 +355,14 @@ transfer_leg(JObj) ->
 -spec transfer_destination(payload()) -> kz_term:api_ne_binary().
 transfer_destination(JObj) ->
     kz_json:get_ne_binary_value(<<"Transfer-Destination">>, JObj).
+
+-spec transfer_is_semi_attended(payload()) -> kz_term:api_boolean().
+transfer_is_semi_attended(JObj) ->
+    transfer_is_semi_attended(JObj, undefined).
+
+-spec transfer_is_semi_attended(payload(), Default) -> kz_term:boolean() | Default.
+transfer_is_semi_attended(JObj, Default) ->
+    kz_json:get_boolean_value(<<"Transfer-Is-Semi-Attended">>, JObj, Default).
 
 -spec bridge_hangup_cause(payload()) -> kz_term:api_ne_binary().
 bridge_hangup_cause(JObj) ->
