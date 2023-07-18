@@ -18,7 +18,7 @@
         ,change_sink_level/2
 
         ,log_stacktrace/0, log_stacktrace/1, log_stacktrace/2, log_stacktrace/3
-        ,put_callid/1, get_callid/0, find_callid/1
+        ,put_callid/1, put_callid/2, get_callid/0, find_callid/1
         ,kz_log_md_clear/0, kz_log_md_put/2
         ,format/2, format/3
         ]).
@@ -205,6 +205,15 @@ put_callid(Atom) when is_atom(Atom) ->
     'ok';
 put_callid(APITerm) ->
     put_callid(find_callid(APITerm)).
+
+-spec put_callid(kz_term:ne_binary() | atom(), kz_json:object() | kz_term:proplist() | kz_term:ne_binary() | atom()) -> 'ok'.
+put_callid(Prefix, CallId) ->
+    put_callid(list_to_binary([kz_term:to_binary(Prefix), "|", logid(CallId)])).
+
+-spec logid(kz_json:object() | kz_term:proplist() | kz_term:ne_binary() | atom()) -> kz_term:ne_binary() | atom().
+logid(?NE_BINARY = Id) -> Id;
+logid(Atom) when is_atom(Atom) -> Atom;
+logid(APITerm) -> find_callid(APITerm).
 
 -spec get_callid() -> kz_term:api_ne_binary().
 get_callid() -> erlang:get('callid').
