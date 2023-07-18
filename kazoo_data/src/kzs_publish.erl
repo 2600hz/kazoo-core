@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2020, 2600Hz
+%%% @copyright (C) 2016-2023, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -117,6 +117,7 @@ do_publish_db('true', DbName, Action) ->
         [{<<"Type">>, <<"database">>}
         ,{<<"ID">>, DbName}
         ,{<<"Database">>, DbName}
+        ,{?KEY_LOG_ID, kz_log:get_callid()}
         | kz_api:default_headers(<<"configuration">>
                                 ,<<"db_", (kz_term:to_binary(Action))/binary>>
                                 ,?CONFIG_CAT
@@ -169,6 +170,7 @@ publish(Action, Db, Doc) ->
               ,{<<"Date-Modified">>, kz_doc:created(Doc)}
               ,{<<"Date-Created">>, kz_doc:modified(Doc)}
               ,{<<"Is-Soft-Deleted">>, IsSoftDeleted}
+              ,{?KEY_LOG_ID, kz_log:get_callid()}
               | kz_api:default_headers(<<"configuration">>
                                       ,EventName
                                       ,?APP_NAME

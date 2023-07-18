@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2020-, 2600Hz
+%%% @copyright (C) 2023-, 2600Hz
 %%% @doc Handles document change AMQP payloads and flushes caches appropriately
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -77,7 +77,7 @@ handle_change(Name, JObj, 'true') ->
 handle_if_valid(_Name, _JObj, 'false') ->
     lager:debug("not handling invalid JSON for ~s", [_Name]);
 handle_if_valid(Name, JObj, 'true') ->
-    kz_log:put_callid(Name),
+    kz_log:put_callid(Name, JObj),
     IsFromSameNode = kz_api:node(JObj) =:= kz_term:to_binary(node()),
     IsFromSameCache = kz_json:get_atom_value(<<"Origin-Cache">>, JObj) =:= Name,
 

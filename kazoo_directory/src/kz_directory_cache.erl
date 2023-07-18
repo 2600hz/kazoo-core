@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2020, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -36,6 +36,7 @@ bind() ->
 handle_cache(JObj) ->
     Db = kapi_conf:get_database(JObj),
     Id = kapi_conf:get_id(JObj),
+    lager:info("received cache ~s notification for device ~s/~s", [kz_api:event_name(JObj), Db, Id]),
     handle_cache(Db, Id, kzs_util:is_account_db(Db)).
 
 -spec handle_cache(kz_term:ne_binary(), kz_term:ne_binary(), boolean()) -> 'ok'.
@@ -47,19 +48,29 @@ handle_cache(Db, Id, 'true') ->
     end.
 
 -spec handle_change(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
-handle_change(Db, Id, JObj) ->
+handle_change(Db, DeviceId, JObj) ->
     AccountId = kzs_util:format_account_id(Db),
-    lager:info("handling change for device ~s/~s", [AccountId, Id]),
-    Ids = owner_ids(JObj),
-    Cached = cached_ids(Db, Id),
-    _ = [kz_cache:erase_local(?CACHE_NAME, {CachedId, AccountId}) || CachedId <- Ids -- Cached],
-    'ok'.
+    OwnerIds = owner_ids(JObj),
+    Cached = cached_ids(Db, DeviceId),
+    OwnerIdsToErase = OwnerIds -- Cached,
+    lager:info("handling change for device ~s@~s => owner_ids(~s) , cached(~s)"
+              ,[DeviceId
+               ,AccountId
+               ,kz_binary:join(OwnerIds, <<"|">>)
+               ,kz_binary:join(Cached, <<"|">>)
+               ]),
+    handle_changed(AccountId, OwnerIdsToErase).
+
+handle_changed(_AccountId, []) -> ok;
+handle_changed(AccountId, ToErase) ->
+    lager:debug("erasing owner_ids ~s", [kz_binary:join(ToErase, <<"|">>)]),
+    lists:foreach(fun(Key) -> kz_cache:erase_local(?CACHE_NAME, {Key, AccountId}) end, ToErase).
 
 -spec cached_ids(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binaries().
-cached_ids(Db, Id) ->
-    MatchSpec = match_doc_changed_keys(Db, Id),
+cached_ids(Db, DeviceId) ->
+    MatchSpec = match_doc_changed_keys(Db, DeviceId),
     Objects = ets:select(kz_cache_ets:pointer_tab(?CACHE_NAME), MatchSpec),
-    [CachedId || {CachedId, _} <- Objects, CachedId =/= Id].
+    [EndpointId || {EndpointId, _} <- Objects, EndpointId =/= DeviceId].
 
 -spec owner_ids(kz_json:object()) -> kz_term:ne_binaries().
 owner_ids(JObj) ->
@@ -78,8 +89,7 @@ match_doc_changed_keys(Db, Id) ->
 
 -spec flushed(atom()) -> 'ok'.
 flushed(?CACHE_NAME) ->
-    Req = kz_api:default_headers(?APP_NAME, ?APP_VERSION),
-    _ = kz_amqp_worker:cast(Req, fun kapi_directory:publish_cache_flush/1),
+    publish_cache_flush(),
     lager:info("directory cache was flushed");
 flushed(_Name) -> 'ok'.
 
@@ -92,7 +102,23 @@ clear(EndpointId)
 clear(EndpointIds) ->
     case kz_term:is_ne_binaries(EndpointIds) of
         'false' -> lager:warning("invalid argument ~p", [EndpointIds]);
-        'true' ->
-            Req = [{<<"Keys">>, EndpointIds} | kz_api:default_headers(?APP_NAME, ?APP_VERSION)],
-            kz_amqp_worker:cast(Req, fun kapi_directory:publish_cache_clear/1)
+        'true' -> publish_cache_clear(EndpointIds)
     end.
+
+publish_cache_flush() ->
+    lager:debug("publishing directory cache flush"),
+    Req = [{?KEY_LOG_ID, publish_cache_logid()}
+          | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+          ],
+    kz_amqp_worker:cast(Req, fun kapi_directory:publish_cache_flush/1).
+
+publish_cache_clear(EndpointIds) ->
+    lager:debug("publishing directory cache clear ~s", [kz_binary:join(EndpointIds, <<"|">>)]),
+    Req = [{<<"Keys">>, EndpointIds}
+          ,{?KEY_LOG_ID, publish_cache_logid()}
+          | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+          ],
+    kz_amqp_worker:cast(Req, fun kapi_directory:publish_cache_clear/1).
+
+publish_cache_logid() ->
+    lists:last(binary:split(kz_term:to_binary(kz_log:get_callid()), <<"|">>, [global])).
