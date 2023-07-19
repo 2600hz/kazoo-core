@@ -123,6 +123,16 @@
                 "  emit(doc.username, null);",
                 "}"
             ]
+        },
+        "list_by_getstream": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'user' || !doc.username || doc.pvt_deleted) return;",
+                "  if (doc.pvt_chat && doc.pvt_chat.getstream && doc.pvt_chat.getstream.enabled) {",
+                "    emit(null, doc.username);",
+                "  }",
+                "}"
+            ]
         }
     }
 }
