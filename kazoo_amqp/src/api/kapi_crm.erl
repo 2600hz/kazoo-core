@@ -1,7 +1,6 @@
 %%%-----------------------------------------------------------------------------
 %%% @copyright (C) 2023, 2600Hz
-%%% @doc API interface module for the Salesforce API.
-%%%
+%%% @doc
 %%% @author Kusal Fernando
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +10,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_crm).
 
--include("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kz_amqp_util.hrl").
 -include("kapi_crm.hrl").
 
 %% CRM functions
@@ -27,10 +26,10 @@
 %%------------------------------------------------------------------------------
 -spec authenticate(kz_term:proplist()) -> 'ok'.
 authenticate(Args) ->
-    kz_amqp_worker:cast(Args, fun publish_authenticate_salesforce/1).
+    kz_amqp_worker:cast(Args, fun publish_authenticate/1).
 
--spec publish_authenticate_salesforce(kz_term:api_terms()) -> 'ok'.
-publish_authenticate_salesforce(Args) ->
+-spec publish_authenticate(kz_term:api_terms()) -> 'ok'.
+publish_authenticate(Args) ->
     {'ok', Payload} = kz_api:build_message(Args, ?AUTH_HEADERS, []),
     kz_amqp_util:basic_publish(?CRM_EXCHANGE, route(Args), Payload, ?DEFAULT_CONTENT_TYPE).
 
