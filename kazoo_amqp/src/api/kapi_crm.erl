@@ -27,10 +27,7 @@
 %%------------------------------------------------------------------------------
 -spec authenticate(kz_term:proplist()) -> 'ok'.
 authenticate(Args) ->
-    AuthArgs = Args ++ [{<<"Msg-ID">>, kz_binary:rand_hex(16)}
-                       | kz_api:default_headers(?CRM_APP_NAME, ?CRM_APP_VER)
-                       ],
-    kz_amqp_worker:cast(AuthArgs, fun publish_authenticate_salesforce/1).
+    kz_amqp_worker:cast(Args, fun publish_authenticate_salesforce/1).
 
 -spec publish_authenticate_salesforce(kz_term:api_terms()) -> 'ok'.
 publish_authenticate_salesforce(Args) ->
@@ -46,10 +43,7 @@ authenticate_resp(Message) ->
 
 -spec caller_info(kz_term:proplist()) -> 'ok'.
 caller_info(Args) ->
-    CallerInfoArgs = Args ++ [{<<"Msg-ID">>, kz_binary:rand_hex(16)}
-                             | kz_api:default_headers(?CRM_APP_NAME, ?CRM_APP_VER)
-                             ],
-    kz_amqp_worker:cast(CallerInfoArgs, fun publish_caller_info/1).
+    kz_amqp_worker:cast(Args, fun publish_caller_info/1).
 
 -spec publish_caller_info(kz_term:api_terms()) -> 'ok'.
 publish_caller_info(Args) ->

@@ -6,9 +6,6 @@
 %%%-----------------------------------------------------------------------------
 -define(CRM_EXCHANGE, <<"crm">>).
 
--define(CRM_APP_NAME, <<"crm">>).
--define(CRM_APP_VER, <<"5.2">>).
-
 -define(CRM_ROUTE(A, E), <<"crm.", A/binary, ".", E/binary>>).
 
 -define(AUTH_HEADERS, [
