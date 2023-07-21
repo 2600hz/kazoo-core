@@ -10,51 +10,225 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_crm).
 
+-export([api_definitions/0, api_definition/1]).
+
+-export([authenticate/1
+        ,authenticate_v/1
+        ,publish_authenticate/1
+        ,publish_authenticate/2]).
+-export([authenticate_resp/1
+        ,authenticate_resp_v/1
+        ,publish_authenticate_resp/2]).
+
+-export([caller_info/1
+        ,caller_info_v/1
+        ,publish_caller_info/1
+        ,publish_caller_info/2]).
+-export([caller_info_resp/1
+        ,caller_info_resp_v/1
+        ,publish_caller_info_resp/2]).
+
 -include_lib("kz_amqp_util.hrl").
 -include("kapi_crm.hrl").
 
-%% CRM functions
--export([authenticate/1, caller_info/1]).
-
-%% Ampq response filters
--export([authenticate_resp/1, caller_info_resp/1]).
+%%------------------------------------------------------------------------------
+%%%% @doc Get all API definitions of this module.
+%%%%% @end
+%%%%%------------------------------------------------------------------------------
+-spec api_definitions() -> kapi_definition:apis().
+api_definitions() ->
+    [authenticate_definition()
+    ,authenticate_resp_definition()
+    ,caller_info_definition()
+    ,caller_info_resp_definition()].
 
 %%------------------------------------------------------------------------------
-%% @doc Sends a authenticate message to a crm process.
+%%%% @doc Get API definition of the given `Name'.
+%%%%% @see api_definitions/0
+%%%%% @end
+%%%%%------------------------------------------------------------------------------
+-spec api_definition(kz_term:text()) -> kapi_definition:api().
+api_definition(Name) when not is_binary(Name) ->
+    api_definition(kz_term:to_binary(Name));
+api_definition(<<"authenticate">>) ->
+    authenticate_definition();
+api_definition(<<"authenticate-resp">>) ->
+    authenticate_resp_definition();
+api_definition(<<"caller_info">>) ->
+    caller_info_definition();
+api_definition(<<"caller_info-resp">>) ->
+    caller_info_resp_definition().
+
+-spec authenticate_definition() -> kapi_definition:api().
+authenticate_definition() ->
+    EventName = <<"authenticate">>,
+    Category = <<"crm-salesforce">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"CRM Authentication">>}
+              ,{fun kapi_definition:set_description/2, <<"CRM authentication">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun authenticate/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun authenticate_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_authenticate/2}
+              ,{fun kapi_definition:set_required_headers/2, ?AUTH_HEADERS}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec authenticate_resp_definition() -> kapi_definition:api().
+authenticate_resp_definition() ->
+    EventName = <<"authenticate-reply">>,
+    Category = <<"crm-salesforce">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"CRM Authentication Response">>}
+              ,{fun kapi_definition:set_description/2, <<"CRM authentication response">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun authenticate_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun authenticate_resp_v/1}
+              ,{fun kapi_definition:set_required_headers/2, ?AUTH_RESPONSE_HEADERS}
+              ,{fun kapi_definition:set_optional_headers/2, ?AUTH_RESPONSE_HEADERS_OPT}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec caller_info_definition() -> kapi_definition:api().
+caller_info_definition() ->
+    EventName = <<"caller_info">>,
+    Category = <<"crm-salesforce">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Query caller info">>}
+              ,{fun kapi_definition:set_description/2, <<"Query caller info in Salesforce">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun caller_info/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun caller_info_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_caller_info/2}
+              ,{fun kapi_definition:set_required_headers/2, ?CALLER_INFO_HEADERS}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec caller_info_resp_definition() -> kapi_definition:api().
+caller_info_resp_definition() ->
+    EventName = <<"caller_info-reply">>,
+    Category = <<"crm-salesforce">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Salesforce Query Response">>}
+              ,{fun kapi_definition:set_description/2, <<"Caller info query response">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun caller_info_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun caller_info_resp_v/1}
+              ,{fun kapi_definition:set_required_headers/2, ?CALLER_INFO_RESPONSE_HEADERS}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+%%------------------------------------------------------------------------------
+%% @doc Sends a authenticate message to a CRM process.
 %% This will set the auth token in the state.
 %% @end
 %%------------------------------------------------------------------------------
--spec authenticate(kz_term:proplist()) -> 'ok'.
-authenticate(Args) ->
-    kz_amqp_worker:cast(Args, fun publish_authenticate/1).
+-spec authenticate(kz_term:api_terms()) -> kz_api:api_formatter_return().
+authenticate(Req) ->
+    kapi_definition:build_message(Req, authenticate_definition()).
+
+-spec authenticate_v(kz_term:api_terms()) -> boolean().
+authenticate_v(Req) ->
+    kapi_definition:validate(Req, authenticate_definition()).
 
 -spec publish_authenticate(kz_term:api_terms()) -> 'ok'.
-publish_authenticate(Args) ->
-    {'ok', Payload} = kz_api:build_message(Args, ?AUTH_HEADERS, []),
-    kz_amqp_util:basic_publish(?CRM_EXCHANGE, route(Args), Payload, ?DEFAULT_CONTENT_TYPE).
+publish_authenticate(JObj) ->
+    publish_authenticate(JObj, ?DEFAULT_CONTENT_TYPE).
 
--spec authenticate_resp(kz_json:object()) -> boolean().
-authenticate_resp(Message) ->
-    case kz_api:event_name(Message) of
-        <<"authenticate-reply">> -> 'true';
-        _ -> 'false'
-    end.
+-spec publish_authenticate(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_authenticate(API, ContentType) ->
+    Definition = authenticate_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:basic_publish(?CRM_EXCHANGE, route(API), Payload, ContentType).
 
--spec caller_info(kz_term:proplist()) -> 'ok'.
-caller_info(Args) ->
-    kz_amqp_worker:cast(Args, fun publish_caller_info/1).
+%%------------------------------------------------------------------------------
+%%%% @doc Reply to a CRM authentication.
+%%%%% @end
+%%%%%------------------------------------------------------------------------------
+-spec authenticate_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+authenticate_resp(Req) ->
+    kapi_definition:build_message(Req, authenticate_resp_definition()).
+
+-spec authenticate_resp_v(kz_term:api_terms()) -> boolean().
+authenticate_resp_v(Req) ->
+    kapi_definition:validate(Req, authenticate_resp_definition()).
+
+-spec publish_authenticate_resp(binary(), kz_term:api_terms()) -> 'ok'.
+publish_authenticate_resp(Queue, Req) ->
+    Definition = authenticate_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload).
+
+%%------------------------------------------------------------------------------
+%% @doc Query Salesforce based on Caller ID.
+%% @end
+%%------------------------------------------------------------------------------
+-spec caller_info(kz_term:api_terms()) -> kz_api:api_formatter_return().
+caller_info(Req) ->
+    kapi_definition:build_message(Req, caller_info_definition()).
+
+-spec caller_info_v(kz_term:api_terms()) -> boolean().
+caller_info_v(Req) ->
+    kapi_definition:validate(Req, caller_info_definition()).
 
 -spec publish_caller_info(kz_term:api_terms()) -> 'ok'.
-publish_caller_info(Args) ->
-    {'ok', Payload} = kz_api:build_message(Args, ?CALLER_INFO_HEADERS, []),
-    kz_amqp_util:basic_publish(?CRM_EXCHANGE, route(Args), Payload, ?DEFAULT_CONTENT_TYPE).
+publish_caller_info(JObj) ->
+    publish_caller_info(JObj, ?DEFAULT_CONTENT_TYPE).
 
--spec caller_info_resp(kz_json:object()) -> boolean().
-caller_info_resp(Message) ->
-    case kz_api:event_name(Message) of
-        <<"caller_info-reply">> -> 'true';
-        _ -> 'false'
-    end.
+-spec publish_caller_info(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_caller_info(API, ContentType) ->
+    Definition = caller_info_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:basic_publish(?CRM_EXCHANGE, route(API), Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%%%% @doc Reply to caller info query.
+%%%%% @end
+%%%%%------------------------------------------------------------------------------
+-spec caller_info_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+caller_info_resp(Req) ->
+    kapi_definition:build_message(Req, caller_info_resp_definition()).
+
+-spec caller_info_resp_v(kz_term:api_terms()) -> boolean().
+caller_info_resp_v(Req) ->
+    kapi_definition:validate(Req, caller_info_resp_definition()).
+
+-spec publish_caller_info_resp(binary(), kz_term:api_terms()) -> 'ok'.
+publish_caller_info_resp(Queue, Req) ->
+    Definition = caller_info_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload).
 
 -spec route(list()) -> binary().
 route(Args) ->
