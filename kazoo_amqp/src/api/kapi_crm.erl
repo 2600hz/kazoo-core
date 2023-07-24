@@ -10,6 +10,10 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_crm).
 
+-export([bind_q/2
+        ,unbind_q/2
+        ,declare_exchanges/0]).
+
 -export([api_definitions/0, api_definition/1]).
 
 -export([authenticate/1
@@ -32,9 +36,30 @@
 -include("kapi_crm.hrl").
 
 %%------------------------------------------------------------------------------
-%%%% @doc Get all API definitions of this module.
-%%%%% @end
-%%%%%------------------------------------------------------------------------------
+%% @doc Bind to and unbind from a queue of this API exchange and events.
+%% Declare the exchanges used by this API.
+%% @end
+%%------------------------------------------------------------------------------
+-spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+bind_q(Queue, Props) ->
+    AccountId   = props:get_value('account_id', Props, <<"*">>),
+    EventName   = props:get_value('event_name', Props, <<"*">>),
+    kz_amqp_util:bind_q_to_exchange(Queue, ?CRM_ROUTE(AccountId, EventName), ?CRM_EXCHANGE).
+
+-spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+unbind_q(Queue, Props) ->
+    AccountId   = props:get_value('account_id', Props, <<"*">>),
+    EventName   = props:get_value('event_name', Props, <<"*">>),
+    kz_amqp_util:unbind_q_from_exchange(Queue, ?CRM_ROUTE(AccountId, EventName), ?CRM_EXCHANGE).
+
+-spec declare_exchanges() -> 'ok'.
+declare_exchanges() ->
+    kz_amqp_util:new_exchange(?CRM_EXCHANGE, ?CRM_EXCHANGE_TYPE).
+
+%%------------------------------------------------------------------------------
+%% @doc Get all API definitions of this module.
+%% @end
+%%------------------------------------------------------------------------------
 -spec api_definitions() -> kapi_definition:apis().
 api_definitions() ->
     [authenticate_definition()
@@ -43,10 +68,10 @@ api_definitions() ->
     ,caller_info_resp_definition()].
 
 %%------------------------------------------------------------------------------
-%%%% @doc Get API definition of the given `Name'.
-%%%%% @see api_definitions/0
-%%%%% @end
-%%%%%------------------------------------------------------------------------------
+%% @doc Get API definition of the given `Name'.
+%% @see api_definitions/0
+%% @end
+%%------------------------------------------------------------------------------
 -spec api_definition(kz_term:text()) -> kapi_definition:api().
 api_definition(Name) when not is_binary(Name) ->
     api_definition(kz_term:to_binary(Name));
@@ -164,9 +189,9 @@ publish_authenticate(API, ContentType) ->
     kz_amqp_util:basic_publish(?CRM_EXCHANGE, route(API), Payload, ContentType).
 
 %%------------------------------------------------------------------------------
-%%%% @doc Reply to a CRM authentication.
-%%%%% @end
-%%%%%------------------------------------------------------------------------------
+%% @doc Reply to a CRM authentication.
+%% @end
+%%------------------------------------------------------------------------------
 -spec authenticate_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
 authenticate_resp(Req) ->
     kapi_definition:build_message(Req, authenticate_resp_definition()).
@@ -210,9 +235,9 @@ publish_caller_info(API, ContentType) ->
     kz_amqp_util:basic_publish(?CRM_EXCHANGE, route(API), Payload, ContentType).
 
 %%------------------------------------------------------------------------------
-%%%% @doc Reply to caller info query.
-%%%%% @end
-%%%%%------------------------------------------------------------------------------
+%% @doc Reply to caller info query.
+%% @end
+%%------------------------------------------------------------------------------
 -spec caller_info_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
 caller_info_resp(Req) ->
     kapi_definition:build_message(Req, caller_info_resp_definition()).

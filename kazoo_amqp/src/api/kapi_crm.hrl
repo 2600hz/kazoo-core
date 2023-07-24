@@ -6,6 +6,8 @@
 %%%-----------------------------------------------------------------------------
 -define(CRM_EXCHANGE, <<"crm">>).
 
+-define(CRM_EXCHANGE_TYPE, <<"topic">>).
+
 -define(CRM_ROUTE(A, E), <<"crm.", A/binary, ".", E/binary>>).
 
 -define(AUTH_HEADERS, [<<"Event-Category">>
