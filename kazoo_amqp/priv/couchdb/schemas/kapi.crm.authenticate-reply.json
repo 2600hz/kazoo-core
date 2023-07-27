@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.authenticate-reply",
+    "description": "AMQP API for crm.authenticate-reply",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "crm-salesforce"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "authenticate-reply"
+            ]
+        },
+        "access_token": {
+            "type": "string"
+        },
+        "id": {
+            "type": "string"
+        },
+        "instance_url": {
+            "type": "string"
+        },
+        "issued_at": {
+            "type": "string"
+        },
+        "signature": {
+            "type": "string"
+        },
+        "token_type": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "access_token"
+    ],
+    "type": "object"
+}

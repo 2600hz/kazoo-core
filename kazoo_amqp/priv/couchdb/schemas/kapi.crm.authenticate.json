@@ -1,0 +1,26 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.authenticate",
+    "description": "AMQP API for crm.authenticate",
+    "properties": {
+        "Connected-App": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "crm-salesforce"
+            ],
+            "type": "string"
+        },
+        "Event-Name": {
+            "enum": [
+                "authenticate"
+            ]
+        }
+    },
+    "required": [
+        "Connected-App",
+        "Event-Category"
+    ],
+    "type": "object"
+}

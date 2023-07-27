@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.caller_info",
+    "description": "AMQP API for crm.caller_info",
+    "properties": {
+        "Caller-ID": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "crm-salesforce"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "caller_info"
+            ]
+        }
+    },
+    "required": [
+        "Caller-ID"
+    ],
+    "type": "object"
+}

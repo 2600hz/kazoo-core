@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.caller_info-reply",
+    "description": "AMQP API for crm.caller_info-reply",
+    "properties": {
+        "Call_Center__c": {
+            "type": "string"
+        },
+        "Caller_Name__c": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "crm-salesforce"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "caller_info-reply"
+            ]
+        },
+        "Id": {
+            "type": "string"
+        },
+        "Phone_No__c": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Call_Center__c",
+        "Caller_Name__c",
+        "Id",
+        "Phone_No__c"
+    ],
+    "type": "object"
+}
