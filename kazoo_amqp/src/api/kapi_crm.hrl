@@ -8,10 +8,15 @@
 
 -define(CRM_EXCHANGE_TYPE, <<"topic">>).
 
+-define(CRM_APP_NAME, <<"crm">>).
+
+-define(CRM_APP_VER, <<"5.2">>).
+
 -define(CRM_ROUTE(A, E), <<"crm.", A/binary, ".", E/binary>>).
 
--define(AUTH_HEADERS, [<<"Event-Category">>
-                      ,<<"Connected-App">>
+-define(AUTH_HEADERS, [<<"Client-Id">>
+                      ,<<"Client-Secret">>
+                      ,<<"Instance-Url">>
                       ]).
 
 -define(AUTH_RESPONSE_HEADERS, [<<"access_token">>]).
@@ -23,7 +28,12 @@
                                    ,<<"token_type">>
                                    ]).
 
--define(CALLER_INFO_HEADERS, [<<"Caller-ID">>]).
+-define(CALLER_INFO_HEADERS, [<<"Caller-ID">>
+                             ,<<"Client-Id">>
+                             ,<<"Client-Secret">>
+                             ,<<"Instance-Url">>
+                             ,<<"Access-Token">>
+                             ]).
 
 -define(CALLER_INFO_RESPONSE_HEADERS, [<<"Id">>
                                       ,<<"Caller_Name__c">>
