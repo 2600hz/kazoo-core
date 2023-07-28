@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "_id": "kapi.crm.caller_info-reply",
-    "description": "AMQP API for crm.caller_info-reply",
+    "_id": "kapi.crm.caller_info_reply",
+    "description": "AMQP API for crm.caller_info_reply",
     "properties": {
         "Call_Center__c": {
             "type": "string"
@@ -16,7 +16,7 @@
         },
         "Event-Name": {
             "enum": [
-                "caller_info-reply"
+                "caller_info_reply"
             ]
         },
         "Id": {

@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "_id": "kapi.crm.authenticate-reply",
-    "description": "AMQP API for crm.authenticate-reply",
+    "_id": "kapi.crm.authenticate_reply",
+    "description": "AMQP API for crm.authenticate_reply",
     "properties": {
         "Event-Category": {
             "enum": [
@@ -10,7 +10,7 @@
         },
         "Event-Name": {
             "enum": [
-                "authenticate-reply"
+                "authenticate_reply"
             ]
         },
         "access_token": {
