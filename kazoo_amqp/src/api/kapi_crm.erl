@@ -12,25 +12,30 @@
 
 -export([bind_q/2
         ,unbind_q/2
-        ,declare_exchanges/0]).
+        ,declare_exchanges/0
+        ]).
 
 -export([api_definitions/0, api_definition/1]).
 
 -export([authenticate/1
         ,authenticate_v/1
         ,publish_authenticate/1
-        ,publish_authenticate/2]).
+        ,publish_authenticate/2
+        ]).
 -export([authenticate_resp/1
         ,authenticate_resp_v/1
-        ,publish_authenticate_resp/2]).
+        ,publish_authenticate_resp/2
+        ]).
 
 -export([caller_info/1
         ,caller_info_v/1
         ,publish_caller_info/1
-        ,publish_caller_info/2]).
+        ,publish_caller_info/2
+        ]).
 -export([caller_info_resp/1
         ,caller_info_resp_v/1
-        ,publish_caller_info_resp/2]).
+        ,publish_caller_info_resp/2
+        ]).
 
 -include_lib("kz_amqp_util.hrl").
 -include("kapi_crm.hrl").
