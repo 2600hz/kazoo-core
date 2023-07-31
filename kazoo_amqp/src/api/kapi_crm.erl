@@ -101,12 +101,18 @@ authenticate_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun authenticate/1}
               ,{fun kapi_definition:set_validate_fun/2, fun authenticate_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_authenticate/2}
-              ,{fun kapi_definition:set_required_headers/2, ?AUTH_HEADERS}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Client-ID">>
+                                                            ,<<"Client-Secret">>
+                                                            ,<<"Instance-Url">>
+                                                            ]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2, [{<<"Client-ID">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Client-Secret">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Instance-Url">>, fun kz_term:is_ne_binary/1}
+                                                 ]}
               ],
     kapi_definition:setters(Setters).
 
@@ -140,12 +146,21 @@ caller_info_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun caller_info/1}
               ,{fun kapi_definition:set_validate_fun/2, fun caller_info_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_caller_info/2}
-              ,{fun kapi_definition:set_required_headers/2, ?CALLER_INFO_HEADERS}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Caller-ID">>
+                                                            ,<<"Client-ID">>
+                                                            ,<<"Client-Secret">>
+                                                            ,<<"Instance-Url">>
+                                                            ,<<"Access-Token">>
+                                                            ]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2, [{<<"Caller-ID">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Client-ID">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Client-Secret">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Instance-Url">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Access-Token">>, fun kz_term:is_ne_binary/1}]}
               ],
     kapi_definition:setters(Setters).
 
