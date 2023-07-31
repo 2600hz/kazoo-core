@@ -126,12 +126,14 @@ authenticate_resp_definition() ->
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun authenticate_resp/1}
               ,{fun kapi_definition:set_validate_fun/2, fun authenticate_resp_v/1}
-              ,{fun kapi_definition:set_required_headers/2, ?AUTH_RESPONSE_HEADERS}
-              ,{fun kapi_definition:set_optional_headers/2, ?AUTH_RESPONSE_HEADERS_OPT}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Auth-Response">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2, [{<<"Auth-Response">>, fun kz_json:is_json_object/1}
+                                                 ]}
               ],
     kapi_definition:setters(Setters).
 
@@ -160,7 +162,8 @@ caller_info_definition() ->
                                                  ,{<<"Client-ID">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"Client-Secret">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"Instance-Url">>, fun kz_term:is_ne_binary/1}
-                                                 ,{<<"Access-Token">>, fun kz_term:is_ne_binary/1}]}
+                                                 ,{<<"Access-Token">>, fun kz_term:is_ne_binary/1}
+                                                 ]}
               ],
     kapi_definition:setters(Setters).
 
@@ -174,12 +177,16 @@ caller_info_resp_definition() ->
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun caller_info_resp/1}
               ,{fun kapi_definition:set_validate_fun/2, fun caller_info_resp_v/1}
-              ,{fun kapi_definition:set_required_headers/2, ?CALLER_INFO_RESPONSE_HEADERS}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Caller-Info-Response">>
+                                                            ]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Caller-Info-Response">>, fun kz_json:is_json_object/1}
+                ]
+               }
               ],
     kapi_definition:setters(Setters).
 
