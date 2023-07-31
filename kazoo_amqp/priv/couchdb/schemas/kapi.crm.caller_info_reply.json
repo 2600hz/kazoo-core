@@ -3,11 +3,8 @@
     "_id": "kapi.crm.caller_info_reply",
     "description": "AMQP API for crm.caller_info_reply",
     "properties": {
-        "Call_Center__c": {
-            "type": "string"
-        },
-        "Caller_Name__c": {
-            "type": "string"
+        "Caller-Info-Response": {
+            "type": "object"
         },
         "Event-Category": {
             "enum": [
@@ -18,12 +15,6 @@
             "enum": [
                 "caller_info_reply"
             ]
-        },
-        "Id": {
-            "type": "string"
-        },
-        "Phone_No__c": {
-            "type": "string"
         }
     },
     "required": [

@@ -3,10 +3,12 @@
     "_id": "kapi.crm.authenticate",
     "description": "AMQP API for crm.authenticate",
     "properties": {
-        "Client-Id": {
+        "Client-ID": {
+            "minLength": 1,
             "type": "string"
         },
         "Client-Secret": {
+            "minLength": 1,
             "type": "string"
         },
         "Event-Category": {
@@ -21,12 +23,14 @@
             ]
         },
         "Instance-Url": {
+            "minLength": 1,
             "type": "string"
         }
     },
     "required": [
-        "Connected-App",
-        "Event-Category"
+        "Client-ID",
+        "Client-Secret",
+        "Instance-Url"
     ],
     "type": "object"
 }

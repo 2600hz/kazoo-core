@@ -4,15 +4,19 @@
     "description": "AMQP API for crm.caller_info",
     "properties": {
         "Access-Token": {
+            "minLength": 1,
             "type": "string"
         },
         "Caller-ID": {
+            "minLength": 1,
             "type": "string"
         },
-        "Client-Id": {
+        "Client-ID": {
+            "minLength": 1,
             "type": "string"
         },
         "Client-Secret": {
+            "minLength": 1,
             "type": "string"
         },
         "Event-Category": {
@@ -26,11 +30,16 @@
             ]
         },
         "Instance-Url": {
+            "minLength": 1,
             "type": "string"
         }
     },
     "required": [
-        "Caller-ID"
+        "Access-Token",
+        "Caller-ID",
+        "Client-ID",
+        "Client-Secret",
+        "Instance-Url"
     ],
     "type": "object"
 }
