@@ -14,11 +14,6 @@
 
 -define(CRM_ROUTE(A, E), <<"crm.", A/binary, ".", E/binary>>).
 
--define(AUTH_HEADERS, [<<"Client-Id">>
-                      ,<<"Client-Secret">>
-                      ,<<"Instance-Url">>
-                      ]).
-
 -define(AUTH_RESPONSE_HEADERS, [<<"access_token">>]).
 
 -define(AUTH_RESPONSE_HEADERS_OPT, [<<"instance_url">>
@@ -27,13 +22,6 @@
                                    ,<<"id">>
                                    ,<<"token_type">>
                                    ]).
-
--define(CALLER_INFO_HEADERS, [<<"Caller-ID">>
-                             ,<<"Client-Id">>
-                             ,<<"Client-Secret">>
-                             ,<<"Instance-Url">>
-                             ,<<"Access-Token">>
-                             ]).
 
 -define(CALLER_INFO_RESPONSE_HEADERS, [<<"Id">>
                                       ,<<"Caller_Name__c">>
