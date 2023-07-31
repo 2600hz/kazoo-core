@@ -93,7 +93,7 @@ api_definition(<<"caller_info_resp">>) ->
 -spec authenticate_definition() -> kapi_definition:api().
 authenticate_definition() ->
     EventName = <<"authenticate">>,
-    Category = <<"crm_salesforce">>,
+    Category = <<"crm">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"CRM Authentication">>}
               ,{fun kapi_definition:set_description/2, <<"CRM authentication">>}
@@ -119,7 +119,7 @@ authenticate_definition() ->
 -spec authenticate_resp_definition() -> kapi_definition:api().
 authenticate_resp_definition() ->
     EventName = <<"authenticate_reply">>,
-    Category = <<"crm_salesforce">>,
+    Category = <<"crm">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"CRM Authentication Response">>}
               ,{fun kapi_definition:set_description/2, <<"CRM authentication response">>}
@@ -140,7 +140,7 @@ authenticate_resp_definition() ->
 -spec caller_info_definition() -> kapi_definition:api().
 caller_info_definition() ->
     EventName = <<"caller_info">>,
-    Category = <<"crm_salesforce">>,
+    Category = <<"crm">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Query caller info">>}
               ,{fun kapi_definition:set_description/2, <<"Query caller info in Salesforce">>}
@@ -170,7 +170,7 @@ caller_info_definition() ->
 -spec caller_info_resp_definition() -> kapi_definition:api().
 caller_info_resp_definition() ->
     EventName = <<"caller_info_reply">>,
-    Category = <<"crm_salesforce">>,
+    Category = <<"crm">>,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Salesforce Query Response">>}
               ,{fun kapi_definition:set_description/2, <<"Caller info query response">>}

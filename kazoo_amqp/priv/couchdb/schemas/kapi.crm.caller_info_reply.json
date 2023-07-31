@@ -8,7 +8,7 @@
         },
         "Event-Category": {
             "enum": [
-                "crm-salesforce"
+                "crm"
             ]
         },
         "Event-Name": {
