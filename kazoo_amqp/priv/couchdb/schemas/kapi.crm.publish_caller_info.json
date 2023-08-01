@@ -1,0 +1,14 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.publish_caller_info",
+    "description": "AMQP API for crm.publish_caller_info",
+    "properties": {
+        "Caller-ID": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Caller-ID"
+    ],
+    "type": "object"
+}

@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.authenticate_reply",
+    "description": "AMQP API for crm.authenticate_reply",
+    "properties": {
+        "Auth-Response": {
+            "type": "object"
+        },
+        "Event-Category": {
+            "enum": [
+                "crm"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "authenticate_reply"
+            ]
+        }
+    },
+    "required": [
+        "Auth-Response"
+    ],
+    "type": "object"
+}
