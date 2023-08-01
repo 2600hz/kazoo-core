@@ -1,0 +1,45 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.caller_info",
+    "description": "AMQP API for crm.caller_info",
+    "properties": {
+        "Access-Token": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Caller-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Client-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Client-Secret": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "crm"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "caller_info"
+            ]
+        },
+        "Instance-Url": {
+            "minLength": 1,
+            "type": "string"
+        }
+    },
+    "required": [
+        "Access-Token",
+        "Caller-ID",
+        "Client-ID",
+        "Client-Secret",
+        "Instance-Url"
+    ],
+    "type": "object"
+}
