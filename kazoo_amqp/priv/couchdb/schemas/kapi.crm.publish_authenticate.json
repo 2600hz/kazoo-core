@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.publish_authenticate_salesforce",
+    "description": "AMQP API for crm.publish_authenticate_salesforce",
+    "properties": {
+        "Connected-App": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Connected-App",
+        "Event-Category"
+    ],
+    "type": "object"
+}
