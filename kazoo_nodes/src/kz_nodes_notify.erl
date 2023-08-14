@@ -10,14 +10,12 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_nodes_notify).
 
-
 -export([notify_new/0, notify_new/1
         ,notify_expire/0, notify_expire/1
         ,notify_heartbeat/0, notify_heartbeat/1
         ]).
 
 -include("kazoo_nodes.hrl").
-
 
 %%%=============================================================================
 %%% API

@@ -359,7 +359,11 @@ handle_received_app(#{resp_body := Archive
 -spec maybe_redirect({'ok', appex_bluepak:loaded()} | {'error', any()} | {'redirect', kz_term:api_string()}, map()) ->
           {'ok', appex_bluepak:loaded()} |
           {'error', any()}.
-maybe_redirect({'redirect', 'undefined'}, _) ->
+maybe_redirect({'error', _}=Error, _FetchParams) ->
+    Error;
+maybe_redirect({'ok', _}=OK, _FetchParams) ->
+    OK;
+maybe_redirect({'redirect', 'undefined'}, _FetchParams) ->
     lager:error("redirect has no location url"),
     {'error', "bad_redirect"};
 maybe_redirect({'redirect', LocationUrl}, #{app_name := AppName}=FetchParams) ->
@@ -369,9 +373,7 @@ maybe_redirect({'redirect', LocationUrl}, #{app_name := AppName}=FetchParams) ->
         {'error', _Reason}=Error ->
             lager:error("failed to query for ~s: ~p", [AppName, _Reason]),
             Error
-    end;
-maybe_redirect({'ok', _}=OK, _) ->
-    OK.
+    end.
 
 %%%=============================================================================
 %%% Fetch License Functions
