@@ -347,11 +347,11 @@ handle_node_heartbeat(#kz_node{node=OtherNode
                      ,_Node
                      ) ->
     OurApps = kapps_controller:running_apps('false'),
-    [maybe_start_other_app(OtherNode, AppName)
-     || {Name, _Info} <- OtherKapps,
-        AppName <- [kz_term:to_atom(Name, 'true')],
-        not lists:member(AppName, OurApps)
-    ],
+    _ = [maybe_start_other_app(OtherNode, AppName)
+         || {Name, _Info} <- OtherKapps,
+            AppName <- [kz_term:to_atom(Name, 'true')],
+            not lists:member(AppName, OurApps)
+        ],
     'ok'.
 
 maybe_start_other_app(OtherNode, AppName) ->
