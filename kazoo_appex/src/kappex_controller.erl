@@ -344,23 +344,12 @@ handle_node_heartbeat(#kz_node{node=OtherNode
                      ,_Node
                      ) ->
     OurApps = kapps_controller:running_apps('false'),
-    _ = [maybe_start_other_app(OtherNode, AppName)
+    _ = [start_other_app(OtherNode, AppName)
          || {Name, _Info} <- OtherKapps,
             AppName <- [kz_term:to_atom(Name, 'true')],
             not lists:member(AppName, OurApps)
         ],
     'ok'.
-
-maybe_start_other_app(OtherNode, AppName) ->
-    case application:load(AppName) of
-        'ok' -> start_other_app(OtherNode, AppName);
-        {'error', {'already_loaded', AppName}} ->
-            start_other_app(OtherNode, AppName);
-        {'error', _Reason} ->
-            lager:info("other node ~s running and we failed to load ~s, not starting: ~p"
-                      ,[OtherNode, AppName, _Reason]
-                      )
-    end.
 
 start_other_app(_OtherNode, AppName) ->
     _Pid = kz_process:spawn(fun kapps_controller:start_app/1, [AppName]),
