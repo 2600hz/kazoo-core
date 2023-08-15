@@ -101,16 +101,12 @@ load_app(Pid, App) ->
 init(_Args) ->
     process_flag('trap_exit', 'true'),
     _Binding = kapps_controller:binding_fetch_app(?MODULE, 'load_app', self()),
-    maybe_node_bindings(),
+    kz_nodes_notify:notify_heartbeat(),
     {'ok', #state{}}.
 
-maybe_node_bindings() ->
-    maybe_node_bindings(kapps_config:get_is_true(?CONFIG_CAT, <<"is_aio_cluster">>, 'false')).
-
-maybe_node_bindings('false') -> 'ok';
-maybe_node_bindings('true') ->
-    lager:info("cluster running as AiO, binding for node heartbeats"),
-    kz_nodes_notify:notify_heartbeat().
+-spec should_check_node_bindings() -> boolean().
+should_check_node_bindings() ->
+    kapps_config:get_is_true(?CONFIG_CAT, <<"is_aio_cluster">>, 'false').
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -194,7 +190,8 @@ handle_cast({'stop_running', App}, #state{running=Running}=State) ->
             {'noreply', State}
     end;
 handle_cast({'kz_nodes', {'heartbeat', Node}}, State) ->
-    handle_node_heartbeat(Node, node()),
+    should_check_node_bindings()
+        andalso handle_node_heartbeat(Node, node()),
     {'noreply', State};
 handle_cast(_Msg, State) ->
     {'noreply', State}.
