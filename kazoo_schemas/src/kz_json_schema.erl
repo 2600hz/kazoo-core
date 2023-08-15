@@ -673,17 +673,17 @@ error_to_jobj({'data_invalid'
                     );
 error_to_jobj({'data_invalid'
               ,_FailedSchemaJObj
-              ,'missing_dependency'
-              ,FailedValue
+              ,{'missing_dependency', FailKey}
+              ,_FailedValue
               ,FailedKeyPath
               }
              ,Options
              ) ->
-    validation_error(FailedKeyPath
-                    ,<<"dependencies">>
+    validation_error(FailedKeyPath ++ [FailKey]
+                    ,<<"required">>
                     ,kz_json:from_list(
-                       [{<<"message">>, <<"Dependencies were not validated">>}
-                       ,{<<"value">>, FailedValue}
+                       [{<<"message">>, <<"Field is required but missing">>}
+                       ,{<<"value">>, FailKey}
                        ]
                       )
                     ,Options
