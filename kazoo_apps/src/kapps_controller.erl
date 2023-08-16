@@ -26,6 +26,8 @@
 
 -export([binding_fetch_app/2, binding_fetch_app/3
         ,unbinding_fetch_app/2, unbinding_fetch_app/3
+        ,binding_unload_app/2, binding_unload_app/3
+        ,unbinding_unload_app/2, unbinding_unload_app/3
         ]).
 
 -include("kazoo_apps.hrl").
@@ -127,56 +129,22 @@ maybe_start_external_app(App) ->
     StartTime = kz_time:start_time(),
     case load_external_app(App) of
         'true' ->
-            case ensure_external_started(App, App, []) of
-                {'ok', Started} ->
+            case application:ensure_all_started(App) of
+                {'ok', Started}=OK ->
                     lager:info("started ~s in ~pms", [App, kz_time:elapsed_ms(StartTime)]),
                     _ = [kz_nodes_bindings:bind(A) || A <- lists:usort([App | Started]), is_kapp(A)],
-                    {'ok', lists:reverse(Started)};
-                {'error', Reason, Started} ->
-                    _ = [application:stop(AppStarted) || AppStarted <- Started],
-                    lager:error("~s could not start: ~p", [App, Reason]),
-                    {'error', Reason}
+                    OK;
+                {'error', _Reason}=Error ->
+                    lager:error("~s could not start: ~p", [App, _Reason]),
+                    _ = kazoo_bindings:map(<<"app.unload">>, App),
+                    Error
             end;
         'false' ->
             lager:info("failed to find app ~s in external sources", [App]),
             {'error', 'not_found'}
     end.
 
-%% @doc Ensure app and all dependencies are started, properly handle external apps.
-%%
-%% Lifted from erlang:ensure_all_started/1, specifically handle app not found error
-%% and call external sources instead of stopping the started app and causing race conditions.
--spec ensure_external_started(atom(), atom(), kz_term:atoms()) ->
-          {'ok', kz_term:atoms()} |
-          {'error', any(), kz_term:atoms()}.
-ensure_external_started(Parent, Application, Started) ->
-    case application:start(Application) of
-        'ok' ->
-            {'ok', [Application | Started]};
-        {'error', {'already_started', Application}} ->
-            {'ok', Started};
-        {'error', {'not_started', Dependency}} ->
-            case ensure_external_started(Parent, Dependency, Started) of
-                {'ok', NewStarted} ->
-                    ensure_external_started(Parent, Application, NewStarted);
-                Error ->
-                    Error
-            end;
-        {'error', {"no such file or directory", DotApp}} ->
-            lager:info("app ~s dependency ~s (~s) not found, asking around", [Parent, Application, DotApp]),
-            case load_external_app({Parent, Application}) of
-                'true' ->
-                    lager:info("dependency ~s resolved, trying to start it again", [Application]),
-                    ensure_external_started(Parent, Application, Started);
-                'false' ->
-                    lager:info("app ~s dependency ~s not found in external sources", [Parent, Application]),
-                    {'error', {Application, {"no such file or directory", DotApp}}, Started}
-            end;
-        {'error', Reason} ->
-            {'error', {Application, Reason}, Started}
-    end.
-
--spec load_external_app(atom() | {atom(), atom()}) -> boolean().
+-spec load_external_app(atom()) -> boolean().
 load_external_app(ExternalApp) ->
     lists:any(fun kz_term:is_true/1, kazoo_bindings:map(<<"app.fetch">>, ExternalApp)).
 
@@ -355,6 +323,14 @@ binding_fetch_app(Module, Function) ->
 binding_fetch_app(Module, Function, Payload) ->
     kazoo_bindings:bind(<<"app.fetch">>, Module, Function, Payload).
 
+-spec binding_unload_app(module(), atom()) -> kazoo_bindings:bind_result().
+binding_unload_app(Module, Function) ->
+    binding_unload_app(Module, Function, 'undefined').
+
+-spec binding_unload_app(module(), atom(), any()) -> kazoo_bindings:bind_result().
+binding_unload_app(Module, Function, Payload) ->
+    kazoo_bindings:bind(<<"app.unload">>, Module, Function, Payload).
+
 -spec unbinding_fetch_app(module(), atom()) -> kazoo_bindings:unbind_result().
 unbinding_fetch_app(Module, Function) ->
     unbinding_fetch_app(Module, Function, 'undefined').
@@ -362,6 +338,14 @@ unbinding_fetch_app(Module, Function) ->
 -spec unbinding_fetch_app(module(), atom(), any()) -> kazoo_bindings:unbind_result().
 unbinding_fetch_app(Module, Function, Payload) ->
     kazoo_bindings:unbind(<<"app.fetch">>, Module, Function, Payload).
+
+-spec unbinding_unload_app(module(), atom()) -> kazoo_bindings:unbind_result().
+unbinding_unload_app(Module, Function) ->
+    unbinding_unload_app(Module, Function, 'undefined').
+
+-spec unbinding_unload_app(module(), atom(), any()) -> kazoo_bindings:unbind_result().
+unbinding_unload_app(Module, Function, Payload) ->
+    kazoo_bindings:unbind(<<"app.unload">>, Module, Function, Payload).
 
 %%%=============================================================================
 %%% Internal functions
