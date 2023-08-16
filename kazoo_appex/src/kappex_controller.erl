@@ -101,7 +101,12 @@ load_app(Pid, App) ->
 init(_Args) ->
     process_flag('trap_exit', 'true'),
     _Binding = kapps_controller:binding_fetch_app(?MODULE, 'load_app', self()),
+    kz_nodes_notify:notify_heartbeat(),
     {'ok', #state{}}.
+
+-spec should_check_node_bindings() -> boolean().
+should_check_node_bindings() ->
+    kapps_config:get_is_true(?CONFIG_CAT, <<"is_aio_cluster">>, 'false').
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -184,6 +189,10 @@ handle_cast({'stop_running', App}, #state{running=Running}=State) ->
             _ = spawn('application', 'stop', [App]),
             {'noreply', State}
     end;
+handle_cast({'kz_nodes', {'heartbeat', Node}}, State) ->
+    should_check_node_bindings()
+        andalso handle_node_heartbeat(Node, node()),
+    {'noreply', State};
 handle_cast(_Msg, State) ->
     {'noreply', State}.
 
@@ -326,3 +335,22 @@ handle_app_stop({'DOWN', Ref, 'process', Pid, _Reason}
                        ,loaded=lists:delete(App, Loaded)
                        }
     end.
+
+%% don't handle our heartbeat
+handle_node_heartbeat(#kz_node{node=Node}, Node) -> 'ok';
+handle_node_heartbeat(#kz_node{node=OtherNode
+                              ,kapps=OtherKapps
+                              }
+                     ,_Node
+                     ) ->
+    OurApps = kapps_controller:running_apps('false'),
+    _ = [start_other_app(OtherNode, AppName)
+         || {Name, _Info} <- OtherKapps,
+            AppName <- [kz_term:to_atom(Name, 'true')],
+            not lists:member(AppName, OurApps)
+        ],
+    'ok'.
+
+start_other_app(_OtherNode, AppName) ->
+    _Pid = kz_process:spawn(fun kapps_controller:start_app/1, [AppName]),
+    lager:info("other node ~s running ~s, starting in ~p", [_OtherNode, AppName, _Pid]).
