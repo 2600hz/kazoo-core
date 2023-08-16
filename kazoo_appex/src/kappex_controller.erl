@@ -20,6 +20,8 @@
 
         ,add_running/2
         ,stop_running/1
+
+        ,kapp_heartbeat/1
         ]).
 
 %% gen_server callbacks
@@ -87,11 +89,23 @@ add_running(App, AppPid) ->
 stop_running(App) ->
     gen_server:cast(?MODULE, {'stop_running', App}).
 
+%% @doc this is run by kapps_controller:load_external_app/1. If this
+%% returns 'true', the app is then ensure_started as a
+%% locally-installed app would be.
 -spec load_app(pid(), external_app()) -> boolean().
 load_app(Pid, App) ->
     %% FIXME: maybe remove timeout from here and use timer?
     is_process_alive(Pid)
         andalso gen_server:call(Pid, {'load_app', App}, ?HTTP_FETCH_TIMEOUT).
+
+%% When the local node is building a heartbeat payload, each running
+%% kapp is folded over for properties to add to the heartbeat. When
+%% kappex loads a kapp, it binds for this kapp heartbeat and will add
+%% itself to the properties associated with the kapp.
+-spec kapp_heartbeat(kazoo_bindings:fold_results()) -> kazoo_bindings:fold_results().
+kapp_heartbeat(Acc) ->
+    #whapp_info{roles=Roles}=WhappInfo = props:get_value('info', Acc, #whapp_info{}),
+    props:set_value('info', WhappInfo#whapp_info{roles=[<<"kappex">> | Roles]}, Acc).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -121,14 +135,19 @@ handle_call('running', _From, #state{running_pid_ref=PidRefs}=State) ->
     {'reply', maps:values(PidRefs), State};
 handle_call({'load_app', ExternalApp}, From, #state{loaded=LoadedApps}=State) ->
     App = external_app(ExternalApp),
-    %% FIXME: just like ensure_all_started, ensure the app and all of its deps and deps of dep are fully loaded so when
-    %% kapps_controller calls ensure_all_started eveything is loaded up and it won't call appex again.
+    %% FIXME: just like ensure_all_started, ensure the app and all of
+    %% its deps and deps of dep are fully loaded so when
+    %% kapps_controller calls ensure_all_started eveything is loaded
+    %% up and it won't call appex again.
     %%
-    %% The goal here that we ensure the app and all of its deps are recursively resolved and loaded so kapps_controller
-    %% won't get an error from erlang that some deps are not loaded. That wass the original error that we are trying to
-    %% solve here, because if erlang ssys something s not loaded, erlang would stop eveything that is loaded and
-    %% started, and will cause an app cleanup in appex which causing a race condition to stop and fetch/load the app and
-    %% its deps.
+    %% The goal here that we ensure the app and all of its deps are
+    %% recursively resolved and loaded so kapps_controller won't get
+    %% an error from erlang that some deps are not loaded. That wass
+    %% the original error that we are trying to solve here, because if
+    %% erlang ssys something s not loaded, erlang would stop eveything
+    %% that is loaded and started, and will cause an app cleanup in
+    %% appex which causing a race condition to stop and fetch/load the
+    %% app and its deps.
     %%
     %% - check if app is loading
     %%   - maybe previously someone called load_app??
@@ -287,6 +306,7 @@ start_fetch_process(ExternalApp, From) ->
 
               case appex_client_client:load_app(ParentApp, App) of
                   {'ok', _Loaded} ->
+                      _ = kz_nodes_bindings:bind(App, ?MODULE, 'kapp_heartbeat'),
                       gen_server:reply(From, 'true');
                   {'error', _Reason} ->
                       lager:error("failed to fetch and extract app ~s: ~p", [App, _Reason]),

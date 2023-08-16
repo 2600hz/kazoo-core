@@ -177,6 +177,7 @@ adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}
     AppEnv = props:get_value('env', AppConfig, []),
     NewEnv = props:set_values([{'app_mod', AppMod}
                               ,{'parent_app', ParentApp}
+                              ,{'from_kappex', 'true'}
                               ]
                              ,AppEnv
                              ),

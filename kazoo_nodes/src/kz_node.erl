@@ -51,7 +51,6 @@ create(Heartbeat, Zone, Version, MD5) ->
 add_kapps_data(Node) ->
     lists:foldl(fun kapp_data/2, Node, apps()).
 
-
 -spec kapp_data(atom(), kz_types:kz_node()) -> kz_types:kz_node().
 kapp_data(App, Node) ->
     kapp_data(App, Node, kz_nodes_bindings:request(App)).
@@ -79,7 +78,6 @@ maybe_add_info(App, AppInfo, Kapps) ->
 
 globals() ->
     kazoo_bindings:map(<<"kz_nodes.globals">>, []).
-
 
 -spec apps() -> kz_term:atoms().
 apps() ->
@@ -241,8 +239,8 @@ maybe_print_kapps(Whapps) ->
     case lists:sort(fun compare_apps/2, Whapps) of
         []-> 'ok';
         SortedWhapps ->
-            format(?HEADER_COL ": ", [<<"WhApps">>]),
-            status_list(SortedWhapps, 0)
+            whapp_row(<<"KApp">>, <<"Run Time">>, <<"Roles">>, <<"KApps">>),
+            status_list(SortedWhapps)
     end.
 
 -spec compare_apps({binary(), any()}, {binary(), any()}) -> boolean().
@@ -437,25 +435,42 @@ format_broker(Broker) ->
 print_pool_info(Pool, Info, Acc) ->
     [io_lib:format("~s : ~s", [Pool, Info]) | Acc].
 
--spec status_list(kz_types:kapps_info(), 0..4) -> 'ok'.
-status_list([], _) -> format("~n", []);
-status_list(Whapps, Column) when Column > 3 ->
-    format("~n" ++ ?HEADER_COL ++ "  ", [""]),
-    status_list(Whapps, 0);
-status_list([{Whapp, #whapp_info{startup='undefined'}}|Whapps], Column) ->
-    format("~-25s", [Whapp]),
-    status_list(Whapps, Column + 1);
-status_list([{Whapp, #whapp_info{startup=Started,roles=[]}}|Whapps], Column) ->
+-spec status_list(kz_types:kapps_info()) -> 'ok'.
+status_list([]) ->
+    format("~n", []);
+status_list([{WhappName, #whapp_info{startup='undefined'}} | Whapps]) ->
+    whapp_row(WhappName, <<>>, []),
+    status_list(Whapps);
+status_list([{WhappName, #whapp_info{startup=Started, roles=Roles}} | Whapps]) ->
+    whapp_row(WhappName, Started, Roles),
+    status_list(Whapps).
+
+whapp_row(Whapp, Started, Roles) ->
+    whapp_row(Whapp, Started, Roles, <<>>).
+
+whapp_row(Whapp, Started, Roles, LeftSide) when is_integer(Started) ->
     Elapsed = kz_time:elapsed_s(Started),
-    Print = <<(kz_term:to_binary(Whapp))/binary, "(", (kz_time:pretty_print_elapsed_s(Elapsed))/binary, ")">>,
-    format("~-25s", [Print]),
-    status_list(Whapps, Column + 1);
-status_list([{Whapp, #whapp_info{startup=Started,roles=Roles}}|Whapps], _Column) ->
-    Elapsed = kz_time:elapsed_s(Started),
-    Print = <<(kz_term:to_binary(Whapp))/binary, "(", (kz_time:pretty_print_elapsed_s(Elapsed))/binary, ")">>,
-    format("~-25s", [Print]),
-    format("~s", [kz_binary:join(Roles, <<" , ">>)]),
-    status_list(Whapps, 4).
+    PP = kz_time:pretty_print_elapsed_s(Elapsed),
+
+    whapp_row(Whapp, PP, Roles, LeftSide);
+whapp_row(Whapp, Started, Roles, LeftSide) when is_list(Roles) ->
+    PrintableRoles = kz_binary:join(Roles, <<", ">>),
+    whapp_row(Whapp, Started, PrintableRoles, LeftSide);
+whapp_row(Whapp, PPElapsed, PPRoles, LeftSide) ->
+    format(left_side_format(LeftSide)
+          ,[LeftSide, Whapp, PPElapsed, PPRoles]
+          ).
+
+%% note: compilation will compress the macro and string into one
+%% string, avoiding the need for ++ at runtime
+left_side_format(<<>>) ->
+    %% when printing each KApp row
+    ?HEADER_COL "  ~-20s | ~14s | ~s~n";
+left_side_format(_LeftSide) ->
+    %% when LeftSide = <<"Kapps">>,
+    %% first line to print table header:
+    %% KApps         : KApp                 |       Run Time | Roles
+    ?HEADER_COL ": ~-20s | ~14s | ~s~n".
 
 -spec simple_list(kz_term:ne_binaries()) -> 'ok'.
 simple_list(List) -> simple_list(List, 4).

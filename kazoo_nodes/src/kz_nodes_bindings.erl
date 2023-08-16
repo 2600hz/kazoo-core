@@ -50,6 +50,7 @@ bind(App, Module, Function)
         'true' ->
             kazoo_bindings:bind(Binding, Module, Function);
         'false' ->
+            lager:info("MF/A ~s:~s/~p is not exported, using default", [Module, Function, ?CALLBACK_ARITY]),
             kazoo_bindings:bind(Binding, ?DEFAULT_MODULE, ?DEFAULT_FUNCTION)
     end.
 
