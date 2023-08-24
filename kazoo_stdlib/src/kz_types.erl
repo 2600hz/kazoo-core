@@ -183,4 +183,5 @@
              ,media_servers/0
              ,kz_node/0
              ,kz_nodes/0
+             ,kapp_version/0, kapp_versions/0
              ]).
