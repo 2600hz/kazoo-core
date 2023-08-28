@@ -43,12 +43,12 @@ fi
 
 if [ ! -f "${ITU}" ]; then
     cat "${ITU_SRC}" > "${ITU}"
-    python3 -c 'import json; [print("to_itu(<<\"", l["cca2"], "\">>) -> <<\"+", l["callingCode"][0], "\">>;", sep="") for l in sorted(json.load(open("dialcodes.json")), key=lambda l: l["cca2"]) if len(l["callingCode"]) > 0]' >> "${ITU}"
+    python3 -c 'import json; [print("to_itu(<<\"", l["cca2"], "\">>) -> <<\"+", l["callingCode"][0], "\">>;", sep="") for l in sorted(json.load(open("../dialcodes.json")), key=lambda l: l["cca2"]) if len(l["callingCode"]) > 0]' >> "${ITU}"
     echo 'to_itu(_) -> <<>>.' >> "${ITU}"
 fi
 
 if [ ! -f "${ISO3166}" ]; then
     cat "${ISO3166_SRC}" > "${ISO3166}"
-    python3 -c 'import json; [print("country(<<\"", l["cca2"], "\">>) -> country(<<\"", l["cca3"], "\">>);\ncountry(<<\"", l["cca3"], "\">>) -> #{a2 =>  <<\"", l["cca2"], "\">>, a3 => <<\"", l["cca3"], "\">>, itu => <<\"+", l["callingCode"][0], "\">>};", sep="") for l in sorted(json.load(open("dialcodes.json")), key=lambda l: l["cca2"]) if len(l["callingCode"]) > 0]' >> "${ISO3166}"
+    python3 -c 'import json; [print("country(<<\"", l["cca2"], "\">>) -> country(<<\"", l["cca3"], "\">>);\ncountry(<<\"", l["cca3"], "\">>) -> #{a2 =>  <<\"", l["cca2"], "\">>, a3 => <<\"", l["cca3"], "\">>, itu => <<\"+", l["callingCode"][0], "\">>};", sep="") for l in sorted(json.load(open("../dialcodes.json")), key=lambda l: l["cca2"]) if len(l["callingCode"]) > 0]' >> "${ISO3166}"
     echo 'country(_) -> {error, invalid_country}.' >> "${ISO3166}"
 fi
