@@ -3,7 +3,7 @@
     "_id": "kapi.crm.caller_info",
     "description": "AMQP API for crm.caller_info",
     "properties": {
-        "Access-Token": {
+        "CRM-Platform": {
             "minLength": 1,
             "type": "string"
         },
@@ -11,11 +11,7 @@
             "minLength": 1,
             "type": "string"
         },
-        "Client-ID": {
-            "minLength": 1,
-            "type": "string"
-        },
-        "Client-Secret": {
+        "Config-ID": {
             "minLength": 1,
             "type": "string"
         },
@@ -28,18 +24,12 @@
             "enum": [
                 "caller_info"
             ]
-        },
-        "Instance-Url": {
-            "minLength": 1,
-            "type": "string"
         }
     },
     "required": [
-        "Access-Token",
         "Caller-ID",
-        "Client-ID",
-        "Client-Secret",
-        "Instance-Url"
+        "Config-ID",
+        "CRM-Platform"
     ],
     "type": "object"
 }
