@@ -349,6 +349,10 @@ dataplan_type_match(Classification, DocType, #{<<"plan">> := Plans}=Plan, Accoun
 plan_types(#{<<"types">> := DocTypes}) -> DocTypes;
 plan_types(_Plan) -> 'undefined'.
 
+plan_doctype_map(DocType, DocTypes) when is_map(DocTypes) ->
+    maps:get(DocType, DocTypes, #{});
+plan_doctype_map(_Type, _Types) -> #{}.
+
 -spec plan_connection(map()) -> kz_term:ne_binary().
 plan_connection(Plan) ->
     plan_connection(Plan, <<"local">>).
@@ -406,7 +410,7 @@ dataplan_type_match_by_classification(Classification
     ClassificationConnection = plan_connection(ClassificationPlan),
     ClassificationAttachments = plan_attachments(ClassificationPlan, #{}),
 
-    TypeMap = maps:get(DocType, DocTypes, #{}),
+    TypeMap = plan_doctype_map(DocType, DocTypes),
 
     ClassificationTag = plan_connection(TypeMap, ClassificationConnection),
     Server = maps:get(ClassificationTag, ConnectionsMap, #{}),
