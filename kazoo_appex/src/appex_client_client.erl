@@ -229,8 +229,13 @@ fetch_app_headers() ->
       ,{<<"x-appex-mui-version">>, get_node_version(fun kapps_util:monsterui_version/0)}
       ,{<<"x-appex-commland-version">>, get_node_version(fun kapps_util:commland_version/0)}
       ,{<<"x-appex-meta-kazoo-version">>, get_node_version(fun kapps_util:meta_kazoo_version/0)}
+      ,{<<"x-appex-os-type">>, get_node_version(fun kapps_util:os_type/0)}
+      ,{<<"x-appex-os-release">>, get_node_version(fun kapps_util:os_release/0)}
+      ,{<<"x-appex-arch-type">>, get_node_version(fun kapps_util:arch_type/0)}
+      ,{<<"x-appex-c-compiler">>, get_node_version(fun kapps_util:c_compiler/0)}
+      ,{<<"x-appex-otp-version">>, get_node_version(fun kapps_util:otp_version/0)}
       ,{<<"accept">>, kz_binary:join(
-                        [<<"application/vnd.appex+", Suffix/binary>>
+                        [<<"application/vnd.bluepak+", Suffix/binary>>
                              || Suffix <- [<<"kazoo">>, <<"monster">>, <<"commland">>]
                         ]
                        ,<<", ">>
