@@ -95,8 +95,17 @@ stop_running(App) ->
 -spec load_app(pid(), external_app()) -> boolean().
 load_app(Pid, App) ->
     %% FIXME: maybe remove timeout from here and use timer?
-    is_process_alive(Pid)
-        andalso gen_server:call(Pid, {'load_app', App}, ?HTTP_FETCH_TIMEOUT).
+    case appex_client_config:is_enabled()
+        andalso appex_client_config:is_configured()
+    of
+        'true' ->
+            gen_server:call(Pid, {'load_app', App}, ?HTTP_FETCH_TIMEOUT);
+        'false' ->
+            lager:warning("~s is not enabled or configured properly, unable to proceed with app fetch request"
+                         ,[?APP_NAME]
+                         ),
+            'false'
+    end.
 
 %% When the local node is building a heartbeat payload, each running
 %% kapp is folded over for properties to add to the heartbeat. When
