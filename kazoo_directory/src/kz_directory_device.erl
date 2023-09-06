@@ -74,7 +74,6 @@ cache(EndpointId, AccountId, Profile, Origins, Options) ->
 -spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> 'ok'.
 cache_callback({EndpointId, AccountId}, {CachedValue, Options}, 'erase') ->
     lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
-    timer:sleep(kz_term:to_integer(?MILLISECONDS_IN_SECOND * 2)),
     case kz_endpoint:get(EndpointId, AccountId, props:set_value('no_cache', Options)) of
         {'ok', Endpoint} ->
             {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, Options),
