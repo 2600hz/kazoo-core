@@ -70,7 +70,7 @@ package:
     requires_excludes:
       - '^/usr/bin/escript$'
     requires:
-      compat-openssl-2600hz:
+      compat-openssl11-2600hz:
         verison: 1.1.1t-2600hz.2.el9
         op: '=='
 metapackage:
