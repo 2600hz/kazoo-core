@@ -45,6 +45,8 @@ package:
     group: Productivity/Telephony
     url: 'http://www.2600hz.org/'
     vendor: 2600Hz
+    requires_excludes:
+        - '^/usr/bin/escript$'
   rockylinux9:
     summary: '2600hz Kazoo communications platform core'
     description: |
@@ -65,6 +67,12 @@ package:
     group: Productivity/Telephony
     url: 'http://www.2600hz.org/'
     vendor: 2600Hz
+    requires_excludes:
+      - '^/usr/bin/escript$'
+    requires:
+      compat-openssl-2600hz:
+        verison: 1.1.1t-2600hz.2.el9
+        op: '=='
 metapackage:
   -
     name: meta-kazoo-applications
