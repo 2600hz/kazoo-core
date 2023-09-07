@@ -9,7 +9,7 @@
 %%%-----------------------------------------------------------------------------
 -module(appex_bluepak).
 
--export([load_app/4
+-export([load_app/3
         ,base_path/0
         ]).
 
@@ -18,9 +18,8 @@
 
 -record(load_app, {app_metadata :: kz_term:api_object()
                   ,app_name :: kz_term:api_ne_binary()
-                  ,parent_app :: kz_term:api_atom()
                   ,app_spec :: {'application', atom(), kz_term:proplist()} | 'undefined'
-                  ,app_type :: atom()
+                  ,app_type :: app_type()
                   ,app :: atom()
                   ,app_vsn :: kz_term:api_ne_binary()
                   ,app_dir :: kz_term:api_ne_binary()
@@ -32,11 +31,11 @@
                   }).
 -type load_app() :: #load_app{}.
 
--type loaded() :: #{app => atom()
-                   ,app_name => kz_term:ne_binary()
-                   ,app_spec => {'application', atom(), kz_term:proplist()}
-                   ,app_type => kz_term:ne_binary()
-                   ,app_vsn => kz_term:ne_binary()
+-type loaded() :: #{app := atom()
+                   ,app_name := kz_term:ne_binary()
+                   ,app_spec := {'application', atom(), kz_term:proplist()}
+                   ,app_type := kz_term:ne_binary()
+                   ,app_vsn := kz_term:ne_binary()
                    }.
 -type load_ret() :: {'ok', load_app()} | {'error', any()}.
 -type load_resp() :: {'ok', loaded()} | {'error', any()}.
@@ -44,8 +43,8 @@
              ,load_resp/0
              ]).
 
--spec load_app(ParentApp::atom(), App::atom(), Archive::binary(), ContentType::string() | 'undefined') -> load_resp().
-load_app(ParentApp, App, Archive, ContentType) ->
+-spec load_app(App::atom(), Archive::binary(), ContentType::string() | 'undefined') -> load_resp().
+load_app(App, Archive, ContentType) ->
     case app_type(ContentType) of
         'unknown' ->
             lager:error("content-type not supported: ~s", [ContentType]),
@@ -59,7 +58,7 @@ load_app(ParentApp, App, Archive, ContentType) ->
                     lager:error("invalid erlang app, acrhive contained no .app"),
                     {'error', 'no_app_spec'};
                 {'ok', #load_app{app_spec={'application', App, _}}=LoadApp} ->
-                    load_app(LoadApp#load_app{parent_app = ParentApp});
+                    load_app(LoadApp);
                 {'ok', #load_app{app_spec={'application', OtherApp, _}}} ->
                     lager:error("invalid app, expected ~s got ~s", [App, OtherApp]),
                     {'error', 'bad_app'};
@@ -72,6 +71,8 @@ load_app(ParentApp, App, Archive, ContentType) ->
 base_path() ->
     kz_term:to_binary(code:lib_dir()).
 
+-type app_type() :: 'kazoo' | 'monster' | 'commland' | 'unknown'.
+-spec app_type(string()) -> app_type().
 app_type("application/vnd.bluepak+kazoo") -> 'kazoo';
 app_type("application/vnd.bluepak+monster") -> 'monster';
 app_type("application/vnd.bluepak+commland") -> 'commland';
@@ -169,27 +170,19 @@ load_beams(Filename, Bin, {'ok', #load_app{loaded_mods=Loaded}=LoadApp}) ->
     end.
 
 -spec adjust_dot_app(load_app()) -> {'ok', load_app()}.
-adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}
-                        ,app_metadata=AppMeta
-                        ,parent_app=ParentApp
-                        }=LoadApp) ->
+adjust_dot_app(#load_app{app_spec={'application', App, AppConfig}}=LoadApp) ->
     {AppMod, StartArgs} = props:get_value('mod', AppConfig),
     AppEnv = props:get_value('env', AppConfig, []),
     NewEnv = props:set_values([{'app_mod', AppMod}
-                              ,{'parent_app', ParentApp}
                               ,{'from_kappex', 'true'}
                               ]
                              ,AppEnv
                              ),
     %% tabulates tabulars
     AppDeps = props:get_value('applications', AppConfig, []),
-    AppexDeps = [kz_term:to_atom(kz_json:get_ne_binary_value(<<"name">>, Dep), 'true')
-                 || Dep <- kz_json:get_list_value(<<"dependencies">>, AppMeta, []),
-                    not kz_term:is_empty(kz_json:get_ne_binary_value(<<"name">>, Dep))
-                ],
 
-    AppProps = [{'applications', lists:usort(AppDeps ++ AppexDeps)}
-               ,{'mod', {'appex_client_app_loader', {ParentApp, App, AppMod, StartArgs}}}
+    AppProps = [{'applications', lists:usort(AppDeps)}
+               ,{'mod', {'appex_client_app_loader', {App, AppMod, StartArgs}}}
                ,{'env', NewEnv}
                ],
     NewConfig = props:set_values(AppProps, AppConfig),
@@ -354,7 +347,7 @@ extract(Archive) ->
             {'error', 'bad_archive'}
     end.
 
--spec extract_files(atom(), atom(), erl_tar_extract()) -> load_ret().
+-spec extract_files(atom(), app_type(), erl_tar_extract()) -> load_ret().
 extract_files(App, AppType, {'ok', ArchiveFiles}) ->
     finish_extracting(
       lists:foldl(fun extract_file/2

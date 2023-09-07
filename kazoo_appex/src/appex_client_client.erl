@@ -12,10 +12,10 @@
 -module(appex_client_client).
 
 %% start the reader
--export([load_app/2
+-export([load_app/1
         ,link_cluster/1
         ,unlink_cluster/0
-        ,fetch_license/2
+        ,fetch_license/1
         ]).
 
 -include("appex_client.hrl").
@@ -27,29 +27,33 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec load_app(ParentApp::atom(), App::atom()) -> {'ok', appex_bluepak:loaded()} | {'error', any()}.
-load_app(ParentApp, App) ->
+-spec load_app(App::atom()) -> {'ok', appex_bluepak:loaded()} | {'error', any()}.
+load_app(App) ->
     ClusterId = appex_client_config:cluster_id(),
     Headers = fetch_app_headers(),
 
     %% Link = kz_json:get_ne_binary_value(<<"link">>, AppMeta),
-    AppLink = app_link(ClusterId, ParentApp, App),
+    AppLink = app_link(ClusterId, App),
 
     not kz_term:is_ne_binary(AppLink)
         andalso throw({'error', 'no_app_link'}),
 
-    Url = appex_server_url([<<"api/">>, AppLink]),
+    URL = appex_server_url([<<"api/">>, AppLink]),
 
-    lager:debug("fetching app ~s (as dependency for ~s)", [App, ParentApp]),
-    case kz_http:async_req(self(), 'get', Url, Headers, <<>>, fetch_app_options()) of
+    lager:debug("fetching app ~s: ~s", [App, URL]),
+    case kz_http:async_req(self(), 'get', URL, Headers, <<>>, fetch_app_options()) of
         {'http_req_id', ReqId} ->
             FetchParams = #{cluster_id => ClusterId
                            ,resp_body => <<>>
                            ,start => kz_time:now()
                            ,app_name => App
-                           ,parent_app => ParentApp
                            },
-            maybe_redirect(receive_app(ReqId, FetchParams), FetchParams);
+            case receive_app(ReqId, FetchParams) of
+                {'redirect', _}=Redirect ->
+                    maybe_redirect(Redirect, FetchParams);
+                {'ok', _}=OK -> OK;
+                {'error', _}=Error -> Error
+            end;
         {'error', _Reason}=Error ->
             lager:error("failed to query for ~s: ~p", [AppLink, _Reason]),
             Error
@@ -139,16 +143,16 @@ unlink_cluster() ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_license(atom(), atom()) ->
+-spec fetch_license(atom()) ->
           {'ok', kz_json:object()} |
           {'error', kz_term:ne_binary() | kz_json:object()}.
-fetch_license(_, 'undefined') ->
+fetch_license('undefined') ->
     {'error', <<"no app name">>};
-fetch_license(ParentApp, App) ->
+fetch_license(App) ->
     AppName = kz_term:to_binary(App),
     Headers = appex_server_authorization_header(),
     ClusterId = appex_client_config:cluster_id(),
-    URL = fetch_license_url(ClusterId, ParentApp, App),
+    URL = fetch_license_url(ClusterId, App),
     case kz_http:get(URL, Headers) of
         {'ok', Code, _RespHeaders, RespBody} when Code =< 400 ->
             JObj = kz_json:decode(RespBody, decode_error(Code)),
@@ -244,11 +248,9 @@ get_node_version(Fun) ->
             'undefined'
     end.
 
--spec app_link(kz_term:ne_binary(), atom(), atom()) -> kz_http:url().
-app_link(ClusterId, App, App) ->
-    kz_binary:join([<<"appex/client">>, ClusterId, <<"packages">>, App], <<"/">>);
-app_link(ClusterId, ParentApp, App) ->
-    kz_binary:join([<<"appex/client">>, ClusterId, <<"packages">>, ParentApp, App], <<"/">>).
+-spec app_link(kz_term:ne_binary(), atom()) -> kz_http:url().
+app_link(ClusterId, App) ->
+    kz_binary:join([<<"appex/client">>, ClusterId, <<"packages">>, App], <<"/">>).
 
 -spec fetch_app_options() -> kz_term:proplist().
 fetch_app_options() ->
@@ -262,10 +264,11 @@ fetch_app_options() ->
     ,{'autoredirect', 'false'}
     ].
 
+-type recv_app_resp() :: {'ok', appex_bluepak:loaded()} |
+                         {'error', any()} |
+                         {'redirect', kz_term:api_string()}.
 -spec receive_app(reference(), map()) ->
-          {'ok', appex_bluepak:loaded()} |
-          {'error', any()} |
-          {'redirect', kz_term:api_string()}.
+          recv_app_resp().
 receive_app(ReqId, Fetch) ->
     case receive_app_response(ReqId, Fetch) of
         {'continue', Fetch1} -> receive_app(ReqId, Fetch1);
@@ -278,53 +281,57 @@ receive_app(ReqId, Fetch) ->
           {'continue', map()} |
           {'finished', map()} |
           {'redirect', kz_term:api_string()} |
-          {'error', any()}.
-receive_app_response(ReqId, #{resp_body := Body}=FetchParams) ->
+          {'error', atom() | integer()}.
+receive_app_response(ReqId, FetchParams) ->
     Timeout = ?HTTP_FETCH_TIMEOUT,
     receive
-        {'error', Error} ->
-            handle_error(Error);
-        {'http', {ReqId, {{_HTTP, 404, _RespMsg}
-                         ,RespHeaders
-                         ,_RespBody
-                         }}} ->
-            note_request_id(RespHeaders),
-            lager:info("failed to find requested app/version"),
-            {'error', 'not_found'};
-        {'http', {ReqId, {{_HTTP, RespCode, _RespMsg}
-                         ,RespHeaders
-                         ,_RespBody
-                         }}} when RespCode >= 400 ->
-            note_request_id(RespHeaders),
-            lager:error("failure fetching app: ~p: ~s", [RespCode, _RespBody]),
-            {'error', RespCode};
-        {'http', {ReqId, {{_HTTP, RespCode, _RespMsg}
-                         ,RespHeaders
-                         ,_RespBody
-                         }}} when 300 =< RespCode
-                                  andalso RespCode < 400 ->
-            note_request_id(RespHeaders),
-            lager:debug("got redirect url for app"),
-            {'redirect', kz_http_util:get_resp_header("location", RespHeaders)};
-        {'http', {ReqId, {'error', E}}} ->
-            handle_error(E);
-        {'http', {ReqId, _Msg}} ->
-            {'continue', FetchParams};
-        {'http', {ReqId, 'stream_start', RespHeaders}} ->
-            note_request_id(RespHeaders),
-            receive_app_response(ReqId, FetchParams#{resp_headers=>RespHeaders});
-        {'http',{ReqId, 'stream', RespBody}} ->
-            receive_app_response(ReqId, FetchParams#{resp_body=> <<Body/binary, RespBody/binary>>});
-        {'http',{ReqId, 'stream_end', _RespHeaders}} ->
-            {'finished', FetchParams};
-        _Msg ->
-            lager:info("ignoring ~p", [_Msg]),
-            receive_app_response(ReqId, FetchParams)
+        Msg -> handle_app_response_message(ReqId, FetchParams, Msg)
     after
         Timeout ->
             lager:error("timed out waiting for http response"),
             {'error', 'timeout'}
     end.
+
+handle_app_response_message(_ReqId, _FetchParams, {'error', Error}) ->
+    handle_error(Error);
+handle_app_response_message(ReqId, _FetchParams, {'http', {ReqId, {{_HTTP, 404, _RespMsg}
+                                                                  ,RespHeaders
+                                                                  ,_RespBody
+                                                                  }}}) ->
+    note_request_id(RespHeaders),
+    lager:info("failed to find requested app/version"),
+    {'error', 'not_found'};
+handle_app_response_message(ReqId, _FetchParams, {'http', {ReqId, {{_HTTP, RespCode, _RespMsg}
+                                                                  ,RespHeaders
+                                                                  ,_RespBody
+                                                                  }}})
+  when RespCode >= 400 ->
+    note_request_id(RespHeaders),
+    lager:error("failure fetching app: ~p: ~s", [RespCode, _RespBody]),
+    {'error', RespCode};
+handle_app_response_message(ReqId, _FetchParams, {'http', {ReqId, {{_HTTP, RespCode, _RespMsg}
+                                                                  ,RespHeaders
+                                                                  ,_RespBody
+                                                                  }}})
+  when 300 =< RespCode
+       andalso RespCode < 400 ->
+    note_request_id(RespHeaders),
+    lager:debug("got redirect url for app"),
+    {'redirect', kz_http_util:get_resp_header("location", RespHeaders)};
+handle_app_response_message(ReqId, _FetchParams, {'http', {ReqId, {'error', E}}}) ->
+    handle_error(E);
+handle_app_response_message(ReqId, FetchParams, {'http', {ReqId, _Msg}}) ->
+    {'continue', FetchParams};
+handle_app_response_message(ReqId, FetchParams, {'http', {ReqId, 'stream_start', RespHeaders}}) ->
+    note_request_id(RespHeaders),
+    receive_app_response(ReqId, FetchParams#{resp_headers=>RespHeaders});
+handle_app_response_message(ReqId, #{resp_body := Body}=FetchParams, {'http',{ReqId, 'stream', RespBody}}) ->
+    receive_app_response(ReqId, FetchParams#{resp_body=> <<Body/binary, RespBody/binary>>});
+handle_app_response_message(ReqId, FetchParams, {'http',{ReqId, 'stream_end', _RespHeaders}}) ->
+    {'finished', FetchParams};
+handle_app_response_message(ReqId, FetchParams, _Msg) ->
+    lager:info("ignoring ~p", [_Msg]),
+    receive_app_response(ReqId, FetchParams).
 
 -spec handle_error(any()) -> {'error', 'failed_to_connect' | 'failure'}.
 handle_error({'failed_connect',[{'to_address',{_Host,_Port}}
@@ -341,28 +348,22 @@ handle_error(_E) ->
 handle_received_app(#{resp_body := Archive
                      ,resp_headers := RespHeaders
                      ,app_name := AppName
-                     ,parent_app := ParentApp
                      }) ->
     note_request_id(RespHeaders),
     CT = props:get_value("content-type", RespHeaders),
-    try appex_bluepak:load_app(ParentApp, AppName, Archive, CT)
+    try appex_bluepak:load_app(AppName, Archive, CT)
     catch
         'error':{'badmatch',{'error',{'running',_App}}} ->
             lager:info("~s is already running", [_App]),
-            {'error',{'running',_App}};
+            {'error', {'running',_App}};
         _E:_R:ST ->
             lager:error("failed to extract app archive: ~s: ~p", [_E, _R]),
             kz_log:log_stacktrace(ST),
             {'error', 'failed_to_load'}
     end.
 
--spec maybe_redirect({'ok', appex_bluepak:loaded()} | {'error', any()} | {'redirect', kz_term:api_string()}, map()) ->
-          {'ok', appex_bluepak:loaded()} |
-          {'error', any()}.
-maybe_redirect({'error', _}=Error, _FetchParams) ->
-    Error;
-maybe_redirect({'ok', _}=OK, _FetchParams) ->
-    OK;
+-spec maybe_redirect({'redirect', kz_term:api_string()}, map()) ->
+          recv_app_resp().
 maybe_redirect({'redirect', 'undefined'}, _FetchParams) ->
     lager:error("redirect has no location url"),
     {'error', "bad_redirect"};
@@ -383,12 +384,9 @@ maybe_redirect({'redirect', LocationUrl}, #{app_name := AppName}=FetchParams) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_license_url(kz_term:ne_binary(), atom(), atom()) -> kz_http:url().
-fetch_license_url(ClusterId, AppName, AppName) ->
-    appex_server_url([kz_binary:join([<<"api/appex/license">>, ClusterId, <<"packages">>, AppName], <<"/">>)]);
-fetch_license_url(ClusterId, ParentApp, AppName) ->
-    appex_server_url([kz_binary:join([<<"api/appex/license">>, ClusterId, <<"packages">>, ParentApp, AppName], <<"/">>)]).
-
+-spec fetch_license_url(kz_term:ne_binary(), atom()) -> kz_http:url().
+fetch_license_url(ClusterId, AppName) ->
+    appex_server_url([kz_binary:join([<<"api/appex/license">>, ClusterId, <<"packages">>, AppName], <<"/">>)]).
 
 %%%=============================================================================
 %%% Link/Unlink Functions

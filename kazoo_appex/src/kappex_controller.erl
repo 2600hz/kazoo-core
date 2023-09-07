@@ -143,7 +143,6 @@ handle_call('loaded', _From, #state{loaded=Loaded}=State) ->
 handle_call('running', _From, #state{running_pid_ref=PidRefs}=State) ->
     {'reply', maps:values(PidRefs), State};
 handle_call({'load_app', ExternalApp}, From, #state{loaded=LoadedApps}=State) ->
-    App = external_app(ExternalApp),
     %% FIXME: just like ensure_all_started, ensure the app and all of
     %% its deps and deps of dep are fully loaded so when
     %% kapps_controller calls ensure_all_started eveything is loaded
@@ -178,20 +177,20 @@ handle_call({'load_app', ExternalApp}, From, #state{loaded=LoadedApps}=State) ->
     %% - ensure_all_loaded: fold over app's applications recursively and check all deps are loaded
     %%   - fetch all not loaded apps one-by-one, fetch_resp and call ensure_all_loaded on them?
     %%   - fetch_resp after each fetch, and before spawning a new fetch check if it is loaded
-    case lists:member(App, LoadedApps)
-        andalso application:load(App)
+    case lists:member(ExternalApp, LoadedApps)
+        andalso application:load(ExternalApp)
     of
         'ok' ->
-            lager:debug("app ~s was fetched before, loading it", [App]),
-            {'reply', 'true', State#state{loaded=lists:usort([App | LoadedApps])}};
-        {'error', {'already_loaded', App}} ->
-            lager:debug("app ~s is already fetched and loaded", [App]),
-            {'reply', 'true', State#state{loaded=lists:usort([App | LoadedApps])}};
+            lager:debug("app ~s was fetched before, loading it", [ExternalApp]),
+            {'reply', 'true', State#state{loaded=lists:usort([ExternalApp | LoadedApps])}};
+        {'error', {'already_loaded', ExternalApp}} ->
+            lager:debug("app ~s is already fetched and loaded", [ExternalApp]),
+            {'reply', 'true', State#state{loaded=lists:usort([ExternalApp | LoadedApps])}};
         {'error', _Reason} ->
-            lager:debug("app ~s is listed but not loaded: ~p", [App, _Reason]),
+            lager:debug("app ~s is listed but not loaded: ~p", [ExternalApp, _Reason]),
             handle_load_app(ExternalApp, From, State);
         'false' ->
-            lager:debug("app ~s not loaded, checking listing", [App]),
+            lager:debug("app ~s not loaded, checking listing", [ExternalApp]),
             handle_load_app(ExternalApp, From, State)
     end;
 handle_call(_Req, _From, State) ->
@@ -274,31 +273,15 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal Functions
 %%%=============================================================================
 
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec external_app(external_app()) -> atom().
-external_app({_ParentApp, Dep}) -> Dep;
-external_app(App) -> App.
-
--spec external_parent_app(external_app()) -> atom().
-external_parent_app({ParentApp, _Dep}) -> ParentApp;
-external_parent_app(App) -> App.
-
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_load_app(external_app(), kz_term:pid_ref(), state()) -> {'noreply', state()}.
 handle_load_app(ExternalApp, From, #state{fetchings=Fetchings}=State) ->
-    App = external_app(ExternalApp),
-    ParentApp = external_parent_app(ExternalApp),
-    AppName = kz_term:to_binary(App),
     PidRef = start_fetch_process(ExternalApp, From),
-    lager:info("starting a fetch process for app ~s (parent: ~s) in ~p", [AppName, ParentApp, PidRef]),
-    {'noreply', State#state{fetchings=[#fetch{app=App
+    lager:info("starting a fetch process for app ~s in ~p", [ExternalApp, PidRef]),
+    {'noreply', State#state{fetchings=[#fetch{app=ExternalApp
                                              ,from=From
                                              ,fetch=PidRef
                                              }
@@ -310,15 +293,12 @@ handle_load_app(ExternalApp, From, #state{fetchings=Fetchings}=State) ->
 start_fetch_process(ExternalApp, From) ->
     spawn_monitor(
       fun() ->
-              ParentApp = external_parent_app(ExternalApp),
-              App = external_app(ExternalApp),
-
-              case appex_client_client:load_app(ParentApp, App) of
+              case appex_client_client:load_app(ExternalApp) of
                   {'ok', _Loaded} ->
-                      _ = kz_nodes_bindings:bind(App, ?MODULE, 'kapp_heartbeat'),
+                      _ = kz_nodes_bindings:bind(ExternalApp, ?MODULE, 'kapp_heartbeat'),
                       gen_server:reply(From, 'true');
                   {'error', _Reason} ->
-                      lager:error("failed to fetch and extract app ~s: ~p", [App, _Reason]),
+                      lager:error("failed to fetch and extract app ~s: ~p", [ExternalApp, _Reason]),
                       gen_server:reply(From, 'false')
               end
       end
