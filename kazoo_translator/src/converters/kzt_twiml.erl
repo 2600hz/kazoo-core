@@ -389,7 +389,7 @@ finish_record_call(Call, Props, MediaName) ->
               ,{fun kzt_util:set_voice_uri/2, NewUri}
               ],
 
-    RecordingUrl = props:get_value('recordingUrl', Props, NewUri),
+    RecordingUrl = props:get_binary_value('recordingUrl', Props, NewUri),
     AccountId = kapps_call:account_id(Call),
     Setters1 =
         case kapps_call_recording:should_store_recording(AccountId, RecordingUrl) of
