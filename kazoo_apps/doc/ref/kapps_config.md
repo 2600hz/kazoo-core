@@ -76,6 +76,7 @@
 | `lock_db/0` |  | |
 | `lock_db/1` | `(false) | (true) | (Value)` | |
 | `migrate/0` |  | |
+| `migrate_config_setting/1` | `(_)` | |
 | `set/3` | `(Category,Key,Value)` | |
 | `set/4` | `(Category,Key,Value,Node)` | |
 | `set_boolean/3` | `(Category,Key,Value)` | |
