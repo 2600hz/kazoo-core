@@ -174,7 +174,17 @@ sip_dial_string(#{profile := Profile}, Uri) ->
     SIPInterface = kz_json:get_ne_binary_value(<<"SIP-Interface">>, Profile, default_sip_interface()),
     list_to_binary(["sofia/", SIPInterface, "/", Uri]).
 
+is_ip_auth(#{endpoint := Endpoint} = _Context) ->
+    kzd_devices:sip_method(Endpoint) =:= <<"ip">>
+        andalso kzd_devices:sip_ip(Endpoint) =/= undefined
+        andalso kz_network_utils:is_ip(kzd_devices:sip_ip(Endpoint)).
+
 kz_dial_string(Context) ->
+    kz_dial_string(Context, is_ip_auth(Context)).
+
+kz_dial_string(#{endpoint_uri := Uri} = Context, true) ->
+    sip_dial_string(Context, Uri);
+kz_dial_string(Context, false) ->
     case is_meta_dial_enabled(Context) of
         true -> kz_binary:join([kz_contact(Context), meta_dial_string(Context)], <<",">>);
         false -> kz_contact(Context)
