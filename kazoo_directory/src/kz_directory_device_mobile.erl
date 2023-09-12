@@ -105,7 +105,7 @@ mobile_route_uri() ->
 -spec sip_route_uri(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route_uri(_Endpoint) ->
     case mobile_route_uri() of
-        undefined -> undefined;
+        'undefined' -> 'undefined';
         <<"sip:", _/binary>> = Path -> Path;
         <<"<sip:", _/binary>> = Path -> Path;
         Path -> <<"sip:", Path/binary>>

@@ -126,8 +126,8 @@ dial_members(#{profile := Profile}) ->
     kz_json:get_ne_binaries(<<"Members">>, Profile, []).
 
 is_meta_dial_enabled(#{endpoint := Endpoint}) ->
-    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"user">>], Endpoint, undefined) of
-        undefined -> kz_app_config:is_true(?APP, <<"metadial.user">>, false);
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"user">>], Endpoint, 'undefined') of
+        'undefined' -> kz_app_config:is_true(?APP, <<"metadial.user">>, 'false');
         Override -> Override
     end.
 
@@ -137,13 +137,13 @@ meta_dial_string(#{endpoint_id := Id}, Default) ->
 meta_dial_string(#{endpoint_id := Id}) ->
     list_to_binary(["${kz_meta_dialstring(", Id, ")}"]).
 
-dial_string(_Context, [], false) ->
+dial_string(_Context, [], 'false') ->
     ?NO_ENDPOINTS;
-dial_string(Context, [], true) ->
+dial_string(Context, [], 'true') ->
     meta_dial_string(Context, ?NO_ENDPOINTS);
-dial_string(Context, Members, true) ->
+dial_string(Context, Members, 'true') ->
     kz_binary:join(kz_dial_string(Context, Members) ++ [meta_dial_string(Context)], <<",">>);
-dial_string(Context, Members, false) ->
+dial_string(Context, Members, 'false') ->
     kz_binary:join(kz_dial_string(Context, Members), <<",">>).
 
 kz_dial_string(#{account_id := AccountId}, Members) ->
@@ -206,7 +206,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options) ->
             ,{<<"Username">>, kzd_devices:sip_username(Endpoint)}
             ,{<<"SIP-Invite-Domain">>, Realm}
             ,{<<"Ignore-Early-Media">>, 'true'}
-            ,{<<"Endpoint-Mark-Ring-Ready">>, true}
+            ,{<<"Endpoint-Mark-Ring-Ready">>, 'true'}
             ],
     CCVs = kz_json:from_list(Props),
 
@@ -233,12 +233,12 @@ merge_default_ccvs(DefaultCCVs, CCVs) ->
     kz_json:merge([SetCCVs, CCVs, UnsetCCVs]).
 
 -spec default_ccvs_unset(kz_json:json_kv()) -> boolean().
-default_ccvs_unset({_, null}) -> true;
-default_ccvs_unset(_) -> false.
+default_ccvs_unset({_, 'null'}) -> 'true';
+default_ccvs_unset(_) -> 'false'.
 
 -spec default_ccvs_set(kz_json:json_kv()) -> boolean().
-default_ccvs_set({_, null}) -> false;
-default_ccvs_set(_) -> true.
+default_ccvs_set({_, 'null'}) -> 'false';
+default_ccvs_set(_) -> 'true'.
 
 -spec presence_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 presence_id(Endpoint, CCVs) ->
@@ -250,18 +250,18 @@ presence_id(Endpoint) ->
 
 -spec is_presence_id_ensure_realm_enabled(kz_json:object()) -> boolean().
 is_presence_id_ensure_realm_enabled(Endpoint) ->
-    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"ensure_realm">>], Endpoint, undefined) of
-        undefined -> kz_app_config:is_true(?APP, <<"presence_id.ensure_realm">>, true);
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"ensure_realm">>], Endpoint, 'undefined') of
+        'undefined' -> kz_app_config:is_true(?APP, <<"presence_id.ensure_realm">>, 'true');
         Override -> Override
     end.
 
 -spec maybe_fix_presence_id(kz_json:object(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
-maybe_fix_presence_id(_Endpoint, undefined) ->
-    undefined;
+maybe_fix_presence_id(_Endpoint, 'undefined') ->
+    'undefined';
 maybe_fix_presence_id(Endpoint, PresenceId) ->
     case is_presence_id_ensure_realm_enabled(Endpoint) of
-        true -> ensure_presence_id_realm(Endpoint, PresenceId);
-        false -> PresenceId
+        'true' -> ensure_presence_id_realm(Endpoint, PresenceId);
+        'false' -> PresenceId
     end.
 
 ensure_presence_id_realm(Endpoint, PresenceId) ->

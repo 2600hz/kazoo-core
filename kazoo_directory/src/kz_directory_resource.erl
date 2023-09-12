@@ -107,11 +107,11 @@ find_resource_id(#{endpoint_id := EndpointId, realm_id := MasterId, master_id :=
                                    ,?KZ_OFFNET_DB
                                    ], EndpointId
                                   )
-        ,is_global => true
+        ,is_global => 'true'
         };
 find_resource_id(#{endpoint_id := EndpointId, realm_id := AccountId} = Map) ->
     Map#{resource => kz_datamgr:open_cache_doc(kzs_util:format_account_db(AccountId), EndpointId)
-        ,is_global => false
+        ,is_global => 'false'
         }.
 
 -spec set_resource_id(resource_context()) -> resource_context().

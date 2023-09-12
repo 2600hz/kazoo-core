@@ -61,7 +61,7 @@ handle_change(Db, DeviceId, JObj) ->
                ]),
     handle_changed(AccountId, OwnerIdsToErase).
 
-handle_changed(_AccountId, []) -> ok;
+handle_changed(_AccountId, []) -> 'ok';
 handle_changed(AccountId, ToErase) ->
     lager:debug("erasing owner_ids ~s", [kz_binary:join(ToErase, <<"|">>)]),
     lists:foreach(fun(Key) -> kz_cache:erase_local(?CACHE_NAME, {Key, AccountId}) end, ToErase).
@@ -121,4 +121,4 @@ publish_cache_clear(EndpointIds) ->
     kz_amqp_worker:cast(Req, fun kapi_directory:publish_cache_clear/1).
 
 publish_cache_logid() ->
-    lists:last(binary:split(kz_term:to_binary(kz_log:get_callid()), <<"|">>, [global])).
+    lists:last(binary:split(kz_term:to_binary(kz_log:get_callid()), <<"|">>, ['global'])).
