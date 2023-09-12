@@ -116,7 +116,15 @@ bypass_media(Endpoint) ->
 
 -spec invite_format(kz_json:object()) -> kz_term:api_ne_binary().
 invite_format(Endpoint) ->
-    kzd_devices:sip_invite_format(Endpoint).
+    case is_ip_auth(Endpoint) of
+        true -> <<"route">>;
+        false -> kzd_devices:sip_invite_format(Endpoint)
+    end.
+
+is_ip_auth(Endpoint) ->
+    kzd_devices:sip_method(Endpoint) =:= <<"ip">>
+        andalso kzd_devices:sip_ip(Endpoint) =/= undefined
+        andalso kz_network_utils:is_ip(kzd_devices:sip_ip(Endpoint)).
 
 -spec sip_route(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route(Endpoint) ->
@@ -124,7 +132,17 @@ sip_route(Endpoint) ->
 
 -spec sip_route_uri(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route_uri(Endpoint) ->
-    kzd_devices:sip_route_uri(Endpoint).
+    sip_route_uri(kzd_devices:sip_route_uri(Endpoint), is_ip_auth(Endpoint), sip_ip_uri(Endpoint)).
+
+sip_route_uri(Uri, _, undefined) -> Uri;
+sip_route_uri(undefined, true, Uri) -> Uri;
+sip_route_uri(Uri, _, _) -> Uri.
+
+sip_ip_uri(Endpoint) ->
+    case kzd_devices:sip_ip(Endpoint) of
+        undefined -> undefined;
+        IP -> list_to_binary(["sip:", IP])
+    end.
 
 -spec sip_interface(kz_json:object()) -> kz_term:api_ne_binary().
 sip_interface(Endpoint) ->
