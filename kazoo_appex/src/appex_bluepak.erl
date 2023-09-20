@@ -58,6 +58,7 @@ load_app(App, Archive, ContentType) ->
                     lager:error("invalid erlang app, acrhive contained no .app"),
                     {'error', 'no_app_spec'};
                 {'ok', #load_app{app_spec={'application', App, _}}=LoadApp} ->
+                    prior_cleanup(App),
                     load_app(LoadApp);
                 {'ok', #load_app{app_spec={'application', OtherApp, _}}} ->
                     lager:error("invalid app, expected ~s got ~s", [App, OtherApp]),
@@ -79,28 +80,42 @@ app_type("application/vnd.bluepak+commland") -> 'commland';
 app_type(_Other) -> 'unknown'.
 
 -spec set_load_params(load_app()) -> {'ok', load_app()} | {'error', 'no_api_url'}.
-set_load_params(#load_app{app_spec=_AppSpec
-                         ,app_metadata=AppMeta
+set_load_params(#load_app{app_type='kazoo'}=LoadApp) ->
+    {'ok', update_load_app(LoadApp)};
+set_load_params(#load_app{}=LoadApp) ->
+    set_load_params(LoadApp, api_url()).
+
+set_load_params(_LoadApp, {'error', _}=Error) ->
+    Error;
+set_load_params(LoadApp, {'ok', APIUrl}) ->
+    NewLoad = update_load_app(LoadApp),
+    {'ok', NewLoad#load_app{api_url=APIUrl}}.
+
+update_load_app(#load_app{app_metadata=AppMeta
                          ,app=App
-                         ,app_type=AppType
-                         }=LoadApp) ->
+                         }=LoadApp
+               ) ->
     AppVsn = kz_json:get_ne_binary_value(<<"version">>, AppMeta, <<"0.1.0">>),
     AppName = kz_term:to_binary(App),
 
-    NewLoad = LoadApp#load_app{app_vsn=AppVsn
-                              ,app_dir=kz_term:to_binary([AppName, "-", AppVsn])
-                              ,base_path=base_path()
-                              },
-    case AppType of
-        'kazoo' ->
-            {'ok', NewLoad};
-        _ ->
-            case api_url() of
-                {'ok', ApiUrl} ->
-                    {'ok', NewLoad#load_app{api_url=ApiUrl}};
-                {'error', _}=Error ->
-                    Error
-            end
+    LoadApp#load_app{app_vsn=AppVsn
+                    ,app_dir=kz_term:to_binary([AppName, "-", AppVsn])
+                    ,base_path=base_path()
+                    }.
+
+-spec prior_cleanup(App::atom()) -> 'ok'.
+prior_cleanup(App) ->
+    AppDir = lists:concat([App, "-*"]),
+    BasePath = code:lib_dir(),
+    case filelib:wildcard(AppDir, BasePath) of
+        [] -> 'ok';
+        DirList ->
+            _ = [file:del_dir_r(filename:join(BasePath, Dir))
+                 || Dir <- DirList
+                ],
+            lager:warning("before loading ~p app; ~s old directory(s) is/are deleted from ~s path"
+                         ,[App, string:join(DirList, ", "), BasePath]
+                         )
     end.
 
 -spec load_app(load_app()) -> load_resp().
