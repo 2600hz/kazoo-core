@@ -164,7 +164,7 @@ ensure_external_started(Parent, Application, Started) ->
             end;
         {'error', {"no such file or directory", DotApp}} ->
             lager:info("app ~s dependency ~s (~s) not found, asking around", [Parent, Application, DotApp]),
-            case load_external_app({Parent, Application}) of
+            case load_external_app(Application) of
                 'true' ->
                     lager:info("dependency ~s resolved, trying to start it again", [Application]),
                     ensure_external_started(Parent, Application, Started);
@@ -176,7 +176,7 @@ ensure_external_started(Parent, Application, Started) ->
             {'error', {Application, Reason}, Started}
     end.
 
--spec load_external_app(atom() | {atom(), atom()}) -> boolean().
+-spec load_external_app(atom()) -> boolean().
 load_external_app(ExternalApp) ->
     lists:any(fun kz_term:is_true/1, kazoo_bindings:map(<<"app.fetch">>, ExternalApp)).
 

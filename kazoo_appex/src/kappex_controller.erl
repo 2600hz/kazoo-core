@@ -38,7 +38,7 @@
 
 -include("appex_client.hrl").
 
--type external_app() :: atom() | {atom(), atom()}.
+-type external_app() :: atom().
 
 -record(fetch, {app :: atom()
                ,fetch :: kz_term:pid_ref()
