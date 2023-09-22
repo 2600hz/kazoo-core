@@ -79,7 +79,7 @@ link_cluster(ReqData) ->
             case kz_json:get_value(<<"error">>, Body) of
                 'undefined' ->
                     lager:info("successfully linked cluster to marketplace"),
-                    process_link_cluster(ReqData, Body);
+                    process_link_cluster(Body);
                 Error ->
                     lager:error("failed to connect to appex server: ~p", [Error]),
                     {'error', Error}
@@ -402,8 +402,7 @@ fetch_license_url(ClusterId, AppName) ->
 %% @end
 %%------------------------------------------------------------------------------
 
-process_link_cluster(ReqData, Body) ->
-    ShouldRestart = kz_json:is_true(<<"restart_appex_client">>, ReqData),
+process_link_cluster(Body) ->
     case kz_json:get_ne_json_value(<<"data">>, Body) of
         'undefined' ->
             lager:debug("git bad response data from appex server: undefined"),
@@ -413,16 +412,6 @@ process_link_cluster(ReqData, Body) ->
             _ = appex_client_config:set_cluster_secret(Secret),
             {'ok', Data}
     end.
-
-maybe_restart_appex_client('true') ->
-    Restart = fun() ->
-                      _ = application:stop(?APP),
-                      application:start(?APP)
-              end,
-    _ = spawn(Restart),
-    'ok';
-maybe_restart_appex_client('false') ->
-    'ok'.
 
 link_payload(JObj) ->
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
