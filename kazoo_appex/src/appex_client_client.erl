@@ -404,7 +404,7 @@ fetch_license_url(ClusterId, AppName) ->
 
 process_link_cluster(ReqData, Body) ->
     ShouldRestart = kz_json:is_true(<<"restart_appex_client">>, ReqData),
-    case kz_json:get_ne_json_value([<<"data">>, <<"attributes">>], Body) of
+    case kz_json:get_ne_json_value(<<"data">>, Body) of
         'undefined' ->
             lager:debug("git bad response data from appex server: undefined"),
             internal_server_error();
