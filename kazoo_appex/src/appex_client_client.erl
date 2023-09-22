@@ -68,7 +68,7 @@ load_app(App) ->
 link_cluster(ReqData) ->
     lager:info("linking cluster to marketplace"),
     Secret = kz_json:get_ne_binary_value(<<"access_code">>, ReqData, <<>>),
-    Headers = [{<<"authorization">>, <<"APPEX-LINK ", Secret/binary>>}
+    Headers = [{<<"authorization">>, <<"Bearer ", Secret/binary>>}
               ,{<<"content-type">>, <<"application/json">>}
               ],
     Payload = link_payload(ReqData),
