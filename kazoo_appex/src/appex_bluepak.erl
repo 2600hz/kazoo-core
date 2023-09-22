@@ -34,7 +34,7 @@
 -type loaded() :: #{app := atom()
                    ,app_name := kz_term:ne_binary()
                    ,app_spec := {'application', atom(), kz_term:proplist()}
-                   ,app_type := kz_term:ne_binary()
+                   ,app_type := app_type()
                    ,app_vsn := kz_term:ne_binary()
                    }.
 -type load_ret() :: {'ok', load_app()} | {'error', any()}.

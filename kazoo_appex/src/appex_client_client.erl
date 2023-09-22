@@ -16,6 +16,9 @@
         ,link_cluster/1
         ,unlink_cluster/0
         ,fetch_license/1
+        ,get_cluster/0
+        ,update_cluster/1
+        ,reset_cluster_secret/0
         ]).
 
 -include("appex_client.hrl").
@@ -31,17 +34,11 @@
 load_app(App) ->
     ClusterId = appex_client_config:cluster_id(),
     Headers = fetch_app_headers(),
-
+    Payload = fetch_app_payload(),
     %% Link = kz_json:get_ne_binary_value(<<"link">>, AppMeta),
-    AppLink = app_link(ClusterId, App),
-
-    not kz_term:is_ne_binary(AppLink)
-        andalso throw({'error', 'no_app_link'}),
-
-    URL = appex_server_url([<<"api/">>, AppLink]),
-
+    URL = appex_server_url([<<"api/client/packages/">>, kz_term:to_binary(App)]),
     lager:debug("fetching app ~s: ~s", [App, URL]),
-    case kz_http:async_req(self(), 'get', URL, Headers, <<>>, fetch_app_options()) of
+    case kz_http:async_req(self(), 'post', URL, Headers, kz_json:encode(Payload), fetch_app_options()) of
         {'http_req_id', ReqId} ->
             FetchParams = #{cluster_id => ClusterId
                            ,resp_body => <<>>
@@ -55,7 +52,7 @@ load_app(App) ->
                 {'error', _}=Error -> Error
             end;
         {'error', _Reason}=Error ->
-            lager:error("failed to query for ~s: ~p", [AppLink, _Reason]),
+            lager:error("failed to connect to appex server: ~p", [_Reason]),
             Error
     end.
 
@@ -68,21 +65,21 @@ load_app(App) ->
 link_cluster(ReqData) ->
     lager:info("linking cluster to marketplace"),
     Secret = kz_json:get_ne_binary_value(<<"access_code">>, ReqData, <<>>),
-    Headers = [{<<"authorization">>, <<"APPEX-LINK ", Secret/binary>>}
+    Headers = [{<<"Authorization">>, <<"Bearer ", Secret/binary>>}
               ,{<<"content-type">>, <<"application/json">>}
               ],
     Payload = link_payload(ReqData),
-    URL = appex_server_url([<<"api/appex/cluster">>]),
+    URL = appex_server_url([<<"api/client/cluster/link">>]),
     case kz_http:post(URL, Headers, kz_json:encode(Payload)) of
         {'ok', Code, _RespHeaders, RespBody} ->
             Body = kz_json:decode(RespBody, decode_error(Code)),
-            case kz_json:get_value(<<"error">>, Body) of
+            case kz_json:get_json_value(<<"error">>, Body) of
                 'undefined' ->
                     lager:info("successfully linked cluster to marketplace"),
-                    process_link_cluster(ReqData, Body);
-                Error ->
-                    lager:error("failed to connect to appex server: ~p", [Error]),
-                    {'error', Error}
+                    process_link_cluster(Body);
+                ErrorJObj ->
+                    lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
+                    {'error', ErrorJObj}
             end;
         {'error', _Reason} ->
             lager:error("failed to connect to appex server: ~p", [_Reason]),
@@ -99,18 +96,11 @@ link_cluster(ReqData) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec unlink_cluster() ->
-          {'ok', kz_json:object()} |
           {'ok' | 'error', kz_json:object()}.
 unlink_cluster() ->
     lager:info("unlinking cluster from marketplace"),
     Headers = appex_server_authorization_header(),
-    ClusterId = appex_client_config:cluster_id(),
-    URL = appex_server_url(
-            [kz_binary:join(
-               [<<"api/appex/cluster">>, ClusterId], <<"/">>
-              )
-            ]
-           ),
+    URL = appex_server_url([<<"api/client/cluster">>]),
     case kz_http:delete(URL, Headers) of
         {'ok', 401, _RespHeaders, _RespBody} ->
             %% in case you unlinked the cluster directly from marketplace portal and want to re-link the cluster again
@@ -121,13 +111,97 @@ unlink_cluster() ->
             {'ok', kz_json:new()};
         {'ok', Code, _RespHeaders, RespBody} ->
             Body = kz_json:decode(RespBody, decode_error(Code)),
-            case kz_json:get_value(<<"error">>, Body) of
+            case kz_json:get_json_value(<<"error">>, Body) of
                 'undefined' ->
                     lager:info("successfully unlinked cluster from marketplace"),
                     process_unlink_cluster(Body);
-                Error ->
-                    lager:error("failed to connect to appex server: ~p", [Error]),
-                    {'error', Error}
+                ErrorJObj ->
+                    lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
+                    {'error', ErrorJObj}
+            end;
+        {'error', _Reason} ->
+            lager:error("failed to connect to appex server: ~p", [_Reason]),
+            {'error', kz_json:from_list(
+                        [{<<"name">>, <<"NetworkError">>}
+                        ,{<<"message">>, <<"Can not connect to server">>}
+                        ]
+                       )
+            }
+    end.
+
+-spec get_cluster() ->
+          {'ok' | 'error', kz_json:object()}.
+get_cluster() ->
+    lager:info("get cluster from marketplace"),
+    Headers = appex_server_authorization_header(),
+    URL = appex_server_url([<<"api/client/cluster">>]),
+    case kz_http:get(URL, Headers) of
+        {'ok', Code, _RespHeaders, RespBody} ->
+            Body = kz_json:decode(RespBody, decode_error(Code)),
+            case kz_json:get_json_value(<<"error">>, Body) of
+                'undefined' ->
+                    lager:info("successfully get cluster info from marketplace"),
+                    process_get_cluster(Body);
+                ErrorJObj ->
+                    lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
+                    {'error', ErrorJObj}
+            end;
+        {'error', _Reason} ->
+            lager:error("failed to connect to appex server: ~p", [_Reason]),
+            {'error', kz_json:from_list(
+                        [{<<"name">>, <<"NetworkError">>}
+                        ,{<<"message">>, <<"Can not connect to server">>}
+                        ]
+                       )
+            }
+    end.
+
+-spec update_cluster(kz_json:object()) ->
+          {'ok' | 'error', kz_json:object()}.
+update_cluster(ReqData) ->
+    lager:info("update cluster info in marketplace"),
+    Headers = [{<<"content-type">>, <<"application/json">>}
+              | appex_server_authorization_header()
+              ],
+    URL = appex_server_url([<<"api/client/cluster">>]),
+    Payload = kz_json:from_list([{<<"cluster">>, ReqData}]),
+    case kz_http:put(URL, Headers, kz_json:encode(Payload)) of
+        {'ok', Code, _RespHeaders, RespBody} ->
+            Body = kz_json:decode(RespBody, decode_error(Code)),
+            case kz_json:get_json_value(<<"error">>, Body) of
+                'undefined' ->
+                    lager:info("successfully updated cluster to marketplace"),
+                    process_get_cluster(Body);
+                ErrorJObj ->
+                    lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
+                    {'error', ErrorJObj}
+            end;
+        {'error', _Reason} ->
+            lager:error("failed to connect to appex server: ~p", [_Reason]),
+            {'error', kz_json:from_list(
+                        [{<<"name">>, <<"NetworkError">>}
+                        ,{<<"message">>, <<"Can not connect to server">>}
+                        ]
+                       )
+            }
+    end.
+
+-spec reset_cluster_secret() ->
+          {'ok' | 'error', kz_json:object()}.
+reset_cluster_secret() ->
+    lager:info("reset cluster secret in marketplace"),
+    Headers = appex_server_authorization_header(),
+    URL = appex_server_url([<<"api/client/cluster/reset-secret">>]),
+    case kz_http:patch(URL, Headers) of
+        {'ok', Code, _RespHeaders, RespBody} ->
+            Body = kz_json:decode(RespBody, decode_error(Code)),
+            case kz_json:get_json_value(<<"error">>, Body) of
+                'undefined' ->
+                    lager:info("successfully reset the cluster secret in marketplace"),
+                    process_link_cluster(Body);
+                ErrorJObj ->
+                    lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
+                    {'error', ErrorJObj}
             end;
         {'error', _Reason} ->
             lager:error("failed to connect to appex server: ~p", [_Reason]),
@@ -151,8 +225,7 @@ fetch_license('undefined') ->
 fetch_license(App) ->
     AppName = kz_term:to_binary(App),
     Headers = appex_server_authorization_header(),
-    ClusterId = appex_client_config:cluster_id(),
-    URL = fetch_license_url(ClusterId, App),
+    URL = appex_server_url([<<"api/client/license/">>, kz_term:to_binary(App)]),
     case kz_http:get(URL, Headers) of
         {'ok', Code, _RespHeaders, RespBody} when Code =< 400 ->
             JObj = kz_json:decode(RespBody, decode_error(Code)),
@@ -183,8 +256,15 @@ fetch_license(App) ->
 %%------------------------------------------------------------------------------
 -spec appex_server_authorization_header() -> kz_http:headers().
 appex_server_authorization_header() ->
-    Secret = appex_client_config:cluster_secret(),
-    [{<<"authorization">>, <<"APPEX ", Secret/binary>>}].
+    appex_server_authorization_header(appex_client_config:cluster_secret()).
+
+-spec appex_server_authorization_header(kz_term:api_ne_binary()) -> kz_http:headers().
+appex_server_authorization_header('undefined') -> [];
+
+appex_server_authorization_header(Secret) ->
+    ClusterId = appex_client_config:cluster_id(),
+    Encoded = base64:encode(<<ClusterId/binary, ":", Secret/binary>>),
+    [{<<"Authorization">>, <<"Bearer ", Encoded/binary>>}].
 
 -spec appex_server_url(iolist()) -> kz_http:url().
 appex_server_url(Path) ->
@@ -224,26 +304,15 @@ decode_error(Code) ->
 %%------------------------------------------------------------------------------
 -spec fetch_app_headers() -> kz_http:headers().
 fetch_app_headers() ->
-    props:filter_undefined(
-      [{<<"x-appex-kz-version">>, get_node_version(fun kapps_util:kazoo_version/0)}
-      ,{<<"x-appex-mui-version">>, get_node_version(fun kapps_util:monsterui_version/0)}
-      ,{<<"x-appex-commland-version">>, get_node_version(fun kapps_util:commland_version/0)}
-      ,{<<"x-appex-meta-kazoo-version">>, get_node_version(fun kapps_util:meta_kazoo_version/0)}
-      ,{<<"x-appex-os-type">>, get_node_version(fun kapps_util:os_type/0)}
-      ,{<<"x-appex-os-release">>, get_node_version(fun kapps_util:os_release/0)}
-      ,{<<"x-appex-arch-type">>, get_node_version(fun kapps_util:arch_type/0)}
-      ,{<<"x-appex-c-compiler">>, get_node_version(fun kapps_util:c_compiler/0)}
-      ,{<<"x-appex-otp-version">>, get_node_version(fun kapps_util:otp_version/0)}
-      ,{<<"accept">>, kz_binary:join(
-                        [<<"application/vnd.bluepak+", Suffix/binary>>
-                             || Suffix <- [<<"kazoo">>, <<"monster">>, <<"commland">>]
-                        ]
-                       ,<<", ">>
-                       )
-       }
-      | appex_server_authorization_header()
-      ]
-     ).
+    [{<<"Accept">>, kz_binary:join(
+                      [<<"application/vnd.bluepak+", Suffix/binary>>
+                           || Suffix <- [<<"kazoo">>, <<"monster">>, <<"commland">>]
+                      ]
+                     ,<<", ">>
+                     )
+     }
+    | appex_server_authorization_header()
+    ].
 
 -spec get_node_version(function()) -> kz_term:api_ne_binary().
 get_node_version(Fun) ->
@@ -253,9 +322,20 @@ get_node_version(Fun) ->
             'undefined'
     end.
 
--spec app_link(kz_term:ne_binary(), atom()) -> kz_http:url().
-app_link(ClusterId, App) ->
-    kz_binary:join([<<"appex/client">>, ClusterId, <<"packages">>, App], <<"/">>).
+-spec fetch_app_payload() -> kz_json:object().
+fetch_app_payload() ->
+    Data = props:filter_undefined(
+             [{<<"kz_core_version">>, get_node_version(fun kapps_util:kazoo_version/0)}
+             ,{<<"mui_version">>, get_node_version(fun kapps_util:monsterui_version/0)}
+             ,{<<"commland_version">>, get_node_version(fun kapps_util:commland_version/0)}
+             ,{<<"meta_kazoo_version">>, get_node_version(fun kapps_util:meta_kazoo_version/0)}
+             ,{<<"os_type">>, get_node_version(fun kapps_util:os_type/0)}
+             ,{<<"os_release">>, get_node_version(fun kapps_util:os_release/0)}
+             ,{<<"arch_type">>, get_node_version(fun kapps_util:arch_type/0)}
+             ,{<<"c_compiler">>, get_node_version(fun kapps_util:c_compiler/0)}
+             ,{<<"otp_version">>, get_node_version(fun kapps_util:otp_version/0)}
+             ]),
+    kz_json:from_list(Data).
 
 -spec fetch_app_options() -> kz_term:proplist().
 fetch_app_options() ->
@@ -382,18 +462,6 @@ maybe_redirect({'redirect', LocationUrl}, #{app_name := AppName}=FetchParams) ->
     end.
 
 %%%=============================================================================
-%%% Fetch License Functions
-%%%=============================================================================
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec fetch_license_url(kz_term:ne_binary(), atom()) -> kz_http:url().
-fetch_license_url(ClusterId, AppName) ->
-    appex_server_url([kz_binary:join([<<"api/appex/license">>, ClusterId, <<"packages">>, AppName], <<"/">>)]).
-
-%%%=============================================================================
 %%% Link/Unlink Functions
 %%%=============================================================================
 
@@ -401,52 +469,60 @@ fetch_license_url(ClusterId, AppName) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
-
-process_link_cluster(ReqData, Body) ->
-    ShouldRestart = kz_json:is_true(<<"restart_appex_client">>, ReqData),
-    case kz_json:get_ne_json_value([<<"data">>, <<"attributes">>], Body) of
+-spec process_link_cluster(kz_json:object()) ->
+          {'ok', kz_json:object()} |
+          {'error', kz_json:object()}.
+process_link_cluster(Body) ->
+    case kz_json:get_ne_json_value([<<"data">>], Body) of
         'undefined' ->
-            lager:debug("git bad response data from appex server: undefined"),
+            lager:debug("get bad response data from appex server: undefined"),
             internal_server_error();
         Data ->
             Secret = kz_json:get_ne_binary_value(<<"cluster_secret">>, Data),
             _ = appex_client_config:set_cluster_secret(Secret),
-            maybe_restart_appex_client(ShouldRestart),
             {'ok', kz_json:delete_key(<<"cluster_secret">>, Data)}
     end.
 
-maybe_restart_appex_client('true') ->
-    Restart = fun() ->
-                      _ = application:stop(?APP),
-                      application:start(?APP)
-              end,
-    _ = spawn(Restart),
-    'ok';
-maybe_restart_appex_client('false') ->
-    'ok'.
-
+-spec link_payload(kz_json:object()) ->  kz_json:object().
 link_payload(JObj) ->
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
     {'ok', MasterDoc} = kzd_accounts:fetch(MasterAccountId),
     DefaultName = kz_binary:join([kzd_accounts:name(MasterDoc), <<"'s Cluster">>], <<" ">>),
     ClusterName = kz_json:get_ne_binary_value(<<"name">>, JObj, DefaultName),
+    IsAio = kapps_config:get_ne_binary(?CONFIG_CAT, <<"is_aio_cluster">>, <<"false">>),
     Data = kz_json:from_list(
              [{<<"cluster_id">>, kzd_cluster:id()}
              ,{<<"name">>, ClusterName}
              ,{<<"master_account_id">>, MasterAccountId}
              ,{<<"master_account_name">>, kzd_accounts:name(MasterDoc)}
-             ,{<<"kazooVersion">>, kapps_util:meta_kazoo_version()}
+             ,{<<"kazoo_version">>, kapps_util:meta_kazoo_version()}
+             ,{<<"is_aio">>, IsAio}
              ]
             ),
-    kz_json:from_list([{<<"data">>, Data}]).
+    kz_json:from_list([{<<"cluster">>, Data}]).
 
+-spec process_unlink_cluster(kz_json:object()) ->
+          {'ok', kz_json:object()} |
+          {'error', kz_json:object()}.
 process_unlink_cluster(Body) ->
-    case kz_json:get_ne_json_value([<<"data">>, <<"attributes">>], Body) of
+    case kz_json:get_ne_json_value([<<"data">>], Body) of
         'undefined' ->
-            lager:debug("git bad response data from appex server: undefined"),
+            lager:debug("get bad response data from appex server: undefined"),
             internal_server_error();
         Data ->
             %% don't stop kazoo_appex to let it clean out apps when they stop
             _ = appex_client_config:set_cluster_secret('null'),
-            {'ok', kz_json:delete_key(<<"cluster_secret">>, Data)}
+            {'ok', Data}
+    end.
+
+-spec process_get_cluster(kz_json:object()) ->
+          {'ok', kz_json:object()} |
+          {'error', kz_json:object()}.
+process_get_cluster(Body) ->
+    case kz_json:get_ne_json_value([<<"data">>], Body) of
+        'undefined' ->
+            lager:debug("get bad response data from appex server: undefined"),
+            internal_server_error();
+        Data ->
+            {'ok', Data}
     end.
