@@ -72,7 +72,7 @@ link_cluster(ReqData) ->
               ,{<<"content-type">>, <<"application/json">>}
               ],
     Payload = link_payload(ReqData),
-    URL = appex_server_url([<<"api/appex/cluster">>]),
+    URL = appex_server_url([<<"api/client/cluster/link">>]),
     case kz_http:post(URL, Headers, kz_json:encode(Payload)) of
         {'ok', Code, _RespHeaders, RespBody} ->
             Body = kz_json:decode(RespBody, decode_error(Code)),
