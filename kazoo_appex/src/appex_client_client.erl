@@ -411,8 +411,7 @@ process_link_cluster(ReqData, Body) ->
         Data ->
             Secret = kz_json:get_ne_binary_value(<<"cluster_secret">>, Data),
             _ = appex_client_config:set_cluster_secret(Secret),
-            maybe_restart_appex_client(ShouldRestart),
-            {'ok', kz_json:delete_key(<<"cluster_secret">>, Data)}
+            {'ok', Data}
     end.
 
 maybe_restart_appex_client('true') ->
