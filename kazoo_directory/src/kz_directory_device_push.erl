@@ -58,12 +58,12 @@ invite_format(_Endpoint) ->
 -spec sip_route(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route(Endpoint) ->
     AccountId = kzd_endpoint:account_id(Endpoint),
-    Realm = kzd_accounts:fetch_realm(AccountId),
-    list_to_binary(["sip:", kzd_devices:sip_username(Endpoint), "@", kzd_devices:sip_realm(Endpoint, Realm)]).
+    EndpointId = kzd_endpoint:id(Endpoint),
+    list_to_binary([EndpointId, "@", AccountId]).
 
 -spec sip_route_uri(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route_uri(Endpoint) ->
-    kz_json:get_value(<<"Token-Proxy">>, push_properties(Endpoint)).
+    kzd_devices:sip_route_uri(Endpoint).
 
 -spec sip_interface(kz_json:object()) -> kz_term:api_ne_binary().
 sip_interface(Endpoint) ->
@@ -83,7 +83,11 @@ video_codecs(JObj) ->
 
 -spec routing_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
 routing_ccvs(Endpoint, CCVs) ->
-    kz_json:merge(CCVs, kz_custom_channel_vars:routing(kzd_devices:sip_custom_channel_vars(Endpoint, kz_json:new()), kz_json:new())).
+    DeviceCCVs = kzd_devices:sip_custom_channel_vars(Endpoint, kz_json:new()),
+    DeviceRoutingCCVs = kz_custom_channel_vars:routing(DeviceCCVs, kz_json:new()),
+    ProxyURI = kz_json:get_ne_binary_value(<<"Token-Proxy">>, push_properties(Endpoint)),
+    RoutingCCVs = kz_json:set_value(<<"Proxy-URI">>, ProxyURI, DeviceRoutingCCVs),
+    kz_json:merge(CCVs, RoutingCCVs).
 
 -spec sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_headers(Endpoint, Headers) ->
