@@ -183,8 +183,10 @@ fetch_license(App) ->
 %%------------------------------------------------------------------------------
 -spec appex_server_authorization_header() -> kz_http:headers().
 appex_server_authorization_header() ->
-    Secret = appex_client_config:cluster_secret(),
-    [{<<"authorization">>, <<"APPEX ", Secret/binary>>}].
+    ClusterId = kzd_cluster:id(),
+    ClusterSecret = appex_client_config:cluster_secret(),
+    AccessCode = base64:encode(<<ClusterId/binary, ":", ClusterSecret/binary>>),
+    [{<<"authorization">>, <<"Bearer ", AccessCode/binary>>}].
 
 -spec appex_server_url(iolist()) -> kz_http:url().
 appex_server_url(Path) ->
