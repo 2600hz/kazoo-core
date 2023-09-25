@@ -39,9 +39,22 @@ load_app(App) ->
         andalso throw({'error', 'no_app_link'}),
 
     URL = appex_server_url([<<"api/">>, AppLink]),
+    Payload = kz_json:from_list(
+                [{<<"os_release">>, get_node_version(fun kapps_util:os_release/0)}
+                 %% TODO: should we add kazoo_core_version to kapps_utils by searching /etc/kazoo/versions/core/VERSION
+                 %% ,{<<"kz_core_version">>, get_node_version(fun kapps_util:core_version/0)}
+                ,{<<"commland_version">>, get_node_version(fun kapps_util:commland_version/0)}
+                ,{<<"meta_kazoo_version">>, get_node_version(fun kapps_util:meta_kazoo_version/0)}
+                ,{<<"os_type">>, get_node_version(fun kapps_util:os_type/0)}
+                ,{<<"arch_type">>, get_node_version(fun kapps_util:arch_type/0)}
+                ,{<<"c_compiler">>, get_node_version(fun kapps_util:c_compiler/0)}
+                ,{<<"otp_version">>, get_node_version(fun kapps_util:otp_version/0)}
+                ]
+               ),
+    LinkPayload = kz_json:from_list([{<<"data">>, Payload}]),
 
     lager:debug("fetching app ~s: ~s", [App, URL]),
-    case kz_http:async_req(self(), 'get', URL, Headers, <<>>, fetch_app_options()) of
+    case kz_http:async_req(self(), 'get', URL, Headers, LinkPayload, fetch_app_options()) of
         {'http_req_id', ReqId} ->
             FetchParams = #{cluster_id => ClusterId
                            ,resp_body => <<>>
@@ -232,13 +245,13 @@ fetch_app_headers() ->
       ]
      ).
 
-%%-spec get_node_version(function()) -> kz_term:api_ne_binary().
-%%get_node_version(Fun) ->
-%%    try Fun()
-%%    catch
-%%        _:_:_ ->
-%%            'undefined'
-%%    end.
+-spec get_node_version(function()) -> kz_term:api_ne_binary().
+get_node_version(Fun) ->
+    try Fun()
+    catch
+        _:_:_ ->
+            'undefined'
+    end.
 
 -spec app_link(atom()) -> kz_http:url().
 app_link(App) ->
