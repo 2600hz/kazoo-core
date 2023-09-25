@@ -121,7 +121,8 @@ unlink_cluster() ->
               | appex_server_authorization_header()
               ],
     URL = appex_server_url(<<"api/client/cluster">>),
-    case kz_http:delete(URL, Headers) of
+    Data = kz_json:from_list([{<<"cluster">>,kz_json:from_list([{<<"cluster_id">>, kzd_cluster:id()}])}]),
+    case kz_http:delete(URL, Headers, kz_json:encode(Data)) of
         {'ok', 401, _RespHeaders, _RespBody} ->
             %% in case you unlinked the cluster directly from marketplace portal and want to re-link the cluster again
             %% using mui
@@ -439,3 +440,4 @@ process_unlink_cluster(Body) ->
             _ = appex_client_config:set_cluster_secret('null'),
             {'ok', kz_json:delete_key(<<"cluster_secret">>, Data)}
     end.
+
