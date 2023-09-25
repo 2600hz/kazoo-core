@@ -33,7 +33,7 @@ load_app(App) ->
     Headers = fetch_app_headers(),
 
     %% Link = kz_json:get_ne_binary_value(<<"link">>, AppMeta),
-    AppLink = app_link(ClusterId, App),
+    AppLink = app_link(App),
 
     not kz_term:is_ne_binary(AppLink)
         andalso throw({'error', 'no_app_link'}),
@@ -240,9 +240,9 @@ fetch_app_headers() ->
 %%            'undefined'
 %%    end.
 
--spec app_link(kz_term:ne_binary(), atom()) -> kz_http:url().
-app_link(ClusterId, App) ->
-    kz_binary:join([<<"appex/client">>, ClusterId, <<"packages">>, App], <<"/">>).
+-spec app_link(atom()) -> kz_http:url().
+app_link(App) ->
+    kz_binary:join([<<"client">>, <<"packages">>, App], <<"/">>).
 
 -spec fetch_app_options() -> kz_term:proplist().
 fetch_app_options() ->
