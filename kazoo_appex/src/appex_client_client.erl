@@ -120,7 +120,7 @@ unlink_cluster() ->
                {<<"accept">>, <<"application/json">>}
               | appex_server_authorization_header()
               ],
-    URL = appex_server_url(<<"api/client/cluster">>),
+    URL = appex_server_url([<<"api/client/cluster">>]),
     Data = kz_json:from_list([{<<"cluster">>,kz_json:from_list([{<<"cluster_id">>, kzd_cluster:id()}])}]),
     case kz_http:delete(URL, Headers, kz_json:encode(Data)) of
         {'ok', 401, _RespHeaders, _RespBody} ->
