@@ -117,13 +117,7 @@ link_cluster(ReqData) ->
 unlink_cluster() ->
     lager:info("unlinking cluster from marketplace"),
     Headers = appex_server_authorization_header(),
-    ClusterId = appex_client_config:cluster_id(),
-    URL = appex_server_url(
-            [kz_binary:join(
-               [<<"api/appex/cluster">>, ClusterId], <<"/">>
-              )
-            ]
-           ),
+    URL = appex_server_url(<<"api/client/cluster">>),
     case kz_http:delete(URL, Headers) of
         {'ok', 401, _RespHeaders, _RespBody} ->
             %% in case you unlinked the cluster directly from marketplace portal and want to re-link the cluster again
@@ -164,8 +158,7 @@ fetch_license('undefined') ->
 fetch_license(App) ->
     AppName = kz_term:to_binary(App),
     Headers = appex_server_authorization_header(),
-    ClusterId = appex_client_config:cluster_id(),
-    URL = fetch_license_url(ClusterId, App),
+    URL = fetch_license_url(App),
     case kz_http:get(URL, Headers) of
         {'ok', Code, _RespHeaders, RespBody} when Code =< 400 ->
             JObj = kz_json:decode(RespBody, decode_error(Code)),
@@ -389,9 +382,9 @@ maybe_redirect({'redirect', LocationUrl}, #{app_name := AppName}=FetchParams) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_license_url(kz_term:ne_binary(), atom()) -> kz_http:url().
-fetch_license_url(ClusterId, AppName) ->
-    appex_server_url([kz_binary:join([<<"api/appex/license">>, ClusterId, <<"packages">>, AppName], <<"/">>)]).
+-spec fetch_license_url(atom()) -> kz_http:url().
+fetch_license_url(AppName) ->
+    appex_server_url([kz_binary:join([<<"api/client/license">>, AppName], <<"/">>)]).
 
 %%%=============================================================================
 %%% Link/Unlink Functions
