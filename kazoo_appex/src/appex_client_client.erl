@@ -418,14 +418,16 @@ link_payload(JObj) ->
     {'ok', MasterDoc} = kzd_accounts:fetch(MasterAccountId),
     DefaultName = kz_binary:join([kzd_accounts:name(MasterDoc), <<"'s Cluster">>], <<" ">>),
     ClusterName = kz_json:get_ne_binary_value(<<"name">>, JObj, DefaultName),
-    Data = kz_json:from_list(
-             [{<<"cluster_id">>, kzd_cluster:id()}
-             ,{<<"name">>, ClusterName}
-             ,{<<"master_account_id">>, MasterAccountId}
-             ,{<<"master_account_name">>, kzd_accounts:name(MasterDoc)}
-             ,{<<"kazooVersion">>, kapps_util:meta_kazoo_version()}
-             ]
-            ),
+    Data = kz_json:from_list([
+                              {<<"cluster">>, kz_json:from_list([{<<"cluster_id">>, kzd_cluster:id()},
+                                                                 {<<"name">>, ClusterName}
+                                                                ])
+                              }
+                             ,{<<"master_account_id">>, MasterAccountId}
+                             ,{<<"master_account_name">>, kzd_accounts:name(MasterDoc)}
+                             ,{<<"meta_kazoo_version">>, kapps_util:meta_kazoo_version()}
+                             ]),
+
     kz_json:from_list([{<<"data">>, Data}]).
 
 process_unlink_cluster(Body) ->
