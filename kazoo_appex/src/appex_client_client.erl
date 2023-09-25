@@ -227,33 +227,18 @@ decode_error(Code) ->
 -spec fetch_app_headers() -> kz_http:headers().
 fetch_app_headers() ->
     props:filter_undefined(
-      [{<<"x-appex-kz-version">>, get_node_version(fun kapps_util:kazoo_version/0)}
-      ,{<<"x-appex-mui-version">>, get_node_version(fun kapps_util:monsterui_version/0)}
-      ,{<<"x-appex-commland-version">>, get_node_version(fun kapps_util:commland_version/0)}
-      ,{<<"x-appex-meta-kazoo-version">>, get_node_version(fun kapps_util:meta_kazoo_version/0)}
-      ,{<<"x-appex-os-type">>, get_node_version(fun kapps_util:os_type/0)}
-      ,{<<"x-appex-os-release">>, get_node_version(fun kapps_util:os_release/0)}
-      ,{<<"x-appex-arch-type">>, get_node_version(fun kapps_util:arch_type/0)}
-      ,{<<"x-appex-c-compiler">>, get_node_version(fun kapps_util:c_compiler/0)}
-      ,{<<"x-appex-otp-version">>, get_node_version(fun kapps_util:otp_version/0)}
-      ,{<<"accept">>, kz_binary:join(
-                        [<<"application/vnd.bluepak+", Suffix/binary>>
-                             || Suffix <- [<<"kazoo">>, <<"monster">>, <<"commland">>]
-                        ]
-                       ,<<", ">>
-                       )
-       }
+      [{<<"accept">>, <<"application/vnd.bluepak+kazoo">>}
       | appex_server_authorization_header()
       ]
      ).
 
--spec get_node_version(function()) -> kz_term:api_ne_binary().
-get_node_version(Fun) ->
-    try Fun()
-    catch
-        _:_:_ ->
-            'undefined'
-    end.
+%%-spec get_node_version(function()) -> kz_term:api_ne_binary().
+%%get_node_version(Fun) ->
+%%    try Fun()
+%%    catch
+%%        _:_:_ ->
+%%            'undefined'
+%%    end.
 
 -spec app_link(kz_term:ne_binary(), atom()) -> kz_http:url().
 app_link(ClusterId, App) ->
