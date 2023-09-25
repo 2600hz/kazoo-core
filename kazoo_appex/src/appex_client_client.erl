@@ -31,14 +31,7 @@
 load_app(App) ->
     ClusterId = appex_client_config:cluster_id(),
     Headers = fetch_app_headers(),
-
-    %% Link = kz_json:get_ne_binary_value(<<"link">>, AppMeta),
-    AppLink = app_link(App),
-
-    not kz_term:is_ne_binary(AppLink)
-        andalso throw({'error', 'no_app_link'}),
-
-    URL = appex_server_url([<<"api/">>, AppLink]),
+    URL = appex_server_url([<<"api/client/packages/">>, kz_term:to_binary(App)]),
     Payload = kz_json:from_list(
                 [{<<"os_release">>, get_node_version(fun kapps_util:os_release/0)}
                  %% TODO: should we add kazoo_core_version to kapps_utils by searching /etc/kazoo/versions/core/VERSION
@@ -51,10 +44,9 @@ load_app(App) ->
                 ,{<<"otp_version">>, get_node_version(fun kapps_util:otp_version/0)}
                 ]
                ),
-    LinkPayload = kz_json:from_list([{<<"data">>, Payload}]),
-
+    Body = kz_json:encode(Payload),
     lager:debug("fetching app ~s: ~s", [App, URL]),
-    case kz_http:async_req(self(), 'post', URL, Headers, kz_json:encode(LinkPayload), fetch_app_options()) of
+    case kz_http:async_req(self(), 'post', URL, Headers, Body, fetch_app_options()) of
         {'http_req_id', ReqId} ->
             FetchParams = #{cluster_id => ClusterId
                            ,resp_body => <<>>
@@ -68,7 +60,7 @@ load_app(App) ->
                 {'error', _}=Error -> Error
             end;
         {'error', _Reason}=Error ->
-            lager:error("failed to query for ~s: ~p", [AppLink, _Reason]),
+            lager:error("failed to query for ~s: ~p", [URL, _Reason]),
             Error
     end.
 
@@ -85,8 +77,9 @@ link_cluster(ReqData) ->
               ,{<<"content-type">>, <<"application/json">>}
               ],
     Payload = link_payload(ReqData),
+    Body = kz_json:encode(Payload),
     URL = appex_server_url([<<"api/client/cluster/link">>]),
-    case kz_http:post(URL, Headers, kz_json:encode(Payload)) of
+    case kz_http:post(URL, Headers, Body) of
         {'ok', Code, _RespHeaders, RespBody} ->
             Body = kz_json:decode(RespBody, decode_error(Code)),
             case kz_json:get_value(<<"error">>, Body) of
@@ -121,8 +114,9 @@ unlink_cluster() ->
               | appex_server_authorization_header()
               ],
     URL = appex_server_url([<<"api/client/cluster">>]),
-    Data = kz_json:from_list([{<<"cluster">>,kz_json:from_list([{<<"cluster_id">>, kzd_cluster:id()}])}]),
-    case kz_http:delete(URL, Headers, kz_json:encode(Data)) of
+    Payload = kz_json:from_list([{<<"cluster">>,kz_json:from_list([{<<"cluster_id">>, kzd_cluster:id()}])}]),
+    ReqBody = kz_json:encode(Payload),
+    case kz_http:delete(URL, Headers, ReqBody) of
         {'ok', 401, _RespHeaders, _RespBody} ->
             %% in case you unlinked the cluster directly from marketplace portal and want to re-link the cluster again
             %% using mui
@@ -241,6 +235,7 @@ decode_error(Code) ->
 fetch_app_headers() ->
     props:filter_undefined(
       [{<<"accept">>, <<"application/vnd.bluepak+kazoo">>}
+      ,{<<"content-type">>, <<"application/json">>}
       | appex_server_authorization_header()
       ]
      ).
@@ -252,10 +247,6 @@ get_node_version(Fun) ->
         _:_:_ ->
             'undefined'
     end.
-
--spec app_link(atom()) -> kz_http:url().
-app_link(App) ->
-    kz_binary:join([<<"client">>, <<"packages">>, App], <<"/">>).
 
 -spec fetch_app_options() -> kz_term:proplist().
 fetch_app_options() ->
@@ -418,17 +409,14 @@ link_payload(JObj) ->
     {'ok', MasterDoc} = kzd_accounts:fetch(MasterAccountId),
     DefaultName = kz_binary:join([kzd_accounts:name(MasterDoc), <<"'s Cluster">>], <<" ">>),
     ClusterName = kz_json:get_ne_binary_value(<<"name">>, JObj, DefaultName),
-    Data = kz_json:from_list([
-                              {<<"cluster">>, kz_json:from_list([{<<"cluster_id">>, kzd_cluster:id()},
-                                                                 {<<"name">>, ClusterName}
-                                                                ])
-                              }
-                             ,{<<"master_account_id">>, MasterAccountId}
-                             ,{<<"master_account_name">>, kzd_accounts:name(MasterDoc)}
-                             ,{<<"meta_kazoo_version">>, kapps_util:meta_kazoo_version()}
-                             ]),
+    Cluster = kz_json:from_list([{<<"cluster_id">>, kzd_cluster:id()}
+                                ,{<<"name">>, ClusterName}
+                                ,{<<"master_account_id">>, MasterAccountId}
+                                ,{<<"master_account_name">>, kzd_accounts:name(MasterDoc)}
+                                ,{<<"meta_kazoo_version">>, kapps_util:meta_kazoo_version()}
+                                ]),
 
-    kz_json:from_list([{<<"data">>, Data}]).
+    kz_json:from_list([{<<"cluster">>, Cluster}]).
 
 process_unlink_cluster(Body) ->
     case kz_json:get_ne_json_value([<<"data">>, <<"attributes">>], Body) of
