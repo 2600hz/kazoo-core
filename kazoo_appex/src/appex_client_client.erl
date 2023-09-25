@@ -116,7 +116,10 @@ link_cluster(ReqData) ->
           {'ok' | 'error', kz_json:object()}.
 unlink_cluster() ->
     lager:info("unlinking cluster from marketplace"),
-    Headers = appex_server_authorization_header(),
+    Headers = [{<<"content-type">>, <<"application/json">>},
+               {<<"accept">>, <<"application/json">>}
+              | appex_server_authorization_header()
+              ],
     URL = appex_server_url(<<"api/client/cluster">>),
     case kz_http:delete(URL, Headers) of
         {'ok', 401, _RespHeaders, _RespBody} ->
@@ -157,7 +160,10 @@ fetch_license('undefined') ->
     {'error', <<"no app name">>};
 fetch_license(App) ->
     AppName = kz_term:to_binary(App),
-    Headers = appex_server_authorization_header(),
+    Headers = [{<<"content-type">>, <<"application/json">>}
+              ,{<<"accept">>, <<"application/json">>}
+              | appex_server_authorization_header()
+              ],
     URL = fetch_license_url(App),
     case kz_http:get(URL, Headers) of
         {'ok', Code, _RespHeaders, RespBody} when Code =< 400 ->
@@ -192,7 +198,7 @@ appex_server_authorization_header() ->
     ClusterId = kzd_cluster:id(),
     ClusterSecret = appex_client_config:cluster_secret(),
     AccessCode = base64:encode(<<ClusterId/binary, ":", ClusterSecret/binary>>),
-    [{<<"authorization">>, <<"Bearer ", AccessCode/binary>>}].
+    [{<<"Authorization">>, <<"Bearer ", AccessCode/binary>>}].
 
 -spec appex_server_url(iolist()) -> kz_http:url().
 appex_server_url(Path) ->
