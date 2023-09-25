@@ -54,7 +54,7 @@ load_app(App) ->
     LinkPayload = kz_json:from_list([{<<"data">>, Payload}]),
 
     lager:debug("fetching app ~s: ~s", [App, URL]),
-    case kz_http:async_req(self(), 'get', URL, Headers, LinkPayload, fetch_app_options()) of
+    case kz_http:async_req(self(), 'post', URL, Headers, kz_json:encode(LinkPayload), fetch_app_options()) of
         {'http_req_id', ReqId} ->
             FetchParams = #{cluster_id => ClusterId
                            ,resp_body => <<>>
