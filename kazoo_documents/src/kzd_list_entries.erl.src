@@ -50,7 +50,7 @@ description(Doc, Default) ->
 set_description(Doc, Description) ->
     kz_json:set_value([<<"description">>], Description, Doc).
 
--spec history(doc()) -> kz_json:objects() | [].
+-spec history(doc()) -> kz_json:objects().
 history(Doc) ->
     history(Doc, []).
 
