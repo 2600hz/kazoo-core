@@ -250,7 +250,7 @@ find_metadata(AppPath) ->
                     {'ok', kz_doc:set_type(ValidatedJObj, kzd_applications:pvt_type())};
                 'true' ->
                     Setters = [{fun kz_doc:set_type/2, kzd_applications:pvt_type()}
-                              ,{fun kz_doc:set_id/2, kz_json:get_value(<<"uuid">>, JSON)}
+                              ,{fun kz_doc:set_id/2, kz_json:get_ne_binary_value(<<"uuid">>, JSON)}
                               ],
                     {'ok', kz_doc:setters(ValidatedJObj, Setters)}
             end;
