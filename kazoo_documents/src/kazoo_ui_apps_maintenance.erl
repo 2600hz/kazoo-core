@@ -92,16 +92,16 @@ maybe_set_api_url(ApiUrl, MetaData) ->
 
 -spec maybe_create_app(file:filename_all(), kz_json:object()) -> 'ok'.
 maybe_create_app(AppPath, MetaData) ->
-    maybe_create_app(AppPath, MetaData, kz_doc:id(MetaData)).
+    maybe_create_app(AppPath, MetaData, kz_term:is_rfc4122_uuid(kz_doc:id(MetaData))).
 
--spec maybe_create_app(file:filename_all(), kz_json:object(), kz_term:api_ne_binary()) -> 'ok'.
-maybe_create_app(_AppPath, MetaData, 'undefined') ->
-    ?SUP_LOG_ERROR(" required '_id' field is missing from app ~ts metadata, skipping the app~n"
+-spec maybe_create_app(file:filename_all(), kz_json:object(), boolean()) -> 'ok'.
+maybe_create_app(_AppPath, MetaData, 'false') ->
+    ?SUP_LOG_ERROR(" required 'uuid' field is missing or not valid from app ~ts metadata, skipping the app~n"
                   ,[kzd_applications:name(MetaData)]
                   );
-maybe_create_app(AppPath, MetaData, AppId) ->
+maybe_create_app(AppPath, MetaData, 'true') ->
     {'ok', MasterAccountDb} = kapps_util:get_master_account_db(),
-
+    AppId = kz_doc:id(MetaData),
     AppName = kzd_applications:name(MetaData),
     case kz_datamgr:open_doc(MasterAccountDb, AppId) of
         {'ok', AppJObj} ->
@@ -245,12 +245,12 @@ find_metadata(AppPath) ->
 
     case kz_json_schema:validate(kzd_applications:schema(), kz_doc:public_fields(JSON, 'false')) of
         {'ok', ValidatedJObj} ->
-            case kz_doc:id(JSON) of
-                'undefined' ->
+            case kz_json:is_defined(<<"uuid">>, JSON) of
+                'false' ->
                     {'ok', kz_doc:set_type(ValidatedJObj, kzd_applications:pvt_type())};
-                AppId ->
+                'true' ->
                     Setters = [{fun kz_doc:set_type/2, kzd_applications:pvt_type()}
-                              ,{fun kz_doc:set_id/2, AppId}
+                              ,{fun kz_doc:set_id/2, kz_json:get_ne_binary_value(<<"uuid">>, JSON)}
                               ],
                     {'ok', kz_doc:setters(ValidatedJObj, Setters)}
             end;
