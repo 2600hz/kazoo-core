@@ -27,7 +27,7 @@ search a path to find apps to read its `metadata/app.json` file. Then for each m
 found it will check the master account db and either create the new doc if it is missing or
 merge and update it. It also deletes and re-upload all images (icon and screenshots).
 
-> **NOTE** Please note that new `app.json` requires `_id` field. This is a unique ID for
+> **NOTE** Please note that new `app.json` requires `uuid` field. This is a unique ID for
 > the app across all platforms. 2600Hz Marketplace will generate a universal unique ID for
 > the app.
 
