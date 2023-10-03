@@ -489,7 +489,7 @@ link_payload(JObj) ->
     {'ok', MasterDoc} = kzd_accounts:fetch(MasterAccountId),
     DefaultName = kz_binary:join([kzd_accounts:name(MasterDoc), <<"'s Cluster">>], <<" ">>),
     ClusterName = kz_json:get_ne_binary_value(<<"name">>, JObj, DefaultName),
-    IsAio = kapps_config:get_ne_binary(?CONFIG_CAT, <<"is_aio_cluster">>, <<"false">>),
+    IsAio = kz_term:to_binary(appex_client_config:is_aio_cluster()),
     Data = kz_json:from_list(
              [{<<"cluster_id">>, kzd_cluster:id()}
              ,{<<"name">>, ClusterName}

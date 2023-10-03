@@ -129,7 +129,7 @@ init(_Args) ->
 
 -spec should_check_node_bindings() -> boolean().
 should_check_node_bindings() ->
-    kapps_config:get_is_true(?CONFIG_CAT, <<"is_aio_cluster">>, 'false').
+    appex_client_config:is_aio_cluster().
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
