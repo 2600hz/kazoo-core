@@ -26,6 +26,7 @@
         ,config_cat/0
 
         ,find_api_url/0
+        ,is_aio_cluster/0, set_is_aio_cluster/1
         ]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -116,6 +117,15 @@ marketplace_url() ->
 set_marketplace_url(URL) ->
     {'ok', _} = kapps_config:set_string(?CONFIG_CAT, <<"marketplace_url">>, URL),
     URL.
+
+-spec is_aio_cluster() -> boolean().
+is_aio_cluster() ->
+    kapps_config:is_true(?CONFIG_CAT, <<"is_aio_cluster">>, 'false').
+
+-spec set_is_aio_cluster(boolean()) -> boolean().
+set_is_aio_cluster(Bool) ->
+    {'ok', _} = kapps_config:set_boolean(?CONFIG_CAT, <<"is_aio_cluster">>, Bool),
+    Bool.
 
 -spec fetch_timer_s() -> pos_integer().
 fetch_timer_s() ->
@@ -260,6 +270,7 @@ get_public_configs() ->
       ,{<<"api_url">>, api_url()}
       ,{<<"marketplace_url">>, marketplace_url()}
       ,{<<"is_linked">>, kz_term:is_not_empty(cluster_secret())}
+      ,{<<"is_aio_cluster">>, is_aio_cluster()}
       ]
      ).
 
