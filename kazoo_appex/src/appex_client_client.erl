@@ -17,6 +17,7 @@
         ,unlink_cluster/0
         ,fetch_license/1
         ,get_cluster/0
+        ,maybe_get_cluster/0
         ,update_cluster/1
         ,reset_cluster_secret/0
         ]).
@@ -129,10 +130,20 @@ unlink_cluster() ->
             }
     end.
 
+-spec maybe_get_cluster() -> {'ok', kz_json:object()} | {'error', kz_json:object() | 'not_linked'}.
+maybe_get_cluster() ->
+    case appex_client_config:is_configured() of
+        'true' ->
+            get_cluster();
+        'false' ->
+            lager:debug("can't getting cluster info, cluster is not linked"),
+            {'error', 'not_linked'}
+    end.
+
 -spec get_cluster() ->
           {'ok' | 'error', kz_json:object()}.
 get_cluster() ->
-    lager:info("get cluster from marketplace"),
+    lager:info("getting cluster info from marketplace"),
     Headers = appex_server_authorization_header(),
     URL = appex_server_url([<<"api/client/cluster">>]),
     case kz_http:get(URL, Headers) of
@@ -159,7 +170,7 @@ get_cluster() ->
 -spec update_cluster(kz_json:object()) ->
           {'ok' | 'error', kz_json:object()}.
 update_cluster(ReqData) ->
-    lager:info("update cluster info in marketplace"),
+    lager:info("updating cluster info in marketplace"),
     Headers = [{<<"content-type">>, <<"application/json">>}
               | appex_server_authorization_header()
               ],
@@ -480,7 +491,10 @@ process_link_cluster(Body) ->
         Data ->
             Secret = kz_json:get_ne_binary_value(<<"cluster_secret">>, Data),
             _ = appex_client_config:set_cluster_secret(Secret),
-            {'ok', kz_json:delete_key(<<"cluster_secret">>, Data)}
+            _ = appex_client_config:set_is_enabled('true'),
+            appex_client_config:get_public_configs(
+              {'ok', kz_json:delete_key(<<"cluster_secret">>, Data)}
+             )
     end.
 
 -spec link_payload(kz_json:object()) ->  kz_json:object().
@@ -524,5 +538,7 @@ process_get_cluster(Body) ->
             lager:debug("get bad response data from appex server: undefined"),
             internal_server_error();
         Data ->
-            {'ok', Data}
+            appex_client_config:get_public_configs(
+              {'ok', kz_json:delete_key(<<"cluster_secret">>, Data)}
+             )
     end.

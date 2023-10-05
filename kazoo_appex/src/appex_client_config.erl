@@ -21,7 +21,7 @@
         ,system_configs/0, system_configs/1
 
         ,is_configured/0
-        ,get_public_configs/0
+        ,get_public_configs/0, get_public_configs/1
 
         ,config_cat/0
 
@@ -261,18 +261,42 @@ get_function_signature(Module, Application, {Function, Arity, Clauses}, Sigs) ->
 get_application(File) ->
     kz_term:to_binary(filename:basename(filename:dirname(filename:dirname(File)))).
 
--spec get_public_configs() -> kz_json:object().
+-spec get_public_configs() -> {'ok' | 'error', kz_json:object()}.
 get_public_configs() ->
-    kz_json:from_list(
-      [{<<"cluster_id">>, kzd_cluster:id()}
-      ,{<<"enabled">>, is_enabled()}
-      ,{<<"app_exchange_url">>, app_exchange_url()}
-      ,{<<"api_url">>, api_url()}
-      ,{<<"marketplace_url">>, marketplace_url()}
-      ,{<<"is_linked">>, kz_term:is_not_empty(cluster_secret())}
-      ,{<<"is_aio_cluster">>, is_aio_cluster()}
-      ]
-     ).
+    get_public_configs(appex_client_client:maybe_get_cluster()).
+
+-spec get_public_configs({'ok', kz_json:object()} | {'error', kz_json:object() | 'not_linked'}) ->
+          {'ok' | 'error', kz_json:object()}.
+get_public_configs({'ok', Cluster}) ->
+    {'ok'
+    ,kz_json:from_list(
+       [{<<"cluster_id">>, kzd_cluster:id()}
+       ,{<<"enabled">>, is_enabled()}
+       ,{<<"app_exchange_url">>, app_exchange_url()}
+       ,{<<"api_url">>, api_url()}
+       ,{<<"marketplace_url">>, marketplace_url()}
+       ,{<<"is_linked">>, kz_term:is_not_empty(cluster_secret())}
+       ,{<<"is_aio_cluster">>, is_aio_cluster()}
+       ,{<<"name">>, kz_json:get_ne_binary_value(<<"name">>, Cluster)}
+       ,{<<"kazoo_version">>, kz_json:get_ne_binary_value(<<"kazoo_version">>, Cluster)}
+       ]
+      )
+    };
+get_public_configs({'error', 'not_linked'}) ->
+    {'ok'
+    ,kz_json:from_list(
+       [{<<"cluster_id">>, kzd_cluster:id()}
+       ,{<<"enabled">>, is_enabled()}
+       ,{<<"app_exchange_url">>, app_exchange_url()}
+       ,{<<"api_url">>, api_url()}
+       ,{<<"marketplace_url">>, marketplace_url()}
+       ,{<<"is_linked">>, kz_term:is_not_empty(cluster_secret())}
+       ,{<<"is_aio_cluster">>, is_aio_cluster()}
+       ]
+      )
+    };
+get_public_configs({'error', ErrorJObj}) ->
+    {'error', ErrorJObj}.
 
 -spec config_cat() -> kz_term:ne_binary().
 config_cat() -> ?CONFIG_CAT.
@@ -285,11 +309,17 @@ is_configured() ->
                ,{<<"app_exchange_url">>, app_exchange_url()}
                ]
               ),
-    is_configured(Config, 'true').
+    case is_configured(Config) of
+        'true' ->
+            'true';
+        'false' ->
+            lager:warning("cluster is not linked to marketplace"),
+            'false'
+    end.
 
--spec is_configured(kz_json:object(), boolean()) -> boolean().
-is_configured(Config, Log) ->
-    lists:foldl(fun(Key, Acc) -> is_defined(Key, Config, Log, Acc) end
+-spec is_configured(kz_json:object()) -> boolean().
+is_configured(Config) ->
+    lists:foldl(fun(Key, Acc) -> is_defined(Key, Config, Acc) end
                ,'true'
                ,[<<"cluster_id">>
                 ,<<"cluster_secret">>
@@ -297,12 +327,9 @@ is_configured(Config, Log) ->
                 ]
                ).
 
--spec is_defined(kz_json:key(), kz_json:object(), boolean(), boolean()) -> boolean().
-is_defined(Key, JObj, Log, Acc) ->
+-spec is_defined(kz_json:key(), kz_json:object(), boolean()) -> boolean().
+is_defined(Key, JObj, Acc) ->
     case kz_json:get_ne_value(Key, JObj) of
-        'undefined' when Log ->
-            lager:error("undefined key ~s", [Key]),
-            'false';
         'undefined' ->
             'false';
         _Val ->
