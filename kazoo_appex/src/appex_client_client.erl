@@ -73,12 +73,11 @@ link_cluster(ReqData) ->
     URL = appex_server_url([<<"api/client/cluster/link">>]),
     case kz_http:post(URL, Headers, kz_json:encode(Payload)) of
         {'ok', Code, _RespHeaders, RespBody} ->
-            Body = kz_json:decode(RespBody, decode_error(Code)),
-            case kz_json:get_json_value(<<"error">>, Body) of
-                'undefined' ->
+            case decode_appex_response(RespBody, Code) of
+                {'ok', Body} ->
                     lager:info("successfully linked cluster to marketplace"),
                     process_link_cluster(Body);
-                ErrorJObj ->
+                {'error', ErrorJObj} ->
                     lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
                     {'error', ErrorJObj}
             end;
@@ -111,12 +110,11 @@ unlink_cluster() ->
             _ = appex_client_config:set_cluster_secret('null'),
             {'ok', kz_json:new()};
         {'ok', Code, _RespHeaders, RespBody} ->
-            Body = kz_json:decode(RespBody, decode_error(Code)),
-            case kz_json:get_json_value(<<"error">>, Body) of
-                'undefined' ->
+            case decode_appex_response(RespBody, Code) of
+                {'ok', Body} ->
                     lager:info("successfully unlinked cluster from marketplace"),
                     process_unlink_cluster(Body);
-                ErrorJObj ->
+                {'error', ErrorJObj} ->
                     lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
                     {'error', ErrorJObj}
             end;
@@ -148,12 +146,11 @@ get_cluster() ->
     URL = appex_server_url([<<"api/client/cluster">>]),
     case kz_http:get(URL, Headers) of
         {'ok', Code, _RespHeaders, RespBody} ->
-            Body = kz_json:decode(RespBody, decode_error(Code)),
-            case kz_json:get_json_value(<<"error">>, Body) of
-                'undefined' ->
+            case decode_appex_response(RespBody, Code) of
+                {'ok', Body} ->
                     lager:info("successfully get cluster info from marketplace"),
                     process_get_cluster(Body);
-                ErrorJObj ->
+                {'error', ErrorJObj} ->
                     lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
                     {'error', ErrorJObj}
             end;
@@ -178,12 +175,11 @@ update_cluster(ReqData) ->
     Payload = kz_json:from_list([{<<"cluster">>, ReqData}]),
     case kz_http:put(URL, Headers, kz_json:encode(Payload)) of
         {'ok', Code, _RespHeaders, RespBody} ->
-            Body = kz_json:decode(RespBody, decode_error(Code)),
-            case kz_json:get_json_value(<<"error">>, Body) of
-                'undefined' ->
+            case decode_appex_response(RespBody, Code) of
+                {'ok', Body} ->
                     lager:info("successfully updated cluster to marketplace"),
                     process_get_cluster(Body);
-                ErrorJObj ->
+                {'error', ErrorJObj} ->
                     lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
                     {'error', ErrorJObj}
             end;
@@ -205,12 +201,11 @@ reset_cluster_secret() ->
     URL = appex_server_url([<<"api/client/cluster/reset-secret">>]),
     case kz_http:patch(URL, Headers) of
         {'ok', Code, _RespHeaders, RespBody} ->
-            Body = kz_json:decode(RespBody, decode_error(Code)),
-            case kz_json:get_json_value(<<"error">>, Body) of
-                'undefined' ->
+            case decode_appex_response(RespBody, Code) of
+                {'ok', Body} ->
                     lager:info("successfully reset the cluster secret in marketplace"),
                     process_link_cluster(Body);
-                ErrorJObj ->
+                {'error', ErrorJObj} ->
                     lager:error("failed to connect to appex server: ~p", [ErrorJObj]),
                     {'error', ErrorJObj}
             end;
@@ -239,18 +234,17 @@ fetch_license(App) ->
     URL = appex_server_url([<<"api/client/license/">>, kz_term:to_binary(App)]),
     case kz_http:get(URL, Headers) of
         {'ok', Code, _RespHeaders, RespBody} when Code =< 400 ->
-            JObj = kz_json:decode(RespBody, decode_error(Code)),
-            case kz_json:get_value(<<"error">>, JObj) of
-                'undefined' ->
-                    case kz_json:get_value(<<"data">>, JObj) of
+            case decode_appex_response(RespBody, Code) of
+                {'ok', Body} ->
+                    case kz_json:get_value(<<"data">>, Body) of
                         'null' -> {'error', <<"no license">>};
                         'undefined' -> {'error', <<"no license">>};
                         Data -> {'ok', kz_json:get_json_value(AppName, Data, Data)}
                     end;
-                Error -> {'error', Error}
+                {'error', _}=Error -> Error
             end;
         {'ok', Code, _RespHeaders, RespBody} ->
-            JObj = kz_json:decode(RespBody, decode_error(Code)),
+            JObj = kz_json:decode(RespBody, decode_options(Code)),
             Err = kz_json:get_value(<<"error">>, JObj, "InternalServerError"),
             {'error', kz_binary:format("unexpected code ~b when getting license for app ~s: ~p", [Code, AppName, Err])};
         {'error', _Reason} ->
@@ -293,7 +287,16 @@ internal_server_error() ->
                 ]
                )}.
 
-decode_error(Code) ->
+decode_appex_response(RespBody, Code) ->
+    Body = kz_json:decode(RespBody, decode_options(Code)),
+    case kz_json:get_json_value(<<"error">>, Body) of
+        'undefined' ->
+            {'ok', Body};
+        ErrorJObj ->
+            {'error', ErrorJObj}
+    end.
+
+decode_options(Code) ->
     [{'default'
      ,kz_json:from_list_recursive(
         [{<<"error">>, [{<<"status">>, Code}
@@ -303,6 +306,7 @@ decode_error(Code) ->
         ]
        )
      }
+    ,{'null_term', 'undefined'}
     ].
 
 %%%=============================================================================
