@@ -151,19 +151,22 @@ load_from_dotapp(Filepath, Acc) ->
     AppDir = filename:basename(filename:dirname(Filepath)),
     [AppName, AppVersion] = binary:split(kz_term:to_binary(AppDir), <<"-">>),
     DotAppPath = filename:join([Filepath, <<AppName/binary, ".app">>]),
-    {'ok', [{'application', _App, AppConfig}]} = file:consult(DotAppPath),
-
-    Env = props:get_value('env', AppConfig, []),
-    case props:is_true('is_kazoo_app', Env, 'false') of
-        'false' -> Acc;
-        'true' ->
-            [kapp_version({AppName
-                          ,props:get_value('description', AppConfig)
-                          ,props:get_value('vsn', AppConfig, AppVersion)
-                          }
-                         )
-            | Acc
-            ]
+    case file:consult(DotAppPath) of
+        {'ok', [{'application', _App, AppConfig}]} ->
+            Env = props:get_value('env', AppConfig, []),
+            case props:is_true('is_kazoo_app', Env, 'false') of
+                'false' -> Acc;
+                'true' ->
+                    [kapp_version({AppName
+                                  ,props:get_value('description', AppConfig)
+                                  ,props:get_value('vsn', AppConfig, AppVersion)
+                                  }
+                                 )
+                    | Acc
+                    ]
+            end;
+        _Error ->
+            Acc
     end.
 
 kapp_version({Name, Desc, Vsn}) ->
