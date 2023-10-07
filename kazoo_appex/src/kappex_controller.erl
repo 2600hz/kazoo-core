@@ -356,9 +356,16 @@ handle_node_heartbeat(#kz_node{node=OtherNode
     _ = [start_other_app(OtherNode, AppName)
          || {Name, _Info} <- OtherKapps,
             AppName <- [kz_term:to_atom(Name, 'true')],
-            not lists:member(AppName, OurApps)
+            not lists:member(AppName, OurApps),
+            is_kappex_app(AppName)
         ],
     'ok'.
+
+is_kappex_app(AppName) ->
+    case application:get_env(AppName, 'from_kappex') of
+        {'ok', 'true'} -> 'true';
+        _ -> 'false'
+    end.
 
 start_other_app(_OtherNode, AppName) ->
     _Pid = kz_process:spawn(fun kapps_controller:start_app/1, [AppName]),
