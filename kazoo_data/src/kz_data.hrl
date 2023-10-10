@@ -115,6 +115,16 @@
                            couch_open_option().
 -type open_doc_options() :: [open_doc_option()].
 
+-type cache_strategy() :: 'none' |
+                          'stampede' |
+                          'async' |
+                          'stampede_async'.
+
+-type open_cache_doc_option() :: {'revision', kz_term:ne_binary()} |
+                                 {'cache_strategy', cache_strategy()} |
+                                 open_doc_option().
+-type open_cache_doc_options() :: [open_cache_doc_option()].
+
 -type db_classification() :: 'account' |
                              'acdc' |
                              'aggregate' |
