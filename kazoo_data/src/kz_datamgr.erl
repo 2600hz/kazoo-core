@@ -120,6 +120,7 @@
              ,view_listing/0, views_listing/0
              ,view_option/0, view_options/0
              ,open_doc_options/0
+             ,open_cache_doc_options/0
              ,membership_items/0
              ]).
 
@@ -545,7 +546,7 @@ open_cache_doc(DbName, {DocType, DocId}) ->
 open_cache_doc(DbName, DocId) ->
     open_cache_doc(DbName, DocId, []).
 
--spec open_cache_doc(database_name(), docid(), open_doc_options()) ->
+-spec open_cache_doc(database_name(), docid(), open_cache_doc_options()) ->
           {'ok', kz_json:object()} |
           data_error().
 open_cache_doc(DbName, {DocType, DocId}, Options) ->
