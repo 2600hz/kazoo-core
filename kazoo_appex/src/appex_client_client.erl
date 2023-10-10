@@ -16,8 +16,7 @@
         ,link_cluster/1
         ,unlink_cluster/0
         ,fetch_license/1
-        ,get_cluster/0
-        ,maybe_get_cluster/0
+        ,get_cluster/0, maybe_get_cluster/0
         ,update_cluster/1
         ,reset_cluster_secret/0
         ]).
@@ -167,6 +166,16 @@ get_cluster() ->
 -spec update_cluster(kz_json:object()) ->
           {'ok' | 'error', kz_json:object()}.
 update_cluster(ReqData) ->
+    case appex_client_config:is_configured() of
+        'true' ->
+            do_update_cluster(ReqData);
+        'false' ->
+            appex_client_config:get_public_configs()
+    end.
+
+-spec do_update_cluster(kz_json:object()) ->
+          {'ok' | 'error', kz_json:object()}.
+do_update_cluster(ReqData) ->
     lager:info("updating cluster info in marketplace"),
     Headers = [{<<"content-type">>, <<"application/json">>}
               | appex_server_authorization_header()
