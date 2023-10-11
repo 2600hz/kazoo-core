@@ -144,18 +144,16 @@ loaded_apps() ->
 loaded_app_from_path(Filepath, Acc) ->
     case "ebin" =:= filename:basename(Filepath) of % rule out "." and the like
         'false' -> Acc;
-        'true' -> load_from_dotapp(Filepath, Acc)
-    end.
+        'true' ->
+            AppDir = filename:basename(filename:dirname(Filepath)),
+            [AppName, AppVersion] = binary:split(kz_term:to_binary(AppDir), <<"-">>),
+            DotAppPath = filename:join([Filepath, <<AppName/binary, ".app">>]),
 
-load_from_dotapp(Filepath, Acc) ->
-    AppDir = filename:basename(filename:dirname(Filepath)),
-    [AppName, AppVersion] = binary:split(kz_term:to_binary(AppDir), <<"-">>),
-    DotAppPath = filename:join([Filepath, <<AppName/binary, ".app">>]),
-    case file:consult(DotAppPath) of
-        {'ok', [{'application', _App, AppConfig}]} ->
+            AppConfig = load_app_config(AppName, DotAppPath),
             Env = props:get_value('env', AppConfig, []),
             case props:is_true('is_kazoo_app', Env, 'false') of
-                'false' -> Acc;
+                'false' ->
+                    Acc;
                 'true' ->
                     [kapp_version({AppName
                                   ,props:get_value('description', AppConfig)
@@ -164,9 +162,24 @@ load_from_dotapp(Filepath, Acc) ->
                                  )
                     | Acc
                     ]
-            end;
+            end
+
+    end.
+
+load_app_config(AppName, DotAppPath) ->
+    case file:consult(DotAppPath) of
+        {'ok', [{'application', _App, AppConfig}]} ->
+            AppConfig;
         _Error ->
-            Acc
+            try application:get_all_key(kz_term:to_atom(AppName)) of
+                {'ok', AppConfig} ->
+                    AppConfig;
+                _ ->
+                    []
+            catch
+                _:_ ->
+                    []
+            end
     end.
 
 kapp_version({Name, Desc, Vsn}) ->
