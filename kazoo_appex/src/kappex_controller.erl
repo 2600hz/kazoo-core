@@ -129,7 +129,8 @@ init(_Args) ->
 
 -spec should_check_node_bindings() -> boolean().
 should_check_node_bindings() ->
-    appex_client_config:is_aio_cluster().
+    appex_client_config:is_configured()
+        andalso appex_client_config:is_aio_cluster().
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -354,18 +355,15 @@ handle_node_heartbeat(#kz_node{node=OtherNode
                      ) ->
     OurApps = kapps_controller:running_apps('false'),
     _ = [start_other_app(OtherNode, AppName)
-         || {Name, _Info} <- OtherKapps,
+         || {Name, OtherAppInfo} <- OtherKapps,
             AppName <- [kz_term:to_atom(Name, 'true')],
             not lists:member(AppName, OurApps),
-            is_kappex_app(AppName)
+            is_kappex_app(OtherAppInfo)
         ],
     'ok'.
 
-is_kappex_app(AppName) ->
-    case application:get_env(AppName, 'from_kappex') of
-        {'ok', 'true'} -> 'true';
-        _ -> 'false'
-    end.
+is_kappex_app(#whapp_info{roles=Roles}) ->
+    lists:member(<<"kappex">>, Roles).
 
 start_other_app(_OtherNode, AppName) ->
     _Pid = kz_process:spawn(fun kapps_controller:start_app/1, [AppName]),
