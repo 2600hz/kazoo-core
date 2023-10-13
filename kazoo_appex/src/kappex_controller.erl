@@ -273,8 +273,8 @@ fetched_or_fetching(ExternalApp, #state{loaded=LoadedApps
                 'false' ->
                     'not_fetched'
             end;
-        {'value', #fetch{}, _NewFetchings}=Fetch ->
-            {'fetching', Fetch}
+        {'value', #fetch{}=Fetch, NewFetchings} ->
+            {'fetching', Fetch, NewFetchings}
     end.
 
 %%------------------------------------------------------------------------------
