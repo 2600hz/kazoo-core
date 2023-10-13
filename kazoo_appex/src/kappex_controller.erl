@@ -34,7 +34,7 @@
         ]).
 
 %% internal usage
--export([load_app/2]).
+-export([load_app/2, unload_app/2]).
 
 -include("appex_client.hrl").
 
@@ -107,6 +107,17 @@ load_app(Pid, App) ->
             'false'
     end.
 
+-spec unload_app(pid(), external_app()) -> 'ok'.
+unload_app(Pid, App) ->
+    case application:get_env(App, 'kappex_app_mod') of
+        {'ok', AppCallback} ->
+            _ = appex_app_master:stop_app(App, {AppCallback, []}),
+            gen_server:cast(Pid, {'unload_app', App});
+        _ ->
+            appex_app_master:force_cleanse_app(App),
+            gen_server:cast(Pid, {'unload_app', App})
+    end.
+
 %% When the local node is building a heartbeat payload, each running
 %% kapp is folded over for properties to add to the heartbeat. When
 %% kappex loads a kapp, it binds for this kapp heartbeat and will add
@@ -123,7 +134,8 @@ kapp_heartbeat(Acc) ->
 -spec init(list()) -> {'ok', state()}.
 init(_Args) ->
     process_flag('trap_exit', 'true'),
-    _Binding = kapps_controller:binding_fetch_app(?MODULE, 'load_app', self()),
+    _LoadBinding = kapps_controller:binding_fetch_app(?MODULE, 'load_app', self()),
+    _UnloadBinding = kapps_controller:binding_unload_app(?MODULE, 'unload_app', self()),
     kz_nodes_notify:notify_heartbeat(),
     {'ok', #state{}}.
 
@@ -144,6 +156,7 @@ handle_call('loaded', _From, #state{loaded=Loaded}=State) ->
 handle_call('running', _From, #state{running_pid_ref=PidRefs}=State) ->
     {'reply', maps:values(PidRefs), State};
 handle_call({'load_app', ExternalApp}, From, #state{loaded=LoadedApps}=State) ->
+    %% ### OLD COMMENT, KAPPEX IS NOT HANDLING DEPS ANYMORE ###
     %% FIXME: just like ensure_all_started, ensure the app and all of
     %% its deps and deps of dep are fully loaded so when
     %% kapps_controller calls ensure_all_started eveything is loaded
@@ -178,24 +191,55 @@ handle_call({'load_app', ExternalApp}, From, #state{loaded=LoadedApps}=State) ->
     %% - ensure_all_loaded: fold over app's applications recursively and check all deps are loaded
     %%   - fetch all not loaded apps one-by-one, fetch_resp and call ensure_all_loaded on them?
     %%   - fetch_resp after each fetch, and before spawning a new fetch check if it is loaded
-    case lists:member(ExternalApp, LoadedApps)
-        andalso application:load(ExternalApp)
-    of
+    %% ### OLD COMMENT, KAPPEX IS NOT HANDLING DEPS ANYMORE ###
+    case check_load_locally(ExternalApp, State) of
         'ok' ->
-            lager:debug("app ~s was fetched before, loading it", [ExternalApp]),
+            lager:debug("fetched app ~s loaded successfully", [ExternalApp]),
             {'reply', 'true', State#state{loaded=lists:usort([ExternalApp | LoadedApps])}};
         {'error', {'already_loaded', ExternalApp}} ->
             lager:debug("app ~s is already fetched and loaded", [ExternalApp]),
             {'reply', 'true', State#state{loaded=lists:usort([ExternalApp | LoadedApps])}};
-        {'error', _Reason} ->
-            lager:debug("app ~s is listed but not loaded: ~p", [ExternalApp, _Reason]),
-            handle_load_app(ExternalApp, From, State);
-        'false' ->
+        {'error', {ExternalApp, {"no such file or directory", _}}} ->
             lager:debug("app ~s not loaded, checking listing", [ExternalApp]),
-            handle_load_app(ExternalApp, From, State)
+            handle_load_app(ExternalApp, From, State);
+        {'error', _Reason} ->
+            lager:debug("app ~s is fetched before, but it failes to load with ~p", [ExternalApp, _Reason]),
+            {'reply', 'false', State};
+        {'noreply', _} = NoReply ->
+            NoReply
     end;
 handle_call(_Req, _From, State) ->
     {'noreply', State}.
+
+check_load_locally(ExternalApp, #state{loaded=LoadedApps}=State) ->
+    case fetched_or_fetching(ExternalApp, State) of
+        'fetched' ->
+            lager:debug("app ~s was fetched before, loading it", [ExternalApp]),
+            application:load(ExternalApp);
+        'false' ->
+            lager:debug("app ~s was not fetched before, checking if it is loadable locally", [ExternalApp]),
+            application:load(ExternalApp);
+        'fetching' ->
+            {'noreply', State#state{loaded=lists:delete(ExternalApp, LoadedApps)}}
+    end.
+
+fetched_or_fetching(ExternalApp, #state{loaded=LoadedApps
+                                       ,fetchings=Fetchings
+                                       }
+                   ) ->
+    case lists:keyfind(ExternalApp, #fetch.app, Fetchings) of
+        'false' ->
+            case lists:member(ExternalApp, LoadedApps) of
+                'true' ->
+                    'fetched';
+                'false' ->
+                    'false'
+            end;
+        #fetch{fetch=PidRef} ->
+            lager:info("app ~s is fetching in ~p", [ExternalApp, PidRef]),
+            'fetching'
+    end.
+
 
 %%------------------------------------------------------------------------------
 %% @doc Handling cast messages.
@@ -205,6 +249,7 @@ handle_call(_Req, _From, State) ->
 handle_cast({'add_running', {App, AppPid}}, #state{running=Running
                                                   ,running_pid_ref=PidRefs
                                                   }=State) ->
+    _ = kz_nodes_bindings:bind(App, ?MODULE, 'kapp_heartbeat'),
     Ref = erlang:monitor('process', AppPid),
     NewRunning = Running#{App => #{pid => AppPid, ref => Ref}},
     NewPidRefs = PidRefs#{{AppPid, Ref} => App},
@@ -214,9 +259,12 @@ handle_cast({'stop_running', App}, #state{running=Running}=State) ->
         'undefined' ->
             'ok';
         #{pid := _Pid, ref := _Ref} ->
+            _ = kz_nodes_bindings:unbind(App, ?MODULE, 'kapp_heartbeat'),
             _ = spawn('application', 'stop', [App]),
             {'noreply', State}
     end;
+handle_cast({'unload_app', ExternalApp}, #state{loaded=LoadedApps}=State) ->
+    {'noreply', State#state{loaded=lists:delete(ExternalApp, LoadedApps)}};
 handle_cast({'kz_nodes', {'heartbeat', Node}}, State) ->
     should_check_node_bindings()
         andalso handle_node_heartbeat(Node, node()),
@@ -259,6 +307,7 @@ handle_info(_Msg, State) ->
 terminate(_Reason, #state{}=_State) ->
     %% FIXME: cancel/kill any fetch/load process
     _ = kapps_controller:unbinding_fetch_app(?MODULE, 'load_app', self()),
+    _ = kapps_controller:unbinding_unload_app(?MODULE, 'unload_app', self()),
     lager:debug("terminating: ~p", [_Reason]).
 
 %%------------------------------------------------------------------------------
@@ -279,15 +328,14 @@ code_change(_OldVsn, State, _Extra) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_load_app(external_app(), kz_term:pid_ref(), state()) -> {'noreply', state()}.
-handle_load_app(ExternalApp, From, #state{fetchings=Fetchings}=State) ->
+handle_load_app(ExternalApp, From, #state{fetchings=Fetchings
+                                         ,loaded=Loaded
+                                         }=State) ->
     PidRef = start_fetch_process(ExternalApp, From),
     lager:info("starting a fetch process for app ~s in ~p", [ExternalApp, PidRef]),
-    {'noreply', State#state{fetchings=[#fetch{app=ExternalApp
-                                             ,from=From
-                                             ,fetch=PidRef
-                                             }
-                                      | Fetchings
-                                      ]
+    Fetch = #fetch{app=ExternalApp, from=From, fetch=PidRef},
+    {'noreply', State#state{fetchings=lists:usort([Fetch | Fetchings])
+                           ,loaded=lists:delete(ExternalApp, Loaded)
                            }}.
 
 -spec start_fetch_process(external_app(), kz_term:pid_ref()) -> kz_term:pid_ref().
@@ -296,7 +344,6 @@ start_fetch_process(ExternalApp, From) ->
       fun() ->
               case appex_client_client:load_app(ExternalApp) of
                   {'ok', _Loaded} ->
-                      _ = kz_nodes_bindings:bind(ExternalApp, ?MODULE, 'kapp_heartbeat'),
                       gen_server:reply(From, 'true');
                   {'error', _Reason} ->
                       lager:error("failed to fetch and extract app ~s: ~p", [ExternalApp, _Reason]),
@@ -306,27 +353,26 @@ start_fetch_process(ExternalApp, From) ->
      ).
 
 -spec handle_fetch_down(any(), state()) -> 'no_fetch_app' | state().
-handle_fetch_down({'DOWN', Ref, 'process', Pid, 'normal'}, #state{fetchings=Fetches}=State) ->
+handle_fetch_down({'DOWN', Ref, 'process', Pid, 'normal'}, #state{fetchings=Fetches
+                                                                 ,loaded=Loaded
+                                                                 }=State) ->
     case lists:keytake({Pid, Ref}, #fetch.fetch, Fetches) of
         'false' ->
             'no_fetch_app';
         {'value', #fetch{app=App}, Fetches1} ->
             lager:info("fetch app ~s with pid ~p(~p) finished normally", [App, Pid, Ref]),
-            State#state{fetchings=Fetches1}
-    end;
-handle_fetch_down({'DOWN', Ref, 'process', Pid, _Reason}
-                 ,#state{fetchings=Fetches
-                        ,loaded=Loaded
-                        }=State
-                 ) ->
-    case lists:keytake({Pid, Ref}, #fetch.fetch, Fetches) of
-        'false' -> 'no_fetch_app';
-        {'value', #fetch{app=App, from=From}, Fetches1} ->
-            lager:info("fetch app ~s with pid ~p(~p) finished abnormally: ~p", [App, Pid, Ref, _Reason]),
-            gen_server:reply(From, 'false'),
             State#state{fetchings=Fetches1
                        ,loaded=lists:usort([App | Loaded])
                        }
+    end;
+handle_fetch_down({'DOWN', Ref, 'process', Pid, _Reason}, #state{fetchings=Fetches}=State) ->
+    case lists:keytake({Pid, Ref}, #fetch.fetch, Fetches) of
+        'false' ->
+            'no_fetch_app';
+        {'value', #fetch{app=App, from=From}, Fetches1} ->
+            lager:info("fetch app ~s with pid ~p(~p) finished abnormally: ~p", [App, Pid, Ref, _Reason]),
+            gen_server:reply(From, 'false'),
+            State#state{fetchings=Fetches1}
     end.
 
 -spec handle_app_stop(any(), state()) -> 'no_app_stop' | state().

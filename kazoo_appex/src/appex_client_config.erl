@@ -309,13 +309,7 @@ is_configured() ->
                ,{<<"app_exchange_url">>, app_exchange_url()}
                ]
               ),
-    case is_configured(Config) of
-        'true' ->
-            'true';
-        'false' ->
-            lager:warning("cluster is not linked to marketplace"),
-            'false'
-    end.
+    is_configured(Config).
 
 -spec is_configured(kz_json:object()) -> boolean().
 is_configured(Config) ->

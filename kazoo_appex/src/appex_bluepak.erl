@@ -90,13 +90,17 @@ prior_cleanup(App) ->
     case filelib:wildcard(AppDir, BasePath) of
         [] -> 'ok';
         DirList ->
-            _ = [file:del_dir_r(filename:join(BasePath, Dir))
-                 || Dir <- DirList
-                ],
-            lager:warning("before loading ~p app; ~s old directory(s) is/are deleted from ~s path"
-                         ,[App, string:join(DirList, ", "), BasePath]
-                         )
+            _ = [prior_cleans_path(BasePath, Dir) || Dir <- DirList],
+            'ok'
     end.
+
+prior_cleans_path(BasePath, Dir) ->
+    Path = kz_term:to_list(filename:join(BasePath, Dir)),
+    lager:warning("cleaning old path ~s before fresh load", [Path]),
+    _ = file:del_dir_r(Path),
+    _ = code:set_path(lists:delete(Path, code:get_path())),
+    _ = code:set_path(lists:delete(filename:join([Path, "ebin"]), code:get_path())),
+    'ok'.
 
 -spec load_app(load_app()) -> load_resp().
 load_app(#load_app{app_spec=_AppSpec, app=App}=LoadApp) ->
@@ -130,10 +134,12 @@ load_app(#load_app{app_spec=_AppSpec, app=App}=LoadApp) ->
             {'error', 'failed'}
     end.
 
-fail_cleanup(#load_app{app=App}=LoadApp) ->
+fail_cleanup(#load_app{app=App, base_path=BasePath, app_dir=AppDirBin}=LoadApp) ->
     _Unload = application:unload(App),
-    Ebin = ebin_path(LoadApp),
+    AppDir = kz_term:to_list(filename:join([BasePath, AppDirBin])),
+    Ebin = kz_term:to_list(ebin_path(LoadApp)),
     _ = file:del_dir_r(filename:dirname(Ebin)),
+    _ = code:set_path(lists:delete(AppDir, code:get_path())),
     _ = code:set_path(lists:delete(Ebin, code:get_path())),
     'ok'.
 
