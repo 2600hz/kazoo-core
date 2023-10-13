@@ -42,7 +42,7 @@
 
 -record(fetch, {app :: atom()
                ,fetch :: kz_term:pid_ref()
-               ,from :: kz_term:pid_ref()
+               ,froms :: [kz_term:pid_ref()]
                }
        ).
 -type fetch() :: #fetch{}.
@@ -156,90 +156,20 @@ handle_call('loaded', _From, #state{loaded=Loaded}=State) ->
 handle_call('running', _From, #state{running_pid_ref=PidRefs}=State) ->
     {'reply', maps:values(PidRefs), State};
 handle_call({'load_app', ExternalApp}, From, #state{loaded=LoadedApps}=State) ->
-    %% ### OLD COMMENT, KAPPEX IS NOT HANDLING DEPS ANYMORE ###
-    %% FIXME: just like ensure_all_started, ensure the app and all of
-    %% its deps and deps of dep are fully loaded so when
-    %% kapps_controller calls ensure_all_started eveything is loaded
-    %% up and it won't call appex again.
-    %%
-    %% The goal here that we ensure the app and all of its deps are
-    %% recursively resolved and loaded so kapps_controller won't get
-    %% an error from erlang that some deps are not loaded. That wass
-    %% the original error that we are trying to solve here, because if
-    %% erlang ssys something s not loaded, erlang would stop eveything
-    %% that is loaded and started, and will cause an app cleanup in
-    %% appex which causing a race condition to stop and fetch/load the
-    %% app and its deps.
-    %%
-    %% - check if app is loading
-    %%   - maybe previously someone called load_app??
-    %%   - if yes no_reply and add from to loading and let it handle it there
-    %%     - make sure we are tracking and have timeout set properly so we don't deadlock
-    %%   - maybe even better return loading as error to caller to indicate appex recieved
-    %%     duplicated request to start the app?
-    %% - check if app is fetching
-    %%   - if yes that means the app is already fetching as part of dep resolving for another app
-    %%   - add to loadings
-    %%     - make sure we don't have deadlock
-    %% - check if app itself is loaded
-    %%   - if fully loaded:
-    %%     - call ensure_all_loaded
-    %%   - if not loaded:
-    %%     - try to fetch it from appex
-    %%     - fetch_resp
-    %%     - after fetch call ensure_all_loaded
-    %% - ensure_all_loaded: fold over app's applications recursively and check all deps are loaded
-    %%   - fetch all not loaded apps one-by-one, fetch_resp and call ensure_all_loaded on them?
-    %%   - fetch_resp after each fetch, and before spawning a new fetch check if it is loaded
-    %% ### OLD COMMENT, KAPPEX IS NOT HANDLING DEPS ANYMORE ###
-    case check_load_locally(ExternalApp, State) of
-        'ok' ->
-            lager:debug("fetched app ~s loaded successfully", [ExternalApp]),
-            {'reply', 'true', State#state{loaded=lists:usort([ExternalApp | LoadedApps])}};
-        {'error', {'already_loaded', ExternalApp}} ->
+    case fetched_or_fetching(ExternalApp, State) of
+        'fetched' ->
             lager:debug("app ~s is already fetched and loaded", [ExternalApp]),
-            {'reply', 'true', State#state{loaded=lists:usort([ExternalApp | LoadedApps])}};
-        {'error', {ExternalApp, {"no such file or directory", _}}} ->
-            lager:debug("app ~s not loaded, checking listing", [ExternalApp]),
+            {'reply', 'true', State};
+        'not_fetched' ->
             handle_load_app(ExternalApp, From, State);
-        {'error', _Reason} ->
-            lager:debug("app ~s is fetched before, but it failes to load with ~p", [ExternalApp, _Reason]),
-            {'reply', 'false', State};
-        {'noreply', _} = NoReply ->
-            NoReply
+        {'fetching', #fetch{fetch=_PidRef, froms=Froms}=Fetch, NewFetchings} ->
+            lager:info("app ~s is fetching in ~p", [ExternalApp, _PidRef]),
+            {'noreply', State#state{loaded=lists:delete(ExternalApp, LoadedApps)
+                                   ,fetchings=[Fetch#fetch{froms=[From|Froms]}|NewFetchings]
+                                   }}
     end;
 handle_call(_Req, _From, State) ->
     {'noreply', State}.
-
-check_load_locally(ExternalApp, #state{loaded=LoadedApps}=State) ->
-    case fetched_or_fetching(ExternalApp, State) of
-        'fetched' ->
-            lager:debug("app ~s was fetched before, loading it", [ExternalApp]),
-            application:load(ExternalApp);
-        'false' ->
-            lager:debug("app ~s was not fetched before, checking if it is loadable locally", [ExternalApp]),
-            application:load(ExternalApp);
-        'fetching' ->
-            {'noreply', State#state{loaded=lists:delete(ExternalApp, LoadedApps)}}
-    end.
-
-fetched_or_fetching(ExternalApp, #state{loaded=LoadedApps
-                                       ,fetchings=Fetchings
-                                       }
-                   ) ->
-    case lists:keyfind(ExternalApp, #fetch.app, Fetchings) of
-        'false' ->
-            case lists:member(ExternalApp, LoadedApps) of
-                'true' ->
-                    'fetched';
-                'false' ->
-                    'false'
-            end;
-        #fetch{fetch=PidRef} ->
-            lager:info("app ~s is fetching in ~p", [ExternalApp, PidRef]),
-            'fetching'
-    end.
-
 
 %%------------------------------------------------------------------------------
 %% @doc Handling cast messages.
@@ -327,29 +257,45 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec fetched_or_fetching(external_app(), state()) ->
+          'fetched' |
+          'not_fetched' |
+          {'fetching', fetch(), fetches()}.
+fetched_or_fetching(ExternalApp, #state{loaded=LoadedApps
+                                       ,fetchings=Fetchings
+                                       }
+                   ) ->
+    case lists:keytake(ExternalApp, #fetch.app, Fetchings) of
+        'false' ->
+            case lists:member(ExternalApp, LoadedApps) of
+                'true' ->
+                    'fetched';
+                'false' ->
+                    'not_fetched'
+            end;
+        {'value', #fetch{}, _NewFetchings}=Fetch ->
+            {'fetching', Fetch}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec handle_load_app(external_app(), kz_term:pid_ref(), state()) -> {'noreply', state()}.
 handle_load_app(ExternalApp, From, #state{fetchings=Fetchings
                                          ,loaded=Loaded
                                          }=State) ->
-    PidRef = start_fetch_process(ExternalApp, From),
-    lager:info("starting a fetch process for app ~s in ~p", [ExternalApp, PidRef]),
-    Fetch = #fetch{app=ExternalApp, from=From, fetch=PidRef},
+    PidRef = start_fetch_process(ExternalApp),
+    lager:info("started a fetch process for app ~s in ~p", [ExternalApp, PidRef]),
+    Fetch = #fetch{app=ExternalApp, froms=[From], fetch=PidRef},
     {'noreply', State#state{fetchings=lists:usort([Fetch | Fetchings])
                            ,loaded=lists:delete(ExternalApp, Loaded)
                            }}.
 
--spec start_fetch_process(external_app(), kz_term:pid_ref()) -> kz_term:pid_ref().
-start_fetch_process(ExternalApp, From) ->
+-spec start_fetch_process(external_app()) -> kz_term:pid_ref().
+start_fetch_process(ExternalApp) ->
     spawn_monitor(
-      fun() ->
-              case appex_client_client:load_app(ExternalApp) of
-                  {'ok', _Loaded} ->
-                      gen_server:reply(From, 'true');
-                  {'error', _Reason} ->
-                      lager:error("failed to fetch and extract app ~s: ~p", [ExternalApp, _Reason]),
-                      gen_server:reply(From, 'false')
-              end
-      end
+      fun() -> appex_client_client:load_app(ExternalApp) end
      ).
 
 -spec handle_fetch_down(any(), state()) -> 'no_fetch_app' | state().
@@ -359,8 +305,9 @@ handle_fetch_down({'DOWN', Ref, 'process', Pid, 'normal'}, #state{fetchings=Fetc
     case lists:keytake({Pid, Ref}, #fetch.fetch, Fetches) of
         'false' ->
             'no_fetch_app';
-        {'value', #fetch{app=App}, Fetches1} ->
+        {'value', #fetch{app=App,froms=Froms}, Fetches1} ->
             lager:info("fetch app ~s with pid ~p(~p) finished normally", [App, Pid, Ref]),
+            _ = [gen_server:reply(From, 'true') || From <- Froms],
             State#state{fetchings=Fetches1
                        ,loaded=lists:usort([App | Loaded])
                        }
@@ -369,9 +316,9 @@ handle_fetch_down({'DOWN', Ref, 'process', Pid, _Reason}, #state{fetchings=Fetch
     case lists:keytake({Pid, Ref}, #fetch.fetch, Fetches) of
         'false' ->
             'no_fetch_app';
-        {'value', #fetch{app=App, from=From}, Fetches1} ->
+        {'value', #fetch{app=App, froms=Froms}, Fetches1} ->
             lager:info("fetch app ~s with pid ~p(~p) finished abnormally: ~p", [App, Pid, Ref, _Reason]),
-            gen_server:reply(From, 'false'),
+            _ = [gen_server:reply(From, 'false') || From <- Froms],
             State#state{fetchings=Fetches1}
     end.
 
