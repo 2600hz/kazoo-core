@@ -295,7 +295,14 @@ handle_load_app(ExternalApp, From, #state{fetchings=Fetchings
 -spec start_fetch_process(external_app()) -> kz_term:pid_ref().
 start_fetch_process(ExternalApp) ->
     spawn_monitor(
-      fun() -> appex_client_client:load_app(ExternalApp) end
+      fun() ->
+              case appex_client_client:load_app(ExternalApp) of
+                  {'ok', _Loaded} ->
+                      'ok';
+                  {'error', _}=Error ->
+                      erlang:exit(Error)
+              end
+      end
      ).
 
 -spec handle_fetch_down(any(), state()) -> 'no_fetch_app' | state().
