@@ -136,6 +136,7 @@ maybe_start_external_app(App) ->
                     OK;
                 {'error', _Reason}=Error ->
                     lager:error("~s could not start: ~p", [App, _Reason]),
+                    _ = kazoo_bindings:map(<<"app.unload">>, App),
                     Error
             end;
         'false' ->

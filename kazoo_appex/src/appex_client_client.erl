@@ -416,7 +416,7 @@ handle_app_response_message(ReqId, _FetchParams, {'http', {ReqId, {{_HTTP, RespC
                                                                   }}})
   when RespCode >= 400 ->
     note_request_id(RespHeaders),
-    lager:error("failure fetching app: ~p: ~s", [RespCode, _RespBody]),
+    lager:error("failed fetching app: ~p: ~s", [RespCode, _RespBody]),
     {'error', RespCode};
 handle_app_response_message(ReqId, _FetchParams, {'http', {ReqId, {{_HTTP, RespCode, _RespMsg}
                                                                   ,RespHeaders
