@@ -341,6 +341,7 @@ calculate_updates(Services, JObj) ->
                        ,fun calculate_whitelabel_updates/2
                        ,fun calculate_dedicated_ip_updates/2
                        ,fun calculate_app_store_updates/2
+                       ,fun calculate_applications_updates/2
                        ,fun calculate_number_updates/2
                        ,fun calculate_billing_updates/2
                        ,fun calculate_qubicle_queue_updates/2
@@ -503,6 +504,37 @@ app_store_updates_fold(_K, App, U) ->
             ,{AccountKey, 1}
             | U
             ]
+    end.
+
+-spec calculate_applications_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
+calculate_applications_updates(JObj, Updates) ->
+    case kz_doc:type(JObj) =:= <<"application_entitlement">> of
+        'false' -> Updates;
+        'true' ->
+            AppId = kz_json:get_ne_value(<<"app_id">>, JObj),
+            AccountKey = [<<"account_apps">>, AppId],
+            case kz_json:get_ne_value(<<"type">>, JObj) of
+                <<"all">> ->
+                    UserKey = [<<"user_apps">>, AppId],
+                    [{UserKey, -1}
+                    ,{AccountKey, 1}
+                    | Updates
+                    ];
+                <<"admins">> ->
+                    UserKey = [<<"user_apps">>, AppId],
+                    [{UserKey, -2}
+                    ,{AccountKey, 1}
+                    | Updates
+                    ];
+                <<"specific">> ->
+                    UserKey = [<<"user_apps">>, AppId],
+                    Value = length(kz_json:get_list_value(<<"users">>, JObj, [])),
+                    [{UserKey, Value}
+                    ,{AccountKey, 1}
+                    | Updates
+                    ]
+            end
+
     end.
 
 -spec calculate_number_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
