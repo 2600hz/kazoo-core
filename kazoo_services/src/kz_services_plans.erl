@@ -487,6 +487,7 @@ editable_fields(ResellerId) ->
                ,fun editable_number_carriers_fields/2
                ,fun editable_number_services_fields/2
                ,fun editable_monster_apps_fields/2
+               ,fun editable_commland_apps_fields/2
                ,fun editable_qubicle_fields/2
                ],
     editable_fields_to_json(
@@ -547,6 +548,27 @@ editable_monster_apps_fields(Fields, ResellerId) ->
             ,{<<"user_apps">>, Apps}
             | Fields
             ]
+    end.
+
+-spec editable_commland_apps_fields(kz_term:proplist(), kz_term:api_binary()) -> kz_term:proplist().
+editable_commland_apps_fields(Fields, 'undefined') ->
+    {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
+    editable_commland_apps_fields(Fields, MasterAccountId);
+editable_commland_apps_fields(Fields, ResellerId) ->
+    AppType = <<"commland_ui">>,
+    ViewOptions = [{'startkey', [AppType]}
+                  ,{'endkey', [AppType, kz_term:high_unicode_value()]}
+                  ],
+    case kz_datamgr:get_results(ResellerId, <<"application/crossbar_listing">>, ViewOptions) of
+        {'ok', JObjs} ->
+            Applications = [kz_doc:id(Application)|| Application <- JObjs],
+            [{<<"account_commland_apps">>, Applications}
+            ,{<<"user_commland_apps">>, Applications}
+            | Fields
+            ];
+        {'error', _Reason} ->
+            lager:error("failed to lookup apps in ~s: ~p", [ResellerId, _Reason]),
+            Fields
     end.
 
 -spec editable_qubicle_fields(kz_term:proplist(), kz_term:api_binary()) -> kz_term:proplist().
