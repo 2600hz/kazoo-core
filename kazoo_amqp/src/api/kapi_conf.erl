@@ -33,7 +33,7 @@
 
         ,get_database/1
         ,get_account_id/1, get_account_db/1
-        ,get_type/1, get_doc/1, get_id/1
+        ,get_type/1, get_doc/1, get_id/1, get_rev/1
         ,get_action/1, get_is_soft_deleted/1
         ,get_routing_key/1, get_routing_key/2
         ]).
@@ -171,6 +171,10 @@ get_doc(API) ->
 -spec get_id(kz_term:api_terms()) -> kz_term:api_binary().
 get_id(API) ->
     get_value(API, <<"ID">>).
+
+-spec get_rev(kz_term:api_terms()) -> kz_term:api_ne_binary().
+get_rev(API) ->
+    get_value(API, <<"Rev">>).
 
 %% returns the pvt_type field
 -spec get_type(kz_term:api_terms()) -> kz_term:api_binary().
