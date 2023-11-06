@@ -1835,8 +1835,8 @@ reply_to_request({From, TRef}) ->
 %% state. We advise app developers to not do this :)
 %%
 %% Additional heuristics added for when to GC a gen_listener:
-%%   - when total_heap_size > 100K
-%%   - when message_queue_len < 100
+%%   - when total_heap_size &gt; 100K
+%%   - when message_queue_len &lt; 100
 %%
 %% As seen in production, a gen_listener was overwhelmed with messages
 %% (2.4 million) and heap was obviously ballooning (>250Mb) causing GC
