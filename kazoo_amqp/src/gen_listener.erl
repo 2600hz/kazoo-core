@@ -1822,20 +1822,39 @@ reply_to_request({From, TRef}) ->
 %% AMQP client library.
 %%
 %% It is possible that apps may load more memory into their state
-%% which would cause gen_listener's state to exceed 10K in the steady
+%% which would cause gen_listener's state to exceed 100K in the steady
 %% state. We advise app developers to not do this :)
+%%
+%% Additional heuristics added for when to GC a gen_listener:
+%%   - when total_heap_size &gt; 100K
+%%   - when message_queue_len &lt; 100
+%%
+%% As seen in production, a gen_listener was overwhelmed with messages
+%% (2.4 million) and heap was obviously ballooning (>250Mb) causing GC
+%% on every new AMQP message. As the heap and message queue were so
+%% large, this GC caused massive slowdowns (some messages weren't
+%% being cleared for 15 minutes).
 -spec maybe_gc(boolean()) -> 'ok'.
 maybe_gc('false') -> 'ok';
 maybe_gc('true') ->
     maybe_gc_process(process_info(self(), ['total_heap_size'])
                     ,100 * ?BYTES_K
+                    ,process_info(self(), ['message_queue_len'])
+                    ,100
                     ).
 
-maybe_gc_process([{'total_heap_size', Words}], MaxBytes) ->
-    maybe_gc_process(kz_term:words_to_bytes(Words), MaxBytes);
-maybe_gc_process(Heap, Max) when Heap > Max ->
+maybe_gc_process([{'total_heap_size', Words}], MaxBytes, [{'message_queue_len', QueueLength}], MaxQueueLength) ->
+    maybe_gc_process(kz_term:words_to_bytes(Words), MaxBytes, QueueLength, MaxQueueLength);
+maybe_gc_process(Heap, Max, QueueLength, MaxQueueLength)
+  when Heap > Max
+       andalso QueueLength < MaxQueueLength
+       ->
     erlang:garbage_collect(self()),
     [{'total_heap_size', NewHeapWords}] = process_info(self(), ['total_heap_size']),
     NewHeap = kz_term:words_to_bytes(NewHeapWords),
     amqp:debug("new heap size ~p (delta ~p)", [NewHeap, Heap-NewHeap]);
-maybe_gc_process(_Heap, _Max) -> 'ok'.
+maybe_gc_process(Heap, Max, QueueLength, MaxQueueLength) when Heap > Max, QueueLength >= MaxQueueLength ->
+    lager:notice("heap ~p is growing past max ~p while queue len ~p is bigger than ~p"
+                ,[Heap, Max, QueueLength, MaxQueueLength]
+                );
+maybe_gc_process(_Heap, _Max, _QL, _MaxQL) -> 'ok'.
