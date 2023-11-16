@@ -8,9 +8,5 @@
 
 -define(CRM_EXCHANGE_TYPE, <<"topic">>).
 
--define(CRM_APP_NAME, <<"crm">>).
-
--define(CRM_APP_VER, <<"5.2">>).
-
 -define(CRM_ROUTE(A, E), <<"crm.", A/binary, ".", E/binary>>).
 
