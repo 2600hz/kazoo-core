@@ -15,7 +15,7 @@
 
 -include("services.hrl").
 
--define(DEFAULT_EXPIRATION, 5 * ?SECONDS_IN_MINUTE).
+-define(DEFAULT_EXPIRATION_S, 5 * ?SECONDS_IN_MINUTE).
 
 -type acceptable_options() :: #{amount => integer()
                                 %% Additional units amount to add to the current balance. Default is 0.
@@ -81,7 +81,7 @@ acceptable(Services, Options) ->
                   ,cache_acceptable =>
                        kz_term:is_true(maps:get('cache_acceptable', Options, 'false'))
                   ,cache_expiration =>
-                       kz_term:to_integer(maps:get('cache_expiration', Options, ?DEFAULT_EXPIRATION))
+                       kz_term:to_integer(maps:get('cache_expiration', Options, ?DEFAULT_EXPIRATION_S))
                   },
     GoodFuns = [fun should_enforce_good_standing/2
                ,fun no_plan_is_good/2
@@ -156,6 +156,7 @@ no_plan_is_good(Services, _Options) ->
     case kz_services:has_plans(Services) of
         'true' -> 'not_applicable';
         'false' ->
+            lager:info("no plans in services for ~s", [kz_services:account_id(Services)]),
             {'true', <<"no service plans assigned">>}
     end.
 
@@ -179,20 +180,44 @@ handle_bookkeeper_results([{_Invoice, {'ok', Result}}|Results]) ->
     case kz_json:get_ne_binary_value(<<"Status">>, Result) =:= kzd_services:status_good() of
         'true' -> handle_bookkeeper_results(Results);
         'false' ->
+            maybe_smooth_disruptions(Result, Results)
+    end;
+handle_bookkeeper_results([{_Invoice, _Error}|Results]) ->
+    lager:debug("unexpected bookkeeper result: ~p", [_Error]),
+    Result = [{<<"Reason">>, <<"bookkeeper_fault">>}
+             ,{<<"Message">>, <<"Temporary billing error, please try again later.">>}
+             ],
+    maybe_smooth_disruptions(kz_json:from_list(Result), Results).
+
+maybe_smooth_disruptions(Result, Results) ->
+    RejectReason = kz_json:get_ne_binary_value(<<"Reason">>, Result, <<"bookkeeper_rejection">>),
+    case should_smooth_disruptions() of
+        'true' ->
+            lager:warning("billing error is being ignored for now: ~s", [RejectReason]),
+            handle_bookkeeper_results(Results);
+        'false' ->
             DefaultMessage = <<"There is a billing issue with this account, please contact your sales representative.">>,
             {'false'
-            ,#{reason => kz_json:get_ne_binary_value(<<"Reason">>, Result, <<"bookkeeper_rejection">>)
+            ,#{reason => RejectReason
               ,message => kz_json:get_ne_binary_value(<<"Message">>, Result, DefaultMessage)
               }
             }
-    end;
-handle_bookkeeper_results([{_Invoice, _Error}|_]) ->
-    lager:debug("unexpected bookkeeper result: ~p", [_Error]),
-    {'false'
-    ,#{reason => <<"bookkeeper_fault">>
-      ,message => <<"Temporary billing error, please try again later.">>
-      }
-    }.
+    end.
+
+should_smooth_disruptions() ->
+    Config = kapps_config:get_integer(?CONFIG_CAT, <<"days_to_ignore_standing_failures">>, 0),
+    should_smooth_disruptions(Config).
+
+should_smooth_disruptions(0) -> 'false';
+should_smooth_disruptions(Days) ->
+    should_smooth_disruptions(Days, erlang:date()).
+
+should_smooth_disruptions(Days, {_Y, _M, Day}) when Day < Days ->
+    lager:warning("smoothing over error on day ~p when ~p days allowable", [Day, Days]),
+    'true';
+should_smooth_disruptions(_Days, {_Y, _M, _Day}) ->
+    lager:info("day ~p outside configured days ~p for smoothing", [_Day, _Days]),
+    'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -204,11 +229,11 @@ handle_bookkeeper_results([{_Invoice, _Error}|_]) ->
 invoices_foldl_fun(Services, Options) ->
     fun(Invoice, Results) ->
             Type = kz_services_invoice:bookkeeper_type(Invoice),
-            case kzd_services:default_bookkeeper_type() =:= Type of
-                'true' ->
+            case kzd_services:default_bookkeeper_type() of
+                Type ->
                     Result = kz_json:from_list([{<<"Status">>, kzd_services:status_good()}]),
                     [{Invoice, {'ok', Result}} | Results];
-                'false' ->
+                _DefaultBookkeeperType ->
                     Result = check_bookkeeper(Invoice, Services, Options),
                     [{Invoice, Result} | Results]
             end

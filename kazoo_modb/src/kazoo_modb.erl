@@ -174,13 +174,13 @@ couch_open(AccountMODb, DocId, Options) ->
 
 -spec save_doc(kz_term:ne_binary(), kz_json:object()) ->
           {'ok', kz_json:object()} |
-          {'error', atom()}.
+          kz_datamgr:data_error().
 save_doc(Account, Doc) ->
     save_doc(Account, Doc, []).
 
 -spec save_doc(kz_term:ne_binary(), kz_json:object(), kz_time:now() | kz_time:gregorian_seconds() | kz_term:proplist()) ->
           {'ok', kz_json:object()} |
-          {'error', atom()}.
+          kz_datamgr:data_error().
 save_doc(Account, Doc, Options) when is_list(Options) ->
     AccountMODb = get_modb(Account),
     MaxRetries = props:get_integer_value('max_retries', Options, ?MAX_RETRIES),
@@ -190,7 +190,7 @@ save_doc(Account, Doc, Timestamp) ->
 
 -spec save_doc(kz_term:ne_binary(), kz_json:object(), kz_time:year() | kz_term:ne_binary() | kz_time:now(), kz_time:month() | kz_term:ne_binary() | kz_term:proplist()) ->
           {'ok', kz_json:object()} |
-          {'error', atom()}.
+          kz_datamgr:data_error().
 save_doc(Account, Doc, Timestamp, Options) when is_list(Options) ->
     AccountMODb = get_modb(Account, Timestamp),
     MaxRetries = props:get_integer_value('max_retries', Options, ?MAX_RETRIES),
@@ -205,7 +205,7 @@ save_doc(Account, Doc, Year, Month, Options) ->
 
 -spec couch_save(kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom(), integer()) ->
           {'ok', kz_json:object()} |
-          {'error', atom()}.
+          kz_datamgr:data_error().
 couch_save(AccountMODb, _Doc, _Options, Reason, Retry) when Retry =< 0 ->
     lager:debug("max retries to save doc in ~s: ~p", [AccountMODb, Reason]),
     {'error', Reason};

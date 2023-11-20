@@ -1071,7 +1071,7 @@ cascade_commit(Services) ->
 -spec commit_account(kz_term:ne_binary()|services()) -> services().
 commit_account(?NE_BINARY=AccountId) ->
     commit_account(fetch(AccountId));
-commit_account(Services) ->
+commit_account(#kz_services{}=Services) ->
     lager:debug("commit any changes to account ~s"
                ,[account_id(Services)]
                ),
@@ -1172,7 +1172,10 @@ save_services_jobj(Services) ->
 
 -spec save_services_jobj(services(), kzd_services:doc()) -> services().
 save_services_jobj(Services, ProposedJObj) ->
-    case kz_datamgr:save_doc(?KZ_SERVICES_DB, ProposedJObj) of
+    Update = [{'update', kz_json:to_proplist(kz_json:flatten(ProposedJObj))}
+             ,{'ensure_saved', 'true'}
+             ],
+    case kz_datamgr:update_doc(?KZ_SERVICES_DB, account_id(Services), Update) of
         {'ok', UpdatedJObj} ->
             lager:info("updated services document ~s"
                       ,[account_id(Services)]
@@ -1187,7 +1190,6 @@ save_services_jobj(Services, ProposedJObj) ->
                       ),
             Services
     end.
-
 
 %%------------------------------------------------------------------------------
 %% @doc

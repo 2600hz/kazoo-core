@@ -390,11 +390,13 @@ assign(Services, JObj, Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec assign(kz_services:services(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> kz_services:services().
+-spec assign(kz_services:services(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
+          kz_services:services().
 assign(Services, PlanId, Plan, Options) ->
     ServicesJObj = kz_services:services_jobj(Services),
-    lager:debug("adding service plan ~s/~s"
-               ,[kzd_services:plan_vendor_id(ServicesJObj, PlanId)
+    lager:debug("adding to account ~s service plan from vendor ~s: plan: ~s"
+               ,[kz_services:account_id(Services)
+                ,kz_json:get_ne_binary_value(<<"vendor_id">>, Plan)
                 ,PlanId
                 ]
                ),
@@ -413,7 +415,7 @@ assign(Services, PlanId, Plan, Options) ->
 %%------------------------------------------------------------------------------
 -spec unassign(kz_services:services(), kz_term:ne_binary()) -> kz_services:services().
 unassign(Services, PlanId) ->
-    lager:debug("removing service plan ~s", [PlanId]),
+    lager:debug("removing from ~s service plan ~s", [kz_services:account_id(Services), PlanId]),
     ServicesJObj = kz_services:services_jobj(Services),
     kz_services:set_services_jobj(Services
                                  ,kzd_services:set_plan(ServicesJObj, PlanId, 'undefined')
