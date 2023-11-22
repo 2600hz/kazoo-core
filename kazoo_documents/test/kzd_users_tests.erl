@@ -12,6 +12,7 @@
 -module(kzd_users_tests).
 
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("kazoo_fixturedb/include/kz_fixturedb.hrl").
 
 -define(DOC, kz_json:set_values([{<<"first_name">>, "F"}
                                 ,{<<"last_name">>, "L"}
@@ -72,3 +73,66 @@ maybe_migrate_user_addresses_test_() ->
      ,?_assert(kz_json:are_equal(Expected, Test(Expected)))
      }
     ].
+
+validate_test_() ->
+    [{"simple new user validation"
+     ,?_assertMatch({'true', _}
+                   ,kzd_users:validate(?FIXTURE_RESELLER_ACCOUNT_DB, 'undefined', new_user_obj())
+                   )
+     }
+    ,password_tests()
+    ].
+
+-define(set_pass(U, P), kzd_users:set_password(U, P)).
+password_tests() ->
+    User = new_user_obj(),
+    Disabled = ?FIXTURE_RESELLER_ACCOUNT_DB,
+    Enabled = ?FIXTURE_PARENT_ACCOUNT_ID,
+    {'setup'
+    ,fun kazoo_apps_test_util:setup/0 %% we need this because we need kapps_account_config cache
+    ,fun kazoo_apps_test_util:cleanup/1
+    ,fun(_) ->
+             [{"password requirements passes when it is disabled"
+              ,?_assertMatch({'true', _}
+                            ,with_password(Disabled, User, <<"1234567890aA!">>)
+                            )
+              }
+             ,{"password requirements passes for valid passwords"
+              ,?_assertMatch({'true', _}, with_password(Enabled, User, <<"1234567890aA!">>))
+              }
+             ,{"password requirements failes for invalid passwords"
+              ,?_assertEqual({'validation_errors'
+                             ,passowrd_validation_err(
+                                [<<"at least one special character is required">>
+                                ,<<"at least one upper case character is required">>
+                                ,<<"at least one lower case character is required">>
+                                ]
+                               )
+                             }
+                            ,with_password(Enabled, User, <<"1234567890">>)
+                            )
+              }
+             ]
+     end
+    }.
+
+passowrd_validation_err(Errors) ->
+    [{[<<"password">>]
+     ,<<"insecure">>
+     ,kz_json:from_list(
+        [{<<"message">>, <<"The provided password is non-compliant with your account's security level">>}
+        ,{<<"cause">>, <<"password">>}
+        ,{<<"details">>, Errors}
+        ]
+       )
+     }
+    ].
+
+with_password(AccountId, User, Password) ->
+    kzd_users:validate(AccountId, 'undefined', ?set_pass(User, Password)).
+
+new_user_obj() ->
+    Routines = [{fun kzd_users:set_first_name/2, kz_binary:rand_hex(4)}
+               ,{fun kzd_users:set_last_name/2, kz_binary:rand_hex(4)}
+               ],
+    kz_doc:setters(kzd_users:new(), Routines).

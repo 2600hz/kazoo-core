@@ -459,13 +459,13 @@ bind_q(Queue, Props) ->
 
 -spec bind_q(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), binding_restrictions()) -> 'ok'.
 bind_q(Queue, Type, Token, 'undefined') ->
-    kz_amqp_util:bind_q_to_exchange(Queue, ?ENDPOINT_PUSH_BINDING, ?PUSH_EXCHANGE),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue, ?ENDPOINT_PUSH_BINDING, ?PUSH_EXCHANGE),
     kz_amqp_util:bind_q_to_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE);
 bind_q(Queue, Type, Token, ['endpoint_push'|Restrict]) ->
-    kz_amqp_util:bind_q_to_exchange(Queue, ?ENDPOINT_PUSH_BINDING, ?PUSH_EXCHANGE),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue, ?ENDPOINT_PUSH_BINDING, ?PUSH_EXCHANGE),
     bind_q(Queue, Type, Token, Restrict);
 bind_q(Queue, Type, Token, ['push'|Restrict]) ->
-    kz_amqp_util:bind_q_to_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE),
     bind_q(Queue, Type, Token, Restrict);
 bind_q(Queue, Type, Token, [_|Restrict]) ->
     bind_q(Queue, Type, Token, Restrict);
