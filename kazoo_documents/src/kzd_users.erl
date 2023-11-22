@@ -672,7 +672,7 @@ presence_id(Doc, Default) ->
 set_presence_id(Doc, PresenceId) ->
     kz_json:set_value([<<"presence_id">>], PresenceId, Doc).
 
--spec presence_aliases(doc()) -> kzd_endpoint_aliases:presence_aliases() | undefined.
+-spec presence_aliases(doc()) -> kzd_endpoint_aliases:presence_aliases() | 'undefined'.
 presence_aliases(Doc) ->
     presence_aliases(Doc, 'undefined').
 
@@ -1393,23 +1393,23 @@ maybe_rehash_creds(AccountId, UserId, {Doc, []}=ValidateAcc) ->
             lager:debug("requested different username (new: ~s current: ~s) with a password"
                        ,[Username, CurrentUsername]
                        ),
-            rehash_creds(Username, Password, ValidateAcc);
+            rehash_creds(AccountId, Username, Password, ValidateAcc);
         {'false', 'false', 'true'} ->
             lager:debug("requested different username (new: ~s current: ~s) without a password"
                        ,[Username, CurrentUsername]
                        ),
-            maybe_generate_password_hash(GeneratePassword, Username, ValidateAcc);
+            maybe_generate_password_hash(AccountId, GeneratePassword, Username, ValidateAcc);
         {'false', 'true', 'false'} ->
             lager:debug("requested no username but provided a password"),
-            maybe_generated_username_hash(GenerateUsername, Password, ValidateAcc);
+            maybe_generated_username_hash(AccountId, GenerateUsername, Password, ValidateAcc);
         {'false', 'true', 'true'} ->
             lager:debug("requested no username or password"),
-            maybe_generate_creds_hash(GenerateCreds, ValidateAcc);
+            maybe_generate_creds_hash(AccountId, GenerateCreds, ValidateAcc);
         {'true', 'false', 'false'} ->
             lager:debug("requested same username (new: ~s current: ~s) with a password"
                        ,[Username, CurrentUsername]
                        ),
-            rehash_creds(Username, Password, ValidateAcc);
+            rehash_creds(AccountId, Username, Password, ValidateAcc);
         {'true', 'false', 'true'} ->
             lager:debug("requested same username (new: ~s current: ~s) without a password"
                        ,[Username, CurrentUsername]
@@ -1419,10 +1419,10 @@ maybe_rehash_creds(AccountId, UserId, {Doc, []}=ValidateAcc) ->
             lager:debug("requested no username (new: ~s current: ~s) with a password"
                        ,[Username, CurrentUsername]
                        ),
-            maybe_generated_username_hash(GenerateUsername, Password, ValidateAcc);
+            maybe_generated_username_hash(AccountId, GenerateUsername, Password, ValidateAcc);
         {'true', 'true', 'true'} ->
             lager:debug("requested no username, no current username, and no password"),
-            maybe_generate_creds_hash(GenerateCreds, ValidateAcc)
+            maybe_generate_creds_hash(AccountId, GenerateCreds, ValidateAcc)
     end;
 maybe_rehash_creds(_AccountId, _UserId, ValidateAcc) -> ValidateAcc.
 
@@ -1430,43 +1430,46 @@ maybe_rehash_creds(_AccountId, _UserId, ValidateAcc) -> ValidateAcc.
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_generate_password_hash(boolean(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
-maybe_generate_password_hash('false', _Username, {Doc, Errors}) ->
+-spec maybe_generate_password_hash(kz_term:api_ne_binary(), boolean(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+maybe_generate_password_hash(_AccountId, 'false', _Username, {Doc, Errors}) ->
     Msg = kz_json:from_list(
             [{<<"message">>, <<"The password must be provided when creating / updating the user name">>}
             ,{<<"cause">>, username(Doc)}
             ]),
     {Doc, [{[<<"password">>], <<"required">>, Msg} | Errors]};
-maybe_generate_password_hash('true', Username, ValidateAcc) ->
-    rehash_creds(Username, generate_password(), ValidateAcc).
+maybe_generate_password_hash(AccountId, 'true', Username, ValidateAcc) ->
+    rehash_creds(AccountId, Username, {'valid', generate_password()}, ValidateAcc).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_generated_username_hash(boolean(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
-maybe_generated_username_hash('false', _Password, {Doc, Errors}) ->
+-spec maybe_generated_username_hash(kz_term:api_ne_binary(), boolean(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+maybe_generated_username_hash(_AccountId, 'false', _Password, {Doc, Errors}) ->
     Msg = kz_json:from_list(
             [{<<"message">>, <<"The username must be provided when updating the password">>}
             ,{<<"cause">>, username(Doc)}
             ]),
     {Doc, [{[<<"username">>], <<"required">>, Msg} | Errors]};
-maybe_generated_username_hash('true', Password, {Doc, Errors}) ->
+maybe_generated_username_hash(AccountId, 'true', Password, {Doc, Errors}) ->
     Username = generate_username(),
     UpdatedDoc = set_username(Doc, Username),
-    rehash_creds(Username, Password, {UpdatedDoc, Errors}).
+    rehash_creds(AccountId, Username, Password, {UpdatedDoc, Errors}).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_generate_creds_hash(boolean(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
-maybe_generate_creds_hash('false', {Doc, Errors}) ->
+-spec maybe_generate_creds_hash(kz_term:api_ne_binary(), boolean(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+maybe_generate_creds_hash(_AccountId, 'false', {Doc, Errors}) ->
     {remove_creds(Doc), Errors};
-maybe_generate_creds_hash('true', {Doc, Errors}) ->
+maybe_generate_creds_hash(AccountId, 'true', {Doc, Errors}) ->
     Username = generate_username(),
     UpdatedDoc = set_username(Doc, Username),
-    rehash_creds(Username, generate_password(), {UpdatedDoc, Errors}).
+    rehash_creds(AccountId, Username, {'valid', generate_password()}, {UpdatedDoc, Errors}).
 
 %%------------------------------------------------------------------------------
 %% @doc Generate a random username beginning with `user_' and followed by 8
@@ -1501,8 +1504,18 @@ remove_creds(Doc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec rehash_creds(kz_term:ne_binary(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
-rehash_creds(Username0, Password, {Doc, Errors}) ->
+-spec rehash_creds(kz_term:api_ne_binary(), kz_term:ne_binary(), kz_term:ne_binary() | kz_auth_password:enforce_resp(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+rehash_creds(AccountId, Username, <<Password/binary>>, {Doc, Errors}) ->
+    rehash_creds(AccountId, Username, kz_auth_password:enforce(AccountId, Doc, Password), {Doc, Errors});
+rehash_creds(_AccountId, _Username, {'invalid', PassEnforceErrors}, {Doc, Errors}) ->
+    Msg = kz_json:from_list(
+            [{<<"message">>, <<"The provided password is non-compliant with your account's security level">>}
+            ,{<<"cause">>, <<"password">>}
+            ,{<<"details">>, PassEnforceErrors}
+            ]),
+    {Doc, [{[<<"password">>], <<"insecure">>, Msg} | Errors]};
+rehash_creds(_AccountId, Username0, {'valid', Password}, {Doc, Errors}) ->
     Username = kz_term:to_lower_binary(Username0),
 
     lager:debug("updating cred hashes for ~s", [Username]),
