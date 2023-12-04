@@ -79,11 +79,28 @@ get(<<EndpointId/binary>>, AccountDb) when is_binary(AccountDb) ->
     end;
 get(<<EndpointId/binary>>, Call) ->
     AccountDb = kapps_call:account_db(Call),
-    Options = props:filter_undefined([{token, kapps_call:custom_auth_header(<<"JWT-Token">>, Call)}]),
-    get(EndpointId, AccountDb, Options);
+    get(EndpointId, AccountDb, get_options(Call));
 get(Endpoint, Call) ->
     lager:info("checking endpoint ~s", [kz_doc:id(Endpoint)]),
     check_endpoint_type(Endpoint, kz_doc:id(Endpoint), kapps_call:account_db(Call), []).
+
+get_options(Call) ->
+    Routines = [{token, fun token_option/1}],
+    lists:filtermap(get_option_fun(Call), Routines).
+
+get_option_fun(Call) ->
+    fun({Key, Fun}) ->
+            case Fun(Call) of
+                undefined -> false;
+                Value -> {true, {Key, Value}}
+            end
+    end.
+
+token_option(Call) ->
+    case kapps_call:restricted_endpoint_token(Call) of
+        undefined -> kapps_call:endpoint_token(Call);
+        Token -> Token
+    end.
 
 -spec get(kz_term:api_binary(), kz_term:ne_binary() | kapps_call:call(), kz_term:proplist()) -> std_return().
 get(EndpointId, ?MATCH_ACCOUNT_RAW(AccountId), Options) ->
