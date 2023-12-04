@@ -161,8 +161,10 @@
 -export([is_recording/1, set_is_recording/2]).
 -export([is_call_forward/1]).
 -export([is_transfer/1]).
--export([endpoint_id/1]).
--export([restricted_endpoint_id/1]).
+-export([endpoint_id/1, restricted_endpoint_id/1]).
+-export([endpoint_token/1, restricted_endpoint_token/1]).
+
+-export([authorizing_token/1]).
 
 -export([tags/1, tag/2, untag/2]).
 -export([dynamic_cfwd/1, set_dynamic_cfwd/2, remove_dynamic_cfwd/1]).
@@ -251,6 +253,8 @@
                     ,endpoint_id :: kz_term:api_ne_binary()             %% if a refer/redirect, find the endpoint id (esp if no authz-id
                     ,diversions :: kz_term:api_ne_binaries()
                     ,presence_aliases :: kz_term:api_ne_binaries()
+                    ,authorizing_token :: kz_term:api_ne_binary()             %% if a refer/redirect, find the endpoint token (esp if no authz-id
+                    ,endpoint_token :: kz_term:api_ne_binary()             %% if a refer/redirect, find the endpoint token (esp if no authz-id
                     }).
 
 -type call() :: #kapps_call{}.
@@ -340,6 +344,9 @@ from_channel_create(ChannelCreate, #kapps_call{call_id=OldCallId
 
     EndpointId = endpoint_id(ChannelCreate, AuthorizingId),
 
+    AuthorizingToken = kz_json:get_ne_binary_value(<<"JWT-Token">>, AHs, authorizing_token(Call)),
+    EndpointToken = endpoint_token(ChannelCreate, AuthorizingToken),
+
     Call1#kapps_call{call_id=CallId
                     ,origination_call_id=kz_json:get_ne_binary_value(<<"Origination-Call-ID">>, ChannelCreate, origination_call_id(Call1))
                     ,request=Request
@@ -379,6 +386,8 @@ from_channel_create(ChannelCreate, #kapps_call{call_id=OldCallId
                     ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, ChannelCreate, is_transfer(Call))
                     ,endpoint_id = EndpointId
                     ,diversions = kz_json:get_ne_binaries(<<"SIP-Diversions">>, ChannelCreate, diversions(Call))
+                    ,authorizing_token = AuthorizingToken
+                    ,endpoint_token = EndpointToken
                     }.
 
 -spec from_route_req(kapi_route:req()) -> call().
@@ -427,6 +436,9 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
 
     EndpointId = endpoint_id(RouteReq, AuthorizingId),
 
+    AuthorizingToken = kz_json:get_ne_binary_value(<<"JWT-Token">>, AHs, authorizing_token(Call)),
+    EndpointToken = endpoint_token(RouteReq, AuthorizingToken),
+
     Call1#kapps_call{call_id=CallId
                     ,origination_call_id=kz_json:get_ne_binary_value(<<"Origination-Call-ID">>, RouteReq, origination_call_id(Call1))
                     ,context=kz_json:get_ne_binary_value(<<"Context">>, RouteReq, context(Call))
@@ -467,6 +479,8 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                     ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, RouteReq, is_transfer(Call))
                     ,endpoint_id = EndpointId
                     ,diversions = kz_json:get_ne_binaries(<<"SIP-Diversions">>, RouteReq, diversions(Call))
+                    ,authorizing_token = AuthorizingToken
+                    ,endpoint_token = EndpointToken
                     }.
 
 -spec from_route_win(kz_json:object()) -> call().
@@ -695,6 +709,8 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                    ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, JObj, is_transfer(Call))
                    ,endpoint_id = kz_json:get_ne_binary_value(<<"Endpoint-ID">>, JObj, endpoint_id(Call))
                    ,diversions = kz_json:get_ne_binaries(<<"SIP-Diversions">>, JObj, diversions(Call))
+                   ,authorizing_token = kz_json:get_ne_binary_value(<<"Authorizing-Token">>, JObj, authorizing_token(Call))
+                   ,endpoint_token = kz_json:get_ne_binary_value(<<"Endpoint-Token">>, JObj, endpoint_token(Call))
                    }.
 
 %%------------------------------------------------------------------------------
@@ -779,6 +795,8 @@ to_proplist(#kapps_call{}=Call) ->
     ,{<<"To-Tag">>, to_tag(Call)}
     ,{<<"To-User">>, to_user(Call)}
     ,{<<"SIP-Diversions">>, diversions(Call)}
+    ,{<<"Authorizing-Token">>, authorizing_token(Call)}
+    ,{<<"Endpoint-Token">>, endpoint_token(Call)}
     ].
 
 -spec is_call(any()) -> boolean().
@@ -1979,6 +1997,45 @@ restricted_endpoint_id(#kapps_call{endpoint_id=AuthzId
                                   ,authorizing_id=AuthzId
                                   }) -> 'undefined';
 restricted_endpoint_id(#kapps_call{endpoint_id=EndpointId}) -> EndpointId.
+
+-spec authorizing_token(call()) -> kz_term:api_ne_binary().
+authorizing_token(#kapps_call{authorizing_token=Token}) -> Token.
+
+-spec endpoint_token(call()) -> kz_term:api_ne_binary().
+endpoint_token(#kapps_call{endpoint_token='undefined'
+                          ,authorizing_token=Token
+                          }) -> Token;
+endpoint_token(#kapps_call{endpoint_token=Token}) -> Token.
+
+-spec restricted_endpoint_token(call()) -> kz_term:api_ne_binary().
+restricted_endpoint_token(#kapps_call{endpoint_token=Token
+                                     ,authorizing_token=Token
+                                     }) -> 'undefined';
+restricted_endpoint_token(#kapps_call{endpoint_token=Token}) -> Token.
+
+%% @doc get endpoint token if redirected or referred by an endpoint;
+%% otherwise use authorizing id
+endpoint_token(Req, AuthorizingId) ->
+    lists:foldl(fun(CCVKey, Id) -> maybe_find_endpoint_token(CCVKey, Id, Req) end
+               ,AuthorizingId
+               ,[<<"Referred-By">>, <<"Redirected-By">>]
+               ).
+
+maybe_find_endpoint_token(CCVKey, Id, RouteReq) ->
+    case kz_json:get_ne_binary_value([<<"Custom-Channel-Vars">>, CCVKey], RouteReq) of
+        'undefined' -> Id;
+        Contact -> maybe_find_endpoint_token_from_uri(Contact, Id)
+    end.
+
+maybe_find_endpoint_token_from_uri(Contact, Id) ->
+    case kzsip_uri:uris(Contact) of
+        [#uri{ext_opts=Opts1, opts=Opts2}] ->
+            case props:get_value(<<"token">>, Opts1 ++ Opts2, Id) of
+                Id -> Id;
+                EID -> EID
+            end;
+        _Else -> Id
+    end.
 
 -ifdef(TEST).
 eq(Call, Call1) ->
