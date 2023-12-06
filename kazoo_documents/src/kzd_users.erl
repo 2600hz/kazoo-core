@@ -94,6 +94,7 @@
 
 -define(LIST_BY_USERNAME, <<"users/list_by_username">>).
 -define(LIST_BY_HOTDESK_ID, <<"users/list_by_hotdesk_id">>).
+-define(LIST_MAILBOX, <<"vmboxes/listing_by_mailbox">>).
 
 -define(SYSCONFIG_CB_USERS, <<"crossbar.users">>).
 -define(SHOULD_GENERATE_USER_PASSWORD_IF_EMPTY
@@ -1026,6 +1027,7 @@ validate(AccountId, UserId, ReqJObj) ->
     ValidateFuns = [fun maybe_validate_username_is_unique/3
                    ,fun maybe_normalize_emergency_caller_id_number/3
                    ,fun maybe_validate_hotdesk_id_is_unique/3
+                   ,fun maybe_validate_presence_uniqueness/3
 
                     %% validate_user_schema will load and merge the current docs pvt fields
                    ,fun validate_user_schema/3
@@ -1050,6 +1052,37 @@ do_validation(AccountId, UserId, ReqJObj, ValidateFuns) ->
                ,{ReqJObj, []}
                ,ValidateFuns
                ).
+
+%%------------------------------------------------------------------------------
+%% @doc If set, Validate the user's username is unique within the account.
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_validate_presence_uniqueness(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+          kazoo_documents:doc_validation_acc().
+maybe_validate_presence_uniqueness(AccountId, UserId, {Doc, Errors}) ->
+    UserDoc = case fetch(AccountId, UserId) of
+                  {'ok', CurrentDoc} -> CurrentDoc;
+                  {'error', _R} -> 'undefined'
+              end,
+
+    case kz_json:get_value(<<"presence_id">>, kz_json:diff(Doc, UserDoc), 'undefined') of
+        'undefined' -> {Doc, Errors};
+        NewPresence ->
+            MailboxList = kz_datamgr:get_results(AccountId, ?LIST_MAILBOX , []),
+            check_uniqueness(NewPresence, MailboxList, {Doc, Errors})
+    end.
+
+-spec check_uniqueness(kz_term:ne_binary(), kazoo_data:get_results_return(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+check_uniqueness(_, {'error', _}, {Doc, Errors}) -> {Doc, Errors};
+check_uniqueness(_, {'ok', []}, {Doc, Errors}) -> {Doc, Errors};
+check_uniqueness(NewPresence, {'ok', [Box|Boxes]}, {Doc, Errors}) ->
+    case kz_json:get_value(<<"key">>, Box) of
+        'undefined' -> check_uniqueness(NewPresence, {'ok', Boxes}, {Doc, Errors});
+        NewPresence ->
+            Msg = kz_json:from_list([{<<"message">>, <<"Invalid mailbox number, alias or already exists">>}]),
+            {Doc, [{[<<"presence_id">>], <<"unique">>, Msg} | Errors]};
+        _Else       -> check_uniqueness(NewPresence, {'ok', Boxes}, {Doc, Errors})
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc If set, Validate the user's username is unique within the account.
