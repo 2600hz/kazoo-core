@@ -94,7 +94,7 @@
 
 -define(LIST_BY_USERNAME, <<"users/list_by_username">>).
 -define(LIST_BY_HOTDESK_ID, <<"users/list_by_hotdesk_id">>).
--define(LIST_MAILBOX, <<"vmboxes/listing_by_mailbox">>).
+-define(LIST_USER_CB, <<"users/crossbar_listing">>).
 
 -define(SYSCONFIG_CB_USERS, <<"crossbar.users">>).
 -define(SHOULD_GENERATE_USER_PASSWORD_IF_EMPTY
@@ -1062,26 +1062,26 @@ do_validation(AccountId, UserId, ReqJObj, ValidateFuns) ->
 maybe_validate_presence_uniqueness(AccountId, UserId, {Doc, Errors}) ->
     UserDoc = case fetch(AccountId, UserId) of
                   {'ok', CurrentDoc} -> CurrentDoc;
-                  {'error', _R} -> 'undefined'
+                  {'error', _R} -> kz_json:new()
               end,
 
-    case kz_json:get_value(<<"presence_id">>, kz_json:diff(Doc, UserDoc), 'undefined') of
+    case kz_json:get_ne_binary_value(<<"presence_id">>, kz_json:diff(Doc, UserDoc), 'undefined') of
         'undefined' -> {Doc, Errors};
         NewPresence ->
-            MailboxList = kz_datamgr:get_results(AccountId, ?LIST_MAILBOX , []),
+            MailboxList = kz_datamgr:get_results(AccountId, ?LIST_USER_CB),
             check_uniqueness(NewPresence, MailboxList, {Doc, Errors})
     end.
 
 -spec check_uniqueness(kz_term:ne_binary(), kazoo_data:get_results_return(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
 check_uniqueness(_, {'error', _}, {Doc, Errors}) -> {Doc, Errors};
 check_uniqueness(_, {'ok', []}, {Doc, Errors}) -> {Doc, Errors};
-check_uniqueness(NewPresence, {'ok', [Box|Boxes]}, {Doc, Errors}) ->
-    case kz_json:get_value(<<"key">>, Box) of
-        'undefined' -> check_uniqueness(NewPresence, {'ok', Boxes}, {Doc, Errors});
+check_uniqueness(NewPresence, {'ok', [CbUser|CbUsers]}, {Doc, Errors}) ->
+    case kz_json:get_value([<<"value">>, <<"presence_id">>], CbUser) of
+        'undefined' -> check_uniqueness(NewPresence, {'ok', CbUsers}, {Doc, Errors});
         NewPresence ->
             Msg = kz_json:from_list([{<<"message">>, <<"Invalid mailbox number, alias or already exists">>}]),
             {Doc, [{[<<"presence_id">>], <<"unique">>, Msg} | Errors]};
-        _Else       -> check_uniqueness(NewPresence, {'ok', Boxes}, {Doc, Errors})
+        _Else       -> check_uniqueness(NewPresence, {'ok', CbUsers}, {Doc, Errors})
     end.
 
 %%------------------------------------------------------------------------------
