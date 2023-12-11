@@ -58,11 +58,11 @@
 
 -define(INDENT_SPACES, 4).
 
--record(node_app_version, {node :: kz_term:atom()
+-record(node_app_version, {node :: atom()
                           ,name :: kz_term:ne_binary()
                           ,description :: kz_term:ne_binary()
                           ,version :: kz_term:ne_binary()
-                          ,startup :: kz_term:integer()
+                          ,startup :: integer()
                           }).
 
 -type node_app_version() :: #node_app_version{}.
@@ -1001,10 +1001,10 @@ get_description(#node_app_version{description=Description}) -> Description.
 -spec get_version(node_app_version()) -> kz_term:ne_binary().
 get_version(#node_app_version{version=Version}) -> Version.
 
--spec get_startup(node_app_version()) -> kz_term:integer().
+-spec get_startup(node_app_version()) -> integer().
 get_startup(#node_app_version{startup=Startup}) -> Startup.
 
--spec get_running(node_app_version()) -> kz_term:boolean().
+-spec get_running(node_app_version()) -> boolean().
 get_running(NAV) ->
     is_integer(get_startup(NAV)).
 

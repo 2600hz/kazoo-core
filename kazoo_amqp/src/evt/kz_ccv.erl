@@ -35,7 +35,7 @@
 
 -spec channel_authorized(payload()) -> kz_term:api_binary().
 channel_authorized(JObj) ->
-    channel_authorized(JObj, undefined).
+    channel_authorized(JObj, 'undefined').
 
 -spec channel_authorized(payload(), Default) -> kz_term:ne_binary()  | Default.
 channel_authorized(JObj, Default) ->
@@ -43,7 +43,7 @@ channel_authorized(JObj, Default) ->
 
 -spec outbound_flags(payload()) -> kz_term:api_binary() | kz_term:ne_binaries().
 outbound_flags(JObj) ->
-    outbound_flags(JObj, undefined).
+    outbound_flags(JObj, 'undefined').
 
 -spec outbound_flags(payload(), Default) -> kz_term:ne_binary() | kz_term:ne_binaries() | Default.
 outbound_flags(JObj, Default) ->
@@ -59,7 +59,7 @@ is_consuming_global_resource(JObj, Default) ->
 
 -spec resource_id(payload()) -> kz_term:api_binary().
 resource_id(JObj) ->
-    resource_id(JObj, undefined).
+    resource_id(JObj, 'undefined').
 
 -spec resource_id(payload(), Default) -> kz_term:ne_binary() | Default.
 resource_id(JObj, Default) ->
@@ -67,7 +67,7 @@ resource_id(JObj, Default) ->
 
 -spec authorizing_id(payload()) -> kz_term:api_binary().
 authorizing_id(JObj) ->
-    authorizing_id(JObj, undefined).
+    authorizing_id(JObj, 'undefined').
 
 -spec authorizing_id(payload(), Default) -> kz_term:ne_binary() | Default.
 authorizing_id(JObj, Default) ->
@@ -75,7 +75,7 @@ authorizing_id(JObj, Default) ->
 
 -spec authorizing_type(payload()) -> kz_term:api_binary().
 authorizing_type(JObj) ->
-    authorizing_type(JObj, undefined).
+    authorizing_type(JObj, 'undefined').
 
 -spec authorizing_type(payload(), Default) -> kz_term:ne_binary() | Default.
 authorizing_type(JObj, Default) ->
@@ -83,7 +83,7 @@ authorizing_type(JObj, Default) ->
 
 -spec account_id(payload()) -> kz_term:api_binary().
 account_id(JObj) ->
-    account_id(JObj, undefined).
+    account_id(JObj, 'undefined').
 
 -spec account_id(payload(), Default) -> kz_term:ne_binary() | Default.
 account_id(JObj, Default) ->
@@ -91,7 +91,7 @@ account_id(JObj, Default) ->
 
 -spec account_billing(payload()) -> kz_term:api_binary().
 account_billing(JObj) ->
-    account_billing(JObj, undefined).
+    account_billing(JObj, 'undefined').
 
 -spec account_billing(payload(), Default) -> kz_term:ne_binary() | Default.
 account_billing(JObj, Default) ->
@@ -99,7 +99,7 @@ account_billing(JObj, Default) ->
 
 -spec account_trunk_usage(payload()) -> kz_term:api_binary().
 account_trunk_usage(JObj) ->
-    account_trunk_usage(JObj, undefined).
+    account_trunk_usage(JObj, 'undefined').
 
 -spec account_trunk_usage(payload(), Default) -> kz_term:ne_binary() | Default.
 account_trunk_usage(JObj, Default) ->
@@ -107,7 +107,7 @@ account_trunk_usage(JObj, Default) ->
 
 -spec reseller_id(payload()) -> kz_term:api_binary().
 reseller_id(JObj) ->
-    reseller_id(JObj, undefined).
+    reseller_id(JObj, 'undefined').
 
 -spec reseller_id(payload(), Default) -> kz_term:ne_binary() | Default.
 reseller_id(JObj, Default) ->
@@ -115,7 +115,7 @@ reseller_id(JObj, Default) ->
 
 -spec reseller_billing(payload()) -> kz_term:api_binary().
 reseller_billing(JObj) ->
-    reseller_billing(JObj, undefined).
+    reseller_billing(JObj, 'undefined').
 
 -spec reseller_billing(payload(), Default) -> kz_term:ne_binary() | Default.
 reseller_billing(JObj, Default) ->
@@ -123,7 +123,7 @@ reseller_billing(JObj, Default) ->
 
 -spec reseller_trunk_usage(payload()) -> kz_term:api_binary().
 reseller_trunk_usage(JObj) ->
-    reseller_trunk_usage(JObj, undefined).
+    reseller_trunk_usage(JObj, 'undefined').
 
 -spec reseller_trunk_usage(payload(), Default) -> kz_term:ne_binary() | Default.
 reseller_trunk_usage(JObj, Default) ->
@@ -131,7 +131,7 @@ reseller_trunk_usage(JObj, Default) ->
 
 -spec media_recorder(payload()) -> kz_term:api_binary().
 media_recorder(JObj) ->
-    media_recorder(JObj, undefined).
+    media_recorder(JObj, 'undefined').
 
 -spec media_recorder(payload(), Default) -> kz_term:ne_binary() | Default.
 media_recorder(JObj, Default) ->

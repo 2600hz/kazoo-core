@@ -976,7 +976,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec reset(#state{}) -> #state{}.
+-spec reset(state()) -> state().
 reset(#state{req_timeout_ref = ReqRef
             ,client_ref = ClientRef
             ,confirm_timeout_ref = ConfirmRef
@@ -1122,7 +1122,7 @@ handle_publish_timeout(#state{client_from=From}=State) ->
     {'noreply', reset(State), 'hibernate'}.
 
 
--spec handle_confirm(#'basic.ack'{} | #'basic.nack'{}, state()) -> kz_types:handle_cast_ret_state(state()).
+-spec handle_confirm(basic_ack() | basic_nack(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_confirm(_Msg, #state{client_from='undefined'}=State) ->
     lager:debug("confirm message was returned from the broker but it was too late : ~p",[_Msg]),
     {'noreply', reset(State), 'hibernate'};
@@ -1132,7 +1132,7 @@ handle_confirm(Msg, #state{method=Method
     _ = erlang:cancel_timer(ConfirmRef),
     handle_method_confirm(Method, Msg, State#state{confirm_timeout_ref = 'undefined'}).
 
--spec handle_method_confirm(atom(), #'basic.ack'{} | #'basic.nack'{}, state()) -> kz_types:handle_cast_ret_state(state()).
+-spec handle_method_confirm(atom(), basic_ack() | basic_nack(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_method_confirm('publish', #'basic.ack'{}, #state{client_from='relay'
                                                        ,reply_to=From
                                                        }=State) ->

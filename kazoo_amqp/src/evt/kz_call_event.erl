@@ -358,9 +358,9 @@ transfer_destination(JObj) ->
 
 -spec transfer_is_semi_attended(payload()) -> kz_term:api_boolean().
 transfer_is_semi_attended(JObj) ->
-    transfer_is_semi_attended(JObj, undefined).
+    transfer_is_semi_attended(JObj, 'undefined').
 
--spec transfer_is_semi_attended(payload(), Default) -> kz_term:boolean() | Default.
+-spec transfer_is_semi_attended(payload(), Default) -> boolean() | Default.
 transfer_is_semi_attended(JObj, Default) ->
     kz_json:get_boolean_value(<<"Transfer-Is-Semi-Attended">>, JObj, Default).
 
