@@ -3,10 +3,6 @@
     "_id": "kapi.crm.authenticate",
     "description": "AMQP API for crm.authenticate",
     "properties": {
-        "Config-ID": {
-            "minLength": 1,
-            "type": "string"
-        },
         "Event-Category": {
             "enum": [
                 "crm"
@@ -19,8 +15,6 @@
             ]
         }
     },
-    "required": [
-        "Config-ID"
-    ],
+    "required": [],
     "type": "object"
 }
