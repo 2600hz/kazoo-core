@@ -11,10 +11,6 @@
             "minLength": 1,
             "type": "string"
         },
-        "Config-ID": {
-            "minLength": 1,
-            "type": "string"
-        },
         "Event-Category": {
             "enum": [
                 "crm"
@@ -28,7 +24,6 @@
     },
     "required": [
         "Caller-ID",
-        "Config-ID",
         "CRM-Platform"
     ],
     "type": "object"
