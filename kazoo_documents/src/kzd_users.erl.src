@@ -59,6 +59,7 @@
 -export([music_on_hold_media_id/1, music_on_hold_media_id/2, set_music_on_hold_media_id/2]).
 -export([music_on_hold_options/1, music_on_hold_options/2, set_music_on_hold_options/2]).
 -export([password/1, password/2, set_password/2]).
+-export([presence_aliases/1, presence_aliases/2, set_presence_aliases/2]).
 -export([presence_id/1, presence_id/2, set_presence_id/2]).
 -export([priv_level/1, priv_level/2, set_priv_level/2]).
 -export([profile/1, profile/2, set_profile/2]).
@@ -724,6 +725,18 @@ password(Doc, Default) ->
 -spec set_password(doc(), binary()) -> doc().
 set_password(Doc, Password) ->
     kz_json:set_value([<<"password">>], Password, Doc).
+
+-spec presence_aliases(doc()) -> any().
+presence_aliases(Doc) ->
+    presence_aliases(Doc, 'undefined').
+
+-spec presence_aliases(doc(), Default) -> any() | Default.
+presence_aliases(Doc, Default) ->
+    kz_json:get_value([<<"presence_aliases">>], Doc, Default).
+
+-spec set_presence_aliases(doc(), any()) -> doc().
+set_presence_aliases(Doc, PresenceAliases) ->
+    kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc).
 
 -spec presence_id(doc()) -> kz_term:api_binary().
 presence_id(Doc) ->
