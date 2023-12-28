@@ -46,6 +46,7 @@
         ,other_leg_call_id/1
         ,other_leg_destination_number/1, other_leg_destination_number/2
         ,owner_id/1
+        ,intercepted_by/1
         ,replaced_by/1
         ,request/1
         ,response_code/1
@@ -97,6 +98,10 @@ other_leg_destination_number(JObj, Default) ->
 -spec replaced_by(payload()) -> kz_term:api_ne_binary().
 replaced_by(JObj) ->
     kz_json:get_ne_binary_value(<<"Replaced-By">>, JObj).
+
+-spec intercepted_by(payload()) -> kz_term:api_ne_binary().
+intercepted_by(JObj) ->
+    kz_json:get_ne_binary_value(<<"Intercepted-By">>, JObj).
 
 -spec request(payload()) -> kz_json:object().
 request(JObj) ->
