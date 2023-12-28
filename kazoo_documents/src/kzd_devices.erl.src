@@ -57,6 +57,7 @@
 -export([name/1, name/2, set_name/2]).
 -export([outbound_flags/1, outbound_flags/2, set_outbound_flags/2]).
 -export([owner_id/1, owner_id/2, set_owner_id/2]).
+-export([presence_aliases/1, presence_aliases/2, set_presence_aliases/2]).
 -export([presence_id/1, presence_id/2, set_presence_id/2]).
 -export([provision/1, provision/2, set_provision/2]).
 -export([provision_check_sync_event/1, provision_check_sync_event/2, set_provision_check_sync_event/2]).
@@ -718,6 +719,18 @@ owner_id(Doc, Default) ->
 -spec set_owner_id(doc(), kz_term:ne_binary()) -> doc().
 set_owner_id(Doc, OwnerId) ->
     kz_json:set_value([<<"owner_id">>], OwnerId, Doc).
+
+-spec presence_aliases(doc()) -> any().
+presence_aliases(Doc) ->
+    presence_aliases(Doc, 'undefined').
+
+-spec presence_aliases(doc(), Default) -> any() | Default.
+presence_aliases(Doc, Default) ->
+    kz_json:get_value([<<"presence_aliases">>], Doc, Default).
+
+-spec set_presence_aliases(doc(), any()) -> doc().
+set_presence_aliases(Doc, PresenceAliases) ->
+    kz_json:set_value([<<"presence_aliases">>], PresenceAliases, Doc).
 
 -spec presence_id(doc()) -> kz_term:api_binary().
 presence_id(Doc) ->
