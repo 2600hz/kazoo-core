@@ -3,6 +3,9 @@
     "_id": "kapi.registration.reg_flush",
     "description": "AMQP API for registration.reg_flush",
     "properties": {
+        "Cache-Only": {
+            "type": "string"
+        },
         "Event-Category": {
             "enum": [
                 "directory"
