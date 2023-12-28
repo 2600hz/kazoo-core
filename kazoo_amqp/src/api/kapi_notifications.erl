@@ -1313,7 +1313,9 @@ missed_call_definition() ->
                                                             ,<<"Call-ID">>
                                                             ,<<"Message-Left">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Caller-ID-Name">>
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Authorizing-ID">>
+                                                            ,<<"Authorizing-Type">>
+                                                            ,<<"Caller-ID-Name">>
                                                             ,<<"Caller-ID-Number">>
                                                             ,<<"From-Realm">>
                                                             ,<<"From-User">>
