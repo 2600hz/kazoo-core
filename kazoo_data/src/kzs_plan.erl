@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc data plan
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -388,7 +388,7 @@ dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<
         'undefined' ->
             dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, maps:without([<<"regex">>], ClassificationPlan));
         #{} = Map ->
-            ToMerge = maps:with([<<"connection">>, <<"attachments">>], ClassificationPlan),
+            ToMerge = maps:with([<<"connection">>, <<"attachments">>, <<"types">>], ClassificationPlan),
             Merged = maps:without([<<"regex">>], kz_maps:merge(ToMerge, Map)),
             dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, Merged)
     end;
@@ -397,7 +397,7 @@ dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<
         'undefined' ->
             dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, maps:without([<<"range">>], ClassificationPlan));
         #{} = Map ->
-            ToMerge = maps:with([<<"connection">>, <<"attachments">>], ClassificationPlan),
+            ToMerge = maps:with([<<"connection">>, <<"attachments">>, <<"types">>], ClassificationPlan),
             Merged = maps:without([<<"range">>], kz_maps:merge(ToMerge, Map)),
             dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, Merged)
     end;
