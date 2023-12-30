@@ -831,14 +831,14 @@ should_create_endpoint_fold(Routine, {Endpoint, Properties, Call}=Acc) when is_f
         'ok' -> Acc;
         Error -> Error
     catch
-        ?STACKTRACE('throw', Error, ST)
-        kz_log:log_stacktrace(ST),
-        Error;
-        ?STACKTRACE(_E, _R, ST)
-        lager:debug("exception ~p:~p", [_E, _R]),
-        kz_log:log_stacktrace(ST),
-        {'error', 'exception'}
-        end;
+        'throw':Error:ST ->
+            kz_log:log_stacktrace(ST),
+            Error;
+        _E:_R:ST ->
+            lager:debug("exception ~p:~p", [_E, _R]),
+            kz_log:log_stacktrace(ST),
+            {'error', 'exception'}
+    end;
 should_create_endpoint_fold(_Routine, Error) -> Error.
 
 -spec maybe_missing_resource_type(kz_json:object(), kz_json:object(),  kapps_call:call()) ->
@@ -1047,11 +1047,11 @@ try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call) when is_func
             lager:debug("created endpoint from ~s", [kz_doc:id(Endpoint)]),
             [JObj|Endpoints]
     catch
-        ?STACKTRACE(_E, _R, ST)
-        lager:warning("unable to build endpoint(~s): ~p", [_E, _R]),
-        kz_log:log_stacktrace(ST),
-        Endpoints
-        end.
+        _E:_R:ST ->
+            lager:warning("unable to build endpoint(~s): ~p", [_E, _R]),
+            kz_log:log_stacktrace(ST),
+            Endpoints
+    end.
 
 -spec maybe_create_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object() |
