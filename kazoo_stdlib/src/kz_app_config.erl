@@ -291,7 +291,10 @@ fetch_value(App, Key, Fun) ->
     end.
 
 get_env(AccountId, App, Keys) ->
-    get_env(App, [AccountId | Keys]).
+    case get_env(App, [AccountId | Keys]) of
+        undefined -> get_env(App, Keys);
+        Value -> Value
+    end.
 
 get_env(App, Keys) ->
     case from_app_env(App, Keys) of
