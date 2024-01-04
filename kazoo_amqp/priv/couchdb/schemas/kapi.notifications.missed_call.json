@@ -12,12 +12,6 @@
         "Attachment-URL": {
             "type": "string"
         },
-        "Authorizing-ID": {
-            "type": "string"
-        },
-        "Authorizing-Type": {
-            "type": "string"
-        },
         "Bcc": {
             "type": "string"
         },
