@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc Creates QR codes for setting up totp/hotp multi-factor auth
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

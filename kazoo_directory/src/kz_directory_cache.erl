@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -89,7 +89,7 @@ match_doc_changed_keys(Db, Id) ->
 
 -spec flushed(atom()) -> 'ok'.
 flushed(?CACHE_NAME) ->
-    publish_cache_flush(),
+    'ok' = publish_cache_flush(),
     lager:info("directory cache was flushed");
 flushed(_Name) -> 'ok'.
 

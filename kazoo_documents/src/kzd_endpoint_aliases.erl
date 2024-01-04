@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -144,7 +144,7 @@ aliases_collectors(#{endpoints_only := 'true'}) ->
 aliases_collectors(_Options) ->
     default_aliases_collectors().
 
--spec endpoints_to_aliases(endpoints(), options()) -> api_presence_aliases().
+-spec endpoints_to_aliases(endpoints(), options()) -> presence_aliases().
 endpoints_to_aliases(Endpoints, Options) ->
     Funs = aliases_collectors(Options),
     Aliases = lists:map(fun(Fun) -> Fun(Endpoints) end, Funs),

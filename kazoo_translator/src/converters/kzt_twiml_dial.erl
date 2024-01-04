@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc Handle the emulation of the Dial verb
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -279,7 +279,7 @@ xml_elements_to_endpoints(Call
 
     lager:debug("maybe add number ~s: send ~s", [DialMe, SendDigits]),
 
-    CallFwd = kz_json:from_list([{<<"enabled">>, true}
+    CallFwd = kz_json:from_list([{<<"enabled">>, 'true'}
                                 ,{<<"number">>, DialMe}
                                 ,{<<"require_keypress">>, 'false'}
                                 ,{<<"substitute">>, 'true'}

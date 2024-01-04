@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -158,7 +158,7 @@ get_response(Cause, Call) ->
 -spec get_default_response(kz_term:ne_binary(), kapps_call:call()) -> config_response().
 get_default_response(Cause, Call) ->
     case kapps_call:inter_account_id(Call) of
-        undefined -> {Cause, default_response(Cause)};
+        'undefined' -> {Cause, default_response(Cause)};
         _AccountId -> {[<<"cross-boundary">>, Cause], cross_boundary_response(Cause)}
     end.
 

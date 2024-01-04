@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -112,7 +112,7 @@ amqp_count_result(JObj, Acc) ->
 
 genserver_count(Args) ->
     case [genserver_responses(Zone, ReqIds, fun maps_higher_fold_fun/2)
-          || {Zone, ReqIds} <- genserver_requests(count, rpc_members(), Args)
+          || {Zone, ReqIds} <- genserver_requests('count', rpc_members(), Args)
          ]
     of
         [] -> #{};
@@ -167,7 +167,7 @@ rpc_members() ->
 
 genserver_query(Args) ->
     case [genserver_responses(Zone, ReqIds, fun kz_maps:merge/2)
-          || {Zone, ReqIds} <- genserver_requests(channels, rpc_members(), Args)
+          || {Zone, ReqIds} <- genserver_requests('channels', rpc_members(), Args)
          ]
     of
         [] -> #{};
@@ -189,13 +189,13 @@ genserver_request(Method, Pid, Args) ->
 
 
 amqp_query(Args) ->
-    API = [{<<"Account-ID">>, maps:get(account, Args, undefined)}
-          ,{<<"Device-ID">>, maps:get(device, Args, undefined)}
-          ,{<<"Endpoint-ID">>, maps:get(endpoint, Args, undefined)}
-          ,{<<"User-ID">>, maps:get(user, Args, undefined)}
-          ,{<<"Owner-ID">>, maps:get(owner, Args, undefined)}
-          ,{<<"Direction">>, maps:get(direction, Args, undefined)}
-          ,{<<"Fields">>, maps:get(fields, Args, undefined)}
+    API = [{<<"Account-ID">>, maps:get('account', Args, 'undefined')}
+          ,{<<"Device-ID">>, maps:get('device', Args, 'undefined')}
+          ,{<<"Endpoint-ID">>, maps:get('endpoint', Args, 'undefined')}
+          ,{<<"User-ID">>, maps:get('user', Args, 'undefined')}
+          ,{<<"Owner-ID">>, maps:get('owner', Args, 'undefined')}
+          ,{<<"Direction">>, maps:get('direction', Args, 'undefined')}
+          ,{<<"Fields">>, maps:get('fields', Args, 'undefined')}
           | kz_api:default_headers()
           ],
     case kz_amqp_worker:call_collect(API, fun kapi_call:publish_channels_req/1, {'ecallmgr', 'true'}) of
@@ -213,7 +213,7 @@ amqp_query_result(JObj, Acc) ->
     kz_maps:merge(Acc, set_zone_on_query_result(Value, Zone)).
 
 amqp_query_result_channels(JObj) ->
-    Channels = kz_maps:keys_to_atoms(kz_json:to_map(kz_json:get_json_value(<<"Channels">>, JObj, kz_json:new())), false),
+    Channels = kz_maps:keys_to_atoms(kz_json:to_map(kz_json:get_json_value(<<"Channels">>, JObj, kz_json:new())), 'false'),
     maps:map(fun(_K1, V1) -> maps:map(fun(_K2, V2) -> kz_maps:keys_to_atoms(V2) end, V1) end, Channels).
 
 -spec set_zone_on_query_result(map(), kz_term:ne_binary()) -> map().
@@ -221,14 +221,14 @@ set_zone_on_query_result(Result, Zone) ->
     maps:map(fun(_K, V) -> set_zone_on_channels(V, Zone) end, Result).
 
 set_zone_on_channels(Channels, Zone) ->
-    maps:map(fun(_K, Channel) -> maps:put(zone, Zone, Channel) end, Channels).
+    maps:map(fun(_K, Channel) -> maps:put('zone', Zone, Channel) end, Channels).
 
 -spec query(query_args()) -> map().
 query(Args) ->
     query(Args, query_method()).
 
 -spec query(query_args(), method()) -> map().
-query(Args, genserver) ->
+query(Args, 'genserver') ->
     genserver_query(Args);
-query(Args, amqp) ->
+query(Args, 'amqp') ->
     amqp_query(Args).

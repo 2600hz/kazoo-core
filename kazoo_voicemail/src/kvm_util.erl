@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Voice mailbox utility functions.
 %%% @author Hesaam Farhang
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -402,7 +402,7 @@ publish_voicemail_deleted(BoxId, Msg, Reason) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_transcribe(kapps_call:call(), kz_term:ne_binary(), boolean()) ->
-          asr_request:asr_resp().
+          kz_term:api_object().
 maybe_transcribe(_, _,'false') -> 'undefined';
 maybe_transcribe(Call, MediaId, 'true') ->
     Req = asr_request:from_voicemail(Call, MediaId),

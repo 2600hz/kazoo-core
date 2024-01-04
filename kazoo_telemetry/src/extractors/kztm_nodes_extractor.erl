@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -67,7 +67,7 @@ extract_node_metadata(#kz_node{node=NodeName, version=Version, zone=Zone}=Node, 
 -spec node_type(kz_types:kz_node()) -> kz_term:ne_binary().
 node_type(#kz_node{kapps=[{<<"kamailio">>=NodeType, _}]}) -> NodeType;
 node_type(#kz_node{kapps=Kapps}) ->
-    case proplists:is_defined(<<"ecallmgr">>, Kapps) of
+    case props:is_defined(<<"ecallmgr">>, Kapps) of
         'true' -> <<"ecallmgr">>;
         _ -> <<"kapps">>
     end.
@@ -85,7 +85,7 @@ maybe_extract_apps_metadata(#kz_node{kapps=Apps}, Acc) ->
 %% @doc extract_node_metadata
 %% @end
 %%------------------------------------------------------------------------------
--spec app_metadata({kz_term:ne_binary(), #whapp_info{}}, kz_json:objects()) -> kz_json:objects().
+-spec app_metadata({kz_term:ne_binary(), kz_types:whapp_info()}, kz_json:objects()) -> kz_json:objects().
 app_metadata({AppName, {'whapp_info', StartTs, _}}, Acc) ->
     JObj = kz_json:from_list([{<<"name">>, AppName}
                              ,{<<"startup">>, StartTs}

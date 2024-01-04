@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -345,13 +345,19 @@ maybe_transcribe(#asr_req{account_modb=AccountDb
     case kazoo_asr:freeform(Bin, ContentType) of
         {'ok', Resp} ->
             lager:info("transcription resp: ~p", [Resp]),
-            MediaDoc1 = kz_json:set_value(<<"transcription">>, Resp, MediaDoc),
-            _ = kz_datamgr:ensure_saved(AccountDb, MediaDoc1),
-            Resp0 = is_valid_transcription(kz_json:get_value(<<"result">>, Resp)
-                                          ,kz_json:get_value(<<"text">>, Resp)
-                                          ,Resp
-                                          ),
-            set_transcription(Request, Resp0);
+            case kz_json:is_json_term(Resp) of
+                'true' ->
+                    MediaDoc1 = kz_json:set_value(<<"transcription">>, Resp, MediaDoc),
+                    _ = kz_datamgr:ensure_saved(AccountDb, MediaDoc1),
+                    Resp0 = is_valid_transcription(kz_json:get_value(<<"result">>, Resp)
+                                                  ,kz_json:get_value(<<"text">>, Resp)
+                                                  ,Resp
+                                                  ),
+                    set_transcription(Request, Resp0);
+                'false' ->
+                    lager:error("get non json transcriptio"),
+                    add_error(Request, {'error', 'unsupported_content_type'})
+            end;
         {'error', ErrorCode}=Err ->
             lager:error("error transcribing: ~p", [ErrorCode]),
             add_error(Request, Err);
@@ -557,7 +563,7 @@ set_timestamp(Request, Timestamp) ->
 %% @doc transcription response setter
 %% @end
 %%------------------------------------------------------------------------------
--spec set_transcription(asr_req(), 'undefined' | asr_resp()) -> asr_req().
+-spec set_transcription(asr_req(), kz_term:api_object()) -> asr_req().
 set_transcription(Request, Transcription) ->
     Request#asr_req{transcription=Transcription}.
 
@@ -613,7 +619,7 @@ debit(#asr_req{billing_method=BillingMethod, error='undefined'}=Request) ->
 %% @doc transcription response getter
 %% @end
 %%------------------------------------------------------------------------------
--spec transcription(asr_req()) -> 'undefined' | asr_resp().
+-spec transcription(asr_req()) -> kz_term:api_object().
 transcription(#asr_req{transcription=Transcription}) -> Transcription.
 
 %%------------------------------------------------------------------------------

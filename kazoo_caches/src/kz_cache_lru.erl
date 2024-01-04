@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2023, 2600Hz
+%%% @copyright (C) 2018-2024, 2600Hz
 %%% @doc Periodically walk the cache's ETS table and remove expired entries
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

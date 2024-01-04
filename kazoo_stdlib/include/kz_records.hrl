@@ -13,7 +13,7 @@
                  ,md5 :: kz_term:api_binary() | '_'
                  ,expires = 0 :: non_neg_integer() | 'undefined' | '$2' | '_'
                  ,kapps = [] :: kz_types:kapps_info() | '$1' | '_'
-                 ,kapps_loaded = [] :: kz_types:kapp_versions() | '_'
+                 ,kapps_loaded = [] :: [{kz_json:key(), kz_types:kapp_version()}] | '_'
                  ,media_servers = [] :: kz_types:media_servers() | '_'
                  ,last_heartbeat = kz_time:now_ms() :: pos_integer() | 'undefined' | '$3' | '_'
                  ,zone :: atom() | 'undefined' | '$2' | '_'

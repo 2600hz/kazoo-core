@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc A really simple escript to accept RPC request and push them
 %%% into a running kazoo virtual machine.
 %%%
@@ -69,7 +69,7 @@ main(CommandLineArgs, Loops) ->
             IsVerbose
                 andalso stdout("Running ~s:~s(~s)", [Module, Function, string:join(Args, ", ")]),
 
-            case rpc:call(Target, ?MODULE, in_kazoo, [SUPName, Module, Function, Arguments], Timeout) of
+            case rpc:call(Target, ?MODULE, 'in_kazoo', [SUPName, Module, Function, Arguments], Timeout) of
                 {'badrpc', {'EXIT',{'undef', _}}} ->
                     print_invalid_cli_args();
                 {'badrpc', {'EXIT', {'timeout_value',[{Module,Function,_,_}|_]}}} ->

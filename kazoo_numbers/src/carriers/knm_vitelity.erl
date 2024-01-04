@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2023, 2600Hz
+%%% @copyright (C) 2014-2024, 2600Hz
 %%% @doc Handle client requests for phone_number documents
 %%% @author James Aimonetti
 %%% @author Pierre Fenoll
@@ -212,7 +212,7 @@ find(Prefix, Quantity, Options, VitelityOptions) ->
 -ifdef(TEST).
 query_vitelity(Prefix, Quantity, QOptions) ->
     URI = knm_vitelity_util:build_uri(QOptions),
-    Options = uri_string:dissect_query(maps:get(query, uri_string:parse(URI),<<>>)),
+    Options = uri_string:dissect_query(maps:get('query', uri_string:parse(URI),<<>>)),
     XML =
         case props:get_value(<<"cmd">>, Options) of
             ?PREFIX_SEARCH_CMD -> ?PREFIX_SEARCH_RESP;

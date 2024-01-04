@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc This is the "generic" application callback interface for
 %%% app-store-provided Erlang applications. It adds the application's top-level
 %%% supervisor to the appex_client's app controller (to ensure the

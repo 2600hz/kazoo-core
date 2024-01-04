@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author Luis Azedo
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -441,11 +441,17 @@ do_amqp_register(Global) ->
         {'error', Error} ->
             lager:error("error '~p' calling register ~p", [Error, kz_global:name(Global)]),
             'no';
+        {'returned', _ReturnedJObj, _BasicReturn} ->
+            lager:error("error, borker returned the msg calling register ~p", [kz_global:name(Global)]),
+            'no';
         {_, JObjs} ->
             amqp_register_check_responses(JObjs, Global)
     end.
 
--spec amqp_register_check_responses(kz_json:objects(), kz_global:global()) -> 'yes' | 'no'.
+-spec amqp_register_check_responses(kz_json:object() | kz_json:objects(), kz_global:global()) -> 'yes' | 'no'.
+amqp_register_check_responses(JObj, Global) when not is_list(JObj) ->
+    %% to please dialzyer
+    amqp_register_check_responses([JObj], Global);
 amqp_register_check_responses([], _) ->
     lager:debug("no responses, registering locally"),
     'yes';

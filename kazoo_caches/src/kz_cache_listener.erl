@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2023, 2600Hz
+%%% @copyright (C) 2018-2024, 2600Hz
 %%% @doc Bind for AMQP configuration change events and remove entries from cache
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Util functions used by kazoo_couch.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,7 +10,9 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_couch_util).
 
--export([retry504s/1]).
+-export([retry504s/1
+        ,retry504s/3
+        ]).
 
 -export([new_connection/1
         ,admin_connection/1
@@ -53,37 +55,11 @@ retry504s(_Fun, 3) ->
 retry504s(Fun, Cnt) ->
     kazoo_stats:increment_counter(<<"bigcouch-request">>),
     try Fun() of
-        {'error', {'ok', 504, _, _}} ->
-            kazoo_stats:increment_counter(<<"bigcouch-504-error">>),
-            timer:sleep(100 * (Cnt+1)),
-            retry504s(Fun, Cnt+1);
-        {'error', {'ok', 500, _, _}} ->
-            kazoo_stats:increment_counter(<<"bigcouch-500-error">>),
-            timer:sleep(100 * (Cnt+1)),
-            retry504s(Fun, Cnt+1);
-        {'error', {'ok', ErrCode, _Hdrs, _Body}} ->
-            kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
-            {'error', kz_term:to_integer(ErrCode)};
-        %% couchbeam doesn't pass 202 as acceptable
-        {'error', {'bad_response',{202, _Headers, Body}}} ->
-            {'ok', kz_json:decode(Body)};
-        {'error', {'bad_response',{204, _Headers, _Body}}} ->
-            {'ok', kz_json:new()};
-        {'error', {'bad_response',{500, _, _}}} ->
-            kazoo_stats:increment_counter(<<"bigcouch-500-error">>),
-            timer:sleep(100 * (Cnt+1)),
-            retry504s(Fun, Cnt+1);
-        {'error', {'bad_response',{_Code, _Headers, _Body}}=Response} ->
-            kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
-            lager:critical("response code ~b not expected : ~p", [_Code, _Body]),
-            {'error', format_error(Response)};
-        {'error', Other}=Error when is_binary(Other) ->
-            kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
-            Error;
-        {'error', Other} ->
-            kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
-            {'error', format_error(Other)};
-        OK -> OK
+        Resp ->
+            case handle_resp(Resp) of
+                'retry' -> retry504s(Fun, Cnt+1);
+                Otherwise -> Otherwise
+            end
     catch
         _E:_R:ST ->
             lager:debug("exception running fun: ~p:~p", [_E, _R]),
@@ -91,6 +67,61 @@ retry504s(Fun, Cnt) ->
             kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
             retry504s(Fun, Cnt+1)
     end.
+
+-spec retry504s(module(), atom(), list()) -> retry504_ret().
+retry504s(M, F, As) ->
+    retry504s(M, F, As, 0).
+
+retry504s(_M, _F, _As, 3) ->
+    lager:error("504 retry failed"),
+    {'error', 'timeout'};
+retry504s(M, F, As, Cnt) ->
+    kazoo_stats:increment_counter(<<"bigcouch-request">>),
+    try apply(M, F, As) of
+        Resp ->
+            case handle_resp(Resp) of
+                'retry' -> retry504s(M, F, As, Cnt+1);
+                Otherwise -> Otherwise
+            end
+    catch
+        _E:_R:ST ->
+            lager:debug("exception running fun: ~p:~p", [_E, _R]),
+            kz_log:log_stacktrace(ST),
+            kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
+            retry504s(M, F, As, Cnt+1)
+    end.
+
+handle_resp({'error', {'ok', 504, _, _}}) ->
+    kazoo_stats:increment_counter(<<"bigcouch-504-error">>),
+    timer:sleep(100),
+    'retry';
+handle_resp({'error', {'ok', 500, _, _}}) ->
+    kazoo_stats:increment_counter(<<"bigcouch-500-error">>),
+    timer:sleep(100),
+    'retry';
+handle_resp({'error', {'ok', ErrCode, _Hdrs, _Body}}) ->
+    kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
+    {'error', kz_term:to_integer(ErrCode)};
+%% couchbeam doesn't pass 202 as acceptable
+handle_resp({'error', {'bad_response',{202, _Headers, Body}}}) ->
+    {'ok', kz_json:decode(Body)};
+handle_resp({'error', {'bad_response',{204, _Headers, _Body}}}) ->
+    {'ok', kz_json:new()};
+handle_resp({'error', {'bad_response',{500, _, _}}}) ->
+    kazoo_stats:increment_counter(<<"bigcouch-500-error">>),
+    timer:sleep(100),
+    'retry';
+handle_resp({'error', {'bad_response',{_Code, _Headers, _Body}}=Response}) ->
+    kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
+    lager:critical("response code ~b not expected : ~p", [_Code, _Body]),
+    {'error', format_error(Response)};
+handle_resp({'error', Other}=Error) when is_binary(Other) ->
+    kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
+    Error;
+handle_resp({'error', Other}) ->
+    kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
+    {'error', format_error(Other)};
+handle_resp(OK) -> OK.
 
 %%------------------------------------------------------------------------------
 %% @doc

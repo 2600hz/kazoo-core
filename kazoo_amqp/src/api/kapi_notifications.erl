@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Notification messages, like voicemail left.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -3434,6 +3434,7 @@ is_callable(Function) when is_function(Function, 1) ->
 is_callable(_) ->
     'false'.
 
+-spec binding_kapi_publisher(kz_term:ne_binary()) -> kz_term:ne_binary().
 binding_kapi_publisher(TemplateId) ->
     <<"kapi.publisher.", TemplateId/binary>>.
 

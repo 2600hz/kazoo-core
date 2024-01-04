@@ -1,14 +1,14 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc The goal is to model how a token bucket works and, using PropEr,
 %%% generate test scenarios that prove the properties.
 %%%
 %%% Our model is a bucket of tokens, starting (and capped) at MAX,
 %%% with a refill rate of FR per unit time FRT. We will represent this
-%%% as a tuple {TOKENS, MAX, FR, FRT}.
+%%% as a tuple `{TOKENS, MAX, FR, FRT}'.
 %%%
 %%% We want to test that consuming tokens works as long as the requested
-%%% amount is < TOKENS, that the bucket refills at FR/FRT, and that the
+%%% amount is `< TOKENS', that the bucket refills at FR/FRT, and that the
 %%% bucket cannot exceed MAX tokens.
 %%%
 %%%
