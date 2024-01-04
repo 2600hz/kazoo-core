@@ -1,0 +1,162 @@
+{
+    "_id": "_design/contacts",
+    "kazoo": {
+        "view_map": [
+            {
+                "classification": "account"
+            }
+        ]
+    },
+    "language": "javascript",
+    "views": {
+        "crossbar_listing": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'contact' || doc.pvt_deleted) return;",
+                "  emit(doc._id, null);",
+                "}"
+            ]
+        },
+        "entries": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'contact' || doc.pvt_deleted) return;",
+                "  var is_primary_voice = false;",
+                "  var is_voice = false;",
+                "  var name = '';",
+                "  var number = '';",
+                "  if (doc.contacts && Array.isArray(doc.contacts)) {",
+                "    for (var i = 0; i < doc.contacts.length; i++) {",
+                "      if (doc.contacts[i].primary === true && doc.contacts[i].type === 'voice') {",
+                "        number = doc.contacts[i].contact;",
+                "        is_primary_voice = true;",
+                "      } else if (doc.contacts[i].type === 'voice' && !is_voice) {",
+                "        var temp_voice =",
+                "          doc.contacts[i].contact;",
+                "        is_voice = true;",
+                "      }",
+                "    }",
+                "    if (!is_primary_voice && is_voice) {",
+                "      number = temp_voice;",
+                "    }",
+                "    if (typeof doc.last_name === 'undefined') {",
+                "      name = doc.first_name;",
+                "    } else {",
+                "      name = doc.first_name + ' ' + doc.last_name;",
+                "    }",
+                "  }",
+                "  emit(doc._id, {",
+                "    'capture_group_key': doc.capture_group.key,",
+                "    'capture_group_length': doc.capture_group.length,",
+                "    'name': name,",
+                "    'number': number,",
+                "    'pattern': doc.pattern,",
+                "    'type': doc.type",
+                "  });",
+                "}"
+            ]
+        },
+        "listing_by_owner": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'contact' || doc.pvt_deleted) return;",
+                "  var contacts = [];",
+                "  var temp_voice = {};",
+                "  var is_primary_voice = false;",
+                "  var is_voice = false;",
+                "  var type = 'voice';",
+                "  var contact_obj = {};",
+                "  var name = '';",
+                "  if (doc.contacts && Array.isArray(doc.contacts)) {",
+                "    for (var i = 0; i < doc.contacts.length; i++) {",
+                "      type = doc.contacts[i].type;",
+                "      contact_obj[type] = doc.contacts[i].contact;",
+                "      if (doc.contacts[i].primary === true && doc.contacts[i].type !== 'voice') {",
+                "        contacts.push(",
+                "          contact_obj",
+                "        );",
+                "      } else if (doc.contacts[i].primary === true && doc.contacts[i].type === 'voice') {",
+                "        contacts.push(",
+                "          contact_obj",
+                "        );",
+                "        is_primary_voice = true;",
+                "      } else if (doc.contacts[i].type === 'voice' && !is_voice) {",
+                "        temp_voice =",
+                "          contact_obj;",
+                "        is_voice = true;",
+                "      }",
+                "      contact_obj = {};",
+                "    }",
+                "    if (!is_primary_voice && is_voice) {",
+                "      contacts.unshift(temp_voice);",
+                "    }",
+                "    if (typeof doc.last_name === 'undefined') {",
+                "      name = doc.first_name;",
+                "    } else {",
+                "      name = doc.first_name + ' ' + doc.last_name;",
+                "    }",
+                "  }",
+                "  emit(doc.pvt_owner_id, {",
+                "    'id': doc._id,",
+                "    'name': name,",
+                "    'contacts': contacts,",
+                "    'favorite': doc.favorite,",
+                "    'tags': doc.tags",
+                "  });",
+                "}"
+            ]
+        },
+        "match_prefix_in_list": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'contact' || doc.pvt_deleted) return;",
+                "  var is_primary_voice = false;",
+                "  var is_voice = false;",
+                "  var name = '';",
+                "  var number = '';",
+                "  if (doc.contacts && Array.isArray(doc.contacts)) {",
+                "    if (typeof doc.last_name === 'undefined') {",
+                "      name = doc.first_name;",
+                "    } else {",
+                "      name = doc.first_name + ' ' + doc.last_name;",
+                "    }",
+                "    for (var i = 0; i < doc.contacts.length; i++) {",
+                "      if (doc.contacts[i].primary === true && doc.contacts[i].type === 'voice') {",
+                "        number = doc.contacts[i].contact;",
+                "        is_primary_voice = true;",
+                "      } else if (doc.contacts[i].type === 'voice' && !is_voice) {",
+                "        temp_voice =",
+                "          doc.contacts[i].contact;",
+                "        is_voice = true;",
+                "      }",
+                "    }",
+                "    if (!is_primary_voice && is_voice) {",
+                "      number = temp_voice;",
+                "    }",
+                "    emit([doc._id, number], {",
+                "      'name': name,",
+                "      'number': number",
+                "    });",
+                "  }",
+                "}"
+            ]
+        },
+        "regexps_in_list": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'contact' || doc.pvt_deleted) return;",
+                "  var name = '';",
+                "  if (typeof doc.last_name === 'undefined') {",
+                "    name = doc.first_name;",
+                "  } else {",
+                "    name = doc.first_name + ' ' + doc.last_name;",
+                "  }",
+                "  emit(doc._id, {",
+                "    'name': name,",
+                "    'regexp': doc.pattern",
+                "  });",
+                "}"
+            ]
+        }
+    }
+}
