@@ -157,14 +157,13 @@ caller_info_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun caller_info_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_caller_info/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Caller-ID">>
-                                                            ,<<"CRM-Platform">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"CRM-Platform">>
+                                                            ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
               ,{fun kapi_definition:set_types/2, [{<<"Caller-ID">>, fun kz_term:is_ne_binary/1}
-                                                 ,{<<"CRM-Platform">>, fun kz_term:is_api_binary/1}
                                                  ]}
               ],
     kapi_definition:setters(Setters).
@@ -221,7 +220,7 @@ interaction_definition() ->
                                                  ,{<<"Contact-ID">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"Direction">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"Disposition">>, fun kz_term:is_ne_binary/1}
-                                                 ,{<<"CRM-Platform">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"CRM-Platform">>, fun kz_term:is_api_binary/1}
                                                  ]}
               ],
     kapi_definition:setters(Setters).
