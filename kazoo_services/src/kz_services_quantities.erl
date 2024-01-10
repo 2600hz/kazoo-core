@@ -484,7 +484,7 @@ calculate_app_store_updates(JObj, Updates) ->
 app_store_updates_fold(_K, App, U) ->
     Name = kz_json:get_ne_binary_value(<<"name">>, App),
     AccountKey = [<<"account_apps">>, Name],
-    case kz_json:get_ne_value(<<"allowed_users">>, App) of
+    case kz_json:get_ne_value(<<"allowed_users">>, App, <<"specific">>) of
         <<"all">> ->
             UserKey = [<<"user_apps">>, Name],
             [{UserKey, -1}
