@@ -164,6 +164,7 @@ caller_info_definition() ->
                ,kapi_definition:event_type_headers(Category, EventName)
                }
               ,{fun kapi_definition:set_types/2, [{<<"Caller-ID">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"CRM-Platform">>, fun kz_term:is_ne_binary/1}
                                                  ]}
               ],
     kapi_definition:setters(Setters).
