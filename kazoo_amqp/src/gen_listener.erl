@@ -119,7 +119,6 @@
 -export([delayed_cast/3]).
 -export([distribute_event/3]).
 
-
 -include("listener_types.hrl").
 
 -define(SERVER, ?MODULE).
@@ -1467,12 +1466,12 @@ handle_add_binding(Binding, Props, #state{is_consuming='false'}=State) ->
 handle_add_binding(Binding, Props, #state{queue=QueueName
                                          ,bindings=Bindings
                                          }=State) ->
-    case lists:keyfind(Binding, 1, Bindings) of
-        'false' ->
+    case [BPs || {B, BPs} <- Bindings, B =:= Binding] of
+        [] ->
             lager:debug("creating new binding: '~s'", [Binding]),
             create_binding(Binding, Props, QueueName),
             maybe_update_federated_bindings(State#state{bindings=[{Binding, Props}|Bindings]});
-        {Binding, ExistingProps} ->
+        ExistingProps ->
             handle_existing_binding(Binding, Props, State, QueueName, ExistingProps, Bindings)
     end.
 
@@ -1501,10 +1500,17 @@ handle_delayed_bindings(DelayedBindings) ->
     _ = [add_binding(self(), Binding, Props) || {Binding, Props} <- DelayedBindings],
     'ok'.
 
--spec handle_existing_binding(binding_module(), binding_properties(), state(), kz_term:ne_binary(), binding_properties(), bindings()) ->
-          state().
+-spec handle_existing_binding(binding_module()
+                             ,binding_properties()
+                             ,state()
+                             ,kz_term:ne_binary()
+                             ,[binding_properties()]
+                             ,bindings()
+                             ) -> state().
 handle_existing_binding(Binding, Props, State, Q, ExistingProps, Bs) ->
-    case binding_props_match(Props, ExistingProps) of
+    %% There can be more than one existing binding to the same KAPI module, so
+    %% each of them needs to be tested for a match.
+    case lists:any(fun(BPs) -> binding_props_match(Props, BPs) end, ExistingProps) of
         'true' ->
             lager:debug("binding ~s with the same properties exists", [Binding]),
             State#state{bindings=Bs};
@@ -1870,3 +1876,37 @@ maybe_gc_process(Heap, Max, QueueLength, MaxQueueLength) when Heap > Max, QueueL
                 ,[Heap, Max, QueueLength, MaxQueueLength]
                 );
 maybe_gc_process(_Heap, _Max, _QL, _MaxQL) -> 'ok'.
+
+%%%=============================================================================
+%%% Eunit Tests
+%%%=============================================================================
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+%% Test detecting adding duplicate bindings.
+detect_adding_duplicate_bindings_test_() ->
+    {'setup'
+    ,fun eunit_setup/0
+    ,fun eunit_cleanup/1
+    ,[fun() ->
+              S = #state{is_consuming = 'true'},
+              {'noreply', S1} = ?MODULE:handle_cast({'add_binding', 'test', []}, S),
+              {'noreply', #state{bindings=B2}=S2} = ?MODULE:handle_cast({'add_binding', 'test', ['a']}, S1),
+              {'noreply', #state{bindings=B3}} = ?MODULE:handle_cast({'add_binding', 'test', []}, S2),
+              ?assertEqual(B2, B3)
+      end
+     ]
+    }.
+
+%% Shared test setup.
+eunit_setup() ->
+    meck:new('kapi_test', ['non_strict']),
+    meck:expect('kapi_test', 'bind_q', fun(_, _) -> 'ok' end).
+
+%% Shared test cleanup.
+eunit_cleanup(_) ->
+    meck:unload().
+
+-endif.
