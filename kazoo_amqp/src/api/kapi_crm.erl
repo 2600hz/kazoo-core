@@ -209,9 +209,9 @@ interaction_definition() ->
                                                             ,<<"Contact-ID">>
                                                             ,<<"Direction">>
                                                             ,<<"Disposition">>
-                                                            ,<<"CRM-Platform">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"CRM-Platform">>
+                                                            ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
@@ -221,7 +221,7 @@ interaction_definition() ->
                                                  ,{<<"Contact-ID">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"Direction">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"Disposition">>, fun kz_term:is_ne_binary/1}
-                                                 ,{<<"CRM-Platform">>, fun kz_term:is_api_binary/1}
+                                                 ,{<<"CRM-Platform">>, fun kz_term:is_ne_binary/1}
                                                  ]}
               ],
     kapi_definition:setters(Setters).
