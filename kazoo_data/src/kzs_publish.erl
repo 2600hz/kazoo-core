@@ -159,7 +159,6 @@ publish(Action, Db, Doc) ->
     IsHardDeleted = kz_doc:is_deleted(Doc),
 
     EventName = doc_change_event_name(Action, IsSoftDeleted or IsHardDeleted),
-
     Props = props:filter_undefined(
               [{<<"ID">>, Id}
               ,{<<"Origin-Cache">>, ?CACHE_NAME}
@@ -170,6 +169,8 @@ publish(Action, Db, Doc) ->
               ,{<<"Date-Modified">>, kz_doc:created(Doc)}
               ,{<<"Date-Created">>, kz_doc:modified(Doc)}
               ,{<<"Is-Soft-Deleted">>, IsSoftDeleted}
+              ,{<<"Source-Id">>, kz_json:get_binary_value(<<"source_id">>, Doc, 'undefined')}
+              ,{<<"Source-Type">>, kz_json:get_binary_value(<<"source_type">>, Doc, 'undefined')}
               ,{?KEY_LOG_ID, kz_log:get_callid()}
               | kz_api:default_headers(<<"configuration">>
                                       ,EventName

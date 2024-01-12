@@ -100,6 +100,8 @@ doc_update_definition() ->
                                                             ,<<"Type">>
                                                             ,<<"Version">>
                                                             ,<<"Origin-Cache">>
+                                                            ,<<"Source-Id">>
+                                                            ,<<"Source-Type">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category
