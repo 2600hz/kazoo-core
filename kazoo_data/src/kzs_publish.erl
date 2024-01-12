@@ -159,6 +159,7 @@ publish(Action, Db, Doc) ->
     IsHardDeleted = kz_doc:is_deleted(Doc),
 
     EventName = doc_change_event_name(Action, IsSoftDeleted or IsHardDeleted),
+
     Props = props:filter_undefined(
               [{<<"ID">>, Id}
               ,{<<"Origin-Cache">>, ?CACHE_NAME}

@@ -48,6 +48,12 @@
         "Rev": {
             "type": "string"
         },
+        "Source-Id": {
+            "type": "string"
+        },
+        "Source-Type": {
+            "type": "string"
+        },
         "Type": {
             "type": "string"
         },
