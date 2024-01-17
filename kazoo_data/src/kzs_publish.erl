@@ -170,8 +170,8 @@ publish(Action, Db, Doc) ->
               ,{<<"Date-Modified">>, kz_doc:created(Doc)}
               ,{<<"Date-Created">>, kz_doc:modified(Doc)}
               ,{<<"Is-Soft-Deleted">>, IsSoftDeleted}
-              ,{<<"Source-Id">>, kz_json:get_binary_value(<<"source_id">>, Doc, 'undefined')}
-              ,{<<"Source-Type">>, kz_json:get_binary_value(<<"source_type">>, Doc, 'undefined')}
+              ,{<<"Source-Id">>, kz_json:get_ne_binary_value(<<"source_id">>, Doc)}
+              ,{<<"Source-Type">>, kz_json:get_ne_binary_value(<<"source_type">>, Doc)}
               ,{?KEY_LOG_ID, kz_log:get_callid()}
               | kz_api:default_headers(<<"configuration">>
                                       ,EventName
