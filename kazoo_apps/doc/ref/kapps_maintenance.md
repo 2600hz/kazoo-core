@@ -7,7 +7,6 @@
 | `binding/1` | `(migrate) | (refresh) | (refresh_account) | (register_views) | (_)` | |
 | `call_id_status/1` | `(CallId)` | |
 | `call_id_status/2` | `(CallId,Verbose)` | |
-| `check_kapps_versions/0` |  | |
 | `check_release/0` |  | |
 | `check_system_config/1` | `(SystemConfig)` | |
 | `check_system_configs/0` |  | |
@@ -87,7 +86,6 @@
 | `remove_aggregated_account/1` | `(Account)` | |
 | `remove_deprecated_databases/0` |  | |
 | `running_apps/0` |  | |
-| `show_kapps_versions/0` |  | |
 | `start_app/1` | `(App)` | |
 | `stop_app/1` | `(App)` | |
 | `unbind/3` | `(Event,M,F)` | |
