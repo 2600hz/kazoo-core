@@ -361,8 +361,8 @@ transfer_is_semi_attended(JObj) ->
     transfer_is_semi_attended(JObj, undefined).
 
 -spec transfer_is_semi_attended(payload(), Default) -> kz_term:boolean() | Default.
-transfer_is_semi_attended(JObj, Default) ->
-    kz_json:get_boolean_value(<<"Transfer-Is-Semi-Attended">>, JObj, Default).
+transfer_is_semi_attended(_JObj, _Default) ->
+    'false'.
 
 -spec bridge_hangup_cause(payload()) -> kz_term:api_ne_binary().
 bridge_hangup_cause(JObj) ->
