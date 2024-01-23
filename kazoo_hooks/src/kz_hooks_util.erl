@@ -15,13 +15,7 @@
         ,registered/0, registered/1, registered/2
         ,all_registered/0
         ]).
--export([register_rr/0, register_rr/1, register_rr/2
-        ,deregister_rr/0, deregister_rr/1, deregister_rr/2
-        ,registered_rr/0, registered_rr/1, registered_rr/2
-        ,all_registered_rr/0
-
-        ,bind/3, unbind/3
-        ]).
+-export([bind/3, unbind/3]).
 -export([handle_call_event/2]).
 
 -include("kazoo_hooks.hrl").
@@ -29,10 +23,6 @@
 -define(HOOK_REG, {'p', 'l', 'kz_hook'}).
 -define(HOOK_REG(AccountId), {'p', 'l', {'kz_hook', AccountId}}).
 -define(HOOK_REG(AccountId, EventName), {'p', 'l', {'kz_hook', AccountId, EventName}}).
-
--define(HOOK_REG_RR, {'p', 'l', 'kz_hook_rr'}).
--define(HOOK_REG_RR(AccountId), {'p', 'l', {'kz_hook_rr', AccountId}}).
--define(HOOK_REG_RR(AccountId, EventName), {'p', 'l', {'kz_hook_rr', AccountId, EventName}}).
 
 -spec register() -> 'true'.
 register() ->
@@ -88,53 +78,6 @@ all_registered_fold(HookPattern, Acc) ->
              }],
     gproc:select(Match) ++ Acc.
 
--spec register_rr() -> 'true'.
-register_rr() ->
-    maybe_add_hook(?HOOK_REG_RR).
-
--spec register_rr(kz_term:ne_binary()) -> 'true'.
-register_rr(AccountId) ->
-    maybe_add_hook(?HOOK_REG_RR(AccountId)).
-
--spec register_rr(kz_term:ne_binary(), kz_term:ne_binary()) -> 'true'.
-register_rr(AccountId, EventName) ->
-    maybe_add_hook(?HOOK_REG_RR(AccountId, EventName)).
-
--spec deregister_rr() -> 'true'.
-deregister_rr() ->
-    maybe_remove_hook(?HOOK_REG_RR).
-
--spec deregister_rr(kz_term:ne_binary()) -> 'true'.
-deregister_rr(AccountId) ->
-    maybe_remove_hook(?HOOK_REG_RR(AccountId)).
-
--spec deregister_rr(kz_term:ne_binary(), kz_term:ne_binary()) -> 'true'.
-deregister_rr(AccountId, EventName) ->
-    maybe_remove_hook(?HOOK_REG_RR(AccountId, EventName)).
-
--spec registered_rr() -> kz_term:pids().
-registered_rr() ->
-    gproc:lookup_pids(?HOOK_REG_RR).
-
--spec registered_rr(kz_term:ne_binary()) -> kz_term:pids().
-registered_rr(AccountId) ->
-    gproc:lookup_pids(?HOOK_REG_RR(AccountId)).
-
--spec registered_rr(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:pids().
-registered_rr(AccountId, EventName) ->
-    gproc:lookup_pids(?HOOK_REG_RR(AccountId, EventName)).
-
--spec all_registered_rr() -> kz_term:pids().
-all_registered_rr() ->
-    lists:usort(
-      lists:foldl(fun all_registered_fold/2
-                 ,[]
-                 ,[?HOOK_REG_RR
-                  ,?HOOK_REG_RR('_')
-                  ,?HOOK_REG_RR('_', '_')
-                  ])
-     ).
-
 -spec maybe_add_hook(tuple()) -> 'true'.
 maybe_add_hook(Hook) ->
     case gproc:lookup_pids(Hook) of
@@ -154,25 +97,19 @@ hook_it_up(Hook) ->
 
 -spec maybe_add_binding(tuple()) -> 'ok'.
 maybe_add_binding(?HOOK_REG) ->
-    maybe_add_binding_to_listener('kz_hooks_listener');
+    maybe_add_binding_to_listener();
 maybe_add_binding(?HOOK_REG(_AccountId)) ->
-    maybe_add_binding_to_listener('kz_hooks_listener');
+    maybe_add_binding_to_listener();
 maybe_add_binding(?HOOK_REG(_AccountId, EventName)) ->
-    maybe_add_binding_to_listener('kz_hooks_listener', EventName);
-maybe_add_binding(?HOOK_REG_RR) ->
-    maybe_add_binding_to_listener('kz_hooks_shared_listener');
-maybe_add_binding(?HOOK_REG_RR(_AccountId)) ->
-    maybe_add_binding_to_listener('kz_hooks_shared_listener');
-maybe_add_binding(?HOOK_REG_RR(_AccountId, EventName)) ->
-    maybe_add_binding_to_listener('kz_hooks_shared_listener', EventName).
+    maybe_add_binding_to_listener(EventName).
 
--spec maybe_add_binding_to_listener(atom()) -> 'ok'.
-maybe_add_binding_to_listener(ServerName) ->
-    maybe_add_binding_to_listener(ServerName, 'all').
+-spec maybe_add_binding_to_listener() -> 'ok'.
+maybe_add_binding_to_listener() ->
+    maybe_add_binding_to_listener('all').
 
--spec maybe_add_binding_to_listener(atom(), kz_term:ne_binary() | 'all') -> 'ok'.
-maybe_add_binding_to_listener(ServerName, EventName) ->
-    ServerName:maybe_add_binding(EventName).
+-spec maybe_add_binding_to_listener(kz_term:ne_binary() | 'all') -> 'ok'.
+maybe_add_binding_to_listener(EventName) ->
+    kz_hooks_listener:maybe_add_binding(EventName).
 
 -spec maybe_remove_hook(tuple()) -> 'true'.
 maybe_remove_hook(Hook) ->
@@ -187,14 +124,7 @@ hooks_remain(?HOOK_REG(_AccountId)) ->
     hooks_remain(?HOOK_REG);
 hooks_remain(?HOOK_REG(_AccountId, CallEvent)) ->
     [] =/= gproc:lookup_pids(?HOOK_REG('_', CallEvent))
-        orelse hooks_remain(?HOOK_REG);
-hooks_remain(?HOOK_REG_RR=Hook) ->
-    [] =/= gproc:lookup_pids(Hook);
-hooks_remain(?HOOK_REG_RR(_AccountId)) ->
-    hooks_remain(?HOOK_REG_RR);
-hooks_remain(?HOOK_REG_RR(_AccountId, CallEvent)) ->
-    [] =/= gproc:lookup_pids(?HOOK_REG_RR('_', CallEvent))
-        orelse hooks_remain(?HOOK_REG_RR).
+        orelse hooks_remain(?HOOK_REG).
 
 -spec unhook_it(tuple()) -> 'true'.
 unhook_it(Hook) ->
@@ -203,25 +133,19 @@ unhook_it(Hook) ->
 
 -spec maybe_remove_binding(tuple()) -> 'ok'.
 maybe_remove_binding(?HOOK_REG) ->
-    maybe_remove_binding_to_listener('kz_hooks_listener');
+    maybe_remove_binding_to_listener();
 maybe_remove_binding(?HOOK_REG(_AccountId)) ->
-    maybe_remove_binding_to_listener('kz_hooks_listener');
+    maybe_remove_binding_to_listener();
 maybe_remove_binding(?HOOK_REG(_AccountId, EventName)) ->
-    maybe_remove_binding_to_listener('kz_hooks_listener', EventName);
-maybe_remove_binding(?HOOK_REG_RR) ->
-    maybe_remove_binding_to_listener('kz_hooks_shared_listener');
-maybe_remove_binding(?HOOK_REG_RR(_AccountId)) ->
-    maybe_remove_binding_to_listener('kz_hooks_shared_listener');
-maybe_remove_binding(?HOOK_REG_RR(_AccountId, EventName)) ->
-    maybe_remove_binding_to_listener('kz_hooks_shared_listener', EventName).
+    maybe_remove_binding_to_listener(EventName).
 
--spec maybe_remove_binding_to_listener(atom()) -> 'ok'.
-maybe_remove_binding_to_listener(ServerName) ->
-    maybe_remove_binding_to_listener(ServerName, 'all').
+-spec maybe_remove_binding_to_listener() -> 'ok'.
+maybe_remove_binding_to_listener() ->
+    maybe_remove_binding_to_listener('all').
 
--spec maybe_remove_binding_to_listener(atom(), kz_term:ne_binary() | 'all') -> 'ok'.
-maybe_remove_binding_to_listener(ServerName, EventName) ->
-    ServerName:maybe_remove_binding(EventName).
+-spec maybe_remove_binding_to_listener(kz_term:ne_binary() | 'all') -> 'ok'.
+maybe_remove_binding_to_listener(EventName) ->
+    kz_hooks_listener:maybe_remove_binding(EventName).
 
 -spec bind(kz_term:ne_binary(), kz_term:ne_binary(), bind_fun()) -> kazoo_bindings:bind_result().
 bind(AccountId, EventName, {M, F, Args}) ->
@@ -247,7 +171,7 @@ unbind(AccountId, EventName, BindFun) ->
     kazoo_bindings:unbind(BindingKey, BindFun).
 
 -spec handle_call_event(kz_call_event:payload(), kz_term:proplist()) -> 'ok'.
-handle_call_event(JObj, Props) ->
+handle_call_event(JObj, _Props) ->
     'true' = kapi_call:event_v(JObj),
     HookEvent = kz_api:event_name(JObj),
     AccountId = kz_call_event:account_id(JObj),
@@ -257,17 +181,11 @@ handle_call_event(JObj, Props) ->
     RoutingKey = binding_key(AccountId, HookEvent),
     _ = kazoo_bindings:map(RoutingKey, [JObj]),
 
-    handle_call_event(JObj, AccountId, HookEvent, CallId, props:get_is_true('rr', Props)).
+    handle_call_event(JObj, AccountId, HookEvent, CallId).
 
--spec handle_call_event(kz_json:object(), kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), boolean()) ->
-          'ok'.
-handle_call_event(JObj, AccountId, HookEvent, _CallId, 'false') ->
+-spec handle_call_event(kz_json:object(), kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+handle_call_event(JObj, AccountId, HookEvent, _CallId) ->
     Evt = ?HOOK_EVT(AccountId, HookEvent, JObj),
     gproc:send(?HOOK_REG, Evt),
     gproc:send(?HOOK_REG(AccountId), Evt),
-    gproc:send(?HOOK_REG(AccountId, HookEvent), Evt);
-handle_call_event(JObj, AccountId, HookEvent, _CallId, 'true') ->
-    Evt = ?HOOK_EVT(AccountId, HookEvent, JObj),
-    gproc:send(?HOOK_REG_RR, Evt),
-    gproc:send(?HOOK_REG_RR(AccountId), Evt),
-    gproc:send(?HOOK_REG_RR(AccountId, HookEvent), Evt).
+    gproc:send(?HOOK_REG(AccountId, HookEvent), Evt).
