@@ -1329,7 +1329,23 @@ create_binding(Binding, Props, QueueName) ->
     APIModule = kz_term:to_atom(<<"kapi_", Binding/binary>>, 'true'),
     declare_binding_exchanges(APIModule),
     'true' = kz_module:is_exported(APIModule, 'bind_q', 2),
-    APIModule:bind_q(QueueName, Props).
+    Ret = APIModule:bind_q(QueueName, Props),
+    maybe_pooled_binding_created(Binding, Props),
+    Ret.
+
+%%------------------------------------------------------------------------------
+%% @doc For pooled bindings, tell the handling module that the binding is ready.
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_pooled_binding_created(binding_module(), binding_properties()) -> 'ok'.
+maybe_pooled_binding_created(Binding, Props) ->
+    case props:is_true('pooled', Props, 'false') of
+        'true' ->
+            lager:info("created pooled binding in ~p: ~p", [Binding, Props]),
+            gen_server:cast(self(), {?MODULE, {'pooled_binding', kz_term:to_atom(Binding)}});
+        'false' ->
+            'ok'
+    end.
 
 -spec declare_binding_exchanges(module()) -> 'ok'.
 declare_binding_exchanges(APIModule) ->
@@ -1476,20 +1492,27 @@ handle_add_binding(Binding, Props, #state{queue=QueueName
     end.
 
 handle_add_binding_not_consuming(Binding, Props, State, 'false') ->
-    handle_add_binding_pooled(Binding, Props, State, props:is_true('pooled', Props, 'false'));
+    maybe_create_pooled_binding_early(
+      Binding, Props, State, props:is_true('pooled', Props, 'false')
+     );
 handle_add_binding_not_consuming(Binding, Props, State, 'true') ->
     lager:info("have channel, not consuming yet, delaying binding ~p", [Binding]),
     delayed_add_binding(Binding, Props, State).
 
-handle_add_binding_pooled(Binding, Props, #state{params=Params}=State, 'false') ->
+%%------------------------------------------------------------------------------
+%% @doc If the binding is pooled, create it before the listener is consuming.
+%% Otherwise, requisition a channel and delay the binding creation until the
+%% listener is consuming.
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_create_pooled_binding_early(binding_module(), binding_properties(), state(), boolean()) -> state().
+maybe_create_pooled_binding_early(Binding, Props, #state{params=Params}=State, 'false') ->
     lager:info("binding ~p is not pooled: ~p", [Binding, Props]),
     _ = channel_requisition(Params),
     delayed_add_binding(Binding, Props, State);
-handle_add_binding_pooled(Binding, Props, State, 'true') ->
-    lager:info("creating pooled binding in ~p: ~p", [Binding, Props]),
+maybe_create_pooled_binding_early(Binding, Props, #state{bindings=Bindings}=State, 'true') ->
     create_binding(Binding, Props, 'undefined'),
-    gen_server:cast(self(), {?MODULE, {'pooled_binding', kz_term:to_atom(Binding)}}),
-    State.
+    State#state{bindings=[{Binding, Props} | Bindings]}.
 
 delayed_add_binding(Binding, Props, #state{delayed_bindings=DelayedBindings}=State) ->
     lager:debug("not consuming yet, delaying binding ~p", [Binding]),
@@ -1896,6 +1919,24 @@ detect_adding_duplicate_bindings_test_() ->
               {'noreply', #state{bindings=B2}=S2} = ?MODULE:handle_cast({'add_binding', 'test', ['a']}, S1),
               {'noreply', #state{bindings=B3}} = ?MODULE:handle_cast({'add_binding', 'test', []}, S2),
               ?assertEqual(B2, B3)
+      end
+     ]
+    }.
+
+%% Ensure pooled bindings are added to the listener's bindings list.
+add_pooled_bindings_to_bindings_list_test_() ->
+    {'setup'
+    ,fun eunit_setup/0
+    ,fun eunit_cleanup/1
+    ,[fun() ->
+              S = #state{},
+              {'noreply', S1} = ?MODULE:handle_cast({'add_binding', 'test', ['pooled']}, S),
+              S2 = S1#state{is_consuming='true'},
+              {'noreply', #state{bindings=B2}} = ?MODULE:handle_cast({'add_binding', 'test', ['a', 'pooled']}, S2),
+              ?assertEqual(lists:sort([{'test', ['pooled']}
+                                      ,{'test', ['a', 'pooled']}
+                                      ])
+                          ,lists:sort(B2))
       end
      ]
     }.
