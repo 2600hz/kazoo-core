@@ -292,10 +292,7 @@ terminate(_Reason, _State) -> lager:info("terminated at ~p~n", [_State]).
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("rabbit_common/include/rabbit_framing.hrl").
 
-%%------------------------------------------------------------------------------
-%% @doc Test binding for and unbinding from call events.
-%% @end
-%%------------------------------------------------------------------------------
+%% Test binding for and unbinding from call events.
 bind_unbind_test_() ->
     {'setup'
     ,fun setup/0
@@ -322,10 +319,7 @@ bind_unbind_test_() ->
      end
     }.
 
-%%------------------------------------------------------------------------------
-%% @doc Test adding and removing async event handlers.
-%% @end
-%%------------------------------------------------------------------------------
+%% Test adding and removing async event handlers.
 add_delete_async_handler_test_() ->
     {'setup'
     ,fun setup/0
@@ -347,11 +341,8 @@ add_delete_async_handler_test_() ->
      end
     }.
 
-%%------------------------------------------------------------------------------
-%% @doc Test that pooled events are distributed to both async event handlers and
+%% Test that pooled events are distributed to both async event handlers and
 %% bound procs.
-%% @end
-%%------------------------------------------------------------------------------
 published_events_are_distributed_test_() ->
     {'setup'
     ,fun setup/0
@@ -384,20 +375,14 @@ published_events_are_distributed_test_() ->
      end
     }.
 
-%%------------------------------------------------------------------------------
-%% @doc Shared test setup.
-%% @end
-%%------------------------------------------------------------------------------
+%% Shared test setup.
 setup() ->
     application:ensure_all_started('gproc'),
 
     meck:new('kz_event_listeners_sup'),
     meck:expect('kz_event_listeners_sup', 'pool_exists', fun(_) -> 'true' end).
 
-%%------------------------------------------------------------------------------
-%% @doc Shared test cleanup.
-%% @end
-%%------------------------------------------------------------------------------
+%% Shared test cleanup.
 cleanup(_) ->
     meck:unload().
 
