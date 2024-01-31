@@ -1076,7 +1076,7 @@ maybe_validate_presence_uniqueness(AccountId, UserId, {Doc, Errors}) ->
 check_uniqueness(_, {'error', _}, {Doc, Errors}) -> {Doc, Errors};
 check_uniqueness(_, {'ok', []}, {Doc, Errors}) -> {Doc, Errors};
 check_uniqueness(NewPresence, {'ok', [CbUser|CbUsers]}, {Doc, Errors}) ->
-    case kz_json:get_value([<<"value">>, <<"presence_id">>], CbUser) of
+    case kz_json:get_binary_value([<<"value">>, <<"presence_id">>], CbUser) of
         'undefined' -> check_uniqueness(NewPresence, {'ok', CbUsers}, {Doc, Errors});
         NewPresence ->
             Msg = kz_json:from_list([{<<"message">>, <<"Invalid mailbox number, alias or already exists">>}]),
