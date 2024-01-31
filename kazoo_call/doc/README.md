@@ -12,4 +12,4 @@ Set of convenience functions for executing dialplan on a call. A thin wrapper ar
 
 ## kapps_call_events
 
-Manages a cache of call events for Kazoo applications to ask for call events. At the moment, on startup, it registers with `kz_hooks:bind` to send `CHANNEL_DESTROY` events to the `kapps_call_cache`. The module exposes a function for Kazoo applications to query if the `CHANNEL_DESTROY` has appeared - this is typically used when setting up call processing when the call may terminate while setup is still being completed (and the destroy event is missed).
+Manages a cache of call events for Kazoo applications to ask for call events. At the moment, on startup, it registers with `kz_events:add_async_call_event_handler/3` to send `CHANNEL_DESTROY` events to the `kapps_call_cache`. The module exposes a function for Kazoo applications to query if the `CHANNEL_DESTROY` has appeared - this is typically used when setting up call processing when the call may terminate while setup is still being completed (and the destroy event is missed).

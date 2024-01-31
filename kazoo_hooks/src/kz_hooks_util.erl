@@ -1,4 +1,5 @@
 %%%-----------------------------------------------------------------------------
+%%% @deprecated Use {@link kz_events}
 %%% @copyright (C) 2017-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
@@ -62,21 +63,9 @@ registered(AccountId, EventName) ->
 
 -spec all_registered() -> kz_term:pids().
 all_registered() ->
-    lists:usort(
-      lists:foldl(fun all_registered_fold/2
-                 ,[]
-                 ,[?HOOK_REG
-                  ,?HOOK_REG('_')
-                  ,?HOOK_REG('_', '_')
-                  ])
-     ).
-
-all_registered_fold(HookPattern, Acc) ->
-    Match = [{{HookPattern, '$1', '_'}
-             ,[]
-             ,['$1']
-             }],
-    gproc:select(Match) ++ Acc.
+    lists:usort([Pid || Key <- [?HOOK_REG, ?HOOK_REG('_'), ?HOOK_REG('_', '_')],
+                        Pid <- gproc:lookup_pids(Key)
+                ]).
 
 -spec maybe_add_hook(tuple()) -> 'true'.
 maybe_add_hook(Hook) ->
@@ -147,28 +136,21 @@ maybe_remove_binding_to_listener() ->
 maybe_remove_binding_to_listener(EventName) ->
     kz_hooks_listener:maybe_remove_binding(EventName).
 
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:add_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec bind(kz_term:ne_binary(), kz_term:ne_binary(), bind_fun()) -> kazoo_bindings:bind_result().
-bind(AccountId, EventName, {M, F, Args}) ->
-    BindingKey = binding_key(AccountId, EventName),
-    lager:debug("binding for hook event ~s in account ~s", [EventName, AccountId]),
-    kazoo_bindings:bind(BindingKey, M, F, Args);
 bind(AccountId, EventName, BindFun) ->
-    BindingKey = binding_key(AccountId, EventName),
-    lager:debug("binding for hook event ~s in account ~s", [EventName, AccountId]),
-    kazoo_bindings:bind(BindingKey, BindFun).
+    kz_events:add_async_call_event_handler(AccountId, EventName, BindFun).
 
-binding_key(AccountId, EventName) ->
-    kz_binary:join([<<?MODULE_STRING>>, AccountId, EventName], <<".">>).
-
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:delete_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec unbind(kz_term:ne_binary(), kz_term:ne_binary(), bind_fun()) -> kazoo_bindings:unbind_result().
-unbind(AccountId, EventName, {M, F, Args}) ->
-    BindingKey = binding_key(AccountId, EventName),
-    lager:debug("unbinding for hook event ~s in account ~s", [EventName, AccountId]),
-    kazoo_bindings:unbind(BindingKey, M, F, Args);
 unbind(AccountId, EventName, BindFun) ->
-    BindingKey = binding_key(AccountId, EventName),
-    lager:debug("unbinding for hook event ~s in account ~s", [EventName, AccountId]),
-    kazoo_bindings:unbind(BindingKey, BindFun).
+    kz_events:delete_async_call_event_handler(AccountId, EventName, BindFun).
 
 -spec handle_call_event(kz_call_event:payload(), kz_term:proplist()) -> 'ok'.
 handle_call_event(JObj, _Props) ->
@@ -177,9 +159,6 @@ handle_call_event(JObj, _Props) ->
     AccountId = kz_call_event:account_id(JObj),
     CallId = kz_call_event:call_id(JObj),
     kz_log:put_callid(CallId),
-
-    RoutingKey = binding_key(AccountId, HookEvent),
-    _ = kazoo_bindings:map(RoutingKey, [JObj]),
 
     handle_call_event(JObj, AccountId, HookEvent, CallId).
 

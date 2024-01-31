@@ -11,6 +11,42 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+%%------------------------------------------------------------------------------
+%% @doc Test binding for and unbinding from a combination of pooled and
+%% non-pooled call events.
+%% @end
+%%------------------------------------------------------------------------------
+bind_unbind_test_() ->
+    {'setup'
+    ,fun setup/0
+    ,fun cleanup/1
+    ,fun(_) ->
+             meck:new('kz_amqp_util'),
+             meck:expect('kz_amqp_util', 'bind_q_to_channels', fun(_, _) -> 'ok' end),
+             meck:expect('kz_amqp_util', 'bind_q_to_callevt', fun(_, _) -> 'ok' end),
+             meck:expect('kz_amqp_util', 'unbind_q_from_channels', fun(_, _) -> 'ok' end),
+             meck:expect('kz_amqp_util', 'unbind_q_from_callevt', fun(_, _) -> 'ok' end),
+             meck:new('kz_events'),
+             meck:expect('kz_events', 'bind_call_id', fun(_, _) -> 'ok' end),
+             meck:expect('kz_events', 'unbind_call_id', fun(_, _) -> 'ok' end),
+
+             Queue = <<"queue">>,
+             Props = [{'restrict_to', [<<"CHANNEL_CREATE">>, 'status_req']}
+                     ,'pooled'
+                     ],
+             kapi_call:bind_q(Queue, Props),
+             kapi_call:unbind_q(Queue, Props),
+
+             [?_assert(meck:called('kz_events', 'bind_call_id', [<<"*">>, [<<"CHANNEL_CREATE">>]]))
+             ,?_assert(meck:called('kz_events', 'unbind_call_id', [<<"*">>, [<<"CHANNEL_CREATE">>]]))
+             ,?_assert(meck:called('kz_amqp_util', 'bind_q_to_channels', [Queue, '_']))
+             ,?_assert(meck:called('kz_amqp_util', 'unbind_q_from_channels', [Queue, '_']))
+             ,?_assertNot(meck:called('kz_amqp_util', 'bind_q_to_callevt', '_'))
+             ,?_assertNot(meck:called('kz_amqp_util', 'unbind_q_from_callevt', '_'))
+             ]
+     end
+    }.
+
 call_routing_key_test_() ->
     Test = fun kapi_call:call_routing_key/2,
     Prefix = <<"call.">>,
@@ -52,3 +88,17 @@ update_name_and_values_test_() ->
       ]
      }
     ].
+
+%%------------------------------------------------------------------------------
+%% @doc Shared test setup.
+%% @end
+%%------------------------------------------------------------------------------
+setup() ->
+    'ok'.
+
+%%------------------------------------------------------------------------------
+%% @doc Shared test cleanup.
+%% @end
+%%------------------------------------------------------------------------------
+cleanup(_) ->
+    meck:unload().

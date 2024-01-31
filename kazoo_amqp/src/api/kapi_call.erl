@@ -1402,17 +1402,23 @@ publish_channels_resp(RespQ, Resp, ContentType) ->
 -spec bind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, Props) ->
     CallId = props:get_value('callid', Props, <<"*">>),
-    Events = props:get_value('restrict_to', Props, [<<"*">>]),
-    maybe_bind_q(Queue, Events, CallId, props:is_true('pooled', Props, 'false')).
+    RestrictTo = props:get_value('restrict_to', Props, [<<"*">>]),
+    bind_q(Queue, RestrictTo, CallId, props:is_true('pooled', Props, 'false')).
 
-maybe_bind_q(Queue, Events, CallId, 'false') ->
-    bind_q(Queue, Events, CallId);
-maybe_bind_q(_Queue, [<<"*">>], CallId, 'true') ->
-    lager:info("using pooled events for call ~s", [CallId]),
-    kz_events:bind_call_id(CallId);
-maybe_bind_q(_Queue, _Events, _CallId, 'true') ->
-    lager:error("using the pooled flag with an events filter is not allowed"),
-    throw({'error', 'badarg'}).
+bind_q(Queue, RestrictTo, CallId, 'false') ->
+    bind_q(Queue, RestrictTo, CallId);
+bind_q(Queue, RestrictTo, CallId, 'true') ->
+    %% Check if `RestrictTo' contains specific channel events, bind those using
+    %% pooled bindings, then bind the rest separately.
+    {Pooled, NonPooled} = lists:partition(fun is_channel_event_filter/1, RestrictTo),
+    case Pooled of
+        [] -> 'ok';
+        _ ->
+            lager:info("using pooled events for call ~s", [CallId]),
+            Pooled1 = [kz_term:to_binary(Event) || Event <- Pooled],
+            kz_events:bind_call_id(CallId, Pooled1)
+    end,
+    bind_q(Queue, NonPooled, CallId).
 
 bind_q(Q, ['status_req' = Event|T], CallId) ->
     'ok' = kz_amqp_util:bind_q_to_channels(Q, query_routing_key(Event, CallId)),
@@ -1428,14 +1434,21 @@ bind_q(_Q, [], _CallId) -> 'ok'.
 -spec unbind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, Props) ->
     CallId = props:get_value('callid', Props, <<"*">>),
-    Events = props:get_value('restrict_to', Props, [<<"*">>]),
-    maybe_unbind_q(Queue, Events, CallId, props:is_true('pooled', Props, 'false')).
+    RestrictTo = props:get_value('restrict_to', Props, [<<"*">>]),
+    unbind_q(Queue, RestrictTo, CallId, props:is_true('pooled', Props, 'false')).
 
-maybe_unbind_q(Queue, Events, CallId, 'false') ->
-    unbind_q(Queue, Events, CallId);
-maybe_unbind_q(_Queue, <<"*">>, CallId, 'true') ->
-    lager:info("removing from pooled events for ~s", [CallId]),
-    kz_events:unbind_call_id(CallId).
+unbind_q(Queue, RestrictTo, CallId, 'false') ->
+    unbind_q(Queue, RestrictTo, CallId);
+unbind_q(Queue, RestrictTo, CallId, 'true') ->
+    {Pooled, NonPooled} = lists:partition(fun is_channel_event_filter/1, RestrictTo),
+    case Pooled of
+        [] -> 'ok';
+        _ ->
+            lager:info("removing from pooled events for ~s", [CallId]),
+            Pooled1 = [kz_term:to_binary(Event) || Event <- Pooled],
+            kz_events:unbind_call_id(CallId, Pooled1)
+    end,
+    unbind_q(Queue, NonPooled, CallId).
 
 unbind_q(Q, ['status_req' = Event|T], CallId) ->
     _ = kz_amqp_util:unbind_q_from_channels(Q, query_routing_key(Event, CallId)),
@@ -1511,6 +1524,16 @@ call_routing_key(Event, CallId) ->
 -spec query_routing_key(kz_term:ne_binary() | atom(), kz_term:ne_binary()) -> kz_term:ne_binary().
 query_routing_key(_Event, _CallId) ->
     <<"query.status">>.
+
+%%------------------------------------------------------------------------------
+%% @doc Check if an event is a channel event filter or the wildcard.
+%% @end
+%%------------------------------------------------------------------------------
+-spec is_channel_event_filter(kz_term:ne_binary() | atom()) -> boolean().
+is_channel_event_filter(<<"*">>) -> 'true';
+is_channel_event_filter(Event) ->
+    Event1 = kz_term:to_binary(Event),
+    string:find(Event1, <<"CHANNEL_">>) =:= Event1.
 
 %% Helpers
 -spec update_name_and_values(kapi_definition:api(), kz_term:api_terms()) -> kapi_definition:api().
