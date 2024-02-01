@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -389,7 +389,7 @@ finish_record_call(Call, Props, MediaName) ->
               ,{fun kzt_util:set_voice_uri/2, NewUri}
               ],
 
-    RecordingUrl = props:get_value('recordingUrl', Props, NewUri),
+    RecordingUrl = props:get_binary_value('recordingUrl', Props, NewUri),
     AccountId = kapps_call:account_id(Call),
     Setters1 =
         case kapps_call_recording:should_store_recording(AccountId, RecordingUrl) of
