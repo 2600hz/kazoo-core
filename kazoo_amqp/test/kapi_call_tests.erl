@@ -12,8 +12,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 %%------------------------------------------------------------------------------
-%% @doc Test binding for and unbinding from a combination of pooled and
-%% non-pooled call events.
+%% @doc Test binding for and unbinding from both pooled and non-pooled call
+%% events.
 %% @end
 %%------------------------------------------------------------------------------
 bind_unbind_test_() ->
@@ -31,11 +31,12 @@ bind_unbind_test_() ->
              meck:expect('kz_events', 'unbind_call_id', fun(_, _) -> 'ok' end),
 
              Queue = <<"queue">>,
-             Props = [{'restrict_to', [<<"CHANNEL_CREATE">>, 'status_req']}
-                     ,'pooled'
-                     ],
-             kapi_call:bind_q(Queue, Props),
-             kapi_call:unbind_q(Queue, Props),
+             Props1 = [{'restrict_to', [<<"CHANNEL_CREATE">>]}, 'pooled'],
+             Props2 = [{'restrict_to', ['status_req']}],
+             kapi_call:bind_q(Queue, Props1),
+             kapi_call:bind_q(Queue, Props2),
+             kapi_call:unbind_q(Queue, Props1),
+             kapi_call:unbind_q(Queue, Props2),
 
              [?_assert(meck:called('kz_events', 'bind_call_id', [<<"*">>, [<<"CHANNEL_CREATE">>]]))
              ,?_assert(meck:called('kz_events', 'unbind_call_id', [<<"*">>, [<<"CHANNEL_CREATE">>]]))

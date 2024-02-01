@@ -1407,18 +1407,18 @@ bind_q(Queue, Props) ->
 
 bind_q(Queue, RestrictTo, CallId, 'false') ->
     bind_q(Queue, RestrictTo, CallId);
-bind_q(Queue, RestrictTo, CallId, 'true') ->
-    %% Check if `RestrictTo' contains specific channel events, bind those using
-    %% pooled bindings, then bind the rest separately.
-    {Pooled, NonPooled} = lists:partition(fun is_channel_event_filter/1, RestrictTo),
-    case Pooled of
-        [] -> 'ok';
-        _ ->
+bind_q(_Queue, RestrictTo, CallId, 'true') ->
+    case lists:all(fun is_channel_event_filter/1, RestrictTo) of
+        'true' ->
             lager:info("using pooled events for call ~s", [CallId]),
-            Pooled1 = [kz_term:to_binary(Event) || Event <- Pooled],
-            kz_events:bind_call_id(CallId, Pooled1)
-    end,
-    bind_q(Queue, NonPooled, CallId).
+            EventNames = [kz_term:to_binary(E) || E <- RestrictTo],
+            kz_events:bind_call_id(CallId, EventNames);
+        'false' ->
+            lager:error("using the pooled flag with a mix of pooled and "
+                        "non-pooled event filters is not allowed"
+                       ),
+            throw({'error', 'badarg'})
+    end.
 
 bind_q(Q, ['status_req' = Event|T], CallId) ->
     'ok' = kz_amqp_util:bind_q_to_channels(Q, query_routing_key(Event, CallId)),
@@ -1439,16 +1439,10 @@ unbind_q(Queue, Props) ->
 
 unbind_q(Queue, RestrictTo, CallId, 'false') ->
     unbind_q(Queue, RestrictTo, CallId);
-unbind_q(Queue, RestrictTo, CallId, 'true') ->
-    {Pooled, NonPooled} = lists:partition(fun is_channel_event_filter/1, RestrictTo),
-    case Pooled of
-        [] -> 'ok';
-        _ ->
-            lager:info("removing from pooled events for ~s", [CallId]),
-            Pooled1 = [kz_term:to_binary(Event) || Event <- Pooled],
-            kz_events:unbind_call_id(CallId, Pooled1)
-    end,
-    unbind_q(Queue, NonPooled, CallId).
+unbind_q(_Queue, RestrictTo, CallId, 'true') ->
+    lager:info("removing from pooled events for ~s", [CallId]),
+    EventNames = [kz_term:to_binary(E) || E <- RestrictTo, is_channel_event_filter(E)],
+    kz_events:unbind_call_id(CallId, EventNames).
 
 unbind_q(Q, ['status_req' = Event|T], CallId) ->
     _ = kz_amqp_util:unbind_q_from_channels(Q, query_routing_key(Event, CallId)),
@@ -1526,14 +1520,13 @@ query_routing_key(_Event, _CallId) ->
     <<"query.status">>.
 
 %%------------------------------------------------------------------------------
-%% @doc Check if an event is a channel event filter or the wildcard.
+%% @doc Check if an event is a channel event filter and not a request.
 %% @end
 %%------------------------------------------------------------------------------
 -spec is_channel_event_filter(kz_term:ne_binary() | atom()) -> boolean().
-is_channel_event_filter(<<"*">>) -> 'true';
-is_channel_event_filter(Event) ->
-    Event1 = kz_term:to_binary(Event),
-    string:find(Event1, <<"CHANNEL_">>) =:= Event1.
+is_channel_event_filter('channels_req') -> 'false';
+is_channel_event_filter('status_req') -> 'false';
+is_channel_event_filter(_Event) -> 'true'.
 
 %% Helpers
 -spec update_name_and_values(kapi_definition:api(), kz_term:api_terms()) -> kapi_definition:api().
