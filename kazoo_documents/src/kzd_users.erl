@@ -77,6 +77,7 @@
         ,full_name/1, full_name/2, full_name/3
         ,validate/3
         ,get_setters/0
+        ,pvt_scopes/1, pvt_scopes/2
         ]).
 
 -elvis([{elvis_style, god_modules, disable}]).
@@ -1475,3 +1476,11 @@ maybe_migrate_user_addresses(User) ->
             %% 'undefined' or already using new implementation. Not need to migrate it.
             User
     end.
+
+-spec pvt_scopes(doc()) -> kz_term:api_ne_binaries().
+pvt_scopes(Doc) ->
+    pvt_scopes(Doc, 'undefined').
+
+-spec pvt_scopes(doc(), Default) -> kz_term:api_ne_binaries() | Default.
+pvt_scopes(Doc, Default) ->
+    kz_json:get_list_value(<<"pvt_scopes">>, Doc, Default).
