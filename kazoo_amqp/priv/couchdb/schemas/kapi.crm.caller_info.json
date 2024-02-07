@@ -3,6 +3,10 @@
     "_id": "kapi.crm.caller_info",
     "description": "AMQP API for crm.caller_info",
     "properties": {
+        "Account-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
         "CRM-Platform": {
             "minLength": 1,
             "type": "string"
