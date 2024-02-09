@@ -15,7 +15,7 @@
         ,owner_id/1
         ,meta_id/1
         ,identity_sig/1
-        ,scope/1
+        ,scope/1, scope/2
         ]).
 
 %% RFC7519
@@ -49,8 +49,11 @@ identity_sig(Claims) ->
 
 -spec scope(claims()) -> kz_term:api_ne_binary().
 scope(Claims) ->
-    kz_json:get_ne_binary_value(<<"scope">>, Claims).
+    scope(Claims, 'undefined').
 
+-spec scope(claims(), Default) -> kz_term:ne_binary() | Default.
+scope(Claims, Default) ->
+    kz_json:get_ne_binary_value(<<"scope">>, Claims, Default).
 
 %% 4.1.1.  "iss" (Issuer) Claim
 %%
