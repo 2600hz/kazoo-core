@@ -41,10 +41,10 @@ workflows:
         kazoo/analyze:
           requires:
             - beams-centos-7
-      # -
-      #   kazoo/integration-test:
-      #     requires:
-      #       - beams-centos-7
+      -
+        kazoo/integration-test:
+          requires:
+            - beams-centos-7
       -
         kazoo/build-centos7:
           context: Private-Builds
