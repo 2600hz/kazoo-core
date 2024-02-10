@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -19,6 +19,7 @@
 
 -export([flushed/1]).
 -export([clear/1]).
+-export([cache_lifetime/0]).
 
 -include("kazoo_directory.hrl").
 
@@ -121,4 +122,8 @@ publish_cache_clear(EndpointIds) ->
     kz_amqp_worker:cast(Req, fun kapi_directory:publish_cache_clear/1).
 
 publish_cache_logid() ->
-    lists:last(binary:split(kz_term:to_binary(kz_log:get_callid()), <<"|">>, [global])).
+    lists:last(binary:split(kz_term:to_binary(kz_log:get_callid()), <<"|">>, ['global'])).
+
+-spec cache_lifetime() -> timeout().
+cache_lifetime() ->
+    kz_app_config:get_timeout(?APP, <<"cache_lifetime">>, ?SECONDS_IN_HOUR).
