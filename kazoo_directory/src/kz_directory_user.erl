@@ -52,6 +52,7 @@ cache(EndpointId, AccountId, Profile, Options) ->
     Origins = cache_origin(EndpointId, AccountId, Profile),
     CacheProps = [{'origin', Origins}
                  ,{'callback', fun cache_callback/3}
+                 ,{'expires', kz_directory_cache:cache_lifetime()}
                  ],
     kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, {Profile, Options}, CacheProps),
     {'ok', Profile}.
