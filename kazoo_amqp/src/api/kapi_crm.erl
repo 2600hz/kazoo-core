@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2023, 2600Hz
+%%% @copyright (C) 2024, 2600Hz
 %%% @doc
 %%% @author Kusal Fernando
 %%% This Source Code Form is subject to the terms of the Mozilla Public
