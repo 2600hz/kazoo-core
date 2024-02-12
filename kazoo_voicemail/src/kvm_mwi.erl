@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2023, 2600Hz
+%%% @copyright (C) 2018-2024, 2600Hz
 %%% @doc Message Wait Indicator utilities.
 %%% @author Luis Azedo
 %%% This Source Code Form is subject to the terms of the Mozilla Public

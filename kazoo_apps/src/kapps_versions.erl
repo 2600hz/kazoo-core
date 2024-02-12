@@ -1,5 +1,5 @@
 %%------------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -62,7 +62,7 @@
                           ,name :: kz_term:ne_binary()
                           ,description :: kz_term:ne_binary()
                           ,version :: kz_term:ne_binary()
-                          ,startup :: integer()
+                          ,startup :: kz_term:api_integer()
                           }).
 
 -type node_app_version() :: #node_app_version{}.
@@ -162,13 +162,12 @@ node_kapp_versions(#kz_node{node=Node, kapps_loaded=Loaded, kapps=Running}, Acc0
                ).
 
 node_whapp_to_kapp_version(Node, {Name, #whapp_info{startup=Startup}}, Acc) ->
-    [#node_app_version{
-        node = Node
-       ,name = Name
-       ,description = <<"unknown">>
-            ,version = <<"unknown">>
-            ,startup = Startup
-       }
+    [#node_app_version{node = Node
+                      ,name = Name
+                      ,description = <<"unknown">>
+                      ,version = <<"unknown">>
+                      ,startup = Startup
+                      }
     | Acc
     ].
 
@@ -178,13 +177,12 @@ node_kapp_version(Node
                  ,Acc
                  ) ->
     Startup = add_startup(Name, Running),
-    [#node_app_version{
-        node=Node
-       ,name=Name
-       ,description=Description
-       ,version=Version
-       ,startup=Startup
-       }
+    [#node_app_version{node=Node
+                      ,name=Name
+                      ,description=Description
+                      ,version=Version
+                      ,startup=Startup
+                      }
     | Acc
     ].
 
@@ -432,8 +430,8 @@ all_predicate(Items, Predicate) ->
     lists:all(
       fun(Item) ->
               test_predicates(Predicate, Item)
-      end,
-      Items
+      end
+     ,Items
      ).
 
 %%------------------------------------------------------------------------------
@@ -445,8 +443,8 @@ any_predicate(Items, Predicate) ->
     lists:any(
       fun(Item) ->
               test_predicates(Predicate, Item)
-      end,
-      Items
+      end
+     ,Items
      ).
 
 %%------------------------------------------------------------------------------
@@ -479,8 +477,8 @@ or_predicates(ListItem, Predicates) ->
     lists:any(
       fun(Predicate) ->
               test_predicate(Predicate, ListItem)
-      end,
-      Predicates
+      end
+     ,Predicates
      ).
 
 %%------------------------------------------------------------------------------
@@ -566,15 +564,15 @@ name(_, _) -> 'false'.
 %% is equal to any of the binaries in `Names'.
 %% @end
 %%------------------------------------------------------------------------------
--spec names(Name1 :: node_app_version() | binary(), Names :: list(binary())) -> boolean().
+-spec names(Name1 :: node_app_version() | binary(), Names :: kz_term:ne_binaries()) -> boolean().
 names(#node_app_version{name=Name}, Names) ->
     names(Name, Names);
 names(Name, Names) ->
     lists:any(
       fun(N) ->
               N =:= Name
-      end,
-      Names
+      end
+     ,Names
      ).
 
 %%%
@@ -625,9 +623,9 @@ groups_by(Groupers, List) when is_list(Groupers) ->
     lists:foldl(
       fun(Row, Acc) ->
               group_append(Groupers, Row, Acc)
-      end,
-      #{},
-      List
+      end
+     ,#{}
+     ,List
      ).
 
 -spec groups_by(Groupers :: key_functions(), List :: list(), Having :: predicate_list()) -> GroupMap :: group_map().
@@ -652,7 +650,6 @@ group_append([Grouper|Rest], Value, Map) ->
     SubMap = maps:get(Key, Map, #{}),
     maps:put(Key, group_append(Rest, Value, SubMap), Map).
 
-
 get_grouping_fun('node') -> fun get_node/1;
 get_grouping_fun('host') -> fun get_host/1;
 get_grouping_fun('name') -> fun get_name/1;
@@ -661,7 +658,6 @@ get_grouping_fun('version') -> fun get_version/1;
 get_grouping_fun('startup') -> fun get_startup/1;
 get_grouping_fun('running') -> fun get_running/1;
 get_grouping_fun(Fun) when is_function(Fun, 1) -> Fun.
-
 
 %%------------------------------------------------------------------------------
 %% @doc Returns a `group_map()' where the innermost value is an
@@ -704,9 +700,9 @@ count_pairs_by([Grouper], List) ->
     maps:fold(
       fun(Key, Value, Acc) ->
               [{Value, Key} | Acc]
-      end,
-      [],
-      Counted
+      end
+     ,[]
+     ,Counted
      );
 
 count_pairs_by(Groupers, List) ->
@@ -719,9 +715,9 @@ count_pairs_by(Groupers, List) ->
               CurrentValue = map_get(ParentPath, Acc, []),
               map_put(ParentPath, [{Value, Key} | CurrentValue], Acc)
 
-      end,
-      #{},
-      Counted
+      end
+     ,#{}
+     ,Counted
      ).
 
 %%------------------------------------------------------------------------------
@@ -740,8 +736,8 @@ sorted_count_pairs_by(SortFun, Groupers, List) ->
     map_groups(
       fun(SubList) ->
               lists:sort(SortFun, SubList)
-      end,
-      Paired
+      end
+     ,Paired
      ).
 
 %%------------------------------------------------------------------------------
@@ -810,16 +806,16 @@ count_stats(List) ->
 -spec count_majority(List :: stats_list()) -> {stats_tuple(), stats_list()}.
 
 count_majority([]) ->
-                                                % If the list is empty, there is no majority.
+    %% If the list is empty, there is no majority.
     {'none', []};
 count_majority([Value]) ->
-                                                % If the list has one item, there is a majority.
+    %% If the list has one item, there is a majority.
     {Value, []};
 count_majority([{Value, _}, {Value, _} | _]=All) ->
-                                                % If the top two elements have the same count, there is no majority.
+    %% If the top two elements have the same count, there is no majority.
     {'none', All};
 count_majority([{Value1, _}=A, {Value2, _}=B | Rest]) when Value1 > Value2 ->
-                                                % A is the majority, B and everything after is the minority.
+    %% A is the majority, B and everything after is the minority.
     {A, [B | Rest]}.
 
 %%------------------------------------------------------------------------------
@@ -839,16 +835,16 @@ filter_groups(KeyPath, FunSpec, Init, Map) ->
 
          (Key, List, Acc) when is_list(List) ->
               Path = lists:reverse([Key | KeyPath]),
-                                                % We should probably pass Path to test_predicates somehow.
+              %% We should probably pass Path to test_predicates somehow.
               case test_predicates(FunSpec, List) of
                   'true' ->
                       map_put(Path, List, Acc);
                   'false' ->
                       Acc
               end
-      end,
-      Init,
-      Map
+      end
+     ,Init
+     ,Map
      ).
 
 %%------------------------------------------------------------------------------
@@ -907,9 +903,9 @@ fold_groups(KeyPath, Fun, Acc0, Map) ->
          (Key, Value, AccN) ->
               Path = lists:reverse([Key | KeyPath]),
               Fun(Path, Value, AccN)
-      end,
-      Acc0,
-      Map
+      end
+     ,Acc0
+     ,Map
      ).
 
 %%------------------------------------------------------------------------------
@@ -928,8 +924,8 @@ map_groups(Fun, Map) when is_function(Fun) ->
               Fun(Value);
          (Key, Value) when is_function(Fun, 2) ->
               Fun(Key, Value)
-      end,
-      Map
+      end
+     ,Map
      ).
 
 %%------------------------------------------------------------------------------
@@ -956,9 +952,9 @@ map_to_table(Prefix, Map) ->
                        )
                      ),
               [Row | Acc]
-      end,
-      [],
-      Map
+      end
+     ,[]
+     ,Map
      ).
 
 list_to_table(Prefix, List) ->
@@ -969,8 +965,8 @@ list_to_table(Prefix, List) ->
                   [Value, Prefix]
                  )
                )
-      end,
-      List
+      end
+     ,List
      ).
 
 %%
@@ -983,7 +979,7 @@ list_to_table(Prefix, List) ->
 %% When adding a new function here, it may be appropriate to add a
 %% corresponding clause to `get_grouping_fun/1' as well.
 
--spec get_node(node_app_version()) -> kz_term:ne_binary().
+-spec get_node(node_app_version()) -> atom().
 get_node(#node_app_version{node=Node}) -> Node.
 
 -spec get_host(node_app_version()) -> kz_term:ne_binary().
@@ -1001,7 +997,7 @@ get_description(#node_app_version{description=Description}) -> Description.
 -spec get_version(node_app_version()) -> kz_term:ne_binary().
 get_version(#node_app_version{version=Version}) -> Version.
 
--spec get_startup(node_app_version()) -> integer().
+-spec get_startup(node_app_version()) -> kz_term:api_integer().
 get_startup(#node_app_version{startup=Startup}) -> Startup.
 
 -spec get_running(node_app_version()) -> boolean().

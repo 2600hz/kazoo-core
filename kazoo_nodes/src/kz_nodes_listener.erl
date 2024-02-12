@@ -1,5 +1,5 @@
 %%%------------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -440,7 +440,7 @@ whapp_info_to_json(#whapp_info{startup=Start, roles=Roles}) ->
       ,{<<"Roles">>, Roles}
       ]).
 
--spec kapp_versions_to_json(kz_types:kapp_versions()) -> kz_json:object().
+-spec kapp_versions_to_json([{kz_json:key(), kz_types:kapp_version()}]) -> kz_json:object().
 kapp_versions_to_json(Kapps) ->
     List = [{Name, kapp_version_to_json(KappVersion)} || {Name, KappVersion} <- Kapps],
     kz_json:from_list(List).
@@ -453,7 +453,7 @@ kapp_version_to_json(#kapp_version{name=Name, description=Desc, version=Version}
       ,{<<"Version">>, Version}
       ]).
 
--spec kapp_versions_from_json(kz_json:object()) -> kz_types:kapp_versions().
+-spec kapp_versions_from_json(kz_json:object()) -> [{kz_json:key(), kz_types:kapp_version()}].
 kapp_versions_from_json(JObj) ->
     Keys = kz_json:get_keys(JObj),
     [kapp_version_tuple(Name, JObj) || Name <- Keys].

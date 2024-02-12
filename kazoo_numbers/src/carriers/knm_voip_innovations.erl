@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc A Number Manager module for carrier: VoIPInnovations.com
 %%% @author Pierre Fenoll, Joe Black
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -267,7 +267,10 @@ soap_request(Action, Props) ->
               ,{"User-Agent", ?KNM_USER_AGENT}
               ,{"Content-Type", "text/xml;charset=UTF-8"}
               ],
-    HTTPOptions = [{'ssl', [{'verify', 'verify_none'}, {versions, ['tlsv1.2']}]}
+    HTTPOptions = [{'ssl', [{'verify', 'verify_none'}
+                           ,{'versions', ['tlsv1.2']}
+                           ]
+                   }
                   ,{'timeout', 180 * ?MILLISECONDS_IN_SECOND}
                   ,{'connect_timeout', 180 * ?MILLISECONDS_IN_SECOND}
                   ,{'body_format', 'string'}

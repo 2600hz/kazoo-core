@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Utilities for manipulating Kazoo documents.
 %%% @author Edouard Swiac
 %%% @author James Aimonetti

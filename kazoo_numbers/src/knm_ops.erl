@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2023, 2600Hz
+%%% @copyright (C) 2015-2024, 2600Hz
 %%% @doc Bulk operations on numbers.
 %%%
 %%% <div class="notice">Functions should not throw, instead should return
@@ -396,21 +396,27 @@ services_group_number(PhoneNumber, AssignedTo, PrevAssignedTo) ->
     ,{[PrevAssignedTo, <<"current">>], CurrentJObj}
     ].
 
--spec service_additions(kz_services_invoices:invoices()) -> list().
+-spec service_additions(kz_services_invoices:invoices()) -> [number()].
 service_additions(Quotes) ->
-    kz_services_invoices:foldl(fun service_additions_fold/2, [], kz_services_invoices:billable_additions(Quotes)).
+    kz_services_invoices:foldl(fun service_additions_fold/2
+                              ,[]
+                              ,kz_services_invoices:billable_additions(Quotes)
+                              ).
 
--spec service_additions_fold(kz_services_invoice:invoice(), list()) -> list().
+-spec service_additions_fold(kz_services_invoice:invoice(), [number()]) -> [number()].
 service_additions_fold(Invoice, Acc) ->
-    kz_services_items:foldl(fun service_addition_fold/2, Acc, kz_services_invoice:items(Invoice)).
+    kz_services_items:foldl(fun service_addition_fold/2
+                           ,Acc
+                           ,kz_services_invoice:items(Invoice)
+                           ).
 
--spec service_addition_fold(kz_services_item:item(), list()) -> list().
+-spec service_addition_fold(kz_services_item:item(), [number()]) -> [number()].
 service_addition_fold(Item, Acc) ->
     Key = [<<"difference">>, <<"billable">>],
     case kz_services_item:has_billable_additions(Item) of
-        false ->
+        'false' ->
             Acc;
-        true ->
+        'true' ->
             Changes = kz_services_item:changes(Item),
             BillableQuantity = kz_json:get_integer_value(Key, Changes, 0),
             Rate = kz_services_item:rate(Item),

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -83,20 +83,20 @@ get(Endpoint, Call) ->
     check_endpoint_type(Endpoint, kz_doc:id(Endpoint), kapps_call:account_db(Call), []).
 
 get_options(Call) ->
-    Routines = [{token, fun token_option/1}],
+    Routines = [{'token', fun token_option/1}],
     lists:filtermap(get_option_fun(Call), Routines).
 
 get_option_fun(Call) ->
     fun({Key, Fun}) ->
             case Fun(Call) of
-                undefined -> false;
-                Value -> {true, {Key, Value}}
+                'undefined' -> 'false';
+                Value -> {'true', {Key, Value}}
             end
     end.
 
 token_option(Call) ->
     case kapps_call:restricted_endpoint_token(Call) of
-        undefined -> kapps_call:endpoint_token(Call);
+        'undefined' -> kapps_call:endpoint_token(Call);
         Token -> Token
     end.
 

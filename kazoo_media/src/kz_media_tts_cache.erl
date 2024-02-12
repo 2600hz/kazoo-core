@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%%
@@ -122,7 +122,7 @@ get_language(Language) -> Language.
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
 handle_call('single', _From, #state{meta=Meta
                                    ,contents=Contents
-                                   ,status=ready
+                                   ,status='ready'
                                    ,timer_ref=TRef
                                    }=State) ->
     %% doesn't currently check whether we're still streaming in from the DB
@@ -206,7 +206,7 @@ handle_info({'http', {ReqID, 'stream_end', _FinalHeaders}}, #state{kz_http_req_i
     _ = [gen_server:reply(From, Res) || From <- Reqs],
 
     lager:debug("finished receiving file contents: ~p", [kz_term:pretty_print_bytes(byte_size(Contents))]),
-    {'noreply', State#state{status=ready
+    {'noreply', State#state{status='ready'
                            ,timer_ref=start_timer()
                            }
     ,'hibernate'
@@ -225,7 +225,7 @@ handle_info({'http', {ReqID, 'stream_end', _FinalHeaders}}, #state{kz_http_req_i
     _ = [gen_server:reply(From, Res) || From <- Reqs],
 
     lager:debug("finished receiving file contents: ~p", [kz_term:pretty_print_bytes(byte_size(Contents))]),
-    {'noreply', State#state{status=ready
+    {'noreply', State#state{status='ready'
                            ,timer_ref=start_timer()
                            ,contents=BinaryContents
                            ,meta=NewMeta
@@ -244,7 +244,7 @@ handle_info({'http', {ReqID, {{_, _StatusCode, _}, Hdrs, Contents}}}, #state{kz_
     _ = [gen_server:reply(From, Res) || From <- Reqs],
 
     lager:debug("finished receiving file contents"),
-    {'noreply', State#state{status=ready
+    {'noreply', State#state{status='ready'
                            ,timer_ref=start_timer()
                            }
     ,'hibernate'

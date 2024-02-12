@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -37,7 +37,7 @@
              ]).
 
 -type presence_aliases() :: kz_json:object() | kz_term:ne_binaries().
--type api_presence_aliases() :: presence_aliases() | undefined.
+-type api_presence_aliases() :: presence_aliases() | 'undefined'.
 -export_type([presence_aliases/0, api_presence_aliases/0]).
 
 -spec addresses(endpoint()) -> kz_term:api_object().

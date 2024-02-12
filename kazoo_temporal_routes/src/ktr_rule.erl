@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Rule record for use in ktr_routes for processing
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc Listens for a list of events and gproc-sends them out to folks who
 %%% want them
 %%%
@@ -140,7 +140,7 @@ handle_info(_Info, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_json:object(), kz_term:proplist()) -> gen_listener:handle_event_return().
 handle_event(_JObj, _State) ->
-    {'reply', [{'rr', 'false'}]}.
+    {'reply', []}.
 
 %%------------------------------------------------------------------------------
 %% @doc This function is called by a `gen_server' when it is about to

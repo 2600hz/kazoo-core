@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Test module to work on recovering after AMQP disconnects of
 %%% federated listeners
 %%%

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Handle im features
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -99,7 +99,7 @@ update_im(Type, PN) ->
     end.
 
 -spec feature_available(kz_term:api_ne_binary(), im_type(), kz_json:object()) -> boolean().
-feature_available(undefined, _Type, _Config) -> false;
+feature_available('undefined', _Type, _Config) -> 'false';
 feature_available(AccountId, Type, Config) ->
     Funs = [fun() -> carrier_has_feature_enabled(Type, Config) end
            ,fun() -> kz_services_im:is_enabled(AccountId, Type) end
@@ -125,8 +125,8 @@ available(Type, PN) ->
         andalso feature_available(AccountId, Type, Config).
 
 -spec available(im_type(), module(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
-available(_Type, _Module, _State, 'undefined') -> false;
-available(_Type, 'undefined', _State, _AccountId) -> false;
+available(_Type, _Module, _State, 'undefined') -> 'false';
+available(_Type, 'undefined', _State, _AccountId) -> 'false';
 available(Type, Module, State, AccountId) ->
     Config = knm_gen_carrier:configuration(Module),
     number_available(State, AccountId)
@@ -156,15 +156,15 @@ carrier_settings(Type, Config) ->
 activate(Type, PN, Feature) ->
     PN1 = knm_providers:activate_feature(PN, {?KEY, Feature}),
     case knm_phone_number:dry_run(PN1) of
-        true -> PN1;
-        false -> maybe_set_callback(Type, activate, PN1)
+        'true' -> PN1;
+        'false' -> maybe_set_callback(Type, 'activate', PN1)
     end.
 
 deactivate(Type, PN) ->
     PN1 = knm_providers:deactivate_feature(PN, ?KEY),
     case knm_phone_number:dry_run(PN1) of
-        true -> PN1;
-        false -> maybe_set_callback(Type, deactivate, PN1)
+        'true' -> PN1;
+        'false' -> maybe_set_callback(Type, 'deactivate', PN1)
     end.
 
 -spec requires_manual_action(im_type(), knm_phone_number:pn_record()) -> boolean().

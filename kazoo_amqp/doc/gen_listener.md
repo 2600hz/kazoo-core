@@ -98,7 +98,7 @@ If you want to use the `gen_listener` behaviour but also make use of [AMQP event
 
 This would bind your `gen_listener` process into the `kz_events` call event pool.
 
-If all of your bindings are pooled, your process will not receive a `{'gen_listener', {'is_consuming', boolean()}}` casted message. You will, however, receive a `{'gen_listener', {'pooled_binding', 'call'}}` casted message for each pooled binding, which serves the same purpose of telling your handling module that the binding is ready (if you need to trigger functionality only after you're ready to receive the events you're interested in).
+If all of your bindings are pooled, your process will not receive a `{'gen_listener', {'is_consuming', boolean()}}` casted message. You will, however, receive a `{'gen_listener', {'pooled_binding', B}}` casted message for each pooled binding `B`, which serves the same purpose of telling your handling module that the binding is ready (if you need to trigger functionality only after you're ready to receive the events you're interested in).
 
 ### Responders
 

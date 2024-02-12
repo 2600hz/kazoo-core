@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Provide functions to create and manage a single voicemail message.
 %%% @author Hesaam Farhang
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -864,6 +864,12 @@ notify_and_update_meta(Call, MediaId, Length, Props) ->
         {'timeout', JObjs} ->
             NewAction = is_notified_successfully(Call, MediaId, JObjs, NotifyAction),
             maybe_update_meta(Length, NewAction, Call, MediaId, BoxId);
+        {'returned', _ReturnedJObj, _BasicReturned} ->
+            AccountId = kapps_call:account_id(Call),
+            lager:debug("failed to send new voicemail notification for message ~s in account ~s: broker returned the message"
+                       ,[MediaId, AccountId]
+                       ),
+            maybe_update_meta(Length, 'nothing', Call, MediaId, BoxId);
         {'error', _R} ->
             AccountId = kapps_call:account_id(Call),
             lager:debug("failed to send new voicemail notification for message ~s in account ~s: ~p"
@@ -877,17 +883,33 @@ notify_and_update_meta(Call, MediaId, Length, Props) ->
 %% Otherwise return action 'nothing' to store the message as new voicemail.
 %% @end
 %%------------------------------------------------------------------------------
--spec is_notified_successfully(kapps_call:call(), kz_term:ne_binary(), kz_json:objects(), notify_action()) -> notify_action().
+-spec is_notified_successfully(kapps_call:call(), kz_term:ne_binary(), kz_json:object() | kz_json:objects(), notify_action()) -> notify_action().
 is_notified_successfully(Call, _MediaId, [], _) ->
     lager:debug("failed to send new voicemail notification for message ~s in account ~s: timeout", [_MediaId, kapps_call:account_id(Call)]),
     'nothing';
 is_notified_successfully(Call, MediaId, [JObj|JObjs], NotifyAction) ->
+    case action_from_status(JObj, NotifyAction) of
+        'unknown' ->
+            is_notified_successfully(Call, MediaId, JObjs, NotifyAction);
+        Action ->
+            Action
+    end;
+is_notified_successfully(_Call, _MediaId, JObj, NotifyAction) ->
+    case action_from_status(JObj, NotifyAction) of
+        'unknown' ->
+            'nothing';
+        Action ->
+            Action
+    end.
+
+-spec action_from_status(kz_json:object(), notify_action()) -> 'unknown' | notify_action().
+action_from_status(JObj, NotifyAction) ->
     case kz_json:get_ne_binary_value(<<"Status">>, JObj) of
         <<"completed">> -> NotifyAction;
         <<"disabled">> -> 'nothing';
         <<"ignored">> -> 'nothing';
         <<"failed">> -> 'nothing';
-        _Status -> is_notified_successfully(Call, MediaId, JObjs, NotifyAction)
+        _Status -> 'unknown'
     end.
 
 -spec maybe_update_meta(pos_integer(), notify_action(), kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kapps_call:call()}.

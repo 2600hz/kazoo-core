@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -19,6 +19,7 @@
 
 -export([flushed/1]).
 -export([clear/1]).
+-export([cache_lifetime/0]).
 
 -include("kazoo_directory.hrl").
 
@@ -89,7 +90,7 @@ match_doc_changed_keys(Db, Id) ->
 
 -spec flushed(atom()) -> 'ok'.
 flushed(?CACHE_NAME) ->
-    publish_cache_flush(),
+    'ok' = publish_cache_flush(),
     lager:info("directory cache was flushed");
 flushed(_Name) -> 'ok'.
 
@@ -122,3 +123,7 @@ publish_cache_clear(EndpointIds) ->
 
 publish_cache_logid() ->
     lists:last(binary:split(kz_term:to_binary(kz_log:get_callid()), <<"|">>, ['global'])).
+
+-spec cache_lifetime() -> timeout().
+cache_lifetime() ->
+    kz_app_config:get_timeout(?APP, <<"cache_lifetime">>, ?SECONDS_IN_HOUR).

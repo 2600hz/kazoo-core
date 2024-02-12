@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -44,7 +44,7 @@ db_view_cleanup(_Server, _DbName) ->
 -spec db_info(server_map()) -> {'ok', kz_term:ne_binaries()}.
 db_info(#{url := ServerUrl}=Server) ->
     #{url := AppUrl} = kz_fixturedb_server:get_app_connection(Server),
-    {ok, get_dbs_list(ServerUrl, AppUrl)}.
+    {'ok', get_dbs_list(ServerUrl, AppUrl)}.
 
 
 -spec db_info(server_map(), kz_term:ne_binary()) -> docs_resp().

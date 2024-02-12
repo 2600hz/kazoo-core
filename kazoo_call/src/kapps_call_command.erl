@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -1215,14 +1215,14 @@ bridge_ccvs(Call) ->
 
 bridge_ccvs(CCVRoutines, Call) ->
     case lists:foldl(bridge_ccvs_fold(Call), [], CCVRoutines) of
-        [] -> undefined;
+        [] -> 'undefined';
         CCVs -> kz_json:from_list(CCVs)
     end.
 
 bridge_ccvs_fold(Call) ->
     fun({Name, Fun}, Acc) ->
             case Fun(Call) of
-                undefined -> Acc;
+                'undefined' -> Acc;
                 Value -> [{Name, Value} | Acc]
             end
     end.
