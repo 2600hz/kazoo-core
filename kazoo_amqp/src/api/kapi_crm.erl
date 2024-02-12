@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2024, 2600Hz
+%%% @copyright (C) 2023-2024, 2600Hz
 %%% @doc
 %%% @author Kusal Fernando
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -115,12 +115,14 @@ authenticate_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun authenticate/1}
               ,{fun kapi_definition:set_validate_fun/2, fun authenticate_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_authenticate/2}
-              ,{fun kapi_definition:set_required_headers/2, []}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
+                                                            ]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2, [{<<"Account-ID">>, fun kz_term:is_ne_binary/1}
+                                                 ]}
               ],
     kapi_definition:setters(Setters).
 
@@ -157,14 +159,16 @@ caller_info_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun caller_info_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_caller_info/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Caller-ID">>
-                                                            ,<<"CRM-Platform">>
+                                                            ,<<"Account-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"CRM-Platform">>
+                                                            ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
               ,{fun kapi_definition:set_types/2, [{<<"Caller-ID">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"CRM-Platform">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Account-ID">>, fun kz_term:is_ne_binary/1}
                                                  ]}
               ],
     kapi_definition:setters(Setters).
@@ -203,15 +207,16 @@ interaction_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun interaction/1}
               ,{fun kapi_definition:set_validate_fun/2, fun interaction_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_interaction/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Status">>
-                                                            ,<<"Description">>
+              ,{fun kapi_definition:set_required_headers/2, [<<"Description">>
                                                             ,<<"Duration">>
                                                             ,<<"Contact-ID">>
                                                             ,<<"Direction">>
                                                             ,<<"Disposition">>
-                                                            ,<<"CRM-Platform">>
+                                                            ,<<"Account-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"CRM-Platform">>
+                                                            ,<<"Status">>
+                                                            ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
@@ -222,6 +227,7 @@ interaction_definition() ->
                                                  ,{<<"Direction">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"Disposition">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"CRM-Platform">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Account-ID">>, fun kz_term:is_ne_binary/1}
                                                  ]}
               ],
     kapi_definition:setters(Setters).
