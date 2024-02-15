@@ -136,6 +136,7 @@
 -export([document_routing_key/0, document_routing_key/1
         ,document_routing_key/2, document_routing_key/3
         ,document_routing_key/4
+        ,document_routing_props/4
         ]).
 -export([bind_q_to_configuration/2, unbind_q_from_configuration/2]).
 -export([new_configuration_queue/1, new_configuration_queue/2, delete_configuration_queue/1]).
@@ -326,7 +327,8 @@ document_change_publish(Action, Db, Type, Id, JSON) ->
 -spec document_change_publish(atom(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary()) -> 'ok'.
 document_change_publish(Action, Db, Type, Id, Payload, ContentType) ->
     RoutingKey = document_routing_key(Action, Db, Type, Id),
-    configuration_publish(RoutingKey, Payload, ContentType).
+    Props = document_change_props(Db, Id, Type),
+    configuration_publish(RoutingKey, Payload, ContentType, Props).
 
 -spec document_routing_key() -> kz_term:ne_binary().
 document_routing_key() ->
@@ -345,35 +347,39 @@ document_routing_key(Action, Db, Type) ->
     document_routing_key(Action, Db, Type, <<"*">>).
 
 -spec document_routing_key(atom() | kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-document_routing_key(<<"*">>, Db, Type, Id) ->
-    list_to_binary([<<"*.">>, kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
-                   ]);
-document_routing_key(<<"db_", _/binary>> = Action, Db, Type, Id) ->
-    list_to_binary([Action
-                   ,".", kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
-                   ]);
-document_routing_key(<<"doc_", _/binary>> = Action, Db, Type, Id) ->
-    list_to_binary([Action
-                   ,".", kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
-                   ]);
-document_routing_key(Action, Db, <<"database">>=Type, Id) ->
-    list_to_binary(["db_", kz_term:to_list(Action)
-                   ,".", kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
-                   ]);
 document_routing_key(Action, Db, Type, Id) ->
-    list_to_binary(["doc_", kz_term:to_list(Action)
-                   ,".", kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
+    {Action1, Db1, Type1, Id1} = document_routing_props(Action, Db, Type, Id),
+    list_to_binary([Action1
+                   ,".", kz_term:to_binary(Db1)
+                   ,".", kz_term:to_binary(Type1)
+                   ,".", encode(kz_term:to_binary(Id1))
                    ]).
+
+-spec document_routing_props(atom() | kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()}.
+document_routing_props(<<"*">> = Action, Db, Type, Id) ->
+    {Action, Db, Type, Id};
+document_routing_props(<<"db_", _/binary>> = Action, Db, Type, Id) ->
+    {Action, Db, Type, Id};
+document_routing_props(<<"doc_", _/binary>> = Action, Db, Type, Id) ->
+    {Action, Db, Type, Id};
+document_routing_props(Action, Db, <<"database">> = Type, Id) ->
+    {<<"db_", (kz_term:to_binary(Action))/binary>>, Db, Type, Id};
+document_routing_props(Action, Db, Type, Id) ->
+    {<<"doc_", (kz_term:to_binary(Action))/binary>>, Db, Type, Id}.
+
+-spec document_change_props(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:proplist().
+document_change_props(Db, Db, <<"database">>) -> document_change_props(Db);
+document_change_props(Db, Id, _Type) -> document_change_props(<<Db/binary, "-", Id/binary>>).
+
+%%------------------------------------------------------------------------------
+%% @doc Get the props for a configuration publish. This is used to add the
+%% `hash-key' header (for the consistent hash exchange type in pooled bindings).
+%% @end
+%%------------------------------------------------------------------------------
+-spec document_change_props(kz_term:ne_binary()) -> kz_term:proplist().
+document_change_props(HashKey) ->
+    [{'headers', [{<<"hash-key">>, 'longstr', HashKey}]}].
 
 -spec callctl_publish(kz_term:ne_binary(), amqp_payload()) -> 'ok'.
 callctl_publish(CtrlQ, Payload) ->

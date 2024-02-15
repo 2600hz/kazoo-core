@@ -39,8 +39,10 @@
         ]).
 
 -type action() :: 'created' | 'edited' | 'deleted'.
+-type action_binary() :: kz_term:ne_binary().
 -type doc() :: kz_json:object().
 -export_type([action/0
+             ,action_binary/0
              ,doc/0
              ]).
 
@@ -109,7 +111,6 @@ doc_update_definition() ->
                                                    ,?DB_EDITED
                                                    ,?DB_CREATED
                                                    ,?DB_DELETED
-                                                   ,?DB_VIEWS_UPDATED
                                                    ]
                                                   )
                }
@@ -249,11 +250,24 @@ publish_doc_type_update(API, ContentType) ->
 
 -spec bind_q(binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Q, Props) ->
-    bind_q(Q, Props, props:get_value('restrict_to', Props)).
+    RestrictTo = props:get_value('restrict_to', Props, ['doc_updates']),
+    bind_q(Q, Props, RestrictTo, props:is_true('pooled', Props, 'false')).
 
--spec bind_q(binary(), kz_term:proplist(), kz_term:api_atoms()) -> 'ok'.
-bind_q(Q, Props, 'undefined') ->
-    bind_for_doc_changes(Q, Props);
+-spec bind_q(binary(), kz_term:proplist(), kz_term:api_atoms(), boolean()) -> 'ok'.
+bind_q(Q, Props, RestrictTo, 'false') ->
+    bind_q(Q, Props, RestrictTo);
+bind_q(Q, Props, RestrictTo, 'true') ->
+    case lists:all(fun is_pooled_event_filter/1, RestrictTo) of
+        'true' ->
+            bind_q(Q, Props, RestrictTo);
+        'false' ->
+            lager:error("using the pooled flag with a mix of pooled and "
+                        "non-pooled event filters is not allowed"
+                       ),
+            throw({'error', 'badarg'})
+    end.
+
+-spec bind_q(binary(), kz_term:proplist(), kz_term:atoms()) -> 'ok'.
 bind_q(Q, Props, ['doc_updates'|Restrict]) ->
     bind_for_doc_changes(Q, Props),
     bind_q(Q, Props, Restrict);
@@ -266,15 +280,21 @@ bind_q(_Q, _Props, []) -> 'ok'.
 
 -spec bind_for_doc_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_for_doc_changes(Q, Props) ->
-    case props:get_value('keys', Props) of
-        'undefined' ->
-            kz_amqp_util:bind_q_to_configuration(Q, get_routing_key(Props));
-        List ->
-            _ = [kz_amqp_util:bind_q_to_configuration(Q, get_routing_key(KeyProps))
-                 || KeyProps <- List
-                ],
-            'ok'
-    end.
+    Keys = props:get_value('keys', Props, [Props]),
+    case props:get_value('pooled', Props, 'false') of
+        'true' ->
+            [begin
+                 {Action, Db, DocType, DocId} = doc_update_props(KeyProps),
+                 kz_events:bind_conf_changes(Action, Db, DocType, DocId)
+             end
+             || KeyProps <- Keys
+            ];
+        'false' ->
+            [kz_amqp_util:bind_q_to_configuration(Q, get_routing_key(KeyProps))
+             || KeyProps <- Keys
+            ]
+    end,
+    'ok'.
 
 -spec bind_for_doc_type_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_for_doc_type_changes(Q, Props) ->
@@ -298,11 +318,9 @@ bind_for_doc_types(Q, Props) ->
 
 -spec unbind_q(binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Q, Props) ->
-    unbind_q(Q, Props, props:get_value('restrict_to', Props)).
+    unbind_q(Q, Props, props:get_value('restrict_to', Props, ['doc_updates'])).
 
--spec unbind_q(binary(), kz_term:proplist(), kz_term:api_atoms()) -> 'ok'.
-unbind_q(Q, Props, 'undefined') ->
-    unbind_for_doc_changes(Q, Props);
+-spec unbind_q(binary(), kz_term:proplist(), kz_term:atoms()) -> 'ok'.
 unbind_q(Q, Props, ['doc_updates'|Restrict]) ->
     unbind_for_doc_changes(Q, Props),
     unbind_q(Q, Props, Restrict);
@@ -315,15 +333,21 @@ unbind_q(_Q, _Props, []) -> 'ok'.
 
 -spec unbind_for_doc_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_for_doc_changes(Q, Props) ->
-    case props:get_value('keys', Props) of
-        'undefined' ->
-            kz_amqp_util:unbind_q_from_configuration(Q, get_routing_key(Props));
-        List ->
-            _ = [kz_amqp_util:unbind_q_from_configuration(Q, get_routing_key(KeyProps))
-                 || KeyProps <- List
-                ],
-            'ok'
-    end.
+    Keys = props:get_value('keys', Props, [Props]),
+    case props:get_value('pooled', Props, 'false') of
+        'true' ->
+            [begin
+                 {Action, Db, DocType, DocId} = doc_update_props(KeyProps),
+                 kz_events:unbind_conf_changes(Action, Db, DocType, DocId)
+             end
+             || KeyProps <- Keys
+            ];
+        'false' ->
+            [kz_amqp_util:unbind_q_from_configuration(Q, get_routing_key(KeyProps))
+             || KeyProps <- Keys
+            ]
+    end,
+    'ok'.
 
 -spec unbind_for_doc_type_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_for_doc_type_changes(Q, Props) ->
@@ -351,7 +375,7 @@ unbind_for_doc_types(Q, Props) ->
 declare_exchanges() ->
     kz_amqp_util:configuration_exchange().
 
--spec get_routing_key(kz_term:proplist()) -> binary().
+-spec get_routing_key(kz_term:proplist()) -> kz_term:ne_binary().
 get_routing_key(Props) ->
     get_routing_key(Props, 'true').
 
@@ -362,20 +386,30 @@ get_routing_key(Props) ->
 %% bindings server
 %% @end
 %%------------------------------------------------------------------------------
--spec get_routing_key(kz_term:proplist(), boolean()) -> binary().
+-spec get_routing_key(kz_term:proplist(), boolean()) -> kz_term:ne_binary().
 get_routing_key(Props, IsAMQPBinding) ->
-    Action = props:get_binary_value('action', Props, <<"*">>),
-    Db = props:get_binary_value('db', Props, <<"*">>),
-    Type = props:get_binary_value('doc_type', Props
-                                 ,props:get_value('type', Props, <<"*">>)
-                                 ),
-    Id = props:get_binary_value('doc_id', Props
-                               ,props:get_value('id', Props, <<"*">>)
-                               ),
+    {Action, Db, Type, Id} = doc_update_props(Props),
     case kz_amqp_util:document_routing_key(Action, Db, Type, Id) of
         <<"*.*.*.*">> when IsAMQPBinding -> <<"#">>;
         RK -> RK
     end.
+
+%%------------------------------------------------------------------------------
+%% @doc Get/normalize the props used for routing a doc update event.
+%% @end
+%%------------------------------------------------------------------------------
+-spec doc_update_props(kz_term:proplist()) -> {action_binary()
+                                              ,kz_term:ne_binary()
+                                              ,kz_term:ne_binary()
+                                              ,kz_term:ne_binary()
+                                              }.
+doc_update_props(Props) ->
+    kz_amqp_util:document_routing_props(
+      props:get_binary_value('action', Props, <<"*">>)
+     ,props:get_binary_value('db', Props, <<"*">>)
+     ,props:get_binary_value('doc_type', Props, props:get_value('type', Props, <<"*">>))
+     ,props:get_binary_value('doc_id', Props, props:get_value('id', Props, <<"*">>))
+     ).
 
 -spec publish_db_update(action(), kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
 publish_db_update(Action, Db, JObj) ->
@@ -395,3 +429,11 @@ doc_type_update_routing_key(<<_/binary>> = Type) ->
     <<"configuration.doc_type_update.", Type/binary>>;
 doc_type_update_routing_key(API) ->
     doc_type_update_routing_key(get_type(API)).
+
+%%------------------------------------------------------------------------------
+%% @doc Check if an event is supported for pooled bindings.
+%% @end
+%%------------------------------------------------------------------------------
+-spec is_pooled_event_filter(atom()) -> boolean().
+is_pooled_event_filter('doc_updates') -> 'true';
+is_pooled_event_filter(_Event) -> 'false'.

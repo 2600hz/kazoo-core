@@ -19,6 +19,14 @@
         ,delete_async_call_event_handler/3
         ]).
 
+-export([start_conf_events/0
+        ,stop_conf_events/0
+        ,restart_conf_events/0
+        ,bind_conf_changes/4
+        ,unbind_conf_changes/4
+        ,conf_event_binding/4
+        ]).
+
 -export([start_presence_events/0
         ,stop_presence_events/0
         ,restart_presence_events/0
@@ -32,18 +40,31 @@
 -export_type([call_id/0
              ,call_event_name/0
              ,call_event_names/0
+
+             ,action/0
+             ,db/0
+             ,doc_type/0
+             ,doc_id/0
+
              ,presence_id/0
+
              ,handler/0
              ]).
 
 -include("kazoo_events.hrl").
 
--type bindings() :: [binding_call_id() | binding_presence_id()].
+-type bindings() :: [binding_call_id() | binding_conf_change() | binding_presence_id()].
 
 -type call_id() :: kz_term:ne_binary().
 -type call_event_name() :: kz_term:ne_binary().
 -type call_event_names() :: [call_event_name()].
 -type binding_call_id() :: {'call_events', call_id(), call_event_name()}.
+
+-type action() :: kapi_conf:action_binary().
+-type db() :: kz_term:ne_binary().
+-type doc_type() :: kz_term:ne_binary().
+-type doc_id() :: kz_term:ne_binary().
+-type binding_conf_change() :: {'conf', action(), db(), doc_type(), doc_id()}.
 
 -type presence_id() :: kz_term:ne_binary() | '_'.
 -type binding_presence_id() :: {'presence', presence_id()}.
@@ -143,6 +164,57 @@ delete_async_call_event_handler(AccountId, EventName, Handler) ->
     delete_async_handler('call_events', [AccountId, EventName], Handler).
 
 %%------------------------------------------------------------------------------
+%% @doc Get the representation of a configuration event binding.
+%% @end
+%%------------------------------------------------------------------------------
+-spec conf_event_binding(action(), db(), doc_type(), doc_id()) -> binding_conf_change().
+conf_event_binding(Action, Db, DocType, DocId) ->
+    {'conf', Action, Db, DocType, DocId}.
+
+-spec start_conf_events() -> 'ok'.
+start_conf_events() ->
+    maybe_start_conf_events(is_conf_events_started()).
+
+-spec stop_conf_events() -> 'ok'.
+stop_conf_events() ->
+    stop_conf_events(is_conf_events_started()).
+
+-spec stop_conf_events(boolean()) -> 'ok'.
+stop_conf_events('false') -> 'ok';
+stop_conf_events('true') ->
+    kz_event_listeners_sup:stop_pool('conf').
+
+-spec restart_conf_events() -> 'ok'.
+restart_conf_events() ->
+    stop_conf_events(),
+    start_conf_events().
+
+-spec is_conf_events_started() -> boolean().
+is_conf_events_started() ->
+    kz_event_listeners_sup:pool_exists('conf').
+
+-spec maybe_start_conf_events() -> 'ok'.
+maybe_start_conf_events() ->
+    maybe_start_conf_events(is_conf_events_started()).
+
+-spec maybe_start_conf_events(boolean()) -> 'ok'.
+maybe_start_conf_events('false') ->
+    _ = kz_event_listeners_sup:start_pool('conf'),
+    'ok';
+maybe_start_conf_events('true') -> 'ok'.
+
+-spec bind_conf_changes(action(), db(), doc_type(), doc_id()) -> 'ok'.
+bind_conf_changes(Action, Db, DocType, DocId) ->
+    maybe_start_conf_events(),
+    _ = reg_property(conf_event_binding(Action, Db, DocType, DocId), self()),
+    'ok'.
+
+-spec unbind_conf_changes(action(), db(), doc_type(), doc_id()) -> 'ok'.
+unbind_conf_changes(Action, Db, DocType, DocId) ->
+    unreg_property(conf_event_binding(Action, Db, DocType, DocId)),
+    'ok'.
+
+%%------------------------------------------------------------------------------
 %% @doc Get the representation of a presence event binding.
 %% @end
 %%------------------------------------------------------------------------------
@@ -217,17 +289,22 @@ delete_async_handler(EventType, Args, Handler) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @doc Publish a pooled call or presence event.
+%% @doc Publish a pooled event.
 %% @end
 %%------------------------------------------------------------------------------
 -spec publish_event(kz_json:object(), kz_term:proplist(), event_type()) -> 'ok'.
 publish_event(JObj, Props, 'call_events'=EventType) ->
-    CallId = kz_call_event:call_id(JObj),
-    EventName = kz_api:event_name(JObj),
-    Bindings = [call_event_binding(<<"*">>, <<"*">>)
-               ,call_event_binding(CallId, <<"*">>)
-               ,call_event_binding(<<"*">>, EventName)
-               ,call_event_binding(CallId, EventName)
+    Bindings = [call_event_binding(CallId, EventName)
+                || CallId    <- [<<"*">>, kz_call_event:call_id(JObj)],
+                   EventName <- [<<"*">>, kz_api:event_name(JObj)]
+               ],
+    publish_event(JObj, Props, EventType, Bindings);
+publish_event(JObj, Props, 'conf'=EventType) ->
+    Bindings = [conf_event_binding(Action, Db, DocType, DocId)
+                || Action  <- [<<"*">>, kz_api:event_name(JObj)],
+                   Db      <- [<<"*">>, kapi_conf:get_database(JObj)],
+                   DocType <- [<<"*">>, kapi_conf:get_type(JObj)],
+                   DocId   <- [<<"*">>, kapi_conf:get_id(JObj)]
                ],
     publish_event(JObj, Props, EventType, Bindings);
 publish_event(JObj, Props, 'presence'=EventType) ->
@@ -257,6 +334,13 @@ handle_async(BindingKey, JObj) when is_binary(BindingKey) ->
 handle_async('call_events'=EventType, JObj) ->
     BindingKey = binding_key(EventType, [kz_call_event:account_id(JObj)
                                         ,kz_api:event_name(JObj)
+                                        ]),
+    handle_async(BindingKey, JObj);
+handle_async('conf'=EventType, JObj) ->
+    BindingKey = binding_key(EventType, [kz_api:event_name(JObj)
+                                        ,kapi_conf:get_database(JObj)
+                                        ,kapi_conf:get_type(JObj)
+                                        ,kapi_conf:get_id(JObj)
                                         ]),
     handle_async(BindingKey, JObj);
 handle_async('presence'=EventType, JObj) ->
