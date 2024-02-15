@@ -282,3 +282,108 @@ code_change(_OldVersion, State, _Extra) ->
 
 -spec terminate(any(), map()) -> 'ok'.
 terminate(_Reason, _State) -> lager:info("terminated at ~p~n", [_State]).
+
+%%%=============================================================================
+%%% Eunit Tests
+%%%=============================================================================
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+-include_lib("rabbit_common/include/rabbit_framing.hrl").
+
+%% Test binding for and unbinding from call events.
+bind_unbind_test_() ->
+    {'setup'
+    ,fun setup/0
+    ,fun cleanup/1
+    ,fun(_) ->
+             CallId = kz_binary:rand_hex(6),
+             EventNames = [<<"CHANNEL_CREATE">>, <<"*">>],
+             kz_events:bind_call_id(CallId, EventNames),
+
+             Binding1 = kz_events:call_event_binding(CallId, <<"CHANNEL_CREATE">>),
+             Binding2 = kz_events:call_event_binding(CallId, <<"*">>),
+             Pids1 = gproc:lookup_pids({'p', 'l', Binding1})
+                 ++ gproc:lookup_pids({'p', 'l', Binding2}),
+
+             kz_events:unbind_call_id(CallId, EventNames),
+
+             Pids2 = gproc:lookup_pids({'p', 'l', Binding1})
+                 ++ gproc:lookup_pids({'p', 'l', Binding2}),
+
+             Self = self(),
+             [?_assertEqual([Self, Self], Pids1)
+             ,?_assertEqual([], Pids2)
+             ]
+     end
+    }.
+
+%% Test adding and removing async event handlers.
+add_delete_async_handler_test_() ->
+    {'setup'
+    ,fun setup/0
+    ,fun cleanup/1
+    ,fun(_) ->
+             meck:new('kazoo_bindings'),
+             meck:expect('kazoo_bindings', 'bind', fun(_, _) -> 'ok' end),
+             meck:expect('kazoo_bindings', 'unbind', fun(_, _) -> 'ok' end),
+
+             AccountId = <<"account_id">>,
+             EventName = <<"CHANNEL_CREATE">>,
+             Handler = 'f',
+             kz_events:add_async_call_event_handler(AccountId, EventName, Handler),
+             kz_events:delete_async_call_event_handler(AccountId, EventName, Handler),
+
+             [?_assert(meck:called('kazoo_bindings', 'bind', '_'))
+             ,?_assert(meck:called('kazoo_bindings', 'unbind', '_'))
+             ]
+     end
+    }.
+
+%% Test that pooled events are distributed to both async event handlers and
+%% bound procs.
+published_events_are_distributed_test_() ->
+    {'setup'
+    ,fun setup/0
+    ,fun cleanup/1
+    ,fun(_) ->
+             meck:new('kazoo_bindings'),
+             meck:expect('kazoo_bindings', 'pmap', fun(_, _) -> 'ok' end),
+             meck:new('kz_process'),
+             meck:expect('kz_process', 'spawn', fun(Fun) -> Fun() end),
+
+             CallId = kz_binary:rand_hex(6),
+             PresenceId = list_to_binary([kz_binary:rand_hex(6), "@", kz_binary:rand_hex(6)]),
+             kz_events:bind_call_id(CallId),
+             kz_events:bind_presence_id(PresenceId),
+
+             CallEvent = kz_json:from_list([{<<"Event-Category">>, <<"call_event">>}
+                                           ,{<<"Event-Name">>, <<"CHANNEL_CREATE">>}
+                                           ,{<<"Account-ID">>, <<"account_id">>}
+                                           ,{<<"Call-ID">>, CallId}
+                                           ]),
+             PresenceEvent = kz_json:from_list([{<<"Presence-ID">>, PresenceId}]),
+             Props = [{'deliver', #'basic.deliver'{}}],
+             kz_events:publish_event(CallEvent, Props, 'call_events'),
+             kz_events:publish_event(PresenceEvent, Props, 'presence'),
+
+             {'message_queue_len', MQLen} = process_info(self(), 'message_queue_len'),
+             [?_assertEqual(2, meck:num_calls('kazoo_bindings', 'pmap', '_'))
+             ,?_assertEqual(2, MQLen)
+             ]
+     end
+    }.
+
+%% Shared test setup.
+setup() ->
+    application:ensure_all_started('gproc'),
+
+    meck:new('kz_event_listeners_sup'),
+    meck:expect('kz_event_listeners_sup', 'pool_exists', fun(_) -> 'true' end).
+
+%% Shared test cleanup.
+cleanup(_) ->
+    meck:unload().
+
+-endif.

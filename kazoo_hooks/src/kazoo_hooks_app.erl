@@ -1,4 +1,5 @@
 %%%-----------------------------------------------------------------------------
+%%% @deprecated Use {@link kz_events}
 %%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson

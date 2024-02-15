@@ -1,4 +1,5 @@
 %%%-----------------------------------------------------------------------------
+%%% @deprecated Use {@link kz_events}
 %%% @copyright (C) 2017-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
@@ -37,34 +38,66 @@ deregister(AccountId) -> kz_hooks_util:deregister(AccountId).
 -spec deregister(kz_term:ne_binary(), kz_term:ne_binary()) -> 'true'.
 deregister(AccountId, EventName) -> kz_hooks_util:deregister(AccountId, EventName).
 
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:add_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec bind() -> kazoo_bindings:bind_result().
 bind() ->
     bind(<<"*">>, <<"*">>).
 
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:add_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec bind(kz_term:ne_binary()) -> kazoo_bindings:bind_result().
 bind(AccountId) ->
     bind(AccountId, <<"*">>).
 
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:add_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec bind(kz_term:ne_binary(), kz_term:ne_binary()) -> kazoo_bindings:bind_result().
 bind(AccountId, EventName) ->
     bind(AccountId, EventName, {'kapps_call_command', 'relay_event', [self()]}).
 
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:add_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec bind(kz_term:ne_binary(), kz_term:ne_binary(), bind_fun()) -> kazoo_bindings:bind_result().
 bind(AccountId, EventName, BindFun) ->
     kz_hooks_util:bind(AccountId, EventName, BindFun).
 
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:delete_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec unbind() -> kazoo_bindings:unbind_result().
 unbind() ->
     unbind(<<"*">>, <<"*">>).
 
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:delete_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec unbind(kz_term:ne_binary()) -> kazoo_bindings:unbind_result().
 unbind(AccountId) ->
     unbind(AccountId, <<"*">>).
 
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:delete_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec unbind(kz_term:ne_binary(), kz_term:ne_binary()) -> kazoo_bindings:unbind_result().
 unbind(AccountId, EventName) ->
     unbind(AccountId, EventName, {'kapps_call_command', 'relay_event', [self()]}).
 
+%%------------------------------------------------------------------------------
+%% @deprecated Use {@link kz_events:delete_async_call_event_handler/3}
+%% @end
+%%------------------------------------------------------------------------------
 -spec unbind(kz_term:ne_binary(), kz_term:ne_binary(), bind_fun()) -> kazoo_bindings:unbind_result().
 unbind(AccountId, EventName, BindFun) ->
     kz_hooks_util:unbind(AccountId, EventName, BindFun).

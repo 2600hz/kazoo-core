@@ -1,4 +1,5 @@
 %%%-----------------------------------------------------------------------------
+%%% @deprecated Use {@link kz_events}
 %%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
