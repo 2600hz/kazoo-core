@@ -71,6 +71,7 @@
 
 -type handler() :: {module(), kazoo_bindings:responder_fun(), kazoo_bindings:payload()} |
                    kazoo_bindings:responder_fun().
+-type payload() :: kapi:delivery_message(kz_json:object()).
 
 %%------------------------------------------------------------------------------
 %% @doc Get the representation of a call event binding. Both `CallId' and
@@ -351,7 +352,7 @@ handle_async('presence'=EventType, JObj) ->
 %% @doc Send an event to all procs bound to any of the given bindings.
 %% @end
 %%------------------------------------------------------------------------------
--spec send_event(bindings(), kz_json:object()) -> 'ok'.
+-spec send_event(bindings(), payload()) -> 'ok'.
 send_event(Bindings, Payload) ->
     Pids = lists:usort([Pid || Binding <- Bindings,
                                Pid <- gproc:lookup_pids({'p', 'l', Binding})
@@ -359,9 +360,11 @@ send_event(Bindings, Payload) ->
     log(Pids, Payload),
     lists:foreach(fun(Pid) -> Pid ! Payload end, Pids).
 
+-spec log(kz_term:pids(), payload()) -> 'ok'.
 log([], _) -> 'ok';
 log(Pids, {'kapi', {{Exchange, RK, _}, {Category, Event}, _}}) ->
-    lager:debug("sending ~s/~s/~s (~s) to ~p", [Exchange, Category, Event, RK, Pids]).
+    _ = lager:debug("sending ~s/~s/~s (~s) to ~p", [Exchange, Category, Event, RK, Pids]),
+    'ok'.
 
 reg_property(Binding, Value) ->
     gproc:ensure_reg({'p', 'l', Binding}, Value).
