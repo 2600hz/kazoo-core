@@ -71,7 +71,7 @@
 
 -type handler() :: {module(), kazoo_bindings:responder_fun(), kazoo_bindings:payload()} |
                    kazoo_bindings:responder_fun().
--type payload() :: kapi:delivery_message(kz_json:object()).
+-type payload() :: {'kapi', kapi:delivery_message(kz_json:object())}.
 
 %%------------------------------------------------------------------------------
 %% @doc Get the representation of a call event binding. Both `CallId' and
