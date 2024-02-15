@@ -8,7 +8,11 @@ This limits using up AMQP channels, which have a hard-coded limit of 2047, by al
 
 ## Event bindings
 
-There are two event bindings currently: call events and presence (updates and dialog events).
+At the time of writing, the supported bindings are:
+
+- call events
+- configuration events (doc change events)
+- presence (updates and dialog events)
 
 ## Erlang Architecture
 
