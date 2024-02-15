@@ -280,20 +280,32 @@ bind_q(_Q, _Props, []) -> 'ok'.
 
 -spec bind_for_doc_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_for_doc_changes(Q, Props) ->
-    Keys = props:get_value('keys', Props, [Props]),
-    _ = case props:get_value('pooled', Props, 'false') of
-            'true' ->
-                [begin
-                     {Action, Db, DocType, DocId} = doc_update_props(KeyProps),
-                     kz_events:bind_conf_changes(Action, Db, DocType, DocId)
-                 end
-                 || KeyProps <- Keys
-                ];
-            'false' ->
-                [kz_amqp_util:bind_q_to_configuration(Q, get_routing_key(KeyProps))
-                 || KeyProps <- Keys
-                ]
-        end,
+    bind_for_doc_changes(Q
+                        ,Props
+                        ,props:get_value('pooled', Props, 'false')
+                        ,props:get_value('keys', Props)
+                        ).
+
+-spec bind_for_doc_changes(kz_term:ne_binary(), kz_term:proplist(), boolean(), kz_term:api_proplist()) -> 'ok'.
+bind_for_doc_changes(_Q, Props, 'true', 'undefined') ->
+    bind_for_doc_changes_pooled(Props);
+bind_for_doc_changes(_Q, _Props, 'true', Keys) ->
+    _ = [bind_for_doc_changes_pooled(KeyProps) || KeyProps <- Keys],
+    'ok';
+bind_for_doc_changes(Q, Props, 'false', 'undefined') ->
+    bind_for_doc_changes_non_pooled(Q, Props);
+bind_for_doc_changes(Q, _Props, 'false', Keys) ->
+    _ = [bind_for_doc_changes_non_pooled(Q, KeyProps) || KeyProps <- Keys],
+    'ok'.
+
+-spec bind_for_doc_changes_pooled(kz_term:proplist()) -> 'ok'.
+bind_for_doc_changes_pooled(Props) ->
+    {Action, Db, DocType, DocId} = doc_update_props(Props),
+    kz_events:bind_conf_changes(Action, Db, DocType, DocId).
+
+-spec bind_for_doc_changes_non_pooled(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+bind_for_doc_changes_non_pooled(Q, Props) ->
+    _ = kz_amqp_util:bind_q_to_configuration(Q, get_routing_key(Props)),
     'ok'.
 
 -spec bind_for_doc_type_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
@@ -333,20 +345,32 @@ unbind_q(_Q, _Props, []) -> 'ok'.
 
 -spec unbind_for_doc_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_for_doc_changes(Q, Props) ->
-    Keys = props:get_value('keys', Props, [Props]),
-    _ = case props:get_value('pooled', Props, 'false') of
-            'true' ->
-                [begin
-                     {Action, Db, DocType, DocId} = doc_update_props(KeyProps),
-                     kz_events:unbind_conf_changes(Action, Db, DocType, DocId)
-                 end
-                 || KeyProps <- Keys
-                ];
-            'false' ->
-                [kz_amqp_util:unbind_q_from_configuration(Q, get_routing_key(KeyProps))
-                 || KeyProps <- Keys
-                ]
-        end,
+    unbind_for_doc_changes(Q
+                          ,Props
+                          ,props:get_value('pooled', Props, 'false')
+                          ,props:get_value('keys', Props)
+                          ).
+
+-spec unbind_for_doc_changes(kz_term:ne_binary(), kz_term:proplist(), boolean(), kz_term:api_proplist()) -> 'ok'.
+unbind_for_doc_changes(_Q, Props, 'true', 'undefined') ->
+    unbind_for_doc_changes_pooled(Props);
+unbind_for_doc_changes(_Q, _Props, 'true', Keys) ->
+    _ = [unbind_for_doc_changes_pooled(KeyProps) || KeyProps <- Keys],
+    'ok';
+unbind_for_doc_changes(Q, Props, 'false', 'undefined') ->
+    unbind_for_doc_changes_non_pooled(Q, Props);
+unbind_for_doc_changes(Q, _Props, 'false', Keys) ->
+    _ = [unbind_for_doc_changes_non_pooled(Q, KeyProps) || KeyProps <- Keys],
+    'ok'.
+
+-spec unbind_for_doc_changes_pooled(kz_term:proplist()) -> 'ok'.
+unbind_for_doc_changes_pooled(Props) ->
+    {Action, Db, DocType, DocId} = doc_update_props(Props),
+    kz_events:unbind_conf_changes(Action, Db, DocType, DocId).
+
+-spec unbind_for_doc_changes_non_pooled(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+unbind_for_doc_changes_non_pooled(Q, Props) ->
+    _ = kz_amqp_util:unbind_q_from_configuration(Q, get_routing_key(Props)),
     'ok'.
 
 -spec unbind_for_doc_type_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
