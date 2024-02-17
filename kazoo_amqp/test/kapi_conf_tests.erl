@@ -11,6 +11,37 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+%%------------------------------------------------------------------------------
+%% @doc Test binding for and unbinding from pooled configuration events.
+%% @end
+%%------------------------------------------------------------------------------
+bind_unbind_pooled_test_() ->
+    {'setup'
+    ,fun setup/0
+    ,fun cleanup/1
+    ,fun(_) ->
+             meck:new('kz_events'),
+             meck:expect('kz_events', 'bind_conf_changes', fun(_, _, _, _) -> 'ok' end),
+             meck:expect('kz_events', 'unbind_conf_changes', fun(_, _, _, _) -> 'ok' end),
+
+             Db = kz_binary:rand_hex(6),
+             DocType = <<"user">>,
+             Queue = <<"queue">>,
+             Props1 = [{'db', Db}, {'doc_type', DocType}, 'pooled'],
+             Props2 = [{'keys', [[{'doc_type', DocType}]]}, 'pooled'],
+             kapi_conf:bind_q(Queue, Props1),
+             kapi_conf:bind_q(Queue, Props2),
+             kapi_conf:unbind_q(Queue, Props1),
+             kapi_conf:unbind_q(Queue, Props2),
+
+             [?_assert(meck:called('kz_events', 'bind_conf_changes', [<<"*">>, Db, DocType, <<"*">>]))
+             ,?_assert(meck:called('kz_events', 'bind_conf_changes', [<<"*">>, <<"*">>, DocType, <<"*">>]))
+             ,?_assert(meck:called('kz_events', 'unbind_conf_changes', [<<"*">>, Db, DocType, <<"*">>]))
+             ,?_assert(meck:called('kz_events', 'unbind_conf_changes', [<<"*">>, <<"*">>, DocType, <<"*">>]))
+             ]
+     end
+    }.
+
 doc_type_update_routing_key_test_() ->
     Test = fun kapi_conf:doc_type_update_routing_key/1,
     Prefix = <<"configuration.doc_type_update.">>,
@@ -25,3 +56,17 @@ doc_type_update_routing_key_test_() ->
       %% Cannot test with values different than binary because Test's second clause will loop forever.
      }
     ].
+
+%%------------------------------------------------------------------------------
+%% @doc Shared test setup.
+%% @end
+%%------------------------------------------------------------------------------
+setup() ->
+    'ok'.
+
+%%------------------------------------------------------------------------------
+%% @doc Shared test cleanup.
+%% @end
+%%------------------------------------------------------------------------------
+cleanup(_) ->
+    meck:unload().

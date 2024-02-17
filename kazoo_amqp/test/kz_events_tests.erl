@@ -293,7 +293,7 @@ terminate(_Reason, _State) -> lager:info("terminated at ~p~n", [_State]).
 -include_lib("rabbit_common/include/rabbit_framing.hrl").
 
 %% Test binding for and unbinding from call events.
-bind_unbind_test_() ->
+bind_unbind_call_events_test_() ->
     {'setup'
     ,fun setup/0
     ,fun cleanup/1
@@ -308,6 +308,35 @@ bind_unbind_test_() ->
                  ++ gproc:lookup_pids({'p', 'l', Binding2}),
 
              kz_events:unbind_call_id(CallId, EventNames),
+
+             Pids2 = gproc:lookup_pids({'p', 'l', Binding1})
+                 ++ gproc:lookup_pids({'p', 'l', Binding2}),
+
+             Self = self(),
+             [?_assertEqual([Self, Self], Pids1)
+             ,?_assertEqual([], Pids2)
+             ]
+     end
+    }.
+
+%% Test binding for and unbinding from configuration events.
+bind_unbind_conf_events_test_() ->
+    {'setup'
+    ,fun setup/0
+    ,fun cleanup/1
+    ,fun(_) ->
+             Db = kz_binary:rand_hex(6),
+             DocType = <<"user">>,
+             kz_events:bind_conf_changes(<<"*">>, Db, DocType, <<"*">>),
+             kz_events:bind_conf_changes(<<"doc_edited">>, Db, DocType, <<"*">>),
+
+             Binding1 = kz_events:conf_event_binding(<<"*">>, Db, DocType, <<"*">>),
+             Binding2 = kz_events:conf_event_binding(<<"doc_edited">>, Db, DocType, <<"*">>),
+             Pids1 = gproc:lookup_pids({'p', 'l', Binding1})
+                 ++ gproc:lookup_pids({'p', 'l', Binding2}),
+
+             kz_events:unbind_conf_changes(<<"*">>, Db, DocType, <<"*">>),
+             kz_events:unbind_conf_changes(<<"doc_edited">>, Db, DocType, <<"*">>),
 
              Pids2 = gproc:lookup_pids({'p', 'l', Binding1})
                  ++ gproc:lookup_pids({'p', 'l', Binding2}),
@@ -354,8 +383,11 @@ published_events_are_distributed_test_() ->
              meck:expect('kz_process', 'spawn', fun(Fun) -> Fun() end),
 
              CallId = kz_binary:rand_hex(6),
+             Db = kz_binary:rand_hex(6),
+             DocType = <<"user">>,
              PresenceId = list_to_binary([kz_binary:rand_hex(6), "@", kz_binary:rand_hex(6)]),
              kz_events:bind_call_id(CallId),
+             kz_events:bind_conf_changes(<<"*">>, Db, DocType, <<"*">>),
              kz_events:bind_presence_id(PresenceId),
 
              CallEvent = kz_json:from_list([{<<"Event-Category">>, <<"call_event">>}
@@ -363,14 +395,21 @@ published_events_are_distributed_test_() ->
                                            ,{<<"Account-ID">>, <<"account_id">>}
                                            ,{<<"Call-ID">>, CallId}
                                            ]),
+             ConfEvent = kz_json:from_list([{<<"Event-Category">>, <<"configuration">>}
+                                           ,{<<"Event-Name">>, <<"doc_edited">>}
+                                           ,{<<"Database">>, Db}
+                                           ,{<<"Id">>, kz_binary:rand_hex(6)}
+                                           ,{<<"Type">>, DocType}
+                                           ]),
              PresenceEvent = kz_json:from_list([{<<"Presence-ID">>, PresenceId}]),
              Props = [{'deliver', #'basic.deliver'{}}],
              kz_events:publish_event(CallEvent, Props, 'call_events'),
+             kz_events:publish_event(ConfEvent, Props, 'conf'),
              kz_events:publish_event(PresenceEvent, Props, 'presence'),
 
              {'message_queue_len', MQLen} = process_info(self(), 'message_queue_len'),
-             [?_assertEqual(2, meck:num_calls('kazoo_bindings', 'pmap', '_'))
-             ,?_assertEqual(2, MQLen)
+             [?_assertEqual(3, meck:num_calls('kazoo_bindings', 'pmap', '_'))
+             ,?_assertEqual(3, MQLen)
              ]
      end
     }.

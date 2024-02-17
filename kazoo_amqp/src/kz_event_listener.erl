@@ -144,6 +144,27 @@ bindings('call_events') ->
               ]
      }
     ];
+bindings('conf') ->
+    [{'bind', [{'exchange', [{'name', ?KZ_CONF_EVENTS_EXCHANGE}
+                            ,{'type', <<"x-consistent-hash">>}
+                            ,{'options', [{'auto_delete', 'true'}
+                                         ,{'arguments', [{<<"hash-header">>, 'longstr', <<"hash-key">>}]}
+                                         ]
+                             }
+                            ,{'bindings', [{'conf', [{'source', ?EXCHANGE_CONFIGURATION}
+                                                     %% TODO: use `<<"#">>' after getting rid of
+                                                     %% `doc_type_update' events
+                                                    ,{'routing', <<"*.*.*.*">>}
+                                                    ]
+                                           }
+                                          ]
+                             }
+                            ]
+               }
+              ,{'routing', <<"20">>}
+              ]
+     }
+    ];
 bindings('presence') ->
     [{'bind', [{'exchange', [{'name', ?KZ_PRESENCE_EVENTS_EXCHANGE}
                             ,{'type', <<"x-consistent-hash">>}
