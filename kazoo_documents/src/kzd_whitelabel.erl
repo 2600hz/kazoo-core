@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,6 +18,8 @@
 -export([commland_downloads_windows/1, commland_downloads_windows/2, set_commland_downloads_windows/2]).
 -export([company_name/1, company_name/2, set_company_name/2]).
 -export([conference_public_domain/1, conference_public_domain/2, set_conference_public_domain/2]).
+-export([dkim_key_id/1, dkim_key_id/2, set_dkim_key_id/2]).
+-export([dkim_selector/1, dkim_selector/2, set_dkim_selector/2]).
 -export([domain/1, domain/2, set_domain/2]).
 -export([fake_api_url/1, fake_api_url/2, set_fake_api_url/2]).
 -export([hide_credits/1, hide_credits/2, set_hide_credits/2]).
@@ -148,6 +150,30 @@ conference_public_domain(Doc, Default) ->
 -spec set_conference_public_domain(doc(), binary()) -> doc().
 set_conference_public_domain(Doc, ConferencePublicDomain) ->
     kz_json:set_value([<<"conference_public_domain">>], ConferencePublicDomain, Doc).
+
+-spec dkim_key_id(doc()) -> kz_term:api_binary().
+dkim_key_id(Doc) ->
+    dkim_key_id(Doc, 'undefined').
+
+-spec dkim_key_id(doc(), Default) -> binary() | Default.
+dkim_key_id(Doc, Default) ->
+    kz_json:get_binary_value(<<"pvt_dkim_key_id">>, Doc, Default).
+
+-spec set_dkim_key_id(doc(), binary() | 'null') -> doc().
+set_dkim_key_id(Doc, PvtKeyFileId) ->
+    kz_json:set_value([<<"pvt_dkim_key_id">>], PvtKeyFileId, Doc).
+
+-spec dkim_selector(doc()) -> kz_term:api_binary().
+dkim_selector(Doc) ->
+    dkim_selector(Doc, 'undefined').
+
+-spec dkim_selector(doc(), Default) -> binary() | Default.
+dkim_selector(Doc, Default) ->
+    kz_json:get_binary_value([<<"dkim_selector">>], Doc, Default).
+
+-spec set_dkim_selector(doc(), binary()) -> doc().
+set_dkim_selector(Doc, DkimSelector) ->
+    kz_json:set_value([<<"dkim_selector">>], DkimSelector, Doc).
 
 -spec domain(doc()) -> kz_term:api_binary().
 domain(Doc) ->
