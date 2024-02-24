@@ -32,6 +32,8 @@
 
 -export([with_role/1, with_role/2]).
 
+-export([whapp_runtime_info/1, whapp_runtime_info/2]).
+
 %% ETS Management
 -export([table_id/0
         ,table_options/0
@@ -596,6 +598,59 @@ expire_nodes(ThisNode) ->
     _ = [ets:delete(?TAB_NAME, Node) || #kz_node{node=Node} <- ExpiredNodes],
     ExpiredNodes.
 
--spec flush() -> true.
+-spec flush() -> 'true'.
 flush() ->
     ets:delete_all_objects(?TAB_NAME).
+
+-spec whapp_runtime_info(kz_term:text()) -> kz_term:proplist().
+whapp_runtime_info(Whapp) ->
+    whapp_runtime_info(Whapp, 'false').
+
+-spec whapp_runtime_info(kz_term:text(), kz_term:text() | boolean() | atom()) -> kz_term:proplist().
+whapp_runtime_info(Whapp, Federated) when is_binary(Federated) ->
+    whapp_runtime_info(Whapp, kz_term:is_true(Federated));
+whapp_runtime_info(Whapp, 'true') ->
+    MatchSpec = [{#kz_node{kapps='$1'
+                          ,node='$2'
+                          ,runtime='$3'
+                          ,_ = '_'
+                          }
+                 ,[{'=/=', '$1', []}]
+                 ,[{{'$1', '$2', '$3'}}]
+                 }],
+    determine_whapp_runtime_info(kz_term:to_binary(Whapp), MatchSpec);
+whapp_runtime_info(Whapp, 'false') ->
+    whapp_runtime_info(Whapp, kz_nodes:local_zone());
+whapp_runtime_info(Whapp, Zone)
+  when is_atom(Zone) ->
+    MatchSpec = [{#kz_node{kapps='$1'
+                          ,node='$2'
+                          ,runtime='$3'
+                          ,zone = Zone
+                          ,_ = '_'
+                          }
+                 ,[{'=/=', '$1', []}]
+                 ,[{{'$1', '$2', '$3'}}]
+                 }],
+    determine_whapp_runtime_info(kz_term:to_binary(Whapp), MatchSpec).
+
+-spec determine_whapp_runtime_info(kz_term:ne_binary(), ets:match_spec()) -> kz_term:atoms().
+determine_whapp_runtime_info(Whapp, MatchSpec) ->
+    lists:foldl(fun({Whapps, _Node, _RuntimeInfo}=Info, Acc) when is_list(Whapps) ->
+                        determine_whapp_runtime_info_fold(Info, Acc, Whapp)
+                end
+               ,[]
+               ,ets:select(?MODULE, MatchSpec)
+               ).
+
+-spec determine_whapp_runtime_info_fold({kz_types:kapps_info(), atom(), kz_json:object()}, kz_term:proplist(), kz_term:ne_binary()) ->
+          kz_term:proplist().
+determine_whapp_runtime_info_fold({Whapps, Node, RuntimeInfo}, Acc, Whapp) ->
+    case props:is_defined(Whapp, Whapps) of
+        'true' ->
+            case kz_json:get_ne_binary_value(<<"Core-UUID">>, RuntimeInfo) of
+                'undefined' -> Acc;
+                CoreUUID -> [{kz_term:to_binary(Node), CoreUUID} | Acc]
+            end;
+        'false' -> Acc
+    end.

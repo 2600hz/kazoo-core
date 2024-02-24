@@ -27,7 +27,7 @@
                  ,registrations = 0 :: non_neg_integer() | '_'
                  ,globals = [] :: kz_term:proplist() | '$1' | '_'
                  ,node_info :: kz_term:api_object() | '$2' | '_'
-                 ,runtime :: kz_term:api_object() | '_'
+                 ,runtime :: kz_term:api_object() | '$3' | '_'
                  ,modules :: kz_term:api_object() | '_'
                  ,roles = [] :: kz_term:proplist() | '$1' | '_'
                  }).

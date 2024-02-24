@@ -39,6 +39,8 @@
 
 -export([is_up/1]).
 
+-export([whapp_runtime_info/1, whapp_runtime_info/2]).
+
 -include("kazoo_nodes.hrl").
 
 -spec nodes() -> kz_types:kz_nodes().
@@ -156,3 +158,11 @@ globals_scope() ->
 -spec wait_for_refresh() -> 'ok'.
 wait_for_refresh() ->
     kz_nodes_listener:wait_for_refresh().
+
+-spec whapp_runtime_info(kz_term:text()) -> kz_term:proplist().
+whapp_runtime_info(Whapp) ->
+    kz_nodes_ets:whapp_runtime_info(Whapp).
+
+-spec whapp_runtime_info(kz_term:text(), kz_term:text() | boolean() | 'remote') -> kz_term:proplist().
+whapp_runtime_info(Whapp, Arg) ->
+    kz_nodes_ets:whapp_runtime_info(Whapp, Arg).
