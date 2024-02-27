@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -806,14 +806,23 @@ get_user(AccountDb, OwnerId, Options) when is_binary(OwnerId) ->
             kz_json:new()
     end;
 get_user(AccountDb, Endpoint, Options) ->
-    case kz_json:get_keys([<<"hotdesk">>, <<"users">>], Endpoint) of
+    case kzd_devices:hotdesk_ids(Endpoint) of
+        undefined ->
+            get_user(AccountDb, kzd_devices:owner_id(Endpoint), Options);
         [] ->
-            get_user(AccountDb, kz_json:get_ne_binary_value(<<"owner_id">>, Endpoint), Options);
+            get_user(AccountDb, kzd_devices:owner_id(Endpoint), Options);
         [OwnerId] ->
-            fix_user_restrictions(get_user(AccountDb, OwnerId, Options));
-        [_|_]=OwnerIds->
-            UserJObj = convert_to_single_user(get_users(AccountDb, OwnerIds, Options)),
-            fix_user_restrictions(UserJObj)
+            OwnerJObj = get_user(AccountDb, OwnerId, Options),
+            case kz_term:is_empty(OwnerJObj) of
+                true -> get_user(AccountDb, kzd_devices:owner_id(Endpoint), Options);
+                false ->  fix_user_restrictions(OwnerJObj)
+            end;
+        [_|_] = OwnerIds ->
+            case get_users(AccountDb, OwnerIds, Options) of
+                [] -> get_user(AccountDb, kzd_devices:owner_id(Endpoint), Options);
+                [OwnerJObj] -> fix_user_restrictions(get_user(AccountDb, kz_doc:id(OwnerJObj), Options));
+                [_ | _] = OwnerJObjs -> fix_user_restrictions(convert_to_single_user(OwnerJObjs))
+            end
     end.
 
 -spec flush_users(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:proplist() | boolean()) -> 'ok'.
