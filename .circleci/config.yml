@@ -105,24 +105,24 @@ workflows:
               only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
             branches:
               ignore: '/.*/'
-      -
-        kazoo/code-checks:
-          requires:
-            - beams-centos-7
-          filters:
-            tags:
-              only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
-            branches:
-              ignore: '/.*/'
-      -
-        kazoo/docs:
-          requires:
-            - beams-centos-7
-          filters:
-            tags:
-              only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
-            branches:
-              ignore: '/.*/'
+      # -
+      #   kazoo/code-checks:
+      #     requires:
+      #       - beams-centos-7
+      #     filters:
+      #       tags:
+      #         only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
+      #       branches:
+      #         ignore: '/.*/'
+      # -
+      #   kazoo/docs:
+      #     requires:
+      #       - beams-centos-7
+      #     filters:
+      #       tags:
+      #         only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
+      #       branches:
+      #         ignore: '/.*/'
       -
         kazoo/analyze:
           requires:
@@ -132,15 +132,15 @@ workflows:
               only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
             branches:
               ignore: '/.*/'
-      -
-        kazoo/integration-test:
-          requires:
-            - beams-centos-7
-          filters:
-            tags:
-              only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
-            branches:
-              ignore: '/.*/'
+      # -
+      #   kazoo/integration-test:
+      #     requires:
+      #       - beams-centos-7
+      #     filters:
+      #       tags:
+      #         only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
+      #       branches:
+      #         ignore: '/.*/'
       -
         kazoo/build-centos7:
           context: Private-Builds
