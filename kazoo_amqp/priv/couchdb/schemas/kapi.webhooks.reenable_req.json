@@ -1,0 +1,35 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.webhooks.reenable_req",
+    "description": "AMQP API for webhooks.reenable_req",
+    "properties": {
+        "Account-ID": {
+            "description": "The account with the auto-disabled webhooks that should be re-enabled.",
+            "minLength": 1,
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "webhooks"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "reenable_req"
+            ]
+        },
+        "Target": {
+            "description": "The target of the re-enablement. Either the account itself or all of its descendants.",
+            "enum": [
+                "account",
+                "descendants"
+            ],
+            "type": "string"
+        }
+    },
+    "required": [
+        "Account-ID",
+        "Target"
+    ],
+    "type": "object"
+}

@@ -68,7 +68,7 @@ reenable_req_definition() ->
     Category = ?WEBHOOKS_EVENT_CATEGORY,
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Reenable Req">>}
-              ,{fun kapi_definition:set_description/2, <<"Reenable a webhook">>}
+              ,{fun kapi_definition:set_description/2, <<"Re-enable webhooks in an account">>}
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun reenable_req/1}
               ,{fun kapi_definition:set_validate_fun/2, fun reenable_req_v/1}
@@ -99,7 +99,7 @@ reenable_resp_definition() ->
     Setters = [{fun kapi_definition:set_name/2, EventName}
               ,{fun kapi_definition:set_friendly_name/2, <<"Reenable Resp">>}
               ,{fun kapi_definition:set_description/2
-               ,<<"Respond with the result of reenabling a webhook">>
+               ,<<"Respond with the result of re-enabling webhooks in an account">>
                }
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun reenable_resp/1}
