@@ -230,16 +230,16 @@ bind_for_doc_changes(Q, _Props, 'false', Keys) ->
 
 -spec bind_for_doc_changes_pooled(kz_term:proplist()) -> 'ok'.
 bind_for_doc_changes_pooled(Props) ->
-    [kz_events:bind_conf_changes(Action, Db, DocType, DocId)
-     || {Action, Db, DocType, DocId} <- doc_update_props(Props)
-    ],
+    _ = [kz_events:bind_conf_changes(Action, Db, DocType, DocId)
+         || {Action, Db, DocType, DocId} <- doc_update_props(Props)
+        ],
     'ok'.
 
 -spec bind_for_doc_changes_non_pooled(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_for_doc_changes_non_pooled(Q, Props) ->
-    [kz_amqp_util:bind_q_to_configuration(Q, RKs)
-     || RKs <- get_routing_keys(Props)
-    ],
+    _ = [kz_amqp_util:bind_q_to_configuration(Q, RKs)
+         || RKs <- get_routing_keys(Props)
+        ],
     'ok'.
 
 -spec unbind_q(binary(), kz_term:proplist()) -> 'ok'.
@@ -276,16 +276,16 @@ unbind_for_doc_changes(Q, _Props, 'false', Keys) ->
 
 -spec unbind_for_doc_changes_pooled(kz_term:proplist()) -> 'ok'.
 unbind_for_doc_changes_pooled(Props) ->
-    [kz_events:unbind_conf_changes(Action, Db, DocType, DocId)
-     || {Action, Db, DocType, DocId} <- doc_update_props(Props)
-    ],
+    _ = [kz_events:unbind_conf_changes(Action, Db, DocType, DocId)
+         || {Action, Db, DocType, DocId} <- doc_update_props(Props)
+        ],
     'ok'.
 
 -spec unbind_for_doc_changes_non_pooled(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_for_doc_changes_non_pooled(Q, Props) ->
-    [kz_amqp_util:unbind_q_from_configuration(Q, RKs)
-     || RKs <- get_routing_keys(Props)
-    ],
+    _ = [kz_amqp_util:unbind_q_from_configuration(Q, RKs)
+         || RKs <- get_routing_keys(Props)
+        ],
     'ok'.
 
 %%------------------------------------------------------------------------------
