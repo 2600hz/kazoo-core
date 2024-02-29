@@ -42,21 +42,6 @@ bind_unbind_pooled_test_() ->
      end
     }.
 
-doc_type_update_routing_key_test_() ->
-    Test = fun kapi_conf:doc_type_update_routing_key/1,
-    Prefix = <<"configuration.doc_type_update.">>,
-    BinType = kz_binary:rand_hex(4),
-    API = [{<<"Type">>, BinType}],
-
-    [{"Type must be binary"
-     ,[?_assertEqual(<<Prefix/binary, BinType/binary>>, Test(BinType))
-      ,?_assertEqual(<<Prefix/binary, BinType/binary>>, Test(API))
-      ,?_assertEqual(<<Prefix/binary, BinType/binary>>, Test(kz_json:from_list(API)))
-      ]
-      %% Cannot test with values different than binary because Test's second clause will loop forever.
-     }
-    ].
-
 %%------------------------------------------------------------------------------
 %% @doc Shared test setup.
 %% @end

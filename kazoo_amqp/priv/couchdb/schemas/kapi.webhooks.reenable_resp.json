@@ -1,0 +1,28 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.webhooks.reenable_resp",
+    "description": "AMQP API for webhooks.reenable_resp",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "webhooks"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "reenable_resp"
+            ]
+        },
+        "Status": {
+            "description": "The result of re-enabling webhooks in an account.",
+            "enum": [
+                "success"
+            ],
+            "type": "string"
+        }
+    },
+    "required": [
+        "Status"
+    ],
+    "type": "object"
+}

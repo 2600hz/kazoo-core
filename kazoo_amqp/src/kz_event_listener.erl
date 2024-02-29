@@ -152,9 +152,7 @@ bindings('conf') ->
                                          ]
                              }
                             ,{'bindings', [{'conf', [{'source', ?EXCHANGE_CONFIGURATION}
-                                                     %% TODO: use `<<"#">>' after getting rid of
-                                                     %% `doc_type_update' events
-                                                    ,{'routing', <<"*.*.*.*">>}
+                                                    ,{'routing', <<"#">>}
                                                     ]
                                            }
                                           ]
