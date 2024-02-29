@@ -20,11 +20,6 @@
         ,publish_doc_update/5
         ,publish_doc_update/6
         ]).
--export([doc_type_update/1
-        ,doc_type_update_v/1
-        ,publish_doc_type_update/1
-        ,publish_doc_type_update/2
-        ]).
 
 -export([bind_q/2, unbind_q/2
         ,declare_exchanges/0
@@ -49,20 +44,13 @@
 -include_lib("kz_amqp_util.hrl").
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
 
--ifdef(TEST).
--export([doc_type_update_routing_key/1
-        ]).
--endif.
-
 %%------------------------------------------------------------------------------
 %% @doc Get all API definitions of this module.
 %% @end
 %%------------------------------------------------------------------------------
 -spec api_definitions() -> kapi_definition:apis().
 api_definitions() ->
-    [doc_update_definition()
-    ,doc_type_update_definition()
-    ].
+    [doc_update_definition()].
 
 %%------------------------------------------------------------------------------
 %% @doc Get API definition of the given `Name'.
@@ -73,9 +61,7 @@ api_definitions() ->
 api_definition(Name) when not is_binary(Name) ->
     api_definition(kz_term:to_binary(Name));
 api_definition(<<"doc_update">>) ->
-    doc_update_definition();
-api_definition(<<"doc_type_update">>) ->
-    doc_type_update_definition().
+    doc_update_definition().
 
 -spec doc_update_definition() -> kapi_definition:api().
 doc_update_definition() ->
@@ -120,31 +106,6 @@ doc_update_definition() ->
                 ,{<<"Is-Soft-Deleted">>, fun kz_term:is_boolean/1}
                 ]
                }
-              ],
-    kapi_definition:setters(Setters).
-
--spec doc_type_update_definition() -> kapi_definition:api().
-doc_type_update_definition() ->
-    EventName = <<"doc_type_update">>,
-    Category = ?KAPI_CONF_CATEGORY,
-    Setters = [{fun kapi_definition:set_name/2, EventName}
-              ,{fun kapi_definition:set_friendly_name/2, <<"Document Type Change">>}
-              ,{fun kapi_definition:set_description/2
-               ,<<"Format a call event from the switch for the listener">>
-               }
-              ,{fun kapi_definition:set_category/2, Category}
-              ,{fun kapi_definition:set_build_fun/2, fun doc_type_update/1}
-              ,{fun kapi_definition:set_validate_fun/2, fun doc_type_update_v/1}
-              ,{fun kapi_definition:set_publish_fun/2, fun publish_doc_type_update/1}
-              ,{fun kapi_definition:set_binding/2, fun doc_type_update_routing_key/1}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Type">>]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Action">>
-                                                            ,<<"Account-ID">>
-                                                            ]}
-              ,{fun kapi_definition:set_values/2
-               ,kapi_definition:event_type_headers(Category, EventName)
-               }
-              ,{fun kapi_definition:set_types/2, []}
               ],
     kapi_definition:setters(Setters).
 
@@ -218,36 +179,6 @@ publish_doc_update(Action, Db, Type, Id, Change, ContentType) ->
                                                 ),
     kz_amqp_util:document_change_publish(Action, Db, Type, Id, Payload, ContentType).
 
-%%------------------------------------------------------------------------------
-%% @doc Format a call event from the switch for the listener.
-%% Takes {@link kz_term:proplist()}, creates JSON string or error.
-%% @end
-%%------------------------------------------------------------------------------
--spec doc_type_update(kz_term:api_terms()) -> kz_api:api_formatter_return().
-doc_type_update(Req) ->
-    kapi_definition:build_message(Req, doc_type_update_definition()).
-
--spec doc_type_update_v(kz_term:api_terms()) -> boolean().
-doc_type_update_v(Req) ->
-    kapi_definition:validate(Req, doc_type_update_definition()).
-
--spec publish_doc_type_update(kz_term:api_terms()) -> 'ok'.
-publish_doc_type_update(JObj) ->
-    publish_doc_type_update(JObj, ?DEFAULT_CONTENT_TYPE).
-
--spec publish_doc_type_update(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
-publish_doc_type_update(API, ContentType) ->
-    Definition = doc_type_update_definition(),
-    {'ok', Payload} = kz_api:prepare_api_payload(API
-                                                ,kapi_definition:values(Definition)
-                                                ,kapi_definition:build_fun(Definition)
-                                                ),
-    kz_amqp_util:configuration_publish((kapi_definition:binding(Definition))(API)
-                                      ,Payload
-                                      ,ContentType
-                                      ,[{'mandatory', 'true'}
-                                       ]).
-
 -spec bind_q(binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Q, Props) ->
     RestrictTo = props:get_value('restrict_to', Props, ['doc_updates']),
@@ -270,9 +201,6 @@ bind_q(Q, Props, RestrictTo, 'true') ->
 -spec bind_q(binary(), kz_term:proplist(), kz_term:atoms()) -> 'ok'.
 bind_q(Q, Props, ['doc_updates'|Restrict]) ->
     bind_for_doc_changes(Q, Props),
-    bind_q(Q, Props, Restrict);
-bind_q(Q, Props, ['doc_type_updates'|Restrict]) ->
-    bind_for_doc_type_changes(Q, Props),
     bind_q(Q, Props, Restrict);
 bind_q(Q, Props, [_|Restrict]) ->
     bind_q(Q, Props, Restrict);
@@ -308,26 +236,6 @@ bind_for_doc_changes_non_pooled(Q, Props) ->
     _ = kz_amqp_util:bind_q_to_configuration(Q, get_routing_key(Props)),
     'ok'.
 
--spec bind_for_doc_type_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
-bind_for_doc_type_changes(Q, Props) ->
-    case props:get_value('type', Props) of
-        'undefined' -> bind_for_doc_types(Q, Props);
-        Type ->
-            kz_amqp_util:bind_q_to_configuration(Q, doc_type_update_routing_key(Type))
-    end.
-
--spec bind_for_doc_types(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
-bind_for_doc_types(Q, Props) ->
-    case props:get_value('types', Props) of
-        'undefined' ->
-            lager:warning("binding for doc type changes without supplying a type");
-        Types ->
-            _ = [kz_amqp_util:bind_q_to_configuration(Q, doc_type_update_routing_key(Type))
-                 || Type <- Types
-                ],
-            'ok'
-    end.
-
 -spec unbind_q(binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Q, Props) ->
     unbind_q(Q, Props, props:get_value('restrict_to', Props, ['doc_updates'])).
@@ -335,9 +243,6 @@ unbind_q(Q, Props) ->
 -spec unbind_q(binary(), kz_term:proplist(), kz_term:atoms()) -> 'ok'.
 unbind_q(Q, Props, ['doc_updates'|Restrict]) ->
     unbind_for_doc_changes(Q, Props),
-    unbind_q(Q, Props, Restrict);
-unbind_q(Q, Props, ['doc_type_updates'|Restrict]) ->
-    unbind_for_doc_type_changes(Q, Props),
     unbind_q(Q, Props, Restrict);
 unbind_q(Q, Props, [_|Restrict]) ->
     unbind_q(Q, Props, Restrict);
@@ -372,24 +277,6 @@ unbind_for_doc_changes_pooled(Props) ->
 unbind_for_doc_changes_non_pooled(Q, Props) ->
     _ = kz_amqp_util:unbind_q_from_configuration(Q, get_routing_key(Props)),
     'ok'.
-
--spec unbind_for_doc_type_changes(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
-unbind_for_doc_type_changes(Q, Props) ->
-    case props:get_value('type', Props) of
-        'undefined' -> unbind_for_doc_types(Q, Props);
-        Type ->
-            kz_amqp_util:unbind_q_from_configuration(Q, doc_type_update_routing_key(Type))
-    end.
-
--spec unbind_for_doc_types(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
-unbind_for_doc_types(Q, Props) ->
-    case props:get_value('types', Props) of
-        'undefined' -> 'ok';
-        Types ->
-            [kz_amqp_util:unbind_q_from_configuration(Q, doc_type_update_routing_key(Type))
-             || Type <- Types
-            ]
-    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Declare the exchanges used by this API.
@@ -447,12 +334,6 @@ publish_db_update(Action, Db, Change, ContentType) ->
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     kz_amqp_util:document_change_publish(Action, Db, <<"database">>, Db, Payload, ContentType).
-
--spec doc_type_update_routing_key(kz_term:api_terms() | kz_term:ne_binary()) -> kz_term:ne_binary().
-doc_type_update_routing_key(<<_/binary>> = Type) ->
-    <<"configuration.doc_type_update.", Type/binary>>;
-doc_type_update_routing_key(API) ->
-    doc_type_update_routing_key(get_type(API)).
 
 %%------------------------------------------------------------------------------
 %% @doc Check if an event is supported for pooled bindings.
