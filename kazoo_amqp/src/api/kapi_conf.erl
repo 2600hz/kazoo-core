@@ -30,12 +30,14 @@
         ,get_account_id/1, get_account_db/1
         ,get_type/1, get_doc/1, get_id/1, get_rev/1
         ,get_action/1, get_is_soft_deleted/1
-        ,get_routing_key/1, get_routing_key/2
+        ,get_routing_keys/1, get_routing_keys/2
         ]).
 
 -type action() :: 'created' | 'edited' | 'deleted'.
 -type action_binary() :: kz_term:ne_binary().
 -type doc() :: kz_json:object().
+%% {Action, Db, Type, Id}
+-type doc_update_props() :: {action_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()}.
 -export_type([action/0
              ,action_binary/0
              ,doc/0
@@ -228,12 +230,16 @@ bind_for_doc_changes(Q, _Props, 'false', Keys) ->
 
 -spec bind_for_doc_changes_pooled(kz_term:proplist()) -> 'ok'.
 bind_for_doc_changes_pooled(Props) ->
-    {Action, Db, DocType, DocId} = doc_update_props(Props),
-    kz_events:bind_conf_changes(Action, Db, DocType, DocId).
+    [kz_events:bind_conf_changes(Action, Db, DocType, DocId)
+     || {Action, Db, DocType, DocId} <- doc_update_props(Props)
+    ],
+    'ok'.
 
 -spec bind_for_doc_changes_non_pooled(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_for_doc_changes_non_pooled(Q, Props) ->
-    _ = kz_amqp_util:bind_q_to_configuration(Q, get_routing_key(Props)),
+    [kz_amqp_util:bind_q_to_configuration(Q, RKs)
+     || RKs <- get_routing_keys(Props)
+    ],
     'ok'.
 
 -spec unbind_q(binary(), kz_term:proplist()) -> 'ok'.
@@ -270,12 +276,16 @@ unbind_for_doc_changes(Q, _Props, 'false', Keys) ->
 
 -spec unbind_for_doc_changes_pooled(kz_term:proplist()) -> 'ok'.
 unbind_for_doc_changes_pooled(Props) ->
-    {Action, Db, DocType, DocId} = doc_update_props(Props),
-    kz_events:unbind_conf_changes(Action, Db, DocType, DocId).
+    [kz_events:unbind_conf_changes(Action, Db, DocType, DocId)
+     || {Action, Db, DocType, DocId} <- doc_update_props(Props)
+    ],
+    'ok'.
 
 -spec unbind_for_doc_changes_non_pooled(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_for_doc_changes_non_pooled(Q, Props) ->
-    _ = kz_amqp_util:unbind_q_from_configuration(Q, get_routing_key(Props)),
+    [kz_amqp_util:unbind_q_from_configuration(Q, RKs)
+     || RKs <- get_routing_keys(Props)
+    ],
     'ok'.
 
 %%------------------------------------------------------------------------------
@@ -286,9 +296,9 @@ unbind_for_doc_changes_non_pooled(Q, Props) ->
 declare_exchanges() ->
     kz_amqp_util:configuration_exchange().
 
--spec get_routing_key(kz_term:proplist()) -> kz_term:ne_binary().
-get_routing_key(Props) ->
-    get_routing_key(Props, 'true').
+-spec get_routing_keys(kz_term:proplist()) -> kz_term:ne_binaries().
+get_routing_keys(Props) ->
+    get_routing_keys(Props, 'true').
 
 %%------------------------------------------------------------------------------
 %% @doc Create routing keys
@@ -297,9 +307,12 @@ get_routing_key(Props) ->
 %% bindings server
 %% @end
 %%------------------------------------------------------------------------------
--spec get_routing_key(kz_term:proplist(), boolean()) -> kz_term:ne_binary().
-get_routing_key(Props, IsAMQPBinding) ->
-    {Action, Db, Type, Id} = doc_update_props(Props),
+-spec get_routing_keys(kz_term:proplist(), boolean()) -> kz_term:ne_binaries().
+get_routing_keys(Props, IsAMQPBinding) ->
+    [get_routing_key(DocUpdateProps, IsAMQPBinding) || DocUpdateProps <- doc_update_props(Props)].
+
+-spec get_routing_key(doc_update_props(), boolean()) -> kz_term:ne_binary().
+get_routing_key({Action, Db, Type, Id}, IsAMQPBinding) ->
     case kz_amqp_util:document_routing_key(Action, Db, Type, Id) of
         <<"*.*.*.*">> when IsAMQPBinding -> <<"#">>;
         RK -> RK
@@ -309,16 +322,24 @@ get_routing_key(Props, IsAMQPBinding) ->
 %% @doc Get/normalize the props used for routing a doc update event.
 %% @end
 %%------------------------------------------------------------------------------
--spec doc_update_props(kz_term:proplist()) -> {action_binary()
-                                              ,kz_term:ne_binary()
-                                              ,kz_term:ne_binary()
-                                              ,kz_term:ne_binary()
-                                              }.
+-spec doc_update_props(kz_term:proplist()) -> [doc_update_props()].
 doc_update_props(Props) ->
+    case props:get_value('types', Props) of
+        'undefined' ->
+            Type = props:get_binary_value(
+                     'doc_type', Props, props:get_value('type', Props, <<"*">>)
+                    ),
+            [doc_update_props(Props, Type)];
+        Types ->
+            [doc_update_props(Props, Type) || Type <- Types]
+    end.
+
+-spec doc_update_props(kz_term:proplist(), kz_term:ne_binary()) -> doc_update_props().
+doc_update_props(Props, Type) ->
     kz_amqp_util:document_routing_props(
       props:get_binary_value('action', Props, <<"*">>)
      ,props:get_binary_value('db', Props, <<"*">>)
-     ,props:get_binary_value('doc_type', Props, props:get_value('type', Props, <<"*">>))
+     ,Type
      ,props:get_binary_value('doc_id', Props, props:get_value('id', Props, <<"*">>))
      ).
 

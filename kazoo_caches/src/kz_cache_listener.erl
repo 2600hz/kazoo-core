@@ -77,8 +77,9 @@ add_binding(Name, Binding) ->
                             ,'conf'
                             ,['federate' | Binding]
                             ),
-    RK = kapi_conf:get_routing_key(Binding, 'false'), % get a local (unoptimized) binding key
-    _ = kazoo_bindings:bind(local_key(RK), 'kz_cache_conf_change', 'handle_change', Name).
+    %% Get local (unoptimized) binding keys
+    LocalKeys = [local_key(RK) || RK <- kapi_conf:get_routing_keys(Binding, 'false')],
+    _ = kazoo_bindings:bind(LocalKeys, 'kz_cache_conf_change', 'handle_change', Name).
 
 -spec local_key(kz_term:ne_binary()) -> kz_term:ne_binary().
 local_key(RK) ->
