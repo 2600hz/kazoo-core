@@ -118,9 +118,27 @@ strip_binary_test_() ->
     ,?_assertEqual(<<"foo ">>, kz_binary:strip_left(<<" foo ">>, $\s))
     ,?_assertEqual(<<"foo ">>, kz_binary:strip_left(<<"foo ">>, $\s))
 
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<>>, $\s))
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<" ">>, $\s))
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<"  ">>, $\s))
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<"   ">>, $\s))
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<"    ">>, $\s))
     ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo">>, $\s))
     ,?_assertEqual(<<" foo">>, kz_binary:strip_right(<<" foo">>, $\s))
     ,?_assertEqual(<<" foo">>, kz_binary:strip_right(<<" foo ">>, $\s))
+
+    ,?_assertEqual(<<"  foo">>, kz_binary:strip_right(<<"  foo">>, $\s))
+    ,?_assertEqual(<<"  foo">>, kz_binary:strip_right(<<"  foo  ">>, $\s))
+
+    ,?_assertEqual(<<"   foo">>, kz_binary:strip_right(<<"   foo">>, $\s))
+    ,?_assertEqual(<<"   foo">>, kz_binary:strip_right(<<"   foo   ">>, $\s))
+
+    ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo", 10>>, $\n))
+    ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo", 10, 10>>, $\n))
+    ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo", 10, 10, 10>>, $\n))
+
+    ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo", 10, 10, 10>>, <<10>>))
+
     ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo ">>, $\s))
     ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"foo ">>, 'right'))
     ].
@@ -152,8 +170,10 @@ binary_hashes_test_() ->
     ].
 
 binary_reverse_test_() ->
+    RandHex = kz_binary:rand_hex(16),
     [?_assertEqual(<<>>, kz_binary:reverse(<<>>))
     ,?_assertEqual(<<"B a">>, kz_binary:reverse(<<"a B">>))
+    ,?_assertEqual(RandHex, kz_binary:reverse(kz_binary:reverse(RandHex)))
     ].
 
 truncate_binary_test_() ->
@@ -227,8 +247,8 @@ to_proplist_without_properties(TestF) ->
 matches_test_() ->
     Regexes = [{<<"^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$">> %% IP addresses.
                ,[<<"0.0.0.0">>, <<"1.2.3.4">>, <<"10.0.0.1">>, <<"192.168.0.1">>, <<"255.255.255.255">>]
-               ,[<<"1.2.3">>, <<"256.0.0.1">>, <<"999.999.999.999">>]
-               }
+                 ,[<<"1.2.3">>, <<"256.0.0.1">>, <<"999.999.999.999">>]
+                  }
               ,{<<"^[\\w\\d_\\+]+@[\\w\\d_\\]+\.[a-z]+$">> %% Non-strict user@domain.com.
                ,[<<"hello@example.com">>, <<"h3l10@d0ma1n.sub">>]
                ,[<<"hello-example.com">>, <<"he-llo@example">>, <<"user@">>, <<"user.com">>, <<"@domain.sub">>, <<"user @domain.sub">>]
