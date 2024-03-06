@@ -104,13 +104,14 @@ init([]) ->
         end,
     PoolServerConfirms = kz_config:get_boolean(?CONFIG_SECTION, <<"pool_server_confirms">>, ?DEFAULT_POOL_SERVER_CONFIRMS),
 
+    PoolName = kz_amqp_sup:pool_name(),
     PoolArgs = [{'worker_module', 'kz_amqp_worker'}
-               ,{'name', {'local', kz_amqp_sup:pool_name()}}
+               ,{'name', {'local', PoolName}}
                ,{'size', PoolSize}
                ,{'max_overflow', PoolOverflow}
                ,{'strategy', 'fifo'}
                ,{'neg_resp_threshold', PoolThreshold}
                ,{'amqp_server_confirms', PoolServerConfirms}
                ],
-
-    {'ok', {SupFlags, ?CHILDREN ++ [?POOL_NAME_ARGS(kz_amqp_sup:pool_name(), [PoolArgs])]}}.
+    lager:info("starting AMQP pool ~s", [PoolName]),
+    {'ok', {SupFlags, ?CHILDREN ++ [?POOL_NAME_ARGS(PoolName, [PoolArgs])]}}.
