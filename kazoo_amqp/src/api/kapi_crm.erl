@@ -207,15 +207,15 @@ interaction_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun interaction/1}
               ,{fun kapi_definition:set_validate_fun/2, fun interaction_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_interaction/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Description">>
-                                                            ,<<"Duration">>
+              ,{fun kapi_definition:set_required_headers/2, [<<"Duration">>
                                                             ,<<"Contact-ID">>
                                                             ,<<"Direction">>
-                                                            ,<<"Disposition">>
                                                             ,<<"Account-ID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"CRM-Platform">>
                                                             ,<<"Status">>
+                                                            ,<<"Description">>
+                                                            ,<<"Disposition">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
