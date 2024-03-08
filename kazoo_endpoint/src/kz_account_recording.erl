@@ -25,8 +25,12 @@
 -spec maybe_record_inbound(network(), kz_endpoint:endpoint(), kapps_call:call()) ->
           kapps_call:call().
 maybe_record_inbound(FromNetwork, Endpoint, Call) ->
-    RecordingSettings = inbound_recording_settings(FromNetwork, Endpoint),
-    maybe_record_inbound(FromNetwork, Endpoint, Call, RecordingSettings).
+    case kapps_call:is_call_forward(Call) of
+        'true' -> Call;
+        'false' ->
+            InboundSettings = inbound_recording_settings(FromNetwork, Endpoint),
+            maybe_record_inbound(FromNetwork, Endpoint, Call, InboundSettings)
+    end.
 
 -spec maybe_record_inbound(network(), kz_endpoint:endpoint(), kapps_call:call(), kz_term:api_object()) ->
           kapps_call:call().
@@ -69,8 +73,12 @@ should_record_call(Call, Data, 'true') ->
 -spec maybe_record_outbound(network(), kz_endpoint:endpoint(), kapps_call:call()) ->
           kapps_call:call().
 maybe_record_outbound(ToNetwork, Endpoint, Call) ->
-    RecordingSettings = outbound_recording_settings(ToNetwork, Endpoint),
-    maybe_record_outbound(ToNetwork, Endpoint, Call, RecordingSettings).
+    case kapps_call:is_call_forward(Call) of
+        'true' -> Call;
+        'false' ->
+            OutboundSettings = outbound_recording_settings(ToNetwork, Endpoint),
+            maybe_record_outbound(ToNetwork, Endpoint, Call, OutboundSettings)
+    end.
 
 -spec maybe_record_outbound(network(), kz_endpoint:endpoint(), kapps_call:call(), kz_term:api_object()) ->
           kapps_call:call().

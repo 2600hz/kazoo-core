@@ -23,6 +23,7 @@
 -type store_url() :: 'false' |
                      {'true', 'local'} |
                      {'true', 'other', kz_term:ne_binary()}.
+-export_type([store_url/0]).
 
 %%%=============================================================================
 %%% Internal functions
