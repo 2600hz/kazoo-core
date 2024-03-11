@@ -100,7 +100,7 @@
 
 -ifdef(TEST).
 %% Orders of classifiers matters, but unfortunately schema file system_config.number_manager.json
-%% is being sorted on Kazoo compile so we need to access the macro directly here for testing proposes.
+%% is being sorted on Kazoo compile so we need to access the macro directly here for testing purposes.
 -define(CLASSIFIERS, ?DEFAULT_CLASSIFIERS).
 -else.
 -define(CLASSIFIERS
@@ -327,11 +327,13 @@ classify_number(Num, []) ->
     lager:debug("unable to classify number ~s", [Num]),
     'undefined';
 classify_number(Num, [Classifier|Classifiers]) ->
-    case re:run(Num, get_classifier_regex(Classifier)) of
-        'nomatch' -> classify_number(Num, Classifiers);
+    Regex = get_classifier_regex(Classifier),
+    case re:run(Num, Regex) of
+        'nomatch' ->
+            classify_number(Num, Classifiers);
         _ ->
             Classification = kz_json:get_ne_binary_value(<<"name">>, Classifier),
-            lager:debug("number '~s' is classified as ~s", [Num, Classification]),
+            lager:debug("number '~s' is classified as ~s(~s)", [Num, Classification, Regex]),
             kz_term:to_binary(Classification)
     end.
 
