@@ -27,7 +27,7 @@ clean-autogen: $(addsuffix -clean,$(SRC_FILES))
 
 %-compile: %
 	$(eval ERL := $(<:.erl.src=.erl))
-	$(shell cp -n $< $(ERL))
+	$(shell cp --update=none $< $(ERL))
 
 diff:
 	@$(foreach ERL,$(ERL_FILES),cmp --silent $(ERL) $(ERL:.erl=.erl.src) || diff -c $(ERL) $(ERL).src;) true

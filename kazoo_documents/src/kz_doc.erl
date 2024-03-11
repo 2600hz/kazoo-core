@@ -130,6 +130,7 @@
                   ,fun add_pvt_node/4
                   ,fun add_id/4
                   ,fun add_pvt_document_hash/4
+                  ,fun add_pvt_pid/4
                   ]).
 
 %% CouchDB Keys
@@ -678,6 +679,15 @@ add_pvt_node(Acc, _JObj, _, Options) ->
             [{?KEY_NODE, kz_term:to_binary(node())} | Acc];
         Node ->
             [{?KEY_NODE, kz_term:to_binary(Node)} | Acc]
+    end.
+
+-spec add_pvt_pid(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+add_pvt_pid(Acc, _JObj, _, Options) ->
+    case props:get_value('pid', Options) of
+        'undefined' ->
+            [{?KEY_NODE, kz_term:to_binary(self())} | Acc];
+        PID ->
+            [{?KEY_NODE, kz_term:to_binary(PID)} | Acc]
     end.
 
 -spec add_pvt_created(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
