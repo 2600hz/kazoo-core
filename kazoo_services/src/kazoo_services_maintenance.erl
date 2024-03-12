@@ -41,6 +41,7 @@
         ]).
 -export([get_accounts_by_depth/0]).
 -export([get_accounts_with_plans/0]).
+-export([report_mismatch_reseller_id/0]).
 
 -include("services.hrl").
 
@@ -1110,3 +1111,80 @@ get_accounts_with_plans() ->
                                           ,ViewOptions
                                           ),
     [kz_doc:id(JObj) || JObj <- JObjs].
+
+-spec report_mismatch_reseller_id() -> 'ok'.
+report_mismatch_reseller_id() ->
+    io:format("finding master account id~n"),
+    {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
+    Resellers = sets:from_list(get_all_resellers_from_accounts()),
+    io:format("fetching all services docs~n"),
+    ServiceJObjs = fetch_all_service_docs(?KZ_SERVICES_DB),
+    io:format(":: checking ~b service doc(s) for pvt_tree and pvt_reseller_id~n", [length(ServiceJObjs)]),
+    Mismatch = lists:foldl(fun(JObj, Acc) ->
+                                   case kz_doc:id(JObj) of
+                                       MasterAccountId ->
+                                           io:format("."),
+                                           Acc;
+                                       _ ->
+                                           find_mismatch_reseller_id(JObj, Resellers, Acc)
+                                   end
+                           end, [], ServiceJObjs),
+    io:format("~n"),
+    case length(Mismatch) of
+        0 ->
+            io:format("all service doc(s) have correct pvt_reseller_id~n");
+        _ ->
+            io:format("  /\\    Found some service docs which the first reseller id in their pvt_tree does not match the value of pvt_reseller_id~n"),
+            io:format(" /  \\              Tree reseller id in the table below is the first id from pvt_tree which is a reseller account~n"),
+            io:format("/ !! \\  now it is time to check the account doc and service and validate their pvt_tree and who should be their reseller id~n"),
+            io:format("------~n"),
+            io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n"),
+            io:format("|            Account ID            |           pvt_reseller_id        |         Tree Reseller ID         | Is Reseller |~n"),
+            io:format("+==================================+==================================+==================================+=============|~n"),
+            lists:foreach(fun (Map) ->
+                                  io:format("| ~-32ts | ~-32ts | ~-32ts | ~-11ts |~n"
+                                           ,[maps:get(account_id, Map)
+                                            ,maps:get(pvt_reseller_id, Map)
+                                            ,maps:get(tree_reseller_id, Map)
+                                            ,maps:get(is_reseller, Map)
+                                            ])
+                          end, Mismatch),
+            io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n")
+    end.
+
+find_mismatch_reseller_id(JObj, Resellers, Acc) ->
+    AccountId =  kz_doc:id(JObj),
+    Tree = kzd_services:tree(JObj),
+    PvtResellerId = kzd_services:reseller_id(JObj),
+    Map = #{account_id => AccountId,
+            pvt_reseller_id => PvtResellerId,
+            is_reseller => kzd_services:is_reseller(JObj)
+           },
+    case [Id || Id <- Tree, sets:is_element(Id, Resellers)] of
+        [] ->
+            io:format("~s: no reseller found in pvt_tree~n", [AccountId]),
+            [Map#{tree_reseller_id => 'unknown'} | Acc];
+        ResellersOnly ->
+            io:format("."),
+            case lists:last(ResellersOnly) of
+                PvtResellerId ->
+                    Acc;
+                TreeResellerId ->
+                    [Map#{tree_reseller_id => TreeResellerId} | Acc]
+            end
+    end.                    
+
+get_all_resellers_from_accounts() ->
+    io:format("fetching a list of resellers~n"),
+    case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_id">>, [include_docs]) of
+        {'ok', JObjs} ->
+            Resellers = [kz_doc:id(JObj)
+                         || JObj <- JObjs,
+                            kzd_accounts:is_reseller(kz_json:get_json_value(<<"doc">>, JObj))
+                        ],
+            io:format("found ~b reseller(s)~n", [length(Resellers)]),
+            Resellers;
+        {'error', _Reason} ->
+            io:format("failed to get resellers from accounts db: ~tp~n", [_Reason]),
+            throw({'error', io_lib:format("failed to get resellers from accounts db: ~tp", [_Reason])})
+    end.
