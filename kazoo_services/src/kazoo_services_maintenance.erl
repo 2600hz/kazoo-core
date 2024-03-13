@@ -51,6 +51,8 @@
 -define(UI_APP_KEY(PlanId, Name), [<<"plans">>, PlanId, <<"overrides">>, <<"ui_apps">>, Name]).
 -define(KZ_SERVICES_DB_TMP, <<"services_backup">>).
 
+-define(BATCH_LIMIT, kz_datamgr:max_bulk_read()).
+
 %%------------------------------------------------------------------------------
 %% @doc TODO: where does this belong, also needs testing
 %% @end
@@ -1110,19 +1112,15 @@ get_accounts_with_plans() ->
 report_mismatch_reseller_id() ->
     io:format("finding master account id~n"),
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
-    Resellers = sets:from_list(get_all_resellers_from_accounts()),
-    io:format("fetching all services docs~n"),
-    ServiceJObjs = fetch_all_service_docs(?KZ_SERVICES_DB),
-    io:format(":: checking ~b service doc(s) for pvt_tree and pvt_reseller_id~n", [length(ServiceJObjs)]),
-    Mismatch = lists:foldl(fun(JObj, Acc) ->
-                                   case kz_doc:id(JObj) of
-                                       MasterAccountId ->
-                                           io:format("."),
-                                           Acc;
-                                       _ ->
-                                           find_mismatch_reseller_id(JObj, Resellers, Acc)
-                                   end
-                           end, [], ServiceJObjs),
+
+    Resellers = get_all_resellers_from_accounts(),
+
+    io:format(":: checking service doc(s) for pvt_tree and pvt_reseller_id~n"),
+    ViewOptions = [{'key', kzd_services:type()}, 'include_docs', 'no_design_module'],
+    {'ok', ServiceCursor} = kz_view:find_batch(?KZ_SERVICES_DB, <<"maintenance/listing_by_type">>, [], ViewOptions),
+    CursorFoldFun = fun(Result, Acc) -> find_mismatch_reseller_id_fold(Result, Acc, Resellers, MasterAccountId) end,
+    {'ok', Mismatch} = kz_view_cursor:mapfold(CursorFoldFun, [], ServiceCursor, ?BATCH_LIMIT),
+
     io:format("~n"),
     case length(Mismatch) of
         0 ->
@@ -1146,7 +1144,21 @@ report_mismatch_reseller_id() ->
             io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n")
     end.
 
-find_mismatch_reseller_id(JObj, Resellers, Acc) ->
+-spec find_mismatch_reseller_id_fold(kz_json:objects(), [map()], sets:set(kz_term:ne_binary()), kz_term:ne_binary()) -> [map()].
+find_mismatch_reseller_id_fold(Result, Acc0, Resellers, MasterAccountId) ->
+    lists:foldl(fun(JObj, InnerAcc) ->
+                        case kz_doc:id(JObj) of
+                            MasterAccountId ->
+                                io:format("."),
+                                InnerAcc;
+                            _ ->
+                                find_mismatch_reseller_id(JObj, Resellers, InnerAcc)
+                        end
+                end, Acc0, Result).
+
+-spec find_mismatch_reseller_id(kz_json:object(), sets:set(kz_term:ne_binary()), [map()]) -> [map()].
+find_mismatch_reseller_id(JObj0, Resellers, Acc) ->
+    JObj = kz_json:get_json_value(<<"doc">>, JObj0),
     AccountId =  kz_doc:id(JObj),
     Tree = kzd_services:tree(JObj),
     PvtResellerId = kzd_services:reseller_id(JObj),
@@ -1166,19 +1178,28 @@ find_mismatch_reseller_id(JObj, Resellers, Acc) ->
                 TreeResellerId ->
                     [Map#{tree_reseller_id => TreeResellerId} | Acc]
             end
-    end.                    
+    end.
 
+-spec get_all_resellers_from_accounts() -> sets:set(kz_term:ne_binary()).
 get_all_resellers_from_accounts() ->
     io:format("fetching a list of resellers~n"),
-    case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_id">>, [include_docs]) of
-        {'ok', JObjs} ->
-            Resellers = [kz_doc:id(JObj)
-                         || JObj <- JObjs,
-                            kzd_accounts:is_reseller(kz_json:get_json_value(<<"doc">>, JObj))
-                        ],
-            io:format("found ~b reseller(s)~n", [length(Resellers)]),
+    ViewOptions = ['include_docs', 'no_design_module'],
+    MapFun = fun(Result, Acc) ->
+                     lists:foldl(fun maybe_add_reseller/2, Acc, Result)
+             end,
+    case kz_view:find_batch(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_id">>, [], ViewOptions) of
+        {'ok', Cursor} ->
+            {'ok', Resellers} = kz_view_cursor:mapfold(MapFun, sets:new(), Cursor, ?BATCH_LIMIT),
+            io:format("found ~b reseller(s)~n", [sets:size(Resellers)]),
             Resellers;
-        {'error', _Reason} ->
-            io:format("failed to get resellers from accounts db: ~tp~n", [_Reason]),
-            throw({'error', io_lib:format("failed to get resellers from accounts db: ~tp", [_Reason])})
+        {'error', Reason} ->
+            io:format("failed to get resellers from accounts db: ~tp~n", [Reason]),
+            throw({'error', {"failed to get resellers from accounts db: ~tw", Reason}})
+    end.
+
+-spec maybe_add_reseller(kz_json:object(), sets:set(kz_term:ne_binary())) -> sets:set(kz_term:ne_binary()).
+maybe_add_reseller(AccountJObj, SetAcc) ->
+    case kzd_accounts:is_reseller(kz_json:get_json_value(<<"doc">>, AccountJObj)) of
+        'true' -> sets:add_element(kz_doc:id(AccountJObj), SetAcc);
+        'false' -> SetAcc
     end.
