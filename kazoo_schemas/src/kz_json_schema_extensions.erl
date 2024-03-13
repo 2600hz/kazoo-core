@@ -417,22 +417,37 @@ is_valid_dns(Host, 'true') ->
 maybe_local_dns(Host) ->
     HostL = kz_term:to_list(Host),
     case inet:gethostbyname(HostL) of
-        {'ok', #hostent{h_name = HostL,
-                        h_addrtype = 'inet',
-                        h_length = 4,
-                        h_addr_list = [?IPV4=IP|_]
-                       }
-        } ->
-            lager:info("host ~s defined locally as ~p", [Host, IP]),
-            is_valid_host(IP);
-        {'ok', _HostEnt} ->
-            lager:info("got a host rec but didn't match ~s: ~p", [Host, _HostEnt]),
-            'false';
+        {'ok', #hostent{}=HostEnt} ->
+            check_hostent(HostL, HostEnt);
         {'error', 'nxdomain'} ->
             lager:info("no DNS setup (nxdomain) for ~s", [Host]),
             'false';
         {'error', _E} ->
             lager:info("failed to get DNS for host ~s: ~p", [Host, _E]),
             'false'
+    end.
+
+check_hostent(HostL, #hostent{h_name = HostL
+                             ,h_addrtype = 'inet'
+                             ,h_length = 4
+                             ,h_addr_list = AddrList
+                             }
+             ) ->
+    lager:info("host ~s defined locally with ip(s) ~p", [HostL, AddrList]),
+    lists:all(fun is_valid_host/1, AddrList);
+check_hostent(HostL, #hostent{h_name = MainHost
+                             ,h_aliases = Aliases
+                             ,h_addrtype = 'inet'
+                             ,h_length = 4
+                             ,h_addr_list = AddrList
+                             }
+             ) ->
+    case lists:member(HostL, Aliases) of
+        'false' ->
+            lager:info("got a host rec but didn't match ~s: ~s and aliases ~s", [HostL, MainHost, Aliases]),
+            'false';
+        'true' ->
+            lager:info("host ~s listed in aliases of ~s with ip(s) ~p", [HostL, MainHost, AddrList]),
+            lists:all(fun is_valid_host/1, AddrList)
     end.
 -endif.
