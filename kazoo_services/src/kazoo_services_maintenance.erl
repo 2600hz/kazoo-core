@@ -1116,29 +1116,32 @@ get_accounts_with_plans() ->
 
 -spec report_mismatch_reseller_id() -> 'ok'.
 report_mismatch_reseller_id() ->
-    io:format("finding master account id~n"),
+    io:format("   /\\    Finding service docs where the first reseller id in their pvt_tree~n"),
+    io:format("  /  \\             does not match the value of pvt_reseller_id.~n"),
+    io:format(" / !! \\     Check account and service docs of accounts in table below and~n"),
+    io:format("/      \\     validate their pvt_tree and who should be their reseller id.~n"),
+    io:format("--------~n~n"),
+
+    io:format("finding master account id...~n"),
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
 
     Resellers = get_all_resellers_from_accounts(),
 
-    io:format(":: checking service doc(s) for pvt_tree and pvt_reseller_id~n"),
     ViewOptions = [{'key', kzd_services:type()}, 'include_docs', 'no_design_module'],
     {'ok', ServiceCursor} = kz_view:find_batch(?KZ_SERVICES_DB, <<"maintenance/listing_by_type">>, [], ViewOptions),
+    io:format("~n~ncrawling service docs:~n"),
     CursorFoldFun = fun(Result, Acc) -> find_mismatch_reseller_id_fold(Result, Acc, Resellers, MasterAccountId) end,
     {'ok', Mismatch} = kz_view_cursor:mapfold(CursorFoldFun, [], ServiceCursor, ?BATCH_LIMIT),
 
-    io:format("~n"),
+    io:format("~ndone~n~n"),
+    io:format("Note: Tree Reseller ID is the first reseller from bottom of pvt_tree and is must be set as pvt_reseller_id~n"),
+    io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n"),
+    io:format("|            Account ID            |           pvt_reseller_id        |         Tree Reseller ID         | Is Reseller |~n"),
+    io:format("+==================================+==================================+==================================+=============|~n"),
     case length(Mismatch) of
         0 ->
             io:format("all service doc(s) have correct pvt_reseller_id~n");
         _ ->
-            io:format("  /\\    Found some service docs which the first reseller id in their pvt_tree does not match the value of pvt_reseller_id~n"),
-            io:format(" /  \\              Tree reseller id in the table below is the first id from pvt_tree which is a reseller account~n"),
-            io:format("/ !! \\  now it is time to check the account doc and service and validate their pvt_tree and who should be their reseller id~n"),
-            io:format("------~n"),
-            io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n"),
-            io:format("|            Account ID            |           pvt_reseller_id        |         Tree Reseller ID         | Is Reseller |~n"),
-            io:format("+==================================+==================================+==================================+=============|~n"),
             lists:foreach(fun (Map) ->
                                   io:format("| ~-32ts | ~-32ts | ~-32ts | ~-11ts |~n"
                                            ,[maps:get(account_id, Map)
@@ -1146,9 +1149,9 @@ report_mismatch_reseller_id() ->
                                             ,maps:get(tree_reseller_id, Map)
                                             ,maps:get(is_reseller, Map)
                                             ])
-                          end, Mismatch),
-            io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n")
-    end.
+                          end, Mismatch)
+    end,
+    io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n").
 
 -spec find_mismatch_reseller_id_fold(kz_json:objects(), [map()], sets:set(kz_term:ne_binary()), kz_term:ne_binary()) -> [map()].
 find_mismatch_reseller_id_fold(Result, Acc0, Resellers, MasterAccountId) ->
@@ -1188,7 +1191,7 @@ find_mismatch_reseller_id(JObj0, Resellers, Acc) ->
 
 -spec get_all_resellers_from_accounts() -> sets:set(kz_term:ne_binary()).
 get_all_resellers_from_accounts() ->
-    io:format("fetching a list of resellers~n"),
+    io:format("fetching a list of resellers...~n"),
     ViewOptions = ['include_docs', 'no_design_module'],
     MapFun = fun(Result, Acc) ->
                      lists:foldl(fun maybe_add_reseller/2, Acc, Result)
@@ -1200,7 +1203,7 @@ get_all_resellers_from_accounts() ->
             Resellers;
         {'error', Reason} ->
             io:format("failed to get resellers from accounts db: ~tp~n", [Reason]),
-            throw({'error', {"failed to get resellers from accounts db: ~tw", Reason}})
+            throw({'error', {"failed to get resellers from accounts db", Reason}})
     end.
 
 -spec maybe_add_reseller(kz_json:object(), sets:set(kz_term:ne_binary())) -> sets:set(kz_term:ne_binary()).
