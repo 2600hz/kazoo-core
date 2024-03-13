@@ -1144,10 +1144,10 @@ report_mismatch_reseller_id() ->
         _ ->
             lists:foreach(fun (Map) ->
                                   io:format("| ~-32ts | ~-32ts | ~-32ts | ~-11ts |~n"
-                                           ,[maps:get(account_id, Map)
-                                            ,maps:get(pvt_reseller_id, Map)
-                                            ,maps:get(tree_reseller_id, Map)
-                                            ,maps:get(is_reseller, Map)
+                                           ,[maps:get('account_id', Map)
+                                            ,maps:get('pvt_reseller_id', Map)
+                                            ,maps:get('tree_reseller_id', Map)
+                                            ,maps:get('is_reseller', Map)
                                             ])
                           end, Mismatch)
     end,
