@@ -41,7 +41,7 @@
                   {'first_when_multiple', boolean()} |
                   {'memory_limit', 'false' | pos_integer()} |
                   {'no_batch', boolean()} |
-                  {'no_design_module', boolean()} |
+                  {'no_design_module', boolean()} | 'no_design_module' |
                   {'page_size', limit()} |
                   {'reductions_max', pos_integer()} |
                   {'result_key', result_key()} |
