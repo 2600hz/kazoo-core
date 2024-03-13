@@ -1132,8 +1132,8 @@ report_mismatch_reseller_id() ->
     io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n"),
     io:format("|            Account ID            |           pvt_reseller_id        |         Tree Reseller ID         | Is Reseller |~n"),
     io:format("+==================================+==================================+==================================+=============|~n"),
-    case length(Mismatch) of
-        0 ->
+    case Mismatch of
+        [] ->
             io:format("all service doc(s) have correct pvt_reseller_id~n");
         _ ->
             lists:foreach(fun (Map) ->
