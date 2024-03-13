@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc Handles endpoint inbound recording
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,6 +23,7 @@
 -type store_url() :: 'false' |
                      {'true', 'local'} |
                      {'true', 'other', kz_term:ne_binary()}.
+-export_type([store_url/0]).
 
 %%%=============================================================================
 %%% Internal functions
