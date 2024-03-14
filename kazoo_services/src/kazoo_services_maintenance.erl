@@ -1128,7 +1128,8 @@ report_mismatch_reseller_id() ->
     {'ok', Mismatch} = kz_view_cursor:mapfold(CursorFoldFun, [], ServiceCursor, ?BATCH_LIMIT),
 
     io:format("~ndone~n~n"),
-    io:format("Note: Tree Reseller ID is the first reseller from bottom of pvt_tree and is must be set as pvt_reseller_id~n"),
+    io:format("Note: Tree Reseller ID is the first reseller from bottom of pvt_tree and must be set as pvt_reseller_id.~n"),
+    io:format("      unknown tree reseller ID means no reseller id in the pvt_tree~n"),
     io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n"),
     io:format("|            Account ID            |           pvt_reseller_id        |         Tree Reseller ID         | Is Reseller |~n"),
     io:format("+==================================+==================================+==================================+=============|~n"),
@@ -1150,9 +1151,9 @@ report_mismatch_reseller_id() ->
 -spec find_mismatch_reseller_id_fold(kz_json:objects(), [map()], sets:set(kz_term:ne_binary()), kz_term:ne_binary()) -> [map()].
 find_mismatch_reseller_id_fold(Result, Acc0, Resellers, MasterAccountId) ->
     lists:foldl(fun(JObj, InnerAcc) ->
+                        io:format("."),
                         case kz_doc:id(JObj) of
                             MasterAccountId ->
-                                io:format("."),
                                 InnerAcc;
                             _ ->
                                 find_mismatch_reseller_id(JObj, Resellers, InnerAcc)
@@ -1171,10 +1172,8 @@ find_mismatch_reseller_id(JObj0, Resellers, Acc) ->
            },
     case [Id || Id <- Tree, sets:is_element(Id, Resellers)] of
         [] ->
-            io:format("~s: no reseller found in pvt_tree~n", [AccountId]),
             [Map#{tree_reseller_id => 'unknown'} | Acc];
         ResellersOnly ->
-            io:format("."),
             case lists:last(ResellersOnly) of
                 PvtResellerId ->
                     Acc;
