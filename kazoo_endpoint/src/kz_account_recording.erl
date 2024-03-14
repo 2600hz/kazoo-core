@@ -26,7 +26,11 @@
 -spec maybe_record_inbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
           {'true', kapps_call:call()} | 'false'.
 maybe_record_inbound(FromNetwork, Endpoint, Call) ->
-    maybe_record_inbound(FromNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_INBOUND_RECORDING(FromNetwork), Endpoint)).
+    case kapps_call:is_call_forward(Call) of
+        'true' -> Call;
+        'false' ->
+            maybe_record_inbound(FromNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_INBOUND_RECORDING(FromNetwork), Endpoint))
+    end.
 
 -spec maybe_record_inbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call(), kz_term:api_object()) ->
           {'true', kapps_call:call()} | 'false'.
@@ -57,7 +61,11 @@ should_record_call(Call, Data, 'true') ->
 -spec maybe_record_outbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
           {'true', kapps_call:call()} | 'false'.
 maybe_record_outbound(ToNetwork, Endpoint, Call) ->
-    maybe_record_outbound(ToNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_OUTBOUND_RECORDING(ToNetwork), Endpoint)).
+    case kapps_call:is_call_forward(Call) of
+        'true' -> Call;
+        'false' ->
+            maybe_record_outbound(ToNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_OUTBOUND_RECORDING(ToNetwork), Endpoint))
+    end.
 
 -spec maybe_record_outbound(kz_term:ne_binary(), kz_json:object(), kapps_call:call(), kz_term:api_object()) ->
           {'true', kapps_call:call()} | 'false'.
