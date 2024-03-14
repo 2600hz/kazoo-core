@@ -27,7 +27,7 @@
           {'true', kapps_call:call()} | 'false'.
 maybe_record_inbound(FromNetwork, Endpoint, Call) ->
     case kapps_call:is_call_forward(Call) of
-        'true' -> Call;
+        'true' -> false;
         'false' ->
             maybe_record_inbound(FromNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_INBOUND_RECORDING(FromNetwork), Endpoint))
     end.
@@ -62,7 +62,7 @@ should_record_call(Call, Data, 'true') ->
           {'true', kapps_call:call()} | 'false'.
 maybe_record_outbound(ToNetwork, Endpoint, Call) ->
     case kapps_call:is_call_forward(Call) of
-        'true' -> Call;
+        'true' -> false;
         'false' ->
             maybe_record_outbound(ToNetwork, Endpoint, Call, kz_json:get_json_value(?ACCOUNT_OUTBOUND_RECORDING(ToNetwork), Endpoint))
     end.
