@@ -23,6 +23,7 @@
 | `refresh/0` |  | |
 | `register_views/0` |  | |
 | `remove_orphaned_services/0` |  | |
+| `report_mismatch_reseller_id/0` |  | |
 | `set_reseller_id/2` | `(Reseller,Account)` | |
 | `sync/1` | `(Account)` | |
 | `sync_descendants/1` | `(Account)` | |
