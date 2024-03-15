@@ -404,6 +404,7 @@ finish_record_call(Call, Props, MediaName) ->
 
                 _ = kapps_call_command:store_file(filename:join([<<"/tmp">>, MediaName]), StoreUrl, Call),
                 [{fun kzt_util:set_recording_url/2, StoreUrl}
+                ,{fun kzt_util:set_recording_sid/2, MediaName}
                 | Setters
                 ];
             {'true', 'other', Url} ->
@@ -413,6 +414,7 @@ finish_record_call(Call, Props, MediaName) ->
 
                 _ = kapps_call_command:store_file(filename:join([<<"/tmp">>, MediaName]), StoreUrl, Call),
                 [{fun kzt_util:set_recording_url/2, StoreUrl}
+                ,{fun kzt_util:set_recording_sid/2, MediaName}
                 | Setters]
         end,
     {'request', lists:foldl(fun({F, V}, C) -> F(V, C) end, Call, Setters1)}.
