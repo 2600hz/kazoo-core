@@ -1134,25 +1134,26 @@ report_mismatch_reseller_id() ->
     {'ok', Mismatch} = kz_view_cursor:mapfold(CursorFoldFun, [], ServiceCursor, ?BATCH_LIMIT),
 
     io:format("~ndone~n~n"),
-    io:format("Note: Tree Reseller ID is the first reseller from bottom of pvt_tree and must be set as pvt_reseller_id.~n"),
-    io:format("      unknown tree reseller ID means no reseller id in the pvt_tree~n"),
-    io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n"),
-    io:format("|            Account ID            |           pvt_reseller_id        |         Tree Reseller ID         | Is Reseller |~n"),
-    io:format("+==================================+==================================+==================================+=============|~n"),
+    io:format("Note: True Reseller ID is the first reseller from bottom of pvt_tree and must be set as pvt_reseller_id.~n"),
+    io:format("      unknown true reseller ID means no reseller id in the pvt_tree~n"),
+    io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+----------------------------------+~n"),
+    io:format("|            Account ID            |         Wrong Reseller ID        |         True Reseller ID         | Is Reseller |      reseller doc pvt_tree       | ~n"),
+    io:format("+==================================+==================================+==================================+=============+==================================+~n"),
     case Mismatch of
         [] ->
-            io:format("all service doc(s) have correct pvt_reseller_id~n");
+            io:format("| all service doc(s) have correct pvt_reseller_id                                                                                                         |~n");
         _ ->
             lists:foreach(fun (Map) ->
-                                  io:format("| ~-32ts | ~-32ts | ~-32ts | ~-11ts |~n"
+                                  io:format("| ~-32ts | ~-32ts | ~-32ts | ~-11ts | ~ts~n"
                                            ,[maps:get('account_id', Map)
                                             ,maps:get('pvt_reseller_id', Map)
-                                            ,maps:get('tree_reseller_id', Map)
+                                            ,maps:get('true_reseller_id', Map)
                                             ,maps:get('is_reseller', Map)
+                                            ,kz_binary:join(maps:get('pvt_tree', Map))
                                             ])
                           end, Mismatch)
     end,
-    io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+~n").
+    io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+----------------------------------+~n").
 
 -spec find_mismatch_reseller_id_fold(kz_json:objects(), [map()], sets:set(kz_term:ne_binary()), kz_term:ne_binary()) -> [map()].
 find_mismatch_reseller_id_fold(Result, Acc0, Resellers, MasterAccountId) ->
@@ -1174,17 +1175,18 @@ find_mismatch_reseller_id(JObj0, Resellers, Acc) ->
     PvtResellerId = kzd_services:reseller_id(JObj),
     Map = #{account_id => AccountId,
             pvt_reseller_id => PvtResellerId,
-            is_reseller => kzd_services:is_reseller(JObj)
+            is_reseller => kzd_services:is_reseller(JObj),
+            pvt_tree => Tree
            },
     case [Id || Id <- Tree, sets:is_element(Id, Resellers)] of
         [] ->
-            [Map#{tree_reseller_id => 'unknown'} | Acc];
+            [Map#{true_reseller_id => 'unknown'} | Acc];
         ResellersOnly ->
             case lists:last(ResellersOnly) of
                 PvtResellerId ->
                     Acc;
                 TreeResellerId ->
-                    [Map#{tree_reseller_id => TreeResellerId} | Acc]
+                    [Map#{true_reseller_id => TreeResellerId} | Acc]
             end
     end.
 
