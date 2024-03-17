@@ -362,7 +362,7 @@ caller_id(Props, Call) ->
 
 -spec hangup_dtmf(kz_term:proplist() | kz_term:api_binary()) -> kz_term:api_binary().
 hangup_dtmf(Props) when is_list(Props) ->
-    case props:get_value('hangupOnStar', Props) of
+    case props:is_true('hangupOnStar', Props) of
         'true' -> <<"*">>;
         _ -> hangup_dtmf(props:get_binary_value('hangupOn', Props))
     end;
