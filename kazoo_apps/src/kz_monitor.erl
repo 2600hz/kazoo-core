@@ -31,6 +31,7 @@
 start_link() ->
     gen_server:start_link({'local', ?MODULE}, ?MODULE, [], []).
 
+%% @doc Start tracking metrics for a process
 -spec track_me() -> 'ok'.
 track_me() ->
     gen_server:cast(?MODULE, {'track', [self()]}).
