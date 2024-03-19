@@ -13,6 +13,8 @@
 
 -export([start_link/0
         ,track_me/0
+        ,track_pid/1
+        ,track_pids/1
         ]).
 
 -export([init/1
@@ -34,7 +36,15 @@ start_link() ->
 %% @doc Start tracking metrics for a process
 -spec track_me() -> 'ok'.
 track_me() ->
-    gen_server:cast(?MODULE, {'track', [self()]}).
+    track_pid(self()).
+
+-spec track_pid(pid()) -> 'ok'.
+track_pid(Pid) when is_pid(Pid) ->
+    track_pids([Pid]).
+
+-spec track_pids([pid()]) -> 'ok'.
+track_pids(Pids) when is_list(Pids) ->
+    gen_server:cast(?MODULE, {'track', Pids}).
 
 -spec init(any()) -> {'ok', state()}.
 init(_) ->
@@ -72,6 +82,10 @@ code_change(_OldVsn, State, _Extra) ->
     {'ok', State}.
 
 track_pid(Pid, State) ->
-    Ref = erlang:monitor('process', Pid),
-    ProcessInfo = process_info(Pid, ['total_heap_size', 'message_queue_len']),
-    State#{{Pid, Ref} => ProcessInfo}.
+    case State of
+        #{Pid := _} -> State;
+        #{} ->
+            Ref = erlang:monitor('process', Pid),
+            ProcessInfo = process_info(Pid, ['total_heap_size', 'message_queue_len']),
+            State#{Pid => {Ref, ProcessInfo}}
+    end.
