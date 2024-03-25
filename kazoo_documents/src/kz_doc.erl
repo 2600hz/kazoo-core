@@ -145,6 +145,7 @@
 -define(KEY_CREATED, <<"pvt_created">>).
 -define(KEY_MODIFIED, <<"pvt_modified">>).
 -define(KEY_NODE, <<"pvt_node">>).
+-define(KEY_PID, <<"pvt_pid">>).
 -define(KEY_PVT_TYPE, <<"pvt_type">>).
 -define(KEY_SOFT_DELETED, <<"pvt_deleted">>).
 -define(KEY_VSN, <<"pvt_vsn">>).
@@ -685,9 +686,9 @@ add_pvt_node(Acc, _JObj, _, Options) ->
 add_pvt_pid(Acc, _JObj, _, Options) ->
     case props:get_value('pid', Options) of
         'undefined' ->
-            [{?KEY_NODE, kz_term:to_binary(self())} | Acc];
+            [{?KEY_PID, kz_term:to_binary(self())} | Acc];
         PID ->
-            [{?KEY_NODE, kz_term:to_binary(PID)} | Acc]
+            [{?KEY_PID, kz_term:to_binary(PID)} | Acc]
     end.
 
 -spec add_pvt_created(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
