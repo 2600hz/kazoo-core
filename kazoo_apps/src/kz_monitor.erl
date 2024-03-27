@@ -17,6 +17,14 @@
 %%%   tracks from/to sending could prove useful in determining which
 %%%   processes should use off_heap.
 %%%
+%%% Discussion: https://erlangforums.com/t/message-queue-data-off-heap-use-case/1119/9
+%%%   Dynamically switch to off_heap when message_queue_len exceeds threshold
+%%%   Probably affects gen_listener that back up
+%%%   Related PR: https://github.com/erlang/otp/pull/5768
+%%%
+%%% Check out erlang:system_monitor/2 to add system monitoring and
+%%% send messages to this proc
+%%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
