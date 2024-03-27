@@ -844,8 +844,8 @@ handle_info({#'basic.deliver'{}=BD
             CallId = kz_log:get_callid(),
             Reply = handle_event(binary:copy(Payload), {CT, CE}, {BD, Basic}, State),
             kz_log:put_callid(CallId),
-            maybe_gc(props:is_true('auto_gc', Params, 'true')),
-            Reply;
+
+            handle_auto_gc(Reply, props:is_true('auto_gc', Params, 'true'));
         'true'  ->
             kz_process:spawn(fun handle_event/4, [Payload, {CT, CE}, {BD, Basic}, State]),
             {'noreply', State}
@@ -1890,6 +1890,18 @@ reply_to_request({From, TRef}) ->
     _ = reply(From, 'ok'),
     'ok' = erlang:cancel_timer(TRef, [{'async', 'true'}, {'info', 'false'}]).
 
+handle_auto_gc(Reply, MaybeGC) ->
+    case maybe_gc(MaybeGC) of
+        MaybeGC -> Reply; % no change in auto-gc
+        'false' -> disable_auto_gc(Reply)
+    end.
+
+disable_auto_gc({'noreply', #state{params=Params}=State}) ->
+    {'noreply', State#state{params=props:set_value('auto_gc', 'false', Params)}};
+disable_auto_gc({'noreply', #state{params=Params}=State, Timeout}) ->
+    {'noreply', State#state{params=props:set_value('auto_gc', 'false', Params)}, Timeout};
+disable_auto_gc(Reply) -> Reply.
+
 %% @doc force GC of process if total_heap_size exceeds 10K
 %%
 %% In production, when compacting kz_amqp_workers and other
@@ -1917,30 +1929,41 @@ reply_to_request({From, TRef}) ->
 %% on every new AMQP message. As the heap and message queue were so
 %% large, this GC caused massive slowdowns (some messages weren't
 %% being cleared for 15 minutes).
--spec maybe_gc(boolean()) -> 'ok'.
-maybe_gc('false') -> 'ok';
+-spec maybe_gc(boolean()) -> boolean().
+maybe_gc('false') -> 'false';
 maybe_gc('true') ->
-    maybe_gc_process(process_info(self(), ['total_heap_size'])
+    maybe_gc_process(process_info(self(), ['total_heap_size', 'message_queue_len'])
                     ,100 * ?BYTES_K
-                    ,process_info(self(), ['message_queue_len'])
                     ,100
                     ).
 
-maybe_gc_process([{'total_heap_size', Words}], MaxBytes, [{'message_queue_len', QueueLength}], MaxQueueLength) ->
-    maybe_gc_process(kz_term:words_to_bytes(Words), MaxBytes, QueueLength, MaxQueueLength);
-maybe_gc_process(Heap, Max, QueueLength, MaxQueueLength)
-  when Heap > Max
+maybe_gc_process([{'total_heap_size', Words}
+                 ,{'message_queue_len', QueueLength}
+                 ]
+                ,MaxBytes
+                ,MaxQueueLength
+                ) ->
+    maybe_gc_process(kz_term:words_to_bytes(Words), MaxBytes, QueueLength, MaxQueueLength).
+
+maybe_gc_process(HeapBytes, MaxBytes, QueueLength, MaxQueueLength)
+  when HeapBytes > MaxBytes
        andalso QueueLength < MaxQueueLength
        ->
     erlang:garbage_collect(self()),
     [{'total_heap_size', NewHeapWords}] = process_info(self(), ['total_heap_size']),
-    NewHeap = kz_term:words_to_bytes(NewHeapWords),
-    amqp:debug("new heap size ~p (delta ~p)", [NewHeap, Heap-NewHeap]);
-maybe_gc_process(Heap, Max, QueueLength, MaxQueueLength) when Heap > Max, QueueLength >= MaxQueueLength ->
+    NewHeapBytes = kz_term:words_to_bytes(NewHeapWords),
+    amqp:debug("new heap size ~p (delta ~p)", [NewHeapBytes, HeapBytes-NewHeapBytes]),
+    'true';
+maybe_gc_process(HeapBytes, MaxBytes, QueueLength, MaxQueueLength)
+  when HeapBytes > MaxBytes,
+       QueueLength >= MaxQueueLength ->
     lager:notice("heap ~p is growing past max ~p while queue len ~p is bigger than ~p"
-                ,[Heap, Max, QueueLength, MaxQueueLength]
-                );
-maybe_gc_process(_Heap, _Max, _QL, _MaxQL) -> 'ok'.
+                ,[HeapBytes, MaxBytes, QueueLength, MaxQueueLength]
+                ),
+    erlang:process_flag('message_queue_data', 'off_heap'),
+    lager:info("moved message queue data off-heap, disabling auto-gc"),
+    'false';
+maybe_gc_process(_Heap, _Max, _QL, _MaxQL) -> 'true'.
 
 %%%=============================================================================
 %%% Eunit Tests
