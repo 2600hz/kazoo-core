@@ -3,6 +3,20 @@
 %%% @doc Monitors processes for various conditions and logs loudly
 %%% There was an EEP that went nowhere: https://www.erlang.org/eeps/eep-0042
 %%%
+%%% Blog article: https://www.erlang.org/blog/parallel-signal-sending-optimization/
+%%    Talks about how setting message_queue_data to off_heap can improve perf for
+%%%   receiving processes that have many senders.
+%%%
+%%%   FTA: Therefore, {message_queue_data, off_heap} provides much
+%%%   better scalability than {message_queue_data, on_heap} when
+%%%   multiple processes send signals to the same process concurrently
+%%%   on a multicore system.
+%%%
+%%%   It seems, then, that any receiver with many parallel senders
+%%%   should use off_heap. Adding a properly tracer process that
+%%%   tracks from/to sending could prove useful in determining which
+%%%   processes should use off_heap.
+%%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
