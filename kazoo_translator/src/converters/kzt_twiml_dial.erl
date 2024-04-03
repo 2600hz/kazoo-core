@@ -332,11 +332,10 @@ request_id(N, Call) -> iolist_to_binary([N, <<"@">>, kapps_call:from_realm(Call)
 
 -spec media_processing(kapps_call:call()) -> kz_term:ne_binary().
 media_processing(Call) ->
-    media_processing(kzt_util:get_record_call(Call), kzt_util:get_hangup_dtmf(Call)).
-
--spec media_processing(boolean(), kz_term:api_binary()) -> kz_term:ne_binary().
-media_processing('false', 'undefined') -> <<"bypass">>;
-media_processing('true', _HangupDTMF) -> <<"process">>.
+    case kzt_util:get_record_call(Call) of
+        'true' -> <<"process">>;
+        'false' -> <<"bypass">>
+    end.
 
 get_max_participants(Props) when is_list(Props) ->
     get_max_participants(props:get_integer_value('maxParticipants', Props, 40));
@@ -362,7 +361,7 @@ caller_id(Props, Call) ->
 
 -spec hangup_dtmf(kz_term:proplist() | kz_term:api_binary()) -> kz_term:api_binary().
 hangup_dtmf(Props) when is_list(Props) ->
-    case props:get_value('hangupOnStar', Props) of
+    case props:is_true('hangupOnStar', Props) of
         'true' -> <<"*">>;
         _ -> hangup_dtmf(props:get_binary_value('hangupOn', Props))
     end;
