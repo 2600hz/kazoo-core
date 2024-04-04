@@ -289,15 +289,15 @@ validate_value(<<"user_name">> = K, Identity) ->
 validate_value(<<"integration_key">> = K, Identity) ->
     IKey = maps:get(K, Identity),
     kz_term:is_ne_binary(IKey)
-        andalso erlang:size(IKey) == ?IKEY_LEN;
+        andalso byte_size(IKey) == ?IKEY_LEN;
 validate_value(<<"secret_key">> = K, Identity) ->
     SKey = maps:get(K, Identity),
     kz_term:is_ne_binary(SKey)
-        andalso erlang:size(SKey) >= ?SKEY_LEN;
+        andalso byte_size(SKey) >= ?SKEY_LEN;
 validate_value(<<"application_secret_key">> = K, Identity) ->
     AKey = maps:get(K, Identity),
     kz_term:is_ne_binary(AKey)
-        andalso erlang:size(AKey) >= ?AKEY_LEN;
+        andalso byte_size(AKey) >= ?AKEY_LEN;
 validate_value(<<"api_hostname">> = K, Identity) ->
     kz_term:is_ne_binary(maps:get(K, Identity));
 validate_value(_K, _Identity) ->
