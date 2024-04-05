@@ -469,10 +469,10 @@ publish_targeted_status(Q, API, ContentType) ->
 fax_start_key(Id) ->
     fax_start_key(<<"*">>, Id).
 
-fax_start_key(Type, Id) ->
+fax_start_key(Type, <<Id/binary>>) ->
     list_to_binary(["fax.start.", Type, ".", kz_amqp_util:encode(Id)]).
 
-status_routing_key(AccountId, FaxId) ->
+status_routing_key(AccountId, <<FaxId/binary>>) ->
     list_to_binary(["fax.status.", AccountId, ".", kz_amqp_util:encode(FaxId)]).
 
 -spec account_id(kz_json:object()) -> kz_term:ne_binary().

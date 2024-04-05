@@ -691,11 +691,11 @@ declare_exchanges() ->
     kz_amqp_util:targeted_exchange().
 
 -spec get_route_req_account_routing(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-get_route_req_account_routing(Type, AccountId) ->
+get_route_req_account_routing(<<Type/binary>>, <<AccountId/binary>>) ->
     list_to_binary([?KEY_ROUTE_REQ, ".", kz_amqp_util:encode(Type), ".", kz_amqp_util:encode(AccountId)]).
 
 -spec get_route_req_realm_routing(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-get_route_req_realm_routing(Type, Realm, User) ->
+get_route_req_realm_routing(<<Type/binary>>, <<Realm/binary>>, <<User/binary>>) ->
     list_to_binary([?KEY_ROUTE_REQ, ".", kz_amqp_util:encode(Type), ".", kz_amqp_util:encode(Realm), ".", kz_amqp_util:encode(User)]).
 
 -spec get_route_req_routing(kz_term:api_terms()) -> kz_term:ne_binary().

@@ -16,7 +16,7 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec from_centos_version(Version::kz_term:ne_binary()) ->
+-spec from_centos_version(binary()) ->
           {'ok', kz_term:ne_binary()} |
           {'error', 'invalid_version'} |
           {'error', {'invalid_maj' |
@@ -24,6 +24,7 @@
                      'invalid_patch'
                     ,'leading_zero' | 'nan'
                     }}.
+from_centos_version(<<>>) -> {'error', 'invalid_version'};
 from_centos_version(Version) ->
     [VerPre | _Build] = binary:split(Version, [<<"+">>], ['global']),
     [Ver, Pre1] = case binary:split(VerPre, [<<"-">>], []) of
@@ -104,4 +105,3 @@ split_version(Str) ->
         _ ->
             ['error', 'error', 'error', 'error']
     end.
-

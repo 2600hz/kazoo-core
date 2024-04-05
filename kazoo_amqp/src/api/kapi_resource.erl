@@ -396,7 +396,7 @@ publish_originate_req_key(BaseKey, Req)
     case props:get_ne_binary_value(<<"Switch-Nodename">>, Req) of
         'undefined' ->
             BaseKey;
-        Switch ->
+        <<Switch/binary>> ->
             list_to_binary([BaseKey, ".", kz_amqp_util:encode(Switch)])
     end;
 publish_originate_req_key(BaseKey, Req) ->
@@ -577,9 +577,8 @@ unbind_q(_, _, []) ->
     'ok'.
 
 -spec bind_key(kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_term:ne_binary().
-bind_key(RK, 'undefined') ->
-    RK;
-bind_key(Base, Node) ->
+bind_key(RK, 'undefined') -> RK;
+bind_key(<<Base/binary>>, <<Node/binary>>) ->
     list_to_binary([Base, ".", kz_amqp_util:encode(Node)]).
 
 %%------------------------------------------------------------------------------

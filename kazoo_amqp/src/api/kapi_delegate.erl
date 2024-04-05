@@ -32,8 +32,7 @@
 -type maybe_key() :: kz_term:api_ne_binary().
 
 -ifdef(TEST).
--export([build_binding/2
-        ]).
+-export([build_binding/2]).
 -endif.
 
 %%------------------------------------------------------------------------------
@@ -42,8 +41,7 @@
 %%------------------------------------------------------------------------------
 -spec api_definitions() -> kapi_definition:apis().
 api_definitions() ->
-    [delegate_definition()
-    ].
+    [delegate_definition()].
 
 %%------------------------------------------------------------------------------
 %% @doc Get API definition of the given `Name'.
@@ -70,8 +68,7 @@ delegate_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun delegate_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_delegate/2}
               ,{fun kapi_definition:set_binding/2, fun build_binding/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Delegate-Message">>
-                                                            ]}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Delegate-Message">>]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
@@ -102,7 +99,7 @@ publish_delegate(TargetApp, API, Key) ->
     publish_delegate(TargetApp, API, Key, ?DEFAULT_CONTENT_TYPE).
 
 -spec publish_delegate(kz_term:ne_binary(), kz_term:api_terms(), maybe_key(), binary()) -> 'ok'.
-publish_delegate(<<_/binary>> = TargetApp, API, Key, ContentType) ->
+publish_delegate(<<TargetApp/binary>>, API, Key, ContentType) ->
     Definition = delegate_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(API
                                                 ,kapi_definition:values(Definition)
@@ -120,7 +117,7 @@ bind_q(Q, Props) ->
     bind_q(Q, App, Key).
 
 -spec bind_q(kz_term:ne_binary(), kz_term:ne_binary(), maybe_key()) -> 'ok'.
-bind_q(Q, <<_/binary>> = App, Key) ->
+bind_q(Q, <<App/binary>>, Key) ->
     kz_amqp_util:bind_q_to_kapps(Q
                                 ,(kapi_definition:binding(delegate_definition()))(App, Key)
                                 ).
@@ -132,7 +129,7 @@ unbind_q(Q, Props) ->
     unbind_q(Q, App, Key).
 
 -spec unbind_q(kz_term:ne_binary(), kz_term:ne_binary(), maybe_key()) -> 'ok'.
-unbind_q(Q, <<_/binary>> = App, Key) ->
+unbind_q(Q, <<App/binary>>, Key) ->
     kz_amqp_util:unbind_q_from_kapps(Q
                                     ,(kapi_definition:binding(delegate_definition()))(App, Key)
                                     ).
@@ -146,7 +143,7 @@ declare_exchanges() ->
     kz_amqp_util:kapps_exchange().
 
 -spec build_binding(kz_term:ne_binary(), maybe_key()) -> kz_term:ne_binary().
-build_binding(App, 'undefined') ->
+build_binding(<<App/binary>>, 'undefined') ->
     <<"delegate.", (kz_amqp_util:encode(App))/binary>>;
-build_binding(App, Key) ->
+build_binding(<<App/binary>>, <<Key/binary>>) ->
     <<"delegate.", (kz_amqp_util:encode(App))/binary, ".", (kz_amqp_util:encode(Key))/binary>>.

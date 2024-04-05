@@ -1,1 +1,3 @@
 view_name, view_options, view_file_name
+attributes/owned, [{key,[<<"user0000000000000000000000000004">>,<<"device">>]}], attributes+owned-fe2c381b3e0de2dd7e5ff875732390bc.json
+attributes/owned, [{key,[<<"user0000000000000000000000000005">>,<<"device">>]}], attributes+owned-707a450a03ef426bb4836ae639887860.json

@@ -196,8 +196,7 @@
 -export([events/0]).
 
 -ifdef(TEST).
--export([conference_event_key/4
-        ]).
+-export([conference_event_key/4]).
 -endif.
 
 -include_lib("kz_amqp_util.hrl").
@@ -2426,7 +2425,7 @@ event_key(API) ->
     conference_event_key(Event, AccountId, ConferenceId, CallId).
 
 -spec conference_event_key(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-conference_event_key(Event, AccountId, ConferenceId, CallId) ->
+conference_event_key(Event, AccountId, ConferenceId, <<CallId/binary>>) ->
     list_to_binary([Event, "."
                    ,AccountId, "."
                    ,ConferenceId, "."

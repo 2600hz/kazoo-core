@@ -367,17 +367,22 @@ publish_endpoint_push_resp(RespQ, Req, ContentType) ->
                                                 ),
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
--define(PUSH_REQ_HEADERS, [<<"Token-ID">>
-                          ,<<"Token-Type">>
+-define(PUSH_REQ_HEADERS, [<<"Payload">>
                           ,<<"Token-App">>
-                          ,<<"Payload">>
+                          ,<<"Token-ID">>
+                          ,<<"Token-Type">>
                           ]).
--define(OPTIONAL_PUSH_REQ_HEADERS, [<<"Queue">>, <<"Call-ID">>
-                                   ,<<"Badge">>, <<"Sound">>
-                                   ,<<"Account-ID">>, <<"Endpoint-ID">>
+-define(OPTIONAL_PUSH_REQ_HEADERS, [<<"Account-ID">>
+                                   ,<<"Alert">>
+                                   ,<<"Alert-Key">>
+                                   ,<<"Alert-Params">>
+                                   ,<<"Badge">>
+                                   ,<<"Call-ID">>
+                                   ,<<"Endpoint-ID">>
                                    ,<<"Expires">>
+                                   ,<<"Queue">>
+                                   ,<<"Sound">>
                                    ,<<"Token-Reg">>
-                                   ,<<"Alert">>, <<"Alert-Key">>, <<"Alert-Params">>
                                    ]).
 -define(PUSH_REQ_VALUES, [{<<"Event-Category">>, ?PUSH_EVENT_CATEGORY}
                          ,{<<"Event-Name">>, <<"push_req">>}
@@ -452,10 +457,15 @@ publish_targeted_push_resp(RespQ, JObj, ContentType) ->
 
 -spec push_routing_key(kz_term:api_terms()) -> kz_term:ne_binary().
 push_routing_key(Req) when is_list(Req) ->
-    push_routing_key(props:get_value(<<"Token-Type">>, Req, <<"*">>), props:get_value(<<"Token">>, Req,<<"*">>));
+    push_routing_key(props:get_value(<<"Token-Type">>, Req, <<"*">>)
+                    ,props:get_value(<<"Token">>, Req,<<"*">>)
+                    );
 push_routing_key(Req) ->
-    push_routing_key(kz_json:get_value(<<"Token-Type">>, Req, <<"*">>), kz_json:get_value(<<"Token">>, Req, <<"*">>)).
-push_routing_key(Type, Token) ->
+    push_routing_key(kz_json:get_value(<<"Token-Type">>, Req, <<"*">>)
+                    ,kz_json:get_value(<<"Token">>, Req, <<"*">>)
+                    ).
+
+push_routing_key(<<Type/binary>>, <<Token/binary>>) ->
     list_to_binary([?KEY_PUSH, ".", kz_amqp_util:encode(Type), ".", kz_amqp_util:encode(Token)]).
 
 %% API Helpers

@@ -513,7 +513,7 @@ get_value(API, Key, Default, Get) ->
     Get(Key, API, Default).
 
 -spec notify_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-notify_routing_key(Realm, Username) ->
+notify_routing_key(<<Realm/binary>>, <<Username/binary>>) ->
     kz_binary:join([<<"switch.notify">>
                    ,kz_amqp_util:encode(Realm)
                    ,kz_amqp_util:encode(Username)
@@ -522,5 +522,5 @@ notify_routing_key(Realm, Username) ->
                   ).
 
 -spec fs_command_routing_key(kz_term:ne_binary()) -> kz_term:ne_binary().
-fs_command_routing_key(Node) ->
+fs_command_routing_key(<<Node/binary>>) ->
     <<"switch.command.", (kz_amqp_util:encode(Node))/binary>>.

@@ -37,6 +37,7 @@
           [{<<"$schema">>, <<"http://json-schema.org/draft-04/schema#">>}
           ,{<<"properties">>, ?PROPERTIES_JOBJ}
           ,{<<"required">>, [<<"key1">>, <<"key2">>]}
+          ,{<<"type">>, <<"object">>}
           ]
          )
        ).

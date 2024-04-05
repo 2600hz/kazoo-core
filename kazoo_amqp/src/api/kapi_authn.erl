@@ -495,7 +495,7 @@ declare_exchanges() ->
 %%------------------------------------------------------------------------------
 -spec get_authn_req_bind_routing(kz_term:proplist()) -> kz_term:ne_binary().
 get_authn_req_bind_routing(Props) ->
-    Realm = props:get_value('realm', Props, <<"*">>),
+    <<Realm/binary>> = props:get_value('realm', Props, <<"*">>),
     Routing = props:get_value('routing', Props, ?KEY_AUTHN_REQ),
     list_to_binary([Routing, ".", kz_amqp_util:encode(Realm)]).
 
@@ -505,7 +505,7 @@ get_authn_req_bind_routing(Props) ->
 %%------------------------------------------------------------------------------
 -spec get_authn_req_routing(kz_term:api_terms()) -> kz_term:ne_binary().
 get_authn_req_routing(Req) ->
-    Realm = get_auth_realm(Req),
+    <<Realm/binary>> = get_auth_realm(Req),
     Routing = kz_api:routing_key_prefix(Req, ?KEY_AUTHN_REQ),
     list_to_binary([Routing, ".", kz_amqp_util:encode(Realm)]).
 
@@ -515,7 +515,7 @@ get_authn_req_routing(Req) ->
 %%------------------------------------------------------------------------------
 -spec get_authn_token_req_bind_routing(kz_term:proplist()) -> kz_term:ne_binary().
 get_authn_token_req_bind_routing(Props) ->
-    Realm = props:get_value('realm', Props, <<"*">>),
+    <<Realm/binary>> = props:get_value('realm', Props, <<"*">>),
     Routing = props:get_value('routing', Props, ?KEY_AUTHN_TOKEN_REQ),
     list_to_binary([Routing, ".", kz_amqp_util:encode(Realm)]).
 
@@ -525,7 +525,7 @@ get_authn_token_req_bind_routing(Props) ->
 %%------------------------------------------------------------------------------
 -spec get_authn_token_req_routing(kz_term:api_terms()) -> kz_term:ne_binary().
 get_authn_token_req_routing(Req) ->
-    Realm = get_auth_realm(Req),
+    <<Realm/binary>> = get_auth_realm(Req),
     Routing = kz_api:routing_key_prefix(Req, ?KEY_AUTHN_TOKEN_REQ),
     list_to_binary([Routing, ".", kz_amqp_util:encode(Realm)]).
 

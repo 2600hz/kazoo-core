@@ -1508,7 +1508,7 @@ realm(JObj) ->
     kz_json:get_ne_binary_value(<<"Realm">>, JObj).
 
 -spec call_routing_key(kz_term:ne_binary() | atom(), kz_term:ne_binary()) -> kz_term:ne_binary().
-call_routing_key(Event, CallId) ->
+call_routing_key(Event, <<CallId/binary>>) ->
     list_to_binary(["call."
                    ,kz_term:to_binary(Event)
                    ,"."
