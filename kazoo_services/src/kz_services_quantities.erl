@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -484,7 +484,7 @@ calculate_app_store_updates(JObj, Updates) ->
 app_store_updates_fold(_K, App, U) ->
     Name = kz_json:get_ne_binary_value(<<"name">>, App),
     AccountKey = [<<"account_apps">>, Name],
-    case kz_json:get_ne_value(<<"allowed_users">>, App) of
+    case kz_json:get_ne_value(<<"allowed_users">>, App, <<"specific">>) of
         <<"all">> ->
             UserKey = [<<"user_apps">>, Name],
             [{UserKey, -1}
