@@ -91,7 +91,7 @@
 -type proplist_kv(K, V) :: [{K, V}].
 %% Denotes a list of key-value with given `K' as key's type and `V' as value's type.
 
--type pid_ref() :: {pid(), reference()}.
+-type pid_ref() :: {pid(), gen_server:reply_tag() | reference()}.
 -type pid_refs() :: [pid_ref()].
 -type api_pid_ref() :: pid_ref() | 'undefined'.
 -type api_pid_refs() :: pid_refs() | 'undefined'.
@@ -509,7 +509,7 @@ is_empty(<<_/binary>>) -> 'false';
 is_empty('null') -> 'true';
 is_empty('undefined') -> 'true';
 
-is_empty(Float) when is_float(Float), Float =:= 0.0 -> 'true';
+is_empty(Float) when is_float(Float), Float =:= +0.0 -> 'true';
 
 is_empty(Map) when is_map(Map), map_size(Map) =:= 0 -> 'true';
 is_empty(Map) when is_map(Map) -> 'false';

@@ -158,7 +158,7 @@
                            #'queue.bind'{} | #'queue.unbind'{} |
                            #'basic.consume'{} | #'basic.cancel'{} |
                            #'basic.ack'{} | #'basic.nack'{} |
-                           #'basic.qos'{} |
+                           #'basic.qos'{} | #'basic.reject'{} |
                            #'exchange.declare'{} | #'exchange.delete'{} |
                            #'exchange.bind'{} | #'exchange.unbind'{} |
                            #'confirm.select'{} |

@@ -17,11 +17,10 @@ debug_call(M, F, Args) ->
 
     dbg:tracer(),
 
-    dbg:tpl(M, [{'_', [], [$_]}]),
-    dbg:p(all, c),
+    _ = dbg:tpl(M, [{'_', [], [$_]}]),
+    dbg:p('all', 'c'),
 
     Result = apply(M, F, Args),
 
-    dbg:stop_clear(),
     dbg:stop(),
     Result.

@@ -1488,7 +1488,7 @@ basic_qos(PreFetch) when is_integer(PreFetch) ->
 encode(<<>>) -> <<>>;
 encode(<<"*">>) -> <<"*">>;
 encode(<<"#">>) -> <<"#">>;
-encode(Bin) -> << <<(encode_char(B))/binary>> || <<B>> <= Bin >>.
+encode(<<Bin/binary>>) -> << <<(encode_char(B))/binary>> || <<B>> <= Bin >>.
 
 -define(HI4(C), (C band 2#11110000) bsr 4).
 -define(LO4(C), (C band 2#00001111)).

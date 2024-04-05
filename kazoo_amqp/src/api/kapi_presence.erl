@@ -621,7 +621,7 @@ publish_search_req(Req, ContentType) ->
                                  ).
 
 -spec search_req_routing_key(kz_term:ne_binary()) -> kz_term:ne_binary().
-search_req_routing_key(Realm) ->
+search_req_routing_key(<<Realm/binary>>) ->
     list_to_binary([<<"presence.search_req.">>, kz_amqp_util:encode(Realm)]).
 
 %%------------------------------------------------------------------------------
@@ -704,7 +704,7 @@ publish_subscribe(Req, ContentType) ->
                                  ).
 
 -spec subscribe_routing_key(kz_term:ne_binary()) -> kz_term:ne_binary().
-subscribe_routing_key(User) ->
+subscribe_routing_key(<<User/binary>>) ->
     <<"subscriptions.", (kz_amqp_util:encode(realm_from_presence_id(User)))/binary>>.
 
 %%------------------------------------------------------------------------------
@@ -739,7 +739,7 @@ publish_dialog(Req, ContentType) ->
                                  ).
 
 -spec dialog_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-dialog_routing_key(CallId, PresenceID) ->
+dialog_routing_key(<<CallId/binary>>, <<PresenceID/binary>>) ->
     list_to_binary([<<"dialog.">>
                    ,kz_amqp_util:encode(realm_from_presence_id(PresenceID))
                    ,"."
@@ -779,7 +779,7 @@ publish_update(Req, ContentType) ->
                                  ).
 
 -spec update_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-update_routing_key(CallId, PresenceID) ->
+update_routing_key(<<CallId/binary>>, <<PresenceID/binary>>) ->
     list_to_binary([<<"update.">>
                    ,kz_amqp_util:encode(realm_from_presence_id(PresenceID))
                    ,"."
@@ -813,7 +813,7 @@ publish_probe(Req, ContentType) ->
     kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType).
 
 -spec probe_routing_key(kz_term:ne_binary()) -> kz_term:ne_binary().
-probe_routing_key(SubscriptionType) ->
+probe_routing_key(<<SubscriptionType/binary>>) ->
     <<"probes.", SubscriptionType/binary>>.
 
 %%------------------------------------------------------------------------------
@@ -871,7 +871,7 @@ publish_mwi_update(Req, ContentType) ->
                                  ).
 
 -spec mwi_update_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-mwi_update_routing_key(User, Realm) ->
+mwi_update_routing_key(<<User/binary>>, <<Realm/binary>>) ->
     list_to_binary([<<"mwi_updates.">>
                    ,kz_amqp_util:encode(Realm)
                    ,"."
@@ -908,7 +908,7 @@ publish_unsolicited_mwi_update(Req, ContentType) ->
                                  ).
 
 -spec mwi_unsolicited_update_routing_key(kz_term:ne_binary()) -> kz_term:ne_binary().
-mwi_unsolicited_update_routing_key(To) ->
+mwi_unsolicited_update_routing_key(<<To/binary>>) ->
     <<"mwi_unsolicited_updates.", (kz_amqp_util:encode(realm_from_presence_id(To)))/binary>>.
 
 %%------------------------------------------------------------------------------
@@ -939,7 +939,7 @@ publish_mwi_query(Req, ContentType) ->
     kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType).
 
 -spec mwi_query_routing_key(kz_term:ne_binary()) -> kz_term:ne_binary().
-mwi_query_routing_key(Realm)  ->
+mwi_query_routing_key(<<Realm/binary>>)  ->
     <<"mwi_queries.", (kz_amqp_util:encode(Realm))/binary>>.
 
 %%------------------------------------------------------------------------------
@@ -997,7 +997,7 @@ publish_register_overwrite(JObj, ContentType) ->
     publish_register_overwrite(kz_json:to_proplist(JObj), ContentType).
 
 -spec register_overwrite_routing_key(kz_term:ne_binary()) -> kz_term:ne_binary().
-register_overwrite_routing_key(Realm) ->
+register_overwrite_routing_key(<<Realm/binary>>) ->
     <<"register_overwrites.", (kz_amqp_util:encode(Realm))/binary>>.
 
 %%------------------------------------------------------------------------------
@@ -1054,7 +1054,7 @@ publish_reset(Req, ContentType) ->
     kz_amqp_util:presence_publish(RoutingKey, Payload, ContentType).
 
 -spec reset_routing_key(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-reset_routing_key(Realm, Username) ->
+reset_routing_key(<<Realm/binary>>, <<Username/binary>>) ->
     list_to_binary([<<"presence.reset.">>
                    ,kz_amqp_util:encode(Realm)
                    ,"."

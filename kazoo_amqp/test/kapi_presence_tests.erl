@@ -33,7 +33,7 @@ subscribe_routing_key_test_() ->
       ,?_assertEqual(<<Prefix/binary, User/binary>>
                     ,Test(<<(kz_binary:rand_hex(4))/binary, "@", User/binary>>)
                     )
-      ,?_assertException('error', 'badarg', Test(binary_to_list(User)))
+      ,?_assertException('error', 'function_clause', Test(binary_to_list(User)))
       ]
      }
     ].
@@ -52,7 +52,7 @@ dialog_routing_key_test_() ->
                     ,Test(CallId, <<(kz_binary:rand_hex(4))/binary, "@", PresenceId/binary>>)
                     )
       ,?_assertException('error', 'function_clause', Test(binary_to_list(CallId), PresenceId))
-      ,?_assertException('error', 'badarg', Test(CallId, binary_to_list(PresenceId)))
+      ,?_assertException('error', 'function_clause', Test(CallId, binary_to_list(PresenceId)))
       ]
      }
     ].
@@ -71,7 +71,7 @@ update_routing_key_test_() ->
                     ,Test(CallId, <<(kz_binary:rand_hex(4))/binary, "@", PresenceId/binary>>)
                     )
       ,?_assertException('error', 'function_clause', Test(binary_to_list(CallId), PresenceId))
-      ,?_assertException('error', 'badarg', Test(CallId, binary_to_list(PresenceId)))
+      ,?_assertException('error', 'function_clause', Test(CallId, binary_to_list(PresenceId)))
       ]
      }
     ].
@@ -83,7 +83,7 @@ probe_routing_key_test_() ->
 
     [{"SubscriptionType must be binary"
      ,[?_assertEqual(<<Prefix/binary, SubscriptionType/binary>>, Test(SubscriptionType))
-      ,?_assertException('error', 'badarg', Test(binary_to_list(SubscriptionType)))
+      ,?_assertException('error', 'function_clause', Test(binary_to_list(SubscriptionType)))
       ]
      }
     ].
@@ -112,7 +112,7 @@ mwi_unsolicited_update_routing_key_test_() ->
       ,?_assertEqual(<<Prefix/binary, To/binary>>
                     ,Test(<<(kz_binary:rand_hex(4))/binary, "@", To/binary>>)
                     )
-      ,?_assertException('error', 'badarg', Test(binary_to_list(To)))
+      ,?_assertException('error', 'function_clause', Test(binary_to_list(To)))
       ]
      }
     ].

@@ -120,7 +120,7 @@
                ,confirms = 'false' :: boolean()
                ,flow = 'undefined' :: kz_term:api_boolean()
                ,acc = 'undefined' :: any()
-               ,defer = 'undefined' :: 'undefined' | {any(), {pid(), reference()}}
+               ,defer = 'undefined' :: 'undefined' | {any(), kz_term:pid_ref()}
                ,confirm_timeout_ref :: kz_term:api_reference()
                ,confirm_start_time = kz_time:start_time() :: kz_time:start_time() | 'undefined'
                ,timeout :: non_neg_integer() | 'undefined'

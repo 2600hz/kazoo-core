@@ -412,7 +412,7 @@ gen_private_key() ->
 
 -spec gen_private_key(integer()) -> {'ok', public_key:private_key()}.
 gen_private_key(Size) ->
-    Key = public_key:generate_key({'rsa', Size, Size + 1}),
+    Key = public_key:generate_key({'rsa', Size, ?RSA_PUBEXP_SIZE}),
     {'ok', Key}.
 
 %% @equiv reset_private_key(kz_auth_apps:get_auth_app(<<"kazoo">>))
