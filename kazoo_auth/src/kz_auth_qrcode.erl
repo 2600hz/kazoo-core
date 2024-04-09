@@ -13,6 +13,7 @@
 -export([create/2]).
 
 -include("kazoo_auth.hrl").
+-include_lib("qrcode/src/qrcode.hrl").
 
 -define(ATT_QRCODE(TYPE), <<TYPE/binary, "_qrcode">>).
 
@@ -42,7 +43,7 @@ create_totp(AccountId, UserId, PeriodS) ->
             >>,
 
     QRCode = qrcode:encode(Token),
-    PNG = qrcode_png:encode(QRCode),
+    PNG = simple_png_encode(QRCode),
 
     {'ok', _} = kz_datamgr:put_attachment(AccountId, UserId, ?ATT_QRCODE(<<"totp">>), PNG),
     {'ok', PNG}.
@@ -66,7 +67,42 @@ create_hotp(AccountId, UserId, InitialCounter) ->
             >>,
 
     QRCode = qrcode:encode(Token),
-    PNG = qrcode_png:encode(QRCode),
+    PNG = simple_png_encode(QRCode),
 
     {'ok', _} = kz_datamgr:put_attachment(AccountId, UserId, ?ATT_QRCODE(<<"hotp">>), PNG),
     {'ok', PNG}.
+
+%% Very simple PNG encoder for demo purposes
+%% taken from qrcode_demo.erl
+simple_png_encode(#qrcode{dimension = Dim, data = Data}) ->
+    MAGIC = <<137, 80, 78, 71, 13, 10, 26, 10>>,
+    Size = Dim * 8,
+    IHDR = png_chunk(<<"IHDR">>, <<Size:32, Size:32, 8:8, 2:8, 0:24>>),
+    PixelData = get_pixel_data(Dim, Data),
+    IDAT = png_chunk(<<"IDAT">>, PixelData),
+    IEND = png_chunk(<<"IEND">>, <<>>),
+    <<MAGIC/binary, IHDR/binary, IDAT/binary, IEND/binary>>.
+
+png_chunk(Type, Bin) ->
+    Length = byte_size(Bin),
+    CRC = erlang:crc32(<<Type/binary, Bin/binary>>),
+    <<Length:32, Type/binary, Bin/binary, CRC:32>>.
+
+get_pixel_data(Dim, Data) ->
+    Pixels = get_pixels(Data, 0, Dim, <<>>),
+    zlib:compress(Pixels).
+
+get_pixels(<<>>, Dim, Dim, Acc) -> Acc;
+get_pixels(Bin, Count, Dim, Acc) ->
+    <<RowBits:Dim/bits, Bits/bits>> = Bin,
+    Row = get_pixels0(RowBits, <<0>>), % row filter byte
+    FullRow = binary:copy(Row, 8),
+    get_pixels(Bits, Count + 1, Dim, <<Acc/binary, FullRow/binary>>).
+
+get_pixels0(<<>>, Acc) -> Acc;
+get_pixels0(<<1:1, Bits/bits>>, Acc) ->
+    Black = binary:copy(<<0>>, 24),
+    get_pixels0(Bits, <<Acc/binary, Black/binary>>);
+get_pixels0(<<0:1, Bits/bits>>, Acc) ->
+    White = binary:copy(<<255>>, 24),
+    get_pixels0(Bits, <<Acc/binary, White/binary>>).
