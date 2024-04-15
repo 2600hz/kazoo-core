@@ -103,8 +103,9 @@
         ,b_rm_binding/2, b_rm_binding/3
         ]).
 
--export([ack/2
-        ,nack/2
+-export([ack/2, ack/3
+        ,nack/2, nack/3, nack/4
+        ,reject/2, reject/3
         ]).
 
 -export([execute/4
@@ -299,11 +300,26 @@ federators(Srv) -> gen_server:call(Srv, 'federators').
 routing_key_used(#'basic.deliver'{routing_key=RoutingKey}) ->
     kz_term:to_binary(RoutingKey).
 
--spec ack(kz_types:server_ref(), basic_deliver()) -> 'ok'.
+-spec ack(kz_types:server_ref(), integer() | basic_deliver() | basic_ack()) -> 'ok'.
 ack(Srv, Delivery) -> gen_server:cast(Srv, {'ack', Delivery}).
 
--spec nack(kz_types:server_ref(), basic_deliver()) -> 'ok'.
+-spec ack(kz_types:server_ref(), integer() | basic_deliver(), boolean()) -> 'ok'.
+ack(Srv, Delivery, Multiple) -> gen_server:cast(Srv, {'ack', Delivery, Multiple}).
+
+-spec nack(kz_types:server_ref(), integer() | basic_deliver() | basic_nack()) -> 'ok'.
 nack(Srv, Delivery) -> gen_server:cast(Srv, {'nack', Delivery}).
+
+-spec nack(kz_types:server_ref(), integer() | basic_deliver(), boolean()) -> 'ok'.
+nack(Srv, Delivery, Requeue) -> gen_server:cast(Srv, {'nack', Delivery, Requeue}).
+
+-spec nack(kz_types:server_ref(), integer() | basic_deliver(), boolean(), boolean()) -> 'ok'.
+nack(Srv, Delivery, Requeue, Multiple) -> gen_server:cast(Srv, {'nack', Delivery, Requeue, Multiple}).
+
+-spec reject(kz_types:server_ref(), integer() | basic_deliver()) -> 'ok'.
+reject(Srv, Delivery) -> gen_server:cast(Srv, {'reject', Delivery}).
+
+-spec reject(kz_types:server_ref(), integer() | basic_deliver(), boolean()) -> 'ok'.
+reject(Srv, Delivery, Requeue) -> gen_server:cast(Srv, {'reject', Delivery, Requeue}).
 
 %%------------------------------------------------------------------------------
 %% @doc API functions that mirror `gen_server:call,cast,reply'.
@@ -614,8 +630,23 @@ handle_continue(Args, 'null') ->
 handle_cast({'ack', Delivery}, State) ->
     _A = (catch kz_amqp_util:basic_ack(Delivery)),
     {'noreply', State};
+handle_cast({'ack', Delivery, Multiple}, State) ->
+    _A = (catch kz_amqp_util:basic_ack(Delivery, Multiple)),
+    {'noreply', State};
 handle_cast({'nack', Delivery}, State) ->
     _N = (catch kz_amqp_util:basic_nack(Delivery)),
+    {'noreply', State};
+handle_cast({'nack', Delivery, Requeue}, State) ->
+    _N = (catch kz_amqp_util:basic_nack(Delivery, Requeue)),
+    {'noreply', State};
+handle_cast({'nack', Delivery, Requeue, Multiple}, State) ->
+    _N = (catch kz_amqp_util:basic_nack(Delivery, Requeue, Multiple)),
+    {'noreply', State};
+handle_cast({'reject', Delivery}, State) ->
+    _A = (catch kz_amqp_util:basic_reject(Delivery)),
+    {'noreply', State};
+handle_cast({'reject', Delivery, Requeue}, State) ->
+    _A = (catch kz_amqp_util:basic_reject(Delivery, Requeue)),
     {'noreply', State};
 handle_cast({'add_queue', QueueName, QueueProps, Bindings}, State) ->
     {_, S} = add_other_queue(QueueName, QueueProps, Bindings, State),
