@@ -694,7 +694,7 @@ reconcile_app_used_by(Numbers, JObj) ->
     lager:debug("transitioning numbers ~p to active used by apps ~p portin usage ~p"
                ,[Numbers, AppUsedBy, PortInUsedBy]
                ),
-    _ = [log_wrong_app_in_portin(proplists:get_value(N, PortInUsedBy), App, N) || {N, App} <- AppUsedBy],
+    _ = [log_wrong_app_in_portin(props:get_value(N, PortInUsedBy), App, N) || {N, App} <- AppUsedBy],
 
     %% app used_by carried over to phone_number document
     lists:foreach(

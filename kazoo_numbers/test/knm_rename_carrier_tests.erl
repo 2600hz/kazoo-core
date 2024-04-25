@@ -53,8 +53,8 @@ create_new_number_rename_carrier() ->
     ].
 
 rename_carrier() ->
-    Options = [{auth_by, ?MASTER_ACCOUNT_ID}
-              ,{assign_to, ?RESELLER_ACCOUNT_ID}
+    Options = [{'auth_by', ?MASTER_ACCOUNT_ID}
+              ,{'assign_to', ?RESELLER_ACCOUNT_ID}
               ],
     [PN1] = knm_pipe:succeeded(knm_ops:create([?TEST_TELNYX_NUM], Options)),
 
@@ -68,7 +68,7 @@ rename_carrier() ->
     JObj3 = kz_json:from_list([{?FEATURE_RENAME_CARRIER, <<"telnyx">>}]),
     #{'failed' := #{?TEST_TELNYX_NUM := Error5}} = knm_ops:update([PN4]
                                                                  ,[{fun knm_phone_number:reset_doc/2, JObj3}]
-                                                                 ,[{auth_by, ?RESELLER_ACCOUNT_ID}]
+                                                                 ,[{'auth_by', ?RESELLER_ACCOUNT_ID}]
                                                                  ),
     JObj4 = kz_json:from_list([{?FEATURE_RENAME_CARRIER, <<"gen_carrier">>}]),
     #{'succeeded' := [PN6]} = knm_ops:update([PN4], [{fun knm_phone_number:reset_doc/2, JObj4}]),
@@ -141,8 +141,7 @@ rename_from_local() ->
     ].
 
 rename_to_local_with_external_features() ->
-    Options = [{auth_by, ?MASTER_ACCOUNT_ID}
-              ],
+    Options = [{'auth_by', ?MASTER_ACCOUNT_ID}],
     [PN1] = knm_pipe:succeeded(knm_ops:get([?TEST_VITELITY_NUM], Options)),
     JObj1 = kz_json:from_list([{?FEATURE_RENAME_CARRIER, <<"local">>}]),
     #{'succeeded' := [PN2]} = knm_ops:update([PN1], [{fun knm_phone_number:update_doc/2, JObj1}], Options),
@@ -150,11 +149,11 @@ rename_to_local_with_external_features() ->
     ,{"Verify carrier name is right"
      ,?_assertEqual(<<"knm_vitelity">>, knm_phone_number:module_name(PN1))
      }
-    ,?_assertEqual(undefined, kz_json:get_value(?FEATURE_RENAME_CARRIER, knm_phone_number:doc(PN1)))
+    ,?_assertEqual('undefined', kz_json:get_value(?FEATURE_RENAME_CARRIER, knm_phone_number:doc(PN1)))
     ,{"Verify local feature is not set"
      ,?_assert(not lists:member(?FEATURE_LOCAL, knm_phone_number:features_list(PN1)))
      }
-    ,?_assertNotEqual(undefined, kz_json:get_value(?FEATURE_CNAM, knm_phone_number:doc(PN1)))
+    ,?_assertNotEqual('undefined', kz_json:get_value(?FEATURE_CNAM, knm_phone_number:doc(PN1)))
     ,?_assert(lists:member(?FEATURE_CNAM_INBOUND, knm_phone_number:features_list(PN1)))
     ,?_assert(lists:member(?FEATURE_CNAM_OUTBOUND, knm_phone_number:features_list(PN1)))
     ,?_assert(lists:member(?FEATURE_PREPEND, knm_phone_number:features_list(PN1)))
@@ -166,9 +165,9 @@ rename_to_local_with_external_features() ->
      ,?_assert(lists:member(?FEATURE_LOCAL, knm_phone_number:features_list(PN2)))
      }
     ,{"Verify feature is now removed"
-     ,?_assertEqual(undefined, kz_json:get_value(?FEATURE_RENAME_CARRIER, knm_phone_number:doc(PN2)))
+     ,?_assertEqual('undefined', kz_json:get_value(?FEATURE_RENAME_CARRIER, knm_phone_number:doc(PN2)))
      }
-    ,?_assertEqual(undefined, kz_json:get_value(?FEATURE_CNAM, knm_phone_number:doc(PN2)))
+    ,?_assertEqual('undefined', kz_json:get_value(?FEATURE_CNAM, knm_phone_number:doc(PN2)))
     ,?_assert(not lists:member(?FEATURE_CNAM, knm_phone_number:features_list(PN2)))
     ,?_assert(not lists:member(?FEATURE_CNAM_INBOUND, knm_phone_number:features_list(PN2)))
     ,?_assert(not lists:member(?FEATURE_CNAM_OUTBOUND, knm_phone_number:features_list(PN2)))
@@ -176,8 +175,7 @@ rename_to_local_with_external_features() ->
     ].
 
 rename_to_nonlocal_with_external_features() ->
-    Options = [{auth_by, ?MASTER_ACCOUNT_ID}
-              ],
+    Options = [{'auth_by', ?MASTER_ACCOUNT_ID}],
     [PN1] = knm_pipe:succeeded(knm_ops:get([?TEST_VITELITY_NUM], Options)),
     JObj1 = kz_json:from_list([{?FEATURE_RENAME_CARRIER, <<"bandwidth">>}]),
     #{'succeeded' := [PN2]} = knm_ops:update([PN1], [{fun knm_phone_number:update_doc/2, JObj1}], Options),
@@ -188,8 +186,8 @@ rename_to_nonlocal_with_external_features() ->
     ,{"Verify local feature is not set"
      ,?_assert(not lists:member(?FEATURE_LOCAL, knm_phone_number:features_list(PN1)))
      }
-    ,?_assertEqual(undefined, kz_json:get_value(?FEATURE_RENAME_CARRIER, knm_phone_number:doc(PN1)))
-    ,?_assertNotEqual(undefined, kz_json:get_value(?FEATURE_CNAM, knm_phone_number:doc(PN1)))
+    ,?_assertEqual('undefined', kz_json:get_value(?FEATURE_RENAME_CARRIER, knm_phone_number:doc(PN1)))
+    ,?_assertNotEqual('undefined', kz_json:get_value(?FEATURE_CNAM, knm_phone_number:doc(PN1)))
     ,?_assert(lists:member(?FEATURE_CNAM_INBOUND, knm_phone_number:features_list(PN1)))
     ,?_assert(lists:member(?FEATURE_CNAM_OUTBOUND, knm_phone_number:features_list(PN1)))
     ,?_assert(lists:member(?FEATURE_PREPEND, knm_phone_number:features_list(PN1)))
@@ -201,9 +199,9 @@ rename_to_nonlocal_with_external_features() ->
      ,?_assert(not lists:member(?FEATURE_LOCAL, knm_phone_number:features_list(PN2)))
      }
     ,{"Verify feature is now removed"
-     ,?_assertEqual(undefined, kz_json:get_value(?FEATURE_RENAME_CARRIER, knm_phone_number:doc(PN2)))
+     ,?_assertEqual('undefined', kz_json:get_value(?FEATURE_RENAME_CARRIER, knm_phone_number:doc(PN2)))
      }
-    ,?_assertNotEqual(undefined, kz_json:get_value(?FEATURE_CNAM, knm_phone_number:doc(PN2)))
+    ,?_assertNotEqual('undefined', kz_json:get_value(?FEATURE_CNAM, knm_phone_number:doc(PN2)))
     ,?_assert(lists:member(?FEATURE_CNAM_INBOUND, knm_phone_number:features_list(PN2)))
     ,?_assert(lists:member(?FEATURE_CNAM_OUTBOUND, knm_phone_number:features_list(PN2)))
     ,?_assert(lists:member(?FEATURE_PREPEND, knm_phone_number:features_list(PN2)))
@@ -211,21 +209,21 @@ rename_to_nonlocal_with_external_features() ->
 
 available_features() ->
     [?_assert(is_feature_available(?TEST_IN_SERVICE_NUM, []))
-    ,?_assert(is_feature_available(?TEST_IN_SERVICE_NUM, [{auth_by, ?KNM_DEFAULT_AUTH_BY}]))
-    ,?_assert(is_feature_available(?TEST_IN_SERVICE_NUM, [{auth_by, ?MASTER_ACCOUNT_ID}]))
-    ,?_assert(not is_feature_available(?TEST_IN_SERVICE_NUM, [{auth_by, ?RESELLER_ACCOUNT_ID}]))
+    ,?_assert(is_feature_available(?TEST_IN_SERVICE_NUM, [{'auth_by', ?KNM_DEFAULT_AUTH_BY}]))
+    ,?_assert(is_feature_available(?TEST_IN_SERVICE_NUM, [{'auth_by', ?MASTER_ACCOUNT_ID}]))
+    ,?_assert(not is_feature_available(?TEST_IN_SERVICE_NUM, [{'auth_by', ?RESELLER_ACCOUNT_ID}]))
     ,?_assert(is_feature_available(?BW_EXISTING_DID, []))
-    ,?_assert(is_feature_available(?BW_EXISTING_DID, [{auth_by, ?KNM_DEFAULT_AUTH_BY}]))
-    ,?_assert(is_feature_available(?BW_EXISTING_DID, [{auth_by, ?MASTER_ACCOUNT_ID}]))
-    ,?_assert(not is_feature_available(?BW_EXISTING_DID, [{auth_by, ?RESELLER_ACCOUNT_ID}]))
+    ,?_assert(is_feature_available(?BW_EXISTING_DID, [{'auth_by', ?KNM_DEFAULT_AUTH_BY}]))
+    ,?_assert(is_feature_available(?BW_EXISTING_DID, [{'auth_by', ?MASTER_ACCOUNT_ID}]))
+    ,?_assert(not is_feature_available(?BW_EXISTING_DID, [{'auth_by', ?RESELLER_ACCOUNT_ID}]))
     ,?_assert(is_feature_available(?TEST_OLD5_1_NUM, []))
-    ,?_assert(is_feature_available(?TEST_OLD5_1_NUM, [{auth_by, ?KNM_DEFAULT_AUTH_BY}]))
-    ,?_assert(is_feature_available(?TEST_OLD5_1_NUM, [{auth_by, ?MASTER_ACCOUNT_ID}]))
-    ,?_assert(not is_feature_available(?TEST_OLD5_1_NUM, [{auth_by, ?RESELLER_ACCOUNT_ID}]))
+    ,?_assert(is_feature_available(?TEST_OLD5_1_NUM, [{'auth_by', ?KNM_DEFAULT_AUTH_BY}]))
+    ,?_assert(is_feature_available(?TEST_OLD5_1_NUM, [{'auth_by', ?MASTER_ACCOUNT_ID}]))
+    ,?_assert(not is_feature_available(?TEST_OLD5_1_NUM, [{'auth_by', ?RESELLER_ACCOUNT_ID}]))
     ,?_assert(is_feature_available(?TEST_VITELITY_NUM, []))
-    ,?_assert(is_feature_available(?TEST_VITELITY_NUM, [{auth_by, ?KNM_DEFAULT_AUTH_BY}]))
-    ,?_assert(is_feature_available(?TEST_VITELITY_NUM, [{auth_by, ?MASTER_ACCOUNT_ID}]))
-    ,?_assert(not is_feature_available(?TEST_VITELITY_NUM, [{auth_by, ?RESELLER_ACCOUNT_ID}]))
+    ,?_assert(is_feature_available(?TEST_VITELITY_NUM, [{'auth_by', ?KNM_DEFAULT_AUTH_BY}]))
+    ,?_assert(is_feature_available(?TEST_VITELITY_NUM, [{'auth_by', ?MASTER_ACCOUNT_ID}]))
+    ,?_assert(not is_feature_available(?TEST_VITELITY_NUM, [{'auth_by', ?RESELLER_ACCOUNT_ID}]))
     ].
 
 is_feature_available(Num, Options) ->

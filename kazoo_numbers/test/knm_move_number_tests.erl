@@ -41,7 +41,7 @@ acquire_parent_reserved() ->
     Num = ?TEST_RESERVED_NUM,
     To = ?CHILD_ACCOUNT_ID,
     [PN0] = knm_pipe:succeeded(knm_ops:get([Num])),
-    [PN1] = knm_pipe:succeeded(knm_ops:move([Num], To, [{auth_by, To}])),
+    [PN1] = knm_pipe:succeeded(knm_ops:move([Num], To, [{'auth_by', To}])),
     [PN2] = knm_pipe:succeeded(knm_ops:move([Num], To)),
     [?_assert(not knm_phone_number:is_dirty(PN0))
     ,{"verify test number is assigned to reseller"
@@ -184,7 +184,7 @@ everyone_is_allowed_to_buy_available(AuthBy, AssignTo) ->
     everyone_is_allowed_to_buy_available(Num, AuthBy, AssignTo, <<"knm_telnyx">>, []).
 
 everyone_is_allowed_to_buy_available(Num, AuthBy, AssignTo, Carrier, Features) ->
-    [PN] = knm_pipe:succeeded(knm_ops:move([Num], AssignTo, [{auth_by,AuthBy}])),
+    [PN] = knm_pipe:succeeded(knm_ops:move([Num], AssignTo, [{'auth_by', AuthBy}])),
     [?_assert(knm_phone_number:is_dirty(PN))
     ,?_assertEqual(Num, knm_phone_number:number(PN))
     ,{"Verify number is now in_service" ++ auth_and_assign(AuthBy, AssignTo)

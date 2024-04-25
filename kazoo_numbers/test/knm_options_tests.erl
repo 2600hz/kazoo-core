@@ -31,9 +31,9 @@ to_phone_number_setters_test_() ->
                   )
     ,?_assertEqual([{fun knm_phone_number:set_module_name/2, M_1}]
                   ,knm_options:to_phone_number_setters(
-                     [{module_name, M_1}
-                     ,{module_name, <<"blaaa">>}
-                     ,{module_name, ?CARRIER_MDN}
+                     [{'module_name', M_1}
+                     ,{'module_name', <<"blaaa">>}
+                     ,{'module_name', ?CARRIER_MDN}
                      ])
                   )
     ].

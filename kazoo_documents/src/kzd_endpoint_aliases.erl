@@ -113,8 +113,10 @@ merge(Endpoints, Options) ->
         Aliases -> merge_aliases(Aliases, Options)
     end.
 
+-spec merge_aliases(presence_aliases(), options()) -> presence_aliases().
 merge_aliases([First | Aliases], Options) ->
-    merge_aliases_result(lists:foldl(fun merge_aliases_fold/2, First, Aliases), Options).
+    Merged = lists:foldl(fun merge_aliases_fold/2, First, Aliases),
+    merge_aliases_result(Merged, Options).
 
 merge_aliases_result(Result, _Options) ->
     %% TODO

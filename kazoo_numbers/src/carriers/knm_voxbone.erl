@@ -59,7 +59,7 @@ check_numbers(_Numbers) ->
 -spec find_numbers(kz_term:ne_binary(), kz_term:api_pos_integer(), knm_search:options()) ->
           {'ok', knm_search:results()}.
 find_numbers(Number, Quantity, Options) ->
-    Country = knm_iso3166_util:country(proplists:get_value('country', Options)),
+    Country = knm_iso3166_util:country(props:get_value('country', Options)),
     find_numbers(Number, Quantity, Options, Country).
 
 -spec find_numbers(kz_term:ne_binary(), kz_term:api_pos_integer(), knm_search:options(), map()) ->

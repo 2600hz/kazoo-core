@@ -21,7 +21,7 @@ start_db(TestdListFun, SetupFun) ->
     start_db(TestdListFun, SetupFun, 'undefined').
 
 start_db(TestdListFun, SetupFun, CleanupFun) ->
-    {setup
+    {'setup'
     ,fun() -> setup(SetupFun) end
     ,fun(State) -> cleanup(State, CleanupFun) end
     ,fun(_ReturnOfSetup) ->

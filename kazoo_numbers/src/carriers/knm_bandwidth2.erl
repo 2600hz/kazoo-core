@@ -26,6 +26,8 @@
 %% Maintenance commands
 -export([sites/0, peers/1]).
 
+-elvis([{elvis_style, no_debug_call, disable}]).
+
 -include("knm.hrl").
 
 -define(KNM_BW2_CONFIG_CAT, <<(?KNM_CONFIG_CAT)/binary, ".bandwidth2">>).

@@ -462,7 +462,7 @@ kapp_version_tuple(Name, JObj) ->
     VersionInfo = kz_json:get_value(Name, JObj),
     {Name, kapp_version_from_json(VersionInfo)}.
 
--spec kapp_version_from_json(kz_term:object()) -> kz_types:kapp_version().
+-spec kapp_version_from_json(kz_json:object()) -> kz_types:kapp_version().
 kapp_version_from_json(JObj) ->
     #kapp_version{
        name = kz_json:get_ne_binary_value(<<"Name">>, JObj)

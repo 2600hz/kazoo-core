@@ -55,7 +55,7 @@ configuration(Carrier) ->
                 'false' -> default_config(Carrier)
             end
     catch
-        _ -> kz_json:new()
+        _:_ -> kz_json:new()
     end.
 
 default_config(Carrier) ->

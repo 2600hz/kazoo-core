@@ -18,6 +18,8 @@
         ,migrate_trunkstore/1, migrate_trunkstore/3
         ]).
 
+-elvis([{elvis_style, no_debug_call, disable}]).
+
 -define(NPAN, <<"npan">>).
 -define(STRIP_PLUS, <<"strip_plus">>).
 -define(DEFAULT_FROM, <<"npan">>).

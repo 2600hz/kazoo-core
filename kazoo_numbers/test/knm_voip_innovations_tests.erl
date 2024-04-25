@@ -53,8 +53,8 @@ api() ->
      || {Prefix, Limit} <- [{<<"435">>, 2}
                            ,{<<"877">>, 1}
                            ],
-        Options <- [[{quantity, Limit}
-                    ,{prefix, Prefix}
+        Options <- [[{'quantity', Limit}
+                    ,{'prefix', Prefix}
                     | Options0
                     ]],
         Results <- [knm_search:find(Options)]

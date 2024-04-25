@@ -31,7 +31,7 @@ api() ->
               ,{'carriers', [<<"knm_telnyx">>]}
               ,{'query_id', <<"QID">>}
               ],
-    {setup
+    {'setup'
     ,fun () -> {'ok', Pid} = knm_search:start_link(), Pid end
     ,fun gen_server:stop/1
     ,fun (_ReturnOfSetup) ->
@@ -52,8 +52,8 @@ find_numbers(Options0) ->
      || {Prefix, Limit} <- [{<<"301359">>, 5}
                            ,{<<"800">>, 2}
                            ],
-        Options <- [[{quantity, Limit}
-                    ,{prefix, Prefix}
+        Options <- [[{'quantity', Limit}
+                    ,{'prefix', Prefix}
                     | Options0
                     ]],
         Results <- [knm_search:find(Options)]
@@ -70,9 +70,9 @@ find_international_numbers(Options0) ->
      ]
      || {Prefix, Limit} <- [{<<"1">>, 2}
                            ],
-        Options <- [[{country, Country}
-                    ,{quantity, Limit}
-                    ,{prefix, Prefix}
+        Options <- [[{'country', Country}
+                    ,{'quantity', Limit}
+                    ,{'prefix', Prefix}
                     | Options0
                     ]],
         Results <- [knm_search:find(Options)]
@@ -121,7 +121,7 @@ e911() ->
                    ,kz_json:get_value(<<"address_id">>, knm_phone_number:carrier_data(PN1))
                    )
      }
-    ,?_assertEqual(false, knm_phone_number:is_dirty(PN2))
+    ,?_assertEqual('false', knm_phone_number:is_dirty(PN2))
     ,{"Verify feature is still properly set"
      ,?_assert(kz_json:are_equal(E911, knm_phone_number:feature(PN2, ?FEATURE_E911)))
      }
@@ -151,30 +151,30 @@ cnam() ->
     #{'succeeded' := [PN3]} = knm_ops:update([PN2], [{fun knm_phone_number:reset_doc/2, Deactivate}]),
     [?_assert(knm_phone_number:is_dirty(PN1))
     ,{"Verify inbound CNAM is properly activated"
-     ,?_assertEqual(true, is_cnam_activated(PN1))
+     ,?_assertEqual('true', is_cnam_activated(PN1))
      }
     ,{"Verify outbound CNAM is properly set"
      ,?_assertEqual(<<"my CNAM">>, cnam_name(PN1))
      }
-    ,?_assertEqual(false, knm_phone_number:is_dirty(PN2))
+    ,?_assertEqual('false', knm_phone_number:is_dirty(PN2))
     ,{"Verify inbound CNAM is still properly activated"
-     ,?_assertEqual(true, is_cnam_activated(PN2))
+     ,?_assertEqual('true', is_cnam_activated(PN2))
      }
     ,{"Verify outbound CNAM is still properly set"
      ,?_assertEqual(<<"my CNAM">>, cnam_name(PN2))
      }
     ,?_assert(knm_phone_number:is_dirty(PN3))
     ,{"Verify inbound CNAM is indeed deactivated"
-     ,?_assertEqual(false, is_cnam_activated(PN3))
+     ,?_assertEqual('false', is_cnam_activated(PN3))
      }
     ,{"Verify outbound CNAM is indeed reset"
-     ,?_assertEqual(undefined, cnam_name(PN3))
+     ,?_assertEqual('undefined', cnam_name(PN3))
      }
     ,{"Verify pvt features are no longer present"
      ,?_assertEqual([], knm_phone_number:features_list(PN3))
      }
     ,{"Verify pub features were cleansed"
-     ,?_assertEqual(undefined, kz_json:get_ne_value(?FEATURE_CNAM, knm_phone_number:doc(PN3)))
+     ,?_assertEqual('undefined', kz_json:get_ne_value(?FEATURE_CNAM, knm_phone_number:doc(PN3)))
      }
     ].
 

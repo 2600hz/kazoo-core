@@ -35,12 +35,14 @@
 -export([setup_account_context/1, setup_account_context/2]).
 -export([setup_number_context/1, setup_number_context/2]).
 
+-export([set_e911_provider/1, set_account_e911_provider/2]).
+
 -define(CNAM_PROVIDER(AccountId)
        ,kapps_account_config:get_from_reseller(AccountId, ?KNM_CONFIG_CAT, <<"cnam_provider">>, <<"knm_cnam_notifier">>)
        ).
 
 -define(E911_PROVIDER(AccountId)
-       ,kapps_account_config:get_from_reseller(AccountId, ?KNM_CONFIG_CAT, <<"e911_provider">>, <<"knm_dash_e911">>)
+       ,kapps_account_config:get_from_reseller(AccountId, ?KNM_CONFIG_CAT, <<"e911_provider">>, <<"knm_intrado_e911">>)
        ).
 
 -define(SYSTEM_PROVIDERS, kapps_config:get_ne_binaries(?KNM_CONFIG_CAT, <<"providers">>)).
@@ -108,7 +110,7 @@ settings(PhoneNumber, Features) ->
                   JObj = knm_gen_provider:settings(Module, PhoneNumber),
                   case kz_json:is_empty(JObj) of
                       'true' -> 'false';
-                      'false' -> {true, {Feature, JObj}}
+                      'false' -> {'true', {Feature, JObj}}
                   end
           end,
     kz_json:from_list(lists:filtermap(Fun, Features)).
@@ -245,12 +247,12 @@ feature_parameters(IsLocal, IsAdmin, AssignedTo, UsedBy, Allowed, Denied, Contex
 
 -spec feature_parameters_from_context(map()) -> feature_parameters().
 feature_parameters_from_context(Context) ->
-    #feature_parameters{is_local = maps:get(is_local, Context, 'true')
-                       ,is_admin = maps:get(is_admin, Context, 'false')
-                       ,assigned_to = maps:get(assigned_to, Context, 'undefined')
-                       ,used_by = maps:get(used_by, Context, 'undefined')
-                       ,allowed_features = maps:get(allowed_features, Context, [])
-                       ,denied_features = maps:get(denied_features, Context, [])
+    #feature_parameters{is_local = maps:get('is_local', Context, 'true')
+                       ,is_admin = maps:get('is_admin', Context, 'false')
+                       ,assigned_to = maps:get('assigned_to', Context, 'undefined')
+                       ,used_by = maps:get('used_by', Context, 'undefined')
+                       ,allowed_features = maps:get('allowed_features', Context, [])
+                       ,denied_features = maps:get('denied_features', Context, [])
                        ,context = Context
                        }.
 
@@ -662,3 +664,35 @@ filter_available_features(Features, #{with_available := Check
           end,
     lists:filter(Fun, Features);
 filter_available_features(Features, _) -> Features.
+
+-spec set_e911_provider(module() | kz_term:ne_binary()) -> 'ok'.
+set_e911_provider(ProviderModule) ->
+    'true' = validate_provider_module(ProviderModule),
+    _ = kapps_config:set_default(?KNM_CONFIG_CAT, <<"e911_provider">>, kz_term:to_binary(ProviderModule)),
+    io:format('user', "set E911 provider to ~s~n", [ProviderModule]).
+
+-spec set_account_e911_provider(module() | kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+set_account_e911_provider(ProviderModule, <<AccountId/binary>>) ->
+    ResellerId = reseller_id(AccountId),
+    'true' = validate_provider_module(ProviderModule),
+    _ = kapps_account_config:set(ResellerId, ?KNM_CONFIG_CAT, <<"e911_provider">>, kz_term:to_binary(ProviderModule)),
+    io:format('user'
+             ,"set E911 provider for account ~s (reseller ~s) to ~s~n"
+             ,[AccountId, ResellerId, ProviderModule]
+             ).
+
+%% ensure module exports required knm_gen_provider callbacks
+validate_provider_module(ProviderModule) ->
+    Module = kz_module:ensure_loaded(ProviderModule),
+
+    RequiredCallbacks = knm_gen_provider:behaviour_info('callbacks')
+        -- knm_gen_provider:behaviour_info('optional_callbacks'),
+
+    'true' = lists:all(fun({F, A}) -> kz_module:is_exported(Module, F, A) end, RequiredCallbacks).
+
+reseller_id(AccountId) ->
+    case kz_services_reseller:get_id(AccountId) of
+        'undefined' -> AccountId;
+        AccountId -> AccountId;
+        ResellerId -> ResellerId
+    end.
