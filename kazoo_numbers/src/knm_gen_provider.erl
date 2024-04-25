@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc When implementing provider modules, these callbacks are a must!
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -39,7 +39,7 @@ available(Feature, PN) ->
         no_callback -> true;
         Value -> kz_term:is_true(Value)
     catch
-        _ -> true
+        _:_ -> 'true'
     end.
 
 -spec available(kz_term:ne_binary() | module(), kz_term:ne_binary() | module(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
@@ -49,7 +49,7 @@ available(Feature, Carrier, State, AccountId) ->
         no_callback -> true;
         Value -> kz_term:is_true(Value)
     catch
-        _ -> true
+        _:_ -> 'true'
     end.
 
 -spec settings(kz_term:ne_binary() | module(), knm_phone_number:pn_record()) -> kz_json:object().
@@ -63,7 +63,7 @@ settings(Feature, PN) ->
                 false -> kz_json:new()
             end
     catch
-        _ -> kz_json:new()
+        _:_ -> kz_json:new()
     end.
 
 -spec feature_module(kz_term:ne_binary() | module()) -> module().

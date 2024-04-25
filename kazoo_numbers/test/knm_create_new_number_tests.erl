@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2023, 2600Hz
+%%% @copyright (C) 2016-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%%
@@ -155,12 +155,12 @@ create_new_available_number() ->
     Props = [{'auth_by', ?MASTER_ACCOUNT_ID}
             ,{'assign_to', ?MASTER_ACCOUNT_ID}
             ,{'dry_run', 'false'}
-            ,{state, ?NUMBER_STATE_AVAILABLE}
+            ,{'state', ?NUMBER_STATE_AVAILABLE}
             ],
     [PN] = knm_pipe:succeeded(knm_ops:create([?TEST_CREATE_NUM], Props)),
     [?_assert(knm_phone_number:is_dirty(PN))
     ,{"Verify available number is unassigned"
-     ,?_assertEqual(undefined, knm_phone_number:assigned_to(PN))
+     ,?_assertEqual('undefined', knm_phone_number:assigned_to(PN))
      }
     ,{"Verify new phone number auth_by field was stored"
      ,?_assertEqual(?MASTER_ACCOUNT_ID, knm_phone_number:auth_by(PN))

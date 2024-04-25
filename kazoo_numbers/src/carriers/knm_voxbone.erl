@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Handle client requests for phone_number documents using the voxbone api
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -59,7 +59,7 @@ check_numbers(_Numbers) ->
 -spec find_numbers(kz_term:ne_binary(), kz_term:api_pos_integer(), knm_search:options()) ->
           {'ok', knm_search:results()}.
 find_numbers(Number, Quantity, Options) ->
-    Country = knm_iso3166_util:country(proplists:get_value('country', Options)),
+    Country = knm_iso3166_util:country(props:get_value('country', Options)),
     find_numbers(Number, Quantity, Options, Country).
 
 -spec find_numbers(kz_term:ne_binary(), kz_term:api_pos_integer(), knm_search:options(), map()) ->

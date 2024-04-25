@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%%
@@ -45,7 +45,7 @@ get_numbers() ->
     ,?_assertMatch(#{'failed' := #{?NOT_NUM := 'not_reconcilable'}}
                   ,knm_ops:get([?NOT_NUM], [])
                   )
-    ,?_assertMatch(#{'failed' := #{?TEST_CREATE_NUM := not_found}}
+    ,?_assertMatch(#{'failed' := #{?TEST_CREATE_NUM := 'not_found'}}
                   ,knm_ops:get([?TEST_CREATE_NUM], [])
                   )
     ,?_assertMatch(#{'failed' := #{?NOT_NUM := 'not_reconcilable'}
@@ -60,7 +60,7 @@ get_numbers() ->
                                ,?TEST_AVAILABLE_NUM, ?NOT_NUM])
                   )
     ,?_assertMatch(#{'failed' := #{?NOT_NUM := 'not_reconcilable'
-                                  ,?TEST_CREATE_NUM := not_found
+                                  ,?TEST_CREATE_NUM := 'not_found'
                                   }
                     ,'succeeded' := [_]
                     }
@@ -89,7 +89,7 @@ create_number() ->
     Ret = knm_ops:create([Num], [{'public_fields', JObj}|Options]),
     [?_assertEqual(#{}, maps:get('failed', Ret))
     ,?_assertMatch([_], maps:get('succeeded', Ret))
-    ,?_assertEqual(true, knm_phone_number:is_phone_number(n_x(1, Ret)))
+    ,?_assertEqual('true', knm_phone_number:is_phone_number(n_x(1, Ret)))
     ,?_assert(knm_phone_number:is_dirty(n_x(1, Ret)))
     ,{"Verify feature is properly set"
      ,?_assert(kz_json:are_equal(E911, knm_phone_number:feature(n_x(1, Ret), ?FEATURE_E911)))
@@ -109,8 +109,8 @@ create_new() ->
     Ret = knm_ops:create([Num, ?NOT_NUM, ?TEST_CREATE_NUM], Options),
     [?_assertEqual(#{?NOT_NUM => 'not_reconcilable'}, maps:get('failed', Ret))
     ,?_assertMatch([_, _], maps:get('succeeded', Ret))
-    ,?_assertEqual(true, knm_phone_number:is_phone_number(n_x(1, Ret)))
-    ,?_assertEqual(true, knm_phone_number:is_phone_number(n_x(2, Ret)))
+    ,?_assertEqual('true', knm_phone_number:is_phone_number(n_x(1, Ret)))
+    ,?_assertEqual('true', knm_phone_number:is_phone_number(n_x(2, Ret)))
     ,?_assert(knm_phone_number:is_dirty(n_x(1, Ret)))
     ,?_assert(knm_phone_number:is_dirty(n_x(2, Ret)))
     ,?_assertEqual(?RESELLER_ACCOUNT_ID, knm_phone_number:assigned_to(n_x(1, Ret)))
@@ -136,11 +136,11 @@ move() ->
 
 
 update() ->
-    NotDefault = true,
+    NotDefault = 'true',
     Setters = [{fun knm_phone_number:set_ported_in/2, NotDefault}],
     Ret0 = knm_ops:update([?NOT_NUM, ?TEST_AVAILABLE_NUM], []),
     Ret = knm_ops:update([?NOT_NUM, ?TEST_AVAILABLE_NUM], Setters),
-    [?_assertEqual(false, knm_phone_number:is_dirty(n_x(1, Ret0)))
+    [?_assertEqual('false', knm_phone_number:is_dirty(n_x(1, Ret0)))
     ,{"verify ported_in is set to default"
      ,?_assertNotEqual(NotDefault, knm_phone_number:ported_in(n_x(1, Ret0)))
      }
@@ -205,12 +205,15 @@ error_assign_to_undefined() ->
 
 
 reserve() ->
-    AssignToChild = [{assign_to, ?CHILD_ACCOUNT_ID} | knm_options:default()],
+    AssignToChild = [{'assign_to', ?CHILD_ACCOUNT_ID} | knm_options:default()],
     Ret1 = knm_ops:reserve([?NOT_NUM, ?TEST_AVAILABLE_NUM]
-                          ,[{assign_to,?RESELLER_ACCOUNT_ID}, {auth_by,?MASTER_ACCOUNT_ID}]),
+                          ,[{'assign_to',?RESELLER_ACCOUNT_ID}
+                           ,{'auth_by',?MASTER_ACCOUNT_ID}
+                           ]),
     Ret2b = knm_ops:reserve([?NOT_NUM, ?TEST_IN_SERVICE_NUM], knm_options:default()),
     Ret2 = knm_ops:reserve([?NOT_NUM, ?TEST_IN_SERVICE_NUM]
-                          ,[{assign_to,?RESELLER_ACCOUNT_ID} | knm_options:default()]),
+                          ,[{'assign_to',?RESELLER_ACCOUNT_ID} | knm_options:default()]
+                          ),
     Ret3 = knm_ops:reserve([?NOT_NUM, ?TEST_IN_SERVICE_NUM], AssignToChild),
     [?_assertEqual(#{?NOT_NUM => 'not_reconcilable'}, maps:get('failed', Ret1))
     ,?_assertMatch([_], maps:get('succeeded', Ret1))
@@ -252,8 +255,8 @@ assign_to_app() ->
     ,{"Verify number is not already assigned to MyApp"
      ,?_assertNotEqual(MyApp, knm_phone_number:used_by(n_x(1, Ret1)))
      }
-    ,?_assertEqual(false, knm_phone_number:is_dirty(n_x(1, Ret1)))
-    ,?_assertEqual(true,  knm_phone_number:is_dirty(n_x(1, Ret2)))
+    ,?_assertEqual('false', knm_phone_number:is_dirty(n_x(1, Ret1)))
+    ,?_assertEqual('true',  knm_phone_number:is_dirty(n_x(1, Ret2)))
     ,?_assertEqual(#{?NOT_NUM => 'not_reconcilable'}, maps:get('failed', Ret2))
     ,?_assertMatch([_], maps:get('succeeded', Ret2))
     ,{"Verify number is now used by MyApp"
