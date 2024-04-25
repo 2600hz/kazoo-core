@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -25,6 +25,11 @@
         ]).
 -export([description/1
         ,set_description/2
+        ]).
+-export([draft/1
+        ,clear_draft/1
+        ,set_draft/1
+        ,set_draft/2
         ]).
 -export([executor_trigger/1
         ,set_executor_trigger/2
@@ -100,6 +105,7 @@
                 ,account_name :: kz_term:api_ne_binary()
                 ,amount = 0 :: kz_currency:units()
                 ,description :: kz_term:api_binary()
+                ,draft :: kz_term:api_boolean()
                 ,executor_trigger :: kz_term:api_binary()
                 ,executor_module :: kz_term:api_binary()
                 ,source_id :: kz_term:api_ne_binary()
@@ -228,6 +234,34 @@ description(#ledger{description=Description}) ->
 -spec set_description(ledger(), kz_term:ne_binary()) -> ledger().
 set_description(Ledger, Description) ->
     Ledger#ledger{description=Description}.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec draft(ledger()) -> boolean().
+draft(#ledger{draft=Draft}) ->
+    kz_term:is_true(Draft).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec clear_draft(ledger()) -> ledger().
+clear_draft(Ledger) ->
+    set_draft(Ledger, 'false').
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_draft(ledger()) -> ledger().
+set_draft(Ledger) ->
+    set_draft(Ledger, 'true').
+
+-spec set_draft(ledger(), boolean()) -> ledger().
+set_draft(Ledger, Draft) ->
+    Ledger#ledger{draft=kz_term:is_true(Draft)}.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -576,6 +610,7 @@ to_json(#ledger{private_fields=PrivateFields}=Ledger) ->
               ,{fun kzd_ledgers:set_account_name/2, account_name(Ledger)}
               ,{fun kzd_ledgers:set_unit_amount/2, unit_amount(Ledger)}
               ,{fun kzd_ledgers:set_description/2, description(Ledger)}
+              ,{fun kzd_ledgers:set_draft/2, draft(Ledger)}
               ,{fun kzd_ledgers:set_executor_trigger/2, executor_trigger(Ledger)}
               ,{fun kzd_ledgers:set_executor_module/2, executor_module(Ledger)}
               ,{fun kzd_ledgers:set_source_id/2, source_id(Ledger)}
@@ -637,6 +672,7 @@ from_json(JObj) ->
               ,{fun set_account_name/2, kzd_ledgers:account_name(JObj)}
               ,{fun set_unit_amount/2, kzd_ledgers:unit_amount(JObj)}
               ,{fun set_description/2, kzd_ledgers:description(JObj)}
+              ,{fun set_draft/2, kzd_ledgers:draft(JObj)}
               ,{fun set_executor_trigger/2, kzd_ledgers:executor_trigger(JObj)}
               ,{fun set_executor_module/2, kzd_ledgers:executor_module(JObj)}
               ,{fun set_source_id/2, kzd_ledgers:source_id(JObj)}

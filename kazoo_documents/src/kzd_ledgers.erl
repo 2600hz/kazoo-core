@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,6 +41,12 @@
 -export([description/1
         ,description/2
         ,set_description/2
+        ]).
+-export([draft/1
+        ,draft/2
+        ,clear_draft/1
+        ,set_draft/1
+        ,set_draft/2
         ]).
 -export([executor/1
         ,executor/2
@@ -123,6 +129,7 @@
 -define(ACCOUNT_NAME, [?ACCOUNT, <<"name">>]).
 -define(AMOUNT, <<"amount">>).
 -define(DESCRIPTION, <<"description">>).
+-define(DRAFT, <<"draft">>).
 -define(EXECUTOR, <<"executor">>).
 -define(EXECUTOR_TRIGGER, [?EXECUTOR, <<"trigger">>]).
 -define(EXECUTOR_MODULE, [?EXECUTOR, <<"module">>]).
@@ -338,6 +345,39 @@ description(Doc, Default) ->
 -spec set_description(doc(), binary()) -> doc().
 set_description(Doc, Description) ->
     kz_json:set_value(?DESCRIPTION, Description, Doc).
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec draft(doc()) -> kz_term:api_boolean().
+draft(Doc) ->
+    draft(Doc, 'undefined').
+
+-spec draft(doc(), Default) -> boolean() | Default.
+draft(Doc, Default) ->
+    kz_json:is_true(?DRAFT, Doc, Default).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec clear_draft(doc()) -> doc().
+clear_draft(Doc) ->
+    set_draft(Doc, 'false').
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_draft(doc()) -> doc().
+set_draft(Doc) ->
+    set_draft(Doc, 'true').
+
+-spec set_draft(doc(), boolean()) -> doc().
+set_draft(Doc, Draft) ->
+    kz_json:set_value(?DRAFT, kz_term:is_true(Draft), Doc).
 
 %%------------------------------------------------------------------------------
 %% @doc
