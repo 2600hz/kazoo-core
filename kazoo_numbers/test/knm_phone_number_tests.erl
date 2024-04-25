@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2023, 2600Hz
+%%% @copyright (C) 2016-2024, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%%
@@ -143,7 +143,7 @@ is_dirty1() ->
     ,?_assertEqual(kz_json:from_list([{<<"local">>, kz_json:new()}])
                   ,kzd_phone_numbers:pvt_features(NewJObj)
                   )
-    ,?_assertEqual(true
+    ,?_assertEqual('true'
                   ,kz_json:are_equal(kzd_phone_numbers:pvt_features(NewJObj)
                                     ,knm_phone_number:features(PN)
                                     )
@@ -551,7 +551,7 @@ is_dirty4() ->
                   ,kz_json:to_map(kzd_phone_numbers:pvt_features(JObj)))
     ,?_assertEqual(#{<<"local">> => #{}}
                   ,kz_json:to_map(kzd_phone_numbers:pvt_features(NewJObj)))
-    ,?_assertEqual(true
+    ,?_assertEqual('true'
                   ,kz_json:are_equal(kzd_phone_numbers:pvt_features(NewJObj)
                                     ,knm_phone_number:features(PN)
                                     )
@@ -846,7 +846,7 @@ verify_to_json(Num, PN) ->
     ,?_assert(is_api_account_id(kzd_phone_numbers:pvt_assigned_to(JObj)))
     ,?_assert(is_api_account_id(kzd_phone_numbers:pvt_previously_assigned_to(JObj)))
     ,?_assert(lists:member(kzd_phone_numbers:pvt_used_by(JObj)
-                          ,[undefined, <<"trunkstore">>, <<"callflow">>]
+                          ,['undefined', <<"trunkstore">>, <<"callflow">>]
                           ))
     ,?_assert(is_valid_json(kzd_phone_numbers:pvt_features(JObj)))
     ,?_assert(is_undefined_or_ne_binaries(kzd_phone_numbers:pvt_features_allowed(JObj)))
@@ -856,19 +856,19 @@ verify_to_json(Num, PN) ->
     ,?_assert(kz_term:is_api_ne_binary(kzd_phone_numbers:pvt_region(JObj)))
     ].
 
-is_valid_json(undefined) -> true;
+is_valid_json('undefined') -> 'true';
 is_valid_json(V) -> kz_json:is_valid_json_object(V).
 
-is_undefined_or_ne_binaries(undefined) -> true;
+is_undefined_or_ne_binaries('undefined') -> 'true';
 is_undefined_or_ne_binaries(V) -> kz_term:is_ne_binaries(V).
 
-is_undefined_or_account_ids(undefined) -> true;
+is_undefined_or_account_ids('undefined') -> 'true';
 is_undefined_or_account_ids(V)
   when is_list(V) ->
     lists:all(fun is_account_id/1, V);
-is_undefined_or_account_ids(_) -> false.
+is_undefined_or_account_ids(_) -> 'false'.
 
-is_api_account_id(undefined) -> true;
+is_api_account_id('undefined') -> 'true';
 is_api_account_id(V) -> is_account_id(V).
 
 is_account_id(?MATCH_ACCOUNT_RAW(_)) -> true;

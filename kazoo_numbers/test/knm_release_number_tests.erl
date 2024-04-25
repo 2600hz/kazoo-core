@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2023, 2600Hz
+%%% @copyright (C) 2016-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Pierre Fenoll
@@ -43,7 +43,7 @@ release_available_number() ->
      ,?_assertEqual(?NUMBER_STATE_DELETED, knm_phone_number:state(PN))
      }
     ,{"verify number assignment"
-     ,?_assertEqual(undefined, knm_phone_number:assigned_to(PN))
+     ,?_assertEqual('undefined', knm_phone_number:assigned_to(PN))
      }
     ,{"Verify error code for releasing available number"
      ,?_assertEqual(400, knm_errors:code(Error))
@@ -60,7 +60,7 @@ release_in_service_bad_carrier_number() ->
      ,?_assertEqual(?NUMBER_STATE_AVAILABLE, knm_phone_number:state(PN))
      }
     ,{"verify available number is unassigned"
-     ,?_assertEqual(undefined, knm_phone_number:assigned_to(PN))
+     ,?_assertEqual('undefined', knm_phone_number:assigned_to(PN))
      }
     ,{"verify reserve history is empty now"
      ,?_assertEqual([], knm_phone_number:reserve_history(PN))
@@ -74,7 +74,7 @@ release_in_service_mdn_number() ->
      ,?_assertEqual(?NUMBER_STATE_DELETED, knm_phone_number:state(PN))
      }
     ,{"verify number assignment"
-     ,?_assertEqual(undefined, knm_phone_number:assigned_to(PN))
+     ,?_assertEqual('undefined', knm_phone_number:assigned_to(PN))
      }
     ,{"verify reserve history is empty now"
      ,?_assertEqual([], knm_phone_number:reserve_history(PN))
@@ -84,10 +84,10 @@ release_in_service_mdn_number() ->
 
 release_in_service_numbers() ->
     DefaultAuth = knm_options:default(),
-    ResellerAuth = [{auth_by, ?RESELLER_ACCOUNT_ID}],
-    MasterAuth = [{auth_by, ?MASTER_ACCOUNT_ID}],
-    ResellerMDNAuth = [{auth_by, ?RESELLER_ACCOUNT_ID}|knm_options:mdn_options()],
-    MasterMDNAuth = [{auth_by, ?MASTER_ACCOUNT_ID}|knm_options:mdn_options()],
+    ResellerAuth = [{'auth_by', ?RESELLER_ACCOUNT_ID}],
+    MasterAuth = [{'auth_by', ?MASTER_ACCOUNT_ID}],
+    ResellerMDNAuth = [{'auth_by', ?RESELLER_ACCOUNT_ID}|knm_options:mdn_options()],
+    MasterMDNAuth = [{'auth_by', ?MASTER_ACCOUNT_ID}|knm_options:mdn_options()],
     SimpleHistory = [?RESELLER_ACCOUNT_ID],
     DeeperHistory = [?RESELLER_ACCOUNT_ID, ?MASTER_ACCOUNT_ID],
     [release_in_service(?TEST_IN_SERVICE_NUM, DefaultAuth, SimpleHistory)
@@ -117,7 +117,7 @@ release_in_service(Num, Options, PreHistory) ->
               ,?_assertEqual(?NUMBER_STATE_DELETED, knm_phone_number:state(PN))
               }
              ,{"verify number assignment"
-              ,?_assertEqual(undefined, knm_phone_number:assigned_to(PN))
+              ,?_assertEqual('undefined', knm_phone_number:assigned_to(PN))
               }
              ,{"verify reserve history is empty now"
               ,?_assertEqual(tl(PreHistory), knm_phone_number:reserve_history(PN))
@@ -139,8 +139,8 @@ release_in_service(Num, Options, PreHistory) ->
 
 delete_in_service() ->
     DefaultAuth = knm_options:default(),
-    MasterAuth = [{auth_by, ?MASTER_ACCOUNT_ID}],
-    MasterMDNAuth = [{auth_by, ?MASTER_ACCOUNT_ID}|knm_options:mdn_options()],
+    MasterAuth = [{'auth_by', ?MASTER_ACCOUNT_ID}],
+    MasterMDNAuth = [{'auth_by', ?MASTER_ACCOUNT_ID}|knm_options:mdn_options()],
     [delete_in_service(?TEST_IN_SERVICE_NUM, DefaultAuth)
     ,delete_in_service(?TEST_IN_SERVICE_NUM, MasterAuth)
     ,delete_in_service(?TEST_IN_SERVICE_WITH_HISTORY_NUM, DefaultAuth)

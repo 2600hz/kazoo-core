@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2023, 2600Hz
+%%% @copyright (C) 2016-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%%
@@ -86,15 +86,15 @@ find_local() ->
     ].
 
 find_other() ->
-    Options = [{carriers, [?CARRIER_OTHER]}
+    Options = [{'carriers', [?CARRIER_OTHER]}
               ,{'query_id', <<"QID">>}
               ],
-    {setup
+    {'setup'
     ,fun () -> {'ok', Pid} = knm_search:start_link(), Pid end
     ,fun gen_server:stop/1
     ,fun (_ReturnOfSetup) ->
              [find_no_phonebook(Options)
-             ,?_assertEqual([], knm_search:find([{prefix, <<"415">>}]))
+             ,?_assertEqual([], knm_search:find([{'prefix', <<"415">>}]))
              ,find_numbers(Options)
              ,find_blocks(Options)
              ]
@@ -103,7 +103,7 @@ find_other() ->
 
 find_no_phonebook(Options0) ->
     Prefix = <<"415">>,
-    Options = [{prefix, Prefix}
+    Options = [{'prefix', Prefix}
               |Options0
               ],
     [{"Verify no phonebook url yields no results"
@@ -118,7 +118,7 @@ find_blocks(Options0) ->
               ,{'blocks', 'true'}
               ,{'account_id', ?RESELLER_ACCOUNT_ID}
               ,{'quantity', Limit}
-              ,{prefix, Prefix}
+              ,{'prefix', Prefix}
               | Options0
               ],
 
