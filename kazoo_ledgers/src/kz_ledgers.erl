@@ -17,8 +17,16 @@
 -export([list_source/2
         ,list_source/4
         ]).
+-export([all_source/4]).
+-export([list_source_drafts/2
+        ,list_source_drafts/4
+        ]).
+-export([all_source_drafts/4]).
 -export([total_source/2
         ,total_source/4
+        ]).
+-export([total_source_drafts/2
+        ,total_source_drafts/4
         ]).
 -export([available_ledgers/1]).
 -export([verify_monthly_rollover_exists/1
@@ -38,7 +46,7 @@
                            ,{<<"friendly_name">>, <<"Per Minute VoIP">>}
                            ,{<<"markup_type">>, [<<"percentage">>]}
                            ])
-        ,kz_json:from_list([{<<"name">>, <<"services">>}
+        ,kz_json:from_list([{<<"name">>, <<"recurring">>} %% TODO: Where is this used, was "services" prior...
                            ,{<<"friendly_name">>, <<"Monthly Recurring Services">>}
                            ,{<<"markup_type">>, []}
                            ])
@@ -198,6 +206,93 @@ list_source(Account, Source, CreatedFrom, CreatedTo)
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec all_source(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:year(), kz_time:month()) ->
+          {'ok', ledgers()} |
+          {'error', any()}.
+all_source(Account, Source, Year, Month) ->
+    MODB = kazoo_modb:get_modb(Account, Year, Month),
+    ViewOptions = [{'startkey', [Source]}
+                  ,{'endkey', [Source, kz_json:new()]}
+                  ,{'result_key', <<"doc">>}
+                  ,'include_docs'
+                  ,'missing_as_error'
+                  ],
+    case kazoo_modb:get_results(MODB, ?LIST_BY_SOURCE, ViewOptions) of
+        {'error', _} = Error -> Error;
+        {'ok', JObjs} ->
+            {'ok', [kz_ledger:from_json(JObj)
+                    || JObj <- JObjs
+                   ]
+            }
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec list_source_drafts(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', ledgers()} |
+          {'error', any()}.
+list_source_drafts(Account, Source) ->
+    ViewOptions = [{'startkey', [Source]}
+                  ,{'endkey', [Source, kz_json:new()]}
+                  ,{'result_key', <<"doc">>}
+                  ,'include_docs'
+                  ,'missing_as_error'
+                  ],
+    case kazoo_modb:get_results(Account, ?DRAFTS_BY_SOURCE, ViewOptions) of
+        {'error', _} = Error -> Error;
+        {'ok', JObjs} ->
+            {'ok', [kz_ledger:from_json(JObj)
+                    || JObj <- JObjs
+                   ]
+            }
+    end.
+
+-spec list_source_drafts(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()) ->
+          {'ok', ledgers()} |
+          {'error', any()}.
+list_source_drafts(Account, Source, CreatedFrom, CreatedTo)
+  when is_integer(CreatedFrom), CreatedFrom > 0,
+       is_integer(CreatedTo), CreatedTo > 0 ->
+    MODBs = kazoo_modb:get_range(Account, CreatedFrom, CreatedTo),
+    ViewOptions = [{'databases', MODBs}
+                  ,{'startkey', [Source, CreatedFrom]}
+                  ,{'endkey', [Source, CreatedTo]}
+                  ,{'result_key', <<"doc">>}
+                  ,'include_docs'
+                  ,'missing_as_error'
+                  ],
+    get_ranged(?DRAFTS_BY_SOURCE, ViewOptions).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec all_source_drafts(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:year(), kz_time:month()) ->
+          {'ok', ledgers()} |
+          {'error', any()}.
+all_source_drafts(Account, Source, Year, Month) ->
+    MODB = kazoo_modb:get_modb(Account, Year, Month),
+    ViewOptions = [{'startkey', [Source]}
+                  ,{'endkey', [Source, kz_json:new()]}
+                  ,{'result_key', <<"doc">>}
+                  ,'include_docs'
+                  ,'missing_as_error'
+                  ],
+    case kazoo_modb:get_results(MODB, ?DRAFTS_BY_SOURCE, ViewOptions) of
+        {'error', _} = Error -> Error;
+        {'ok', JObjs} ->
+            {'ok', [kz_ledger:from_json(JObj)
+                    || JObj <- JObjs
+                   ]
+            }
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec total_source(kz_term:ne_binary(), kz_term:ne_binary()) ->
           kz_currency:available_units_return().
 total_source(Account, Source) ->
@@ -230,6 +325,46 @@ total_source(Account, Source, CreatedFrom, CreatedTo)
       get_ranged(?TOTAL_BY_SOURCE, ViewOptions)
      ).
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec total_source_drafts(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_currency:available_units_return().
+total_source_drafts(Account, Source) ->
+    ViewOptions = [{'startkey', [Source]}
+                  ,{'endkey', [Source, kz_json:new()]}
+                  ,{'result_key', <<"value">>}
+                  ,{'group', 1}
+                  ,'reduce'
+                  ,'missing_as_error'
+                  ],
+    handle_total_source_result(
+      kazoo_modb:get_results(Account, ?TOTAL_DRAFTS_BY_SOURCE, ViewOptions)
+     ).
+
+-spec total_source_drafts(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()) ->
+          kz_currency:available_units_return().
+total_source_drafts(Account, Source, CreatedFrom, CreatedTo)
+  when is_integer(CreatedFrom), CreatedFrom > 0,
+       is_integer(CreatedTo), CreatedTo > 0 ->
+    MODBs = kazoo_modb:get_range(Account, CreatedFrom, CreatedTo),
+    ViewOptions = [{'databases', MODBs}
+                  ,{'startkey', [Source, CreatedFrom]}
+                  ,{'endkey', [Source, CreatedTo]}
+                  ,{'result_key', <<"value">>}
+                  ,{'group', 1}
+                  ,'reduce'
+                  ,'missing_as_error'
+                  ],
+    handle_total_source_result(
+      get_ranged(?TOTAL_DRAFTS_BY_SOURCE, ViewOptions)
+     ).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec handle_total_source_result({'ok', [kz_currency:units()]} | {'error', any()}) ->
           kz_currency:available_units_return().
 handle_total_source_result({'error', _} = Error) -> Error;

@@ -7,7 +7,9 @@
 -define(APP_NAME, <<"kazoo_ledgers">>).
 
 -define(LIST_BY_SOURCE, <<"ledgers/list_by_source">>).
+-define(DRAFTS_BY_SOURCE, <<"ledgers/draft_by_source">>).
 -define(TOTAL_BY_SOURCE, <<"ledgers/total_by_source">>).
+-define(TOTAL_DRAFTS_BY_SOURCE, <<"ledgers/total_drafts_by_source">>).
 
 -define(CONFIG_CAT, <<"ledgers">>).
 
