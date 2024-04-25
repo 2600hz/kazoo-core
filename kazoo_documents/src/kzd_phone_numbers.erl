@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -37,7 +37,10 @@
 -export([create_with_state/1, create_with_state/2, set_create_with_state/2]).
 -export([e911/1, e911/2, set_e911/2]).
 -export([e911_activated_time/1, e911_activated_time/2, set_e911_activated_time/2]).
+-export([e911_callback_cid_number/1, e911_callback_cid_number/2, set_e911_callback_cid_number/2]).
 -export([e911_caller_name/1, e911_caller_name/2, set_e911_caller_name/2]).
+-export([e911_country/1, e911_country/2, set_e911_country/2]).
+-export([e911_delivery_method/1, e911_delivery_method/2, set_e911_delivery_method/2]).
 -export([e911_extended_address/1, e911_extended_address/2, set_e911_extended_address/2]).
 -export([e911_latitude/1, e911_latitude/2, set_e911_latitude/2]).
 -export([e911_legacy_data/1, e911_legacy_data/2, set_e911_legacy_data/2]).
@@ -47,6 +50,7 @@
 -export([e911_legacy_data_suite/1, e911_legacy_data_suite/2, set_e911_legacy_data_suite/2]).
 -export([e911_locality/1, e911_locality/2, set_e911_locality/2]).
 -export([e911_location_id/1, e911_location_id/2, set_e911_location_id/2]).
+-export([e911_location_identifier/1, e911_location_identifier/2, set_e911_location_identifier/2]).
 -export([e911_longitude/1, e911_longitude/2, set_e911_longitude/2]).
 -export([e911_notification_contact_emails/1, e911_notification_contact_emails/2, set_e911_notification_contact_emails/2]).
 -export([e911_plus_four/1, e911_plus_four/2, set_e911_plus_four/2]).
@@ -448,6 +452,18 @@ e911_activated_time(Doc, Default) ->
 set_e911_activated_time(Doc, E911ActivatedTime) ->
     kz_json:set_value([<<"e911">>, <<"activated_time">>], E911ActivatedTime, Doc).
 
+-spec e911_callback_cid_number(doc()) -> kz_term:api_ne_binary().
+e911_callback_cid_number(Doc) ->
+    e911_callback_cid_number(Doc, 'undefined').
+
+-spec e911_callback_cid_number(doc(), Default) -> kz_term:ne_binary() | Default.
+e911_callback_cid_number(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"e911">>, <<"callback_cid_number">>], Doc, Default).
+
+-spec set_e911_callback_cid_number(doc(), kz_term:ne_binary()) -> doc().
+set_e911_callback_cid_number(Doc, E911CallbackCidNumber) ->
+    kz_json:set_value([<<"e911">>, <<"callback_cid_number">>], E911CallbackCidNumber, Doc).
+
 -spec e911_caller_name(doc()) -> kz_term:api_ne_binary().
 e911_caller_name(Doc) ->
     e911_caller_name(Doc, 'undefined').
@@ -459,6 +475,30 @@ e911_caller_name(Doc, Default) ->
 -spec set_e911_caller_name(doc(), kz_term:ne_binary()) -> doc().
 set_e911_caller_name(Doc, E911CallerName) ->
     kz_json:set_value([<<"e911">>, <<"caller_name">>], E911CallerName, Doc).
+
+-spec e911_country(doc()) -> kz_term:api_ne_binary().
+e911_country(Doc) ->
+    e911_country(Doc, 'undefined').
+
+-spec e911_country(doc(), Default) -> kz_term:ne_binary() | Default.
+e911_country(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"e911">>, <<"country">>], Doc, Default).
+
+-spec set_e911_country(doc(), kz_term:ne_binary()) -> doc().
+set_e911_country(Doc, E911Country) ->
+    kz_json:set_value([<<"e911">>, <<"country">>], E911Country, Doc).
+
+-spec e911_delivery_method(doc()) -> kz_term:api_binary().
+e911_delivery_method(Doc) ->
+    e911_delivery_method(Doc, 'undefined').
+
+-spec e911_delivery_method(doc(), Default) -> binary() | Default.
+e911_delivery_method(Doc, Default) ->
+    kz_json:get_binary_value([<<"e911">>, <<"delivery_method">>], Doc, Default).
+
+-spec set_e911_delivery_method(doc(), binary()) -> doc().
+set_e911_delivery_method(Doc, E911DeliveryMethod) ->
+    kz_json:set_value([<<"e911">>, <<"delivery_method">>], E911DeliveryMethod, Doc).
 
 -spec e911_extended_address(doc()) -> kz_term:api_binary().
 e911_extended_address(Doc) ->
@@ -567,6 +607,18 @@ e911_location_id(Doc, Default) ->
 -spec set_e911_location_id(doc(), binary()) -> doc().
 set_e911_location_id(Doc, E911LocationId) ->
     kz_json:set_value([<<"e911">>, <<"location_id">>], E911LocationId, Doc).
+
+-spec e911_location_identifier(doc()) -> kz_term:api_integer().
+e911_location_identifier(Doc) ->
+    e911_location_identifier(Doc, 'undefined').
+
+-spec e911_location_identifier(doc(), Default) -> integer() | Default.
+e911_location_identifier(Doc, Default) ->
+    kz_json:get_integer_value([<<"e911">>, <<"location_identifier">>], Doc, Default).
+
+-spec set_e911_location_identifier(doc(), integer()) -> doc().
+set_e911_location_identifier(Doc, E911LocationIdentifier) ->
+    kz_json:set_value([<<"e911">>, <<"location_identifier">>], E911LocationIdentifier, Doc).
 
 -spec e911_longitude(doc()) -> kz_term:api_binary().
 e911_longitude(Doc) ->

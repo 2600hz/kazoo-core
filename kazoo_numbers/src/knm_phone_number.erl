@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2023, 2600Hz
+%%% @copyright (C) 2015-2024, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% @author Pierre Fenoll
@@ -77,6 +77,8 @@
              ]).
 
 -include("knm.hrl").
+
+-elvis([{elvis_style, god_modules, disable}]).
 
 %% Used by from_json/1
 -define(DEFAULT_FEATURES, kz_json:new()).
@@ -725,10 +727,10 @@ setters_fold_apply(Fun, Args) ->
 number(#knm_phone_number{number=Num}) -> Num.
 
 -spec set_number(pn_record(), kz_term:ne_binary()) -> pn_record().
-set_number(PN, <<"+",_:8,_/binary>>=NormalizedNum) ->
+set_number(#knm_phone_number{number_db=PNNumberDb}=PN, <<"+",_:8,_/binary>>=NormalizedNum) ->
     NumberDb = knm_converters:to_db(NormalizedNum),
-    case {PN#knm_phone_number.number, PN#knm_phone_number.number_db} of
-        {undefined, 'undefined'} ->
+    case {PN#knm_phone_number.number, PNNumberDb} of
+        {'undefined', 'undefined'} ->
             PN#knm_phone_number{number = NormalizedNum
                                ,number_db = NumberDb
                                };
@@ -850,7 +852,11 @@ set_used_by(PN, UsedBy=?NE_BINARY) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec features(pn_record()) -> kz_json:object().
-features(#knm_phone_number{features=Features}) -> Features.
+features(#knm_phone_number{}=PN) ->
+    features(PN, kz_json:new()).
+
+features(#knm_phone_number{features='undefined'}, Default) -> Default;
+features(#knm_phone_number{features=Fs}, _Default) -> Fs.
 
 -spec features_list(pn_record()) -> kz_term:ne_binaries().
 features_list(PN) ->
@@ -876,15 +882,19 @@ feature(PN, Feature) ->
 
 -spec set_feature(pn_record(), kz_term:ne_binary(), kz_json:api_json_term()) ->
           pn_record().
-set_feature(PN0, Feature=?NE_BINARY, Data) ->
-    Features = case PN0#knm_phone_number.features of
-                   'undefined' -> ?DEFAULT_FEATURES;
-                   F -> F
-               end,
+set_feature(#knm_phone_number{}=PN0
+           ,<<Feature/binary>>
+           ,Data
+           ) ->
+    Features = features(PN0, ?DEFAULT_FEATURES),
     PN = set_features(PN0, kz_json:set_value(Feature, Data, Features)),
-    PN#knm_phone_number.is_dirty
-        andalso ?LOG_DEBUG("setting ~s feature ~s: ~s", [number(PN), Feature, kz_json:encode(Data)]),
+
+    maybe_log_feature(PN, Feature, Data),
     PN.
+
+maybe_log_feature(#knm_phone_number{is_dirty='true'}=PN, Feature, Data) ->
+    ?LOG_DEBUG("setting ~s feature ~s: ~s", [number(PN), Feature, kz_json:encode(Data)]);
+maybe_log_feature(_, _, _) -> 'ok'.
 
 -spec reset_features(pn_record()) -> pn_record().
 reset_features(PN=#knm_phone_number{module_name = ?CARRIER_LOCAL}) ->

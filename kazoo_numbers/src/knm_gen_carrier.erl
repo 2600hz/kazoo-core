@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc When implementing carrier modules, these callbacks are a must!
 %%% @author Karl Anderson
 %%% @author Pierre Fenoll
@@ -55,7 +55,7 @@ configuration(Carrier) ->
                 'false' -> default_config(Carrier)
             end
     catch
-        _ -> kz_json:new()
+        _:_ -> kz_json:new()
     end.
 
 default_config(Carrier) ->

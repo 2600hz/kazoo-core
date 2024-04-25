@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2023, 2600Hz
+%%% @copyright (C) 2016-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,7 +21,7 @@ start_db(TestdListFun, SetupFun) ->
     start_db(TestdListFun, SetupFun, 'undefined').
 
 start_db(TestdListFun, SetupFun, CleanupFun) ->
-    {setup
+    {'setup'
     ,fun() -> setup(SetupFun) end
     ,fun(State) -> cleanup(State, CleanupFun) end
     ,fun(_ReturnOfSetup) ->
