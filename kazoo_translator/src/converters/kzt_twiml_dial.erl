@@ -36,7 +36,8 @@ exec(Call
                  }=_El
      ]
     ,DialAttrs) ->
-    lager:info("single <Number>"),
+    kapps_call_command:answer(Call),
+
     case cleanup_dial_me(kz_xml:texts_to_binary(Number)) of
         <<>> ->
             lager:debug("no dial-able Number in tag, continuing"),
@@ -154,9 +155,8 @@ dial_me(Call, Attrs, DialMe) ->
     OffnetProps = [{<<"Timeout">>, kzt_util:get_call_timeout(Call1)}
                   ,{<<"Media">>, media_processing(Call1)}
                   ,{<<"Force-Outbound">>, force_outbound(Props)}
-                  ,{<<"Server-ID">>, kapps_call:controller_queue(Call1)}
                   ],
-    'ok' = kzt_util:offnet_req(OffnetProps, Call1),
+    'ok' = kzt_util:offnet_req(Props, OffnetProps, Call1),
 
     {'ok', Call2} = kzt_receiver:wait_for_offnet(kzt_util:update_call_status(?STATUS_RINGING, Call1)
                                                 ,Props
