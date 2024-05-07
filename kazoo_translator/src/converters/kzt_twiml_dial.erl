@@ -384,7 +384,8 @@ build_conference_doc(Call, ConfId, ConfProps) ->
     kz_json:from_list([{<<"name">>, ConfId}
                       ,{<<"id">>, ConfId}
                       ,{<<"play_welcome">>, 'false'}
-                      ,{<<"play_entry_tone">>, props:is_true('beep', ConfProps, 'true')}
+                      ,{<<"play_entry_tone">>, conference_beep_sound(<<"play_entry_tone">>, ConfProps)}
+                      ,{<<"play_exit_tone">>, conference_beep_sound(<<"play_exit_tone">>, ConfProps)}
                       ,{<<"member">>, member_flags(ConfProps, StartOnEnter)}
                       ,{<<"moderator">>, moderator_flags(ConfProps, StartOnEnter)}
                       ,{<<"require_moderator">>, require_moderator(StartOnEnter)}
@@ -393,6 +394,15 @@ build_conference_doc(Call, ConfId, ConfProps) ->
                       ,{<<"profile_name">>, <<ConfId/binary, "_", AccountId/binary>>}
                       ,{<<"profile">>, conference_profile(kapps_call:account_id(Call), ConfProps)}
                       ]).
+
+conference_beep_sound(Action, ConfProps) ->
+    case {props:get_atom_value('beep', ConfProps, 'true'), Action} of
+        {'true', _} -> 'true';
+        {'false', _} -> 'false';
+        {'onEnter', <<"play_entry_tone">>} -> 'true';
+        {'onExit', <<"play_exit_tone">>} -> 'true';
+        {_, _} -> 'false'
+    end.
 
 require_moderator('undefined') -> 'false';
 require_moderator('true') -> 'false';
