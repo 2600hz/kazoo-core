@@ -21,6 +21,7 @@
         ,set_call_timeout/2, get_call_timeout/1
         ,set_call_time_limit/2, get_call_time_limit/1
         ,set_record_call/2, get_record_call/1
+        ,set_recording_stereo/2, get_recording_stereo/1
         ,set_voice_uri/2, get_voice_uri/1
         ,set_voice_uri_method/2, get_voice_uri_method/1
 
@@ -216,6 +217,12 @@ set_record_call(R, Call) -> kapps_call:kvs_store(<<"record_call">>, R, Call).
 
 -spec get_record_call(kapps_call:call()) -> kz_term:api_boolean().
 get_record_call(Call) -> kapps_call:kvs_fetch(<<"record_call">>, Call).
+
+-spec set_recording_stereo(kz_term:api_boolean(), kapps_call:call()) -> kapps_call:call().
+set_recording_stereo(R, Call) -> kapps_call:kvs_store(<<"recording_stereo">>, R, Call).
+
+-spec get_recording_stereo(kapps_call:call()) -> kz_term:api_boolean().
+get_recording_stereo(Call) -> kapps_call:kvs_fetch(<<"recording_stereo">>, Call).
 
 -spec set_call_timeout(pos_integer(), kapps_call:call()) -> kapps_call:call().
 set_call_timeout(T, Call) -> kapps_call:kvs_store(<<"call_timeout">>, T, Call).

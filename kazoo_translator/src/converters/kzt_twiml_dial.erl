@@ -178,6 +178,7 @@ setup_call_for_dial(Call, Props) ->
     Setters = [{fun kapps_call:set_caller_id_number/2, caller_id(Props, Call)}
               ,{fun kzt_util:set_hangup_dtmf/2, hangup_dtmf(Props)}
               ,{fun kzt_util:set_record_call/2, should_record_call(Props)}
+              ,{fun kzt_util:set_recording_stereo/2, should_recording_stereo(Props)}
               ,{fun kzt_util:set_call_timeout/2, kzt_twiml_util:timeout_s(Props)}
               ,{fun kzt_util:set_call_time_limit/2, timelimit_s(Props)}
               ],
@@ -379,7 +380,35 @@ hangup_dtmf(<<DTMF/binary>>) ->
             'undefined'
     end.
 
-should_record_call(Props) -> kz_term:is_true(props:get_value('record', Props, 'false')).
+-spec should_record_call(kz_term:proplist()) -> boolean().
+should_record_call(Props) ->
+    %% new possible values:
+    %% - do-not-record
+    %% - record-from-answer
+    %% - record-from-ringing
+    %% - record-from-answer-dual
+    %% - record-from-ringing-dual
+    %% Backward compatibility: true is an alias for record-from-answer
+    %%                         false is an alias for do-not-record
+    case props:get_ne_binary_value('record', Props) of
+        <<"true">> -> 'true';
+        <<"record-from", _/binary>> -> 'true';
+        _ -> 'false'
+    end.
+
+-spec should_recording_stereo(kz_term:proplist()) -> boolean().
+should_recording_stereo(Props) ->
+    %% Backward compatibility: true is an alias for record-from-answer
+    %%                         false is an alias for do-not-record
+    %% In Kazoo, stereo (dual) is default, defaulting true to dual, so user must explicitly request mono.
+    case props:get_ne_binary_value('record', Props) of
+        'undefined' -> 'undefined';
+        <<"false">> -> 'undefined';
+        <<"true">> -> 'true';
+        <<"record-from-answer-dual">> -> 'true';
+        <<"record-from-ringing-dual">> -> 'true';
+        _ -> 'false'
+    end.
 
 timelimit_s(Props) -> props:get_integer_value('timeLimit', Props, 14400).
 
