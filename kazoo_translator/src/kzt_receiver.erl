@@ -477,8 +477,7 @@ process_offnet_event(#dial_req{call=Call}=OffnetReq
             wait_for_offnet_events(update_offnet_timers(OffnetReq))
     end.
 
--spec handle_offnet_b_leg(dial_req(), kz_json:object()) ->
-          {'ok', kapps_call:call()}.
+-spec handle_offnet_b_leg(dial_req(), kz_json:object()) -> dial_req().
 handle_offnet_b_leg(#dial_req{call=Call}=OffnetReq, JObj) ->
     BLeg = kz_call_event:other_leg_call_id(JObj),
 
