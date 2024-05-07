@@ -367,7 +367,7 @@ caller_id(Props, Call) ->
 hangup_dtmf('undefined') ->
     'undefined';
 hangup_dtmf(Props) when is_list(Props) ->
-    case props:get_value('hangupOnStar', Props) of
+    case props:is_true('hangupOnStar', Props) of
         'true' -> <<"*">>;
         _ -> hangup_dtmf(props:get_ne_binary_value('hangupOn', Props))
     end;
