@@ -19,6 +19,8 @@
 
 -include("kzt.hrl").
 
+-export_type([exec_return/0]).
+
 -spec exec(kz_term:ne_binary(), kapps_call:call(), binary(), kz_term:api_binary() | list()) ->
           exec_return().
 exec(RequesterQ, Call, 'undefined', Cmds) ->
