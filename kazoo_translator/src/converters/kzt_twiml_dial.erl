@@ -330,13 +330,15 @@ sip_device(URI) ->
 
 request_id(N, Call) -> iolist_to_binary([N, <<"@">>, kapps_call:from_realm(Call)]).
 
--spec media_processing(kapps_call:call()) -> kz_term:ne_binary().
+-spec media_processing(kapps_call:call()) -> kz_term:api_ne_binary().
 media_processing(Call) ->
     media_processing(kzt_util:get_record_call(Call), kzt_util:get_hangup_dtmf(Call)).
 
--spec media_processing(boolean(), kz_term:api_binary()) -> kz_term:ne_binary().
+%% If not gonna record or process dtmf, bypass media for performance reasons?
+%% Best of luck if you are behind NAT!
+-spec media_processing(kz_term:api_boolean(), kz_term:api_binary()) -> kz_term:ne_binary().
 media_processing('false', 'undefined') -> <<"bypass">>;
-media_processing('true', _HangupDTMF) -> <<"process">>.
+media_processing(_, _) -> <<"process">>.
 
 get_max_participants(Props) when is_list(Props) ->
     get_max_participants(props:get_integer_value('maxParticipants', Props, 40));
