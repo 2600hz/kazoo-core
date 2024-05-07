@@ -439,13 +439,13 @@ process_offnet_event(#dial_req{call=Call}=OffnetReq
             {'ok', kzt_util:update_call_status(call_status(RespMsg), Call)};
         {{<<"call_event">>, <<"DTMF">>}, CallId} ->
             handle_offnet_dtmf(OffnetReq, JObj);
-        {{<<"call_event">>, <<"LEG_CREATED">>}, CallId} ->
-            handle_offnet_b_leg(OffnetReq, JObj);
         {{<<"call_event">>, <<"CHANNEL_BRIDGE">>}, CallId} ->
-            MediaJObj = maybe_start_recording(OffnetReq),
             lager:debug("b-leg bridged: ~s"
                        ,[kz_call_event:other_leg_call_id(JObj)]
                        ),
+
+            OffnetReqUpdated = handle_offnet_b_leg(OffnetReq, JObj),
+            MediaJObj = maybe_start_recording(OffnetReqUpdated),
 
             Updates = [{fun kzt_util:set_media_meta/2, MediaJObj}
                       ,{fun kzt_util:update_call_status/2, ?STATUS_ANSWERED}
@@ -454,9 +454,11 @@ process_offnet_event(#dial_req{call=Call}=OffnetReq
 
             wait_for_offnet_events(
               update_offnet_timers(
-                OffnetReq#dial_req{call_timeout='undefined'
-                                  ,call=kapps_call:exec(Updates, Call)
-                                  }));
+                OffnetReqUpdated#dial_req{call_timeout='undefined'
+                                         ,call=kapps_call:exec(Updates, Call)
+                                         }
+               )
+             );
 
         {{<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>}, CallId} ->
             case kz_call_event:application_name(JObj) of
@@ -479,13 +481,12 @@ process_offnet_event(#dial_req{call=Call}=OffnetReq
           {'ok', kapps_call:call()}.
 handle_offnet_b_leg(#dial_req{call=Call}=OffnetReq, JObj) ->
     BLeg = kz_call_event:other_leg_call_id(JObj),
-    lager:debug("b-leg created: ~s", [BLeg]),
 
     Srv = kzt_util:get_amqp_listener(Call),
-    lager:debug("adding binding to ~p", [Srv]),
+    lager:debug("adding binding for other leg ~s to ~p", [BLeg, Srv]),
 
     _ = gen_listener:add_binding(Srv, 'call', [{'callid', BLeg}
-                                              ,{'restrict_to', ['events']}
+                                              ,'pooled'
                                               ]),
 
     Updates = [{fun kzt_util:set_dial_call_sid/2, BLeg}
@@ -494,13 +495,9 @@ handle_offnet_b_leg(#dial_req{call=Call}=OffnetReq, JObj) ->
               ,{fun kzt_util:set_dial_call_status/2, ?STATUS_RINGING}
               ],
 
-    wait_for_offnet_events(
-      update_offnet_timers(
-        OffnetReq#dial_req{call_b_leg=BLeg
-                          ,call=kapps_call:exec(Updates, Call)
-                          }
-       )
-     ).
+    OffnetReq#dial_req{call_b_leg=BLeg
+                      ,call=kapps_call:exec(Updates, Call)
+                      }.
 
 -spec handle_offnet_dtmf(dial_req(), kz_json:object()) ->
           {'ok', kapps_call:call()}.
