@@ -362,16 +362,21 @@ caller_id(Props, Call) ->
       props:get_value('callerId', Props, kapps_call:caller_id_number(Call))
      ).
 
--spec hangup_dtmf(kz_term:proplist() | kz_term:api_binary()) -> kz_term:api_binary().
+-spec hangup_dtmf(kz_term:proplist() | kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+hangup_dtmf('undefined') ->
+    'undefined';
 hangup_dtmf(Props) when is_list(Props) ->
     case props:get_value('hangupOnStar', Props) of
         'true' -> <<"*">>;
-        _ -> hangup_dtmf(props:get_binary_value('hangupOn', Props))
+        _ -> hangup_dtmf(props:get_ne_binary_value('hangupOn', Props))
     end;
-hangup_dtmf(DTMF) ->
+hangup_dtmf(<<DTMF/binary>>) ->
     case lists:member(DTMF, ?ANY_DIGIT) of
-        'true' -> DTMF;
-        'false' -> 'undefined'
+        'true' ->
+            DTMF;
+        'false' ->
+            lager:debug("unsupported digit ~s for hangupOn", [DTMF]),
+            'undefined'
     end.
 
 should_record_call(Props) -> kz_term:is_true(props:get_value('record', Props, 'false')).
