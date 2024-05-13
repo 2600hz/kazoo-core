@@ -21,8 +21,6 @@
 -spec exec(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts(), kz_types:xml_attribs()) ->
           {'ok' | 'stop', kapps_call:call()}.
 exec(Call, [#xmlText{type='text'}|_]=DialMeTxts, Attrs) ->
-    kapps_call_command:answer(Call),
-
     case cleanup_dial_me(kz_xml:texts_to_binary(DialMeTxts)) of
         <<>> ->
             lager:info("no text to dial, using only xml elements"),
@@ -36,8 +34,6 @@ exec(Call
                  }=_El
      ]
     ,DialAttrs) ->
-    kapps_call_command:answer(Call),
-
     case cleanup_dial_me(kz_xml:texts_to_binary(Number)) of
         <<>> ->
             lager:debug("no dial-able Number in tag, continuing"),
@@ -58,8 +54,6 @@ exec(Call, [#xmlElement{name='Conference'
                        ,content=ConfIdTxts
                        ,attributes=ConfAttrs
                        }], DialAttrs) ->
-    kapps_call_command:answer(Call),
-
     ConfId = conference_id(ConfIdTxts),
     lager:info("dialing into conference '~s'", [ConfId]),
 
