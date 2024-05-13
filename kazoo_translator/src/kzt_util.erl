@@ -99,9 +99,6 @@ offnet_req(_Data, OffnetProps, Call) ->
     CCVs = kapps_call:custom_channel_vars(Call),
     PrivacyFlags = kz_privacy:flags(CCVs),
 
-
-    OffnetQ = kapps_call:kvs_fetch(<<"pivot_queue">>, kapps_call:control_queue(Call), Call),
-
     Req = kz_json:from_list(
             [{?KEY_ACCOUNT_ID, kapps_call:account_id(Call)}
             ,{?KEY_ACCOUNT_REALM, kapps_call:from_realm(Call)}
@@ -148,7 +145,7 @@ offnet_req(_Data, OffnetProps, Call) ->
             ,{?KEY_SIP_DIVERSIONS, kapps_call:bridge_diversions(Call)}
              %% ,{?KEY_EMERGENCY_ADDRESS, get_emergency_address(Data, Call)}
             ,{?KEY_RESOURCE_TYPE, ?RESOURCE_TYPE_AUDIO}
-            | kz_api:default_headers(OffnetQ, ?APP_NAME, ?APP_VERSION)
+            | kz_api:default_headers(kapps_call:control_queue(Call), ?APP_NAME, ?APP_VERSION)
             ] ++ OffnetProps),
 
     kz_amqp_worker:cast(Req, fun kapi_offnet_resource:publish_req/1).
