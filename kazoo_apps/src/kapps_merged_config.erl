@@ -144,7 +144,7 @@ get_merged_fold({AccountId, Category, Key}, Acc) ->
 -define(is_json(J), kz_json:is_json_object(J)).
 
 get_merged_value(Key, JObj, Acc) ->
-    case kz_json:get_json_value(Key, JObj) of
+    case kz_json:get_ne_value(Key, JObj) of
         'undefined' -> Acc;
         Value when Acc =:= 'undefined' -> Value;
         Value -> merged_value(Value, Acc, ?is_json(Value), ?is_json(Acc))
