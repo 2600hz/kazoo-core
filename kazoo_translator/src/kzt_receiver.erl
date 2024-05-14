@@ -402,7 +402,7 @@ wait_for_conference(Call) ->
                                         }).
 
 -spec call_status(kz_term:ne_binary()) -> kz_term:ne_binary().
-call_status(<<"ORIGINATOR_CANCEL">>) -> ?STATUS_COMPLETED;
+call_status(<<"ORIGINATOR_CANCEL">>) -> ?STATUS_CANCELED;
 call_status(<<"NORMAL_CLEARING">>) -> ?STATUS_COMPLETED;
 call_status(<<"SUCCESS">>) -> ?STATUS_COMPLETED;
 call_status(<<"NO_ANSWER">>) -> ?STATUS_NOANSWER;
