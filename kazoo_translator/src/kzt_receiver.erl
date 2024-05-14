@@ -435,7 +435,8 @@ process_offnet_event(#dial_req{call=Call}=OffnetReq
         {{<<"resource">>, <<"offnet_resp">>}, _} ->
             RespMsg = kz_call_event:response_message(JObj),
             RespCode = kz_call_event:response_code(JObj),
-            lager:info("offnet resp: ~s(~s)", [RespMsg, RespCode]),
+            ErrorMsg = kz_call_event:error_message(JObj),
+            lager:debug("offnet resp: ~s(~s) (error: ~s)", [RespMsg, RespCode, ErrorMsg]),
             {'ok', kzt_util:update_call_status(call_status(RespMsg), Call)};
         {{<<"call_event">>, <<"DTMF">>}, CallId} ->
             handle_offnet_dtmf(OffnetReq, JObj);

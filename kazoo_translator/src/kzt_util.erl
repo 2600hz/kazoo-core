@@ -145,7 +145,7 @@ offnet_req(_Data, OffnetProps, Call) ->
             ,{?KEY_SIP_DIVERSIONS, kapps_call:bridge_diversions(Call)}
              %% ,{?KEY_EMERGENCY_ADDRESS, get_emergency_address(Data, Call)}
             ,{?KEY_RESOURCE_TYPE, ?RESOURCE_TYPE_AUDIO}
-            | kz_api:default_headers(kapps_call:control_queue(Call), ?APP_NAME, ?APP_VERSION)
+            | kz_api:default_headers(kapps_call:controller_queue(Call), ?APP_NAME, ?APP_VERSION)
             ] ++ OffnetProps),
 
     kz_amqp_worker:cast(Req, fun kapi_offnet_resource:publish_req/1).
