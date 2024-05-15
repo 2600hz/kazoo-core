@@ -695,12 +695,18 @@ recording_name(ALeg, BLeg) ->
 handle_offnet_timeout(#dial_req{call=Call
                                ,call_timeout='undefined'
                                }) ->
-    lager:info("call timeout exceeded"),
-    kapps_call_command:hangup(Call),
-    {'ok', kzt_util:update_call_status(?STATUS_COMPLETED, Call)};
+    lager:debug("call timeLimit exceeded, hanging up the called party"),
+    maybe_hangup_other_leg(Call),
+    Updates = [{fun kzt_util:update_call_status/2, ?STATUS_COMPLETED}
+              ,{fun kzt_util:set_dial_call_status/2, ?STATUS_COMPLETED}
+              ],
+    {'ok', kapps_call:exec(Updates, Call)};
 handle_offnet_timeout(#dial_req{call=Call}) ->
     lager:debug("timed out waiting for call to be answered by endpoint(s)"),
-    {'ok', kzt_util:update_call_status(?STATUS_NOANSWER, Call)}.
+    Updates = [{fun kzt_util:update_call_status/2, ?STATUS_COMPLETED}
+              ,{fun kzt_util:set_dial_call_status/2, ?STATUS_COMPLETED}
+              ],
+    {'ok', kapps_call:exec(Updates, Call)}.
 
 -spec handle_conference_timeout(dial_req()) -> {'ok', kapps_call:call()}.
 handle_conference_timeout(#dial_req{call=Call
@@ -708,10 +714,16 @@ handle_conference_timeout(#dial_req{call=Call
                                    }) ->
     lager:debug("time timeLimit for conference exceeded, exiting conference"),
     kapps_call_command:park(Call),
-    {'ok', kzt_util:update_call_status(?STATUS_COMPLETED, Call)};
+    Updates = [{fun kzt_util:update_call_status/2, ?STATUS_COMPLETED}
+              ,{fun kzt_util:set_dial_call_status/2, ?STATUS_ANSWERED}
+              ],
+    {'ok', kapps_call:exec(Updates, Call)};
 handle_conference_timeout(#dial_req{call=Call}) ->
     lager:debug("timed out waiting for call to be answered by the conference"),
-    {'ok', kzt_util:update_call_status(?STATUS_NOANSWER, Call)}.
+    Updates = [{fun kzt_util:update_call_status/2, ?STATUS_COMPLETED}
+              ,{fun kzt_util:set_dial_call_status/2, ?STATUS_ANSWERED}
+              ],
+    {'ok', kapps_call:exec(Updates, Call)}.
 
 -spec which_time(kz_term:api_integer(), pos_integer()) -> non_neg_integer().
 which_time('undefined', Timelimit)
