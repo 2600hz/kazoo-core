@@ -415,12 +415,12 @@ should_recording_stereo(Props) ->
     end.
 
 %% Adds 5s timeout buffer
--spec timeout_s(kz_term:proplist()) -> pos_integer().
+-spec timeout_s(kz_term:proplist()) -> non_neg_integer().
 timeout_s(Props) ->
     Timeout = kzt_twiml_util:timeout_s(Props, ?MINIMUM_TIMEOUT_S, ?MAXIMUM_TINEOUT_S, ?DEFAULT_TIMEOUT_S),
     Timeout + ?TIMEOUT_BUFFER_S.
 
--spec timelimit_s(kz_term:proplist()) -> pos_integer().
+-spec timelimit_s(kz_term:proplist()) -> non_neg_integer().
 timelimit_s(Props) ->
     kzt_twiml_util:timeout_s('timeLimit', Props, 0, ?MAXIMUM_TIME_LIMIT_S, ?DEFAULT_TIME_LIMIT_S).
 

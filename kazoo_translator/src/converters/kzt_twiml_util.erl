@@ -116,11 +116,11 @@ timeout_s(Props, Default) ->
         N when is_integer(N), N > 0 -> N
     end.
 
--spec timeout_s(kz_term:proplist(), pos_integer(), pos_integer(), pos_integer()) -> pos_integer().
+-spec timeout_s(kz_term:proplist(), non_neg_integer(), non_neg_integer(), non_neg_integer()) -> non_neg_integer().
 timeout_s(Props, Min, Max, Default) ->
     timeout_s('timeout', Props, Min, Max, Default).
 
--spec timeout_s(atom(), kz_term:proplist(), pos_integer(), pos_integer(), pos_integer()) -> pos_integer().
+-spec timeout_s(atom(), kz_term:proplist(), non_neg_integer(), non_neg_integer(), non_neg_integer()) -> non_neg_integer().
 timeout_s(Key, Props, Min, Max, Default) ->
     case props:get_integer_value(Key, Props) of
         'undefined' -> Default;
