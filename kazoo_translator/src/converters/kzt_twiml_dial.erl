@@ -18,6 +18,14 @@
 
 -include("kzt.hrl").
 
+-define(DEFAULT_TIMEOUT_S, 30).
+-define(MINIMUM_TIMEOUT_S, 0). %% note: min is 5s, but we add buffer so we get our 5s min back
+-define(TIMEOUT_BUFFER_S, 5).
+-define(MAXIMUM_TINEOUT_S, 600).
+
+-define(DEFAULT_TIME_LIMIT_S, 4 * ?SECONDS_IN_HOUR).
+-define(MAXIMUM_TIME_LIMIT_S, 4 * ?SECONDS_IN_HOUR).
+
 -spec exec(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts(), kz_types:xml_attribs()) ->
           {'ok' | 'stop', kapps_call:call()}.
 exec(Call, [#xmlText{type='text'}|_]=DialMeTxts, Attrs) ->
@@ -146,8 +154,7 @@ dial_me(Call, Attrs, DialMe) ->
                                ,Props
                                ),
 
-    OffnetProps = [{<<"Timeout">>, kzt_util:get_call_timeout(Call1)}
-                  ,{<<"Media">>, media_processing(Call1)}
+    OffnetProps = [{<<"Media">>, media_processing(Call1)}
                   ,{<<"Force-Outbound">>, force_outbound(Props)}
                   ],
     'ok' = kzt_util:offnet_req(Props, OffnetProps, Call1),
@@ -173,7 +180,7 @@ setup_call_for_dial(Call, Props) ->
               ,{fun kzt_util:set_hangup_dtmf/2, hangup_dtmf(Props)}
               ,{fun kzt_util:set_record_call/2, should_record_call(Props)}
               ,{fun kzt_util:set_recording_stereo/2, should_recording_stereo(Props)}
-              ,{fun kzt_util:set_call_timeout/2, kzt_twiml_util:timeout_s(Props)}
+              ,{fun kzt_util:set_call_timeout/2, timeout_s(Props)}
               ,{fun kzt_util:set_call_time_limit/2, timelimit_s(Props)}
               ],
     kapps_call:exec(Setters, Call).
@@ -404,7 +411,15 @@ should_recording_stereo(Props) ->
         _ -> 'false'
     end.
 
-timelimit_s(Props) -> props:get_integer_value('timeLimit', Props, 14400).
+%% Adds 5s timeout buffer
+-spec timeout_s(kz_term:proplist()) -> pos_integer().
+timeout_s(Props) ->
+    Timeout = kzt_twiml_util:timeout_s(Props, ?MINIMUM_TIMEOUT_S, ?MAXIMUM_TINEOUT_S, ?DEFAULT_TIMEOUT_S),
+    Timeout + ?TIMEOUT_BUFFER_S.
+
+-spec timelimit_s(kz_term:proplist()) -> pos_integer().
+timelimit_s(Props) ->
+    kzt_twiml_util:timeout_s('timeLimit', Props, 0, ?MAXIMUM_TIME_LIMIT_S, ?DEFAULT_TIME_LIMIT_S).
 
 -spec build_conference_doc(kapps_call:call(), kz_term:ne_binary(), kz_term:proplist()) ->
           kz_json:object().

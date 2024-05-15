@@ -350,7 +350,7 @@ wait_for_offnet(Call, DialProps) ->
     CallTimeLimit = kzt_util:get_call_time_limit(Call) * ?MILLISECONDS_IN_SECOND,
     CallTimeout = kzt_util:get_call_timeout(Call) * ?MILLISECONDS_IN_SECOND,
 
-    lager:debug("limit: ~p s timeout: ~p s"
+    lager:debug("waiting for offnet with call timeLimit: ~bs and answer timeout: ~bs"
                ,[kzt_util:get_call_time_limit(Call)
                 ,kzt_util:get_call_timeout(Call)
                 ]),
@@ -706,7 +706,7 @@ handle_offnet_timeout(#dial_req{call=Call}) ->
 handle_conference_timeout(#dial_req{call=Call
                                    ,call_timeout='undefined'
                                    }) ->
-    lager:debug("time limit for conference exceeded"),
+    lager:debug("time timeLimit for conference exceeded, exiting conference"),
     kapps_call_command:park(Call),
     {'ok', kzt_util:update_call_status(?STATUS_COMPLETED, Call)};
 handle_conference_timeout(#dial_req{call=Call}) ->
@@ -725,6 +725,10 @@ which_time(_, _) -> 0.
 -spec update_offnet_timers(dial_req()) -> dial_req().
 update_offnet_timers(#dial_req{call_timeout='undefined'
                               ,call_time_limit='infinity'
+                              }=OffnetReq) ->
+    OffnetReq;
+update_offnet_timers(#dial_req{call_timeout='undefined'
+                              ,call_time_limit='undefined'
                               }=OffnetReq) ->
     OffnetReq;
 update_offnet_timers(#dial_req{call_timeout='undefined'
