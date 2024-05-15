@@ -18,6 +18,7 @@
         ,add_error/3, get_errors/1
         ,set_hangup_dtmf/2, get_hangup_dtmf/1
         ,set_digit_pressed/2, get_digit_pressed/1
+        ,set_is_caller_hungup/2, get_is_caller_hungup/1
         ,set_call_timeout/2, get_call_timeout/1
         ,set_call_time_limit/2, get_call_time_limit/1
         ,set_record_call/2, get_record_call/1
@@ -176,6 +177,12 @@ update_call_status(Status, Call) ->
 -spec get_call_status(kapps_call:call()) -> kz_term:api_binary().
 get_call_status(Call) ->
     kapps_call:kvs_fetch(<<"call_status">>, Call).
+
+-spec set_is_caller_hungup(boolean(), kapps_call:call()) -> kapps_call:call().
+set_is_caller_hungup(IsEnded, Call) -> kapps_call:kvs_store(<<"is_caller_hungup">>, IsEnded, Call).
+
+-spec get_is_caller_hungup(kapps_call:call()) -> boolean().
+get_is_caller_hungup(Call) -> kz_term:is_true(kapps_call:kvs_fetch(<<"is_caller_hungup">>, Call)).
 
 -spec add_error(kapps_call:call(), kz_term:ne_binary(), any()) -> kapps_call:call().
 add_error(Call, K, V) ->

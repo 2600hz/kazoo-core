@@ -355,7 +355,12 @@ wait_for_offnet(Call, DialProps) ->
                 ,kzt_util:get_call_timeout(Call)
                 ]),
 
-    wait_for_offnet_events(#dial_req{call=kzt_util:clear_digits_collected(Call)
+    Updates = [fun kzt_util:clear_digits_collected/1
+              ,{fun kzt_util:update_call_status/2, ?STATUS_RINGING}
+              ,{fun kzt_util:set_dial_call_status/2, ?STATUS_RINGING}
+              ],
+
+    wait_for_offnet_events(#dial_req{call=kapps_call:exec(Updates, Call)
                                     ,hangup_dtmf=HangupDTMF
                                     ,collect_dtmf=CollectDTMF
                                     ,record_call=RecordCall
@@ -392,7 +397,16 @@ wait_for_conference(Call) ->
     CallTimeLimit = kzt_util:get_call_time_limit(Call) * ?MILLISECONDS_IN_SECOND,
     CallTimeout = kzt_util:get_call_timeout(Call) * ?MILLISECONDS_IN_SECOND,
 
-    wait_for_conference_events(#dial_req{call=Call
+    lager:debug("waiting for conference with call timeLimit: ~bs and answer timeout: ~bs"
+               ,[kzt_util:get_call_time_limit(Call)
+                ,kzt_util:get_call_timeout(Call)
+                ]),
+    Updates = [fun kzt_util:clear_digits_collected/1
+              ,{fun kzt_util:update_call_status/2, ?STATUS_RINGING}
+              ,{fun kzt_util:set_dial_call_status/2, ?STATUS_RINGING}
+              ],
+
+    wait_for_conference_events(#dial_req{call=kapps_call:exec(Updates, Call)
                                         ,hangup_dtmf=HangupDTMF
                                         ,collect_dtmf='true'
                                         ,record_call=RecordCall
@@ -412,6 +426,11 @@ call_status(_Status) ->
     lager:debug("unhandled call status: ~p", [_Status]),
     ?STATUS_FAILED.
 
+-spec conference_call_status(kz_term:ne_binary()) -> kz_term:ne_binary().
+conference_call_status(<<"NORMAL_CLEARING">>) -> ?STATUS_ANSWERED;
+conference_call_status(<<"SUCCESS">>) -> ?STATUS_ANSWERED;
+conference_call_status(Status) -> call_status(Status).
+
 -spec wait_for_offnet_events(dial_req()) -> {'ok', kapps_call:call()}.
 wait_for_offnet_events(#dial_req{call_timeout=CallTimeout
                                 ,call_time_limit=CallTimeLimit
@@ -424,100 +443,109 @@ wait_for_offnet_events(#dial_req{call_timeout=CallTimeout
 
 -spec process_offnet_event(dial_req(), kz_json:object()) ->
           {'ok', kapps_call:call()}.
-process_offnet_event(#dial_req{call=Call}=OffnetReq
+process_offnet_event(#dial_req{call=Call, call_b_leg=OtherLegId}=OffnetReq0
                     ,JObj) ->
+    OffnetReq = update_offnet_timers(OffnetReq0),
     CallId = kapps_call:call_id(Call),
 
-    case {kz_api:event_type(JObj)
-         ,kz_call_event:call_id(JObj)
-         }
-    of
+    case {kz_api:event_type(JObj), kz_call_event:call_id(JObj)} of
         {{<<"resource">>, <<"offnet_resp">>}, _} ->
-            RespMsg = kz_call_event:response_message(JObj),
-            RespCode = kz_call_event:response_code(JObj),
-            ErrorMsg = kz_call_event:error_message(JObj),
-            lager:debug("offnet resp: ~s(~s) (error: ~s)", [RespMsg, RespCode, ErrorMsg]),
-            {'ok', kzt_util:update_call_status(call_status(RespMsg), Call)};
+            handle_offnet_bridge_resp(Call, JObj);
+
         {{<<"call_event">>, <<"DTMF">>}, CallId} ->
-            handle_offnet_dtmf(OffnetReq, JObj);
+            handle_offnet_dtmf_event(OffnetReq, JObj, ?STATUS_ANSWERED, fun wait_for_offnet_events/1);
+
         {{<<"call_event">>, <<"CHANNEL_BRIDGE">>}, CallId} ->
-            lager:debug("b-leg bridged: ~s"
-                       ,[kz_call_event:other_leg_call_id(JObj)]
-                       ),
-
-            OffnetReqUpdated = handle_offnet_b_leg(OffnetReq, JObj),
-            MediaJObj = maybe_start_recording(OffnetReqUpdated),
-
-            Updates = [{fun kzt_util:set_media_meta/2, MediaJObj}
-                      ,{fun kzt_util:update_call_status/2, ?STATUS_ANSWERED}
-                      ,{fun kzt_util:set_dial_call_status/2, ?STATUS_ANSWERED}
-                      ],
-
-            wait_for_offnet_events(
-              update_offnet_timers(
-                OffnetReqUpdated#dial_req{call_timeout='undefined'
-                                         ,call=kapps_call:exec(Updates, Call)
-                                         }
-               )
-             );
+            wait_for_offnet_events(handle_offnet_bridged(OffnetReq, JObj));
 
         {{<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>}, CallId} ->
             case kz_call_event:application_name(JObj) of
                 <<"bridge">> ->
-                    handle_hangup(Call, JObj, kz_call_event:application_response(JObj));
+                    lager:debug("bridge execution completed: ~s", [kz_call_event:application_response(JObj)]),
+                    handle_called_party_ended(Call, call_status(kz_call_event:application_response(JObj)));
                 _App ->
                     wait_for_offnet_events(update_offnet_timers(OffnetReq))
             end;
 
+        {{<<"call_event">>, <<"CHANNEL_UNBRIDGE">>}, CallId} ->
+            lager:debug("channel is unbridged: ~s", [kz_call_event:application_response(JObj)]),
+            handle_called_party_ended(Call, call_status(kz_call_event:application_response(JObj)));
+
         {{<<"call_event">>, <<"CHANNEL_DESTROY">>}, CallId} ->
-            handle_hangup(Call, JObj);
+            HangupCause = kz_call_event:hangup_cause(JObj),
+            lager:debug("caller channel finished: ~s", [HangupCause]),
+            handle_hangup(Call, call_status(HangupCause));
+
+        {{<<"call_event">>, <<"CHANNEL_DESTROY">>}, OtherLegId} ->
+            HangupCause = kz_call_event:hangup_cause(JObj),
+            lager:debug("other channel ~s is destroyed: ~s", [OtherLegId, HangupCause]),
+            handle_called_party_ended(Call, call_status(HangupCause));
+
         {{<<"call_event">>, <<"CHANNEL_PARK">>}, CallId} ->
             lager:debug("channel ~s has parked, probably means none of the bridge strings succeeded", [CallId]),
             {'ok', Call};
+
         {{_Cat, _Name}, _CallId} ->
             wait_for_offnet_events(update_offnet_timers(OffnetReq))
     end.
 
--spec handle_offnet_b_leg(dial_req(), kz_json:object()) -> dial_req().
-handle_offnet_b_leg(#dial_req{call=Call}=OffnetReq, JObj) ->
-    BLeg = kz_call_event:other_leg_call_id(JObj),
+-spec handle_offnet_bridge_resp(kapps_call:call(), kz_json:object()) -> {'ok', kapps_call:call()}.
+handle_offnet_bridge_resp(Call, JObj) ->
+    RespMsg = kz_call_event:response_message(JObj),
+    RespCode = kz_call_event:response_code(JObj),
+    ErrorMsg = kz_call_event:error_message(JObj),
+    lager:debug("offnet resp: ~s(~s) (error: ~s)", [RespMsg, RespCode, ErrorMsg]),
 
+    Updates = [{fun kzt_util:update_call_status/2, call_status(RespMsg)}
+              ,{fun kzt_util:set_dial_call_status/2, offnet_dial_status(call_status(RespMsg))}
+              ],
+
+    {'ok', kapps_call:exec(Updates, Call)}.
+
+-spec handle_offnet_bridged(dial_req(), kz_json:object()) -> dial_req().
+handle_offnet_bridged(#dial_req{call=Call}=OffnetReq, JObj) ->
+    OtherLegId = kz_call_event:other_leg_call_id(JObj),
     Srv = kzt_util:get_amqp_listener(Call),
-    lager:debug("adding binding for other leg ~s to ~p", [BLeg, Srv]),
+    lager:debug("caller bridged, add binding for other leg ~s to ~p", [OtherLegId, Srv]),
 
-    _ = gen_listener:add_binding(Srv, 'call', [{'callid', BLeg}
+    _ = gen_listener:add_binding(Srv, 'call', [{'callid', OtherLegId}
                                               ,'pooled'
                                               ]),
 
-    Updates = [{fun kzt_util:set_dial_call_sid/2, BLeg}
-              ,{fun kapps_call:set_other_leg_call_id/2, BLeg}
-              ,{fun kzt_util:update_call_status/2, ?STATUS_RINGING}
-              ,{fun kzt_util:set_dial_call_status/2, ?STATUS_RINGING}
+    MediaJObj = maybe_start_recording(OffnetReq),
+
+    Updates = [{fun kzt_util:set_media_meta/2, MediaJObj}
+              ,{fun kzt_util:update_call_status/2, ?STATUS_IN_PROGRESS}
+              ,{fun kzt_util:set_dial_call_status/2, ?STATUS_COMPLETED}
+              ,{fun kzt_util:set_dial_call_sid/2, OtherLegId}
+              ,{fun kapps_call:set_other_leg_call_id/2, OtherLegId}
               ],
 
-    OffnetReq#dial_req{call_b_leg=BLeg
+    OffnetReq#dial_req{call_timeout='undefined'
+                      ,call_b_leg=OtherLegId
                       ,call=kapps_call:exec(Updates, Call)
                       }.
 
--spec handle_offnet_dtmf(dial_req(), kz_json:object()) ->
+-spec handle_offnet_dtmf_event(dial_req(), kz_json:object(), kz_term:ne_binary(), fun((dial_req()) -> {'ok', kapps_call:call()})) ->
           {'ok', kapps_call:call()}.
-handle_offnet_dtmf(OffnetReq, JObj) ->
-    handle_dtmf_event(OffnetReq, JObj, fun wait_for_offnet_events/1).
-
--spec handle_dtmf_event(dial_req(), kz_json:object(), fun((dial_req()) -> {'ok', kapps_call:call()})) ->
-          {'ok', kapps_call:call()}.
-handle_dtmf_event(#dial_req{call=Call
-                           ,hangup_dtmf=HangupDTMF
-                           ,collect_dtmf=CollectDTMF
-                           }=DialReq
-                 ,JObj
-                 ,LoopFun
-                 ) ->
+handle_offnet_dtmf_event(#dial_req{call=Call
+                                  ,hangup_dtmf=HangupDTMF
+                                  ,collect_dtmf=CollectDTMF
+                                  }=DialReq
+                        ,JObj
+                        ,DialCallStatus
+                        ,LoopFun
+                        ) ->
     case kz_call_event:dtmf_digit(JObj) of
         HangupDTMF ->
             lager:info("recv'd hangup DTMF '~s'", [HangupDTMF]),
             kapps_call_command:hangup(Call),
-            {'ok', Call};
+            Updates = [{fun kzt_util:update_call_status/2, ?STATUS_COMPLETED}
+                      ,{fun kzt_util:set_dial_call_status/2, DialCallStatus}
+                      ,{fun kzt_util:set_is_caller_hungup/2, 'true'}
+                      ],
+
+            {'ok', kapps_call:exec(Updates, Call)};
         DTMF when CollectDTMF ->
             lager:info("collecting dtmf ~s", [DTMF]),
             LoopFun(
@@ -526,26 +554,31 @@ handle_dtmf_event(#dial_req{call=Call
                ));
         _DTMF ->
             lager:info("caller pressed dtmf tone but we're not collecting it"),
-            wait_for_offnet_events(update_offnet_timers(DialReq))
+            LoopFun(update_offnet_timers(DialReq))
     end.
 
--spec handle_hangup(kapps_call:call(), kz_json:object()) ->
-          {'ok', kapps_call:call()}.
-handle_hangup(Call, JObj) ->
-    handle_hangup(Call, JObj, kz_call_event:hangup_cause(JObj)).
-
--spec handle_hangup(kapps_call:call(), kz_json:object(), kz_term:ne_binary()) ->
-          {'ok', kapps_call:call()}.
-handle_hangup(Call, _JObj, HangupCause) ->
-    lager:debug("caller channel finished: ~s", [HangupCause]),
-
-    Updates = [{fun kzt_util:update_call_status/2, call_status(HangupCause)}
-              ,{fun kzt_util:set_dial_call_status/2, dial_status(Call)}
+-spec handle_hangup(kapps_call:call(), kz_term:ne_binary()) -> {'ok', kapps_call:call()}.
+handle_hangup(Call, Status) ->
+    Updates = [{fun kzt_util:update_call_status/2, Status}
+              ,{fun kzt_util:set_dial_call_status/2, offnet_dial_status(Status)}
+              ,{fun kzt_util:set_is_caller_hungup/2, 'true'}
               ],
 
+    %% FIXME: do we need this? handle_hungup is called when the caller leg is destroy, isn't it?
     kapps_call_command:hangup(Call),
     maybe_hangup_other_leg(Call),
 
+    {'ok', kapps_call:exec(Updates, Call)}.
+
+-spec handle_called_party_ended(kapps_call:call(), kz_term:ne_binary()) -> {'ok', kapps_call:call()}.
+handle_called_party_ended(Call, Status) ->
+    handle_called_party_ended(Call, Status, ?STATUS_COMPLETED).
+
+-spec handle_called_party_ended(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kapps_call:call()}.
+handle_called_party_ended(Call, Status, DialCallStatus) ->
+    Updates = [{fun kzt_util:update_call_status/2, Status}
+              ,{fun kzt_util:set_dial_call_status/2, DialCallStatus}
+              ],
     {'ok', kapps_call:exec(Updates, Call)}.
 
 -spec maybe_hangup_other_leg(kapps_call:call()) -> 'ok'.
@@ -555,18 +588,19 @@ maybe_hangup_other_leg(Call) ->
 -spec maybe_hangup_other_leg(kapps_call:call(), kz_term:api_binary()) -> 'ok'.
 maybe_hangup_other_leg(_Call, 'undefined') -> 'ok';
 maybe_hangup_other_leg(Call, OtherLeg) ->
+    lager:debug("sending hangup to other leg ~s", [OtherLeg]),
+
     Req = [{<<"Application-Name">>, <<"hangup">>}
           ,{<<"Insert-At">>, <<"now">>}
           ,{<<"Call-ID">>, OtherLeg}
           ],
     kapps_call_command:send_command(Req, Call).
 
--spec dial_status(kapps_call:call() | kz_term:api_binary()) -> kz_term:ne_binary().
-dial_status(?STATUS_ANSWERED) -> ?STATUS_COMPLETED;
-dial_status(?STATUS_RINGING) -> ?STATUS_NOANSWER;
-dial_status(<<_/binary>>) -> ?STATUS_FAILED;
-dial_status('undefined') -> ?STATUS_FAILED;
-dial_status(Call) -> dial_status(kzt_util:get_dial_call_status(Call)).
+-spec offnet_dial_status(kz_term:ne_binary()) -> kz_term:ne_binary().
+offnet_dial_status(?STATUS_RINGING) -> ?STATUS_NOANSWER;
+offnet_dial_status(?STATUS_IN_PROGRESS) -> ?STATUS_COMPLETED;
+offnet_dial_status(?STATUS_QUEUED) -> ?STATUS_COMPLETED;
+offnet_dial_status(CallStatus) -> CallStatus.
 
 -spec wait_for_conference_events(dial_req()) -> {'ok', kapps_call:call()}.
 wait_for_conference_events(#dial_req{call_timeout=CallTimeout
@@ -582,7 +616,7 @@ wait_for_conference_events(#dial_req{call_timeout=CallTimeout
 process_conference_event(#dial_req{call=Call}=OffnetReq, JObj) ->
     case kz_api:event_type(JObj) of
         {<<"call_event">>, <<"DTMF">>} ->
-            handle_dtmf_event(OffnetReq, JObj, fun wait_for_conference_events/1);
+            handle_offnet_dtmf_event(OffnetReq, JObj, ?STATUS_COMPLETED, fun wait_for_conference_events/1);
 
         {<<"call_event">>, <<"CHANNEL_EXECUTE">>} ->
             case kz_call_event:application_name(JObj) of
@@ -603,7 +637,7 @@ process_conference_event(#dial_req{call=Call}=OffnetReq, JObj) ->
                 <<"conference">> ->
                     lager:info("conferencing has ended"),
                     kapps_call_command:park(Call),
-                    {'ok', Call};
+                    handle_called_party_ended(Call, ?STATUS_COMPLETED, ?STATUS_ANSWERED);
                 _App ->
                     lager:debug("app ~s has ended", [_App]),
                     wait_for_conference_events(update_offnet_timers(OffnetReq))
@@ -611,7 +645,7 @@ process_conference_event(#dial_req{call=Call}=OffnetReq, JObj) ->
 
         {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
             lager:info("our call has ended"),
-            {'ok', Call};
+            handle_hangup(Call, conference_call_status(kz_call_event:hangup_cause(JObj)));
 
         {<<"conference">>, <<"event">>} ->
             case kz_json:get_ne_binary_value(<<"Event">>, JObj) of
@@ -625,7 +659,7 @@ process_conference_event(#dial_req{call=Call}=OffnetReq, JObj) ->
                 <<"conference-destroy">> ->
                     lager:info("conference has been destroyed"),
                     kapps_call_command:park(Call),
-                    {'ok', Call};
+                    handle_called_party_ended(Call, ?STATUS_COMPLETED, ?STATUS_ANSWERED);
                 <<"add-member">> ->
                     case kz_api:call_id(JObj) =:= kapps_call:call_id_direct(Call) of
                         'true' ->

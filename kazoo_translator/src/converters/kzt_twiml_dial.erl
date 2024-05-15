@@ -94,12 +94,10 @@ exec(Call, [#xmlElement{name='Conference'
 
     CallWithConf = add_conference_profile(Call, ConfProps),
     SetupCall = setup_call_for_dial(CallWithConf, DialProps),
-    AnsweredCall = kzt_util:update_call_status(?STATUS_ANSWERED, SetupCall),
 
-    {'ok', Call1} = kzt_receiver:wait_for_conference(AnsweredCall),
+    {'ok', Call1} = kzt_receiver:wait_for_conference(SetupCall),
 
-    _ = maybe_end_dial(Call1, DialProps),
-    {'stop', Call1};
+    maybe_end_dial(Call1, DialProps);
 
 exec(Call, [#xmlElement{name='Queue'
                        ,content=QueueIdTxts
@@ -139,9 +137,7 @@ exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
 
             send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call1),
 
-            {'ok', Call2} = kzt_receiver:wait_for_offnet(kzt_util:update_call_status(?STATUS_RINGING, Call1)
-                                                        ,Props
-                                                        ),
+            {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props),
             maybe_end_dial(Call2, Props)
     end.
 
@@ -159,9 +155,7 @@ dial_me(Call, Attrs, DialMe) ->
                   ],
     'ok' = kzt_util:offnet_req(Props, OffnetProps, Call1),
 
-    {'ok', Call2} = kzt_receiver:wait_for_offnet(kzt_util:update_call_status(?STATUS_RINGING, Call1)
-                                                ,Props
-                                                ),
+    {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props),
     maybe_end_dial(Call2, Props).
 
 send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
@@ -188,12 +182,21 @@ setup_call_for_dial(Call, Props) ->
 -spec maybe_end_dial(kapps_call:call(), kz_term:proplist()) ->
           {'ok' | 'stop' | 'request', kapps_call:call()}.
 maybe_end_dial(Call, Props) ->
-    maybe_end_dial(Call, Props, kzt_twiml_util:action_url(Props)).
+    IsHungup = kzt_util:get_is_caller_hungup(Call),
+    lager:debug("a-leg status after bridge: ~s is caller hungup:", [kzt_util:get_call_status(Call), IsHungup]),
+    maybe_end_dial(Call, Props, kzt_twiml_util:action_url(Props), IsHungup).
 
-maybe_end_dial(Call, _Props, 'undefined') ->
-    lager:debug("a-leg status after bridge: ~s", [kzt_util:get_call_status(Call)]),
-    {'ok', Call}; % will progress to next TwiML element
-maybe_end_dial(Call, Props, ActionUrl) ->
+-spec maybe_end_dial(kapps_call:call(), kz_term:proplist(), kz_term:api_ne_binary(), boolean()) ->
+          {'ok' | 'stop' | 'request', kapps_call:call()}.
+maybe_end_dial(Call, _Props, _ActionUrl, 'true') ->
+    lager:debug("caller leg is ended with ~s, not continuing twiml render"
+               ,[kzt_util:get_call_status(Call)]
+               ),
+    {'stop', Call};
+maybe_end_dial(Call, _Props, 'undefined', 'false') ->
+    %% will progress to next TwiML element if any
+    {'ok', Call};
+maybe_end_dial(Call, Props, ActionUrl, 'false') ->
     CurrentUri = kzt_util:get_voice_uri(Call),
     NewUri = kzt_util:resolve_uri(CurrentUri, ActionUrl),
     lager:debug("sending req to ~s: ~s", [ActionUrl, NewUri]),

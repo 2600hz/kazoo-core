@@ -28,12 +28,14 @@
 
 -define(STATUS_QUEUED, <<"queued">>).
 -define(STATUS_RINGING, <<"ringing">>).
--define(STATUS_ANSWERED, <<"in-progress">>).
+-define(STATUS_IN_PROGRESS, <<"in-progress">>).
 -define(STATUS_COMPLETED, <<"completed">>).
 -define(STATUS_BUSY, <<"busy">>).
 -define(STATUS_FAILED, <<"failed">>).
 -define(STATUS_NOANSWER, <<"no-answer">>).
 -define(STATUS_CANCELED, <<"canceled">>).
+
+-define(STATUS_ANSWERED, <<"answered">>). %% For DialCallStatus when calling conference
 
 -define(APP_NAME, <<"translator">>).
 -define(APP_VERSION, <<"4.0.0">>).
