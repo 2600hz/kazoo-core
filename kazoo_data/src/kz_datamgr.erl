@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Manage data connections.
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -43,7 +43,7 @@
         ,open_cache_docs/2, open_cache_docs/3
         ,update_cache_doc/3
         ,flush_cache_doc/2, flush_cache_doc/3
-        ,flush_cache_docs/0, flush_cache_docs/1
+        ,flush_cache_docs/0, flush_cache_docs/1, flush_cache_docs/2
         ,add_to_doc_cache/3
         ,open_doc/2,open_doc/3
         ,open_docs/2, open_docs/3
@@ -121,6 +121,7 @@
              ,view_listing/0, views_listing/0
              ,view_option/0, view_options/0
              ,open_doc_options/0
+             ,open_cache_doc_options/0
              ,membership_items/0
              ]).
 
@@ -222,7 +223,7 @@ revise_docs_from_folder(DbName, App, Folder, Sleep) ->
     Database = kzs_util:to_database(DbName),
     case code:priv_dir(App) of
         {'error', 'bad_name'} ->
-            lager:error("tried to revise docs for db ~p for invalid priv directory. app: ~p", [Database, App]);
+            lager:warning("tried to revise docs for db ~p for invalid priv directory. app: ~p", [Database, App]);
         ValidDir ->
             Files = filelib:wildcard([ValidDir, "/couchdb/", kz_term:to_list(Folder), "/*.json"]),
             lager:debug("refreshing ~B documents in db ~s for ~s", [length(Files), Database, App]),
@@ -545,7 +546,7 @@ open_cache_doc(DbName, {DocType, DocId}) ->
 open_cache_doc(DbName, DocId) ->
     open_cache_doc(DbName, DocId, []).
 
--spec open_cache_doc(database_name(), docid(), open_doc_options()) ->
+-spec open_cache_doc(database_name(), docid(), open_cache_doc_options()) ->
           {'ok', kz_json:object()} |
           data_error().
 open_cache_doc(DbName, {DocType, DocId}, Options) ->
@@ -569,7 +570,7 @@ update_cache_doc(DbName, DocId, Fun) when is_function(Fun, 1) ->
             NewJObj = Fun(JObj),
             maybe_save_doc(DbName, NewJObj, JObj);
         {'error', _Reason} = Else ->
-            lager:error("can't open doc ~s/~s coz ~p", [DbName, DocId, _Reason]),
+            lager:warning("can't open doc ~s/~s coz ~p", [DbName, DocId, _Reason]),
             Else
     end.
 
@@ -600,6 +601,10 @@ flush_cache_docs() -> kzs_cache:flush_cache_docs().
 -spec flush_cache_docs(database_name()) -> 'ok' | {'error', 'invalid_db_name'}.
 flush_cache_docs(DbName) ->
     kzs_cache:flush_cache_docs(kzs_util:to_database(DbName)).
+
+-spec flush_cache_docs(database_name(), kz_term:ne_binaries()) -> 'ok' | {'error', 'invalid_db_name'}.
+flush_cache_docs(DbName, DocIds) ->
+    kzs_cache:flush_cache_docs(kzs_util:to_database(DbName), DocIds).
 
 -ifdef(TEST).
 %% -define(OPEN_DOC_LOG(DbName, DocId, Options),
@@ -1132,7 +1137,7 @@ attachment_options(DbName, DocId, Options, RequiredOptions) ->
     case maybe_add_required_options(Options, RequiredOptions, Fun) of
         {'ok', _}=Ok -> Ok;
         {'error', _Missing}=Error ->
-            lager:error("missing required options: ~p", [_Missing]),
+            lager:warning("missing required options: ~p", [_Missing]),
             Error
     end.
 
@@ -1259,7 +1264,7 @@ get_registered_view(Plan, DbName, DesignDoc) ->
         {'ok', []} -> 'not_registered';
         {'ok', [JObj | _]} -> kz_json:get_json_value(<<"doc">>, JObj);
         {'error', _Err} ->
-            lager:error("error getting registered view : ~p", [_Err]),
+            lager:warning("error getting registered view : ~p", [_Err]),
             'not_registered'
     end.
 
@@ -1326,7 +1331,7 @@ handle_saved_view(Plan, Database, DesignDoc, ViewDoc
 handle_saved_view(_Plan, _Database, _DesignDoc, _ViewDoc
                  ,{'error', _Err}
                  ) ->
-    lager:error("error saving registered view ~s to database ~s : ~p", [_DesignDoc, _Database, _Err]),
+    lager:warning("error saving registered view ~s to database ~s : ~p", [_DesignDoc, _Database, _Err]),
     {'error', 'not_found'}.
 
 -spec maybe_update_view(map(), database_name(), ddoc(), kz_json:object()) -> 'ok'.
@@ -1353,7 +1358,7 @@ maybe_update_view(Plan, Database, DesignDoc, ViewDoc, {'ok', CurrentDoc}) ->
                 {'ok', _ViewDoc} ->
                     lager:debug("updated design doc ~s on database ~s", [DesignDoc, Database]);
                 {'error', _Err} ->
-                    lager:error("error updating design doc ~s to database ~s : ~p", [DesignDoc, Database, _Err])
+                    lager:warning("error updating design doc ~s to database ~s : ~p", [DesignDoc, Database, _Err])
             end;
         'true' -> lager:debug("view docs are equivalent")
     end;
@@ -1687,7 +1692,7 @@ register_view(App, ViewName) ->
           {'ok', kz_json:object()} |
           data_error().
 maybe_register_view({<<"_design/", _Name/binary>>, _}, _App, {'error', _Reason}=Error) ->
-    lager:error("can not register the view ~s for app ~s: ~s", [_Name, _App, _Reason]),
+    lager:warning("can not register the view ~s for app ~s: ~s", [_Name, _App, _Reason]),
     Error;
 maybe_register_view({<<"_design/", Name/binary>>, View}, App, {ClassId, ViewMaps}) ->
     Version = kz_application:application_version(App),

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2023, 2600Hz
+%%% @copyright (C) 2016-2024, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%%
@@ -19,7 +19,7 @@ api_test_() ->
               ,{'carriers', [<<"knm_bandwidth2">>]}
               ,{'query_id', <<"QID">>}
               ],
-    {setup
+    {'setup'
     ,fun () -> {'ok', Pid} = knm_search:start_link(), Pid end
     ,fun gen_server:stop/1
     ,fun (_ReturnOfSetup) ->

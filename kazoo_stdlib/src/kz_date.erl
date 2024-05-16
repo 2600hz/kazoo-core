@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Represent a date, and perform various manipulations on it.
 %%% @author Mark Magnusson
 %%% @author Karl Anderson
@@ -11,7 +11,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_date).
 
--include("kazoo_stdlib/include/kz_types.hrl").
+-include_file("kazoo_stdlib/include/kz_types.hrl").
 
 %% Date object functions
 -export([from_gregorian_seconds/2

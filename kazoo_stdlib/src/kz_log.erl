@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,11 +18,17 @@
         ,change_sink_level/2
 
         ,log_stacktrace/0, log_stacktrace/1, log_stacktrace/2, log_stacktrace/3
-        ,put_callid/1, get_callid/0, find_callid/1
+        ,put_callid/1, put_callid/2, get_callid/0, find_callid/1
         ,kz_log_md_clear/0, kz_log_md_put/2
         ,format/2, format/3
         ]).
 -export([redactor/1]).
+
+-elvis([{elvis_style, no_debug_call, disable}]).
+
+-ifdef(TEST).
+-export([restart_check/0]).
+-endif.
 
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -71,7 +77,7 @@
 change_sink_level(<<SinkHandler/binary>>, Level) ->
     Sink = kz_term:to_atom(<<SinkHandler/binary, "_lager_event">>, 'true'),
 
-    Handlers = lager_config:global_get(handlers, []),
+    Handlers = lager_config:global_get('handlers', []),
 
     %% [{Backend, Pid, Sink}]
     case lists:keyfind(Sink, 3, Handlers) of
@@ -200,6 +206,15 @@ put_callid(Atom) when is_atom(Atom) ->
 put_callid(APITerm) ->
     put_callid(find_callid(APITerm)).
 
+-spec put_callid(kz_term:ne_binary() | atom(), kz_json:object() | kz_term:proplist() | kz_term:ne_binary() | atom()) -> 'ok'.
+put_callid(Prefix, CallId) ->
+    put_callid(list_to_binary([kz_term:to_binary(Prefix), "|", logid(CallId)])).
+
+-spec logid(kz_json:object() | kz_term:proplist() | kz_term:ne_binary() | atom()) -> kz_term:ne_binary() | atom().
+logid(?NE_BINARY = Id) -> Id;
+logid(Atom) when is_atom(Atom) -> Atom;
+logid(APITerm) -> find_callid(APITerm).
+
 -spec get_callid() -> kz_term:api_ne_binary().
 get_callid() -> erlang:get('callid').
 
@@ -254,7 +269,11 @@ redact_json_credit_card_number(Line) ->
 
 -spec redact_basic_auth(kz_term:text()) -> kz_term:ne_binary().
 redact_basic_auth(Line) ->
-    case re:run(Line, <<"(https?://)([^:]+:[^@]+@)(.+)">>, [{'capture', 'all_but_first', 'binary'}]) of
+    case re:run(Line
+               ,<<"((?:amqp|http)s?://)([^:]+:[^@]+@)(.+)">>
+               ,[{'capture', 'all_but_first', 'binary'}]
+               )
+    of
         {'match', [Scheme, _Creds, URL]} ->
             <<Scheme/binary, URL/binary>>;
         _ -> Line
@@ -277,3 +296,35 @@ log_format('rfc3339', Acc) ->
     [RFC3339 | Acc];
 log_format(Term, Acc) ->
     [Term | Acc].
+
+-ifdef(TEST).
+
+%% to be run in a running KAZOO VM (dev env obviously)
+
+%% sometimes the syslog driver will crash (typically around a wonky
+%% UTF-8 character) and be restarted, but it reverts back to the
+%% sys.config defined value (default 'debug'). If syslog was running
+%% in a different priority level (info, notice, etc), that runtime
+%% change will be lost.
+
+%% KAZOO should monitor the syslog process and at least re-read
+%% KAZOO's config.ini setting for the log level
+-spec restart_check() -> boolean().
+restart_check() ->
+    SyslogBackend = {'lager_syslog_backend',{"2600hz",'local0'}},
+    [{'syslog', SyslogPid, 'worker', ['syslog']}] = supervisor:which_children('syslog_sup'),
+
+    CurrentLevel = lager:get_loglevel(SyslogBackend),
+    change_syslog_log_level('notice'),
+
+    'notice' = lager:get_loglevel(SyslogBackend),
+
+    exit(SyslogPid, 'restart'),
+
+    timer:sleep(100),
+    RestartLevel = lager:get_loglevel(SyslogBackend),
+    io:format("start level: ~p~nchanged to notice and killed syslog gen_server ~p~nrestart level: ~p~n"
+             ,[CurrentLevel, SyslogPid, RestartLevel]
+             ),
+    RestartLevel =:= 'notice'.
+-endif.

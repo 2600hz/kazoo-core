@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -13,12 +13,12 @@
 -module(kapps_call).
 
 -export([new/0, put_callid/1]).
+-export([from_channel_create/1, from_channel_create/2]).
 -export([from_route_req/1, from_route_req/2]).
 -export([from_route_win/1, from_route_win/2]).
 -export([from_originate_uuid/1, from_originate_uuid/2]).
 -export([from_originate_ready/1, from_originate_ready/2]).
 -export([from_originate_resp/1, from_originate_resp/2]).
--export([from_channel_create/1, from_channel_create/2]).
 -export([to_public_json/1]).
 -export([to_json/1, from_json/1, from_json/2]).
 -export([to_proplist/1]).
@@ -161,11 +161,20 @@
 -export([is_recording/1, set_is_recording/2]).
 -export([is_call_forward/1]).
 -export([is_transfer/1]).
--export([endpoint_id/1]).
--export([restricted_endpoint_id/1]).
+-export([endpoint_id/1, restricted_endpoint_id/1]).
+-export([endpoint_token/1, restricted_endpoint_token/1]).
+
+-export([authorizing_token/1]).
 
 -export([tags/1, tag/2, untag/2]).
 -export([dynamic_cfwd/1, set_dynamic_cfwd/2, remove_dynamic_cfwd/1]).
+
+-export([diversions/1, bridge_diversions/1]).
+
+-export([presence_aliases/1, reset_presence_aliases/1
+        ,add_presence_alias/2,add_presence_aliases/2
+        ,set_presence_alias/2, set_presence_aliases/2
+        ]).
 
 -ifdef(TEST).
 -export([eq/2]).
@@ -173,6 +182,7 @@
 -endif.
 
 -include("kapps_call_command.hrl").
+-include("kapps_call_recording.hrl").
 -include_lib("kazoo_sip/include/kzsip_uri.hrl").
 
 -elvis([{elvis_style, god_modules, disable}]).
@@ -241,14 +251,22 @@
                     ,is_call_forward = 'false' :: boolean()             %% is this call forward call
                     ,is_transfer = 'false' :: boolean()                 %% is this call a transfer
                     ,endpoint_id :: kz_term:api_ne_binary()             %% if a refer/redirect, find the endpoint id (esp if no authz-id
+                    ,diversions :: kz_term:api_ne_binaries()
+                    ,presence_aliases :: kz_term:api_ne_binaries()
+                    ,authorizing_token :: kz_term:api_ne_binary()             %% if a refer/redirect, find the endpoint token (esp if no authz-id
+                    ,endpoint_token :: kz_term:api_ne_binary()             %% if a refer/redirect, find the endpoint token (esp if no authz-id
                     }).
 
 -type call() :: #kapps_call{}.
--export_type([call/0]).
+-export_type([call/0
+             ,inception_type/0
+             ]).
 
 -export_type([kapps_api_std_return/0]).
 
 -type kapps_helper_function() :: fun((kz_term:api_binary(), call()) -> kz_term:api_binary()).
+-type inception_type() :: kz_term:ne_binary().
+-type media_name() :: kz_term:ne_binary().
 
 -define(SPECIAL_VARS, [{<<"Account-ID">>, #kapps_call.account_id}
                       ,{<<"Authorizing-ID">>, #kapps_call.authorizing_id}
@@ -279,6 +297,98 @@ new() -> #kapps_call{}.
 put_callid(#kapps_call{call_id='undefined'}) -> 'undefined';
 put_callid(#kapps_call{call_id=CallId}) ->
     kz_log:put_callid(CallId).
+
+-spec from_channel_create(kapi_route:req()) -> call().
+from_channel_create(ChannelCreate) ->
+    from_channel_create(ChannelCreate, new()).
+
+-spec from_channel_create(kz_json:object(), call()) -> call().
+from_channel_create(ChannelCreate, #kapps_call{call_id=OldCallId
+                                              ,account_id=OldAccountId
+                                              ,account_db=OldAccountDb
+                                              ,ccvs=OldCCVs
+                                              ,cavs=OldCAVs
+                                              ,sip_headers=OldSHs
+                                              ,auth_headers=OldAHs
+                                              ,request=OldRequest
+                                              ,from=OldFrom
+                                              ,to=OldTo
+                                              }=Call) ->
+    CallId = kz_api:call_id(ChannelCreate, OldCallId),
+    kz_log:put_callid(CallId),
+
+    CCVs = merge(OldCCVs, kz_json:get_json_value(<<"Custom-Channel-Vars">>, ChannelCreate)),
+    CAVs = merge(OldCAVs, kz_json:get_json_value(<<"Custom-Application-Vars">>, ChannelCreate)),
+    SHs = merge(OldSHs, kz_json:get_json_value(<<"Custom-SIP-Headers">>, ChannelCreate)),
+    AHs = merge(OldAHs, kz_json:get_json_value(<<"Custom-AUTH-Headers">>, ChannelCreate)),
+
+    Request = kz_json:get_ne_binary_value(<<"Request">>, ChannelCreate, OldRequest),
+    From = kz_json:get_ne_binary_value(<<"From">>, ChannelCreate, OldFrom),
+    To = kz_json:get_ne_binary_value(<<"To">>, ChannelCreate, OldTo),
+
+    {AccountId, AccountDb} =
+        find_account_info(OldAccountId, OldAccountDb, kz_json:get_value(<<"Account-ID">>, CCVs)),
+
+    [ToUser, ToRealm] = binary:split(To, <<"@">>),
+    [FromUser, FromRealm] = binary:split(From, <<"@">>),
+    [RequestUser, RequestRealm] = binary:split(Request, <<"@">>),
+
+    AuthorizingId = kz_json:get_ne_binary_value(<<"Authorizing-ID">>, CCVs, authorizing_id(Call)),
+    AuthorizingType = kz_json:get_ne_binary_value(<<"Authorizing-Type">>, CCVs, authorizing_type(Call)),
+
+    Call1 =
+        case kz_json:get_ne_binary_value(<<"Prepend-CID-Name">>, ChannelCreate) of
+            'undefined' -> Call;
+            Prepend -> kvs_store('prepend_cid_name', Prepend, Call)
+        end,
+
+    EndpointId = endpoint_id(ChannelCreate, AuthorizingId),
+
+    AuthorizingToken = kz_json:get_ne_binary_value(<<"JWT-Token">>, AHs, authorizing_token(Call)),
+    EndpointToken = endpoint_token(ChannelCreate, AuthorizingToken),
+
+    Call1#kapps_call{call_id=CallId
+                    ,origination_call_id=kz_json:get_ne_binary_value(<<"Origination-Call-ID">>, ChannelCreate, origination_call_id(Call1))
+                    ,request=Request
+                    ,request_user=to_e164(RequestUser, AccountId, EndpointId)
+                    ,request_realm=RequestRealm
+                    ,from=From
+                    ,from_user=FromUser
+                    ,from_realm=FromRealm
+                    ,to=To
+                    ,to_user=ToUser
+                    ,to_realm=ToRealm
+                    ,account_id=AccountId
+                    ,account_db=AccountDb
+                    ,inception = inception_route(CCVs, Call)
+                    ,switch_hostname = kz_json:get_ne_binary_value(<<"Switch-Hostname">>, ChannelCreate, switch_hostname(Call))
+                    ,switch_nodename = kz_json:get_ne_binary_value(<<"Switch-Nodename">>, ChannelCreate, switch_nodename(Call))
+                    ,switch_url = kz_json:get_ne_binary_value(<<"Switch-URL">>, ChannelCreate, switch_url(Call))
+                    ,switch_uri = kz_json:get_ne_binary_value(<<"Switch-URI">>, ChannelCreate, switch_uri(Call))
+                    ,authorizing_id = AuthorizingId
+                    ,authorizing_type = AuthorizingType
+                    ,owner_id = kz_json:get_ne_binary_value(<<"Owner-ID">>, CCVs, owner_id(Call))
+                    ,fetch_id = kz_json:get_ne_binary_value(<<"Fetch-ID">>, CCVs, fetch_id(Call))
+                    ,bridge_id = kz_json:get_ne_binary_value(<<"Bridge-ID">>, CCVs, bridge_id(Call))
+                    ,caller_id_name = kz_json:get_binary_value(<<"Caller-ID-Name">>, ChannelCreate, caller_id_name(Call))
+                    ,callee_id_name = kz_json:get_binary_value(<<"Callee-ID-Name">>, ChannelCreate, callee_id_name(Call))
+                    ,caller_id_number = kz_json:get_binary_value(<<"Caller-ID-Number">>, ChannelCreate, caller_id_number(Call))
+                    ,callee_id_number = kz_json:get_binary_value(<<"Callee-ID-Number">>, ChannelCreate, ToUser)
+                    ,ccvs = CCVs
+                    ,cavs = CAVs
+                    ,sip_headers = SHs
+                    ,auth_headers = AHs
+                    ,resource_type = kz_json:get_ne_binary_value(<<"Resource-Type">>, ChannelCreate, resource_type(Call))
+                    ,to_tag = kz_json:get_ne_binary_value(<<"To-Tag">>, ChannelCreate, to_tag(Call))
+                    ,from_tag = kz_json:get_ne_binary_value(<<"From-Tag">>, ChannelCreate, from_tag(Call))
+                    ,direction = kz_json:get_ne_binary_value(<<"Call-Direction">>, ChannelCreate, direction(Call))
+                    ,is_call_forward = kz_json:is_true(<<"Call-Forward">>, CCVs, is_call_forward(Call))
+                    ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, ChannelCreate, is_transfer(Call))
+                    ,endpoint_id = EndpointId
+                    ,diversions = kz_json:get_ne_binaries(<<"SIP-Diversions">>, ChannelCreate, diversions(Call))
+                    ,authorizing_token = AuthorizingToken
+                    ,endpoint_token = EndpointToken
+                    }.
 
 -spec from_route_req(kapi_route:req()) -> call().
 from_route_req(RouteReq) ->
@@ -326,6 +436,9 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
 
     EndpointId = endpoint_id(RouteReq, AuthorizingId),
 
+    AuthorizingToken = kz_json:get_ne_binary_value(<<"JWT-Token">>, AHs, authorizing_token(Call)),
+    EndpointToken = endpoint_token(RouteReq, AuthorizingToken),
+
     Call1#kapps_call{call_id=CallId
                     ,origination_call_id=kz_json:get_ne_binary_value(<<"Origination-Call-ID">>, RouteReq, origination_call_id(Call1))
                     ,context=kz_json:get_ne_binary_value(<<"Context">>, RouteReq, context(Call))
@@ -365,6 +478,9 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                     ,is_call_forward = kz_json:is_true(<<"Call-Forward">>, CCVs, is_call_forward(Call))
                     ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, RouteReq, is_transfer(Call))
                     ,endpoint_id = EndpointId
+                    ,diversions = kz_json:get_ne_binaries(<<"SIP-Diversions">>, RouteReq, diversions(Call))
+                    ,authorizing_token = AuthorizingToken
+                    ,endpoint_token = EndpointToken
                     }.
 
 -spec from_route_win(kz_json:object()) -> call().
@@ -519,14 +635,6 @@ from_originate_resp(OriginateResp, #kapps_call{account_id=OldAccountId
                    ,language = kz_media_util:prompt_language(AccountId, language(Call))
                    }.
 
--spec from_channel_create(kz_json:object()) -> call().
-from_channel_create(JObj) ->
-    from_channel_create(JObj, new()).
-
--spec from_channel_create(kz_json:object(), call()) -> call().
-from_channel_create(JObj, Call) ->
-    from_json(JObj, Call).
-
 %%------------------------------------------------------------------------------
 %% @doc Creates a call record from JSON object.
 %%
@@ -600,6 +708,9 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                    ,is_call_forward = kz_json:is_true(<<"Is-Call-Forward">>, JObj, is_call_forward(Call))
                    ,is_transfer = kz_json:is_true(<<"Is-Transfer">>, JObj, is_transfer(Call))
                    ,endpoint_id = kz_json:get_ne_binary_value(<<"Endpoint-ID">>, JObj, endpoint_id(Call))
+                   ,diversions = kz_json:get_ne_binaries(<<"SIP-Diversions">>, JObj, diversions(Call))
+                   ,authorizing_token = kz_json:get_ne_binary_value(<<"Authorizing-Token">>, JObj, authorizing_token(Call))
+                   ,endpoint_token = kz_json:get_ne_binary_value(<<"Endpoint-Token">>, JObj, endpoint_token(Call))
                    }.
 
 %%------------------------------------------------------------------------------
@@ -683,6 +794,9 @@ to_proplist(#kapps_call{}=Call) ->
     ,{<<"To-Realm">>, to_realm(Call)}
     ,{<<"To-Tag">>, to_tag(Call)}
     ,{<<"To-User">>, to_user(Call)}
+    ,{<<"SIP-Diversions">>, diversions(Call)}
+    ,{<<"Authorizing-Token">>, authorizing_token(Call)}
+    ,{<<"Endpoint-Token">>, endpoint_token(Call)}
     ].
 
 -spec is_call(any()) -> boolean().
@@ -1216,7 +1330,7 @@ set_account_id(<<_/binary>> = AccountId, #kapps_call{}=Call) ->
                                                                        ,account_id=AccountId
                                                                        }).
 
--spec account_id(call()) -> kz_term:api_binary().
+-spec account_id(call()) -> kz_term:api_ne_binary().
 account_id(#kapps_call{account_id=AccountId}) ->
     AccountId.
 
@@ -1560,7 +1674,9 @@ kvs_fetch(Key, Call) -> kvs_fetch(Key, 'undefined', Call).
 
 -spec kvs_fetch(any(), Default, call()) -> any() | Default.
 kvs_fetch(Key, Default, #kapps_call{kvs=Dict}) ->
-    try orddict:fetch(kz_term:to_binary(Key), Dict)
+    try orddict:fetch(kz_term:to_binary(Key), Dict) of
+        'undefined' -> Default;
+        Value -> Value
     catch
         'error':'function_clause' -> Default
     end.
@@ -1688,7 +1804,6 @@ retrieve(CallId) ->
 retrieve(CallId, AppName) ->
     kz_cache:fetch_local(?KAPPS_CALL_CACHE, {?MODULE, 'call', AppName, CallId}).
 
--define(RECORDING_ID_KEY, <<"media_name">>).
 -define(RECORDINGS_KEY, <<"recordings">>).
 
 -spec start_recording(call()) -> call().
@@ -1798,20 +1913,19 @@ unmask_recording(LegId, OriginalCall, _OriginalCallId) ->
     kapps_call_command:unmask_record_call(API, OriginalCall),
     OriginalCall.
 
--spec store_recording(kz_term:ne_binary(), call()) -> call().
+-spec store_recording(media_name(), call()) -> call().
 store_recording(MediaName, Call) ->
     Q = queue:in(MediaName, get_recordings(Call)),
     kvs_store(?RECORDINGS_KEY, Q, Call).
 
--type recording_ref() :: kz_term:ne_binary().
--type store_return() :: {'ok', recording_ref(), call()} | {'empty', call()}.
+-type store_return() :: {'ok', media_name(), call()} | {'empty', call()}.
 
 -spec retrieve_recording(call()) -> store_return().
 retrieve_recording(Call) ->
     case queue:out_r(get_recordings(Call)) of
-        {{'value', MediaRef}, Q} ->
+        {{'value', MediaName}, Q} ->
             Routines = [{fun kvs_store/3, ?RECORDINGS_KEY, Q}],
-            {'ok', MediaRef, exec(Routines, Call)};
+            {'ok', MediaName, exec(Routines, Call)};
         {'empty', _} ->
             {'empty', Call}
     end.
@@ -1844,7 +1958,7 @@ is_feature_call(_) -> 'false'.
 should_record_feature_calls(Data) ->
     kz_json:is_true(<<"should_record_feature_calls">>, Data, 'true').
 
--spec inception_type(call()) -> kz_term:ne_binary().
+-spec inception_type(call()) -> inception_type().
 inception_type(#kapps_call{inception='undefined'}) -> <<"onnet">>;
 inception_type(#kapps_call{}) -> <<"offnet">>.
 
@@ -1883,6 +1997,45 @@ restricted_endpoint_id(#kapps_call{endpoint_id=AuthzId
                                   ,authorizing_id=AuthzId
                                   }) -> 'undefined';
 restricted_endpoint_id(#kapps_call{endpoint_id=EndpointId}) -> EndpointId.
+
+-spec authorizing_token(call()) -> kz_term:api_ne_binary().
+authorizing_token(#kapps_call{authorizing_token=Token}) -> Token.
+
+-spec endpoint_token(call()) -> kz_term:api_ne_binary().
+endpoint_token(#kapps_call{endpoint_token='undefined'
+                          ,authorizing_token=Token
+                          }) -> Token;
+endpoint_token(#kapps_call{endpoint_token=Token}) -> Token.
+
+-spec restricted_endpoint_token(call()) -> kz_term:api_ne_binary().
+restricted_endpoint_token(#kapps_call{endpoint_token=Token
+                                     ,authorizing_token=Token
+                                     }) -> 'undefined';
+restricted_endpoint_token(#kapps_call{endpoint_token=Token}) -> Token.
+
+%% @doc get endpoint token if redirected or referred by an endpoint;
+%% otherwise use authorizing id
+endpoint_token(Req, AuthorizingId) ->
+    lists:foldl(fun(CCVKey, Id) -> maybe_find_endpoint_token(CCVKey, Id, Req) end
+               ,AuthorizingId
+               ,[<<"Referred-By">>, <<"Redirected-By">>]
+               ).
+
+maybe_find_endpoint_token(CCVKey, Id, RouteReq) ->
+    case kz_json:get_ne_binary_value([<<"Custom-Channel-Vars">>, CCVKey], RouteReq) of
+        'undefined' -> Id;
+        Contact -> maybe_find_endpoint_token_from_uri(Contact, Id)
+    end.
+
+maybe_find_endpoint_token_from_uri(Contact, Id) ->
+    case kzsip_uri:uris(Contact) of
+        [#uri{ext_opts=Opts1, opts=Opts2}] ->
+            case props:get_value(<<"token">>, Opts1 ++ Opts2, Id) of
+                Id -> Id;
+                EID -> EID
+            end;
+        _Else -> Id
+    end.
 
 -ifdef(TEST).
 eq(Call, Call1) ->
@@ -1927,6 +2080,32 @@ maybe_find_endpoint_id_from_uri(Contact, Id) ->
             end;
         _Else -> Id
     end.
+
+-spec presence_aliases(call()) -> kz_term:api_ne_binaries().
+presence_aliases(#kapps_call{presence_aliases=Presence}) ->
+    Presence.
+
+-spec add_presence_alias(kz_term:ne_binary(), call()) -> call().
+add_presence_alias(Presence, Call) ->
+    add_presence_aliases([Presence], Call).
+
+-spec add_presence_aliases(kz_term:ne_binaries(), call()) -> call().
+add_presence_aliases(Presence, #kapps_call{presence_aliases = 'undefined'} = Call) ->
+    Call#kapps_call{presence_aliases = Presence};
+add_presence_aliases(Presence, #kapps_call{presence_aliases = Existing} = Call) ->
+    Call#kapps_call{presence_aliases = lists:usort(Existing ++ Presence)}.
+
+-spec set_presence_alias(kz_term:ne_binary(), call()) -> call().
+set_presence_alias(Presence, Call) ->
+    set_presence_aliases([Presence], Call).
+
+-spec set_presence_aliases(kz_term:ne_binaries(), call()) -> call().
+set_presence_aliases(Presence, Call) ->
+    Call#kapps_call{presence_aliases = Presence}.
+
+-spec reset_presence_aliases(call()) -> call().
+reset_presence_aliases(Call) ->
+    Call#kapps_call{presence_aliases = 'undefined'}.
 
 -spec routing_context(call()) -> kz_json:object().
 routing_context(Call) ->
@@ -2045,3 +2224,44 @@ set_dynamic_cfwd(JObj, Call) ->
 -spec remove_dynamic_cfwd(call()) -> call().
 remove_dynamic_cfwd(Call) ->
     kvs_erase('context-dynamic-cfwd', Call).
+
+-spec diversions(call()) -> kz_term:api_ne_binaries().
+diversions(#kapps_call{diversions=Diversions}) ->
+    Diversions.
+
+-spec bridge_diversions(call()) -> kz_term:api_ne_binaries().
+bridge_diversions(Call) ->
+    case should_add_diversion_header(Call) of
+        'true' -> add_diversion(Call);
+        'false' -> diversions(Call)
+    end.
+
+diversion(Call) ->
+    Number = diversion_number(Call),
+    Reason = diversion_reason(Call),
+    list_to_binary(["<sip:", Number, "@", account_realm(Call), ">", ";reason=", Reason]).
+
+diversion_number(Call) ->
+    custom_channel_var(<<"Call-Forward-Number">>, Call).
+
+diversion_reason(Call) ->
+    custom_channel_var(<<"Call-Forward-Reason">>, <<"unconditional">>, Call).
+
+-spec add_diversion(call()) -> kz_term:api_ne_binaries().
+add_diversion(Call) ->
+    add_diversion(diversions(Call), diversion(Call)).
+
+-spec add_diversion(kz_term:api_ne_binaries(), kz_term:ne_binary()) ->
+          kz_term:api_ne_binaries().
+add_diversion('undefined', Diversion) ->
+    lager:debug("setting diversion as ~s", [Diversion]),
+    [Diversion];
+add_diversion(Diversions, Diversion) ->
+    lager:debug("add diversion as ~s", [Diversion]),
+    [Diversion | Diversions].
+
+-spec should_add_diversion_header(call()) -> boolean().
+should_add_diversion_header(Call) ->
+    is_call_forward(Call)
+        andalso kz_term:is_not_empty(diversion_number(Call))
+        andalso kz_app_config:is_true({'kazoo_endpoint', account_id(Call)}, <<"should_add_diversion_header">>).

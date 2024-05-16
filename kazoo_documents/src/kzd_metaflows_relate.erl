@@ -1,0 +1,72 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2024, 2600Hz
+%%% @doc Accessors for `metaflows_relate' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_metaflows_relate).
+
+-export([new/0]).
+-export([conference_id/1, conference_id/2, set_conference_id/2]).
+-export([other_participant/1, other_participant/2, set_other_participant/2]).
+-export([participant_id/1, participant_id/2, set_participant_id/2]).
+-export([relationship/1, relationship/2, set_relationship/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"metaflows.relate">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec conference_id(doc()) -> kz_term:api_binary().
+conference_id(Doc) ->
+    conference_id(Doc, 'undefined').
+
+-spec conference_id(doc(), Default) -> binary() | Default.
+conference_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"conference_id">>], Doc, Default).
+
+-spec set_conference_id(doc(), binary()) -> doc().
+set_conference_id(Doc, ConferenceId) ->
+    kz_json:set_value([<<"conference_id">>], ConferenceId, Doc).
+
+-spec other_participant(doc()) -> any().
+other_participant(Doc) ->
+    other_participant(Doc, 'undefined').
+
+-spec other_participant(doc(), Default) -> any() | Default.
+other_participant(Doc, Default) ->
+    kz_json:get_value([<<"other_participant">>], Doc, Default).
+
+-spec set_other_participant(doc(), any()) -> doc().
+set_other_participant(Doc, OtherParticipant) ->
+    kz_json:set_value([<<"other_participant">>], OtherParticipant, Doc).
+
+-spec participant_id(doc()) -> any().
+participant_id(Doc) ->
+    participant_id(Doc, 'undefined').
+
+-spec participant_id(doc(), Default) -> any() | Default.
+participant_id(Doc, Default) ->
+    kz_json:get_value([<<"participant_id">>], Doc, Default).
+
+-spec set_participant_id(doc(), any()) -> doc().
+set_participant_id(Doc, ParticipantId) ->
+    kz_json:set_value([<<"participant_id">>], ParticipantId, Doc).
+
+-spec relationship(doc()) -> binary().
+relationship(Doc) ->
+    relationship(Doc, <<"clear">>).
+
+-spec relationship(doc(), Default) -> binary() | Default.
+relationship(Doc, Default) ->
+    kz_json:get_binary_value([<<"relationship">>], Doc, Default).
+
+-spec set_relationship(doc(), binary()) -> doc().
+set_relationship(Doc, Relationship) ->
+    kz_json:set_value([<<"relationship">>], Relationship, Doc).

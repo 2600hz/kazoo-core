@@ -1,7 +1,7 @@
 {
     "_id": "device00000000000000000000000003",
     "_rev": "1-7280940a25dcb8eac5ab129dd8fbe5c6",
-    "call_forward": {
+    "call__forward": {
         "direct_calls_only": false,
         "enabled": false,
         "ignore_early_media": true,

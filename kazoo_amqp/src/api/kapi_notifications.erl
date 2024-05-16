@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Notification messages, like voicemail left.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -1319,7 +1319,9 @@ missed_call_definition() ->
                                                             ,<<"Call-ID">>
                                                             ,<<"Message-Left">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Caller-ID-Name">>
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Authorizing-ID">>
+                                                            ,<<"Authorizing-Type">>
+                                                            ,<<"Caller-ID-Name">>
                                                             ,<<"Caller-ID-Number">>
                                                             ,<<"From-Realm">>
                                                             ,<<"From-User">>
@@ -1331,7 +1333,7 @@ missed_call_definition() ->
                                                             | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2, [{<<"Notify">>, fun kz_json:is_json_object/1}]}
               ],
     kapi_definition:setters(Setters).
 
@@ -1869,24 +1871,24 @@ cf_notification_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
                                                             ,<<"Template-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Caller-ID-Name">>
-                                                            ,<<"Caller-ID-Number">>
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Call-Bridged">>
                                                             ,<<"Call-ID">>
-                                                            ,<<"Call-Bridged">>
-                                                            ,<<"Message-Left">>
+                                                            ,<<"Caller-ID-Name">>
+                                                            ,<<"Caller-ID-Number">>
+                                                            ,<<"Comments">>
                                                             ,<<"From-Realm">>
                                                             ,<<"From-User">>
+                                                            ,<<"Message-Left">>
+                                                            ,<<"Notification-Media">>
                                                             ,<<"Notify">>
+                                                            ,<<"Timestamp">>
                                                             ,<<"To">>
                                                             ,<<"To-Realm">>
                                                             ,<<"To-User">>
-                                                            ,<<"Timestamp">>
-                                                            ,<<"Comments">>
-                                                            ,<<"Notification-Media">>
                                                             | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2, [{<<"Notify">>, fun kz_json:is_json_object/1}]}
               ],
     kapi_definition:setters(Setters).
 
@@ -3489,13 +3491,14 @@ find_publisher(TemplateId) ->
 -spec is_callable({module(), atom()} | fun((kz_term:api_terms()) -> 'ok') | any()) -> boolean().
 is_callable({Module, Function})
   when is_atom(Module)
-       andalso is_function(Function, 1) ->
+       andalso is_atom(Function) ->
     kz_module:is_exported(Module, Function, 1);
 is_callable(Function) when is_function(Function, 1) ->
     'true';
 is_callable(_) ->
     'false'.
 
+-spec binding_kapi_publisher(kz_term:ne_binary()) -> kz_term:ne_binary().
 binding_kapi_publisher(TemplateId) ->
     <<"kapi.publisher.", TemplateId/binary>>.
 

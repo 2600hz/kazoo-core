@@ -1,7 +1,7 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
-%%% @doc Listens for a list of events and gproc-sends them out to folks who
-%%% want them
+%%% @copyright (C) 2013-2024, 2600Hz
+%%% @doc Manages a cache of call events for Kazoo applications to ask for call
+%%% events.
 %%%
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,7 +24,9 @@
 
 -spec start_link() -> 'ignore'.
 start_link() ->
-    _ = kz_hooks:bind(<<"*">>, <<"CHANNEL_DESTROY">>, {?MODULE, 'handle_event', []}),
+    _ = kz_events:add_async_call_event_handler(
+          <<"*">>, <<"CHANNEL_DESTROY">>, {?MODULE, 'handle_event', 'undefined'}
+         ),
     'ignore'.
 
 -spec handle_event(kz_call_event:payload()) -> 'ok'.

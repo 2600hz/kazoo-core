@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc proplists-like interface to json objects
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -308,17 +308,16 @@ unsafe_decode(JSON, Options) ->
             throw({'invalid_json', {'error', {0, 'decoder_exit'}}, JSON})
     end.
 
--spec decode(iolist() | kz_term:ne_binary()) -> json_term().
-decode(Thing) when is_list(Thing)
-                   orelse is_binary(Thing) ->
+-spec decode(iodata()) -> json_term().
+decode(Thing) ->
     decode(Thing, []).
 
--spec decode(iolist() | kz_term:ne_binary(), decode_options()) -> api_json_term().
+-spec decode(iodata(), decode_options()) -> api_json_term().
 decode(JSON, Options) ->
     try unsafe_decode(JSON, Options)
     catch
         _:{'invalid_json', {'error', {_Loc, _Msg}}, _JSON} ->
-            ?LOG_ERROR("decode error ~s near char # ~b => ~s", [_Msg, _Loc, _JSON]),
+            ?LOG_WARNING("decode error ~s near char # ~b => ~p", [_Msg, _Loc, _JSON]),
             props:get_value('default', Options, new())
     end.
 
@@ -1243,9 +1242,17 @@ filter(Pred, JObj, Key) ->
 
 -type mapper() :: fun((key(), json_term()) -> {key(), json_term()}).
 
--spec map(mapper(), object() | flat_object()) -> object() | flat_object().
-map(F, ?JSON_WRAPPER(Prop)) when is_function(F, 2) ->
-    from_list([F(K, V) || {K,V} <- Prop]).
+-spec map(mapper(), empty_object()) -> empty_object();
+         (mapper(), ne_object()) -> ne_object();
+         (mapper(), ne_flat_object()) -> ne_flat_object().
+map(F, ?JSON_WRAPPER([{Path, _V}]=Prop)) when is_function(F, 2), is_list(Path) ->
+    %% `Path' list indicates `ne_flat_object()'
+    from_list([F(K, V) || {K, V} <- Prop]);
+map(F, ?JSON_WRAPPER(_Prop)=JObj) when is_function(F, 2) ->
+    foldl(fun(K, V, Acc) ->
+                  {K1, V1} = F(K, V),
+                  set_value(K1, V1, Acc)
+          end, new(), JObj).
 
 -type filtermapper() :: fun((key(), json_term()) -> boolean() | {'true', json_term()}).
 
@@ -1689,11 +1696,11 @@ set_value(Keys, Value, JObj, Options) when is_list(Keys) ->
 set_value(Key, Value, JObj, Options) ->
     set_value1([Key], check_value_term(Value), JObj, maps:merge(set_value_options(), Options)).
 
--spec set_value1(keys(), json_term() | 'null', object() | objects()) -> object() | objects().
+-spec set_value1(path(), json_term() | 'null', object() | objects()) -> object() | objects().
 set_value1(Keys, Value, JObj) ->
     set_value1(Keys, check_value_term(Value), JObj, set_value_options()).
 
--spec set_value1(keys(), json_term() | 'null', object() | objects(), set_value_options()) -> object() | objects().
+-spec set_value1(path(), json_term() | 'null', object() | objects(), set_value_options()) -> object() | objects().
 set_value1([Key|_]=Keys, Value, [], Options) when not is_integer(Key) ->
     set_value1(Keys, Value, new(), Options);
 set_value1([Key|T], Value, JObjs, Options) when is_list(JObjs) ->
@@ -1724,7 +1731,6 @@ set_value1([Key|T], Value, JObjs, Options) when is_list(JObjs) ->
                                      )
                    )
     end;
-
 %% Figure out how to set the current key in an existing object
 set_value1([_|_]=Keys, 'null', JObj, #{'keep_null' := 'false'}) -> delete_key(Keys, JObj);
 set_value1([Key1|T], Value, ?JSON_WRAPPER(Props), #{'deep' := Deep} = Options) ->
@@ -1757,7 +1763,6 @@ set_value1([Key1|T], Value, ?JSON_WRAPPER(Props), #{'deep' := Deep} = Options) -
             %% so continue looping the keys creating the necessary json as we go
             ?JSON_WRAPPER(Props ++ [{Key1, set_value1(T, Value, new(), Options)}])
     end;
-
 %% There are no more keys to iterate through! Override the value here...
 set_value1([], Value, _JObj, _Options) -> Value.
 
@@ -2044,13 +2049,13 @@ keys_to_binary(?JSON_WRAPPER(L)) when is_list(L) ->
 key_to_binary(K) when is_list(K) -> kz_binary:join(K, <<"_">>);
 key_to_binary(K) -> K.
 
--spec join_keys(keys() | key(), key() | integer()) -> keys().
+-spec join_keys(key() | path(), key() | pos_integer()) -> ne_path().
 join_keys(K1, K2) when is_list(K1) -> K1 ++ [K2];
 join_keys(K1, K2) -> [K1, K2].
 
 -type flatten_key_option() :: 'legacy' | 'deep'.
 
--spec flatten_key(key() | keys(), any(), flatten_key_option()) -> flat_proplist().
+-spec flatten_key(key() | path(), json_term(), flatten_key_option()) -> flat_proplist().
 flatten_key(K, V = ?EMPTY_JSON_OBJECT, _Option) when is_list(K) -> [{K, V}];
 flatten_key(K, V = ?EMPTY_JSON_OBJECT, _Option) -> [{[K], V}];
 flatten_key(K, ?JSON_WRAPPER(L), Option) when is_list(L) ->
@@ -2084,8 +2089,8 @@ diff_deep(J1, J2) ->
     expand_deep(from_list(sets:to_list(UniqueSet1))).
 
 -type exec_fun_1() :: fun((object()) -> object()).
--type exec_fun_2() :: {fun((_, object()) -> object()), _}.
--type exec_fun_3() :: {fun((_, _, object()) -> object()), _, _}.
+-type exec_fun_2() :: {fun((Value, object()) -> object()), Value}.
+-type exec_fun_3() :: {fun((Key, Value, object()) -> object()), Key, Value}.
 -type exec_fun() :: exec_fun_1() | exec_fun_2() | exec_fun_3().
 -type exec_funs() :: [exec_fun(),...].
 
@@ -2099,8 +2104,8 @@ exec_fold({F, V}, JObj) when is_function(F, 2) -> F(V, JObj);
 exec_fold(F, JObj) when is_function(F, 1) -> F(JObj).
 
 -type exec_first_fun_1() :: fun((object()) -> object()).
--type exec_first_fun_2() :: {fun((_, object()) -> object()), _}.
--type exec_first_fun_3() :: {fun((_, _, object()) -> object()), _, _}.
+-type exec_first_fun_2() :: {fun((Value, object()) -> object()), Value}.
+-type exec_first_fun_3() :: {fun((Key, Value, object()) -> object()), Key, Value}.
 -type exec_first_fun() :: exec_first_fun_1() | exec_first_fun_2() | exec_first_fun_3().
 -type exec_first_funs() :: [exec_first_fun(),...].
 

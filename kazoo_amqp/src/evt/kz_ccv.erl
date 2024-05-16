@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2023, 2600Hz
+%%% @copyright (C) 2017-2024, 2600Hz
 %%% @doc FreeSWITCH json
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,19 +10,21 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_ccv).
 
--export([account_id/1
-        ,account_billing/1
-        ,account_trunk_usage/1
-        ,authorizing_id/1
-        ,authorizing_type/1
+-export([account_id/1, account_id/2
+        ,account_billing/1, account_billing/2
+        ,account_trunk_usage/1, account_trunk_usage/2
+        ,authorizing_id/1, authorizing_id/2
+        ,authorizing_type/1, authorizing_type/2
         ,ccvs/1, ccv/2, ccv/3
         ,set_ccv/3, set_ccvs/2
-        ,channel_authorized/1
+        ,channel_authorized/1, channel_authorized/2
         ,is_consuming_global_resource/1, is_consuming_global_resource/2
-        ,media_recorder/1
-        ,outbound_flags/1
-        ,reseller_id/1, reseller_billing/1, reseller_trunk_usage/1
-        ,resource_id/1
+        ,media_recorder/1, media_recorder/2
+        ,outbound_flags/1, outbound_flags/2
+        ,reseller_id/1, reseller_id/2
+        ,reseller_billing/1, reseller_billing/2
+        ,reseller_trunk_usage/1, reseller_trunk_usage/2
+        ,resource_id/1, resource_id/2
         ]).
 
 -type payload() :: kz_json:object().
@@ -33,11 +35,19 @@
 
 -spec channel_authorized(payload()) -> kz_term:api_binary().
 channel_authorized(JObj) ->
-    ccv(JObj, <<"Channel-Authorized">>).
+    channel_authorized(JObj, 'undefined').
+
+-spec channel_authorized(payload(), Default) -> kz_term:ne_binary()  | Default.
+channel_authorized(JObj, Default) ->
+    ccv(JObj, <<"Channel-Authorized">>, Default).
 
 -spec outbound_flags(payload()) -> kz_term:api_binary() | kz_term:ne_binaries().
 outbound_flags(JObj) ->
-    ccv(JObj, <<"Outbound-Flags">>).
+    outbound_flags(JObj, 'undefined').
+
+-spec outbound_flags(payload(), Default) -> kz_term:ne_binary() | kz_term:ne_binaries() | Default.
+outbound_flags(JObj, Default) ->
+    ccv(JObj, <<"Outbound-Flags">>, Default).
 
 -spec is_consuming_global_resource(payload()) -> kz_term:api_boolean().
 is_consuming_global_resource(JObj) ->
@@ -49,42 +59,83 @@ is_consuming_global_resource(JObj, Default) ->
 
 -spec resource_id(payload()) -> kz_term:api_binary().
 resource_id(JObj) ->
-    ccv(JObj, <<"Resource-ID">>).
+    resource_id(JObj, 'undefined').
+
+-spec resource_id(payload(), Default) -> kz_term:ne_binary() | Default.
+resource_id(JObj, Default) ->
+    ccv(JObj, <<"Resource-ID">>, Default).
 
 -spec authorizing_id(payload()) -> kz_term:api_binary().
 authorizing_id(JObj) ->
-    ccv(JObj, <<"Authorizing-ID">>).
+    authorizing_id(JObj, 'undefined').
+
+-spec authorizing_id(payload(), Default) -> kz_term:ne_binary() | Default.
+authorizing_id(JObj, Default) ->
+    ccv(JObj, <<"Authorizing-ID">>, Default).
 
 -spec authorizing_type(payload()) -> kz_term:api_binary().
 authorizing_type(JObj) ->
-    ccv(JObj, <<"Authorizing-Type">>).
+    authorizing_type(JObj, 'undefined').
+
+-spec authorizing_type(payload(), Default) -> kz_term:ne_binary() | Default.
+authorizing_type(JObj, Default) ->
+    ccv(JObj, <<"Authorizing-Type">>, Default).
 
 -spec account_id(payload()) -> kz_term:api_binary().
 account_id(JObj) ->
-    ccv(JObj, <<"Account-ID">>).
+    account_id(JObj, 'undefined').
+
+-spec account_id(payload(), Default) -> kz_term:ne_binary() | Default.
+account_id(JObj, Default) ->
+    ccv(JObj, <<"Account-ID">>, Default).
 
 -spec account_billing(payload()) -> kz_term:api_binary().
 account_billing(JObj) ->
-    ccv(JObj, <<"Account-Billing">>).
+    account_billing(JObj, 'undefined').
+
+-spec account_billing(payload(), Default) -> kz_term:ne_binary() | Default.
+account_billing(JObj, Default) ->
+    ccv(JObj, <<"Account-Billing">>, Default).
 
 -spec account_trunk_usage(payload()) -> kz_term:api_binary().
 account_trunk_usage(JObj) ->
-    ccv(JObj, <<"Account-Trunk-Usage">>).
+    account_trunk_usage(JObj, 'undefined').
+
+-spec account_trunk_usage(payload(), Default) -> kz_term:ne_binary() | Default.
+account_trunk_usage(JObj, Default) ->
+    ccv(JObj, <<"Account-Trunk-Usage">>, Default).
 
 -spec reseller_id(payload()) -> kz_term:api_binary().
 reseller_id(JObj) ->
-    ccv(JObj, <<"Reseller-ID">>).
+    reseller_id(JObj, 'undefined').
+
+-spec reseller_id(payload(), Default) -> kz_term:ne_binary() | Default.
+reseller_id(JObj, Default) ->
+    ccv(JObj, <<"Reseller-ID">>, Default).
 
 -spec reseller_billing(payload()) -> kz_term:api_binary().
 reseller_billing(JObj) ->
-    ccv(JObj, <<"Reseller-Billing">>).
+    reseller_billing(JObj, 'undefined').
+
+-spec reseller_billing(payload(), Default) -> kz_term:ne_binary() | Default.
+reseller_billing(JObj, Default) ->
+    ccv(JObj, <<"Reseller-Billing">>, Default).
 
 -spec reseller_trunk_usage(payload()) -> kz_term:api_binary().
 reseller_trunk_usage(JObj) ->
-    ccv(JObj, <<"Reseller-Trunk-Usage">>).
+    reseller_trunk_usage(JObj, 'undefined').
+
+-spec reseller_trunk_usage(payload(), Default) -> kz_term:ne_binary() | Default.
+reseller_trunk_usage(JObj, Default) ->
+    ccv(JObj, <<"Reseller-Trunk-Usage">>, Default).
 
 -spec media_recorder(payload()) -> kz_term:api_binary().
-media_recorder(JObj) -> ccv(JObj, <<"Media-Recorder">>).
+media_recorder(JObj) ->
+    media_recorder(JObj, 'undefined').
+
+-spec media_recorder(payload(), Default) -> kz_term:ne_binary() | Default.
+media_recorder(JObj, Default) ->
+    ccv(JObj, <<"Media-Recorder">>, Default).
 
 -spec ccv(payload(), kz_term:ne_binary()) -> kz_term:api_binary() | kz_term:ne_binaries().
 ccv(JObj, Key) ->

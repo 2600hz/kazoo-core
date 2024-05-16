@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,6 +10,8 @@
 -module(kzd_accounts).
 
 -export([new/0]).
+-export([addresses/1, addresses/2, set_addresses/2]).
+-export([announcement/1, announcement/2, set_announcement/2]).
 -export([blacklists/1, blacklists/2, set_blacklists/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
@@ -154,6 +156,30 @@ new() ->
                                  ,{'now', kz_time:now_s()}
                                  ]
                                 ).
+
+-spec addresses(doc()) -> kz_term:api_object().
+addresses(Doc) ->
+    addresses(Doc, 'undefined').
+
+-spec addresses(doc(), Default) -> kz_json:object() | Default.
+addresses(Doc, Default) ->
+    kz_json:get_json_value([<<"addresses">>], Doc, Default).
+
+-spec set_addresses(doc(), kz_json:object()) -> doc().
+set_addresses(Doc, Addresses) ->
+    kz_json:set_value([<<"addresses">>], Addresses, Doc).
+
+-spec announcement(doc()) -> kz_term:api_binary().
+announcement(Doc) ->
+    announcement(Doc, 'undefined').
+
+-spec announcement(doc(), Default) -> binary() | Default.
+announcement(Doc, Default) ->
+    kz_json:get_binary_value([<<"announcement">>], Doc, Default).
+
+-spec set_announcement(doc(), binary()) -> doc().
+set_announcement(Doc, Announcement) ->
+    kz_json:set_value([<<"announcement">>], Announcement, Doc).
 
 -spec blacklists(doc()) -> kz_term:api_ne_binaries().
 blacklists(Doc) ->
@@ -1415,7 +1441,8 @@ is_alphanumeric(_) ->
 %%------------------------------------------------------------------------------
 -spec validate(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc()) -> kazoo_documents:doc_validation_return().
 validate(ParentId, AccountId, ReqJObj) ->
-    ValidateFuns = [fun ensure_account_has_realm/2
+    ValidateFuns = [fun ensure_valid_account_id/2
+                   ,fun ensure_account_has_realm/2
                    ,fun ensure_account_has_timezone/2
                    ,fun remove_spaces/2
                    ,fun cleanup_leaky_keys/2
@@ -1442,6 +1469,23 @@ do_validation(AccountId, ReqJObj, ValidateFuns) ->
                ,{ReqJObj, []}
                ,ValidateFuns
                ).
+
+ensure_valid_account_id('undefined', {Doc, Errors}) ->
+    case kz_doc:id(Doc) of
+        'undefined' -> {Doc, Errors};
+        AccountId ->
+            ensure_account_id_is_new(AccountId, {Doc, Errors})
+    end;
+ensure_valid_account_id(_AccountId, {Doc, Errors}) ->
+    {Doc, Errors}.
+
+ensure_account_id_is_new(AccountId, {Doc, Errors}) ->
+    case kz_datamgr:db_exists(AccountId) of
+        'false' -> {Doc, Errors};
+        'true' ->
+            lager:warning("account ~s exists already, invalid credentials", [AccountId]),
+            throw({'system_error', 'invalid_credentials'})
+    end.
 
 -spec ensure_account_has_realm(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
 ensure_account_has_realm(_AccountId, {Doc, Errors}) ->
@@ -1632,20 +1676,15 @@ validate_call_failover(_AccountId, {Doc, Errors}) ->
 %%------------------------------------------------------------------------------
 -spec validate_call_forward(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
-validate_call_forward(_AccountId, {Doc, Errors}) ->
-    Callforward = call_forward(Doc, kz_json:new()),
-    CallForwardNumber = kzd_call_forward:number(Callforward),
-    case kzd_call_forward:enabled(Callforward)
-        andalso not kz_term:is_ne_binary(CallForwardNumber)
-    of
-        'true' ->
-            Msg = kz_json:from_list(
-                    [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
-                    ,{<<"cause">>, CallForwardNumber}
-                    ]),
-            {Doc, [{[<<"call_forward.number">>], <<"required">>, Msg} | Errors]};
-        'false' -> {Doc, Errors}
+validate_call_forward(_AccountId, {Doc, AccErrors} = Acc) ->
+    case validate_call_forward(call_forward(Doc)) of
+        'ok' -> Acc;
+        Errors -> {Doc, Errors ++ AccErrors}
     end.
+
+-spec validate_call_forward(kz_term:api_object()) -> 'ok' | kazoo_documents:doc_validation_errors().
+validate_call_forward('undefined') -> 'ok';
+validate_call_forward(CallForward) -> kzd_call_forward:validate(CallForward).
 
 %%------------------------------------------------------------------------------
 %% @doc This function returns the private fields to be added to a new account

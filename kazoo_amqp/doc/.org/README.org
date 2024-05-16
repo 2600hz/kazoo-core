@@ -131,9 +131,9 @@ applications/trunkstore/src/trunkstore_listener.erl
 core/kazoo_amqp/src/kz_amqp_worker.erl
 core/kazoo_caches/src/kz_cache_listener.erl
 core/kazoo_call/src/kzc_recording.erl
-core/kazoo_events/src/kz_hooks_listener.erl
 core/kazoo_globals/src/kz_globals.erl
 core/kazoo_globals/src/kz_nodes.erl
+core/kazoo_hooks/src/kz_hooks_listener.erl
 core/kazoo_media/src/kz_media_map.erl
 core/kazoo_numbers/src/knm_search.erl
 #+end_src
@@ -158,9 +158,9 @@ applications/skel/src/skel_listener.erl
 applications/trunkstore/src/trunkstore_listener.erl
 core/kazoo_amqp/src/kz_amqp_worker.erl
 core/kazoo_caches/src/kz_cache_listener.erl
-core/kazoo_events/src/kz_hooks_listener.erl
 core/kazoo_globals/src/kz_globals.erl
 core/kazoo_globals/src/kz_nodes.erl
+core/kazoo_hooks/src/kz_hooks_listener.erl
 core/kazoo_media/src/kz_media_map.erl
 core/kazoo_numbers/src/knm_search.erl
 *** Ephemeral processes

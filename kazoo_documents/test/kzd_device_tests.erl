@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Account document
 %%% @author James Aimonetti
 %%%
@@ -267,16 +267,19 @@ test_calculating_presence_id() ->
     SIPUsername = kz_binary:rand_hex(5),
     AccountRealm = <<"4a6863.sip.2600hz.local">>,
 
-    BlankDevice = kz_json:delete_keys([<<"presence_id">>
-                                      ,<<"owner_id">>
-                                      ,<<"call_forward">>
+    BlankDevice = kz_json:delete_keys([<<"call_forward">>
                                       ,<<"call_recording">>
                                       ,<<"call_restriction">>
                                       ,<<"caller_id">>
                                       ,<<"dial_plan">>
-                                      ,<<"media">>, <<"metaflows">>, <<"ringtones">>
+                                      ,<<"media">>
+                                      ,<<"metaflows">>
+                                      ,<<"owner_id">>
+                                      ,<<"presence_id">>
+                                      ,<<"ringtones">>
                                       ]
-                                     , Device),
+                                     ,Device
+                                     ),
     JustUsername = kzd_devices:set_sip_username(BlankDevice, SIPUsername),
 
     DevicePresenceId = kz_binary:rand_hex(5),

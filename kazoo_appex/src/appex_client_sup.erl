@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@
 
 -behaviour(supervisor).
 
--export([start_link/1]).
+-export([start_link/0]).
 -export([init/1]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -20,7 +20,6 @@
 
 %% Helper macro for declaring children of supervisor
 -define(CHILDREN, [?WORKER('kappex_controller')
-                  ,?WORKER('appex_cb_router')
                   ]).
 
 %%==============================================================================
@@ -31,9 +30,9 @@
 %% @doc Starts the supervisor.
 %% @end
 %%------------------------------------------------------------------------------
--spec start_link(boolean()) -> kz_types:startlink_ret().
-start_link(HasSaneConfig) ->
-    supervisor:start_link({'local', ?SERVER}, ?MODULE, [HasSaneConfig]).
+-spec start_link() -> kz_types:startlink_ret().
+start_link() ->
+    supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
 
 %%==============================================================================
 %% Supervisor callbacks
@@ -47,7 +46,7 @@ start_link(HasSaneConfig) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec init(any()) -> kz_types:sup_init_ret().
-init([HasSaneConfig]) ->
+init([]) ->
     _ = kz_process:set_startup(),
     RestartStrategy = 'one_for_one',
     MaxRestarts = 5,
@@ -55,8 +54,4 @@ init([HasSaneConfig]) ->
 
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
-    {'ok', {SupFlags, children(HasSaneConfig)}}.
-
--spec children(boolean()) -> list().
-children('true') -> ?CHILDREN;
-children('false') -> [].
+    {'ok', {SupFlags, ?CHILDREN}}.

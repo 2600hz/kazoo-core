@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,12 +41,17 @@
         ]).
 -export([get_accounts_by_depth/0]).
 -export([get_accounts_with_plans/0]).
+-export([report_mismatch_reseller_id/0]).
 
 -include("services.hrl").
+
+-elvis([{elvis_style, no_debug_call, disable}]).
 
 -define(UI_APPS_KEY(PlanId), [<<"plans">>, PlanId, <<"overrides">>, <<"ui_apps">>]).
 -define(UI_APP_KEY(PlanId, Name), [<<"plans">>, PlanId, <<"overrides">>, <<"ui_apps">>, Name]).
 -define(KZ_SERVICES_DB_TMP, <<"services_backup">>).
+
+-define(BATCH_LIMIT, kz_datamgr:max_bulk_read()).
 
 %%------------------------------------------------------------------------------
 %% @doc TODO: where does this belong, also needs testing
@@ -158,12 +163,15 @@ js_quantify_map() ->
        "            emit(['users', doc.priv_level], 1);"
        "            if (doc.qubicle && doc.qubicle.enabled) {"
        "                if (doc.qubicle.recipient) {"
-       "                    if(doc.qubicle.recipient.features.indexOf('pro') > -1){"
+       "                    if(doc.qubicle.recipient.features && doc.qubicle.recipient.features.pro){"
        "                        emit(['qubicle', 'pro_recipient'], 1);"
        "                    }else{"
        "                        emit(['qubicle', 'basic_recipient'], 1);"
        "                    }"
        "                }"
+       "            }"
+       "            if (doc.pvt_chat && doc.pvt_chat.getstream && doc.pvt_chat.getstream.enabled) {"
+       "                emit(['chat', 'getstream'], 1);"
        "            }"
        "            break;"
        "        case 'device':"
@@ -209,6 +217,20 @@ js_quantify_map() ->
        "                emit(['account_apps', doc.apps[index].name], 1);"
        "            }"
        "            break;"
+       "        case 'application_entitlement':"
+       "            switch (doc.type) {"
+       "                case 'all':"
+       "                    emit(['user_apps', doc.app_id], -1);"
+       "                    break;"
+       "                case 'admins':"
+       "                    emit(['user_apps', doc.app_id], -2);"
+       "                    break;"
+       "                case 'specific':"
+       "                    emit(['user_apps', doc.app_id], doc.users.length);"
+       "                    break;"
+       "            }"
+       "            emit(['account_apps', doc.app_id], 1);"
+       "            break;"
        "        case 'number':"
        "            emit(['number_carriers', doc.pvt_module_name], 1);"
        "            var features = doc.pvt_features || {};"
@@ -221,7 +243,7 @@ js_quantify_map() ->
       ,kazoo_numbers_maintenance:generate_js_classifiers(FunMatchBlock),
        "            break;"
        "        case 'qubicle_queue':"
-       "            if(doc.features.indexOf('pro') > -1){"
+       "            if(doc.features && doc.features.pro){"
        "                emit(['qubicle', 'pro_queue'], 1);"
        "            }else{"
        "                emit(['qubicle', 'basic_queue'], 1);"
@@ -799,8 +821,9 @@ log_discrepancy_correction(CurrentJObj, ReconciledJObj) ->
                    ,ReconciledValue
                    ]
                   )
-         || {Key, ReconciledValue} <- flatten_quantities(ReconciledQuantities)
-                ,(CurrentValue = proplists:get_value(Key, FlattenedCurrent)) =/= ReconciledValue
+         || {Key, ReconciledValue} <- flatten_quantities(ReconciledQuantities),
+            CurrentValue <- [proplists:get_value(Key, FlattenedCurrent)],
+            CurrentValue =/= ReconciledValue
         ],
     'no_return'.
 
@@ -809,9 +832,9 @@ flatten_quantities(JObj) ->
     [{[Type, Category, Item]
      ,kz_json:get_integer_value([Type, Category, Item], JObj, 0)
      }
-     || Type <- [<<"manual">>, <<"account">>, <<"cascade">>]
-            ,Category <- kz_json:get_keys(Type, JObj)
-            ,Item <- kz_json:get_keys([Type, Category], JObj)
+     || Type <- [<<"manual">>, <<"account">>, <<"cascade">>],
+        Category <- kz_json:get_keys(Type, JObj),
+        Item <- kz_json:get_keys([Type, Category], JObj)
     ].
 
 %%------------------------------------------------------------------------------
@@ -984,11 +1007,17 @@ prepare_service_doc(JObj) ->
 
 -spec remove_orphaned_services() -> 'no_return'.
 remove_orphaned_services() ->
-    {'ok', ServiceDocs} = kz_datamgr:all_docs(?KZ_SERVICES_DB),
-    Count = lists:foldl(fun maybe_remove_orphan/2, 0, ServiceDocs),
+    BatchSize = kz_datamgr:max_bulk_read(),
+    {'ok', Cursor} = kz_view:find_batch(?KZ_SERVICES_DB, 'all_docs', [], [{'batch_size', BatchSize}]),
+    {'ok', Count} = kz_view_cursor:mapfold(fun remove_orphaned_services/2, 0, Cursor),
     Count > 0
         andalso io:format("removed ~p service docs~n", [Count]),
     'no_return'.
+
+-spec remove_orphaned_services(list(), integer()) -> {'ok', integer()}.
+remove_orphaned_services(Batch, Count) ->
+    NextCount = lists:foldl(fun maybe_remove_orphan/2, Count, Batch),
+    {'ok', NextCount}.
 
 -spec maybe_remove_orphan(kz_json:object() | kz_term:ne_binary(), non_neg_integer()) ->
           non_neg_integer().
@@ -1084,3 +1113,103 @@ get_accounts_with_plans() ->
                                           ,ViewOptions
                                           ),
     [kz_doc:id(JObj) || JObj <- JObjs].
+
+-spec report_mismatch_reseller_id() -> 'ok'.
+report_mismatch_reseller_id() ->
+    io:format("   /\\    Finding service docs where the first reseller id in their pvt_tree~n"),
+    io:format("  /  \\             does not match the value of pvt_reseller_id.~n"),
+    io:format(" / !! \\     Check account and service docs of accounts in table below and~n"),
+    io:format("/      \\     validate their pvt_tree and who should be their reseller id.~n"),
+    io:format("--------~n~n"),
+
+    io:format("finding master account id...~n"),
+    {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
+
+    Resellers = get_all_resellers_from_accounts(),
+
+    ViewOptions = [{'key', kzd_services:type()}, 'include_docs', 'no_design_module'],
+    {'ok', ServiceCursor} = kz_view:find_batch(?KZ_SERVICES_DB, <<"maintenance/listing_by_type">>, [], ViewOptions),
+    io:format("~n~ncrawling service docs:~n"),
+    CursorFoldFun = fun(Result, Acc) -> find_mismatch_reseller_id_fold(Result, Acc, Resellers, MasterAccountId) end,
+    {'ok', Mismatch} = kz_view_cursor:mapfold(CursorFoldFun, [], ServiceCursor, ?BATCH_LIMIT),
+
+    io:format("~ndone~n~n"),
+    io:format("Note: True Reseller ID is the first reseller from bottom of pvt_tree and must be set as pvt_reseller_id.~n"),
+    io:format("      unknown true reseller ID means no reseller id in the pvt_tree~n"),
+    io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+----------------------------------+~n"),
+    io:format("|            Account ID            |         Wrong Reseller ID        |         True Reseller ID         | Is Reseller |      reseller doc pvt_tree       | ~n"),
+    io:format("+==================================+==================================+==================================+=============+==================================+~n"),
+    case Mismatch of
+        [] ->
+            io:format("| all service doc(s) have correct pvt_reseller_id                                                                                                         |~n");
+        _ ->
+            lists:foreach(fun (Map) ->
+                                  io:format("| ~-32ts | ~-32ts | ~-32ts | ~-11ts | ~ts~n"
+                                           ,[maps:get('account_id', Map)
+                                            ,maps:get('pvt_reseller_id', Map)
+                                            ,maps:get('true_reseller_id', Map)
+                                            ,maps:get('is_reseller', Map)
+                                            ,kz_binary:join(maps:get('pvt_tree', Map))
+                                            ])
+                          end, Mismatch)
+    end,
+    io:format("+----------------------------------+----------------------------------+----------------------------------+-------------+----------------------------------+~n").
+
+-spec find_mismatch_reseller_id_fold(kz_json:objects(), [map()], sets:set(kz_term:ne_binary()), kz_term:ne_binary()) -> [map()].
+find_mismatch_reseller_id_fold(Result, Acc0, Resellers, MasterAccountId) ->
+    lists:foldl(fun(JObj, InnerAcc) ->
+                        io:format("."),
+                        case kz_doc:id(JObj) of
+                            MasterAccountId ->
+                                InnerAcc;
+                            _ ->
+                                find_mismatch_reseller_id(JObj, Resellers, InnerAcc)
+                        end
+                end, Acc0, Result).
+
+-spec find_mismatch_reseller_id(kz_json:object(), sets:set(kz_term:ne_binary()), [map()]) -> [map()].
+find_mismatch_reseller_id(JObj0, Resellers, Acc) ->
+    JObj = kz_json:get_json_value(<<"doc">>, JObj0),
+    AccountId =  kz_doc:id(JObj),
+    Tree = kzd_services:tree(JObj),
+    PvtResellerId = kzd_services:reseller_id(JObj),
+    Map = #{account_id => AccountId,
+            pvt_reseller_id => PvtResellerId,
+            is_reseller => kzd_services:is_reseller(JObj),
+            pvt_tree => Tree
+           },
+    case [Id || Id <- Tree, sets:is_element(Id, Resellers)] of
+        [] ->
+            [Map#{true_reseller_id => 'unknown'} | Acc];
+        ResellersOnly ->
+            case lists:last(ResellersOnly) of
+                PvtResellerId ->
+                    Acc;
+                TreeResellerId ->
+                    [Map#{true_reseller_id => TreeResellerId} | Acc]
+            end
+    end.
+
+-spec get_all_resellers_from_accounts() -> sets:set(kz_term:ne_binary()).
+get_all_resellers_from_accounts() ->
+    io:format("fetching a list of resellers...~n"),
+    ViewOptions = ['include_docs', 'no_design_module'],
+    MapFun = fun(Result, Acc) ->
+                     lists:foldl(fun maybe_add_reseller/2, Acc, Result)
+             end,
+    case kz_view:find_batch(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_id">>, [], ViewOptions) of
+        {'ok', Cursor} ->
+            {'ok', Resellers} = kz_view_cursor:mapfold(MapFun, sets:new(), Cursor, ?BATCH_LIMIT),
+            io:format("found ~b reseller(s)~n", [sets:size(Resellers)]),
+            Resellers;
+        {'error', Reason} ->
+            io:format("failed to get resellers from accounts db: ~tp~n", [Reason]),
+            throw({'error', {"failed to get resellers from accounts db", Reason}})
+    end.
+
+-spec maybe_add_reseller(kz_json:object(), sets:set(kz_term:ne_binary())) -> sets:set(kz_term:ne_binary()).
+maybe_add_reseller(AccountJObj, SetAcc) ->
+    case kzd_accounts:is_reseller(kz_json:get_json_value(<<"doc">>, AccountJObj)) of
+        'true' -> sets:add_element(kz_doc:id(AccountJObj), SetAcc);
+        'false' -> SetAcc
+    end.

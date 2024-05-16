@@ -41,6 +41,8 @@ compile:
 
 include $(ROOT)/make/kz.mk
 
+compile-generated: $(ITU) $(ISO3166)
+
 clean-generated:
 	$(if $(wildcard $(ITU)), @rm $(ITU))
 	$(if $(wildcard $(ISO3166)), @rm $(ISO3166))

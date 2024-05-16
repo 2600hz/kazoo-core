@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%%
@@ -108,7 +108,7 @@ prop_normalize() ->
                 Date = funky_date(GregorianDate, MonthsBack),
                 NormalizedDate = kz_date:normalize(Date),
 
-                ?WHENFAIL(io:format("failed to normalize ~w to ~w: got ~w(~w)~n"
+                ?WHENFAIL(?debugFmt("failed to normalize ~w to ~w: got ~w(~w)~n"
                                    ,[Date, GregorianDate, NormalizedDate, MonthsBack]
                                    )
                          ,GregorianDate =:= NormalizedDate
@@ -136,7 +136,7 @@ prop_iso_week() ->
            ,{kz_time:year(), kz_time:weeknum()}
            ,begin
                 RoundTrip = kz_date:to_iso_week(kz_date:from_iso_week(ISOWeek)),
-                ?WHENFAIL(io:format("failed to convert to/from iso week for ~p <=> ~p~n"
+                ?WHENFAIL(?debugFmt("failed to convert to/from iso week for ~p <=> ~p~n"
                                    ,[ISOWeek, RoundTrip]
                                    )
                          ,are_matched_weeks(ISOWeek, RoundTrip)
@@ -146,8 +146,8 @@ prop_iso_week() ->
 
 prop_iso8601() ->
     ?FORALL({Date, ToFun}
-           ,{safe_date(), oneof([to_iso8601, to_iso8601_extended])}
-           ,?WHENFAIL(io:format("failed to roundtrip ~p with ~p~n", [Date, ToFun])
+           ,{safe_date(), oneof(['to_iso8601', 'to_iso8601_extended'])}
+           ,?WHENFAIL(?debugFmt("failed to roundtrip ~p with ~p~n", [Date, ToFun])
                      ,Date =:= kz_date:from_iso8601(kz_date:ToFun(Date))
                      )
            ).
@@ -164,7 +164,7 @@ prop_relative_diff() ->
                                   case kz_date:relative_difference(A, B) of
                                       Diff -> 'true';
                                       _Result ->
-                                          io:format("failed to calc relative diff of ~p and ~p~n"
+                                          ?debugFmt("failed to calc relative diff of ~p and ~p~n"
                                                     "expected ~p got ~p~n"
                                                    ,[A, B, Diff, _Result]
                                                    ),

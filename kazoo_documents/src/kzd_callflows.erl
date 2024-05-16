@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,6 +23,7 @@
 -export([ringback/1, ringback/2, set_ringback/2]).
 -export([ringback_early/1, ringback_early/2, set_ringback_early/2]).
 -export([ringback_transfer/1, ringback_transfer/2, set_ringback_transfer/2]).
+-export([ignore_progress/1, ignore_progress/2, set_ignore_progress/2]).
 
 -export([type/0
         ,is_feature_code/1
@@ -299,6 +300,18 @@ capture_groups(Doc, Default) ->
 -spec set_capture_groups(doc(), kz_json:object()) -> doc().
 set_capture_groups(Doc, CaptureGroups) ->
     kz_json:set_value([<<"capture_groups">>], CaptureGroups, Doc).
+
+-spec ignore_progress(doc()) -> kz_term:api_boolean().
+ignore_progress(Doc) ->
+    ignore_progress(Doc, 'undefined').
+
+-spec ignore_progress(doc(), Default) -> boolean() | Default.
+ignore_progress(Doc, Default) ->
+    kz_json:get_boolean_value([<<"ignore_progress">>], Doc, Default).
+
+-spec set_ignore_progress(doc(), kz_term:api_boolean()) -> doc().
+set_ignore_progress(Doc, IgnoreProgress) ->
+    kz_json:set_value([<<"ignore_progress">>], IgnoreProgress, Doc).
 
 %%------------------------------------------------------------------------------
 %% @doc Fetch a callflow from cache.

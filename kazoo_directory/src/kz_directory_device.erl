@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -28,7 +28,7 @@ profile(EndpointId, AccountId) ->
           {'error', any()}.
 profile(EndpointId, AccountId, Options) ->
     case kz_cache:fetch_local(?CACHE_NAME, {EndpointId, AccountId}) of
-        {'ok', Profile} -> {'ok', Profile};
+        {'ok', {Profile, _Options}} -> {'ok', Profile};
         {'error', 'not_found'} -> fetch_profile(EndpointId, AccountId, Options)
     end.
 
@@ -60,28 +60,27 @@ fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
 build_and_cache(EndpointId, AccountId, Endpoint, Options, Module) ->
     {'ok', Profile} = build(EndpointId, AccountId, Endpoint, Options, Module),
     Origins = cache_origin(EndpointId, AccountId, Endpoint),
-    cache(EndpointId, AccountId, Profile, Origins).
+    cache(EndpointId, AccountId, Profile, Origins, Options).
 
--spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_cache:origin_tuples()) ->
+-spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_cache:origin_tuples(), kz_term:proplist()) ->
           {'ok', kz_json:object()}.
-cache(EndpointId, AccountId, Profile, Origins) ->
+cache(EndpointId, AccountId, Profile, Origins, Options) ->
     CacheProps = [{'origin', Origins}
                  ,{'callback', fun cache_callback/3}
+                 ,{'expires', kz_directory_cache:cache_lifetime()}
                  ],
-    kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, Profile, CacheProps),
+    kz_cache:store_local_async(?CACHE_NAME, {EndpointId, AccountId}, {Profile, Options}, CacheProps),
     {'ok', Profile}.
 
 -spec cache_callback(tuple(), kz_json:object(), callback_msg()) -> 'ok'.
-cache_callback({EndpointId, AccountId}, CachedValue, 'erase') ->
+cache_callback({EndpointId, AccountId}, {CachedValue, Options}, 'erase') ->
     lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
-    timer:sleep(kz_term:to_integer(?MILLISECONDS_IN_SECOND * 0.15)),
-    case kz_endpoint:get(EndpointId, AccountId) of
+    case kz_endpoint:get(EndpointId, AccountId, props:set_value('no_cache', Options)) of
         {'ok', Endpoint} ->
-            Module = get_device_module(Endpoint),
-            {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, [], Module),
+            {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, Options),
             maybe_notify(EndpointId, AccountId, kz_json:are_equal(NewProfile, CachedValue)),
             Origins = cache_origin(EndpointId, AccountId, Endpoint),
-            cache(EndpointId, AccountId, NewProfile, Origins);
+            cache(EndpointId, AccountId, NewProfile, Origins, Options);
         _Error -> notify(EndpointId, AccountId)
     end;
 cache_callback(_, _, _) -> 'ok'.
@@ -135,32 +134,111 @@ call_waiting(Endpoint) ->
         CW -> kzd_call_waiting:enabled(CW)
     end.
 
+-spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+build(EndpointId, AccountId, Endpoint, Options) ->
+    build(EndpointId, AccountId, Endpoint, Options, get_device_module(Endpoint)).
+
 -spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom()) -> {'ok', kz_json:object()}.
 build(EndpointId, AccountId, Endpoint, Options, Module) ->
+    Context = #{endpoint_id => EndpointId
+               ,account_id => AccountId
+               ,endpoint => Endpoint
+               ,options => Options
+               ,module => Module
+               ,endpoint_uri => list_to_binary([EndpointId, "@", AccountId])
+               },
+    build(Context).
+
+-spec build(map()) -> {'ok', kz_json:object()}.
+build(Context) ->
+    Routines = [fun build_profile/1
+               ,fun build_dial_string/1
+               ],
+    #{profile := Profile} = kz_maps:exec(Routines, Context),
+    {'ok', Profile}.
+
+
+build_dial_string(#{profile := Profile, endpoint := Endpoint} = Context) ->
+    DialString = dial_string_by_type(Context, kzd_devices:device_type(Endpoint)),
+    Context#{profile => kz_json:set_value(<<"Endpoint-Dial-String">>, DialString, Profile)}.
+
+is_meta_dial_enabled(#{endpoint := Endpoint}) ->
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"metadial">>, <<"device">>], Endpoint, 'undefined') of
+        'undefined' -> kz_app_config:is_true(?APP, <<"metadial.device">>, 'false');
+        Override -> Override
+    end.
+
+meta_dial_string(#{endpoint_id := Id}, Default) ->
+    list_to_binary(["${kz_meta_dialstring(", Id, " ", Default, ")}"]).
+
+meta_dial_string(#{endpoint_id := Id}) ->
+    list_to_binary(["${kz_meta_dialstring(", Id, ")}"]).
+
+dial_string_by_type(Context, <<"meta">>) ->
+    meta_dial_string(Context, ?NO_ENDPOINTS);
+dial_string_by_type(Context, <<"application">>) ->
+    app_dial_string(Context);
+dial_string_by_type(Context, _Other) ->
+    dial_string(Context).
+
+app_dial_string(#{endpoint := Endpoint} = Context) ->
+    case kz_json:get_ne_binary_value([<<"pvt_application">>, <<"dialstring">>], kz_doc:private_fields(Endpoint)) of
+        'undefined' -> dial_string(Context);
+        AppDialString -> AppDialString
+    end.
+
+dial_string(#{profile := Profile} = Context) ->
+    case kz_json:get_ne_binary_value(<<"SIP-Invite-Route-URI">>, Profile) of
+        'undefined' -> kz_dial_string(Context);
+        Uri -> sip_dial_string(Context, Uri)
+    end.
+
+default_sip_interface() ->
+    kz_app_config:get_ne_binary(?APP, <<"sip.default_interface">>, ?DEFAULT_SIP_PROFILE).
+
+sip_dial_string(#{profile := Profile}, Uri) ->
+    SIPInterface = kz_json:get_ne_binary_value(<<"SIP-Interface">>, Profile, default_sip_interface()),
+    list_to_binary(["sofia/", SIPInterface, "/", Uri]).
+
+is_ip_auth(#{endpoint := Endpoint} = _Context) ->
+    kzd_devices:sip_method(Endpoint) =:= <<"ip">>
+        andalso kzd_devices:sip_ip(Endpoint) =/= 'undefined'
+        andalso kz_network_utils:is_ip(kzd_devices:sip_ip(Endpoint)).
+
+kz_dial_string(Context) ->
+    kz_dial_string(Context, is_ip_auth(Context)).
+
+kz_dial_string(#{endpoint_uri := Uri} = Context, 'true') ->
+    sip_dial_string(Context, Uri);
+kz_dial_string(Context, 'false') ->
+    case is_meta_dial_enabled(Context) of
+        'true' -> kz_binary:join([kz_contact(Context), meta_dial_string(Context)], <<",">>);
+        'false' -> kz_contact(Context)
+    end.
+
+default_kz_contact_api() ->
+    kz_app_config:get_ne_binary(?APP, <<"contact_api">>, <<"kz_contact">>).
+
+kz_contact_api(#{endpoint := Endpoint}) ->
+    kz_json:get_ne_binary_value([<<"call_settings">>, <<"directory">>, <<"contact_api">>], Endpoint, default_kz_contact_api()).
+
+kz_contact(#{endpoint_uri := Uri} = Context) ->
+    list_to_binary(["${", kz_contact_api(Context), "(", Uri, ")}"]).
+
+build_profile(Context) ->
+    #{endpoint_id := EndpointId
+     ,account_id := AccountId
+     ,endpoint := Endpoint
+     ,options := Options
+     ,module := Module
+     } = Context,
+
     CCVs = generate_ccvs(EndpointId, AccountId, Endpoint, Options, Module),
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Options, Module),
     CRVs = generate_routing_ccvs(Endpoint, Options, Module),
     CAVs = kz_json:get_json_value(<<"default_cavs">>, Endpoint),
+    CPVs = build_profile_vars(AccountId, EndpointId, Endpoint, CCVs),
 
-    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
-    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
-
-    CPVs = [{<<"Internal-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Internal-Caller-ID-Name">>, CIDName}
-           ,{<<"External-Caller-ID-Number">>, CEDNumber}
-           ,{<<"External-Caller-ID-Name">>, CEDName}
-           ,{<<"Account-ID">>, AccountId}
-           ,{<<"Endpoint-ID">>, EndpointId}
-           ,{<<"Endpoint-Type">>, <<"device">>}
-           ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
-           ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
-           ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
-           ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
-           ,{<<"Endpoint-DND">>, dnd(Endpoint)}
-           ,{<<"Endpoint-Tag-Rules">>, tags(Endpoint)}
-           ,{<<"Endpoint-Call-Limit">>, call_limit(Endpoint)}
-           ,{<<"Endpoint-Call-Waiting">>, call_waiting(Endpoint)}
-           ],
     Profile = [{<<"Endpoint-Type">>, <<"device">>}
               ,{<<"Domain-Name">>, AccountId}
               ,{<<"User-ID">>, EndpointId}
@@ -178,7 +256,31 @@ build(EndpointId, AccountId, Endpoint, Options, Module) ->
               ,{<<"Failover">> , kz_directory_failover:failover(EndpointId, AccountId, Endpoint)}
               ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
               ],
-    {'ok', kz_json:from_list(Profile)}.
+    Context#{profile => kz_json:from_list(Profile)}.
+
+build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
+    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
+    {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
+
+    [{<<"Internal-Caller-ID-Number">>, CIDNumber}
+    ,{<<"Internal-Caller-ID-Name">>, CIDName}
+    ,{<<"External-Caller-ID-Number">>, CEDNumber}
+    ,{<<"External-Caller-ID-Name">>, CEDName}
+    ,{<<"Account-ID">>, AccountId}
+    ,{<<"Endpoint-ID">>, EndpointId}
+    ,{<<"Endpoint-Type">>, <<"device">>}
+    ,{<<"Endpoint-Device-Type">>, kzd_devices:device_type(Endpoint)}
+    ,{<<"Endpoint-Application">>, kzd_devices:application_name(Endpoint)}
+    ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
+    ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
+    ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
+    ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
+    ,{<<"Endpoint-Presence-Aliases">>, presence_aliases(Endpoint)}
+    ,{<<"Endpoint-DND">>, dnd(Endpoint)}
+    ,{<<"Endpoint-Tag-Rules">>, tags(Endpoint)}
+    ,{<<"Endpoint-Call-Limit">>, call_limit(Endpoint)}
+    ,{<<"Endpoint-Call-Waiting">>, call_waiting(Endpoint)}
+    ].
 
 -spec get_device_module(kz_json:object()) -> atom().
 get_device_module(Endpoint) ->
@@ -218,7 +320,7 @@ maybe_endpoint_type_is_push(Endpoint) ->
 
 -spec get_endpoint_type_property(kz_json:object()) -> kz_term:api_ne_binary().
 get_endpoint_type_property(Endpoint) ->
-    kz_json:get_ne_binary_value(<<"device_type">>, Endpoint, <<"sip_device">>).
+    kzd_devices:device_type(Endpoint, <<"sip_device">>).
 
 -spec convert_endpoint_type(kz_term:ne_binary()) -> kz_term:api_ne_binary().
 convert_endpoint_type(<<"push">>) -> <<"push">>;
@@ -232,6 +334,7 @@ convert_endpoint_type(<<"fax">>) -> <<"sip">>;
 convert_endpoint_type(<<"ata">>) -> <<"sip">>;
 convert_endpoint_type(<<"mobile">>) -> <<"mobile">>;
 convert_endpoint_type(<<"application">>) -> <<"sip">>;
+convert_endpoint_type(<<"meta">>) -> <<"sip">>;
 convert_endpoint_type(_Else) ->
     lager:info("failed to convert endpoint type ~s", [_Else]),
     'undefined'.
@@ -284,9 +387,64 @@ owner_id(Endpoint, CCVs) ->
         OwnerId -> kz_json:set_value(<<"Owner-ID">>, OwnerId, CCVs)
     end.
 
+-spec is_calculate_presence_id_enabled(kz_json:object()) -> boolean().
+is_calculate_presence_id_enabled(Endpoint) ->
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"calculate">>], Endpoint, 'undefined') of
+        'undefined' -> kz_app_config:is_true(?APP, <<"presence_id.calculate">>, 'true');
+        Override -> Override
+    end.
+
 -spec presence_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 presence_id(Endpoint, CCVs) ->
-    kz_json:set_value(<<"Presence-ID">>, kzd_devices:calculate_presence_id(Endpoint), CCVs).
+    presence_id(is_calculate_presence_id_enabled(Endpoint), Endpoint, CCVs).
+
+-spec presence_id(boolean(), kz_json:object(), kz_json:object()) -> kz_json:object().
+presence_id('true', Endpoint, CCVs) ->
+    kz_json:set_value(<<"Presence-ID">>, calculate_presence_id(Endpoint), CCVs);
+presence_id('false', Endpoint, CCVs) ->
+    kz_json:set_value(<<"Presence-ID">>, presence_id(Endpoint), CCVs).
+
+-spec calculate_presence_id(kz_json:object()) -> kz_term:api_ne_binary().
+calculate_presence_id(Endpoint) ->
+    case kzd_endpoint:presence_id(Endpoint) of
+        'undefined' -> kzd_devices:calculate_presence_id(Endpoint);
+        PresenceId -> maybe_fix_presence_id(Endpoint, PresenceId)
+    end.
+
+-spec presence_id(kz_json:object()) -> kz_term:api_ne_binary().
+presence_id(Endpoint) ->
+    maybe_fix_presence_id(Endpoint, kzd_endpoint:presence_id(Endpoint)).
+
+-spec is_presence_id_ensure_realm_enabled(kz_json:object()) -> boolean().
+is_presence_id_ensure_realm_enabled(Endpoint) ->
+    case kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"presence_id">>, <<"ensure_realm">>], Endpoint, 'undefined') of
+        'undefined' -> kz_app_config:is_true(?APP, <<"presence_id.ensure_realm">>, 'true');
+        Override -> Override
+    end.
+
+-spec maybe_fix_presence_id(kz_json:object(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+maybe_fix_presence_id(_Endpoint, 'undefined') ->
+    'undefined';
+maybe_fix_presence_id(Endpoint, PresenceId) ->
+    case is_presence_id_ensure_realm_enabled(Endpoint) of
+        'true' -> ensure_presence_id_realm(Endpoint, PresenceId);
+        'false' -> PresenceId
+    end.
+
+ensure_presence_id_realm(Endpoint, PresenceId) ->
+    case binary:match(PresenceId, <<"@">>) of
+        'nomatch' -> fix_presence_id_realm(Endpoint, PresenceId);
+        _Match -> PresenceId
+    end.
+
+-spec fix_presence_id_realm(kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary().
+fix_presence_id_realm(Endpoint, PresenceId) ->
+    Realm = kz_json:get_ne_binary_value(<<"realm">>, Endpoint),
+    <<PresenceId/binary, "@", Realm/binary>>.
+
+-spec presence_aliases(kz_json:object()) -> kz_term:api_ne_binaries().
+presence_aliases(Endpoint) ->
+    kzd_endpoint:presence_publishing_aliases(Endpoint).
 
 -spec hold_music(kz_json:object(), kz_json:object()) -> kz_json:object().
 hold_music(Endpoint, CCVs) ->
@@ -432,6 +590,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, Module) ->
               ,{fun presence_id/2, Endpoint}
               ,{fun relay_id/2, Endpoint}
               ,{fun sip_auth/3, Module, Endpoint}
+              ,{fun inbound_ccvs/3, Module, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
@@ -457,8 +616,26 @@ generate_routing_ccvs(Endpoint, _Options, Module) ->
 default_ccvs(Endpoint, CCVs) ->
     case kz_json:get_json_value(<<"default_ccvs">>, Endpoint) of
         'undefined' -> CCVs;
-        DefaultCCVs -> kz_json:merge(DefaultCCVs, CCVs)
+        DefaultCCVs -> merge_default_ccvs(DefaultCCVs, CCVs)
     end.
+
+-spec merge_default_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
+merge_default_ccvs(DefaultCCVs, CCVs) ->
+    SetCCVs = kz_json:filter(fun default_ccvs_set/1, DefaultCCVs),
+    UnsetCCVs = kz_json:filter(fun default_ccvs_unset/1, DefaultCCVs),
+    kz_json:merge([SetCCVs, CCVs, UnsetCCVs]).
+
+-spec default_ccvs_unset(kz_json:json_kv()) -> boolean().
+default_ccvs_unset({_, 'null'}) -> 'true';
+default_ccvs_unset(_) -> 'false'.
+
+-spec default_ccvs_set(kz_json:json_kv()) -> boolean().
+default_ccvs_set({_, 'null'}) -> 'false';
+default_ccvs_set(_) -> 'true'.
+
+-spec inbound_ccvs(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
+inbound_ccvs(Mod, Endpoint, CCVs) ->
+    Mod:inbound_ccvs(Endpoint, CCVs).
 
 -spec sip_auth(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_auth(Mod, Endpoint, CCVs) ->

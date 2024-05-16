@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2023, 2600Hz
+%%% @copyright (C) 2018-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -33,12 +33,19 @@
           {'error', delete_errors()}.
 delete('undefined') -> {'ok', 'undefined'};
 delete(?MATCH_ACCOUNT_RAW(AccountId)) ->
+    {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
+    delete(AccountId, MasterAccountId).
+
+delete(MasterAccountId, MasterAccountId) ->
+    lager:error("deleting master account id forbidden"),
+    {'error', 'unauthorized'};
+delete(AccountId, _MasterAccountId) ->
     case kzd_accounts:fetch(AccountId) of
         {'error', _}=Error ->
             maybe_cleanup_accounts(AccountId, Error);
         {'ok', AccountJObj} ->
             lager:info("attempting to delete ~s(~s)", [AccountId, kz_doc:revision(AccountJObj)]),
-            delete(AccountId, AccountJObj)
+            delete_account(AccountId, AccountJObj)
     end.
 
 maybe_cleanup_accounts(AccountId, Error) ->
@@ -51,10 +58,10 @@ maybe_cleanup_accounts(AccountId, Error) ->
         {'error', _} -> Error
     end.
 
--spec delete(kz_term:ne_binary(), kzd_accounts:doc()) ->
+-spec delete_account(kz_term:ne_binary(), kzd_accounts:doc()) ->
           {'ok', kzd_accounts:doc()} |
           {'error', delete_errors()}.
-delete(_AccountId, AccountJObj) ->
+delete_account(_AccountId, AccountJObj) ->
     DeleteRoutines = [fun delete_remove_services/1
                      ,fun delete_free_numbers/1
                      ,fun delete_remove_sip_aggregates/1
@@ -136,15 +143,38 @@ delete_mod_dbs({AccountJObj, _Errors}=Acc) ->
 delete_remove_from_accounts({AccountJObj, Errors}=Acc) ->
     case kzd_accounts:fetch(kz_doc:id(AccountJObj), 'accounts') of
         {'ok', AccountsJObj} ->
-            _Deleted = kz_datamgr:del_doc(?KZ_ACCOUNTS_DB, AccountsJObj),
-            lager:info("deleted 'accounts' account doc: ~p", [_Deleted]),
-            Acc;
+            case kz_doc:is_deleted(AccountsJObj) of
+                'true' ->
+                    lager:info("account is already deleted"),
+                    Acc;
+                'false' ->
+                    ensure_deleted(Acc, AccountsJObj, kz_datamgr:del_doc(?KZ_ACCOUNTS_DB, AccountsJObj))
+            end;
         {'error', 'not_found'} ->
             lager:info("'accounts' account doc not found"),
             Acc;
         {'error', _R} ->
             lager:info("failed to fetch 'accounts' account doc: ~p", [_R]),
             {AccountJObj, [{'datastore_fault', <<"unable to remove account definition">>} | Errors]}
+    end.
+
+ensure_deleted({_AccountJObj, _Errors}=Acc, AccountsJObj, {'ok', DeleteJObj}) ->
+    case kz_json:is_true(<<"ok">>, DeleteJObj) of
+        'true' -> Acc;
+        'false' ->
+            case kz_json:get_ne_binary_value(<<"error">>, DeleteJObj) of
+                <<"conflict">> ->
+                    lager:info("conflict deleting accounts doc, rev tried: ~s", [kz_doc:revision(AccountsJObj)]),
+                    kz_datamgr:flush_cache_doc(?KZ_ACCOUNTS_DB, kz_doc:id(AccountsJObj)),
+                    delete_remove_from_accounts(Acc);
+                _Error ->
+                    lager:error("error deleting 'accounts' account doc: ~s: ~s"
+                               ,[_Error
+                                ,kz_json:get_ne_binary_value(<<"reason">>, DeleteJObj)
+                                ]
+                               ),
+                    Acc
+            end
     end.
 
 -spec create(kz_term:ne_binary(), kz_json:object()) -> kzd_accounts:doc() | 'undefined'.

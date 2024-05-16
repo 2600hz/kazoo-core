@@ -159,6 +159,9 @@
         "Route": {
             "type": "string"
         },
+        "SIP-Diversions": {
+            "type": "string"
+        },
         "SIP-Interface": {
             "type": "string"
         },
@@ -166,6 +169,9 @@
             "type": "string"
         },
         "SIP-Invite-Parameters": {
+            "type": "string"
+        },
+        "SIP-Multiparts": {
             "type": "string"
         },
         "SIP-Transport": {

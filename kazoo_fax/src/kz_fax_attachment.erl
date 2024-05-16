@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -438,15 +438,18 @@ fetch_url(Url, FetchRequest) ->
     lager:debug("making ~s request to '~s'", [Method, Url]),
     case kz_http:req(Method, Url, Headers, Body) of
         {'ok', 200, RespHeaders, Contents} ->
-            DefaultCt = kz_mime:from_filename(Url),
-            CT = kz_http_util:get_resp_header("Content-Type", RespHeaders, DefaultCt),
-            ContentType = kz_mime:normalize_content_type(CT),
+            ContentType = fetch_result_content_type(RespHeaders, kz_mime:from_filename(Url)),
             {'ok', Contents, ContentType};
         {'ok', Status, _, _} ->
             lager:error("failed to fetch file for job from: ~s, http response: ~b", [Url, Status]);
         {'error', Reason} ->
             lager:error("failed to fetch file from: ~s for job: ~p", [Url, Reason])
     end.
+
+fetch_result_content_type(RespHeaders, DefaultCt) ->
+    ContentTypeHeader = kz_http_util:get_resp_header("Content-Type", RespHeaders, DefaultCt),
+    [ContentType | _] = binary:split(kz_term:to_binary(ContentTypeHeader), <<";">>),
+    kz_mime:normalize_content_type(ContentType).
 
 -spec maybe_store_url_attachment(kz_term:ne_binary(), kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           kz_json:object().
@@ -461,7 +464,7 @@ maybe_store_url_attachment(Db, Doc, Content, ContentType) ->
                     lager:info("failed to save url doc with error ~p", [Msg]),
                     Doc
             end;
-        false ->
+        'false' ->
             Doc
     end.
 

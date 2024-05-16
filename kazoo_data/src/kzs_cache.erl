@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -56,13 +56,13 @@
 -define(STAMPEDE_WAIT_MS, 1500). % see kz_cache_stampede_tests
 -define(CACHE_KEY(DbName, DocId), {?MODULE, DbName, DocId}).
 
--spec open_cache_doc(kz_term:text(), kz_term:ne_binary(), kz_datamgr:open_doc_options()) ->
+-spec open_cache_doc(kz_term:text(), kz_term:ne_binary(), kz_datamgr:open_cache_doc_options()) ->
           {'ok', kz_json:object()} |
           data_error() |
           {'error', 'not_found'}.
 open_cache_doc(DbName, DocId, Options) ->
     MitigationKey = kz_cache:mitigation_key(),
-    CacheStrategy = cache_strategy(),
+    CacheStrategy = props:get_atom_value('cache_strategy', Options, cache_strategy()),
 
     case kz_cache:fetch_local(?CACHE_NAME, ?CACHE_KEY(DbName, DocId)) of
         {MitigationKey, _Pid} when CacheStrategy =:= 'stampede' ->
@@ -70,12 +70,48 @@ open_cache_doc(DbName, DocId, Options) ->
         {MitigationKey, _Pid} ->
             fetch_doc(DbName, DocId, Options, CacheStrategy);
         {'ok', {'error', _}=E} -> E;
-        {'ok', _Doc}=Ok -> Ok;
+        {'ok', CachedDoc} -> handle_cached_doc(CachedDoc, Options);
         {'error', 'not_found'} when CacheStrategy =:= 'stampede' ->
             mitigate_stampede(DbName, DocId, Options, CacheStrategy);
         {'error', 'not_found'} ->
             fetch_doc(DbName, DocId, Options, CacheStrategy)
     end.
+
+-spec handle_cached_doc(kz_json:object(), kz_datamgr:open_cache_doc_options()) -> {'ok', kz_json:object()} | data_error().
+handle_cached_doc(CachedDoc, Options) ->
+    Map = #{doc => CachedDoc
+           ,revision => kz_doc:revision(CachedDoc)
+           ,db => kz_doc:account_db(CachedDoc)
+           ,id => kz_doc:id(CachedDoc)
+           ,options => Options
+           },
+    Routines = [fun handle_cached_doc_revision/1],
+    handle_cached_doc_funs(Routines, Map).
+
+handle_cached_doc_funs([], #{doc := CachedDoc}) ->
+    {'ok', CachedDoc};
+handle_cached_doc_funs([Fun | Funs], Map) ->
+    case Fun(Map) of
+        'ignore' -> handle_cached_doc_funs(Funs, Map);
+        'fetch' -> handle_cached_doc_fetch(Map)
+    end.
+
+handle_cached_doc_revision(#{revision := DocRevision
+                            ,options := Options
+                            }) ->
+    case props:get_ne_binary_value('revision', Options) of
+        'undefined' -> 'ignore';
+        DocRevision -> 'ignore';
+        _RequestedRevision -> 'fetch'
+    end.
+
+handle_cached_doc_fetch(#{db := DbName
+                         ,id := DocId
+                         ,options:= Options
+                         }
+                       ) ->
+    CacheStrategy = props:get_atom_value('cache_strategy', Options, cache_strategy()),
+    fetch_doc(DbName, DocId, Options, CacheStrategy).
 
 -spec mitigate_stampede(kz_term:text(), kz_term:ne_binary(), kz_datamgr:open_doc_options(), cache_strategy()) ->
           {'ok', kz_json:object()} |
@@ -206,9 +242,16 @@ to_nonbulk_format({DocId, 'error', Reason}) ->
       ,{<<"error">>, kz_term:to_atom(Reason, 'true')}
       ]).
 
+-spec cache_options_keys() -> [atom()].
+cache_options_keys() ->
+    ['cache_failures'
+    ,'revision'
+    ,'cache_strategy'
+    ].
+
 -spec remove_cache_options(kz_datamgr:open_doc_options()) -> kz_datamgr:open_doc_options().
 remove_cache_options(Options) ->
-    props:delete_keys(['cache_failures'], Options).
+    props:delete_keys(cache_options_keys(), Options).
 
 -spec maybe_cache_failure(kz_term:ne_binary(), kz_term:ne_binary(), kz_datamgr:open_doc_options(), data_error(), cache_strategy()) -> 'ok'.
 maybe_cache_failure(DbName, DocId, Options, {'error', _}=Error, CacheStrategy) ->
@@ -379,10 +422,6 @@ flush_cache_docs(Db, Docs, Options) ->
         ],
     'ok'.
 
--type cache_strategy() :: 'none' |
-                          'stampede' |
-                          'async' |
-                          'stampede_async'.
 -spec cache_strategy() -> cache_strategy().
 cache_strategy() ->
     application:get_env('kazoo_data', 'cache_strategy', 'none').

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2023, 2600Hz
+%%% @copyright (C) 2014-2024, 2600Hz
 %%% @doc Module for interacting with JSON schema docs
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -27,10 +27,6 @@
         ,default_object/1
         ,filter/2
         ]).
-
--ifdef(TEST).
--export([flatten/1]).
--endif.
 
 -export_type([validation_error/0
              ,validation_errors/0
@@ -673,17 +669,17 @@ error_to_jobj({'data_invalid'
                     );
 error_to_jobj({'data_invalid'
               ,_FailedSchemaJObj
-              ,'missing_dependency'
-              ,FailedValue
+              ,{'missing_dependency', FailKey}
+              ,_FailedValue
               ,FailedKeyPath
               }
              ,Options
              ) ->
-    validation_error(FailedKeyPath
-                    ,<<"dependencies">>
+    validation_error(FailedKeyPath ++ [FailKey]
+                    ,<<"required">>
                     ,kz_json:from_list(
-                       [{<<"message">>, <<"Dependencies were not validated">>}
-                       ,{<<"value">>, FailedValue}
+                       [{<<"message">>, <<"Field is required but missing">>}
+                       ,{<<"value">>, FailKey}
                        ]
                       )
                     ,Options
@@ -989,35 +985,6 @@ get_types(JObj) ->
         _TypeSchema -> <<"type schema">>
     end.
 
--spec flatten(kz_json:object()) -> kz_json:flat_object().
-flatten(?EMPTY_JSON_OBJECT=Empty) -> Empty;
-flatten(?JSON_WRAPPER(L) = Schema) when is_list(L) ->
-    kz_json:from_list(
-      lists:flatten(
-        flatten_props(kz_json:get_json_value(<<"properties">>, Schema)
-                     ,[]
-                     ,Schema
-                     )
-       )
-     ).
-
-flatten_props('undefined', Path, Obj) -> flatten_prop(Path, Obj);
-flatten_props(?JSON_WRAPPER(L), Path, Obj) when is_list(L) ->
-    [maybe_flatten_props(K, V, Path, Obj)
-     || {K, V} <- L
-    ].
-
-maybe_flatten_props(K, ?JSON_WRAPPER(_)=V, Path, _Obj) ->
-    flatten_props(kz_json:get_json_value(<<"properties">>, V), Path ++ [K], V);
-maybe_flatten_props(K, _V, Path, Obj) ->
-    flatten_prop(Path ++ [K], Obj).
-
-flatten_prop(Path, ?JSON_WRAPPER(L) = Value) when is_list(L) ->
-    case lists:last(Path) of
-        <<"default">> -> [{Path, Value}];
-        _ -> [{Path ++ [K], V} || {K,V} <- L]
-    end.
-
 -spec default_object(string() | kz_term:ne_binary() | kz_json:object()) -> kz_json:object().
 default_object([_|_]=SchemaId) ->
     default_object(list_to_binary(SchemaId));
@@ -1039,22 +1006,27 @@ default_object(Schema) ->
         kz_json:new()
         end.
 
--spec filtering_list(kz_json:object()) -> list(kz_json:keys() | []).
-filtering_list(Schema) ->
-    Flattened = flatten(Schema),
-    lists:usort([lists:droplast(Keys)
-                 || Keys <- kz_json:get_keys(Flattened),
-                    [] =/= Keys
-                ]).
-
+%%------------------------------------------------------------------------------
+%% @doc Filter out any keys / values from a JObj that do not conform
+%% to a defined schema.
+%% Note, if `additionalProperties' is not defined in the schema then
+%% it's assumed to be `true' and properties whose names are not listed
+%% in the schema's properties keyword will not be removed.
+%% @end
+%%------------------------------------------------------------------------------
 -spec filter(kz_json:object(), kz_json:object()) -> kz_json:object().
 filter(JObj, Schema) ->
-    Filter = filtering_list(Schema),
+    case validate(Schema, JObj) of
+        {'ok', _} -> JObj;
+        {'error', Errors} ->
+            lists:foldl(fun remove_invalid_path/2
+                       ,JObj
+                       ,Errors
+                       )
+    end.
 
-    FilteredFlat = kz_json:filter(fun({K, _}) -> lists:member(K, Filter) end
-                                 ,kz_json:flatten(JObj)
-                                 ),
-    kz_json:expand(FilteredFlat).
+remove_invalid_path({'data_invalid',_,_,_,Path}, JObjAcc) ->
+    kz_json:delete_key(Path, JObjAcc, 'prune').
 
 set_value(Path, Value, JObj) ->
     FixedPath = fix_path(Path),

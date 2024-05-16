@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -118,9 +118,27 @@ strip_binary_test_() ->
     ,?_assertEqual(<<"foo ">>, kz_binary:strip_left(<<" foo ">>, $\s))
     ,?_assertEqual(<<"foo ">>, kz_binary:strip_left(<<"foo ">>, $\s))
 
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<>>, $\s))
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<" ">>, $\s))
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<"  ">>, $\s))
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<"   ">>, $\s))
+    ,?_assertEqual(<<>>, kz_binary:strip_right(<<"    ">>, $\s))
     ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo">>, $\s))
     ,?_assertEqual(<<" foo">>, kz_binary:strip_right(<<" foo">>, $\s))
     ,?_assertEqual(<<" foo">>, kz_binary:strip_right(<<" foo ">>, $\s))
+
+    ,?_assertEqual(<<"  foo">>, kz_binary:strip_right(<<"  foo">>, $\s))
+    ,?_assertEqual(<<"  foo">>, kz_binary:strip_right(<<"  foo  ">>, $\s))
+
+    ,?_assertEqual(<<"   foo">>, kz_binary:strip_right(<<"   foo">>, $\s))
+    ,?_assertEqual(<<"   foo">>, kz_binary:strip_right(<<"   foo   ">>, $\s))
+
+    ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo", 10>>, $\n))
+    ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo", 10, 10>>, $\n))
+    ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo", 10, 10, 10>>, $\n))
+
+    ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo", 10, 10, 10>>, <<10>>))
+
     ,?_assertEqual(<<"foo">>, kz_binary:strip_right(<<"foo ">>, $\s))
     ,?_assertEqual(<<"foo">>, kz_binary:strip(<<"foo ">>, 'right'))
     ].
@@ -152,8 +170,10 @@ binary_hashes_test_() ->
     ].
 
 binary_reverse_test_() ->
+    RandHex = kz_binary:rand_hex(16),
     [?_assertEqual(<<>>, kz_binary:reverse(<<>>))
     ,?_assertEqual(<<"B a">>, kz_binary:reverse(<<"a B">>))
+    ,?_assertEqual(RandHex, kz_binary:reverse(kz_binary:reverse(RandHex)))
     ].
 
 truncate_binary_test_() ->

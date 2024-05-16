@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc kazoo data utils
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -34,6 +34,10 @@
         ,is_account_db/1
         ,is_account_mod/1
         ,is_account_yod/1
+        ]).
+
+-export([raw_account_modb/1
+        ,raw_account_yodb/1
         ]).
 
 -include_lib("kazoo_numbers/include/knm_phone_number.hrl").
@@ -105,10 +109,10 @@ db_classification(?MATCH_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month)) -> 'mo
 db_classification(?MATCH_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month)) -> 'modb';%   "account..." then the
 db_classification(?MATCH_MODB_SUFFIX_encoded(_A,_B,_Rest,_Year,_Month)) -> 'modb';%   right size.
 db_classification(?MATCH_MODB_SUFFIX_RAW(_Account,_Year,_Month)) -> 'modb';%   right size.
-db_classification(?MATCH_TYPE_MODB_SUFFIX_RAW(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
-db_classification(?MATCH_TYPE_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
-db_classification(?MATCH_TYPE_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
-db_classification(?MATCH_TYPE_MODB_SUFFIX_encoded(_A,_B,_Rest,_Year,_Month,_Any)) -> 'type_modb';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_RAW(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
+db_classification(?MATCH_TYPE_MODB_SUFFIX_encoded(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
 db_classification(?MATCH_YODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year)) -> 'yodb';% these only need to match
 db_classification(?MATCH_YODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year)) -> 'yodb';%   "account..." then the
 db_classification(?MATCH_YODB_SUFFIX_encoded(_A,_B,_Rest,_Year)) -> 'yodb';%   right size.
@@ -120,6 +124,8 @@ db_classification(?MATCH_ACCOUNT_ENCODED(_AccountId)) -> 'account';
 db_classification(?MATCH_PROVISIONER_RAW(_AccountId)) -> 'provisioner';
 db_classification(?MATCH_PROVISIONER_ENCODED(_AccountId)) -> 'provisioner';
 db_classification(?MATCH_PROVISIONER_encoded(_AccountId)) -> 'provisioner';
+db_classification(<<"system_", _/binary>>) -> 'system';
+db_classification(<<"application_", _/binary>>) -> 'application';
 db_classification(<<Database/binary>>) ->
     case kazoo_bindings:map(binding_db_classify(Database), [Database]) of
         [] -> unknown_db_classification(Database);
@@ -371,6 +377,10 @@ raw_account_id(?MATCH_RESOURCE_SELECTORS_UNENCODED(A, B, Rest)) ->
 raw_account_id(?MATCH_RESOURCE_SELECTORS_ENCODED(A, B, Rest)) ->
     ?MATCH_RESOURCE_SELECTORS_RAW(A, B, Rest);
 raw_account_id(<<"number/", _/binary>>=Other) ->
+    Other;
+raw_account_id(<<"system_", _/binary>>=Other) ->
+    Other;
+raw_account_id(<<"application_", _/binary>>=Other) ->
     Other;
 raw_account_id(Other) ->
     case lists:member(Other, ?KZ_SYSTEM_DBS) of

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Accessors for `screenpops' document.
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -7,6 +7,10 @@
 
 -export([new/0]).
 -export([custom_parameters/1, custom_parameters/2, set_custom_parameters/2]).
+-export([permissions/1, permissions/2, set_permissions/2]).
+-export([permissions_all_users/1, permissions_all_users/2, set_permissions_all_users/2]).
+-export([permissions_allow/1, permissions_allow/2, set_permissions_allow/2]).
+-export([permissions_deny/1, permissions_deny/2, set_permissions_deny/2]).
 -export([post_call_extension_time/1, post_call_extension_time/2, set_post_call_extension_time/2]).
 -export([show_location_call_time/1, show_location_call_time/2, set_show_location_call_time/2]).
 -export([type_screenpops/1, type_screenpops/2, set_type_screenpops/2]).
@@ -34,6 +38,54 @@ custom_parameters(Doc, Default) ->
 -spec set_custom_parameters(doc(), kz_json:objects()) -> doc().
 set_custom_parameters(Doc, CustomParameters) ->
     kz_json:set_value([<<"custom_parameters">>], CustomParameters, Doc).
+
+-spec permissions(doc()) -> kz_json:object().
+permissions(Doc) ->
+    permissions(Doc, kz_json:new()).
+
+-spec permissions(doc(), Default) -> kz_json:object() | Default.
+permissions(Doc, Default) ->
+    kz_json:get_json_value([<<"permissions">>], Doc, Default).
+
+-spec set_permissions(doc(), kz_json:object()) -> doc().
+set_permissions(Doc, Permissions) ->
+    kz_json:set_value([<<"permissions">>], Permissions, Doc).
+
+-spec permissions_all_users(doc()) -> boolean().
+permissions_all_users(Doc) ->
+    permissions_all_users(Doc, 'true').
+
+-spec permissions_all_users(doc(), Default) -> boolean() | Default.
+permissions_all_users(Doc, Default) ->
+    kz_json:get_boolean_value([<<"permissions">>, <<"all_users">>], Doc, Default).
+
+-spec set_permissions_all_users(doc(), boolean()) -> doc().
+set_permissions_all_users(Doc, PermissionsAllUsers) ->
+    kz_json:set_value([<<"permissions">>, <<"all_users">>], PermissionsAllUsers, Doc).
+
+-spec permissions_allow(doc()) -> kz_term:ne_binaries().
+permissions_allow(Doc) ->
+    permissions_allow(Doc, []).
+
+-spec permissions_allow(doc(), Default) -> kz_term:ne_binaries() | Default.
+permissions_allow(Doc, Default) ->
+    kz_json:get_list_value([<<"permissions">>, <<"allow">>], Doc, Default).
+
+-spec set_permissions_allow(doc(), kz_term:ne_binaries()) -> doc().
+set_permissions_allow(Doc, PermissionsAllow) ->
+    kz_json:set_value([<<"permissions">>, <<"allow">>], PermissionsAllow, Doc).
+
+-spec permissions_deny(doc()) -> kz_term:ne_binaries().
+permissions_deny(Doc) ->
+    permissions_deny(Doc, []).
+
+-spec permissions_deny(doc(), Default) -> kz_term:ne_binaries() | Default.
+permissions_deny(Doc, Default) ->
+    kz_json:get_list_value([<<"permissions">>, <<"deny">>], Doc, Default).
+
+-spec set_permissions_deny(doc(), kz_term:ne_binaries()) -> doc().
+set_permissions_deny(Doc, PermissionsDeny) ->
+    kz_json:set_value([<<"permissions">>, <<"deny">>], PermissionsDeny, Doc).
 
 -spec post_call_extension_time(doc()) -> kz_term:api_number().
 post_call_extension_time(Doc) ->

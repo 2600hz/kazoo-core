@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc Handle the emulation of the Dial verb
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -279,11 +279,13 @@ xml_elements_to_endpoints(Call
 
     lager:debug("maybe add number ~s: send ~s", [DialMe, SendDigits]),
 
-    CallFwd = kz_json:from_list([{<<"number">>, DialMe}
+    CallFwd = kz_json:from_list([{<<"enabled">>, 'true'}
+                                ,{<<"number">>, DialMe}
                                 ,{<<"require_keypress">>, 'false'}
                                 ,{<<"substitute">>, 'true'}
                                 ]),
-    Endpoint = kz_json:from_list([{<<"call_forward">>, CallFwd}]),
+    Unconditional = kzd_call_forward:set_unconditional(CallFwd, CallFwd),
+    Endpoint = kzd_endpoint:set_call_forward(kz_json:new(), Unconditional),
     EP = kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call),
 
     xml_elements_to_endpoints(Call, EPs, [EP|Acc]);
@@ -330,11 +332,10 @@ request_id(N, Call) -> iolist_to_binary([N, <<"@">>, kapps_call:from_realm(Call)
 
 -spec media_processing(kapps_call:call()) -> kz_term:ne_binary().
 media_processing(Call) ->
-    media_processing(kzt_util:get_record_call(Call), kzt_util:get_hangup_dtmf(Call)).
-
--spec media_processing(boolean(), kz_term:api_binary()) -> kz_term:ne_binary().
-media_processing('false', 'undefined') -> <<"bypass">>;
-media_processing('true', _HangupDTMF) -> <<"process">>.
+    case kzt_util:get_record_call(Call) of
+        'true' -> <<"process">>;
+        'false' -> <<"bypass">>
+    end.
 
 get_max_participants(Props) when is_list(Props) ->
     get_max_participants(props:get_integer_value('maxParticipants', Props, 40));
@@ -360,7 +361,7 @@ caller_id(Props, Call) ->
 
 -spec hangup_dtmf(kz_term:proplist() | kz_term:api_binary()) -> kz_term:api_binary().
 hangup_dtmf(Props) when is_list(Props) ->
-    case props:get_value('hangupOnStar', Props) of
+    case props:is_true('hangupOnStar', Props) of
         'true' -> <<"*">>;
         _ -> hangup_dtmf(props:get_binary_value('hangupOn', Props))
     end;

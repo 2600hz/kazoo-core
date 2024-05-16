@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc
 %%% @author Luis Azedo
 %%%
@@ -269,7 +269,7 @@ is_maybe_fcm_android_payload(Term) ->
 is_ttl(Term) ->
     is_integer(Term)
         andalso Term >= 0
-        andalso Term =< 2419200.
+        andalso Term =< ?SECONDS_IN_WEEK * 4.
 
 %%------------------------------------------------------------------------------
 %% @doc Validate that `Term' is a valid list of results from push notification
@@ -459,13 +459,13 @@ bind_q(Queue, Props) ->
 
 -spec bind_q(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), binding_restrictions()) -> 'ok'.
 bind_q(Queue, Type, Token, 'undefined') ->
-    kz_amqp_util:bind_q_to_exchange(Queue, ?ENDPOINT_PUSH_BINDING, ?PUSH_EXCHANGE),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue, ?ENDPOINT_PUSH_BINDING, ?PUSH_EXCHANGE),
     kz_amqp_util:bind_q_to_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE);
 bind_q(Queue, Type, Token, ['endpoint_push'|Restrict]) ->
-    kz_amqp_util:bind_q_to_exchange(Queue, ?ENDPOINT_PUSH_BINDING, ?PUSH_EXCHANGE),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue, ?ENDPOINT_PUSH_BINDING, ?PUSH_EXCHANGE),
     bind_q(Queue, Type, Token, Restrict);
 bind_q(Queue, Type, Token, ['push'|Restrict]) ->
-    kz_amqp_util:bind_q_to_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE),
+    'ok' = kz_amqp_util:bind_q_to_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE),
     bind_q(Queue, Type, Token, Restrict);
 bind_q(Queue, Type, Token, [_|Restrict]) ->
     bind_q(Queue, Type, Token, Restrict);

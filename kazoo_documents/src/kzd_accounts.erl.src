@@ -1,11 +1,13 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Accessors for `accounts' document.
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kzd_accounts).
 
 -export([new/0]).
+-export([addresses/1, addresses/2, set_addresses/2]).
+-export([announcement/1, announcement/2, set_announcement/2]).
 -export([blacklists/1, blacklists/2, set_blacklists/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
@@ -65,6 +67,30 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec addresses(doc()) -> kz_term:api_object().
+addresses(Doc) ->
+    addresses(Doc, 'undefined').
+
+-spec addresses(doc(), Default) -> kz_json:object() | Default.
+addresses(Doc, Default) ->
+    kz_json:get_json_value([<<"addresses">>], Doc, Default).
+
+-spec set_addresses(doc(), kz_json:object()) -> doc().
+set_addresses(Doc, Addresses) ->
+    kz_json:set_value([<<"addresses">>], Addresses, Doc).
+
+-spec announcement(doc()) -> kz_term:api_binary().
+announcement(Doc) ->
+    announcement(Doc, 'undefined').
+
+-spec announcement(doc(), Default) -> binary() | Default.
+announcement(Doc, Default) ->
+    kz_json:get_binary_value([<<"announcement">>], Doc, Default).
+
+-spec set_announcement(doc(), binary()) -> doc().
+set_announcement(Doc, Announcement) ->
+    kz_json:set_value([<<"announcement">>], Announcement, Doc).
 
 -spec blacklists(doc()) -> kz_term:api_ne_binaries().
 blacklists(Doc) ->

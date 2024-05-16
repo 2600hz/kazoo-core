@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,22 +12,27 @@
 -export([new/0]).
 -export([addresses/1, addresses/2, set_addresses/2]).
 -export([addresses_emergency/1, addresses_emergency/2, set_addresses_emergency/2]).
--export([addresses_emergency_caller_name/1, addresses_emergency_caller_name/2, set_addresses_emergency_caller_name/2]).
--export([addresses_emergency_extended_address/1, addresses_emergency_extended_address/2, set_addresses_emergency_extended_address/2]).
+-export([addresses_emergency_additional_information/1, addresses_emergency_additional_information/2, set_addresses_emergency_additional_information/2]).
+-export([addresses_emergency_callback_cid_number/1, addresses_emergency_callback_cid_number/2, set_addresses_emergency_callback_cid_number/2]).
+-export([addresses_emergency_country/1, addresses_emergency_country/2, set_addresses_emergency_country/2]).
+-export([addresses_emergency_county/1, addresses_emergency_county/2, set_addresses_emergency_county/2]).
+-export([addresses_emergency_delivery_method/1, addresses_emergency_delivery_method/2, set_addresses_emergency_delivery_method/2]).
+-export([addresses_emergency_floor/1, addresses_emergency_floor/2, set_addresses_emergency_floor/2]).
+-export([addresses_emergency_house_number/1, addresses_emergency_house_number/2, set_addresses_emergency_house_number/2]).
+-export([addresses_emergency_house_number_suffix/1, addresses_emergency_house_number_suffix/2, set_addresses_emergency_house_number_suffix/2]).
+-export([addresses_emergency_latitude/1, addresses_emergency_latitude/2, set_addresses_emergency_latitude/2]).
 -export([addresses_emergency_locality/1, addresses_emergency_locality/2, set_addresses_emergency_locality/2]).
+-export([addresses_emergency_location_identifier/1, addresses_emergency_location_identifier/2, set_addresses_emergency_location_identifier/2]).
+-export([addresses_emergency_longitude/1, addresses_emergency_longitude/2, set_addresses_emergency_longitude/2]).
+-export([addresses_emergency_name/1, addresses_emergency_name/2, set_addresses_emergency_name/2]).
 -export([addresses_emergency_postal_code/1, addresses_emergency_postal_code/2, set_addresses_emergency_postal_code/2]).
 -export([addresses_emergency_region/1, addresses_emergency_region/2, set_addresses_emergency_region/2]).
--export([addresses_emergency_street_address/1, addresses_emergency_street_address/2, set_addresses_emergency_street_address/2]).
+-export([addresses_emergency_street/1, addresses_emergency_street/2, set_addresses_emergency_street/2]).
+-export([addresses_emergency_street_direction/1, addresses_emergency_street_direction/2, set_addresses_emergency_street_direction/2]).
+-export([addresses_emergency_street_suffix/1, addresses_emergency_street_suffix/2, set_addresses_emergency_street_suffix/2]).
+-export([addresses_emergency_street_type/1, addresses_emergency_street_type/2, set_addresses_emergency_street_type/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
--export([call_forward_direct_calls_only/1, call_forward_direct_calls_only/2, set_call_forward_direct_calls_only/2]).
--export([call_forward_enabled/1, call_forward_enabled/2, set_call_forward_enabled/2]).
--export([call_forward_failover/1, call_forward_failover/2, set_call_forward_failover/2]).
--export([call_forward_ignore_early_media/1, call_forward_ignore_early_media/2, set_call_forward_ignore_early_media/2]).
--export([call_forward_keep_caller_id/1, call_forward_keep_caller_id/2, set_call_forward_keep_caller_id/2]).
--export([call_forward_number/1, call_forward_number/2, set_call_forward_number/2]).
--export([call_forward_require_keypress/1, call_forward_require_keypress/2, set_call_forward_require_keypress/2]).
--export([call_forward_substitute/1, call_forward_substitute/2, set_call_forward_substitute/2]).
 -export([call_limits/1, call_limits/2, set_call_limits/2]).
 -export([call_recording/1, call_recording/2, set_call_recording/2]).
 -export([call_restriction/1, call_restriction/2, set_call_restriction/2]).
@@ -60,6 +65,7 @@
 -export([presence_id/1, presence_id/2, set_presence_id/2
         ,calculate_presence_id/1, calculate_presence_id/2
         ]).
+-export([presence_aliases/1, presence_aliases/2, set_presence_aliases/2]).
 -export([provision/1, provision/2, set_provision/2]).
 -export([provision_check_sync_event/1, provision_check_sync_event/2, set_provision_check_sync_event/2]).
 -export([provision_check_sync_reboot/1, provision_check_sync_reboot/2, set_provision_check_sync_reboot/2]).
@@ -118,38 +124,11 @@
         ,outbound_dynamic_flags/1, set_outbound_dynamic_flags/2
         ]).
 
--deprecated([{'call_forward_direct_calls_only'     , 1, 'next_major_release'}
-            ,{'call_forward_direct_calls_only'     , 2, 'next_major_release'}
-            ,{'set_call_forward_direct_calls_only' , 2, 'next_major_release'}
-
-            ,{'call_forward_enabled'               , 1, 'next_major_release'}
-            ,{'call_forward_enabled'               , 2, 'next_major_release'}
-            ,{'set_call_forward_enabled'           , 2, 'next_major_release'}
-
-            ,{'call_forward_failover'              , 1, 'next_major_release'}
-            ,{'call_forward_failover'              , 2, 'next_major_release'}
-            ,{'set_call_forward_failover'          , 2, 'next_major_release'}
-
-            ,{'call_forward_ignore_early_media'    , 1, 'next_major_release'}
-            ,{'call_forward_ignore_early_media'    , 2, 'next_major_release'}
-            ,{'set_call_forward_ignore_early_media', 2, 'next_major_release'}
-
-            ,{'call_forward_keep_caller_id'        , 1, 'next_major_release'}
-            ,{'call_forward_keep_caller_id'        , 2, 'next_major_release'}
-            ,{'set_call_forward_keep_caller_id'    , 2, 'next_major_release'}
-
-            ,{'call_forward_number'                , 1, 'next_major_release'}
-            ,{'call_forward_number'                , 2, 'next_major_release'}
-            ,{'set_call_forward_number'            , 2, 'next_major_release'}
-
-            ,{'call_forward_require_keypress'      , 1, 'next_major_release'}
-            ,{'call_forward_require_keypress'      , 2, 'next_major_release'}
-            ,{'set_call_forward_require_keypress'  , 2, 'next_major_release'}
-
-            ,{'call_forward_substitute'            , 1, 'next_major_release'}
-            ,{'call_forward_substitute'            , 2, 'next_major_release'}
-            ,{'set_call_forward_substitute'        , 2, 'next_major_release'}
-            ]).
+-export([application/1, application/2
+        ,application_name/1, application_name/2
+        ,application_data/1, application_data/2
+        ,application_dialstring/1, application_dialstring/2
+        ]).
 
 -include("kz_documents.hrl").
 
@@ -191,29 +170,113 @@ addresses_emergency(Doc, Default) ->
 set_addresses_emergency(Doc, AddressesEmergency) ->
     kz_json:set_value([<<"addresses">>, <<"emergency">>], AddressesEmergency, Doc).
 
--spec addresses_emergency_caller_name(doc()) -> kz_term:api_binary().
-addresses_emergency_caller_name(Doc) ->
-    addresses_emergency_caller_name(Doc, 'undefined').
+-spec addresses_emergency_additional_information(doc()) -> kz_term:api_binary().
+addresses_emergency_additional_information(Doc) ->
+    addresses_emergency_additional_information(Doc, 'undefined').
 
--spec addresses_emergency_caller_name(doc(), Default) -> binary() | Default.
-addresses_emergency_caller_name(Doc, Default) ->
-    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"caller_name">>], Doc, Default).
+-spec addresses_emergency_additional_information(doc(), Default) -> binary() | Default.
+addresses_emergency_additional_information(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"additional_information">>], Doc, Default).
 
--spec set_addresses_emergency_caller_name(doc(), binary()) -> doc().
-set_addresses_emergency_caller_name(Doc, AddressesEmergencyCallerName) ->
-    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"caller_name">>], AddressesEmergencyCallerName, Doc).
+-spec set_addresses_emergency_additional_information(doc(), binary()) -> doc().
+set_addresses_emergency_additional_information(Doc, AddressesEmergencyAdditionalInformation) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"additional_information">>], AddressesEmergencyAdditionalInformation, Doc).
 
--spec addresses_emergency_extended_address(doc()) -> kz_term:api_binary().
-addresses_emergency_extended_address(Doc) ->
-    addresses_emergency_extended_address(Doc, 'undefined').
+-spec addresses_emergency_callback_cid_number(doc()) -> kz_term:api_ne_binary().
+addresses_emergency_callback_cid_number(Doc) ->
+    addresses_emergency_callback_cid_number(Doc, 'undefined').
 
--spec addresses_emergency_extended_address(doc(), Default) -> binary() | Default.
-addresses_emergency_extended_address(Doc, Default) ->
-    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"extended_address">>], Doc, Default).
+-spec addresses_emergency_callback_cid_number(doc(), Default) -> kz_term:ne_binary() | Default.
+addresses_emergency_callback_cid_number(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"addresses">>, <<"emergency">>, <<"callback_cid_number">>], Doc, Default).
 
--spec set_addresses_emergency_extended_address(doc(), binary()) -> doc().
-set_addresses_emergency_extended_address(Doc, AddressesEmergencyExtendedAddress) ->
-    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"extended_address">>], AddressesEmergencyExtendedAddress, Doc).
+-spec set_addresses_emergency_callback_cid_number(doc(), kz_term:ne_binary()) -> doc().
+set_addresses_emergency_callback_cid_number(Doc, AddressesEmergencyCallbackCidNumber) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"callback_cid_number">>], AddressesEmergencyCallbackCidNumber, Doc).
+
+-spec addresses_emergency_country(doc()) -> kz_term:api_binary().
+addresses_emergency_country(Doc) ->
+    addresses_emergency_country(Doc, 'undefined').
+
+-spec addresses_emergency_country(doc(), Default) -> binary() | Default.
+addresses_emergency_country(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"country">>], Doc, Default).
+
+-spec set_addresses_emergency_country(doc(), binary()) -> doc().
+set_addresses_emergency_country(Doc, AddressesEmergencyCountry) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"country">>], AddressesEmergencyCountry, Doc).
+
+-spec addresses_emergency_county(doc()) -> kz_term:api_binary().
+addresses_emergency_county(Doc) ->
+    addresses_emergency_county(Doc, 'undefined').
+
+-spec addresses_emergency_county(doc(), Default) -> binary() | Default.
+addresses_emergency_county(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"county">>], Doc, Default).
+
+-spec set_addresses_emergency_county(doc(), binary()) -> doc().
+set_addresses_emergency_county(Doc, AddressesEmergencyCounty) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"county">>], AddressesEmergencyCounty, Doc).
+
+-spec addresses_emergency_delivery_method(doc()) -> kz_term:api_binary().
+addresses_emergency_delivery_method(Doc) ->
+    addresses_emergency_delivery_method(Doc, 'undefined').
+
+-spec addresses_emergency_delivery_method(doc(), Default) -> binary() | Default.
+addresses_emergency_delivery_method(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"delivery_method">>], Doc, Default).
+
+-spec set_addresses_emergency_delivery_method(doc(), binary()) -> doc().
+set_addresses_emergency_delivery_method(Doc, AddressesEmergencyDeliveryMethod) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"delivery_method">>], AddressesEmergencyDeliveryMethod, Doc).
+
+-spec addresses_emergency_floor(doc()) -> kz_term:api_integer().
+addresses_emergency_floor(Doc) ->
+    addresses_emergency_floor(Doc, 'undefined').
+
+-spec addresses_emergency_floor(doc(), Default) -> integer() | Default.
+addresses_emergency_floor(Doc, Default) ->
+    kz_json:get_integer_value([<<"addresses">>, <<"emergency">>, <<"floor">>], Doc, Default).
+
+-spec set_addresses_emergency_floor(doc(), integer()) -> doc().
+set_addresses_emergency_floor(Doc, AddressesEmergencyFloor) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"floor">>], AddressesEmergencyFloor, Doc).
+
+-spec addresses_emergency_house_number(doc()) -> kz_term:api_integer().
+addresses_emergency_house_number(Doc) ->
+    addresses_emergency_house_number(Doc, 'undefined').
+
+-spec addresses_emergency_house_number(doc(), Default) -> integer() | Default.
+addresses_emergency_house_number(Doc, Default) ->
+    kz_json:get_integer_value([<<"addresses">>, <<"emergency">>, <<"house_number">>], Doc, Default).
+
+-spec set_addresses_emergency_house_number(doc(), integer()) -> doc().
+set_addresses_emergency_house_number(Doc, AddressesEmergencyHouseNumber) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"house_number">>], AddressesEmergencyHouseNumber, Doc).
+
+-spec addresses_emergency_house_number_suffix(doc()) -> kz_term:api_binary().
+addresses_emergency_house_number_suffix(Doc) ->
+    addresses_emergency_house_number_suffix(Doc, 'undefined').
+
+-spec addresses_emergency_house_number_suffix(doc(), Default) -> binary() | Default.
+addresses_emergency_house_number_suffix(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"house_number_suffix">>], Doc, Default).
+
+-spec set_addresses_emergency_house_number_suffix(doc(), binary()) -> doc().
+set_addresses_emergency_house_number_suffix(Doc, AddressesEmergencyHouseNumberSuffix) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"house_number_suffix">>], AddressesEmergencyHouseNumberSuffix, Doc).
+
+-spec addresses_emergency_latitude(doc()) -> kz_term:api_binary().
+addresses_emergency_latitude(Doc) ->
+    addresses_emergency_latitude(Doc, 'undefined').
+
+-spec addresses_emergency_latitude(doc(), Default) -> binary() | Default.
+addresses_emergency_latitude(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"latitude">>], Doc, Default).
+
+-spec set_addresses_emergency_latitude(doc(), binary()) -> doc().
+set_addresses_emergency_latitude(Doc, AddressesEmergencyLatitude) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"latitude">>], AddressesEmergencyLatitude, Doc).
 
 -spec addresses_emergency_locality(doc()) -> kz_term:api_binary().
 addresses_emergency_locality(Doc) ->
@@ -226,6 +289,42 @@ addresses_emergency_locality(Doc, Default) ->
 -spec set_addresses_emergency_locality(doc(), binary()) -> doc().
 set_addresses_emergency_locality(Doc, AddressesEmergencyLocality) ->
     kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"locality">>], AddressesEmergencyLocality, Doc).
+
+-spec addresses_emergency_location_identifier(doc()) -> kz_term:api_integer().
+addresses_emergency_location_identifier(Doc) ->
+    addresses_emergency_location_identifier(Doc, 'undefined').
+
+-spec addresses_emergency_location_identifier(doc(), Default) -> integer() | Default.
+addresses_emergency_location_identifier(Doc, Default) ->
+    kz_json:get_integer_value([<<"addresses">>, <<"emergency">>, <<"location_identifier">>], Doc, Default).
+
+-spec set_addresses_emergency_location_identifier(doc(), integer()) -> doc().
+set_addresses_emergency_location_identifier(Doc, AddressesEmergencyLocationIdentifier) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"location_identifier">>], AddressesEmergencyLocationIdentifier, Doc).
+
+-spec addresses_emergency_longitude(doc()) -> kz_term:api_binary().
+addresses_emergency_longitude(Doc) ->
+    addresses_emergency_longitude(Doc, 'undefined').
+
+-spec addresses_emergency_longitude(doc(), Default) -> binary() | Default.
+addresses_emergency_longitude(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"longitude">>], Doc, Default).
+
+-spec set_addresses_emergency_longitude(doc(), binary()) -> doc().
+set_addresses_emergency_longitude(Doc, AddressesEmergencyLongitude) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"longitude">>], AddressesEmergencyLongitude, Doc).
+
+-spec addresses_emergency_name(doc()) -> kz_term:api_binary().
+addresses_emergency_name(Doc) ->
+    addresses_emergency_name(Doc, 'undefined').
+
+-spec addresses_emergency_name(doc(), Default) -> binary() | Default.
+addresses_emergency_name(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"name">>], Doc, Default).
+
+-spec set_addresses_emergency_name(doc(), binary()) -> doc().
+set_addresses_emergency_name(Doc, AddressesEmergencyName) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"name">>], AddressesEmergencyName, Doc).
 
 -spec addresses_emergency_postal_code(doc()) -> kz_term:api_binary().
 addresses_emergency_postal_code(Doc) ->
@@ -251,17 +350,53 @@ addresses_emergency_region(Doc, Default) ->
 set_addresses_emergency_region(Doc, AddressesEmergencyRegion) ->
     kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"region">>], AddressesEmergencyRegion, Doc).
 
--spec addresses_emergency_street_address(doc()) -> kz_term:api_binary().
-addresses_emergency_street_address(Doc) ->
-    addresses_emergency_street_address(Doc, 'undefined').
+-spec addresses_emergency_street(doc()) -> kz_term:api_binary().
+addresses_emergency_street(Doc) ->
+    addresses_emergency_street(Doc, 'undefined').
 
--spec addresses_emergency_street_address(doc(), Default) -> binary() | Default.
-addresses_emergency_street_address(Doc, Default) ->
-    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"street_address">>], Doc, Default).
+-spec addresses_emergency_street(doc(), Default) -> binary() | Default.
+addresses_emergency_street(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"street">>], Doc, Default).
 
--spec set_addresses_emergency_street_address(doc(), binary()) -> doc().
-set_addresses_emergency_street_address(Doc, AddressesEmergencyStreetAddress) ->
-    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"street_address">>], AddressesEmergencyStreetAddress, Doc).
+-spec set_addresses_emergency_street(doc(), binary()) -> doc().
+set_addresses_emergency_street(Doc, AddressesEmergencyStreet) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"street">>], AddressesEmergencyStreet, Doc).
+
+-spec addresses_emergency_street_direction(doc()) -> kz_term:api_binary().
+addresses_emergency_street_direction(Doc) ->
+    addresses_emergency_street_direction(Doc, 'undefined').
+
+-spec addresses_emergency_street_direction(doc(), Default) -> binary() | Default.
+addresses_emergency_street_direction(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"street_direction">>], Doc, Default).
+
+-spec set_addresses_emergency_street_direction(doc(), binary()) -> doc().
+set_addresses_emergency_street_direction(Doc, AddressesEmergencyStreetDirection) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"street_direction">>], AddressesEmergencyStreetDirection, Doc).
+
+-spec addresses_emergency_street_suffix(doc()) -> kz_term:api_binary().
+addresses_emergency_street_suffix(Doc) ->
+    addresses_emergency_street_suffix(Doc, 'undefined').
+
+-spec addresses_emergency_street_suffix(doc(), Default) -> binary() | Default.
+addresses_emergency_street_suffix(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"street_suffix">>], Doc, Default).
+
+-spec set_addresses_emergency_street_suffix(doc(), binary()) -> doc().
+set_addresses_emergency_street_suffix(Doc, AddressesEmergencyStreetSuffix) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"street_suffix">>], AddressesEmergencyStreetSuffix, Doc).
+
+-spec addresses_emergency_street_type(doc()) -> kz_term:api_binary().
+addresses_emergency_street_type(Doc) ->
+    addresses_emergency_street_type(Doc, 'undefined').
+
+-spec addresses_emergency_street_type(doc(), Default) -> binary() | Default.
+addresses_emergency_street_type(Doc, Default) ->
+    kz_json:get_binary_value([<<"addresses">>, <<"emergency">>, <<"street_type">>], Doc, Default).
+
+-spec set_addresses_emergency_street_type(doc(), binary()) -> doc().
+set_addresses_emergency_street_type(Doc, AddressesEmergencyStreetType) ->
+    kz_json:set_value([<<"addresses">>, <<"emergency">>, <<"street_type">>], AddressesEmergencyStreetType, Doc).
 
 -spec call_failover(doc()) -> kz_term:api_object().
 call_failover(Doc) ->
@@ -286,135 +421,6 @@ call_forward(Doc, Default) ->
 -spec set_call_forward(doc(), kz_json:object()) -> doc().
 set_call_forward(Doc, CallForward) ->
     kz_json:set_value([<<"call_forward">>], CallForward, Doc).
-
--spec call_forward_direct_calls_only(doc()) -> boolean().
-call_forward_direct_calls_only(Doc) ->
-    call_forward_direct_calls_only(Doc, 'false').
-
--spec call_forward_direct_calls_only(doc(), Default) -> boolean() | Default.
-call_forward_direct_calls_only(Doc, Default) ->
-    kzd_call_forward:direct_calls_only(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_direct_calls_only(doc(), boolean()) -> doc().
-set_call_forward_direct_calls_only(Doc, CallForwardDirectCallsOnly) ->
-    CallForward = call_forward(Doc, kz_json:new()),
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_direct_calls_only(CallForward
-                                                           ,CallForwardDirectCallsOnly
-                                                           )
-                    ).
-
--spec call_forward_enabled(doc()) -> boolean().
-call_forward_enabled(Doc) ->
-    call_forward_enabled(Doc, 'false').
-
--spec call_forward_enabled(doc(), Default) -> boolean() | Default.
-call_forward_enabled(Doc, Default) ->
-    kzd_call_forward:enabled(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_enabled(doc(), boolean()) -> doc().
-set_call_forward_enabled(Doc, CallForwardEnabled) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_enabled(call_forward(Doc, kz_json:new())
-                                                 ,CallForwardEnabled
-                                                 )
-                    ).
-
--spec call_forward_failover(doc()) -> boolean().
-call_forward_failover(Doc) ->
-    call_forward_failover(Doc, 'false').
-
--spec call_forward_failover(doc(), Default) -> boolean() | Default.
-call_forward_failover(Doc, Default) ->
-    kzd_call_failover:enabled(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_failover(doc(), boolean()) -> doc().
-set_call_forward_failover(Doc, CallForwardEnabled) ->
-    set_call_forward(Doc
-                    ,kzd_call_failover:set_enabled(call_forward(Doc, kz_json:new())
-                                                  ,CallForwardEnabled
-                                                  )
-                    ).
-
--spec call_forward_ignore_early_media(doc()) -> boolean().
-call_forward_ignore_early_media(Doc) ->
-    call_forward_ignore_early_media(Doc, 'true').
-
--spec call_forward_ignore_early_media(doc(), Default) -> boolean() | Default.
-call_forward_ignore_early_media(Doc, Default) ->
-    kzd_call_forward:ignore_early_media(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_ignore_early_media(doc(), boolean()) -> doc().
-set_call_forward_ignore_early_media(Doc, CallForwardIgnoreEarlyMedia) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_ignore_early_media(call_forward(Doc, kz_json:new())
-                                                            ,CallForwardIgnoreEarlyMedia
-                                                            )
-                    ).
-
--spec call_forward_keep_caller_id(doc()) -> boolean().
-call_forward_keep_caller_id(Doc) ->
-    call_forward_keep_caller_id(Doc, 'true').
-
--spec call_forward_keep_caller_id(doc(), Default) -> boolean() | Default.
-call_forward_keep_caller_id(Doc, Default) ->
-    kzd_call_forward:keep_caller_id(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_keep_caller_id(doc(), boolean()) -> doc().
-set_call_forward_keep_caller_id(Doc, CallForwardKeepCallerId) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_keep_caller_id(call_forward(Doc, kz_json:new())
-                                                        ,CallForwardKeepCallerId
-                                                        )
-                    ).
-
--spec call_forward_number(doc()) -> kz_term:api_binary().
-call_forward_number(Doc) ->
-    call_forward_number(Doc, 'undefined').
-
--spec call_forward_number(doc(), Default) -> binary() | Default.
-call_forward_number(Doc, Default) ->
-    kzd_call_forward:number(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_number(doc(), binary()) -> doc().
-set_call_forward_number(Doc, CallForwardNumber) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_number(call_forward(Doc, kz_json:new())
-                                                ,CallForwardNumber
-                                                )
-                    ).
-
--spec call_forward_require_keypress(doc()) -> boolean().
-call_forward_require_keypress(Doc) ->
-    call_forward_require_keypress(Doc, 'true').
-
--spec call_forward_require_keypress(doc(), Default) -> boolean() | Default.
-call_forward_require_keypress(Doc, Default) ->
-    kzd_call_forward:require_keypress(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_require_keypress(doc(), boolean()) -> doc().
-set_call_forward_require_keypress(Doc, CallForwardRequireKeypress) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_require_keypress(call_forward(Doc, kz_json:new())
-                                                          ,CallForwardRequireKeypress
-                                                          )
-                    ).
-
--spec call_forward_substitute(doc()) -> boolean().
-call_forward_substitute(Doc) ->
-    call_forward_substitute(Doc, 'true').
-
--spec call_forward_substitute(doc(), Default) -> boolean() | Default.
-call_forward_substitute(Doc, Default) ->
-    kzd_call_forward:substitute(call_forward(Doc, kz_json:new()), Default).
-
--spec set_call_forward_substitute(doc(), boolean()) -> doc().
-set_call_forward_substitute(Doc, CallForwardSubstitute) ->
-    set_call_forward(Doc
-                    ,kzd_call_forward:set_substitute(call_forward(Doc, kz_json:new())
-                                                    ,CallForwardSubstitute
-                                                    )
-                    ).
 
 -spec call_limits(doc()) -> kz_term:api_object().
 call_limits(Doc) ->
@@ -1448,3 +1454,50 @@ outbound_dynamic_flags(JObj) ->
 set_outbound_dynamic_flags(JObj, Flags) when is_list(Flags) ->
     OutboundFlags = outbound_flags(JObj),
     set_outbound_flags(JObj, kz_json:set_value(?DYNAMIC_FLAGS, Flags, OutboundFlags)).
+
+-spec presence_aliases(doc()) -> kzd_endpoint_aliases:api_presence_aliases().
+presence_aliases(Doc) ->
+    presence_aliases(Doc, 'undefined').
+
+-spec presence_aliases(doc(), Default) -> kzd_endpoint_aliases:presence_aliases() | Default.
+presence_aliases(Doc, Default) ->
+    kzd_endpoint_aliases:aliases(Doc, Default).
+
+-spec set_presence_aliases(doc(), kzd_endpoint_aliases:presence_aliases()) -> doc().
+set_presence_aliases(Doc, Aliases) ->
+    kzd_endpoint_aliases:set_aliases(Doc, Aliases).
+
+-spec application(doc()) -> kz_term:api_object().
+application(Doc) ->
+    application(Doc, 'undefined').
+
+-spec application(doc(), Default) -> kz_json:object() | Default.
+application(Doc, Default) ->
+    case device_type(Doc) of
+        <<"application">> -> kz_json:get_json_value([<<"pvt_application">>], Doc);
+        _Other -> Default
+    end.
+
+-spec application_name(doc()) -> kz_term:api_ne_binary().
+application_name(Doc) ->
+    application_name(Doc, 'undefined').
+
+-spec application_name(doc(), Default) -> kz_term:ne_binary() | Default.
+application_name(Doc, Default) ->
+    kz_json:get_ne_binary_value(<<"name">>, application(Doc, kz_json:new()), Default).
+
+-spec application_data(doc()) -> kz_term:api_object().
+application_data(Doc) ->
+    application_data(Doc, 'undefined').
+
+-spec application_data(doc(), Default) -> kz_json:object() | Default.
+application_data(Doc, Default) ->
+    kz_json:get_json_value(<<"data">>, application(Doc, kz_json:new()), Default).
+
+-spec application_dialstring(doc()) -> kz_term:api_ne_binary().
+application_dialstring(Doc) ->
+    application_dialstring(Doc, 'undefined').
+
+-spec application_dialstring(doc(), Default) -> kz_term:ne_binary() | Default.
+application_dialstring(Doc, Default) ->
+    kz_json:get_ne_binary_value(<<"dialstring">>, application(Doc, kz_json:new()), Default).

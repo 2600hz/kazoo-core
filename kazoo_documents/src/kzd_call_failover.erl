@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Accessors for `call_failover' document.
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -12,7 +12,6 @@
 -export([keep_caller_id/1, keep_caller_id/2, set_keep_caller_id/2]).
 -export([number/1, number/2, set_number/2]).
 -export([require_keypress/1, require_keypress/2, set_require_keypress/2]).
-
 
 -include("kz_documents.hrl").
 

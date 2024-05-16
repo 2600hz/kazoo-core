@@ -1,0 +1,1 @@
+DEPS = kazoo_data

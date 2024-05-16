@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2023, 2600Hz
+%%% @copyright (C) 2015-2024, 2600Hz
 %%% @doc Call Event JSON Object
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -46,6 +46,7 @@
         ,other_leg_call_id/1
         ,other_leg_destination_number/1, other_leg_destination_number/2
         ,owner_id/1
+        ,intercepted_by/1
         ,replaced_by/1
         ,request/1
         ,response_code/1
@@ -62,6 +63,7 @@
 -export([transfer_disposition/1
         ,transfer_leg/1
         ,transfer_destination/1
+        ,transfer_is_semi_attended/1, transfer_is_semi_attended/2
         ]).
 
 -export([bridge_hangup_cause/1, bridge_hangup_cause/2]).
@@ -96,6 +98,10 @@ other_leg_destination_number(JObj, Default) ->
 -spec replaced_by(payload()) -> kz_term:api_ne_binary().
 replaced_by(JObj) ->
     kz_json:get_ne_binary_value(<<"Replaced-By">>, JObj).
+
+-spec intercepted_by(payload()) -> kz_term:api_ne_binary().
+intercepted_by(JObj) ->
+    kz_json:get_ne_binary_value(<<"Intercepted-By">>, JObj).
 
 -spec request(payload()) -> kz_json:object().
 request(JObj) ->
@@ -354,6 +360,14 @@ transfer_leg(JObj) ->
 -spec transfer_destination(payload()) -> kz_term:api_ne_binary().
 transfer_destination(JObj) ->
     kz_json:get_ne_binary_value(<<"Transfer-Destination">>, JObj).
+
+-spec transfer_is_semi_attended(payload()) -> kz_term:api_boolean().
+transfer_is_semi_attended(JObj) ->
+    transfer_is_semi_attended(JObj, 'undefined').
+
+-spec transfer_is_semi_attended(payload(), Default) -> boolean() | Default.
+transfer_is_semi_attended(JObj, Default) ->
+    kz_json:get_boolean_value(<<"Transfer-Is-Semi-Attended">>, JObj, Default).
 
 -spec bridge_hangup_cause(payload()) -> kz_term:api_ne_binary().
 bridge_hangup_cause(JObj) ->

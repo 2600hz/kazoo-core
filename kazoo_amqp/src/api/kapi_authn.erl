@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Handles authentication requests, responses, queue bindings AMQP API.
 %%% @author James Aimonetti
 %%% @author Luis Azedo
@@ -226,6 +226,7 @@ resp_definition() ->
                ,[{<<"Auth-Method">>, [<<"password">>, <<"ip">>
                                      ,<<"a1-hash">>, <<"error">>
                                      ,<<"gsm">>, <<"nonce">>, <<"a3a8">>
+                                     ,<<"mdn">>, <<"mdn-trusted">>, <<"trusted">>
                                      ]}
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]

@@ -33,30 +33,28 @@
 %% Denotes all valid term definitions or `undefined' for JSON.
 
 -ifdef(PROPER).
-%% PropEr will blow up the atom table if running this in an interactive shell
--type json_string() :: kz_term:ne_binary().
-
 -type json_term() :: non_object_json_term() | object().
 
 %% We want non-empty keys when generating objects
 -type keys() :: [key(),...].
+-type path() :: [key() | pos_integer(),...].
 
-%% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
--type flat_proplist() :: [{keys(), flat_json_term()}].
+%% Denotes a full_path/value pair of a flattened JSON object.
+-type flat_kv() :: {path(), flat_json_term()}.
 
 %% Denotes array in JSON.
 -type json_array() :: json_terms() | [].
 
 -else.
--type json_string() :: kz_term:ne_binary().
-
 -type json_term() :: non_null_json_term() | 'null'.
 
 %% Denotes a list of JSON keys.
 -type keys() :: [key()].
+%% Denotes a path to (or n-th element of) a value in a JSON.
+-type path() :: [key() | pos_integer()].
 
-%% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
--type flat_proplist() :: [{keys(), flat_json_term() | 'null'}].
+%% Denotes a full_path/value pair of a flattened JSON object.
+-type flat_kv() :: {path(), flat_json_term() | 'null'}.
 
 %% Denotes array in JSON.
 -type json_array() :: json_terms().
@@ -67,6 +65,8 @@
 -type json_terms() :: [json_term()].
 
 -type flat_json_array() :: [flat_json_term()].
+
+-type json_string() :: kz_term:ne_binary().
 
 -type json_number() :: integer() | float().
 %% Denotes number in JSON.
@@ -98,8 +98,13 @@
 -type ne_objects() :: [ne_object(),...].
 %% Denotes a non empty list of {@link object()}.
 
+%% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
+-type flat_proplist() :: [flat_kv()].
+-type ne_flat_proplist() :: [flat_kv(),...].
+
 %% Denotes a JSON of flatten version of JSON proplist, same as {@link flat_proplist()} but wrapped in `{}'.
 -type flat_object() :: ?JSON_WRAPPER(flat_proplist()).
+-type ne_flat_object() :: ?JSON_WRAPPER(ne_flat_proplist()).
 
 %% A list of flatten JSON objects.
 -type flat_objects() :: [flat_object()].
@@ -107,9 +112,7 @@
 %% Denotes a JSON key.
 -type key() :: json_string().
 
--type path() :: keys() | [pos_integer()].
-%% Denotes a path to (or n-th element of) a value in a JSON.
-
+-type ne_path() :: [key() | pos_integer(),...].
 -type paths() :: [path()].
 %% Denotes a list of paths (or n-th element of) a value in a JSON.
 

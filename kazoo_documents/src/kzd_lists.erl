@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,6 +13,7 @@
 -export([description/1, description/2, set_description/2]).
 -export([name/1, name/2, set_name/2]).
 -export([org/1, org/2, set_org/2]).
+-export([owner_id/1, owner_id/2, set_owner_id/2]).
 
 
 -include("kz_documents.hrl").
@@ -61,3 +62,15 @@ org(Doc, Default) ->
 -spec set_org(doc(), binary()) -> doc().
 set_org(Doc, Org) ->
     kz_json:set_value([<<"org">>], Org, Doc).
+
+-spec owner_id(doc()) -> kz_term:api_binary().
+owner_id(Doc) ->
+    owner_id(Doc, 'undefined').
+
+-spec owner_id(doc(), Default) -> binary() | Default.
+owner_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"owner_id">>], Doc, Default).
+
+-spec set_owner_id(doc(), binary()) -> doc().
+set_owner_id(Doc, OwnerId) ->
+    kz_json:set_value([<<"owner_id">>], OwnerId, Doc).

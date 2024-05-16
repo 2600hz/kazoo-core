@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,12 +20,13 @@
 -export([month/1, month/2, set_month/2]).
 -export([name/1, name/2, set_name/2]).
 -export([ordinal/1, ordinal/2, set_ordinal/2]).
+-export([owner_id/1, owner_id/2, set_owner_id/2]).
 -export([start_date/1, start_date/2, set_start_date/2]).
 -export([time_window_start/1, time_window_start/2, set_time_window_start/2]).
 -export([time_window_stop/1, time_window_stop/2, set_time_window_stop/2]).
 -export([wdays/1, wdays/2, set_wdays/2]).
 
-
+-export([schema/0, type/0]).
 -export([delete_enabled/1]).
 
 -include("kz_documents.hrl").
@@ -38,6 +39,12 @@
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec schema() -> kz_term:ne_binary().
+schema() -> ?SCHEMA.
+
+-spec type() -> kz_term:ne_binary().
+type() -> <<"temporal_rule">>.
 
 -spec cycle(doc()) -> binary().
 cycle(Doc) ->
@@ -162,6 +169,18 @@ ordinal(Doc, Default) ->
 -spec set_ordinal(doc(), binary()) -> doc().
 set_ordinal(Doc, Ordinal) ->
     kz_json:set_value([<<"ordinal">>], Ordinal, Doc).
+
+-spec owner_id(doc()) -> kz_term:api_binary().
+owner_id(Doc) ->
+    owner_id(Doc, 'undefined').
+
+-spec owner_id(doc(), Default) -> binary() | Default.
+owner_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"owner_id">>], Doc, Default).
+
+-spec set_owner_id(doc(), binary()) -> doc().
+set_owner_id(Doc, OwnerId) ->
+    kz_json:set_value([<<"owner_id">>], OwnerId, Doc).
 
 -spec start_date(doc()) -> integer().
 start_date(Doc) ->

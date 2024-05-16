@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc One-time passwords (OTP) library for generating a user's TOTP
 %%% or HOTP passwords.
 %%%
@@ -31,7 +31,8 @@
 -spec totp(kz_term:ne_binary(), kz_term:ne_binary()) ->
           {kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()}.
 totp(<<AccountId/binary>>, <<UserId/binary>>) ->
-    UserPasscode = user_passcode(AccountId, UserId),
+    UserPasscode32 = user_passcode(AccountId, UserId),
+    UserPasscode = base32:decode(UserPasscode32),
     PeriodS = totp_period(),
     totp_calc(UserPasscode, PeriodS).
 
@@ -46,7 +47,8 @@ totp_calc(<<UserPasscode/binary>>, PeriodS) when is_integer(PeriodS), PeriodS > 
 
 -spec hotp(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
 hotp(<<AccountId/binary>>, <<UserId/binary>>) ->
-    UserPasscode = user_passcode(AccountId, UserId),
+    UserPasscode32 = user_passcode(AccountId, UserId),
+    UserPasscode = base32:decode(UserPasscode32),
     Count = user_count(AccountId, UserId),
     hotp_calc(UserPasscode, Count).
 

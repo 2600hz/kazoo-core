@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2023, 2600Hz
+%%% @copyright (C) 2018-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,6 +22,8 @@
 -export_type([integration/0
              ,integrations/0
              ]).
+
+-elvis([{'elvis_style', 'no_debug_call', 'disable'}]).
 
 %% @doc lifted from erlang ML
 %% http://erlang.2086793.n4.nabble.com/What-is-the-fastest-way-to-check-if-a-function-is-defined-in-a-module-tp4723096p4723108.html
@@ -97,14 +99,27 @@ load_integration(H)
 hotload(Module)
   when is_atom(Module) ->
     _ = code:soft_purge(Module),
-    case code:load_file(Module) of
-        {'module', _} -> 'ok';
-        {'error' , Reason} ->
-            io:format("ERROR: unable to hotload ~s: ~s~n", [Module, Reason]),
-            'no_return'
-    end;
+    handle_load_module_return(Module, code:load_file(Module));
 hotload(Module) ->
     hotload(kz_term:to_atom(Module, 'true')).
+
+%%------------------------------------------------------------------------------
+%% @doc Clarify the error returned when a module could not be loaded.
+%% @end
+%%------------------------------------------------------------------------------
+-spec handle_load_module_return(module(), code:load_ret()) -> 'ok'.
+handle_load_module_return(Module, {'error', 'nofile'}) ->
+    Filename = kz_term:to_list(Module) ++ code:objfile_extension(),
+    case code:where_is_file(Filename) of
+        'non_existing' ->
+            io:format("ERROR: unable to hotload ~s: nofile~n", [Module]);
+        AbsName ->
+            io:format("ERROR: unable to hotload ~s: check ~s for permission issues~n", [Module, AbsName])
+    end;
+handle_load_module_return(_Module, {'error', _E}) ->
+    io:format("ERROR: unable to hotload ~s: ~p~n", [_Module, _E]);
+handle_load_module_return(Module, {'module', Module}) ->
+    'ok'.
 
 -spec behaviours(atom()) -> [atom()].
 behaviours(Module)

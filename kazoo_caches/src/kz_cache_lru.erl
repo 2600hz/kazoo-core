@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2023, 2600Hz
+%%% @copyright (C) 2018-2024, 2600Hz
 %%% @doc Periodically walk the cache's ETS table and remove expired entries
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -69,7 +69,7 @@ handle_info({'timeout', Ref, ?EXPIRE_PERIOD_MSG}
     _Expired = kz_cache_ets:expire_objects(Name),
     _Expired > 0
         andalso lager:debug("expired objects: ~p", [_Expired]),
-    {'noreply', State#state{expire_period_ref=start_expire_period_timer(Period)}};
+    {'noreply', State#state{expire_period_ref=start_expire_period_timer(Period)}, 'hibernate'};
 handle_info(_Msg, State) ->
     {'noreply', State}.
 

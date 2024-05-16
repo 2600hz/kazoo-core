@@ -1,0 +1,124 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2024, 2600Hz
+%%% @doc Accessors for `metaflows_sound_touch' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_metaflows_sound_touch).
+
+-export([new/0]).
+-export([action/1, action/2, set_action/2]).
+-export([adjust_in_octaves/1, adjust_in_octaves/2, set_adjust_in_octaves/2]).
+-export([adjust_in_semitones/1, adjust_in_semitones/2, set_adjust_in_semitones/2]).
+-export([hook_dtmf/1, hook_dtmf/2, set_hook_dtmf/2]).
+-export([pitch/1, pitch/2, set_pitch/2]).
+-export([rate/1, rate/2, set_rate/2]).
+-export([sending_leg/1, sending_leg/2, set_sending_leg/2]).
+-export([tempo/1, tempo/2, set_tempo/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"metaflows.sound_touch">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec action(doc()) -> kz_term:api_binary().
+action(Doc) ->
+    action(Doc, 'undefined').
+
+-spec action(doc(), Default) -> binary() | Default.
+action(Doc, Default) ->
+    kz_json:get_binary_value([<<"action">>], Doc, Default).
+
+-spec set_action(doc(), binary()) -> doc().
+set_action(Doc, Action) ->
+    kz_json:set_value([<<"action">>], Action, Doc).
+
+-spec adjust_in_octaves(doc()) -> number().
+adjust_in_octaves(Doc) ->
+    adjust_in_octaves(Doc, 0).
+
+-spec adjust_in_octaves(doc(), Default) -> number() | Default.
+adjust_in_octaves(Doc, Default) ->
+    kz_json:get_float_value([<<"adjust_in_octaves">>], Doc, Default).
+
+-spec set_adjust_in_octaves(doc(), number()) -> doc().
+set_adjust_in_octaves(Doc, AdjustInOctaves) ->
+    kz_json:set_value([<<"adjust_in_octaves">>], AdjustInOctaves, Doc).
+
+-spec adjust_in_semitones(doc()) -> number().
+adjust_in_semitones(Doc) ->
+    adjust_in_semitones(Doc, 0).
+
+-spec adjust_in_semitones(doc(), Default) -> number() | Default.
+adjust_in_semitones(Doc, Default) ->
+    kz_json:get_float_value([<<"adjust_in_semitones">>], Doc, Default).
+
+-spec set_adjust_in_semitones(doc(), number()) -> doc().
+set_adjust_in_semitones(Doc, AdjustInSemitones) ->
+    kz_json:set_value([<<"adjust_in_semitones">>], AdjustInSemitones, Doc).
+
+-spec hook_dtmf(doc()) -> boolean().
+hook_dtmf(Doc) ->
+    hook_dtmf(Doc, 'false').
+
+-spec hook_dtmf(doc(), Default) -> boolean() | Default.
+hook_dtmf(Doc, Default) ->
+    kz_json:get_boolean_value([<<"hook_dtmf">>], Doc, Default).
+
+-spec set_hook_dtmf(doc(), boolean()) -> doc().
+set_hook_dtmf(Doc, HookDtmf) ->
+    kz_json:set_value([<<"hook_dtmf">>], HookDtmf, Doc).
+
+-spec pitch(doc()) -> number().
+pitch(Doc) ->
+    pitch(Doc, 1.0).
+
+-spec pitch(doc(), Default) -> number() | Default.
+pitch(Doc, Default) ->
+    kz_json:get_float_value([<<"pitch">>], Doc, Default).
+
+-spec set_pitch(doc(), number()) -> doc().
+set_pitch(Doc, Pitch) ->
+    kz_json:set_value([<<"pitch">>], Pitch, Doc).
+
+-spec rate(doc()) -> number().
+rate(Doc) ->
+    rate(Doc, 1.0).
+
+-spec rate(doc(), Default) -> number() | Default.
+rate(Doc, Default) ->
+    kz_json:get_float_value([<<"rate">>], Doc, Default).
+
+-spec set_rate(doc(), number()) -> doc().
+set_rate(Doc, Rate) ->
+    kz_json:set_value([<<"rate">>], Rate, Doc).
+
+-spec sending_leg(doc()) -> boolean().
+sending_leg(Doc) ->
+    sending_leg(Doc, 'false').
+
+-spec sending_leg(doc(), Default) -> boolean() | Default.
+sending_leg(Doc, Default) ->
+    kz_json:get_boolean_value([<<"sending_leg">>], Doc, Default).
+
+-spec set_sending_leg(doc(), boolean()) -> doc().
+set_sending_leg(Doc, SendingLeg) ->
+    kz_json:set_value([<<"sending_leg">>], SendingLeg, Doc).
+
+-spec tempo(doc()) -> number().
+tempo(Doc) ->
+    tempo(Doc, 1.0).
+
+-spec tempo(doc(), Default) -> number() | Default.
+tempo(Doc, Default) ->
+    kz_json:get_float_value([<<"tempo">>], Doc, Default).
+
+-spec set_tempo(doc(), number()) -> doc().
+set_tempo(Doc, Tempo) ->
+    kz_json:set_value([<<"tempo">>], Tempo, Doc).

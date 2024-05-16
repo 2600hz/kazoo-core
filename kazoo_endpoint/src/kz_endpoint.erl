@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -19,7 +19,7 @@
         ,flush_local/2
         ]).
 -export([build/2, build/3, build/4]).
--export([create_call_fwd_endpoint/3
+-export([create_call_fwd_endpoint/3, create_call_fwd_endpoint/4
         ,create_sip_endpoint/3
         ,maybe_start_metaflow/2
         ,encryption_method_map/2
@@ -143,7 +143,13 @@ create_sip_endpoint(Endpoint, Properties, Call) ->
 %%------------------------------------------------------------------------------
 -spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object().
-create_call_fwd_endpoint(Endpoint, Properties, Call) -> ?MOD:create_call_fwd_endpoint(Endpoint, Properties, Call).
+create_call_fwd_endpoint(Endpoint, Properties, Call) ->
+    ?MOD:create_call_fwd_endpoint(Endpoint, Properties, Call).
+
+-spec create_call_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call(), kzd_call_forward:doc()) ->
+          kz_json:object().
+create_call_fwd_endpoint(Endpoint, Properties, Call, CallForward) ->
+    ?MOD:create_call_fwd_endpoint(Endpoint, Properties, Call, CallForward).
 
 -spec encryption_method_map(kz_term:api_object(), kz_term:api_binaries() | kz_json:object()) -> kz_term:api_object().
 encryption_method_map(CCVs, Methods) -> ?MOD:encryption_method_map(CCVs, Methods).

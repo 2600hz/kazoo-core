@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc When implementing provider modules, these callbacks are a must!
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -34,36 +34,36 @@
 
 -spec available(kz_term:ne_binary() | module(), knm_phone_number:pn_record()) -> boolean().
 available(Feature, PN) ->
-    try feature_callback(Feature, available, [PN]) of
-        no_module -> false;
-        no_callback -> true;
+    try feature_callback(Feature, 'available', [PN]) of
+        'no_module' -> 'false';
+        'no_callback' -> 'true';
         Value -> kz_term:is_true(Value)
     catch
-        _ -> true
+        _:_ -> 'true'
     end.
 
 -spec available(kz_term:ne_binary() | module(), kz_term:ne_binary() | module(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
 available(Feature, Carrier, State, AccountId) ->
-    try feature_callback(Feature, available, [Carrier, State, AccountId]) of
-        no_module -> false;
-        no_callback -> true;
+    try feature_callback(Feature, 'available', [Carrier, State, AccountId]) of
+        'no_module' -> 'false';
+        'no_callback' -> 'true';
         Value -> kz_term:is_true(Value)
     catch
-        _ -> true
+        _:_ -> 'true'
     end.
 
 -spec settings(kz_term:ne_binary() | module(), knm_phone_number:pn_record()) -> kz_json:object().
 settings(Feature, PN) ->
-    try feature_callback(Feature, settings, [PN]) of
-        no_callback -> kz_json:new();
-        no_module -> kz_json:new();
+    try feature_callback(Feature, 'settings', [PN]) of
+        'no_callback' -> kz_json:new();
+        'no_module' -> kz_json:new();
         Value ->
             case kz_json:is_json_object(Value) of
-                true -> Value;
-                false -> kz_json:new()
+                'true' -> Value;
+                'false' -> kz_json:new()
             end
     catch
-        _ -> kz_json:new()
+        _:_ -> kz_json:new()
     end.
 
 -spec feature_module(kz_term:ne_binary() | module()) -> module().

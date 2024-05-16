@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%%
@@ -26,7 +26,6 @@
 get_uri(#media_store_path{}=Store, JObj) ->
     maybe_proxy(JObj, Store);
 get_uri(Media, JObj) when is_binary(Media) ->
-    kz_log:put_callid(JObj),
     Paths = [kz_http_util:urldecode(Path)
              || Path <- binary:split(Media, <<"/">>, ['global', 'trim']),
                 not kz_term:is_empty(Path)

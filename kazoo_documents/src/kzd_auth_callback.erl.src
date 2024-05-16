@@ -1,0 +1,85 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2024, 2600Hz
+%%% @doc Accessors for `auth_callback' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_auth_callback).
+
+-export([new/0]).
+-export([client_id/1, client_id/2, set_client_id/2]).
+-export([code/1, code/2, set_code/2]).
+-export([provider/1, provider/2, set_provider/2]).
+-export([redirect_uri/1, redirect_uri/2, set_redirect_uri/2]).
+-export([state/1, state/2, set_state/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"auth.callback">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec client_id(doc()) -> kz_term:api_binary().
+client_id(Doc) ->
+    client_id(Doc, 'undefined').
+
+-spec client_id(doc(), Default) -> binary() | Default.
+client_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"client_id">>], Doc, Default).
+
+-spec set_client_id(doc(), binary()) -> doc().
+set_client_id(Doc, ClientId) ->
+    kz_json:set_value([<<"client_id">>], ClientId, Doc).
+
+-spec code(doc()) -> kz_term:api_binary().
+code(Doc) ->
+    code(Doc, 'undefined').
+
+-spec code(doc(), Default) -> binary() | Default.
+code(Doc, Default) ->
+    kz_json:get_binary_value([<<"code">>], Doc, Default).
+
+-spec set_code(doc(), binary()) -> doc().
+set_code(Doc, Code) ->
+    kz_json:set_value([<<"code">>], Code, Doc).
+
+-spec provider(doc()) -> kz_term:api_binary().
+provider(Doc) ->
+    provider(Doc, 'undefined').
+
+-spec provider(doc(), Default) -> binary() | Default.
+provider(Doc, Default) ->
+    kz_json:get_binary_value([<<"provider">>], Doc, Default).
+
+-spec set_provider(doc(), binary()) -> doc().
+set_provider(Doc, Provider) ->
+    kz_json:set_value([<<"provider">>], Provider, Doc).
+
+-spec redirect_uri(doc()) -> kz_term:api_ne_binary().
+redirect_uri(Doc) ->
+    redirect_uri(Doc, 'undefined').
+
+-spec redirect_uri(doc(), Default) -> kz_term:ne_binary() | Default.
+redirect_uri(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"redirect_uri">>], Doc, Default).
+
+-spec set_redirect_uri(doc(), kz_term:ne_binary()) -> doc().
+set_redirect_uri(Doc, RedirectUri) ->
+    kz_json:set_value([<<"redirect_uri">>], RedirectUri, Doc).
+
+-spec state(doc()) -> kz_term:api_binary().
+state(Doc) ->
+    state(Doc, 'undefined').
+
+-spec state(doc(), Default) -> binary() | Default.
+state(Doc, Default) ->
+    kz_json:get_binary_value([<<"state">>], Doc, Default).
+
+-spec set_state(doc(), binary()) -> doc().
+set_state(Doc, State) ->
+    kz_json:set_value([<<"state">>], State, Doc).

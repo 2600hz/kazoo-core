@@ -11,9 +11,7 @@
 -define(APP, 'kazoo_hooks').
 -define(CONFIG_CAT, <<"kazoo_hooks">>).
 
--type bind_fun() :: {module(), atom(), list()} |
-                    fun().
-
+-type bind_fun() :: kz_events:handler().
 
 -define(KAZOO_HOOKS_HRL, 'true').
 -endif.

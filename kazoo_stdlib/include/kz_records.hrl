@@ -4,10 +4,16 @@
                     ,roles = [] :: kz_term:ne_binaries()
                     }).
 
+-record(kapp_version, {name :: kz_term:api_ne_binary()
+                      ,description :: kz_term:api_ne_binary()
+                      ,version :: kz_term:api_ne_binary()
+                      }).
+
 -record(kz_node, {node = node() :: atom() | '$1' | '$2' | '_'
                  ,md5 :: kz_term:api_binary() | '_'
                  ,expires = 0 :: non_neg_integer() | 'undefined' | '$2' | '_'
                  ,kapps = [] :: kz_types:kapps_info() | '$1' | '_'
+                 ,kapps_loaded = [] :: [{kz_json:key(), kz_types:kapp_version()}] | '_'
                  ,media_servers = [] :: kz_types:media_servers() | '_'
                  ,last_heartbeat = kz_time:now_ms() :: pos_integer() | 'undefined' | '$3' | '_'
                  ,zone :: atom() | 'undefined' | '$2' | '_'

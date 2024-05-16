@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Dialplan API commands.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -501,8 +501,10 @@ bridge_definition() ->
                                                             ,<<"Privacy-Method">>
                                                             ,<<"Proxy-Path">>
                                                             ,<<"Ringback">>
+                                                            ,<<"SIP-Diversions">>
                                                             ,<<"SIP-Invite-Contact-User">>
                                                             ,<<"SIP-Invite-Parameters">>
+                                                            ,<<"SIP-Multiparts">>
                                                             ,<<"SIP-Transport">>
                                                             ,<<"Secure-RTP">>
                                                             ,<<"Simplify-Loopback">>
@@ -530,6 +532,8 @@ bridge_definition() ->
                 ,{<<"Secure-RTP">>, fun kz_term:is_boolean/1}
                 ,{<<"Bridge-Actions">>, fun kz_json:is_json_object/1}
                 ,{<<"Hold-Media-Options">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],
@@ -593,9 +597,11 @@ bridge_endpoint_definition() ->
                                                             ,<<"Proxy-Zone">>
                                                             ,<<"Route">>
                                                             ,<<"Simplify-Loopback">>
+                                                            ,<<"SIP-Diversions">>
                                                             ,<<"SIP-Interface">>
                                                             ,<<"SIP-Invite-Contact-User">>
                                                             ,<<"SIP-Invite-Parameters">>
+                                                            ,<<"SIP-Multiparts">>
                                                             ,<<"SIP-Transport">>
                                                             ,<<"To-DID">>
                                                             ,<<"To-IP">>
@@ -623,6 +629,8 @@ bridge_endpoint_definition() ->
                 ,{<<"Bypass-Media">>, fun kz_term:is_boolean/1}
                 ,{<<"SIP-Invite-Parameters">>, fun erlang:is_list/1}
                 ,{<<"Hold-Media-Options">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],
@@ -1307,6 +1315,7 @@ record_call_definition() ->
                                                             ,<<"Recording-Variables">>
                                                             ,<<"Record-Min-Sec">>
                                                             ,<<"Record-Sample-Rate">>
+                                                            ,<<"Track-Media-Recording">>
                                                             ,<<"Time-Limit">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
@@ -1325,6 +1334,7 @@ record_call_definition() ->
                }
               ,{fun kapi_definition:set_types/2
                ,[{<<"Record-Sample-Rate">>, fun is_integer/1}
+                ,{<<"Track-Media-Recording">>, fun is_boolean/1}
                 ]
                }
               ],

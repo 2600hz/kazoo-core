@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Functor.
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -21,16 +21,14 @@
         ,unless/2
         ]).
 
--include_lib("kazoo_stdlib/include/kz_types.hrl").
-
 -type left() :: left(any()).
 -type left(T) :: {'error', T}.
 
 -type right() :: right(any()).
 -type right(T) :: {'ok', T}.
 
--type either() :: either(left(), right()).
--type either(L) :: either(L, right()).
+-type either() :: either(any(), any()).
+-type either(L) :: either(L, any()).
 -type either(L, R) :: left(L) | right(R).
 
 -export_type([either/0, either/1, either/2

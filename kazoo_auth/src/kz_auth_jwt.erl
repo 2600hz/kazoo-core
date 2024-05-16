@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,11 +11,13 @@
 
 -include("kazoo_auth.hrl").
 
--export([verify/1
-        ,decode/1, decode/2
+-export([decode/1, decode/2
         ,encode/1
-        ,token/1, token/2
+        ,encode_map/1
         ,parse/1
+        ,token/1, token/2
+        ,verify/1
+        ,verify_signature/1
         ]).
 
 -type jwt() :: map().
@@ -163,19 +165,8 @@ encode(Claims) when is_list(Claims) ->
                           ,issuer => Issuer
                           })
     end;
-
 encode(Map) when is_map(Map) ->
-    Routines = [fun add_app/1
-               ,fun add_kid/1
-               ,fun add_key/1
-               ,fun add_alg/1
-               ,fun add_digest/1
-               ,fun add_header/1
-               ,fun add_claims/1
-               ,fun add_payload/1
-               ,fun sign/1
-               ],
-    case kz_auth_util:run(Map, Routines) of
+    case  encode_map(Map) of
         {'ok', #{jwt := #{token := Token}}} ->
             lager:debug("JWT encoded"),
             {'ok', Token};
@@ -189,6 +180,21 @@ encode(Map) when is_map(Map) ->
             lager:debug("JWT encode unknown error : ~p", [_M]),
             {'error', <<"unknown error">>}
     end.
+
+-spec encode_map(map()) -> {'ok', map()} | {'error', any()}.
+encode_map(Map) when is_map(Map) ->
+    Routines = [fun add_app/1
+               ,fun add_kid/1
+               ,fun add_key/1
+               ,fun add_x5t/1
+               ,fun add_alg/1
+               ,fun add_digest/1
+               ,fun add_header/1
+               ,fun add_claims/1
+               ,fun add_payload/1
+               ,fun sign/1
+               ],
+    kz_auth_util:run(Map, Routines).
 
 -spec add_app(map()) -> map().
 add_app(#{auth_app := _}=Map) -> Map;
@@ -205,8 +211,19 @@ add_kid(#{auth_app := #{pvt_server_key := Key}} = Map) ->
 add_kid(Map) ->
     {'error', Map#{error => <<"no key identifier">>}}.
 
+-spec add_x5t(map()) -> map().
+add_x5t(#{x5t := _}=Map) -> Map;
+add_x5t(#{auth_app := #{pvt_server_fingerprint := X5T}} = Map) ->
+    Map#{x5t => kz_base64url:encode(X5T)};
+add_x5t(Map) -> Map.
+
 -spec add_key(map()) -> map().
 add_key(#{key := _}=Map) -> Map;
+add_key(#{auth_app := #{pvt_server_key_override := KeyId}} = Map) ->
+    case kz_auth_keys:private_key(KeyId) of
+        {'ok', Key} -> Map#{key => Key};
+        {'error', Error} -> {'error', Map#{error => Error}}
+    end;
 add_key(#{kid := KeyId} = Map) ->
     case kz_auth_keys:private_key(KeyId) of
         {'ok', Key} -> Map#{key => Key};
@@ -226,6 +243,18 @@ add_digest(#{alg := Alg} = Map) ->
     Map#{digest => alg_2_digest_type(Alg)}.
 
 -spec add_header(map()) -> map().
+add_header(#{alg := Alg
+            ,x5t := X5T
+            } = Map) ->
+    Head = [{<<"alg">>, Alg}
+           ,{<<"typ">>, <<"JWT">>}
+           ,{<<"x5t">>, X5T}
+           ],
+    Header = kz_base64url:encode(kz_json:encode(kz_json:from_list(Head))),
+    Map#{jwt => #{header => #{keys => Head
+                             ,encoded => Header
+                             }
+                 }};
 add_header(#{alg := Alg
             ,kid := KeyId
             } = Map) ->

@@ -1,13 +1,20 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Accessors for `whitelabel' document.
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kzd_whitelabel).
 
 -export([new/0]).
+-export([commland/1, commland/2, set_commland/2]).
+-export([commland_downloads/1, commland_downloads/2, set_commland_downloads/2]).
+-export([commland_downloads_deb/1, commland_downloads_deb/2, set_commland_downloads_deb/2]).
+-export([commland_downloads_mac/1, commland_downloads_mac/2, set_commland_downloads_mac/2]).
+-export([commland_downloads_rpm/1, commland_downloads_rpm/2, set_commland_downloads_rpm/2]).
+-export([commland_downloads_windows/1, commland_downloads_windows/2, set_commland_downloads_windows/2]).
 -export([company_name/1, company_name/2, set_company_name/2]).
 -export([conference_public_domain/1, conference_public_domain/2, set_conference_public_domain/2]).
+-export([dkim_selector/1, dkim_selector/2, set_dkim_selector/2]).
 -export([domain/1, domain/2, set_domain/2]).
 -export([fake_api_url/1, fake_api_url/2, set_fake_api_url/2]).
 -export([hide_credits/1, hide_credits/2, set_hide_credits/2]).
@@ -39,6 +46,78 @@
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
+-spec commland(doc()) -> kz_term:api_object().
+commland(Doc) ->
+    commland(Doc, 'undefined').
+
+-spec commland(doc(), Default) -> kz_json:object() | Default.
+commland(Doc, Default) ->
+    kz_json:get_json_value([<<"commland">>], Doc, Default).
+
+-spec set_commland(doc(), kz_json:object()) -> doc().
+set_commland(Doc, Commland) ->
+    kz_json:set_value([<<"commland">>], Commland, Doc).
+
+-spec commland_downloads(doc()) -> kz_term:api_object().
+commland_downloads(Doc) ->
+    commland_downloads(Doc, 'undefined').
+
+-spec commland_downloads(doc(), Default) -> kz_json:object() | Default.
+commland_downloads(Doc, Default) ->
+    kz_json:get_json_value([<<"commland">>, <<"downloads">>], Doc, Default).
+
+-spec set_commland_downloads(doc(), kz_json:object()) -> doc().
+set_commland_downloads(Doc, CommlandDownloads) ->
+    kz_json:set_value([<<"commland">>, <<"downloads">>], CommlandDownloads, Doc).
+
+-spec commland_downloads_deb(doc()) -> kz_term:api_binary().
+commland_downloads_deb(Doc) ->
+    commland_downloads_deb(Doc, 'undefined').
+
+-spec commland_downloads_deb(doc(), Default) -> binary() | Default.
+commland_downloads_deb(Doc, Default) ->
+    kz_json:get_binary_value([<<"commland">>, <<"downloads">>, <<"deb">>], Doc, Default).
+
+-spec set_commland_downloads_deb(doc(), binary()) -> doc().
+set_commland_downloads_deb(Doc, CommlandDownloadsDeb) ->
+    kz_json:set_value([<<"commland">>, <<"downloads">>, <<"deb">>], CommlandDownloadsDeb, Doc).
+
+-spec commland_downloads_mac(doc()) -> kz_term:api_binary().
+commland_downloads_mac(Doc) ->
+    commland_downloads_mac(Doc, 'undefined').
+
+-spec commland_downloads_mac(doc(), Default) -> binary() | Default.
+commland_downloads_mac(Doc, Default) ->
+    kz_json:get_binary_value([<<"commland">>, <<"downloads">>, <<"mac">>], Doc, Default).
+
+-spec set_commland_downloads_mac(doc(), binary()) -> doc().
+set_commland_downloads_mac(Doc, CommlandDownloadsMac) ->
+    kz_json:set_value([<<"commland">>, <<"downloads">>, <<"mac">>], CommlandDownloadsMac, Doc).
+
+-spec commland_downloads_rpm(doc()) -> kz_term:api_binary().
+commland_downloads_rpm(Doc) ->
+    commland_downloads_rpm(Doc, 'undefined').
+
+-spec commland_downloads_rpm(doc(), Default) -> binary() | Default.
+commland_downloads_rpm(Doc, Default) ->
+    kz_json:get_binary_value([<<"commland">>, <<"downloads">>, <<"rpm">>], Doc, Default).
+
+-spec set_commland_downloads_rpm(doc(), binary()) -> doc().
+set_commland_downloads_rpm(Doc, CommlandDownloadsRpm) ->
+    kz_json:set_value([<<"commland">>, <<"downloads">>, <<"rpm">>], CommlandDownloadsRpm, Doc).
+
+-spec commland_downloads_windows(doc()) -> kz_term:api_binary().
+commland_downloads_windows(Doc) ->
+    commland_downloads_windows(Doc, 'undefined').
+
+-spec commland_downloads_windows(doc(), Default) -> binary() | Default.
+commland_downloads_windows(Doc, Default) ->
+    kz_json:get_binary_value([<<"commland">>, <<"downloads">>, <<"windows">>], Doc, Default).
+
+-spec set_commland_downloads_windows(doc(), binary()) -> doc().
+set_commland_downloads_windows(Doc, CommlandDownloadsWindows) ->
+    kz_json:set_value([<<"commland">>, <<"downloads">>, <<"windows">>], CommlandDownloadsWindows, Doc).
+
 -spec company_name(doc()) -> kz_term:api_binary().
 company_name(Doc) ->
     company_name(Doc, 'undefined').
@@ -62,6 +141,18 @@ conference_public_domain(Doc, Default) ->
 -spec set_conference_public_domain(doc(), binary()) -> doc().
 set_conference_public_domain(Doc, ConferencePublicDomain) ->
     kz_json:set_value([<<"conference_public_domain">>], ConferencePublicDomain, Doc).
+
+-spec dkim_selector(doc()) -> kz_term:api_binary().
+dkim_selector(Doc) ->
+    dkim_selector(Doc, 'undefined').
+
+-spec dkim_selector(doc(), Default) -> binary() | Default.
+dkim_selector(Doc, Default) ->
+    kz_json:get_binary_value([<<"dkim_selector">>], Doc, Default).
+
+-spec set_dkim_selector(doc(), binary()) -> doc().
+set_dkim_selector(Doc, DkimSelector) ->
+    kz_json:set_value([<<"dkim_selector">>], DkimSelector, Doc).
 
 -spec domain(doc()) -> kz_term:api_binary().
 domain(Doc) ->

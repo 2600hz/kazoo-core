@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Accessors for `list_entries' document.
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -8,13 +8,27 @@
 -export([new/0]).
 -export([capture_group_key/1, capture_group_key/2, set_capture_group_key/2]).
 -export([capture_group_length/1, capture_group_length/2, set_capture_group_length/2]).
+-export([contacts/1, contacts/2, set_contacts/2]).
+-export([description/1, description/2, set_description/2]).
 -export([displayname/1, displayname/2, set_displayname/2]).
 -export([firstname/1, firstname/2, set_firstname/2]).
+-export([history/1, history/2, set_history/2]).
 -export([lastname/1, lastname/2, set_lastname/2]).
 -export([list_id/1, list_id/2, set_list_id/2]).
+-export([name/1, name/2, set_name/2]).
 -export([number/1, number/2, set_number/2]).
+-export([organization/1, organization/2, set_organization/2]).
+-export([organization_name/1, organization_name/2, set_organization_name/2]).
 -export([pattern/1, pattern/2, set_pattern/2]).
 -export([profile/1, profile/2, set_profile/2]).
+-export([profile_addresses/1, profile_addresses/2, set_profile_addresses/2]).
+-export([profile_assistant/1, profile_assistant/2, set_profile_assistant/2]).
+-export([profile_birthday/1, profile_birthday/2, set_profile_birthday/2]).
+-export([profile_nicknames/1, profile_nicknames/2, set_profile_nicknames/2]).
+-export([profile_note/1, profile_note/2, set_profile_note/2]).
+-export([profile_role/1, profile_role/2, set_profile_role/2]).
+-export([profile_sort_string/1, profile_sort_string/2, set_profile_sort_string/2]).
+-export([profile_title/1, profile_title/2, set_profile_title/2]).
 -export([type/1, type/2, set_type/2]).
 
 
@@ -53,6 +67,30 @@ capture_group_length(Doc, Default) ->
 set_capture_group_length(Doc, CaptureGroupLength) ->
     kz_json:set_value([<<"capture_group_length">>], CaptureGroupLength, Doc).
 
+-spec contacts(doc()) -> kz_json:objects().
+contacts(Doc) ->
+    contacts(Doc, []).
+
+-spec contacts(doc(), Default) -> kz_json:objects() | Default.
+contacts(Doc, Default) ->
+    kz_json:get_list_value([<<"contacts">>], Doc, Default).
+
+-spec set_contacts(doc(), kz_json:objects()) -> doc().
+set_contacts(Doc, Contacts) ->
+    kz_json:set_value([<<"contacts">>], Contacts, Doc).
+
+-spec description(doc()) -> kz_term:api_binary().
+description(Doc) ->
+    description(Doc, 'undefined').
+
+-spec description(doc(), Default) -> binary() | Default.
+description(Doc, Default) ->
+    kz_json:get_binary_value([<<"description">>], Doc, Default).
+
+-spec set_description(doc(), binary()) -> doc().
+set_description(Doc, Description) ->
+    kz_json:set_value([<<"description">>], Description, Doc).
+
 -spec displayname(doc()) -> kz_term:api_ne_binary().
 displayname(Doc) ->
     displayname(Doc, 'undefined').
@@ -76,6 +114,18 @@ firstname(Doc, Default) ->
 -spec set_firstname(doc(), kz_term:ne_binary()) -> doc().
 set_firstname(Doc, Firstname) ->
     kz_json:set_value([<<"firstname">>], Firstname, Doc).
+
+-spec history(doc()) -> kz_json:objects().
+history(Doc) ->
+    history(Doc, []).
+
+-spec history(doc(), Default) -> kz_json:objects() | Default.
+history(Doc, Default) ->
+    kz_json:get_list_value([<<"history">>], Doc, Default).
+
+-spec set_history(doc(), kz_json:objects()) -> doc().
+set_history(Doc, History) ->
+    kz_json:set_value([<<"history">>], History, Doc).
 
 -spec lastname(doc()) -> kz_term:api_ne_binary().
 lastname(Doc) ->
@@ -101,6 +151,18 @@ list_id(Doc, Default) ->
 set_list_id(Doc, ListId) ->
     kz_json:set_value([<<"list_id">>], ListId, Doc).
 
+-spec name(doc()) -> kz_term:api_binary().
+name(Doc) ->
+    name(Doc, 'undefined').
+
+-spec name(doc(), Default) -> binary() | Default.
+name(Doc, Default) ->
+    kz_json:get_binary_value([<<"name">>], Doc, Default).
+
+-spec set_name(doc(), binary()) -> doc().
+set_name(Doc, Name) ->
+    kz_json:set_value([<<"name">>], Name, Doc).
+
 -spec number(doc()) -> kz_term:api_binary().
 number(Doc) ->
     number(Doc, 'undefined').
@@ -112,6 +174,30 @@ number(Doc, Default) ->
 -spec set_number(doc(), binary()) -> doc().
 set_number(Doc, Number) ->
     kz_json:set_value([<<"number">>], Number, Doc).
+
+-spec organization(doc()) -> kz_json:object().
+organization(Doc) ->
+    organization(Doc, kz_json:new()).
+
+-spec organization(doc(), Default) -> kz_json:object() | Default.
+organization(Doc, Default) ->
+    kz_json:get_json_value([<<"organization">>], Doc, Default).
+
+-spec set_organization(doc(), kz_json:object()) -> doc().
+set_organization(Doc, Organization) ->
+    kz_json:set_value([<<"organization">>], Organization, Doc).
+
+-spec organization_name(doc()) -> kz_term:api_binary().
+organization_name(Doc) ->
+    organization_name(Doc, 'undefined').
+
+-spec organization_name(doc(), Default) -> binary() | Default.
+organization_name(Doc, Default) ->
+    kz_json:get_binary_value([<<"organization">>, <<"name">>], Doc, Default).
+
+-spec set_organization_name(doc(), binary()) -> doc().
+set_organization_name(Doc, OrganizationName) ->
+    kz_json:set_value([<<"organization">>, <<"name">>], OrganizationName, Doc).
 
 -spec pattern(doc()) -> kz_term:api_binary().
 pattern(Doc) ->
@@ -136,6 +222,102 @@ profile(Doc, Default) ->
 -spec set_profile(doc(), kz_json:object()) -> doc().
 set_profile(Doc, Profile) ->
     kz_json:set_value([<<"profile">>], Profile, Doc).
+
+-spec profile_addresses(doc()) -> kz_term:api_objects().
+profile_addresses(Doc) ->
+    profile_addresses(Doc, 'undefined').
+
+-spec profile_addresses(doc(), Default) -> kz_json:objects() | Default.
+profile_addresses(Doc, Default) ->
+    kz_json:get_list_value([<<"profile">>, <<"addresses">>], Doc, Default).
+
+-spec set_profile_addresses(doc(), kz_json:objects()) -> doc().
+set_profile_addresses(Doc, ProfileAddresses) ->
+    kz_json:set_value([<<"profile">>, <<"addresses">>], ProfileAddresses, Doc).
+
+-spec profile_assistant(doc()) -> kz_term:api_binary().
+profile_assistant(Doc) ->
+    profile_assistant(Doc, 'undefined').
+
+-spec profile_assistant(doc(), Default) -> binary() | Default.
+profile_assistant(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"assistant">>], Doc, Default).
+
+-spec set_profile_assistant(doc(), binary()) -> doc().
+set_profile_assistant(Doc, ProfileAssistant) ->
+    kz_json:set_value([<<"profile">>, <<"assistant">>], ProfileAssistant, Doc).
+
+-spec profile_birthday(doc()) -> kz_term:api_binary().
+profile_birthday(Doc) ->
+    profile_birthday(Doc, 'undefined').
+
+-spec profile_birthday(doc(), Default) -> binary() | Default.
+profile_birthday(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"birthday">>], Doc, Default).
+
+-spec set_profile_birthday(doc(), binary()) -> doc().
+set_profile_birthday(Doc, ProfileBirthday) ->
+    kz_json:set_value([<<"profile">>, <<"birthday">>], ProfileBirthday, Doc).
+
+-spec profile_nicknames(doc()) -> kz_term:api_ne_binaries().
+profile_nicknames(Doc) ->
+    profile_nicknames(Doc, 'undefined').
+
+-spec profile_nicknames(doc(), Default) -> kz_term:ne_binaries() | Default.
+profile_nicknames(Doc, Default) ->
+    kz_json:get_list_value([<<"profile">>, <<"nicknames">>], Doc, Default).
+
+-spec set_profile_nicknames(doc(), kz_term:ne_binaries()) -> doc().
+set_profile_nicknames(Doc, ProfileNicknames) ->
+    kz_json:set_value([<<"profile">>, <<"nicknames">>], ProfileNicknames, Doc).
+
+-spec profile_note(doc()) -> kz_term:api_binary().
+profile_note(Doc) ->
+    profile_note(Doc, 'undefined').
+
+-spec profile_note(doc(), Default) -> binary() | Default.
+profile_note(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"note">>], Doc, Default).
+
+-spec set_profile_note(doc(), binary()) -> doc().
+set_profile_note(Doc, ProfileNote) ->
+    kz_json:set_value([<<"profile">>, <<"note">>], ProfileNote, Doc).
+
+-spec profile_role(doc()) -> kz_term:api_binary().
+profile_role(Doc) ->
+    profile_role(Doc, 'undefined').
+
+-spec profile_role(doc(), Default) -> binary() | Default.
+profile_role(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"role">>], Doc, Default).
+
+-spec set_profile_role(doc(), binary()) -> doc().
+set_profile_role(Doc, ProfileRole) ->
+    kz_json:set_value([<<"profile">>, <<"role">>], ProfileRole, Doc).
+
+-spec profile_sort_string(doc()) -> kz_term:api_binary().
+profile_sort_string(Doc) ->
+    profile_sort_string(Doc, 'undefined').
+
+-spec profile_sort_string(doc(), Default) -> binary() | Default.
+profile_sort_string(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"sort_string">>], Doc, Default).
+
+-spec set_profile_sort_string(doc(), binary()) -> doc().
+set_profile_sort_string(Doc, ProfileSortString) ->
+    kz_json:set_value([<<"profile">>, <<"sort_string">>], ProfileSortString, Doc).
+
+-spec profile_title(doc()) -> kz_term:api_binary().
+profile_title(Doc) ->
+    profile_title(Doc, 'undefined').
+
+-spec profile_title(doc(), Default) -> binary() | Default.
+profile_title(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"title">>], Doc, Default).
+
+-spec set_profile_title(doc(), binary()) -> doc().
+set_profile_title(Doc, ProfileTitle) ->
+    kz_json:set_value([<<"profile">>, <<"title">>], ProfileTitle, Doc).
 
 -spec type(doc()) -> kz_term:api_ne_binary().
 type(Doc) ->

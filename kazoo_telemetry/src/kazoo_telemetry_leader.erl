@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,7 +29,7 @@
 
 -record(state, {leader = 'undefined' :: node() | 'undefined'
                ,leader_poll_tref :: reference()
-               ,responders = [] :: kz_term:ne_binaries()
+               ,responders = [] :: kz_term:atoms()
                ,startup = 0 :: non_neg_integer()
                }).
 
@@ -131,17 +131,17 @@ handle_call(_Request, _From, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast('leader_change', #state{leader=OldLeader}=State) ->
-    NewState = State#state{leader=leader()},
-    case NewState#state.leader =:= node() of
+    NewState = #state{leader=NewLeader} = State#state{leader=leader()},
+
+    case NewLeader =:= node() of
         'false' ->
             lager:debug("telemetry leader is now ~s.", [NewState#state.leader]),
-            _ = maybe_stop_responders(NewState, OldLeader =:= node()),
-            {'noreply', NewState};
+            _ = maybe_stop_responders(NewState, OldLeader =:= node());
         'true' ->
             lager:debug("elected telemetry leader starting responders"),
-            _ = lists:foreach(fun responder_start_fold/1, State#state.responders),
-            {'noreply', NewState}
-    end;
+            _ = lists:foreach(fun responder_start_fold/1, State#state.responders)
+    end,
+    {'noreply', NewState};
 handle_cast(_Msg, State) ->
     {'noreply', State}.
 
@@ -162,8 +162,7 @@ responder_start_fold(App) ->
 handle_info({'timeout', _Pid, 'leader_poll'}, State) ->
     _ = maybe_change_leader(State#state.leader =/= leader()),
     Timer = erlang:start_timer(?TM_LEADER_TICK, self(), 'leader_poll'),
-    NewState = State#state{leader_poll_tref=Timer},
-    {'noreply', NewState};
+    {'noreply', State#state{leader_poll_tref=Timer}, 'hibernate'};
 handle_info(_Info, State) ->
     {'noreply', State}.
 
@@ -206,6 +205,6 @@ maybe_change_leader(_) -> 'ok'.
 %%------------------------------------------------------------------------------
 -spec maybe_stop_responders(state(), boolean()) -> 'ok'.
 maybe_stop_responders(_State, 'false') -> 'ok';
-maybe_stop_responders(#state{responders=Responders}, _) ->
-    lists:foldl(fun(R, _) -> (kz_term:to_atom(R)):stop() end, [], Responders),
+maybe_stop_responders(#state{responders=Responders}, 'true') ->
+    lists:foldl(fun(R, _) -> R:stop() end, [], Responders),
     'ok'.

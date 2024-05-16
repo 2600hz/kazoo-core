@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Functions for interacting with the underlying system (assumes Linux).
 %%% @author Sean Wysor
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -199,7 +199,7 @@ maybe_kill_cmd(Port) ->
         {'os_pid', OsPid} -> kill(OsPid);
         _ -> 'ok'
     catch
-        _ -> 'ok'
+        _:_ -> 'ok'
     end.
 
 -spec kill(integer()) -> 'ok'.

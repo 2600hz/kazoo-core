@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Switch events messages.
 %%% @author Edouard Swiac
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -202,7 +202,7 @@ fs_command_definition() ->
                                                             ,<<"Call-ID">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
-               ,[{<<"Command">>, [<<"send_http">>]}
+               ,[{<<"Command">>, [<<"send_http">>, <<"call_command">>]}
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }

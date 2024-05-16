@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Util functions used by kazoo_couch
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -135,7 +135,7 @@ maybe_add_content_type(AName, Options) ->
     end.
 
 do_put_attachment_1(Db, DocId, AName, Contents, Options) ->
-    ?RETRY_504(couchbeam:put_attachment(Db, DocId, AName, Contents, Options)).
+    kz_couch_util:retry504s(couchbeam, put_attachment, [Db, DocId, AName, Contents, Options]).
 
 -spec do_del_attachment(couchbeam_db(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object()} |

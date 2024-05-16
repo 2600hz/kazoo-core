@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -125,7 +125,13 @@
 
 -export([check_release/0]).
 
+-export([check_kapps_versions/0
+        ,show_kapps_versions/0
+        ]).
+
 -export([start_app/1, stop_app/1, running_apps/0]).
+
+-elvis([{elvis_style, no_debug_call, disable}]).
 
 -include("kazoo_apps.hrl").
 
@@ -303,13 +309,14 @@ move_failover_from_fwd(JObjs) ->
 
 -spec do_move_failover_from_fwd(kz_json:object()) -> kz_term:api_object().
 do_move_failover_from_fwd(JObj) ->
-    Doc = kz_json:get_value(<<"doc">>, JObj),
+    Doc = kz_json:get_json_value(<<"doc">>, JObj),
     OldFailoverPath = [<<"call_forward">>, <<"failover">>],
     case kz_json:is_true(OldFailoverPath, Doc, 'undefined') of
         'undefined' ->
             'undefined';
         'true' ->
-            CallForward = kzd_devices:call_forward(Doc),
+            %% TODO: migrate legacy failover from legacy cfwd
+            CallForward = kz_json:get_json_value(<<"call_forward">>, Doc),
             Setters = [{fun kzd_call_failover:set_direct_calls_only/2, kzd_call_forward:direct_calls_only(CallForward)}
                       ,{fun kzd_call_failover:set_enabled/2, 'true'}
                       ,{fun kzd_call_failover:set_ignore_early_media/2, kzd_call_forward:ignore_early_media(CallForward)}
@@ -2300,14 +2307,18 @@ wait_for_check(Pid, Ref, StartTime) ->
         {'DOWN', Ref, 'process', Pid, Reason} ->
             lager:error("check in ~p failed to run after ~pms: ~p", [Pid, kz_time:elapsed_ms(StartTime), Reason]),
             throw(Reason)
-    after 10 * ?MILLISECONDS_IN_MINUTE ->
-            lager:error("check in ~p timed out after 5 minutes", [Pid]),
+    after 15 * ?MILLISECONDS_IN_MINUTE ->
+            lager:error("check in ~p timed out after 15 minutes", [Pid]),
             exit(Pid, 'kill'),
             throw('timeout')
     end.
 
 run_seq_modules() ->
-    'no_return' = rpc:call(node(), 'properly_maintenance', 'run_seq_modules', []).
+    case rpc:call(node(), 'properly_maintenance', 'run_seq_modules', []) of
+        'no_return' -> 'ok';
+        0 -> 'ok';
+        N -> halt(N)
+    end.
 
 -spec kapps_started() -> boolean().
 kapps_started() ->
@@ -2400,4 +2411,44 @@ print_header() ->
     io:format("       - https://success.trendmicro.com/data-collection-disclosure~n"),
     io:format("       - https://www.mozilla.org/en-US/privacy/firefox/~n"),
     io:format("       - https://derflounder.wordpress.com/2019/07/23/suppressing-microsoft-autoupdates-required-data-notice-screen/~n"),
+    'no_return'.
+
+-spec check_kapps_versions() -> 'no_return'.
+check_kapps_versions() ->
+    List = kapps_versions:list(),
+    ByNameVersion = kapps_versions:groups_by(['name', 'version'], List),
+    Stats = kapps_versions:count_stats_by(['name', 'version'], List),
+    _ = maps:map(
+          fun(App, AppStats) ->
+                  report_app_stats(App, AppStats, ByNameVersion)
+          end,
+          Stats
+         ),
+    'no_return'.
+
+report_app_stats(_App, #{'majority' := {_MajCount, _MajVersion}, 'minority' := []}, _ByNameVersion) ->
+    'no_return';
+
+report_app_stats(App, #{'majority' := 'none', 'minority' := Minority}, ByNameVersion) ->
+    io:format("Multiple versions of ~s found.  There is no majority.~n", [App]),
+    report_minority_versions(App, Minority, ByNameVersion);
+
+report_app_stats(App, #{'majority' := {MajCount, MajVersion}, 'minority' := Minority}, ByNameVersion) ->
+    io:format("Multiple versions of ~s found.  The majority (~s) have version ~s.~n", [App, MajCount, MajVersion]),
+    report_minority_versions(App, Minority, ByNameVersion).
+
+report_minority_versions(App, VersionsList, ByNameVersion) ->
+    _ = lists:foreach(
+          fun({_Count, Version})  ->
+                  NAVs = kapps_versions:map_get([App, Version], ByNameVersion, 'undefined'),
+                  kapps_versions:report_node_app_versions(1, NAVs)
+          end,
+          VersionsList
+         ),
+    'no_return'.
+
+-spec show_kapps_versions() -> 'no_return'.
+show_kapps_versions() ->
+    List = kapps_versions:list(),
+    kapps_versions:report_node_app_versions(List),
     'no_return'.

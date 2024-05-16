@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -431,9 +431,30 @@ rollover(MODB, Year, Month, Total) ->
 -spec handle_rollover_save(kz_term:ne_binary(), kz_time:year(), kz_time:month(), save_result()) ->
           kz_currency:available_units_return().
 handle_rollover_save(MODB, Year, Month, {'ok', _SavedJObj}) ->
-    lager:info("created ledger rollover for ~s ~p-~p"
+    lager:info("created ledger rollover for ~s ~p-~p, sleeping for 1s for db to cool off"
               ,[MODB, Year, Month]
               ),
+    %% this rollover is also called for first time when we are creating the account.
+    %% db is already busy re-indexing, by querying this quickly db can lost its re-indexing
+    %% and return Internal Server Error, which will cause account creation to fail.
+    %% We are seeing a lot of problems in integration tests in CI failing, and in every case
+    %% it is this view which cannot keep up quickly.
+    %%
+    %% In account creation in CI case:
+    %% 1) we create rollover for the first time
+    %% 2) in ms seconds later we issue get source total query
+    %% 3) at the same:
+    %%       a. couchdb mreview is using the pid of index process to perform the query
+    %%       b. couchdb also kills that index process to start a new re-indexing process
+    %%       killed the old indexer for modb
+    %%       c. But it is too late for query process because it got old indexer pid
+    %%       d. Query process dies with `noproc' error because old indexer is died
+    %% 4) we get 500 Internal Server Error
+    %% 5) account creation fails because of this
+    %%
+    %% random CI tests are failing consistency in this step.
+    timer:sleep(?MILLISECONDS_IN_SECOND),
+
     ViewOptions = [{'year', Year}
                   ,{'month', Month}
                   ],

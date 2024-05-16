@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc Handle publishing notification events for new port requests
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public

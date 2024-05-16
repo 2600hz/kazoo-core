@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Conversion of types
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -165,19 +165,13 @@ strip(B, Cs) when is_list(Cs) ->
 strip(B, <<C>>) -> strip(B, C).
 
 -spec strip_left(binary(), char() | binary()) -> binary().
+strip_left(<<Bin/binary>>, <<C>>) -> strip_left(Bin, C);
 strip_left(<<C, B/binary>>, C) -> strip_left(B, C);
 strip_left(B, _) -> B.
 
 -spec strip_right(binary(), char() | binary()) -> binary().
-strip_right(C, C) -> <<>>;
-strip_right(<<C, B/binary>>, C) ->
-    case strip_right(B, C) of
-        <<>> -> <<>>;
-        T -> <<C, T/binary>>
-    end;
-strip_right(<<A, B/binary>>, C) ->
-    <<A, (strip_right(B, C))/binary>>;
-strip_right(<<>>, _) -> <<>>.
+strip_right(Bin, Char) ->
+    reverse(strip_left(reverse(Bin), Char)).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -218,17 +212,22 @@ truncate_right(Bin, _) ->
 
 -spec suffix(binary(), binary()) -> boolean().
 suffix(<<>>, _Bin) -> 'false';
-suffix(<<_/binary>> = Suffix, <<_/binary>> = Bin) ->
-    try truncate_left(Bin, byte_size(Suffix)) =:= Suffix
+suffix(<<Suffix/binary>>, <<Bin/binary>>) ->
+    try truncate_left(Bin, byte_size(Suffix)) of
+        Suffix -> 'true';
+        _ -> 'false'
     catch
         _:_ -> 'false'
     end.
 
 -spec hexencode(kz_term:text()) -> binary().
-hexencode(<<_/binary>> = Bin) ->
+hexencode(<<Bin/binary>>) ->
     hexencode(Bin, <<>>);
-hexencode(S) ->
-    hexencode(kz_term:to_binary(S)).
+hexencode(String) when is_list(String) ->
+    hexencode(kz_term:to_binary(String));
+hexencode(Atom) when is_atom(Atom) ->
+    hexencode(kz_term:to_binary(Atom)).
+
 
 hexencode(<<>>, Acc) -> Acc;
 hexencode(<<Hi:4, Lo:4, Rest/binary>>, Acc) ->

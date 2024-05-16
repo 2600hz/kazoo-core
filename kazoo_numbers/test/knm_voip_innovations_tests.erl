@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2023, 2600Hz
+%%% @copyright (C) 2016-2024, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%%
@@ -53,8 +53,8 @@ api() ->
      || {Prefix, Limit} <- [{<<"435">>, 2}
                            ,{<<"877">>, 1}
                            ],
-        Options <- [[{quantity, Limit}
-                    ,{prefix, Prefix}
+        Options <- [[{'quantity', Limit}
+                    ,{'prefix', Prefix}
                     | Options0
                     ]],
         Results <- [knm_search:find(Options)]

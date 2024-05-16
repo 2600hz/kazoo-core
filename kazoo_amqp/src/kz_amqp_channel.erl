@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -237,7 +237,7 @@ close(Channel, [_|Commands]) ->
 %%------------------------------------------------------------------------------
 -spec maybe_publish(basic_publish(), amqp_msg()) -> 'ok'.
 maybe_publish(#'basic.publish'{routing_key=RoutingKey}=BasicPub, AmqpMsg) ->
-    case maybe_split_routing_key(RoutingKey) of
+    case kz_amqp_util:split_routing_key(RoutingKey) of
         {'undefined', _} ->
             basic_publish(kz_amqp_assignments:find(), BasicPub, AmqpMsg);
         {ConsumerPid, RemoteRoutingKey} ->
@@ -253,7 +253,7 @@ maybe_publish(#'basic.publish'{routing_key=RoutingKey}=BasicPub, AmqpMsg) ->
 %%------------------------------------------------------------------------------
 -spec publish(basic_publish(), amqp_msg()) -> 'ok'.
 publish(#'basic.publish'{routing_key=RoutingKey}=BasicPub, AmqpMsg) ->
-    case maybe_split_routing_key(RoutingKey) of
+    case kz_amqp_util:split_routing_key(RoutingKey) of
         {'undefined', _} ->
             basic_publish(consumer_channel()
                          ,BasicPub
@@ -343,16 +343,6 @@ basic_publish(Channel
 -spec ensure_amqp_zone(amqp_msg()) -> amqp_msg().
 ensure_amqp_zone(#'amqp_msg'{props = Basic} = Msg) ->
     Msg#'amqp_msg'{props = kz_amqp_basic:set_header_binary(Basic, ?KEY_AMQP_ZONE, kz_config:zone('binary'))}.
-
--spec maybe_split_routing_key(binary()) -> {kz_term:api_pid(), binary()}.
-maybe_split_routing_key(<<"consumer://", _/binary>> = RoutingKey) ->
-    Size = byte_size(RoutingKey),
-    {Start, _} = lists:last(binary:matches(RoutingKey, <<"/">>)),
-    {list_to_pid(kz_term:to_list(binary:part(RoutingKey, 11, Start - 11)))
-    ,binary:part(RoutingKey, Start + 1, Size - Start - 1)
-    };
-maybe_split_routing_key(RoutingKey) ->
-    {'undefined', RoutingKey}.
 
 -spec connection_command_enabled() -> boolean().
 connection_command_enabled() ->

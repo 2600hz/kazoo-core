@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -206,7 +206,7 @@ node_apps_rollup_name(App, Acc) ->
 -spec node_apps_rollup_runtime(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 node_apps_rollup_runtime(App, Acc) ->
     case kz_json:get_integer_value(<<"startup">>, App) of
-        undefined -> Acc;
+        'undefined' -> Acc;
         Startup ->
             Name = kz_json:get_value(<<"name">>, App),
             Startup = kz_json:get_value(<<"startup">>, App),

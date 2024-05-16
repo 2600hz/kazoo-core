@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -405,7 +405,7 @@ encode_string(#{indent := UserIndent
 encode_string(_State, String, _Indent, _LineWidth, 'plain') ->
     [String];
 encode_string(_State, String, _Indent, _LineWidth, 'single_quote') ->
-    [<<$'>>, binary:replace(String, <<"'">>, <<"''">>, [global]), <<$'>>];
+    [<<$'>>, binary:replace(String, <<"'">>, <<"''">>, ['global']), <<$'>>];
 encode_string(_State, String, _Indent, _LineWidth, 'double_qoute') ->
     [<<$">>, escape_string(String, <<>>), <<$">>];
 encode_string(#{indent := StateIndent}, String, Indent, _LineWidth, 'literal') ->
@@ -471,7 +471,7 @@ indent_string(String, Indent) ->
              'false' -> [Line, <<$\n>>]
          end
      end
-     || Line <- trim_last_trailing_empty(binary:split(String, <<$\n>>, [global]))
+     || Line <- trim_last_trailing_empty(binary:split(String, <<$\n>>, ['global']))
     ].
 
 -spec trim_last_trailing_empty(iolist()) -> iolist().
@@ -529,7 +529,7 @@ fold_string_fold([StringLFs, Line, <<>> | Lines], Width, PrevMoreIndented, Acc) 
 fold_line(<<>>, _) -> <<>>;
 fold_line(<<" ", _/binary>> = Line, _) -> Line;
 fold_line(Line, Width) ->
-    Matches = re:run(Line, <<" [^ ]">>, [global]),
+    Matches = re:run(Line, <<" [^ ]">>, ['global']),
     {Start, Curr, Acc} = fold_line_fold(Line, Width, Matches, 0, 0, <<>>),
     Result0 = <<Acc/binary, $\n>>,
     case byte_size(Line) - Start > Width
@@ -825,8 +825,8 @@ start_state(#{}=Options) ->
         end,
     #{compact          => Compact
      ,indent           => Indent
-     ,string_style     => maps:get('string_style', Options, literal)
-     ,key_string_style => maps:get('key_string_style', Options, plain)
+     ,string_style     => maps:get('string_style', Options, 'literal')
+     ,key_string_style => maps:get('key_string_style', Options, 'plain')
      ,sort_keys        => maps:get('sort_keys', Options, 'true')
      ,line_width       => maps:get('line_width', Options, 80)
      ,bool_style       => maps:get('bool_style', Options, 'lowercase')

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -127,6 +127,9 @@
 -type whapp_info() :: #whapp_info{}.
 -type kapps_info() :: [{binary(), whapp_info()}].
 
+-type kapp_version() :: #kapp_version{}.
+-type kapp_versions() :: [kapp_version()].
+
 -type media_server() :: {kz_term:ne_binary(), kz_json:object()}.
 -type media_servers() :: [media_server()].
 
@@ -180,4 +183,5 @@
              ,media_servers/0
              ,kz_node/0
              ,kz_nodes/0
+             ,kapp_version/0, kapp_versions/0
              ]).

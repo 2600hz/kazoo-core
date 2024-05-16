@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2023, 2600Hz
+%%% @copyright (C) 2014-2024, 2600Hz
 %%% @doc Module for extending schema validation
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -61,6 +61,9 @@ extra_validation(Value, State) ->
     Key = kz_binary:join(lists:filter(fun kz_term:is_not_empty/1, Keys), <<".">>),
     lager:info("extra for ~p : ~p", [Key, Value]),
     extra_validation(Key, Value, State).
+
+extra_validation(<<"accounts.announcement">>, Value, State) ->
+    announcement_validation(Value, State);
 
 extra_validation(<<"metaflow.data">>, Value, State) ->
     JObj = jesse_state:get_current_value(State),
@@ -157,6 +160,15 @@ extra_validation(_Key, _Value, State) ->
     lager:info("extra validation of ~s not handled for value ~p", [_Key, _Value]),
     State.
 
+announcement_validation(Value, State) ->
+    case kz_html_xss:has_any_xss_items(Value) of
+        'false' -> State;
+        'true' ->
+            ErrorMsg = <<"HTML value contains not allowed attributes or tags">>,
+            lager:debug("error validating accounts.announcement, it contains cross-site scripting"),
+            jesse_error:handle_data_invalid({'external_error', ErrorMsg}, Value, State)
+    end.
+
 validate_module_data(Schema, Value, State) ->
     State1 = jesse_state:resolve_ref(State, Schema),
     State2 = case jesse_state:get_current_schema_id(State1) of
@@ -248,6 +260,8 @@ is_valid_client_url({Scheme, Host, _Path, _QueryString, _Fragment}) ->
               ,{fun is_valid_host/1, Host}
               ]
              );
+is_valid_client_url({'error', 'invalid_uri'}) ->
+    'false';
 is_valid_client_url(<<URL/binary>>) ->
     is_valid_client_url(kz_http_util:urlsplit(URL)).
 
@@ -368,6 +382,12 @@ is_valid_dns(_Host) -> 'true'.
 
 -spec is_valid_dns(kz_term:ne_binary()) -> boolean().
 is_valid_dns(Host) ->
+    is_valid_dns(Host, kapps_config:is_true(<<"kazoo_web">>, <<"should_validate_dns">>, 'true')).
+
+is_valid_dns(_Host, 'false') ->
+    lager:info("configured to not validate DNS"),
+    'true';
+is_valid_dns(Host, 'true') ->
     Options = kz_network_utils:default_options(),
 
     LookupOptions =
@@ -388,22 +408,37 @@ is_valid_dns(Host) ->
 maybe_local_dns(Host) ->
     HostL = kz_term:to_list(Host),
     case inet:gethostbyname(HostL) of
-        {'ok', #hostent{h_name = HostL,
-                        h_addrtype = 'inet',
-                        h_length = 4,
-                        h_addr_list = [?IPV4=IP|_]
-                       }
-        } ->
-            lager:info("host ~s defined locally as ~p", [Host, IP]),
-            is_valid_host(IP);
-        {'ok', _HostEnt} ->
-            lager:info("got a host rec but didn't match ~s: ~p", [Host, _HostEnt]),
-            'false';
+        {'ok', #hostent{}=HostEnt} ->
+            check_hostent(HostL, HostEnt);
         {'error', 'nxdomain'} ->
             lager:info("no DNS setup (nxdomain) for ~s", [Host]),
             'false';
         {'error', _E} ->
             lager:info("failed to get DNS for host ~s: ~p", [Host, _E]),
             'false'
+    end.
+
+check_hostent(HostL, #hostent{h_name = HostL
+                             ,h_addrtype = 'inet'
+                             ,h_length = 4
+                             ,h_addr_list = AddrList
+                             }
+             ) ->
+    lager:info("host ~s defined locally with ip(s) ~p", [HostL, AddrList]),
+    lists:all(fun is_valid_host/1, AddrList);
+check_hostent(HostL, #hostent{h_name = MainHost
+                             ,h_aliases = Aliases
+                             ,h_addrtype = 'inet'
+                             ,h_length = 4
+                             ,h_addr_list = AddrList
+                             }
+             ) ->
+    case lists:member(HostL, Aliases) of
+        'false' ->
+            lager:info("got a host rec but didn't match ~s: ~s and aliases ~s", [HostL, MainHost, Aliases]),
+            'false';
+        'true' ->
+            lager:info("host ~s listed in aliases of ~s with ip(s) ~p", [HostL, MainHost, AddrList]),
+            lists:all(fun is_valid_host/1, AddrList)
     end.
 -endif.

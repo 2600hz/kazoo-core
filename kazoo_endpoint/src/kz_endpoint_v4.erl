@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -337,7 +337,7 @@ merge_attribute(?ATTR_LOWER_KEY, _Account, Endpoint, Owner) ->
         'false' -> kz_json:set_value(FullKey, OwnerAttr, Endpoint)
     end;
 merge_attribute(<<"call_restriction">>, Account, Endpoint, Owner) ->
-    Classifiers = kz_json:get_keys(knm_converters:available_classifiers()),
+    Classifiers = knm_converters:available_classifiers(),
     merge_call_restrictions(Classifiers, Account, Endpoint, Owner);
 merge_attribute(<<"name">> = Key, Account, Endpoint, Owner) ->
     Name = create_endpoint_name(kzd_users:first_name(Owner)
@@ -560,26 +560,31 @@ caller_id_owner_attr(Owner) ->
         _Else -> OwnerAttr
     end.
 
--spec merge_call_restrictions(kz_term:ne_binaries(), kz_json:object(), kz_json:object(), kz_json:object()) ->
+-spec merge_call_restrictions(kz_json:objects(), kz_json:object(), kz_json:object(), kz_json:object()) ->
           kz_json:object().
 merge_call_restrictions([], _, Endpoint, _) -> Endpoint;
 merge_call_restrictions([Classifier|Classifiers], Account, Endpoint, Owner) ->
-    case is_classifier_denied(Classifier, [Account, Owner]) of
+    ClassifierName = classifier_name(Classifier),
+    case is_classifier_denied(ClassifierName, [Account, Owner]) of
         'true' ->
             %% denied at the account or owner level
-            Update = add_denied_classifier(Classifier, Endpoint),
+            Update = add_denied_classifier(ClassifierName, Endpoint),
             merge_call_restrictions(Classifiers, Account, Update, Owner);
         'false' ->
-            case is_classifier_allowed(Classifier, [Owner]) of
+            case is_classifier_allowed(ClassifierName, [Owner]) of
                 'true' ->
                     %% allowed at the owner level
-                    Update = add_allowed_classifier(Classifier, Endpoint),
+                    Update = add_allowed_classifier(ClassifierName, Endpoint),
                     merge_call_restrictions(Classifiers, Account, Update, Owner);
                 'false' ->
                     %% owner inherit or no owner, either way use the device restrictions
                     merge_call_restrictions(Classifiers, Account, Endpoint, Owner)
             end
     end.
+
+-spec classifier_name(kz_json:object()) -> kz_term:ne_binary().
+classifier_name(Classifier) ->
+    kz_json:get_ne_binary_value(<<"name">>, Classifier).
 
 -spec is_classifier_denied(kz_term:ne_binary(), kz_json:objects()) -> boolean().
 is_classifier_denied(Classifier, JObjs) ->
@@ -641,16 +646,17 @@ get_users(AccountDb, OwnerIds) ->
 -spec fix_user_restrictions(kzd_users:doc()) -> kzd_users:doc().
 fix_user_restrictions(UserJObj) ->
     lists:foldl(fun(Classifier, User) ->
-                        case kzd_users:classifier_restriction(User, Classifier) of
+                        ClassifierName = classifier_name(Classifier),
+                        case kzd_users:classifier_restriction(User, ClassifierName) of
                             <<"deny">> -> User;
                             _Else ->
                                 %% this ensures we override the device
                                 %% but only when there is a user associated
-                                kzd_users:set_classifier_restriction(User, Classifier, <<"allow">>)
+                                kzd_users:set_classifier_restriction(User, ClassifierName, <<"allow">>)
                         end
                 end
                ,UserJObj
-               ,kz_json:get_keys(knm_converters:available_classifiers())
+               ,knm_converters:available_classifiers()
                ).
 
 -spec convert_to_single_user(kzd_users:docs()) -> kzd_users:doc().
@@ -674,15 +680,16 @@ singlfy_user_attr_keys(UserJObjs, AccJObj) ->
 -spec singlfy_user_restrictions(kzd_users:docs(), kzd_users:doc()) -> kzd_users:doc().
 singlfy_user_restrictions(UserJObjs, AccJObj) ->
     lists:foldl(fun(Classifier, Acc) ->
-                        Fun = fun(Elem) -> do_all_restrict(Classifier, Elem) end,
+                        ClassifierName = classifier_name(Classifier),
+                        Fun = fun(Elem) -> do_all_restrict(ClassifierName, Elem) end,
                         case lists:all(Fun, UserJObjs) of
                             'false' -> Acc;
                             'true' ->
-                                kzd_users:set_classifier_restriction(Acc, Classifier, <<"deny">>)
+                                kzd_users:set_classifier_restriction(Acc, ClassifierName, <<"deny">>)
                         end
                 end
                ,AccJObj
-               ,kz_json:get_keys(knm_converters:available_classifiers())
+               ,knm_converters:available_classifiers()
                ).
 
 -spec do_all_restrict(kz_term:ne_binary(), kzd_users:doc()) -> boolean().
@@ -824,14 +831,14 @@ should_create_endpoint_fold(Routine, {Endpoint, Properties, Call}=Acc) when is_f
         'ok' -> Acc;
         Error -> Error
     catch
-        ?STACKTRACE('throw', Error, ST)
-        kz_log:log_stacktrace(ST),
-        Error;
-        ?STACKTRACE(_E, _R, ST)
-        lager:debug("exception ~p:~p", [_E, _R]),
-        kz_log:log_stacktrace(ST),
-        {'error', 'exception'}
-        end;
+        'throw':Error:ST ->
+            kz_log:log_stacktrace(ST),
+            Error;
+        _E:_R:ST ->
+            lager:debug("exception ~p:~p", [_E, _R]),
+            kz_log:log_stacktrace(ST),
+            {'error', 'exception'}
+    end;
 should_create_endpoint_fold(_Routine, Error) -> Error.
 
 -spec maybe_missing_resource_type(kz_json:object(), kz_json:object(),  kapps_call:call()) ->
@@ -1040,11 +1047,11 @@ try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call) when is_func
             lager:debug("created endpoint from ~s", [kz_doc:id(Endpoint)]),
             [JObj|Endpoints]
     catch
-        ?STACKTRACE(_E, _R, ST)
-        lager:warning("unable to build endpoint(~s): ~p", [_E, _R]),
-        kz_log:log_stacktrace(ST),
-        Endpoints
-        end.
+        _E:_R:ST ->
+            lager:warning("unable to build endpoint(~s): ~p", [_E, _R]),
+            kz_log:log_stacktrace(ST),
+            Endpoints
+    end.
 
 -spec maybe_create_fwd_endpoint(kz_json:object(), kz_json:object(), kapps_call:call()) ->
           kz_json:object() |

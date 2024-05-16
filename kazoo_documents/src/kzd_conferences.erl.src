@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Accessors for `conferences' document.
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -26,11 +26,11 @@
 -export([member_pins/1, member_pins/2, set_member_pins/2]).
 -export([member_play_entry_prompt/1, member_play_entry_prompt/2, set_member_play_entry_prompt/2]).
 -export([moderator/1, moderator/2, set_moderator/2]).
+-export([moderator_controls/1, moderator_controls/2, set_moderator_controls/2]).
 -export([moderator_join_deaf/1, moderator_join_deaf/2, set_moderator_join_deaf/2]).
 -export([moderator_join_muted/1, moderator_join_muted/2, set_moderator_join_muted/2]).
 -export([moderator_numbers/1, moderator_numbers/2, set_moderator_numbers/2]).
 -export([moderator_pins/1, moderator_pins/2, set_moderator_pins/2]).
--export([moderator_controls/1, moderator_controls/2, set_moderator_controls/2]).
 -export([name/1, name/2, set_name/2]).
 -export([owner_id/1, owner_id/2, set_owner_id/2]).
 -export([play_entry_tone/1, play_entry_tone/2, set_play_entry_tone/2]).
@@ -38,7 +38,23 @@
 -export([play_name/1, play_name/2, set_play_name/2]).
 -export([play_welcome/1, play_welcome/2, set_play_welcome/2]).
 -export([profile/1, profile/2, set_profile/2]).
+-export([profile_alone_sound/1, profile_alone_sound/2, set_profile_alone_sound/2]).
+-export([profile_announce_count/1, profile_announce_count/2, set_profile_announce_count/2]).
+-export([profile_caller_controls/1, profile_caller_controls/2, set_profile_caller_controls/2]).
+-export([profile_comfort_noise/1, profile_comfort_noise/2, set_profile_comfort_noise/2]).
+-export([profile_energy_level/1, profile_energy_level/2, set_profile_energy_level/2]).
+-export([profile_enter_sound/1, profile_enter_sound/2, set_profile_enter_sound/2]).
+-export([profile_exit_sound/1, profile_exit_sound/2, set_profile_exit_sound/2]).
+-export([profile_interval/1, profile_interval/2, set_profile_interval/2]).
+-export([profile_locked_sound/1, profile_locked_sound/2, set_profile_locked_sound/2]).
+-export([profile_max_members/1, profile_max_members/2, set_profile_max_members/2]).
+-export([profile_max_members_sound/1, profile_max_members_sound/2, set_profile_max_members_sound/2]).
+-export([profile_moderator_controls/1, profile_moderator_controls/2, set_profile_moderator_controls/2]).
+-export([profile_moh_sound/1, profile_moh_sound/2, set_profile_moh_sound/2]).
+-export([profile_muted_sound/1, profile_muted_sound/2, set_profile_muted_sound/2]).
 -export([profile_name/1, profile_name/2, set_profile_name/2]).
+-export([profile_rate/1, profile_rate/2, set_profile_rate/2]).
+-export([profile_unmuted_sound/1, profile_unmuted_sound/2, set_profile_unmuted_sound/2]).
 -export([require_moderator/1, require_moderator/2, set_require_moderator/2]).
 -export([video/1, video/2, set_video/2]).
 -export([wait_for_moderator/1, wait_for_moderator/2, set_wait_for_moderator/2]).
@@ -295,6 +311,18 @@ moderator(Doc, Default) ->
 set_moderator(Doc, Moderator) ->
     kz_json:set_value([<<"moderator">>], Moderator, Doc).
 
+-spec moderator_controls(doc()) -> kz_term:api_binary().
+moderator_controls(Doc) ->
+    moderator_controls(Doc, 'undefined').
+
+-spec moderator_controls(doc(), Default) -> binary() | Default.
+moderator_controls(Doc, Default) ->
+    kz_json:get_binary_value([<<"moderator_controls">>], Doc, Default).
+
+-spec set_moderator_controls(doc(), binary()) -> doc().
+set_moderator_controls(Doc, ModeratorControls) ->
+    kz_json:set_value([<<"moderator_controls">>], ModeratorControls, Doc).
+
 -spec moderator_join_deaf(doc()) -> boolean().
 moderator_join_deaf(Doc) ->
     moderator_join_deaf(Doc, 'false').
@@ -342,18 +370,6 @@ moderator_pins(Doc, Default) ->
 -spec set_moderator_pins(doc(), kz_term:ne_binaries()) -> doc().
 set_moderator_pins(Doc, ModeratorPins) ->
     kz_json:set_value([<<"moderator">>, <<"pins">>], ModeratorPins, Doc).
-
--spec moderator_controls(doc()) -> kz_term:api_binary().
-moderator_controls(Doc) ->
-    moderator_controls(Doc, 'undefined').
-
--spec moderator_controls(doc(), Default) -> binary() | Default.
-moderator_controls(Doc, Default) ->
-    kz_json:get_binary_value([<<"moderator_controls">>], Doc, Default).
-
--spec set_moderator_controls(doc(), binary()) -> doc().
-set_moderator_controls(Doc, ModeratorControls) ->
-    kz_json:set_value([<<"moderator_controls">>], ModeratorControls, Doc).
 
 -spec name(doc()) -> kz_term:api_ne_binary().
 name(Doc) ->
@@ -439,6 +455,174 @@ profile(Doc, Default) ->
 set_profile(Doc, Profile) ->
     kz_json:set_value([<<"profile">>], Profile, Doc).
 
+-spec profile_alone_sound(doc()) -> kz_term:api_binary().
+profile_alone_sound(Doc) ->
+    profile_alone_sound(Doc, 'undefined').
+
+-spec profile_alone_sound(doc(), Default) -> binary() | Default.
+profile_alone_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"alone_sound">>], Doc, Default).
+
+-spec set_profile_alone_sound(doc(), binary()) -> doc().
+set_profile_alone_sound(Doc, ProfileAloneSound) ->
+    kz_json:set_value([<<"profile">>, <<"alone_sound">>], ProfileAloneSound, Doc).
+
+-spec profile_announce_count(doc()) -> kz_term:api_integer().
+profile_announce_count(Doc) ->
+    profile_announce_count(Doc, 'undefined').
+
+-spec profile_announce_count(doc(), Default) -> integer() | Default.
+profile_announce_count(Doc, Default) ->
+    kz_json:get_integer_value([<<"profile">>, <<"announce_count">>], Doc, Default).
+
+-spec set_profile_announce_count(doc(), integer()) -> doc().
+set_profile_announce_count(Doc, ProfileAnnounceCount) ->
+    kz_json:set_value([<<"profile">>, <<"announce_count">>], ProfileAnnounceCount, Doc).
+
+-spec profile_caller_controls(doc()) -> kz_term:api_binary().
+profile_caller_controls(Doc) ->
+    profile_caller_controls(Doc, 'undefined').
+
+-spec profile_caller_controls(doc(), Default) -> binary() | Default.
+profile_caller_controls(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"caller_controls">>], Doc, Default).
+
+-spec set_profile_caller_controls(doc(), binary()) -> doc().
+set_profile_caller_controls(Doc, ProfileCallerControls) ->
+    kz_json:set_value([<<"profile">>, <<"caller_controls">>], ProfileCallerControls, Doc).
+
+-spec profile_comfort_noise(doc()) -> kz_term:api_integer().
+profile_comfort_noise(Doc) ->
+    profile_comfort_noise(Doc, 'undefined').
+
+-spec profile_comfort_noise(doc(), Default) -> integer() | Default.
+profile_comfort_noise(Doc, Default) ->
+    kz_json:get_integer_value([<<"profile">>, <<"comfort_noise">>], Doc, Default).
+
+-spec set_profile_comfort_noise(doc(), integer()) -> doc().
+set_profile_comfort_noise(Doc, ProfileComfortNoise) ->
+    kz_json:set_value([<<"profile">>, <<"comfort_noise">>], ProfileComfortNoise, Doc).
+
+-spec profile_energy_level(doc()) -> kz_term:api_integer().
+profile_energy_level(Doc) ->
+    profile_energy_level(Doc, 'undefined').
+
+-spec profile_energy_level(doc(), Default) -> integer() | Default.
+profile_energy_level(Doc, Default) ->
+    kz_json:get_integer_value([<<"profile">>, <<"energy_level">>], Doc, Default).
+
+-spec set_profile_energy_level(doc(), integer()) -> doc().
+set_profile_energy_level(Doc, ProfileEnergyLevel) ->
+    kz_json:set_value([<<"profile">>, <<"energy_level">>], ProfileEnergyLevel, Doc).
+
+-spec profile_enter_sound(doc()) -> kz_term:api_binary().
+profile_enter_sound(Doc) ->
+    profile_enter_sound(Doc, 'undefined').
+
+-spec profile_enter_sound(doc(), Default) -> binary() | Default.
+profile_enter_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"enter_sound">>], Doc, Default).
+
+-spec set_profile_enter_sound(doc(), binary()) -> doc().
+set_profile_enter_sound(Doc, ProfileEnterSound) ->
+    kz_json:set_value([<<"profile">>, <<"enter_sound">>], ProfileEnterSound, Doc).
+
+-spec profile_exit_sound(doc()) -> kz_term:api_binary().
+profile_exit_sound(Doc) ->
+    profile_exit_sound(Doc, 'undefined').
+
+-spec profile_exit_sound(doc(), Default) -> binary() | Default.
+profile_exit_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"exit_sound">>], Doc, Default).
+
+-spec set_profile_exit_sound(doc(), binary()) -> doc().
+set_profile_exit_sound(Doc, ProfileExitSound) ->
+    kz_json:set_value([<<"profile">>, <<"exit_sound">>], ProfileExitSound, Doc).
+
+-spec profile_interval(doc()) -> kz_term:api_integer().
+profile_interval(Doc) ->
+    profile_interval(Doc, 'undefined').
+
+-spec profile_interval(doc(), Default) -> integer() | Default.
+profile_interval(Doc, Default) ->
+    kz_json:get_integer_value([<<"profile">>, <<"interval">>], Doc, Default).
+
+-spec set_profile_interval(doc(), integer()) -> doc().
+set_profile_interval(Doc, ProfileInterval) ->
+    kz_json:set_value([<<"profile">>, <<"interval">>], ProfileInterval, Doc).
+
+-spec profile_locked_sound(doc()) -> kz_term:api_binary().
+profile_locked_sound(Doc) ->
+    profile_locked_sound(Doc, 'undefined').
+
+-spec profile_locked_sound(doc(), Default) -> binary() | Default.
+profile_locked_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"locked_sound">>], Doc, Default).
+
+-spec set_profile_locked_sound(doc(), binary()) -> doc().
+set_profile_locked_sound(Doc, ProfileLockedSound) ->
+    kz_json:set_value([<<"profile">>, <<"locked_sound">>], ProfileLockedSound, Doc).
+
+-spec profile_max_members(doc()) -> kz_term:api_integer().
+profile_max_members(Doc) ->
+    profile_max_members(Doc, 'undefined').
+
+-spec profile_max_members(doc(), Default) -> integer() | Default.
+profile_max_members(Doc, Default) ->
+    kz_json:get_integer_value([<<"profile">>, <<"max_members">>], Doc, Default).
+
+-spec set_profile_max_members(doc(), integer()) -> doc().
+set_profile_max_members(Doc, ProfileMaxMembers) ->
+    kz_json:set_value([<<"profile">>, <<"max_members">>], ProfileMaxMembers, Doc).
+
+-spec profile_max_members_sound(doc()) -> kz_term:api_binary().
+profile_max_members_sound(Doc) ->
+    profile_max_members_sound(Doc, 'undefined').
+
+-spec profile_max_members_sound(doc(), Default) -> binary() | Default.
+profile_max_members_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"max_members_sound">>], Doc, Default).
+
+-spec set_profile_max_members_sound(doc(), binary()) -> doc().
+set_profile_max_members_sound(Doc, ProfileMaxMembersSound) ->
+    kz_json:set_value([<<"profile">>, <<"max_members_sound">>], ProfileMaxMembersSound, Doc).
+
+-spec profile_moderator_controls(doc()) -> kz_term:api_binary().
+profile_moderator_controls(Doc) ->
+    profile_moderator_controls(Doc, 'undefined').
+
+-spec profile_moderator_controls(doc(), Default) -> binary() | Default.
+profile_moderator_controls(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"moderator_controls">>], Doc, Default).
+
+-spec set_profile_moderator_controls(doc(), binary()) -> doc().
+set_profile_moderator_controls(Doc, ProfileModeratorControls) ->
+    kz_json:set_value([<<"profile">>, <<"moderator_controls">>], ProfileModeratorControls, Doc).
+
+-spec profile_moh_sound(doc()) -> kz_term:api_binary().
+profile_moh_sound(Doc) ->
+    profile_moh_sound(Doc, 'undefined').
+
+-spec profile_moh_sound(doc(), Default) -> binary() | Default.
+profile_moh_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"moh_sound">>], Doc, Default).
+
+-spec set_profile_moh_sound(doc(), binary()) -> doc().
+set_profile_moh_sound(Doc, ProfileMohSound) ->
+    kz_json:set_value([<<"profile">>, <<"moh_sound">>], ProfileMohSound, Doc).
+
+-spec profile_muted_sound(doc()) -> kz_term:api_binary().
+profile_muted_sound(Doc) ->
+    profile_muted_sound(Doc, 'undefined').
+
+-spec profile_muted_sound(doc(), Default) -> binary() | Default.
+profile_muted_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"muted_sound">>], Doc, Default).
+
+-spec set_profile_muted_sound(doc(), binary()) -> doc().
+set_profile_muted_sound(Doc, ProfileMutedSound) ->
+    kz_json:set_value([<<"profile">>, <<"muted_sound">>], ProfileMutedSound, Doc).
+
 -spec profile_name(doc()) -> kz_term:api_binary().
 profile_name(Doc) ->
     profile_name(Doc, 'undefined').
@@ -450,6 +634,30 @@ profile_name(Doc, Default) ->
 -spec set_profile_name(doc(), binary()) -> doc().
 set_profile_name(Doc, ProfileName) ->
     kz_json:set_value([<<"profile_name">>], ProfileName, Doc).
+
+-spec profile_rate(doc()) -> kz_term:api_integer().
+profile_rate(Doc) ->
+    profile_rate(Doc, 'undefined').
+
+-spec profile_rate(doc(), Default) -> integer() | Default.
+profile_rate(Doc, Default) ->
+    kz_json:get_integer_value([<<"profile">>, <<"rate">>], Doc, Default).
+
+-spec set_profile_rate(doc(), integer()) -> doc().
+set_profile_rate(Doc, ProfileRate) ->
+    kz_json:set_value([<<"profile">>, <<"rate">>], ProfileRate, Doc).
+
+-spec profile_unmuted_sound(doc()) -> kz_term:api_binary().
+profile_unmuted_sound(Doc) ->
+    profile_unmuted_sound(Doc, 'undefined').
+
+-spec profile_unmuted_sound(doc(), Default) -> binary() | Default.
+profile_unmuted_sound(Doc, Default) ->
+    kz_json:get_binary_value([<<"profile">>, <<"unmuted_sound">>], Doc, Default).
+
+-spec set_profile_unmuted_sound(doc(), binary()) -> doc().
+set_profile_unmuted_sound(Doc, ProfileUnmutedSound) ->
+    kz_json:set_value([<<"profile">>, <<"unmuted_sound">>], ProfileUnmutedSound, Doc).
 
 -spec require_moderator(doc()) -> kz_term:api_boolean().
 require_moderator(Doc) ->

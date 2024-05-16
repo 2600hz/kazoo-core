@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc Implementation of a
 %%% <a href="https://en.wikipedia.org/wiki/Token_bucket#The_token_bucket_algorithm">Token Bucket</a>
 %%% as `gen_server;.
@@ -141,6 +141,7 @@ credit(Srv, Tokens) when is_integer(Tokens)
                          andalso Tokens > 0 ->
     gen_server:cast(Srv, {'credit', Tokens, get_callid()}).
 
+-spec get_callid() -> kz_term:ne_binary().
 get_callid() ->
     case kz_log:get_callid() of
         'undefined' -> ?DEFAULT_LOG_SYSTEM_ID;

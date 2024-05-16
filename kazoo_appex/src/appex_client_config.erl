@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,9 +21,12 @@
         ,system_configs/0, system_configs/1
 
         ,is_configured/0
-        ,get_public_configs/0
+        ,get_public_configs/0, get_public_configs/1
 
         ,config_cat/0
+
+        ,find_api_url/0
+        ,is_aio_cluster/0, set_is_aio_cluster/1
         ]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -76,6 +79,36 @@ set_api_url(URL) ->
     {'ok', _} = kapps_config:set_string(?CONFIG_CAT, <<"api_url">>, URL),
     URL.
 
+-spec find_api_url() -> {'ok', kz_term:ne_binary()} | {'error', 'no_api_url'}.
+find_api_url() ->
+    case api_url() of
+        'undefined' ->
+            try kz_network_utils:resolve(kz_term:to_binary(kz_network_utils:get_hostname())
+                                        ,get_resolve_options()
+                                        )
+            of
+                [] ->
+                    lager:error("unable to detect localhost api_url, please configure api_url in appex_client"),
+                    {'error', 'no_api_url'};
+                [IP|_] ->
+                    lager:info("using current hostmachine address ~s as api_url", [IP]),
+                    {'ok', IP}
+            catch
+                _E:_T:_ST ->
+                    lager:error("unable to detect localhost api_url, please configure api_url in appex_client"),
+                    {'error', 'no_api_url'}
+            end;
+        ApiUrl ->
+            {'ok', ApiUrl}
+    end.
+
+-spec get_resolve_options() -> kz_term:proplist().
+get_resolve_options() ->
+    case kapps_config:is_true(?CONFIG_CAT, <<"use_tcp">>, 'false') of
+        'true' -> kz_network_utils:default_options();
+        'false' -> props:set_value('usevc', 'false', kz_network_utils:default_options())
+    end.
+
 -spec marketplace_url() -> kz_term:api_ne_binary().
 marketplace_url() ->
     kapps_config:get_ne_binary(?CONFIG_CAT, <<"marketplace_url">>, default_value('marketplace_url', <<"https://marketplace.2600hz.com">>)).
@@ -84,6 +117,15 @@ marketplace_url() ->
 set_marketplace_url(URL) ->
     {'ok', _} = kapps_config:set_string(?CONFIG_CAT, <<"marketplace_url">>, URL),
     URL.
+
+-spec is_aio_cluster() -> boolean().
+is_aio_cluster() ->
+    kapps_config:is_true(?CONFIG_CAT, <<"is_aio_cluster">>, 'false').
+
+-spec set_is_aio_cluster(boolean()) -> boolean().
+set_is_aio_cluster(Bool) ->
+    {'ok', _} = kapps_config:set_boolean(?CONFIG_CAT, <<"is_aio_cluster">>, Bool),
+    Bool.
 
 -spec fetch_timer_s() -> pos_integer().
 fetch_timer_s() ->
@@ -219,17 +261,42 @@ get_function_signature(Module, Application, {Function, Arity, Clauses}, Sigs) ->
 get_application(File) ->
     kz_term:to_binary(filename:basename(filename:dirname(filename:dirname(File)))).
 
--spec get_public_configs() -> kz_json:object().
+-spec get_public_configs() -> {'ok' | 'error', kz_json:object()}.
 get_public_configs() ->
-    kz_json:from_list(
-      [{<<"cluster_id">>, kzd_cluster:id()}
-      ,{<<"enabled">>, is_enabled()}
-      ,{<<"app_exchange_url">>, app_exchange_url()}
-      ,{<<"api_url">>, api_url()}
-      ,{<<"marketplace_url">>, marketplace_url()}
-      ,{<<"is_linked">>, kz_term:is_not_empty(cluster_secret())}
-      ]
-     ).
+    get_public_configs(appex_client_client:maybe_get_cluster()).
+
+-spec get_public_configs({'ok', kz_json:object()} | {'error', kz_json:object() | 'not_linked'}) ->
+          {'ok' | 'error', kz_json:object()}.
+get_public_configs({'ok', Cluster}) ->
+    {'ok'
+    ,kz_json:from_list(
+       [{<<"cluster_id">>, kzd_cluster:id()}
+       ,{<<"enabled">>, is_enabled()}
+       ,{<<"app_exchange_url">>, app_exchange_url()}
+       ,{<<"api_url">>, api_url()}
+       ,{<<"marketplace_url">>, marketplace_url()}
+       ,{<<"is_linked">>, kz_term:is_not_empty(cluster_secret())}
+       ,{<<"is_aio_cluster">>, is_aio_cluster()}
+       ,{<<"name">>, kz_json:get_ne_binary_value(<<"name">>, Cluster)}
+       ,{<<"kazoo_version">>, kz_json:get_ne_binary_value(<<"kazoo_version">>, Cluster)}
+       ]
+      )
+    };
+get_public_configs({'error', 'not_linked'}) ->
+    {'ok'
+    ,kz_json:from_list(
+       [{<<"cluster_id">>, kzd_cluster:id()}
+       ,{<<"enabled">>, is_enabled()}
+       ,{<<"app_exchange_url">>, app_exchange_url()}
+       ,{<<"api_url">>, api_url()}
+       ,{<<"marketplace_url">>, marketplace_url()}
+       ,{<<"is_linked">>, kz_term:is_not_empty(cluster_secret())}
+       ,{<<"is_aio_cluster">>, is_aio_cluster()}
+       ]
+      )
+    };
+get_public_configs({'error', ErrorJObj}) ->
+    {'error', ErrorJObj}.
 
 -spec config_cat() -> kz_term:ne_binary().
 config_cat() -> ?CONFIG_CAT.
@@ -242,11 +309,11 @@ is_configured() ->
                ,{<<"app_exchange_url">>, app_exchange_url()}
                ]
               ),
-    is_configured(Config, 'true').
+    is_configured(Config).
 
--spec is_configured(kz_json:object(), boolean()) -> boolean().
-is_configured(Config, Log) ->
-    lists:foldl(fun(Key, Acc) -> is_defined(Key, Config, Log, Acc) end
+-spec is_configured(kz_json:object()) -> boolean().
+is_configured(Config) ->
+    lists:foldl(fun(Key, Acc) -> is_defined(Key, Config, Acc) end
                ,'true'
                ,[<<"cluster_id">>
                 ,<<"cluster_secret">>
@@ -254,12 +321,9 @@ is_configured(Config, Log) ->
                 ]
                ).
 
--spec is_defined(kz_json:key(), kz_json:object(), boolean(), boolean()) -> boolean().
-is_defined(Key, JObj, Log, Acc) ->
+-spec is_defined(kz_json:key(), kz_json:object(), boolean()) -> boolean().
+is_defined(Key, JObj, Acc) ->
     case kz_json:get_ne_value(Key, JObj) of
-        'undefined' when Log ->
-            lager:error("undefined key ~s", [Key]),
-            'false';
         'undefined' ->
             'false';
         _Val ->

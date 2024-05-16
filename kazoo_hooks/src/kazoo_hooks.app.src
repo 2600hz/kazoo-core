@@ -5,6 +5,5 @@
               {id,"53b6b744-518b-42fc-59b1-367671755f2e"},
               {vsn,"5.0.0"},
               {modules,[]},
-              {registered,[kazoo_hooks_sup,kz_hooks_listener,
-                           kz_hooks_shared_listener]},
+              {registered,[kazoo_hooks_sup,kz_hooks_listener]},
               {mod,{kazoo_hooks_app,[]}}]}.

@@ -1,5 +1,6 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @deprecated Use {@link kz_events}
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc Listens for a list of events and gproc-sends them out to folks who
 %%% want them
 %%%
@@ -40,6 +41,7 @@
                     ]).
 -define(CALL_BINDING(Events), {'call', [{'restrict_to', Events}
                                        ,'federate'
+                                       ,'pooled'
                                        ]}).
 -define(BINDINGS, []).
 -define(RESPONDERS, [{{'kz_hooks_util', 'handle_call_event'}
@@ -121,6 +123,8 @@ handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
 handle_cast({'gen_listener', {'federators_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
+handle_cast({'gen_listener', {'pooled_binding', _Binding}}, State) ->
+    {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),
     {'noreply', State}.
@@ -140,7 +144,7 @@ handle_info(_Info, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_json:object(), kz_term:proplist()) -> gen_listener:handle_event_return().
 handle_event(_JObj, _State) ->
-    {'reply', [{'rr', 'false'}]}.
+    {'reply', []}.
 
 %%------------------------------------------------------------------------------
 %% @doc This function is called by a `gen_server' when it is about to

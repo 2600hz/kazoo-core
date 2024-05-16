@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Mostly a drop-in replacement and extension of the proplists module,
 %%% but using the lists module to implement
 %%%
@@ -49,6 +49,16 @@
 %% don't import the get_keys/1 that fetches keys from the process dictionary
 -compile({'no_auto_import', [get_keys/1]}).
 
+%% @doc Sets `Props' into "first parameter"'s key/value pairs list ONLY if key from Props does not
+%% exist within "first parameter"'s key/value pairs list.
+%%
+%% example:
+%%  Defaults = [{a, 1}, {b, 2}]
+%%  Values = [{a, 5}, {b, 10}, {c, 30}]
+%%
+%%  props:set_values(Defaults, Values)  ->  [{b,2},{a,1},{c,30}]
+%%  props:set_values(Values, Defaults)  ->  [{c,30},{b,10},{a,5}]
+%% @end
 -spec set_values(kz_term:proplist(), kz_term:proplist()) -> kz_term:proplist().
 set_values([], Props) -> Props;
 set_values([{K, V}|KVs], Props) ->

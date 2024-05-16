@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -330,7 +330,10 @@ get_nodes_info() ->
 -spec request(request_acc()) -> request_acc().
 request(Acc) ->
     App = props:get_value('app', Acc),
-    [{'info', get_whapp_info(App)} | Acc].
+    WhappInfo = props:get_value('info', Acc, #whapp_info{}),
+
+    #whapp_info{startup=Startup} = get_whapp_info(App),
+    props:set_value('info', WhappInfo#whapp_info{startup=Startup}, Acc).
 
 -spec get_whapp_info(atom() | pid() | kz_term:proplist() | 'undefined') -> kz_types:whapp_info().
 get_whapp_info('undefined') -> #whapp_info{};

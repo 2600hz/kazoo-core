@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc Manage the ETS table separate from the main process to use the ETS table
 %%% Protects against the main writer dying.
 %%%
@@ -213,15 +213,18 @@ send_give_away_retry(Tbl) ->
 
 -spec find_me(find_me_fun(), pid()) -> 'ok'.
 find_me(Fun, Srv) ->
+    find_me(Fun, Srv, 250).
+
+find_me(Fun, Srv, TimeoutMs) ->
     lager:debug("trying to find successor for ~p", [Srv]),
     try Fun() of
         P when is_pid(P) ->
             Srv ! {'found_me', P},
             lager:debug("successor ~p found", [P]);
         'undefined' ->
-            timer:sleep(250),
+            timer:sleep(TimeoutMs),
             lager:debug("haven't found a successor yet"),
-            find_me(Fun, Srv)
+            find_me(Fun, Srv, TimeoutMs * 2)
     catch
         _E:_R ->
             lager:debug("failed to find successor: ~s: ~p", [_E, _R])

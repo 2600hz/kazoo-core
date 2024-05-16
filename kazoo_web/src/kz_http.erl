@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Kazoo HTTP client
 %%% @author Hesaam Farhang
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -262,22 +262,21 @@ execute_request(Method, Request, Opts) ->
     HTTPOptions = get_options(?HTTP_OPTIONS, Opts),
     Opts1 = get_options(?OPTIONS, Opts),
     Options = props:insert_value('body_format', 'binary', Opts1),
-    F = fun () ->
-                {Method
-                ,element(?REQ_URL_INDEX, Request)
-                ,catch httpc:request(Method, Request, HTTPOptions, Options)
-                }
-        end,
-    handle_timed_response(timer:tc(F)).
+    StartTime = kz_time:start_time(),
+    handle_timed_response(StartTime
+                         ,Method
+                         ,element(?REQ_URL_INDEX, Request)
+                         ,catch httpc:request(Method, Request, HTTPOptions, Options)
+                         ).
 
 %%------------------------------------------------------------------------------
 %% @doc Response to caller in a proper manner.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_timed_response({pos_integer(), {method(), url(), httpc_ret()}}) -> ret().
-handle_timed_response({Micros, {_Method, _Url, Resp}}) when is_integer(Micros) ->
-    ElapsedMs = float_to_list(Micros / ?MILLISECONDS_IN_SECOND, [{'decimals', 2}, 'compact']),
-    lager:debug("~sms: ~s ~s", [ElapsedMs, _Method, _Url]),
+-spec handle_timed_response(kz_time:start_time(), method(), url(), httpc_ret()) -> ret().
+handle_timed_response(StartTime, _Method, _Url, Resp) ->
+    ElapsedMs = kz_time:elapsed_ms(StartTime),
+    lager:debug("~pms: ~s ~s", [ElapsedMs, _Method, _Url]),
     handle_response(Resp).
 
 -spec handle_response(httpc_ret()) -> ret().

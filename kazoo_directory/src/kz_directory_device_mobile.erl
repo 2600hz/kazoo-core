@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -15,6 +15,7 @@
 
 -behaviour(kz_directory_device_spec).
 
+-export([inbound_ccvs/2]).
 -export([codecs/1]).
 -export([sip_interface/1]).
 -export([sip_route/1, sip_route_uri/1]).
@@ -29,11 +30,11 @@
 
 -define(ENDPOINT_CONFIG_CAT, <<"kazoo_endpoint">>).
 -define(MOBILE_CONFIG_CAT, <<(?ENDPOINT_CONFIG_CAT)/binary, ".mobile">>).
+-define(MOBILE_APP_CONFIG, 'kazoo_endpoint.mobile').
 -define(DEFAULT_MOBILE_FORMATER, <<"^\\+?1?([2-9][0-9]{2}[2-9][0-9]{6})$">>).
 -define(DEFAULT_MOBILE_PREFIX, <<>>).
 -define(DEFAULT_MOBILE_SUFFIX, <<>>).
 -define(DEFAULT_MOBILE_REALM, <<"mobile.k.zswitch.net">>).
--define(DEFAULT_MOBILE_PATH, <<>>).
 -define(DEFAULT_MOBILE_CODECS, [<<"PCMU">>]).
 -define(DEFAULT_CALLER_ID_NAME, <<"unknown">>).
 
@@ -98,12 +99,16 @@ sip_route(Endpoint) ->
         Route -> Route
     end.
 
+mobile_route_uri() ->
+    kapps_config:get_ne_binary(?MOBILE_CONFIG_CAT, <<"path">>).
+
 -spec sip_route_uri(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route_uri(_Endpoint) ->
-    Path = kapps_config:get_binary(?MOBILE_CONFIG_CAT, <<"path">>, ?DEFAULT_MOBILE_PATH),
-    case kz_term:is_empty(Path) of
-        'false' -> <<"sip:", Path/binary>>;
-        'true' -> 'undefined'
+    case mobile_route_uri() of
+        'undefined' -> 'undefined';
+        <<"sip:", _/binary>> = Path -> Path;
+        <<"<sip:", _/binary>> = Path -> Path;
+        Path -> <<"sip:", Path/binary>>
     end.
 
 -spec sip_interface(kz_json:object()) -> kz_term:api_ne_binary().
@@ -114,13 +119,24 @@ sip_interface(_Endpoint) ->
 codecs(_Endpoint) ->
     kapps_config:get(?MOBILE_CONFIG_CAT, <<"codecs">>, ?DEFAULT_MOBILE_CODECS).
 
+-spec mobile_ccvs() -> kz_json:object().
+mobile_ccvs() ->
+    kz_app_config:get_json(?MOBILE_APP_CONFIG, <<"custom_channel_variables">>, kz_json:new()).
+
+-spec mobile_device_ccvs(kz_json:object()) -> kz_json:object().
+mobile_device_ccvs(Endpoint) ->
+    kz_json:merge(mobile_ccvs(), kzd_devices:sip_custom_channel_vars(Endpoint, kz_json:new())).
+
 -spec routing_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
-routing_ccvs(Endpoint, CCVs) ->
-    kz_json:merge(CCVs, kz_custom_channel_vars:routing(kzd_devices:sip_custom_channel_vars(Endpoint, kz_json:new()), kz_json:new())).
+routing_ccvs(Endpoint, CRVs) ->
+    MobileCCVs = mobile_device_ccvs(Endpoint),
+    MobileCRVs = kz_custom_channel_vars:routing(MobileCCVs, kz_json:new()),
+    kz_json:merge(CRVs, MobileCRVs).
 
 -spec sip_headers(kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_headers(_Endpoint, Headers) ->
-    Headers.
+    CSHs = kapps_config:get_json(?MOBILE_CONFIG_CAT, <<"custom_sip_headers">>, kz_json:new()),
+    kz_json:merge(Headers, CSHs).
 
 -spec sip_auth(kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_auth(Endpoint, CCVs) ->
@@ -136,3 +152,9 @@ sip_auth(Endpoint, CCVs) ->
                   ],
             kz_json:set_values(KVs, CCVs)
     end.
+
+-spec inbound_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
+inbound_ccvs(Endpoint, CCVs) ->
+    MobileCCVs = mobile_device_ccvs(Endpoint),
+    InboundCCVs = kz_custom_channel_vars:inbound(MobileCCVs, kz_json:new()),
+    kz_json:merge(CCVs, InboundCCVs).

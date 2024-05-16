@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Allow resellers directly below the master account to find
 %%% manually-added `available' numbers.
 %%%
@@ -91,8 +91,8 @@ do_find_numbers(<<"+",_/binary>>=Prefix, Quantity, Offset, AccountId, QID)
                     lager:debug("found available local numbers for account ~s in ~s"
                                ,[AccountId, DB]
                                ),
-                    Numbers = format_numbers(QID, JObjs),
-                    find_more(Prefix, Quantity, Offset, AccountId, length(Numbers), QID, Numbers);
+                    Numbers = format_numbers(QID, JObjs, Prefix),
+                    find_more(Prefix, Quantity, Offset, AccountId, length(JObjs), QID, Numbers);
                 {'error', _R} ->
                     lager:debug("failed to lookup available local numbers in ~s: ~p", [DB, _R]),
                     {'error', 'datastore_fault'}
@@ -112,10 +112,16 @@ find_more(Prefix, Quantity, Offset, AccountId, NotEnough, QID, Numbers)
 find_more(_, _, _, _, _Enough, _, Numbers) ->
     {'ok', Numbers}.
 
--spec format_numbers(kz_term:ne_binary(), kz_json:objects()) -> knm_search:results().
-format_numbers(QID, JObjs) ->
-    [{QID, {knm_phone_number:number(PN), knm_phone_number:module_name(PN), knm_phone_number:state(PN), knm_phone_number:carrier_data(PN)}}
+-spec format_numbers(kz_term:ne_binary(), kz_json:objects(), kz_term:ne_binary()) -> knm_search:results().
+format_numbers(QID, JObjs, Prefix) ->
+    PrefixLen = size(Prefix),
+    [{QID, {knm_phone_number:number(PN)
+           ,knm_phone_number:module_name(PN)
+           ,knm_phone_number:state(PN)
+           ,knm_phone_number:carrier_data(PN)
+           }}
      || PN <- knm_pipe:succeeded(knm_ops:get([kz_doc:id(JObj) || JObj <- JObjs]))
+            ,Prefix =:= binary_part(knm_phone_number:number(PN), 0, PrefixLen)
     ].
 
 %%------------------------------------------------------------------------------

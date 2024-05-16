@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -268,11 +268,9 @@ maybe_relay_request(JObj) ->
                ,fun log_errors/1
                ,fun route_onnet/1
                ],
-    try
-        case route_errors(kz_maps:exec(Routines, Map)) of
-            'true' -> 'nack';
-            'false' -> 'ack'
-        end
+    try route_errors(kz_maps:exec(Routines, Map)) of
+        'true' -> 'nack';
+        'false' -> 'ack'
     catch
         _Exception:_Reason:_Stack ->
             lager:warning("exception ~p / ~p handling inbound request", [_Exception, _Reason]),

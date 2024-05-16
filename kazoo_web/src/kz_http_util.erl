@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2023, 2600Hz
+%%% @copyright (C) 2015-2024, 2600Hz
 %%% @doc HTTP helper functions for Kazoo
 %%% @author Mark Magnusson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -503,126 +503,32 @@ location_password(<<_/binary>>) -> 'undefined';
 location_password({<<_/binary>>, _Port}) when is_integer(_Port) -> 'undefined';
 location_password({_Host, <<_/binary>>, <<Password/binary>>}) -> Password.
 
--spec urlsplit(binary()) -> split_url().
+-spec urlsplit(binary()) -> split_url() | {'error', 'invalid_uri'}.
 urlsplit(Source) ->
-    {Scheme, Url1}      = urlsplit_s(Source),
-    {Location, Url2}    = urlsplit_l(Url1),
-    {Path, Query, Frag} = urlsplit_p(Url2, <<>>),
-
-    {Scheme, Location, Path, Query, Frag}.
-
-%%------------------------------------------------------------------------------
-%% @doc Splits out the scheme portion of the URL (if present).
-%% @end
-%%------------------------------------------------------------------------------
--spec urlsplit_s(binary()) -> {binary(), binary()}.
-urlsplit_s(Source) ->
-    case urlsplit_s(Source, <<>>) of
-        'no_scheme' -> {<<>>, Source};
-        ValidScheme -> ValidScheme
+    case uri_string:parse(Source) of
+        {'error', 'invalid_uri', _} ->
+            lager:info("failed to parse URL ~s", [Source]),
+            {'error', 'invalid_uri'};
+        Parsed ->
+            {maps:get('scheme', Parsed, <<>>)
+            ,parsed_host(Parsed)
+            ,maps:get('path', Parsed, <<>>)
+            ,maps:get('query', Parsed, <<>>)
+            ,maps:get('fragment', Parsed, <<>>)
+            }
     end.
 
--spec urlsplit_s(binary(), binary()) -> {binary(), binary()} | 'no_scheme'.
-urlsplit_s(<<>>, _Acc) ->
-    'no_scheme';
-
-urlsplit_s(<<C, R/binary>>, Acc) ->
-    case C of
-        $: -> {Acc, R};
-        $+ -> urlsplit_s(R, <<Acc/binary, C>>);
-        $- -> urlsplit_s(R, <<Acc/binary, C>>);
-        $. -> urlsplit_s(R, <<Acc/binary, C>>);
-        C when C >= $a
-               andalso C =< $z ->
-            urlsplit_s(R, <<Acc/binary, C>>);
-        C when C >= $A
-               andalso C =< $Z ->
-            urlsplit_s(R, <<Acc/binary, C>>);
-        C when C >= $0
-               andalso C =< $9 ->
-            urlsplit_s(R, <<Acc/binary, C>>);
-        _NoScheme -> 'no_scheme'
-    end.
-
-%%------------------------------------------------------------------------------
-%% @doc Splits out the location portion of the URL.
-%% @end
-%%------------------------------------------------------------------------------
--spec urlsplit_l(binary()) -> {location(), binary()}.
-urlsplit_l(<<"//", R/binary>>) ->
-    urlsplit_l(R, <<>>);
-
-urlsplit_l(Source) ->
-    {<<>>, Source}.
-
--spec urlsplit_l(binary(), binary()) -> {location(), binary()}.
-urlsplit_l(<<>>, Acc) ->
-    {Acc, <<>>};
-
-urlsplit_l(<<$/, _I/binary>> = R, Acc) ->
-    {Acc, R};
-
-urlsplit_l(<<$?, _I/binary>> = R, Acc) ->
-    {Acc, R};
-
-urlsplit_l(<<$#, _I/binary>> = R, Acc) ->
-    {Acc, R};
-
-urlsplit_l(<<$@, Rest/binary>>, User) ->
-    urlsplit_basic_auth(Rest, User, []);
-
-urlsplit_l(<<$:, Rest/binary>>, Host) ->
-    urlsplit_host_port(Rest, Host, []);
-
-urlsplit_l(<<C, R/binary>>, Acc) ->
-    urlsplit_l(R, <<Acc/binary, C>>).
-
-urlsplit_host_port(<<C, Rest/binary>>, Host, Trop) when C >= $0, C =< $9 ->
-    urlsplit_host_port(Rest, Host, [C | Trop]);
-urlsplit_host_port(Acc, Host, []) ->
-    {Host, Acc};
-urlsplit_host_port(Acc, Host, Trop) ->
-    {{Host, kz_term:to_integer(lists:reverse(Trop))}, Acc}.
-
-urlsplit_basic_auth(<<$:, Rest/binary>>, User, Ssap) ->
-    {Host, Acc} = urlsplit_l(Rest, <<>>),
-    {{Host, User, kz_term:to_binary(lists:reverse(Ssap))}, Acc};
-urlsplit_basic_auth(<<C:1/binary, Rest/binary>>, User, Ssap) ->
-    urlsplit_basic_auth(Rest, User, [C | Ssap]).
-
-
-%%------------------------------------------------------------------------------
-%% @doc Splits and returns the path, query string, and fragment portions
-%% of the URL.
-%% @end
-%%------------------------------------------------------------------------------
--spec urlsplit_p(binary(), binary()) -> {binary(), binary(), binary()}.
-urlsplit_p(<<>>, Acc) ->
-    {Acc, <<>>, <<>>};
-
-urlsplit_p(<<$?, R/binary>>, Acc) ->
-    {Query, Frag} = urlsplit_q(R, <<>>),
-    {Acc, Query, Frag};
-
-urlsplit_p(<<$#, R/binary>>, Acc) ->
-    {Acc, <<>>, R};
-
-urlsplit_p(<<C, R/binary>>, Acc) ->
-    urlsplit_p(R, <<Acc/binary, C>>).
-
-%%------------------------------------------------------------------------------
-%% @doc Splits the query string and fragment parts of the URL.
-%% @end
-%%------------------------------------------------------------------------------
--spec urlsplit_q(binary(), binary()) -> {binary(), binary()}.
-urlsplit_q(<<>>, Acc) ->
-    {Acc, <<>>};
-
-urlsplit_q(<<$#, R/binary>>, Acc) ->
-    {Acc, R};
-
-urlsplit_q(<<C, R/binary>>, Acc) ->
-    urlsplit_q(R, <<Acc/binary, C>>).
+%% username:password@host:port
+parsed_host(#{host := Host, port := Port, userinfo := UserInfo}) ->
+    UserPass = binary:split(UserInfo, <<":">>),
+    list_to_tuple([{Host, Port} | UserPass]);
+parsed_host(#{host := Host, userinfo := UserInfo}) ->
+    UserPass = binary:split(UserInfo, <<":">>),
+    list_to_tuple([Host | UserPass]);
+parsed_host(#{host := Host, port := Port}) ->
+    {Host, Port};
+parsed_host(Parsed) ->
+    maps:get('host', Parsed, <<>>).
 
 %%------------------------------------------------------------------------------
 %% @doc Joins the elements of a URL together.
@@ -640,7 +546,7 @@ location_to_binary(<<Location/binary>>) -> Location;
 location_to_binary({<<Location/binary>>, Port}) when is_integer(Port) ->
     [Location, ":", kz_term:to_list(Port)];
 location_to_binary({Host, <<Username/binary>>, <<Password/binary>>}) ->
-    [Username, "@", Password, ":", location_to_binary(Host)].
+    [Username, ":", Password, "@", location_to_binary(Host)].
 
 %%------------------------------------------------------------------------------
 %% @doc Convert JSON object to encoded query string.

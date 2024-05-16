@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% Accessor for 'P_basic'
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -68,7 +68,7 @@
         ,set_header/2
         ]).
 
--export([set_longstr_header/3
+-export([set_header_longstr/3
         ,set_header_signedint/3
         ,set_header_decimal/3
         ,set_header_table/3
@@ -155,8 +155,8 @@ set_header(#'P_basic'{headers = 'undefined'} = Basic, Value) ->
 set_header(#'P_basic'{headers = Headers} = Basic, {Key, _, _} = Value) ->
     Basic#'P_basic'{headers = [Value | lists:keydelete(Key, 1, Headers)]}.
 
--spec set_longstr_header(basic(), binary(), integer()) -> basic().
-set_longstr_header(Basic, Key, Value) ->
+-spec set_header_longstr(basic(), binary(), integer()) -> basic().
+set_header_longstr(Basic, Key, Value) ->
     set_header(Basic, {Key, 'longstr', Value}).
 
 -spec set_header_signedint(basic(), binary(), integer()) -> basic().

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -15,6 +15,7 @@
 
 -behaviour(kz_directory_device_spec).
 
+-export([inbound_ccvs/2]).
 -export([codecs/1]).
 -export([sip_interface/1]).
 -export([sip_route/1, sip_route_uri/1]).
@@ -115,7 +116,15 @@ bypass_media(Endpoint) ->
 
 -spec invite_format(kz_json:object()) -> kz_term:api_ne_binary().
 invite_format(Endpoint) ->
-    kzd_devices:sip_invite_format(Endpoint).
+    case is_ip_auth(Endpoint) of
+        'true' -> <<"route">>;
+        'false' -> kzd_devices:sip_invite_format(Endpoint)
+    end.
+
+is_ip_auth(Endpoint) ->
+    kzd_devices:sip_method(Endpoint) =:= <<"ip">>
+        andalso kzd_devices:sip_ip(Endpoint) =/= 'undefined'
+        andalso kz_network_utils:is_ip(kzd_devices:sip_ip(Endpoint)).
 
 -spec sip_route(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route(Endpoint) ->
@@ -123,7 +132,17 @@ sip_route(Endpoint) ->
 
 -spec sip_route_uri(kz_json:object()) -> kz_term:api_ne_binary().
 sip_route_uri(Endpoint) ->
-    kzd_devices:sip_route_uri(Endpoint).
+    sip_route_uri(kzd_devices:sip_route_uri(Endpoint), is_ip_auth(Endpoint), sip_ip_uri(Endpoint)).
+
+sip_route_uri(Uri, _, 'undefined') -> Uri;
+sip_route_uri('undefined', 'true', Uri) -> Uri;
+sip_route_uri(Uri, _, _) -> Uri.
+
+sip_ip_uri(Endpoint) ->
+    case kzd_devices:sip_ip(Endpoint) of
+        'undefined' -> 'undefined';
+        IP -> list_to_binary(["sip:", IP])
+    end.
 
 -spec sip_interface(kz_json:object()) -> kz_term:api_ne_binary().
 sip_interface(Endpoint) ->
@@ -167,3 +186,9 @@ sip_auth(Endpoint, CCVs) ->
                   ],
             kz_json:set_values(KVs, CCVs)
     end.
+
+-spec inbound_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
+inbound_ccvs(Endpoint, CCVs) ->
+    EndpointCCVs = kzd_devices:sip_custom_channel_vars(Endpoint, kz_json:new()),
+    InboundCCVs = kz_custom_channel_vars:inbound(EndpointCCVs, kz_json:new()),
+    kz_json:merge(CCVs, InboundCCVs).

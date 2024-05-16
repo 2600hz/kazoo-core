@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc This is the "generic" application callback interface for
 %%% app-store-provided Erlang applications. It adds the application's top-level
 %%% supervisor to the appex_client's app controller (to ensure the
@@ -26,19 +26,19 @@
 start(Type, StartArgs) ->
     try_start_app(Type, StartArgs, 1).
 
-try_start_app(Type, {ParentApp, App, AppMod, StartArgs}, Counter) ->
+try_start_app(Type, {App, AppMod, StartArgs}, Counter) ->
     case appex_app_master:start_app(App, Type, {AppMod, StartArgs}) of
         {'ok', Pid} ->
             kappex_controller:add_running(App, Pid),
-            {'ok', Pid, {?MODULE, {ParentApp, App, AppMod}, []}};
+            {'ok', Pid, {?MODULE, {App, AppMod}, []}};
         {'ok', Pid, State} ->
             kappex_controller:add_running(App, Pid),
-            {'ok', Pid, {?MODULE, {ParentApp, App, AppMod}, State}};
+            {'ok', Pid, {?MODULE, {App, AppMod}, State}};
         {'error', 'invalid_license'}=Error
           when Counter < 3 ->
-            case try_fetch_license(ParentApp, App) of
+            case try_fetch_license(App) of
                 'true' ->
-                    try_start_app(Type, {ParentApp, App, AppMod, StartArgs}, Counter + 1);
+                    try_start_app(Type, {App, AppMod, StartArgs}, Counter + 1);
                 'false' ->
                     Error
             end;
@@ -51,12 +51,12 @@ try_start_app(Type, {ParentApp, App, AppMod, StartArgs}, Counter) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec stop(any()) -> any().
-stop({?MODULE, {_ParentApp, App, AppMod}, State}) ->
+stop({?MODULE, {App, AppMod}, State}) ->
     appex_app_master:stop_app(App, {AppMod, State}).
 
--spec try_fetch_license(atom(), atom()) -> boolean().
-try_fetch_license(ParentApp, App) ->
-    case appex_client_client:fetch_license(ParentApp, App) of
+-spec try_fetch_license(atom()) -> boolean().
+try_fetch_license(App) ->
+    case appex_client_client:fetch_license(App) of
         {'ok', JObj} ->
             Features = kz_json:get_keys(JObj),
             install_license(App, JObj, Features),

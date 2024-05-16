@@ -1,0 +1,137 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2024, 2600Hz
+%%% @doc Accessors for `storage_plan_database' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_storage_plan_database).
+
+-export([new/0]).
+-export([attachments/1, attachments/2, set_attachments/2]).
+-export([connection/1, connection/2, set_connection/2]).
+-export([database/1, database/2, set_database/2]).
+-export([database_create_options/1, database_create_options/2, set_database_create_options/2]).
+-export([database_names/1, database_names/2, set_database_names/2]).
+-export([range/1, range/2, set_range/2]).
+-export([regex/1, regex/2, set_regex/2]).
+-export([type/2, type/3, set_type/3]).
+-export([types/1, types/2, set_types/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"storage.plan.database">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec attachments(doc()) -> kz_term:api_object().
+attachments(Doc) ->
+    attachments(Doc, 'undefined').
+
+-spec attachments(doc(), Default) -> kz_json:object() | Default.
+attachments(Doc, Default) ->
+    kz_json:get_json_value([<<"attachments">>], Doc, Default).
+
+-spec set_attachments(doc(), kz_json:object()) -> doc().
+set_attachments(Doc, Attachments) ->
+    kz_json:set_value([<<"attachments">>], Attachments, Doc).
+
+-spec connection(doc()) -> kz_term:api_binary().
+connection(Doc) ->
+    connection(Doc, 'undefined').
+
+-spec connection(doc(), Default) -> binary() | Default.
+connection(Doc, Default) ->
+    kz_json:get_binary_value([<<"connection">>], Doc, Default).
+
+-spec set_connection(doc(), binary()) -> doc().
+set_connection(Doc, Connection) ->
+    kz_json:set_value([<<"connection">>], Connection, Doc).
+
+-spec database(doc()) -> kz_term:api_object().
+database(Doc) ->
+    database(Doc, 'undefined').
+
+-spec database(doc(), Default) -> kz_json:object() | Default.
+database(Doc, Default) ->
+    kz_json:get_json_value([<<"database">>], Doc, Default).
+
+-spec set_database(doc(), kz_json:object()) -> doc().
+set_database(Doc, Database) ->
+    kz_json:set_value([<<"database">>], Database, Doc).
+
+-spec database_create_options(doc()) -> kz_term:api_object().
+database_create_options(Doc) ->
+    database_create_options(Doc, 'undefined').
+
+-spec database_create_options(doc(), Default) -> kz_json:object() | Default.
+database_create_options(Doc, Default) ->
+    kz_json:get_json_value([<<"database">>, <<"create_options">>], Doc, Default).
+
+-spec set_database_create_options(doc(), kz_json:object()) -> doc().
+set_database_create_options(Doc, DatabaseCreateOptions) ->
+    kz_json:set_value([<<"database">>, <<"create_options">>], DatabaseCreateOptions, Doc).
+
+-spec database_names(doc()) -> kz_term:api_ne_binaries().
+database_names(Doc) ->
+    database_names(Doc, 'undefined').
+
+-spec database_names(doc(), Default) -> kz_term:ne_binaries() | Default.
+database_names(Doc, Default) ->
+    kz_json:get_list_value([<<"database">>, <<"names">>], Doc, Default).
+
+-spec set_database_names(doc(), kz_term:ne_binaries()) -> doc().
+set_database_names(Doc, DatabaseNames) ->
+    kz_json:set_value([<<"database">>, <<"names">>], DatabaseNames, Doc).
+
+-spec range(doc()) -> any().
+range(Doc) ->
+    range(Doc, 'undefined').
+
+-spec range(doc(), Default) -> any() | Default.
+range(Doc, Default) ->
+    kz_json:get_value([<<"range">>], Doc, Default).
+
+-spec set_range(doc(), any()) -> doc().
+set_range(Doc, Range) ->
+    kz_json:set_value([<<"range">>], Range, Doc).
+
+-spec regex(doc()) -> any().
+regex(Doc) ->
+    regex(Doc, 'undefined').
+
+-spec regex(doc(), Default) -> any() | Default.
+regex(Doc, Default) ->
+    kz_json:get_value([<<"regex">>], Doc, Default).
+
+-spec set_regex(doc(), any()) -> doc().
+set_regex(Doc, Regex) ->
+    kz_json:set_value([<<"regex">>], Regex, Doc).
+
+-spec type(doc(), kz_json:key()) -> kz_term:api_object().
+type(Doc, Type) ->
+    type(Doc, Type, 'undefined').
+
+-spec type(doc(), kz_json:key(), Default) -> kz_json:object() | Default.
+type(Doc, Type, Default) ->
+    kz_json:get_json_value([<<"types">>, Type], Doc, Default).
+
+-spec set_type(doc(), kz_json:key(), kz_json:object()) -> doc().
+set_type(Doc, Type, Value) ->
+    kz_json:set_value([<<"types">>, Type], Value, Doc).
+
+-spec types(doc()) -> kz_term:api_object().
+types(Doc) ->
+    types(Doc, 'undefined').
+
+-spec types(doc(), Default) -> kz_json:object() | Default.
+types(Doc, Default) ->
+    kz_json:get_json_value([<<"types">>], Doc, Default).
+
+-spec set_types(doc(), kz_json:object()) -> doc().
+set_types(Doc, Types) ->
+    kz_json:set_value([<<"types">>], Types, Doc).

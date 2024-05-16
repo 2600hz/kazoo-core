@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc Accessors for `mms' document.
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -22,15 +22,15 @@
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
--spec body(doc()) -> kz_term:api_ne_binary().
+-spec body(doc()) -> kz_term:api_binary().
 body(Doc) ->
     body(Doc, 'undefined').
 
--spec body(doc(), Default) -> kz_term:ne_binary() | Default.
+-spec body(doc(), Default) -> binary() | Default.
 body(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"body">>], Doc, Default).
+    kz_json:get_binary_value([<<"body">>], Doc, Default).
 
--spec set_body(doc(), kz_term:ne_binary()) -> doc().
+-spec set_body(doc(), binary()) -> doc().
 set_body(Doc, Body) ->
     kz_json:set_value([<<"body">>], Body, Doc).
 

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -14,9 +14,6 @@
 -export([send_default/2]).
 -export([get_response/2]).
 -export([config_doc_id/0]).
-
--include_lib("kazoo_stdlib/include/kz_types.hrl").
--include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -define(CALL_RESPONSE_CONF, <<"call_response">>).
 
@@ -125,7 +122,6 @@ send_default(_Call, 'undefined') ->
 send_default(Call, Cause) ->
     case get_response(Cause, Call) of
         'undefined' ->
-            lager:debug("no default response for '~s' found", [Cause]),
             {'error', 'no_response'};
         Response ->
             lager:debug("sending default response for '~s': ~p", [Cause, Response]),
@@ -151,18 +147,27 @@ send_default_response(Call, Response) ->
 %%------------------------------------------------------------------------------
 -spec get_response(kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_object().
 get_response(Cause, Call) ->
-    Default = case default_response(Cause) of
-                  'undefined' -> 'undefined';
-                  Props -> kz_json:from_list(Props)
-              end,
+    {Key, Default} = get_default_response(Cause, Call),
     AccountId = kapps_call:account_id(Call),
-    kapps_account_config:get_global(AccountId, ?CALL_RESPONSE_CONF, Cause, Default).
+    kapps_account_config:get_global(AccountId, ?CALL_RESPONSE_CONF, Key, kz_term:to_api_json(Default)).
+
+-type config_response_key() :: kz_term:ne_binary_or_binaries().
+-type config_response_value() :: kz_term:api_proplist().
+-type config_response() :: {config_response_key(), config_response_value()}.
+
+-spec get_default_response(kz_term:ne_binary(), kapps_call:call()) -> config_response().
+get_default_response(Cause, Call) ->
+    case kapps_call:inter_account_id(Call) of
+        'undefined' -> {Cause, default_response(Cause)};
+        _AccountId -> {[<<"cross-boundary">>, Cause], cross_boundary_response(Cause)}
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Returns the default action given the error.
 %% @end
 %%------------------------------------------------------------------------------
--spec default_response(kz_term:ne_binary()) -> 'undefined' | kz_term:proplist().
+-spec default_response(kz_term:ne_binary()) -> kz_term:api_proplist().
+default_response(<<"REMOTE_UNAVAILABLE">>) -> 'undefined';
 default_response(<<"RESPONSE_TO_STATUS_ENQUIRY">>) -> 'undefined';
 default_response(<<"FACILITY_NOT_SUBSCRIBED">>) -> 'undefined';
 default_response(<<"INVALID_MSG_UNSPECIFIED">>) -> 'undefined';
@@ -189,6 +194,7 @@ default_response(<<"USER_CHALLENGE">>) -> 'undefined';
 default_response(<<"BLIND_TRANSFER">>) -> 'undefined';
 default_response(<<"WRONG_MESSAGE">>) -> 'undefined';
 default_response(<<"INTERWORKING">>) -> 'undefined';
+default_response(<<"NO_ENDPOINTS">>) -> 'undefined';
 default_response(<<"UNSPECIFIED">>) -> 'undefined';
 default_response(<<"IE_NONEXIST">>) -> 'undefined';
 default_response(<<"PICKED_OFF">>) -> 'undefined';
@@ -205,8 +211,13 @@ default_response(<<"NO_ROUTE_TRANSIT_NET">>) ->
     [{<<"Code">>, <<"404">>}
     ,{<<"Message">>, <<"Invalid number">>}
     ];
+default_response(<<"NO_AVAILABLE_RESOURCES">>) ->
+    [{<<"Code">>, <<"485">>}
+    ,{<<"Message">>, <<"no available resources">>}
+    ,{<<"Media">>, <<"fault-facility_trouble">>}
+    ];
 default_response(<<"NO_ROUTE_DESTINATION">>) ->
-    [{<<"Code">>, <<"404">>}
+    [{<<"Code">>, <<"485">>}
     ,{<<"Message">>, <<"No route to destination">>}
     ,{<<"Media">>, <<"fault-can_not_be_completed_as_dialed">>}
     ];
@@ -353,4 +364,20 @@ default_response(<<"PROGRESS_TIMEOUT">>) ->
     [{<<"Code">>, <<"486">>}
     ,{<<"Message">>, <<"Progress timeout">>}
     ,{<<"Media">>, <<"fault-can_not_be_completed_at_this_time">>}
-    ].
+    ];
+default_response(_Cause) ->
+    lager:debug("no default response for '~s' found", [_Cause]),
+    'undefined'.
+
+cross_boundary_response(<<"UNALLOCATED_NUMBER">>) ->
+    [{<<"Code">>, <<"404">>}
+    ,{<<"Message">>, <<"No route to destination">>}
+    ,{<<"Media">>, <<"fault-facility_trouble">>}
+    ];
+cross_boundary_response(<<"NO_ROUTE_DESTINATION">>) ->
+    [{<<"Code">>, <<"485">>}
+    ,{<<"Message">>, <<"No route to destination">>}
+    ,{<<"Media">>, <<"fault-facility_trouble">>}
+    ];
+cross_boundary_response(Cause) ->
+    default_response(Cause).

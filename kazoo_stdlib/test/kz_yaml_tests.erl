@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,7 +16,7 @@
                                          ])).
 
 encode_test_() ->
-    {setup
+    {'setup'
     ,fun setup/0
     ,fun cleanup/1
     ,fun(_ReturnOfSetup) ->
@@ -26,13 +26,13 @@ encode_test_() ->
     }.
 
 setup() ->
-    {ok, _} = application:ensure_all_started(yamerl).
+    {'ok', _} = application:ensure_all_started('yamerl').
 
 cleanup(_) ->
-    application:stop(yamerl).
+    application:stop('yamerl').
 
 test_string_types() ->
-    {ok, Bin} = file:read_file(?STRING_TYPES_FILE),
+    {'ok', Bin} = file:read_file(?STRING_TYPES_FILE),
     Yaml = kz_yaml:encode(kz_yaml:decode(Bin), #{string_style => 'best'}),
     [{"Encode various type of string scalars"
      ,[?_assertEqual(Bin, Yaml)]

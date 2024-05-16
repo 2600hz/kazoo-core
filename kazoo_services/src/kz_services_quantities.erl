@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,6 +24,8 @@
 -export([calculate_updates/3]).
 
 -include("services.hrl").
+
+-elvis([{elvis_style, no_call, disable}]).
 
 -type billable() :: kz_term:api_object().
 -type billables() :: kz_json:objects().
@@ -339,6 +341,7 @@ calculate_updates(Services, JObj) ->
                        ,fun calculate_whitelabel_updates/2
                        ,fun calculate_dedicated_ip_updates/2
                        ,fun calculate_app_store_updates/2
+                       ,fun calculate_applications_updates/2
                        ,fun calculate_number_updates/2
                        ,fun calculate_billing_updates/2
                        ,fun calculate_qubicle_queue_updates/2
@@ -347,6 +350,7 @@ calculate_updates(Services, JObj) ->
                        ,fun calculate_faxbox_updates/2
                        ,fun calculate_conference_updates/2
                        ,fun calculate_port_request_updates/2
+                       ,fun calculate_chat_updates/2
                        ],
             Updates = exec_routines(Routines, JObj),
             case has_substitute_values(Updates) of
@@ -480,7 +484,7 @@ calculate_app_store_updates(JObj, Updates) ->
 app_store_updates_fold(_K, App, U) ->
     Name = kz_json:get_ne_binary_value(<<"name">>, App),
     AccountKey = [<<"account_apps">>, Name],
-    case kz_json:get_ne_value(<<"allowed_users">>, App) of
+    case kz_json:get_ne_value(<<"allowed_users">>, App, <<"specific">>) of
         <<"all">> ->
             UserKey = [<<"user_apps">>, Name],
             [{UserKey, -1}
@@ -500,6 +504,37 @@ app_store_updates_fold(_K, App, U) ->
             ,{AccountKey, 1}
             | U
             ]
+    end.
+
+-spec calculate_applications_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
+calculate_applications_updates(JObj, Updates) ->
+    case kz_doc:type(JObj) =:= <<"application_entitlement">> of
+        'false' -> Updates;
+        'true' ->
+            AppId = kz_json:get_ne_value(<<"app_id">>, JObj),
+            AccountKey = [<<"account_apps">>, AppId],
+            case kz_json:get_ne_value(<<"type">>, JObj) of
+                <<"all">> ->
+                    UserKey = [<<"user_apps">>, AppId],
+                    [{UserKey, -1}
+                    ,{AccountKey, 1}
+                    | Updates
+                    ];
+                <<"admins">> ->
+                    UserKey = [<<"user_apps">>, AppId],
+                    [{UserKey, -2}
+                    ,{AccountKey, 1}
+                    | Updates
+                    ];
+                <<"specific">> ->
+                    UserKey = [<<"user_apps">>, AppId],
+                    Value = length(kz_json:get_list_value(<<"users">>, JObj, [])),
+                    [{UserKey, Value}
+                    ,{AccountKey, 1}
+                    | Updates
+                    ]
+            end
+
     end.
 
 -spec calculate_number_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
@@ -559,8 +594,9 @@ calculate_qubicle_queue_updates(JObj, Updates) ->
     case kz_doc:type(JObj) =:= <<"qubicle_queue">> of
         'false' -> Updates;
         'true' ->
-            Features = kz_json:get_ne_value(<<"features">>, JObj, [<<"basic">>]),
-            Offering = case lists:member(<<"pro">>, Features) of
+            Features = kz_json:get_ne_value(<<"features">>, JObj, kz_json:new()),
+            FeatureKeys = kz_json:get_keys(Features),
+            Offering = case lists:member(<<"pro">>, FeatureKeys) of
                            'true' -> <<"pro">>;
                            'false' -> <<"basic">>
                        end,
@@ -575,8 +611,9 @@ calculate_qubicle_recipient_updates(JObj, Updates) ->
     of
         'false' -> Updates;
         'true' ->
-            Features = kz_json:get_ne_value([<<"qubicle">>, <<"recipient">>, <<"features">>], JObj, [<<"basic">>]),
-            Offering = case lists:member(<<"pro">>, Features) of
+            Features = kz_json:get_ne_value([<<"qubicle">>, <<"recipient">>, <<"features">>], JObj, kz_json:new()),
+            FeatureKeys = kz_json:get_keys(Features),
+            Offering = case lists:member(<<"pro">>, FeatureKeys) of
                            'true' -> <<"pro">>;
                            'false' -> <<"basic">>
                        end,
@@ -649,6 +686,13 @@ is_first_transition_to_state(JObj) ->
                                         ,kzd_port_requests:pvt_port_state(JObj)
                                         ),
     length(StateTransitions) =:= 1.
+
+-spec calculate_chat_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
+calculate_chat_updates(JObj, Updates) ->
+    case kz_json:is_true([<<"pvt_chat">>, <<"getstream">>, <<"enabled">>], JObj, 'false') of
+        'true' -> [{[<<"chat">>, <<"getstream">>], 1} | Updates];
+        'false' -> Updates
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc

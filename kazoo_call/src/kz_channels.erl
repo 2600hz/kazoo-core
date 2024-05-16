@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,6 +10,7 @@
 -module(kz_channels).
 
 -export([count/1, count/2, count/3, count/4]).
+-export([query/1]).
 
 -export([query_method/0, set_query_method/1]).
 
@@ -23,7 +24,25 @@
 
 -export_type([count_args/0]).
 
--spec query_method() -> 'amqp' | 'genserver'.
+-type query_args() :: #{account := kz_term:ne_binary()
+                       ,device => kz_term:api_ne_binary()
+                       ,endpoint => kz_term:api_ne_binary()
+                       ,owner => kz_term:api_ne_binary()
+                       ,user => kz_term:api_ne_binary()
+                       ,direction => kz_term:api_ne_binary()
+                       ,fields => channel_fields()
+                       }.
+
+-export_type([query_args/0]).
+
+-type channel_field() :: atom().
+%%TODO restrict to the enumeration of the channel record field names
+
+-type channel_fields() :: [channel_field()].
+
+-type method() :: 'amqp' | 'genserver'.
+
+-spec query_method() -> method().
 query_method() ->
     persistent_term:get('kz_channels_query_method', 'genserver').
 
@@ -92,26 +111,14 @@ amqp_count_result(JObj, Acc) ->
     end.
 
 genserver_count(Args) ->
-    case [genserver_responses(Zone, ReqIds)
-          || {Zone, ReqIds} <- genserver_requests(rpc_members(), Args)
+    case [genserver_responses(Zone, ReqIds, fun maps_higher_fold_fun/2)
+          || {Zone, ReqIds} <- genserver_requests('count', rpc_members(), Args)
          ]
     of
         [] -> #{};
         [M] -> M;
         [_ | _] = M -> lists:foldl(fun maps_sum_fold_fun/2, #{}, M)
     end.
-
-genserver_responses(_Zone, ReqIds) ->
-    lists:foldl(fun maps_higher_fold_fun/2, #{}, genserver_responses(ReqIds)).
-
-genserver_requests(Members, Args) ->
-    [genserver_requests(Zone, Pids, Args) || {Zone, Pids} <- Members].
-
-genserver_requests(Zone, Pids, Args) ->
-    {Zone, [genserver_request(Pid, Args) || Pid <- Pids]}.
-
-genserver_request(Pid, Args) ->
-    gen_server:send_request(Pid, {'count', Args}).
 
 genserver_responses(ReqIds) ->
     lists:filter(fun(V) -> V =/= 'undefined' end
@@ -156,3 +163,72 @@ rpc_members() ->
     [{Zone, pg:get_members(Z)}
      || Z = {Zone, 'channel_cache'} <- pg:which_groups()
     ].
+
+
+genserver_query(Args) ->
+    case [genserver_responses(Zone, ReqIds, fun kz_maps:merge/2)
+          || {Zone, ReqIds} <- genserver_requests('channels', rpc_members(), Args)
+         ]
+    of
+        [] -> #{};
+        [M] -> M;
+        [_ | _] = M -> lists:foldl(fun kz_maps:merge/2, #{}, M)
+    end.
+
+genserver_responses(Zone, ReqIds, ResponseFun) ->
+    set_zone_on_query_result(lists:foldl(ResponseFun, #{}, genserver_responses(ReqIds)), kz_term:to_binary(Zone)).
+
+genserver_requests(Method, Members, Args) ->
+    [genserver_requests(Method, Zone, Pids, Args) || {Zone, Pids} <- Members].
+
+genserver_requests(Method, Zone, Pids, Args) ->
+    {Zone, [genserver_request(Method, Pid, Args) || Pid <- Pids]}.
+
+genserver_request(Method, Pid, Args) ->
+    gen_server:send_request(Pid, {Method, Args}).
+
+
+amqp_query(Args) ->
+    API = [{<<"Account-ID">>, maps:get('account', Args, 'undefined')}
+          ,{<<"Device-ID">>, maps:get('device', Args, 'undefined')}
+          ,{<<"Endpoint-ID">>, maps:get('endpoint', Args, 'undefined')}
+          ,{<<"User-ID">>, maps:get('user', Args, 'undefined')}
+          ,{<<"Owner-ID">>, maps:get('owner', Args, 'undefined')}
+          ,{<<"Direction">>, maps:get('direction', Args, 'undefined')}
+          ,{<<"Fields">>, maps:get('fields', Args, 'undefined')}
+          | kz_api:default_headers()
+          ],
+    case kz_amqp_worker:call_collect(API, fun kapi_call:publish_channels_req/1, {'ecallmgr', 'true'}) of
+        {'error', _} -> #{};
+        {'ok', []} -> #{};
+        {'ok', JObjs} -> amqp_query_result(JObjs)
+    end.
+
+amqp_query_result(JObjs) ->
+    lists:foldl(fun amqp_query_result/2, maps:new(), JObjs).
+
+amqp_query_result(JObj, Acc) ->
+    Zone = kz_api:zone(JObj),
+    Value = amqp_query_result_channels(JObj),
+    kz_maps:merge(Acc, set_zone_on_query_result(Value, Zone)).
+
+amqp_query_result_channels(JObj) ->
+    Channels = kz_maps:keys_to_atoms(kz_json:to_map(kz_json:get_json_value(<<"Channels">>, JObj, kz_json:new())), 'false'),
+    maps:map(fun(_K1, V1) -> maps:map(fun(_K2, V2) -> kz_maps:keys_to_atoms(V2) end, V1) end, Channels).
+
+-spec set_zone_on_query_result(map(), kz_term:ne_binary()) -> map().
+set_zone_on_query_result(Result, Zone) ->
+    maps:map(fun(_K, V) -> set_zone_on_channels(V, Zone) end, Result).
+
+set_zone_on_channels(Channels, Zone) ->
+    maps:map(fun(_K, Channel) -> maps:put('zone', Zone, Channel) end, Channels).
+
+-spec query(query_args()) -> map().
+query(Args) ->
+    query(Args, query_method()).
+
+-spec query(query_args(), method()) -> map().
+query(Args, 'genserver') ->
+    genserver_query(Args);
+query(Args, 'amqp') ->
+    amqp_query(Args).

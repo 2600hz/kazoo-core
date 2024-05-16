@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -154,12 +154,15 @@ originate_req_definition() ->
                                                             ,<<"Outbound-Call-ID">>
                                                             ,<<"Simplify-Loopback">> %% loopback_bowout flag
                                                             ,<<"Start-Control-Process">>
+                                                            ,<<"SIP-Diversions">>
+                                                            ,<<"SIP-Multiparts">>
                                                             ,<<?CALL_INTERACTION_ID>>
                                                             | kapi_dialplan:optional_bridge_req_headers()
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, [<<"bridge">>
                                           ,<<"eavesdrop">>
+                                          ,<<"extension">>
                                           ,<<"fax">>
                                           ,<<"park">>
                                           ,<<"transfer">>
@@ -177,6 +180,8 @@ originate_req_definition() ->
                 ,{<<"Custom-SIP-Headers">>, fun kz_json:is_json_object/1}
                 ,{<<"Endpoints">>, fun is_list/1}
                 ,{<<"Simplify-Bowout">>, fun kz_term:is_boolean/1}
+                ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],

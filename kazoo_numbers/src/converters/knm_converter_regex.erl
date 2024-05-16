@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -83,7 +83,7 @@ dialplan(AccountId, EndpointId) ->
 dialplan_from_doc(AccountId, Id) ->
     case kz_datamgr:open_cache_doc(AccountId, Id) of
         {'ok', Doc} -> kz_json:get_json_value([<<"dial_plan">>], Doc);
-        _NoDoc -> undefined
+        _NoDoc -> 'undefined'
     end.
 
 %%------------------------------------------------------------------------------

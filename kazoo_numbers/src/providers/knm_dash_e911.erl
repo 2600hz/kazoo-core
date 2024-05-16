@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Handle e911 provisioning
 %%% @author Peter Defebvre
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -69,7 +69,8 @@ delete(PN) ->
         'undefined' -> PN;
         _Else ->
             lager:debug("removing e911 information from ~s"
-                       ,[knm_phone_number:number(PN)]),
+                       ,[knm_phone_number:number(PN)]
+                       ),
             _ = remove_number(PN),
             knm_providers:deactivate_feature(PN, ?FEATURE_E911)
     end.
@@ -92,7 +93,7 @@ maybe_update_e911(PN) ->
             lager:debug("information has been removed, updating upstream"),
             _ = remove_number(PN),
             knm_providers:deactivate_feature(PN, ?FEATURE_E911);
-        'false' when NotChanged  ->
+        'false' when NotChanged ->
             PN;
         'false' ->
             lager:debug("information has been changed: ~s", [kz_json:encode(E911)]),

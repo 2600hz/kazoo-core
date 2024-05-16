@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Utilities shared by a subset of `kapps'.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -73,6 +73,12 @@
         ,commland_version/0
         ,meta_kazoo_version/0
         ,write_pid/1
+        ]).
+
+-export([os_type/0
+        ,os_release/0
+        ,arch_type/0
+        ,c_compiler/0
         ]).
 
 -include("kazoo_apps.hrl").
@@ -356,7 +362,7 @@ get_all_account_type_mods(Account, Encoding) ->
     [kzs_util:format_account_modb(Db, Encoding)
      || Db <- Databases,
         kzs_util:is_account_mod(Db)
-            orelse kzs_util:db_classification(Db) =:= 'type_modb',
+            orelse kzs_util:db_classification(Db) =:= 'modb_ish',
         is_matched_account_mod(Encoding, Db, AccountId)
     ].
 
@@ -828,3 +834,59 @@ commland_version() ->
 -spec write_pid(file:filename_all()) -> 'ok' | {'error', atom()}.
 write_pid(FileName) ->
     file:write_file(FileName, io_lib:format("~s", [os:getpid()]), ['write', 'binary']).
+
+-spec os_type() -> kz_term:ne_binary().
+os_type() ->
+    {_OSFamily, OSName} = os:type(),
+    kz_term:to_binary(OSName).
+
+-spec os_release() -> kz_term:api_ne_binary().
+os_release() ->
+    ReleaseFile = "/etc/os-release",
+    case file:read_file(ReleaseFile) of
+        {'ok', Bin} ->
+            Props = kz_binary:to_proplist(kz_binary:strip(Bin), <<"\n">>, <<"=">>),
+            get_os_release(Props);
+        {'error', _Reason} ->
+            'undefined'
+    end.
+
+-spec get_os_release(kz_term:proplist()) -> kz_term:ne_binary().
+get_os_release(OSInfoProps) ->
+    OSID = get_os_name(OSInfoProps),
+    [OSVersionID|_] = get_os_version(OSInfoProps),
+    <<OSID/binary, OSVersionID/binary>>.
+
+-spec get_os_name(kz_term:proplist()) -> kz_term:ne_binary().
+get_os_name(OSInfoProps) ->
+    case kz_binary:strip(props:get_value(<<"ID">>, OSInfoProps), <<"\"">>) of
+        <<"rocky">> -> <<"rockylinux">>;
+        Else -> Else
+    end.
+
+-spec get_os_version(kz_term:proplist()) -> kz_term:ne_binaries().
+get_os_version(OSInfoProps) ->
+    OSVersion = kz_binary:strip(props:get_value(<<"VERSION_ID">>, OSInfoProps), <<"\"">>),
+    OSVersionID = re:replace(OSVersion, <<"[^0-9.]">>, <<>>, ['global', {'return','binary'}]),
+    binary:split(OSVersionID, <<".">>).
+
+-spec arch_type() -> kz_term:api_ne_binary().
+arch_type() ->
+    try os:cmd("uname -m") of
+        Arch ->
+            kz_term:to_binary(string:trim(Arch))
+    catch
+        _E:_Reason ->
+            lager:warning("retrieve of cpu arch type is resulted in an exception: ~p:~p", [_E, _Reason]),
+            'undefined'
+    end.
+
+-spec c_compiler() -> kz_term:api_ne_binary().
+c_compiler() ->
+    case erlang:system_info('c_compiler_used') of
+        {'gnuc', {A, B, C}} ->
+            <<"gcc-", (kz_binary:join([A, B, C], $.))/binary>>;
+        Else ->
+            lager:debug("failed to retrieve c-compiler : ~p", [Else]),
+            'undefined'
+    end.

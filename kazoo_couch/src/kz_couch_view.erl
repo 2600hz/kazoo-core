@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Util functions used by kazoo_couch
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -889,7 +889,7 @@ handle_db_not_found(Cursor, Bookmark, Rows) ->
             case other_dbs_have_results(Cursor) of
                 'true' ->
                     %% soft ignoring missing db or view, useful for ignoring missing or buggy modb/yodb.
-                    ?MAYBE_LOG("databases exhausted with some results from other dbs, ignoring errors and retuning results", []),
+                    ?MAYBE_LOG("databases exhausted with some results from other dbs, ignoring errors and returning results", []),
                     handle_ret(Cursor#{'is_exhausted' => 'true'}, Bookmark, Rows);
                 'false' ->
                     %% Returning error if all dbs return error.

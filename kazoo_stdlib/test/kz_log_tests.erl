@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,6 +41,9 @@ log_redacted_test_() ->
 
     ,?_assertEqual(<<"http://", URL/binary>>, kz_log:redactor(<<"http://", User/binary, ":", Pass/binary, "@", URL/binary>>))
     ,?_assertEqual(<<"https://", URL/binary>>, kz_log:redactor(<<"https://", User/binary, ":", Pass/binary, "@", URL/binary>>))
+
+    ,?_assertEqual(<<"amqp://", URL/binary>>, kz_log:redactor(<<"amqp://", User/binary, ":", Pass/binary, "@", URL/binary>>))
+    ,?_assertEqual(<<"amqps://", URL/binary>>, kz_log:redactor(<<"amqps://", User/binary, ":", Pass/binary, "@", URL/binary>>))
 
      %% redact JSON password field
     ,?_assertEqual(<<"{\"password\":\"***REDACTED***\",\"foo\":\"bar\"}">>

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -86,36 +86,34 @@ binary_head(Binary) ->
 pretty_print_format(Number) ->
     Classifiers = knm_converters:available_classifiers(),
     Num = knm_converters:normalize(Number),
-    pretty_print_format(Num, kz_json:to_proplist(Classifiers)).
+    pretty_print_format(Num, Classifiers).
 
--spec pretty_print_format(kz_term:ne_binary(), kz_term:proplist()) -> kz_term:api_binary().
+-spec pretty_print_format(kz_term:ne_binary(), kz_json:objects()) -> kz_term:api_binary().
 pretty_print_format(Num, []) ->
     lager:debug("unable to get pretty print format for number ~s", [Num]),
     maybe_use_us_default(Num);
-pretty_print_format(Num, [{Classification, Classifier}|Classifiers]) ->
-    case re:run(Num, get_classifier_regex(Classifier)) of
+pretty_print_format(Num, [ClassifierJObj|Classifiers]) ->
+    Classification = kz_json:get_ne_binary_value(<<"name">>, ClassifierJObj),
+    Formatter = kz_json:get_ne_binary_value(<<"pretty_print">>, ClassifierJObj),
+
+    case re:run(Num, get_classifier_regex(ClassifierJObj)) of
         'nomatch' -> pretty_print_format(Num, Classifiers);
-        _ when is_binary(Classifier) ->
+        _Matched when 'undefined' =:= Formatter ->
             lager:debug("number '~s' is classified as ~s but no pretty print format available", [Num, Classification]),
             maybe_use_us_default(Num);
-        _ ->
-            case kz_json:get_value(<<"pretty_print">>, Classifier) of
-                'undefined' -> maybe_use_us_default(Num);
-                Format -> Format
-            end
+        _Matched ->
+            Formatter
     end.
 
 -spec maybe_use_us_default(kz_term:ne_binary()) -> kz_term:api_binary().
 maybe_use_us_default(<<"+1", _/binary>>) ->
-    lager:debug("using US number default pretty print", []),
+    lager:debug("using US number default pretty print"),
     ?PRETTY_PRINT_FORMAT_NANP;
 maybe_use_us_default(_) ->
     'undefined'.
 
--spec get_classifier_regex(kz_term:ne_binary() | kz_json:object()) ->
+-spec get_classifier_regex(kz_json:object()) ->
           kz_term:ne_binary().
-get_classifier_regex(Classifier) when is_binary(Classifier) ->
-    Classifier;
 get_classifier_regex(JObj) ->
     kz_json:get_value(<<"regex">>, JObj, <<"^$">>).
 

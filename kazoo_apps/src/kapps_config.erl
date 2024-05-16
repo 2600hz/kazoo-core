@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -60,6 +60,7 @@
 -export([flush/0, flush/1, flush/2, flush/3]).
 
 -export([migrate/0]).
+-export([migrate_config_setting/1]).
 
 -ifdef(TEST).
 -export([migrate_from_doc/2]).

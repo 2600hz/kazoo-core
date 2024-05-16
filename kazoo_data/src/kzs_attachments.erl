@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -350,7 +350,7 @@ save_attachment_handler_error(Map
                              ,DbName
                              ,{'error', Reason, ExtendedError}
                              ) ->
-    %% Workaround for `kzc_recording` and `kz_endpoint_recording`.
+    %% Workaround for `kapps_call_recording'
     AttUUID = maps:get('att_handler_id', Map, <<"overridden">>),
     NewValues = [{<<"_id">>, kazoo_modb_util:modb_id()}
                 ,{<<"reason">>, Reason}
