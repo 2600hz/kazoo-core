@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc
 %%% @author Luis Azedo
 %%%
@@ -221,7 +221,16 @@ is_collapse_id(_) -> 'false'.
 %%------------------------------------------------------------------------------
 -spec is_custom_data(kz_json:json_term()) -> boolean().
 is_custom_data(Term) ->
-    validate(Term, [{<<"aps">>, fun(V) -> V =:= 'undefined' end}]).
+    validate(Term, [{<<"aps">>, fun(V) -> V =:= 'undefined' end}
+                   ,{<<"from">>, fun(V) -> V =:= 'undefined' end}
+                   ,{<<"message_type">>, fun(V) -> V =:= 'undefined' end}
+                   ])
+        andalso not lists:any(fun has_restricted_prefix/1, kz_json:get_keys(Term)).
+
+-spec has_restricted_prefix(kz_json:key()) -> boolean().
+has_restricted_prefix(<<"google", _/binary>>) -> 'true';
+has_restricted_prefix(<<"gcm", _/binary>>) -> 'true';
+has_restricted_prefix(_Key) -> 'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc Validate that `Term' contains valid identification of an endpoint.
