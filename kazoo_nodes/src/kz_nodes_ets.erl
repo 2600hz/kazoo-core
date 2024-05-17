@@ -596,6 +596,6 @@ expire_nodes(ThisNode) ->
     _ = [ets:delete(?TAB_NAME, Node) || #kz_node{node=Node} <- ExpiredNodes],
     ExpiredNodes.
 
--spec flush() -> true.
+-spec flush() -> 'true'.
 flush() ->
     ets:delete_all_objects(?TAB_NAME).
