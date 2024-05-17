@@ -68,7 +68,7 @@
 
 -define(MONITOR_NODES_OPTIONS, ['nodedown_reason', {'node_type', 'all'}]).
 
--record(state, {heartbeat_ref = undefined :: reference() | undefined
+-record(state, {heartbeat_ref = 'undefined' :: kz_term:api_reference()
                ,node = node() :: atom()
                ,md5 :: kz_term:ne_binary()
                ,zone = 'local' :: atom()
@@ -77,9 +77,9 @@
                ,is_consuming = 'false' :: boolean()
                ,has_ets = 'false' :: boolean()
                ,waiting = [] :: [kz_term:pid_ref()]
-               ,expires_ref = undefined :: reference() | undefined
-               ,update_ref = undefined :: reference() | undefined
-               ,payload = undefined :: kz_term:api_object()
+               ,expires_ref = 'undefined' :: kz_term:api_reference()
+               ,update_ref = 'undefined' :: kz_term:api_reference()
+               ,payload = 'undefined' :: kz_term:api_object()
                }).
 -type nodes_state() :: #state{}.
 
@@ -138,13 +138,13 @@ build_advertised_node(JObj, State) ->
             lager:warning("error building advertised node : ~p", [{_E, _R}])
     end.
 
--spec update_advertised_node(kz_types:kz_node(), nodes_state()) -> pid() | true.
-update_advertised_node(_Node, #state{has_ets = false}) -> true;
-update_advertised_node(Node, #state{has_ets = true}) ->
+-spec update_advertised_node(kz_types:kz_node(), nodes_state()) -> pid() | 'true'.
+update_advertised_node(_Node, #state{has_ets = 'false'}) -> 'true';
+update_advertised_node(Node, #state{has_ets = 'true'}) ->
     case kz_nodes_ets:add_node(Node) of
-        new ->
+        'new' ->
             kz_process:spawn(fun notify_new/1, [Node]);
-        update ->
+        'update' ->
             kz_process:spawn(fun notify_heartbeat/1, [Node])
     end.
 
@@ -185,10 +185,10 @@ start_timers(State) ->
 start_timer(Fun, State) -> Fun(State).
 
 start_expire_nodes_timer(State) ->
-    State#state{expires_ref = erlang:start_timer(?EXPIRE_PERIOD, self(), expire_nodes)}.
+    State#state{expires_ref = erlang:start_timer(?EXPIRE_PERIOD, self(), 'expire_nodes')}.
 
 start_update_me_timer(State) ->
-    State#state{update_ref = erlang:start_timer(?UPDATE_PERIOD, self(), update_me)}.
+    State#state{update_ref = erlang:start_timer(?UPDATE_PERIOD, self(), 'update_me')}.
 
 start_heartbeat_timer(State) ->
     start_heartbeat_timer(State, ?HEARTBEAT).
@@ -240,29 +240,29 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), nodes_state()) -> kz_types:handle_info_ret_state(nodes_state()).
-handle_info({timeout, Ref, expire_nodes}, #state{expires_ref = Ref, node = ThisNode, has_ets = true}=State) ->
+handle_info({'timeout', Ref, 'expire_nodes'}, #state{expires_ref = Ref, node = ThisNode, has_ets = 'true'}=State) ->
     ExpiredNodes = kz_nodes_ets:expire_nodes(ThisNode),
     _ = kz_process:spawn(fun notify_expire/1, [ExpiredNodes]),
     {'noreply', start_expire_nodes_timer(State)};
-handle_info({timeout, Ref, expire_nodes}, #state{expires_ref = Ref}=State) ->
+handle_info({'timeout', Ref, 'expire_nodes'}, #state{expires_ref = Ref}=State) ->
     {'noreply', start_expire_nodes_timer(State)};
-handle_info({timeout, _Ref, expire_nodes}, State) ->
+handle_info({'timeout', _Ref, 'expire_nodes'}, State) ->
     {'noreply', State};
 
-handle_info({timeout, TimerRef, update_me}, #state{update_ref = TimerRef, zone=Zone, version=Version, md5=MD5} = State) ->
+handle_info({'timeout', TimerRef, 'update_me'}, #state{update_ref = TimerRef, zone=Zone, version=Version, md5=MD5} = State) ->
     _ = kz_process:spawn(fun create_node/4, [?UPDATE_PERIOD, Zone, Version, MD5]),
     {'noreply', State};
 
-handle_info({timeout, _TimerRef, update_me}, State) ->
+handle_info({'timeout', _TimerRef, 'update_me'}, State) ->
     {'noreply', State};
 
-handle_info({timeout, Ref, heartbeat}, #state{heartbeat_ref = Ref, payload = undefined} = State) ->
+handle_info({'timeout', Ref, 'heartbeat'}, #state{heartbeat_ref = Ref, payload = 'undefined'} = State) ->
     {'noreply', start_heartbeat_timer(State)};
 
-handle_info({timeout, Ref, heartbeat}, #state{heartbeat_ref = Ref, is_consuming = false} = State) ->
+handle_info({'timeout', Ref, 'heartbeat'}, #state{heartbeat_ref = Ref, is_consuming = 'false'} = State) ->
     {'noreply', start_heartbeat_timer(State)};
 
-handle_info({timeout, Ref, heartbeat}, #state{heartbeat_ref=Ref, waiting=Waiting, payload = Payload} = State) ->
+handle_info({'timeout', Ref, 'heartbeat'}, #state{heartbeat_ref=Ref, waiting=Waiting, payload = Payload} = State) ->
     Hearbeat = ?HEARTBEAT,
     AMQPConsumer = kz_amqp_channel:consumer_pid(),
     AMQPChannel = kz_amqp_channel:consumer_channel(),
@@ -270,7 +270,7 @@ handle_info({timeout, Ref, heartbeat}, #state{heartbeat_ref=Ref, waiting=Waiting
     _ = notify_waiting(Waiting),
     {'noreply', start_heartbeat_timer(State#state{waiting=[]}, Hearbeat)};
 
-handle_info({timeout, _Ref, heartbeat}, State) ->
+handle_info({'timeout', _Ref, 'heartbeat'}, State) ->
     lager:warning("received out of sync heartbeat timer ref => ~p", [_Ref]),
     {'noreply', State};
 
@@ -288,7 +288,7 @@ handle_info({'nodeup', Node}, State) ->
     {'noreply', State};
 handle_info({'ETS-TRANSFER', _TblId, _From, _Data}, State) ->
     lager:info("received ets transfer, start heartbeat"),
-    {'noreply', start_timers(State#state{has_ets = true})};
+    {'noreply', start_timers(State#state{has_ets = 'true'})};
 handle_info(_Info, State) ->
     lager:debug("unhandled message: ~p", [_Info]),
     {'noreply', State}.
@@ -298,7 +298,7 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_json:object(), nodes_state()) -> gen_listener:handle_event_return().
-handle_event(_JObj, #state{has_ets=false}) ->
+handle_event(_JObj, #state{has_ets='false'}) ->
     'ignore';
 handle_event(JObj, #state{node=Node}=State) ->
     case kz_api:node(JObj) =:= kz_term:to_binary(Node) of
@@ -529,7 +529,7 @@ version() ->
     kz_application:application_version_with_otp_release(?APP).
 
 next_heartbeat(Heartbeat) ->
-    erlang:start_timer(Heartbeat, self(), heartbeat).
+    erlang:start_timer(Heartbeat, self(), 'heartbeat').
 
 create_node(Heartbeat, Zone, Version, MD5) ->
     erlang:put('kazoo_bindings_silent_apply', 'true'),
@@ -543,7 +543,7 @@ create_node(Heartbeat, Zone, Version, MD5) ->
             kz_log:log_stacktrace(ST)
     end.
 
--spec notify_waiting([pid()]) -> pid() | ok.
-notify_waiting([]) -> ok;
+-spec notify_waiting([pid()]) -> pid() | 'ok'.
+notify_waiting([]) -> 'ok';
 notify_waiting(Waiting) ->
     kz_process:spawn(fun() -> [gen_server:reply(Pid, 'ok') || Pid <- Waiting] end).
