@@ -43,6 +43,8 @@
         ,get_nodes_info/0
         ]).
 
+-export([flush/0]).
+
 -type request_info() :: {'app', atom()} |
                         {'media_servers', [{kz_term:ne_binary(), kz_json:object()}]} |
                         {'channels', non_neg_integer()} |
@@ -590,3 +592,7 @@ expire_nodes(ThisNode) ->
     ExpiredNodes = ets:select(?TAB_NAME, FindSpec),
     _ = [ets:delete(?TAB_NAME, Node) || #kz_node{node=Node} <- ExpiredNodes],
     ExpiredNodes.
+
+-spec flush() -> true.
+flush() ->
+    ets:delete_all_objects(?TAB_NAME).
