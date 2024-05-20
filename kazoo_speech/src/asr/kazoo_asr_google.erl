@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2020, 2600Hz
+%%% @copyright (C) 2018-2024, 2600Hz
 %%% @doc
 %%% @author Sergey Safarov <s.safarov@gmail.com>, Sponsored by Audian
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -156,7 +156,7 @@ handle_response({'ok', _Code, _Hdrs, Content2}) ->
     lager:debug("resp: ~s", [Content2]),
     {'error', 'asr_provider_failure', Content2}.
 
--spec get_sentence(kz_json:object()) -> kz_term:ne_binary().
+-spec get_sentence(kz_json:object()) -> binary().
 get_sentence(Alternative) ->
     [Sentence|_] = kz_json:get_list_value(<<"alternatives">>, Alternative),
-    kz_json:get_value(<<"transcript">>, Sentence).
+    kz_json:get_binary_value(<<"transcript">>, Sentence, <<>>).
