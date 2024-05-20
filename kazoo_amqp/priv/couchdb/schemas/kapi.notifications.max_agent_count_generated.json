@@ -34,6 +34,9 @@
         "HTML": {
             "type": "string"
         },
+        "Max-Agent-Count": {
+            "type": "integer"
+        },
         "Preview": {
             "type": "boolean"
         },
@@ -51,7 +54,8 @@
         }
     },
     "required": [
-        "Account-ID"
+        "Account-ID",
+        "Max-Agent-Count"
     ],
     "type": "object"
 }

@@ -1838,7 +1838,9 @@ max_agent_count_definition() ->
               ,{fun kapi_definition:set_publish_fun/2, fun publish_max_agent_count/1}
               ,{fun kapi_definition:set_binding/2, ?BINDING_STRING(Category, <<"created">>)}
               ,{fun kapi_definition:set_restrict_to/2, 'max_agent_count'}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>]}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
+                                                            ,<<"Max-Agent-Count">>
+                                                            ]}
               ,{fun kapi_definition:set_optional_headers/2, ?DEFAULT_OPTIONAL_HEADERS}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
               ,{fun kapi_definition:set_types/2, []}
