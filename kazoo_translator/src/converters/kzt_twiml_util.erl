@@ -95,9 +95,9 @@ get_max_length(Props) ->
 -spec pause_for(kz_term:proplist()) -> 1000..3600000.
 pause_for(Props) ->
     case props:get_integer_value('length', Props) of
-        'undefined' -> ?MILLISECONDS_IN_SECOND;
-        N when is_integer(N), N > 0, N =< 3600 -> N * ?MILLISECONDS_IN_SECOND;
-        N when is_integer(N), N > 3600 -> 3600000
+        N when is_integer(N), N > 0, N < 3600 -> N * ?MILLISECONDS_IN_SECOND;
+        N when is_integer(N), N >= 3600 -> ?MILLISECONDS_IN_HOUR;
+        _ -> ?MILLISECONDS_IN_SECOND
     end.
 
 -spec action_url(kz_term:proplist()) -> kz_term:api_binary().
