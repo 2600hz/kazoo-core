@@ -57,7 +57,7 @@ exec(Call, [#xmlElement{name='Conference'
                        ,content=ConfIdTxts
                        ,attributes=ConfAttrs
                        }], DialAttrs) ->
-    apps_call_command:answer(Call),
+    kapps_call_command:answer(Call),
 
     ConfId = conference_id(ConfIdTxts),
 
