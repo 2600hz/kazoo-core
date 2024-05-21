@@ -31,9 +31,11 @@
 exec(Call, [#xmlText{type='text'}|_]=DialMeTxts, Attrs) ->
     case cleanup_dial_me(kz_xml:texts_to_binary(DialMeTxts)) of
         <<>> ->
-            lager:info("no text to dial, using only xml elements"),
-            exec(Call, kz_xml:elements(DialMeTxts), Attrs);
-        DialMe -> dial_me(Call, Attrs, knm_converters:normalize(DialMe))
+            lager:debug("no dial-able plain text, continuing to next verb..."),
+            {'ok', Call};
+        DialMe ->
+            Props = kz_xml:attributes_to_proplist(Attrs),
+            simple_dial(Call, Props, normalize_number(DialMe, Call))
     end;
 exec(Call
     ,[#xmlElement{name='Number'
@@ -44,26 +46,20 @@ exec(Call
     ,DialAttrs) ->
     case cleanup_dial_me(kz_xml:texts_to_binary(Number)) of
         <<>> ->
-            lager:debug("no dial-able Number in tag, continuing"),
+            lager:debug("no dial-able Number in tag, continuing to next verb"),
             {'ok', Call};
         NumberText ->
-            DialMe = knm_converters:normalize(NumberText),
+            DialProps = kz_xml:attributes_to_proplist(DialAttrs),
             NumberProps = kz_xml:attributes_to_proplist(NumberAttrs),
-
-            SendDigits = props:get_value('sendDigits', NumberProps),
-            _Url = props:get_value('url', NumberProps),
-            _Method = props:get_value('method', NumberProps),
-
-            lager:info("maybe sending number ~s: send ~s", [DialMe, SendDigits]),
-
-            dial_me(Call, DialAttrs, DialMe)
+            number_dial(Call, DialProps, NumberProps, normalize_number(NumberText, Call))
     end;
 exec(Call, [#xmlElement{name='Conference'
                        ,content=ConfIdTxts
                        ,attributes=ConfAttrs
                        }], DialAttrs) ->
+    apps_call_command:answer(Call),
+
     ConfId = conference_id(ConfIdTxts),
-    lager:info("dialing into conference '~s'", [ConfId]),
 
     ConfProps = kz_xml:attributes_to_proplist(ConfAttrs),
     DialProps = kz_xml:attributes_to_proplist(DialAttrs),
@@ -94,8 +90,9 @@ exec(Call, [#xmlElement{name='Conference'
 
     CallWithConf = add_conference_profile(Call, ConfProps),
     SetupCall = setup_call_for_dial(CallWithConf, DialProps),
+    AnsweredCall = kzt_util:update_call_status(?STATUS_ANSWERED, SetupCall),
 
-    {'ok', Call1} = kzt_receiver:wait_for_conference(SetupCall),
+    {'ok', Call1} = kzt_receiver:wait_for_conference(AnsweredCall),
 
     maybe_end_dial(Call1, DialProps);
 
@@ -117,7 +114,7 @@ exec(Call, [#xmlElement{name='Queue'
                                ),
 
     lager:info("dialing into queue ~s, unsupported", [QueueId]),
-    {'stop', Call1};
+    {'stop', kzt_util:add_error(Call1, <<"not_implemented">>, <<"Queue is not implemented">>)};
 
 exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
     lager:info("dialing endpoints: ~p", [Endpoints]),
@@ -141,10 +138,10 @@ exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
             maybe_end_dial(Call2, Props)
     end.
 
-dial_me(Call, Attrs, DialMe) ->
-    lager:info("dial text DID '~s'", [DialMe]),
-
-    Props = kz_xml:attributes_to_proplist(Attrs),
+-spec simple_dial(kapps_call:call(), kz_term:proplist(), kz_term:ne_binary()) ->
+          {'ok' | 'stop' | 'request', kapps_call:call()}.
+simple_dial(Call, Props, DialMe) ->
+    lager:debug("dial text DID '~s'", [DialMe]),
 
     Call1 = setup_call_for_dial(kapps_call:set_request(request_id(DialMe, Call), Call)
                                ,Props
@@ -157,6 +154,17 @@ dial_me(Call, Attrs, DialMe) ->
 
     {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props),
     maybe_end_dial(Call2, Props).
+
+-spec number_dial(kapps_call:call(), kz_term:proplist(), kz_term:proplist(), kz_term:ne_binary()) ->
+          {'ok' | 'stop' | 'request', kapps_call:call()}.
+number_dial(Call, DialProps, NumberProps, DialMe) ->
+    SendDigits = props:get_value('sendDigits', NumberProps),
+    _Url = props:get_value('url', NumberProps),
+    _Method = props:get_value('method', NumberProps),
+
+    lager:info("not implemented: maybe sending number ~s: send ~s", [DialMe, SendDigits]),
+
+    simple_dial(Call, DialProps, DialMe).
 
 send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
     B = [{<<"Application-Name">>, <<"bridge">>}
@@ -174,7 +182,7 @@ setup_call_for_dial(Call, Props) ->
               ,{fun kzt_util:set_hangup_dtmf/2, hangup_dtmf(Props)}
               ,{fun kzt_util:set_record_call/2, should_record_call(Props)}
               ,{fun kzt_util:set_recording_stereo/2, should_recording_stereo(Props)}
-              ,{fun kzt_util:set_call_timeout/2, timeout_s(Props)}
+              ,{fun kzt_util:set_call_timeout/2, dial_timeout(Props)}
               ,{fun kzt_util:set_call_time_limit/2, timelimit_s(Props)}
               ],
     kapps_call:exec(Setters, Call).
@@ -208,13 +216,10 @@ maybe_end_dial(Call, Props, ActionUrl, 'false') ->
     {'request', kapps_call:exec(Setters, Call)}.
 
 -spec cleanup_dial_me(binary()) -> binary().
-cleanup_dial_me(<<_/binary>> = Txt) ->
-    << <<C>> || <<C>> <= Txt, is_numeric_or_plus(C)>>.
-
--spec is_numeric_or_plus(pos_integer()) -> boolean().
-is_numeric_or_plus(Num) when Num >= $0, Num =< $9 -> 'true';
-is_numeric_or_plus($+) -> 'true';
-is_numeric_or_plus(_) -> 'false'.
+cleanup_dial_me(<<"+", Txt/binary>>) ->
+    <<"+", (kz_binary:remove_non_numeric(Txt))/binary>>;
+cleanup_dial_me(Txt) ->
+    kz_binary:remove_non_numeric(Txt).
 
 %% To maintain compatibility with Twilo, we force the call offnet (otherwise
 %% the redirect onnet steals our callid, and callflow/trunkstore/other could
@@ -280,7 +285,7 @@ xml_elements_to_endpoints(Call
     _Url = props:get_value('url', Props),
     _Method = props:get_value('method', Props),
 
-    DialMe = knm_converters:normalize(kz_xml:texts_to_binary(Number)),
+    DialMe = normalize_number(kz_xml:texts_to_binary(Number), Call),
 
     lager:debug("maybe add number ~s: send ~s", [DialMe, SendDigits]),
 
@@ -349,11 +354,6 @@ get_max_participants(Props) when is_list(Props) ->
     get_max_participants(props:get_integer_value('maxParticipants', Props, 40));
 get_max_participants(N) when is_integer(N), N =< 40, N > 2 -> N.
 
--spec dial_timeout(kz_term:proplist() | pos_integer()) -> pos_integer().
-dial_timeout(Props) when is_list(Props) ->
-    dial_timeout(props:get_integer_value('timeout', Props, 20));
-dial_timeout(T) when is_integer(T), T > 0 -> T.
-
 dial_strategy(Props) ->
     case props:get_value('strategy', Props) of
         'undefined' -> <<"simultaneous">>;
@@ -414,15 +414,22 @@ should_recording_stereo(Props) ->
         _ -> 'false'
     end.
 
-%% Adds 5s timeout buffer
--spec timeout_s(kz_term:proplist()) -> non_neg_integer().
-timeout_s(Props) ->
-    Timeout = kzt_twiml_util:timeout_s(Props, ?MINIMUM_TIMEOUT_S, ?MAXIMUM_TINEOUT_S, ?DEFAULT_TIMEOUT_S),
-    Timeout + ?TIMEOUT_BUFFER_S.
+-spec dial_timeout(kz_term:proplist()) -> pos_integer().
+dial_timeout(Props) ->
+    %% Add 5s timeout buffer
+    case props:get_integer_value('timeout', Props) of
+        'undefined' -> ?DEFAULT_TIMEOUT_S + ?TIMEOUT_BUFFER_S;
+        N when N >= ?MAXIMUM_TINEOUT_S -> ?MAXIMUM_TIME_LIMIT_S;
+        N -> erlang:max(?MINIMUM_TIMEOUT_S, N) + ?TIMEOUT_BUFFER_S
+    end.
 
 -spec timelimit_s(kz_term:proplist()) -> non_neg_integer().
 timelimit_s(Props) ->
-    kzt_twiml_util:timeout_s('timeLimit', Props, 0, ?MAXIMUM_TIME_LIMIT_S, ?DEFAULT_TIME_LIMIT_S).
+    case props:get_integer_value('timeLimit', Props) of
+        'undefined' -> ?DEFAULT_TIME_LIMIT_S;
+        N when N >= ?MAXIMUM_TIME_LIMIT_S -> ?MAXIMUM_TIME_LIMIT_S;
+        N -> erlang:max(?MINIMUM_TIMEOUT_S, N)
+    end.
 
 -spec build_conference_doc(kapps_call:call(), kz_term:ne_binary(), kz_term:proplist()) ->
           kz_json:object().
@@ -519,3 +526,7 @@ conference_member_flags(ConfProps) ->
 get_endpoints(UserId, Data, Call) ->
     Params = kz_json:set_value(<<"source">>, kz_term:to_binary(?MODULE), Data),
     kz_endpoints:by_owner_id(UserId, Params, Call).
+
+-spec normalize_number(kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
+normalize_number(Number, Call) ->
+    knm_converters:normalize(Number, kapps_call:account_id(Call)).

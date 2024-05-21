@@ -75,7 +75,7 @@ http_method(<<_/binary>> = Method) ->
     try kz_term:to_atom(MethodBin) of
         'get' -> 'get';
         'post' -> 'post';
-        'undefined' -> ?DEFAULT_HTTP_METHOD
+        _ -> ?DEFAULT_HTTP_METHOD
     catch
         _E:_R -> ?DEFAULT_HTTP_METHOD
     end;

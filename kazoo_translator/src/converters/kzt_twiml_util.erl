@@ -20,7 +20,7 @@
         ,get_max_length/1
         ,pause_for/1
         ,action_url/1
-        ,timeout_s/1, timeout_s/2, timeout_s/4, timeout_s/5
+        ,timeout_s/1, timeout_s/2
         ,num_digits/1
         ,reject_prompt/1
         ,reject_reason/1
@@ -114,18 +114,6 @@ timeout_s(Props, Default) ->
     case props:get_integer_value('timeout', Props, Default) of
         N when is_integer(N), N > 3600 -> 3600;
         N when is_integer(N), N > 0 -> N
-    end.
-
--spec timeout_s(kz_term:proplist(), non_neg_integer(), non_neg_integer(), non_neg_integer()) -> non_neg_integer().
-timeout_s(Props, Min, Max, Default) ->
-    timeout_s('timeout', Props, Min, Max, Default).
-
--spec timeout_s(atom(), kz_term:proplist(), non_neg_integer(), non_neg_integer(), non_neg_integer()) -> non_neg_integer().
-timeout_s(Key, Props, Min, Max, Default) ->
-    case props:get_integer_value(Key, Props) of
-        'undefined' -> Default;
-        N when N >= Max -> Max;
-        N -> erlang:max(Min, N)
     end.
 
 -spec num_digits(kz_term:proplist()) -> timeout().
