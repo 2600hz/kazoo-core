@@ -822,7 +822,7 @@ prev_assigned_to(#knm_phone_number{prev_assigned_to=PrevAssignedTo}) ->
 -spec set_prev_assigned_to(pn_record(), kz_term:api_ne_binary()) -> pn_record().
 set_prev_assigned_to(PN=#knm_phone_number{prev_assigned_to = 'undefined'}
                     ,PrevAssignedTo=?MATCH_ACCOUNT_RAW(_)) ->
-    PN#knm_phone_number{prev_assigned_to = PrevAssignedTo};
+    PN#knm_phone_number{prev_assigned_to = maybe_set_prev_assigned_to(PrevAssignedTo)};
 
 set_prev_assigned_to(PN, 'undefined') -> PN;
 
@@ -1864,3 +1864,28 @@ add_on_success(PN = #knm_phone_number{on_success = CB}, Callback) ->
 -spec reset_on_success(pn_record()) -> pn_record().
 reset_on_success(PN = #knm_phone_number{}) ->
     PN#knm_phone_number{on_success = []}.
+
+-spec maybe_set_prev_assigned_to(kz_term:ne_binaries()) -> 'undefined' | kz_term:ne_binaries().
+maybe_set_prev_assigned_to(PrevAccountId) ->
+    case
+        is_account_service_doc_exist(PrevAccountId)
+        orelse is_account_doc_in_db_exist(PrevAccountId)
+    of
+        'true' -> PrevAccountId;
+        'false' -> 'undefined'
+
+    end.
+
+-spec is_account_service_doc_exist(kz_term:ne_binaries()) -> boolean().
+is_account_service_doc_exist(AccountId) ->
+    case kz_datamgr:open_cache_doc(?KZ_SERVICES_DB, AccountId) of
+        {'error', 'not_found'} -> 'false';
+        _ -> 'true'
+    end.
+
+-spec is_account_doc_in_db_exist(kz_term:ne_binaries()) -> boolean().
+is_account_doc_in_db_exist(AccountId) ->
+    case kzd_accounts:fetch(AccountId) of
+        {'error', 'not_found'} -> 'false';
+        _ -> 'true'
+    end.
