@@ -90,9 +90,8 @@ exec(Call, [#xmlElement{name='Conference'
 
     CallWithConf = add_conference_profile(Call, ConfProps),
     SetupCall = setup_call_for_dial(CallWithConf, DialProps),
-    AnsweredCall = kzt_util:update_call_status(?STATUS_ANSWERED, SetupCall),
 
-    {'ok', Call1} = kzt_receiver:wait_for_conference(AnsweredCall),
+    {'ok', Call1} = kzt_receiver:wait_for_conference(SetupCall),
 
     maybe_end_dial(Call1, DialProps);
 
@@ -447,7 +446,7 @@ build_conference_doc(Call, ConfId, ConfProps) ->
                       ,{<<"wait_for_moderator">>, 'true'}
                       ,{<<"max_participants">>, get_max_participants(ConfProps)}
                       ,{<<"profile_name">>, <<ConfId/binary, "_", AccountId/binary>>}
-                      ,{<<"profile">>, conference_profile(kapps_call:account_id(Call), ConfProps)}
+                      ,{<<"profile">>, conference_profile(Call, ConfProps)}
                       ]).
 
 require_moderator('undefined') -> 'false';
@@ -478,12 +477,12 @@ conference_id(Txts) ->
 
 -spec add_conference_profile(kapps_call:call(), kz_term:proplist()) -> kapps_call:call().
 add_conference_profile(Call, ConfProps) ->
-    AccountId = kapps_call:account_id(Call),
-    Profile = conference_profile(AccountId, ConfProps),
+    Profile = conference_profile(Call, ConfProps),
     kzt_util:set_conference_profile(Profile, Call).
 
--spec conference_profile(kz_term:ne_binary(), kz_term:proplist()) -> kz_json:object().
-conference_profile(AccountId, ConfProps) ->
+-spec conference_profile(kapps_call:call(), kz_term:proplist()) -> kz_json:object().
+conference_profile(Call, ConfProps) ->
+    AccountId = kapps_call:account_id(Call),
     kz_json:from_list(
       [{<<"announce-count">>, props:get_integer_value('announceCount', ConfProps)}
       ,{<<"caller-controls">>, props:get_binary_value('callerControls', ConfProps, <<"default">>)}
@@ -498,7 +497,7 @@ conference_profile(AccountId, ConfProps) ->
       ,{<<"moderator-controls">>, props:get_binary_value('moderatorControls', ConfProps, <<"default">>)}
       ,{<<"moh-sound">>, get_moh(ConfProps)}
       ,{<<"rate">>, props:get_integer_value('rate', ConfProps, 16000)}
-      ,{<<"tts-engine">>, kzt_twiml_util:get_engine(ConfProps)}
+      ,{<<"tts-engine">>, kzt_twiml_util:get_engine(Call, ConfProps)}
       ,{<<"tts-voice">>, kzt_twiml_util:get_voice(ConfProps)}
       ]).
 
