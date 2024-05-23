@@ -1,0 +1,46 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2024, 2600Hz
+%%% @doc Accessors for `emails' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_emails).
+
+-export([new/0]).
+-export([dkim_selector/1, dkim_selector/2, set_dkim_selector/2]).
+-export([email/1, email/2, set_email/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"emails">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec dkim_selector(doc()) -> kz_term:api_binary().
+dkim_selector(Doc) ->
+    dkim_selector(Doc, 'undefined').
+
+-spec dkim_selector(doc(), Default) -> binary() | Default.
+dkim_selector(Doc, Default) ->
+    kz_json:get_binary_value([<<"dkim_selector">>], Doc, Default).
+
+-spec set_dkim_selector(doc(), binary()) -> doc().
+set_dkim_selector(Doc, DkimSelector) ->
+    kz_json:set_value([<<"dkim_selector">>], DkimSelector, Doc).
+
+-spec email(doc()) -> kz_term:api_binary().
+email(Doc) ->
+    email(Doc, 'undefined').
+
+-spec email(doc(), Default) -> binary() | Default.
+email(Doc, Default) ->
+    kz_json:get_binary_value([<<"email">>], Doc, Default).
+
+-spec set_email(doc(), binary()) -> doc().
+set_email(Doc, Email) ->
+    kz_json:set_value([<<"email">>], Email, Doc).
