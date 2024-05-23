@@ -24,8 +24,8 @@ exec(Call, XmlText, Attrs) ->
     Props = kz_xml:attributes_to_proplist(Attrs),
 
     Voice = kzt_twiml_util:get_voice(Props),
-    Lang = kzt_twiml_util:get_lang(Props),
-    Engine = kzt_twiml_util:get_engine(Props),
+    Lang = kzt_twiml_util:get_lang(Call, Props),
+    Engine = kzt_twiml_util:get_engine(Call, Props),
 
     Terminators = kzt_twiml_util:get_terminators(Props),
 
