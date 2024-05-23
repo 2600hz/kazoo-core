@@ -264,6 +264,12 @@
         ,publish_number_feature_manual_action/1
         ,publish_number_feature_manual_action/2
         ]).
+%% whitelabel email verification
+-export([email_verification/1
+        ,email_verification_v/1
+        ,publish_email_verification/1
+        ,publish_email_verification/2
+        ]).
 
 -export_type([doc/0]).
 
@@ -1897,6 +1903,40 @@ number_feature_manual_action_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+%%------------------------------------------------------------------------------
+%% @doc Get Whitelabel Email Verification Notification API definition.
+%% @end
+%%------------------------------------------------------------------------------
+-spec email_verification_definition() -> kapi_definition:api().
+email_verification_definition() ->
+    EventName = <<"email_verification">>,
+    Category = <<"account">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Email Verification">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"This event is triggered when a verification code is sent to provided email address">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun email_verification/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun email_verification_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_email_verification/1}
+              ,{fun kapi_definition:set_binding/2, ?BINDING_STRING(Category, <<"email_verification">>)}
+              ,{fun kapi_definition:set_restrict_to/2, 'email_verification'}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
+                                                            ,<<"Email">>
+                                                            ,<<"Verification-Code">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Account-DB">>
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
+                                                            ]}
+              ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
+              ,{fun kapi_definition:set_types/2, [{<<"Account-ID">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Email">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Verification-Code">>, fun kz_term:is_ne_binary/1}
+                                                 ]}
+              ],
+    kapi_definition:setters(Setters).
+
 %%%=============================================================================
 %%% API
 %%%=============================================================================
@@ -1917,6 +1957,7 @@ api_definitions() ->
     ,desktop_app_welcome_definition()
     ,desktop_webphone_enabled_definition()
     ,email_invite_definition()
+    ,email_verification_definition()
     ,emergency_bridge_definition()
     ,first_occurrence_definition()
     ,inbound_fax_definition()
@@ -2012,6 +2053,8 @@ api_definition(<<"ported">>) ->
     ported_definition();
 api_definition(<<"denied_emergency_bridge">>) ->
     denied_emergency_bridge_definition();
+api_definition(<<"email_verification">>) ->
+    email_verification_definition();
 api_definition(<<"emergency_bridge">>) ->
     emergency_bridge_definition();
 api_definition(<<"deregister">>) ->
@@ -3412,6 +3455,35 @@ publish_number_feature_manual_action(JObj) ->
 -spec publish_number_feature_manual_action(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_number_feature_manual_action(API, ContentType) ->
     Definition = number_feature_manual_action_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
+
+%%%=============================================================================
+%%% Whitelabel Email Verification Functions
+%%%=============================================================================
+%%%
+%%------------------------------------------------------------------------------
+%% @doc Takes proplist, creates JSON string and publish it on AMQP.
+%% @end
+%%------------------------------------------------------------------------------
+-spec email_verification(kz_term:api_terms()) -> api_formatter_return().
+email_verification(Prop) ->
+    kapi_definition:build_message(Prop, email_verification_definition()).
+
+-spec email_verification_v(kz_term:api_terms()) -> boolean().
+email_verification_v(Prop) ->
+    kapi_definition:validate(Prop, email_verification_definition()).
+
+-spec publish_email_verification(kz_term:api_terms()) -> 'ok'.
+publish_email_verification(JObj) ->
+    publish_email_verification(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_email_verification(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_email_verification(API, ContentType) ->
+    Definition = email_verification_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(API
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)

@@ -1,0 +1,45 @@
+{
+    "_id": "_design/emails",
+    "kazoo": {
+        "view_map": [
+            {
+                "classification": "account"
+            }
+        ]
+    },
+    "language": "javascript",
+    "views": {
+        "crossbar_listing": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'emails' || doc.pvt_deleted) return;",
+                "  emit(doc._id, {",
+                "    'id': doc._id,",
+                "    'email': doc.email,",
+                "    'verified': doc.pvt_verified",
+                "  });",
+                "}"
+            ]
+        },
+        "list_by_email": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'emails' || doc.pvt_deleted) return;",
+                "  emit(doc.email);",
+                "}"
+            ]
+        },
+        "list_by_verified_email": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'emails' || doc.pvt_deleted || !doc.pvt_verified) return;",
+                "  emit(doc.email, {",
+                "    'id': doc._id,",
+                "    'dkim_selector': doc.dkim_selector,",
+                "    'email': doc.email",
+                "  });",
+                "}"
+            ]
+        }
+    }
+}
