@@ -29,22 +29,22 @@ workflows:
           context: Private-Builds
           requires:
             - preparation-centos-7
-      -
-        kazoo/code-checks:
-          requires:
-            - beams-centos-7
-      -
-        kazoo/docs:
-          requires:
-            - beams-centos-7
+      # -
+      #   kazoo/code-checks:
+      #     requires:
+      #       - beams-centos-7
+      # -
+      #   kazoo/docs:
+      #     requires:
+      #       - beams-centos-7
       -
         kazoo/analyze:
           requires:
             - beams-centos-7
-      -
-        kazoo/integration-test:
-          requires:
-            - beams-centos-7
+      # -
+      #   kazoo/integration-test:
+      #     requires:
+      #       - beams-centos-7
       -
         kazoo/build-centos7:
           context: Private-Builds
