@@ -1,7 +1,7 @@
 name: kazoo-core
 custom_files: null
 exposure: private
-base_branch: origin/5.3
+base_branch: origin/5.4
 base_core: null
 template: kazoo-core.spec.tmpl
 package:
@@ -46,7 +46,7 @@ package:
     url: 'http://www.2600hz.org/'
     vendor: 2600Hz
     requires_excludes:
-        - '^/usr/bin/escript$'
+      - ^/usr/bin/escript$
   rockylinux9:
     summary: '2600hz Kazoo communications platform core'
     description: |
@@ -68,7 +68,7 @@ package:
     url: 'http://www.2600hz.org/'
     vendor: 2600Hz
     requires_excludes:
-      - '^/usr/bin/escript$'
+      - ^/usr/bin/escript$
     requires:
       compat-openssl11-2600hz:
         verison: 1.1.1t-2600hz.2.el9
@@ -77,6 +77,6 @@ metapackage:
   -
     name: meta-kazoo-applications
     type: required
-    branch: '5.3'
+    branch: '5.4'
     package: kazoo-core
 dependencies: null
