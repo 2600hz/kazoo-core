@@ -355,9 +355,10 @@ services_group_numbers([PhoneNumber|PNs], Updates) ->
     AssignedTo = kz_term:to_api_term(
                    knm_phone_number:assigned_to(PhoneNumber)
                   ),
-    PrevAssignedTo = kz_term:to_api_term(
-                       knm_phone_number:prev_assigned_to(PhoneNumber)
-                      ),
+    PrevAssignedTo = validate_previous_assigned_to(kz_term:to_api_term(
+                                                     knm_phone_number:prev_assigned_to(PhoneNumber)
+                                                    )
+                                                  ),
     Props = services_group_number(PhoneNumber, AssignedTo, PrevAssignedTo),
     UpdatedGroups = lists:foldl(fun({Key, Value}, U) ->
                                         dict:append(Key, Value, U)
@@ -605,3 +606,11 @@ maybe_age(T=#{'todo' := PNs}) ->
 -spec is_state_available(knm_phone_number:pn_record()) -> boolean().
 is_state_available(PN) ->
     ?NUMBER_STATE_AVAILABLE =:= knm_phone_number:state(PN).
+
+-spec validate_previous_assigned_to(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+validate_previous_assigned_to('undefined') -> 'undefined';
+validate_previous_assigned_to(PrevAssignedTo) ->
+    case kz_datamgr:open_doc(PrevAssignedTo, PrevAssignedTo) of
+        {'error', 'not_found'} -> 'undefined';
+        _ -> PrevAssignedTo
+    end.
