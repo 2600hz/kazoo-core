@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -12,15 +12,17 @@
 
 -export([http_method/1
         ,resolve_uri/2
-        ,offnet_req/2
+        ,offnet_req/3
         ,update_call_status/2, get_call_status/1
         ,get_request_vars/1
         ,add_error/3, get_errors/1
         ,set_hangup_dtmf/2, get_hangup_dtmf/1
         ,set_digit_pressed/2, get_digit_pressed/1
+        ,set_is_caller_hungup/2, get_is_caller_hungup/1
         ,set_call_timeout/2, get_call_timeout/1
         ,set_call_time_limit/2, get_call_time_limit/1
         ,set_record_call/2, get_record_call/1
+        ,set_recording_stereo/2, get_recording_stereo/1
         ,set_voice_uri/2, get_voice_uri/1
         ,set_voice_uri_method/2, get_voice_uri_method/1
 
@@ -58,6 +60,8 @@
         ]).
 
 -include("kzt.hrl").
+-include_lib("kazoo_amqp/include/kz_api_literals.hrl").
+-include_lib("kazoo_amqp/include/kapi_offnet_resource.hrl").
 
 -define(DEFAULT_HTTP_METHOD, 'post').
 
@@ -71,7 +75,7 @@ http_method(<<_/binary>> = Method) ->
     try kz_term:to_atom(MethodBin) of
         'get' -> 'get';
         'post' -> 'post';
-        'undefined' -> ?DEFAULT_HTTP_METHOD
+        _ -> ?DEFAULT_HTTP_METHOD
     catch
         _E:_R -> ?DEFAULT_HTTP_METHOD
     end;
@@ -81,36 +85,90 @@ http_method(Method) -> http_method(kz_term:to_binary(Method)).
 resolve_uri(Path, NewPath) ->
     kz_http_util:resolve_uri(Path, NewPath).
 
-%% see cf_offnet.erl
--spec offnet_req(kz_term:proplist(), kapps_call:call()) -> 'ok'.
-offnet_req(Data, Call) ->
+%% See cf_resources.erl.
+%% Try to match cf_resources as much as possible.
+%% Preserve code style for quick eyeballing.
+-spec offnet_req(kz_term:proplist(), kz_term:proplist(), kapps_call:call()) -> 'ok'.
+offnet_req(_Data, OffnetProps, Call) ->
     {ECIDNum, ECIDName} = kz_attributes:caller_id(<<"emergency">>, Call),
-    {CIDNumber, CIDName} = kz_attributes:caller_id(<<"external">>, Call),
-    CIDNum = case kapps_call:kvs_fetch('dynamic_cid', Call) of
-                 'undefined' -> CIDNumber;
-                 DynamicCID -> DynamicCID
-             end,
 
-    Req = [{<<"Call-ID">>, kapps_call:call_id(Call)}
-          ,{<<"Resource-Type">>, <<"audio">>}
-          ,{<<"To-DID">>, kapps_call:request_user(Call)}
-          ,{<<"Account-ID">>, kapps_call:account_id(Call)}
-          ,{<<"Account-Realm">>, kapps_call:from_realm(Call)}
-          ,{<<"Control-Queue">>, kapps_call:control_queue(Call)}
-          ,{<<"Application-Name">>, <<"bridge">>}
-          ,{<<"Flags">>, props:get_value(<<"flags">>, Data)}
-          ,{<<"Timeout">>, props:get_value(<<"timeout">>, Data)}
-          ,{<<"Ignore-Early-Media">>, props:get_value(<<"ignore_early_media">>, Data)}
-          ,{<<"Emergency-Caller-ID-Name">>, ECIDName}
-          ,{<<"Emergency-Caller-ID-Number">>, ECIDNum}
-          ,{<<"Outbound-Caller-ID-Name">>, CIDName}
-          ,{<<"Outbound-Caller-ID-Number">>, CIDNum}
-          ,{<<"Presence-ID">>, kz_attributes:presence_id(Call)}
-          ,{<<"Ringback">>, props:get_value(<<"ringback">>, Data)}
-          | kz_api:default_headers(kapps_call:controller_queue(Call), ?APP_NAME, ?APP_VERSION)
-          ] ++ Data,
+    %% {AssertedNumber, AssertedName, AssertedRealm} =
+    %%     get_asserted_identity(Data, Call),
+
+    {CIDNumber, CIDName} = kz_attributes:caller_id(<<"external">>, Call),
+
+    CCVs = kapps_call:custom_channel_vars(Call),
+    PrivacyFlags = kz_privacy:flags(CCVs),
+
+    Req = kz_json:from_list(
+            [{?KEY_ACCOUNT_ID, kapps_call:account_id(Call)}
+            ,{?KEY_ACCOUNT_REALM, kapps_call:from_realm(Call)}
+            ,{?KEY_APPLICATION_NAME, ?APPLICATION_BRIDGE}
+             %% ,{?KEY_BYPASS_E164, get_bypass_e164(Data)}
+            ,{?KEY_B_LEG_EVENTS, [<<"DTMF">>]}
+            ,{?KEY_CALL_ID, kapps_call:call_id(Call)}
+             %% ,{?KEY_CCVS, get_channel_vars(Call)}
+             %% ,{?KEY_CAVS, kapps_call:custom_application_vars(Call)}
+             %% ,{?KEY_REQUESTOR_CCVS, kapps_call:custom_channel_vars(Call)}
+            ,{?KEY_CONTROL_QUEUE, kapps_call:control_queue(Call)}
+             %% ,{?KEY_CSHS, get_sip_headers(Data, Call)}
+             %% ,{?KEY_REQUESTOR_CSHS, kapps_call:custom_sip_headers(Call)}
+            ,{?KEY_E_CALLER_ID_NAME, ECIDName}
+            ,{?KEY_E_CALLER_ID_NUMBER, ECIDNum}
+             %% ,{?KEY_FLAGS, get_flags(Data, Call)}
+            ,{?KEY_FLAGS, kz_attributes:get_flags(?APP_NAME, Call)}
+            ,{?KEY_FORMAT_FROM_URI, 'false'}
+             %% ,{?KEY_FORMAT_FROM_URI, kz_json:is_true(<<"format_from_uri">>, Data)}
+             %% ,{?KEY_FROM_URI_REALM, get_from_uri_realm(Data, Call)}
+            ,{?KEY_FROM_URI_REALM, maybe_get_call_from_realm(Call)}
+             %% ,{?KEY_HUNT_ACCOUNT_ID, get_hunt_account_id(Data, Call)}
+             %% ,{?KEY_IGNORE_EARLY_MEDIA, get_ignore_early_media(Data)}
+            ,{?KEY_IGNORE_EARLY_MEDIA, 'false'}
+            ,{?KEY_INCEPTION, get_inception(Call)}
+             %% ,{?KEY_MEDIA, kz_json:get_ne_binary_value(<<"Media">>, Data)} %% set by kzt_twiml_dial
+            ,{?KEY_MSG_ID, kz_binary:rand_hex(6)}
+            ,{?KEY_OUTBOUND_CALLER_ID_NAME, CIDName}
+            ,{?KEY_OUTBOUND_CALLER_ID_NUMBER, CIDNumber}
+            ,{?KEY_PRESENCE_ID, maybe_presence_id(Call)}
+            ,{?KEY_ASSERTED_IDENTITY_NAME, 'undefined'}
+            ,{?KEY_ASSERTED_IDENTITY_NUMBER, 'undefined'}
+            ,{?KEY_ASSERTED_IDENTITY_REALM, 'undefined'}
+             %% ,{?KEY_RINGBACK, props:get_value(<<"ringback">>, Data)}
+             %% ,{?KEY_T38_ENABLED, get_t38_enabled(Call)}
+             %% ,{?KEY_TIMEOUT, props:get_value(<<"timeout">>, Data)} %% may set by kzt_twiml_dial
+             %% ,{?KEY_TO_DID, get_to_did(Data, Call)}
+            ,{?KEY_TO_DID, kapps_call:request_user(Call)}
+            ,{?KEY_DENIED_CALL_RESTRICTIONS, kapps_call:kvs_fetch('denied_call_restrictions', Call)}
+            ,{?KEY_OUTBOUND_ACTIONS, kapps_call:kvs_fetch('outbound_actions', Call)}
+            ,{?KEY_PRIVACY_METHOD, props:get_value(?KEY_PRIVACY_METHOD, PrivacyFlags)}
+            ,{?KEY_PRIVACY_HIDE_NAME, props:get_value(?KEY_PRIVACY_HIDE_NAME, PrivacyFlags)}
+            ,{?KEY_PRIVACY_HIDE_NUMBER, props:get_value(?KEY_PRIVACY_HIDE_NUMBER, PrivacyFlags)}
+            ,{?KEY_SIP_DIVERSIONS, kapps_call:bridge_diversions(Call)}
+             %% ,{?KEY_EMERGENCY_ADDRESS, get_emergency_address(Data, Call)}
+            ,{?KEY_RESOURCE_TYPE, ?RESOURCE_TYPE_AUDIO}
+            | kz_api:default_headers(kapps_call:controller_queue(Call), ?APP_NAME, ?APP_VERSION)
+            ] ++ OffnetProps),
 
     kz_amqp_worker:cast(Req, fun kapi_offnet_resource:publish_req/1).
+
+-spec maybe_get_call_from_realm(kapps_call:call()) -> kz_term:api_ne_binary().
+maybe_get_call_from_realm(Call) ->
+    case kapps_call:from_realm(Call) of
+        <<"norealm">> ->
+            kzd_accounts:fetch_realm(kapps_call:account_id(Call));
+        Realm -> Realm
+    end.
+
+-spec get_inception(kapps_call:call()) -> kz_term:api_binary().
+get_inception(Call) ->
+    kz_json:get_value(<<"Inception">>, kapps_call:custom_channel_vars(Call)).
+
+-spec maybe_presence_id(kapps_call:call()) -> kz_term:api_ne_binary().
+maybe_presence_id(Call) ->
+    case kapps_call:is_call_forward(Call) of
+        'true' -> kz_attributes:presence_id(Call);
+        'false' -> 'undefined'
+    end.
 
 -spec update_call_status(kz_term:ne_binary(), kapps_call:call()) -> kapps_call:call().
 update_call_status(Status, Call) ->
@@ -119,6 +177,12 @@ update_call_status(Status, Call) ->
 -spec get_call_status(kapps_call:call()) -> kz_term:api_binary().
 get_call_status(Call) ->
     kapps_call:kvs_fetch(<<"call_status">>, Call).
+
+-spec set_is_caller_hungup(boolean(), kapps_call:call()) -> kapps_call:call().
+set_is_caller_hungup(IsEnded, Call) -> kapps_call:kvs_store(<<"is_caller_hungup">>, IsEnded, Call).
+
+-spec get_is_caller_hungup(kapps_call:call()) -> boolean().
+get_is_caller_hungup(Call) -> kz_term:is_true(kapps_call:kvs_fetch(<<"is_caller_hungup">>, Call)).
 
 -spec add_error(kapps_call:call(), kz_term:ne_binary(), any()) -> kapps_call:call().
 add_error(Call, K, V) ->
@@ -157,6 +221,12 @@ set_record_call(R, Call) -> kapps_call:kvs_store(<<"record_call">>, R, Call).
 
 -spec get_record_call(kapps_call:call()) -> kz_term:api_boolean().
 get_record_call(Call) -> kapps_call:kvs_fetch(<<"record_call">>, Call).
+
+-spec set_recording_stereo(kz_term:api_boolean(), kapps_call:call()) -> kapps_call:call().
+set_recording_stereo(R, Call) -> kapps_call:kvs_store(<<"recording_stereo">>, R, Call).
+
+-spec get_recording_stereo(kapps_call:call()) -> kz_term:api_boolean().
+get_recording_stereo(Call) -> kapps_call:kvs_fetch(<<"recording_stereo">>, Call).
 
 -spec set_call_timeout(pos_integer(), kapps_call:call()) -> kapps_call:call().
 set_call_timeout(T, Call) -> kapps_call:kvs_store(<<"call_timeout">>, T, Call).

@@ -85,6 +85,7 @@ exec_element(Call, #xmlElement{name='Dial'
                               ,attributes=Attrs
                               }) ->
     EPs = kz_xml:filter_empty_text(Endpoints),
+    lager:debug("exectuing Dial verb"),
     kzt_twiml_dial:exec(Call, EPs, Attrs);
 exec_element(Call, #xmlElement{name='Record'
                               ,content=[] % nothing inside the tags please
