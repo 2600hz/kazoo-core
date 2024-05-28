@@ -27,6 +27,7 @@
 -define(MAXIMUM_TIME_LIMIT_S, 4 * ?SECONDS_IN_HOUR).
 
 -define(MAX_DIAL_NOUNS, 10).
+-define(TWIML_MAX_PARTICIPANTS, 250).
 
 -spec exec(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts(), kz_types:xml_attribs()) ->
           {'ok' | 'stop', kapps_call:call()}.
@@ -58,46 +59,18 @@ exec(Call
             number_dial(Call, DialProps, NumberProps, normalize_number(NumberText, Call))
     end;
 exec(Call, [#xmlElement{name='Conference'
-                       ,content=ConfIdTxts
+                       ,content=NameTxts
                        ,attributes=ConfAttrs
                        }], DialAttrs) ->
-    kapps_call_command:answer(Call),
-
-    ConfId = conference_id(ConfIdTxts),
-
     ConfProps = kz_xml:attributes_to_proplist(ConfAttrs),
     DialProps = kz_xml:attributes_to_proplist(DialAttrs),
-
-    gen_listener:add_binding(kzt_util:get_amqp_listener(Call)
-                            ,'conference'
-                            ,[{'restrict_to'
-                              ,[{'event', {ConfId, kapps_call:call_id_direct(Call)}}]
-                              }
-                             ]),
-
-    ConfDoc = build_conference_doc(Call, ConfId, ConfProps),
-
-    ConfReq = [{<<"Call">>, kapps_call:to_json(Call)}
-              ,{<<"Conference-ID">>, ConfId}
-              ,{<<"Conference-Doc">>, ConfDoc}
-              ,{<<"Conference-Name">>, kzd_conferences:name(ConfDoc)}
-              ,{<<"Moderator">>, props:get_is_true('startConferenceOnEnter', ConfProps, 'true')}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-              ],
-    kapi_conference:publish_discovery_req(ConfReq),
-
-    lager:debug("published conference request"),
-
-    %% Will need to support fetching media OR TwiML
-    _WaitUrl = props:get_value('waitUrl', ConfProps),
-    _WaitMethod = kzt_util:http_method(ConfProps),
-
-    CallWithConf = add_conference_profile(Call, ConfProps),
-    SetupCall = setup_call_for_dial(CallWithConf, DialProps),
-
-    {'ok', Call1} = kzt_receiver:wait_for_conference(SetupCall),
-
-    maybe_end_dial(Call1, DialProps);
+    case kz_xml:texts_to_binary(NameTxts) of
+        <<>> ->
+            lager:info("conference name is empty, not processing Conference"),
+            {'ok', Call};
+        Name ->
+            conference_dial(Call, Name, ConfProps, DialProps)
+    end;
 
 exec(Call, [#xmlElement{name='Queue'
                        ,content=QueueIdTxts
@@ -171,6 +144,23 @@ number_dial(Call, DialProps, _NumberProps, DialMe) ->
     lager:info("not implemented: maybe sending number ~s", [DialMe]),
 
     simple_dial(Call, DialProps, DialMe).
+
+-spec conference_dial(kapps_call:call(), kz_term:ne_binary(), kz_term:proplist(), kz_term:proplist()) ->
+          {'ok' | 'error' | 'stop', kapps_call:call()}.
+conference_dial(Call, Name, ConfProps, DialProps) ->
+    Id = props:get_ne_binary_value('id', ConfProps, kz_term:to_hex_binary(erlang:md5(Name))),
+
+    lager:debug("dialing into conference ~s (~s)", [Name, Id]),
+
+    publish_conference_request(Call, Id, Name, ConfProps),
+
+    lager:debug("published conference request"),
+
+    SetupCall = setup_call_for_dial(Call, DialProps),
+    Call1 = kapps_call:kvs_store(<<"conference_props">>, ConfProps, SetupCall),
+
+    {'ok', Call2} = kzt_receiver:wait_for_conference(Call1),
+    maybe_end_dial(Call2, DialProps).
 
 send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
     Command = [{<<"Application-Name">>, <<"bridge">>}
@@ -344,10 +334,6 @@ sip_device(URI) ->
 
 request_id(N, Call) -> iolist_to_binary([N, <<"@">>, kapps_call:from_realm(Call)]).
 
-get_max_participants(Props) when is_list(Props) ->
-    get_max_participants(props:get_integer_value('maxParticipants', Props, 40));
-get_max_participants(N) when is_integer(N), N =< 40, N > 2 -> N.
-
 dial_strategy(Props) ->
     case props:get_value('strategy', Props) of
         <<"single">> -> <<"single">>;
@@ -424,94 +410,72 @@ timelimit_s(Props) ->
         N -> erlang:max(?MINIMUM_TIMEOUT_S, N)
     end.
 
--spec build_conference_doc(kapps_call:call(), kz_term:ne_binary(), kz_term:proplist()) ->
-          kz_json:object().
-build_conference_doc(Call, ConfId, ConfProps) ->
-    StartOnEnter = props:is_true('startConferenceOnEnter', ConfProps),
-    AccountId = kapps_call:account_id(Call),
+-spec publish_conference_request(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+publish_conference_request(Call, Id, Name, ConfProps) ->
+    IsModerator = props:is_true('startConferenceOnEnter', ConfProps, 'true'),
+    ProfileName = props:get_ne_binary_value('profileName', ConfProps),
 
-    kz_json:from_list([{<<"name">>, ConfId}
-                      ,{<<"id">>, ConfId}
-                      ,{<<"play_welcome">>, 'false'}
-                      ,{<<"play_entry_tone">>, props:is_true('beep', ConfProps, 'true')}
-                      ,{<<"member">>, member_flags(ConfProps, StartOnEnter)}
-                      ,{<<"moderator">>, moderator_flags(ConfProps, StartOnEnter)}
-                      ,{<<"require_moderator">>, require_moderator(StartOnEnter)}
-                      ,{<<"wait_for_moderator">>, 'true'}
-                      ,{<<"max_participants">>, get_max_participants(ConfProps)}
-                      ,{<<"profile_name">>, <<ConfId/binary, "_", AccountId/binary>>}
-                      ,{<<"profile">>, conference_profile(Call, ConfProps)}
-                      ]).
+    gen_listener:add_binding(kzt_util:get_amqp_listener(Call)
+                            ,'conference'
+                            ,[{'restrict_to'
+                              ,[{'event', {Id, kapps_call:call_id_direct(Call)}}]
+                              }
+                             ]),
 
-require_moderator('undefined') -> 'false';
-require_moderator('true') -> 'false';
-require_moderator('false') -> 'true'.
+    ConfReq =
+        props:filter_undefined(
+          [{<<"Call">>, kapps_call:to_json(Call)}
+          ,{<<"Conference-ID">>, Id}
+          ,{<<"Conference-Name">>, Name}
+          ,{<<"End-On-Last-Member-Leave">>, props:is_true('endConferenceOnLastMemberExit', ConfProps, 'undefined')}
+          ,{<<"End-On-Leave">>, props:is_true('endConferenceOnExit', ConfProps, 'undefined')}
+           %% add this kapi_conference (first time conf is created):
+          ,{<<"Max-Participants">>, get_max_participants(ConfProps)}
+          ,{<<"Moderator">>, IsModerator}
+          ,{<<"Play-Entry-Tone">>, conference_play_entry_tone(ConfProps)}
+          ,{<<"Play-Exit-Tone">>, conference_play_exit_tone(ConfProps)}
+          ,{<<"Profile-Name">>, ProfileName}
+           %% add this kapi_conference (first time conf is created):
+          ,{<<"Wait-For-Moderator">>, not IsModerator}
+          | deaf_muted_headers(ConfProps, IsModerator) ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+          ]
+         ),
+    ?DEV_LOG("Prop ~p~n", [props:delete(<<"Call">>, ConfReq)]),
+    kapi_conference:publish_discovery_req(ConfReq).
 
-member_flags(_, 'true') -> kz_json:new();
-member_flags(ConfProps, _) ->
-    kz_json:from_list([{<<"join_muted">>, props:is_true('muted', ConfProps, 'false')}
-                      ,{<<"join_deaf">>, props:is_true('deaf', ConfProps, 'false')}
-                      ,{<<"play_name">>, props:is_true('play_name', ConfProps, 'false')}
-                      ,{<<"play_entry_prompt">>, props:is_true('play_entry_prompt', ConfProps, 'true')}
-                      ]).
+-spec deaf_muted_headers(kz_term:proplist(), boolean()) -> kz_term:proplist().
+deaf_muted_headers(ConfProps, 'true') ->
+    [{<<"Moderator-Join-Deaf">>, props:is_true('deaf', ConfProps, 'false')}
+    ,{<<"Moderator-Join-Muted">>, props:is_true('muted', ConfProps, 'false')}
+    ];
+deaf_muted_headers(ConfProps, 'false') ->
+    [{<<"Member-Join-Deaf">>, props:is_true('deaf', ConfProps, 'false')}
+    ,{<<"Member-Join-Muted">>, props:is_true('muted', ConfProps, 'false')}
+    ].
 
-moderator_flags(ConfProps, 'true') ->
-    kz_json:from_list([{<<"join_muted">>, props:is_true('muted', ConfProps, 'false')}
-                      ,{<<"join_deaf">>, props:is_true('deaf', ConfProps, 'false')}
-                      ,{<<"play_name">>, props:is_true('play_name', ConfProps, 'false')}
-                      ,{<<"play_entry_prompt">>, props:is_true('play_entry_prompt', ConfProps, 'true')}
-                      ]);
-moderator_flags(_, _) -> kz_json:new().
-
-conference_id(Txts) ->
-    Id = kz_xml:texts_to_binary(Txts),
-    MD5 = kz_term:to_hex_binary(erlang:md5(Id)),
-    lager:debug("conf name: ~s (~s)", [Id, MD5]),
-    MD5.
-
--spec add_conference_profile(kapps_call:call(), kz_term:proplist()) -> kapps_call:call().
-add_conference_profile(Call, ConfProps) ->
-    Profile = conference_profile(Call, ConfProps),
-    kzt_util:set_conference_profile(Profile, Call).
-
--spec conference_profile(kapps_call:call(), kz_term:proplist()) -> kz_json:object().
-conference_profile(Call, ConfProps) ->
-    AccountId = kapps_call:account_id(Call),
-    kz_json:from_list(
-      [{<<"announce-count">>, props:get_integer_value('announceCount', ConfProps)}
-      ,{<<"caller-controls">>, props:get_binary_value('callerControls', ConfProps, <<"default">>)}
-      ,{<<"caller-id-name">>, props:get_binary_value('callerIdName', ConfProps, kapps_call:unknown_caller_id_name(AccountId))}
-      ,{<<"caller-id-number">>, props:get_binary_value('callerIdNumber', ConfProps, kz_privacy:anonymous_caller_id_number(AccountId))}
-      ,{<<"comfort-noise">>, props:get_integer_value('comfortNoise', ConfProps, 1000)}
-      ,{<<"conference-flags">>, conference_flags(ConfProps)}
-      ,{<<"energy-level">>, props:get_integer_value('energyLevel', ConfProps, 20)}
-      ,{<<"interval">>, props:get_integer_value('interval', ConfProps, 20)}
-      ,{<<"max-members">>, get_max_participants(ConfProps)}
-      ,{<<"member-flags">>, conference_member_flags(ConfProps)}
-      ,{<<"moderator-controls">>, props:get_binary_value('moderatorControls', ConfProps, <<"default">>)}
-      ,{<<"moh-sound">>, get_moh(ConfProps)}
-      ,{<<"rate">>, props:get_integer_value('rate', ConfProps, 16000)}
-      ,{<<"tts-engine">>, kzt_twiml_util:get_engine(Call, ConfProps)}
-      ,{<<"tts-voice">>, kzt_twiml_util:get_voice(ConfProps)}
-      ]).
-
--spec get_moh(kz_term:proplist()) -> kz_term:ne_binary().
-get_moh(ConfProps) ->
-    Default = kapps_config:get_ne_binary(<<"pivot.twiml">>, <<"conference_moh">>, <<"$${hold_music}">>),
-    props:get_binary_value('waitUrl', ConfProps, Default).
-
--spec conference_flags(kz_term:proplist()) -> kz_term:api_ne_binary().
-conference_flags(ConfProps) ->
-    case props:get_is_true('startConferenceOnEnter', ConfProps, 'true') of
-        'true' -> 'undefined';
-        'false' -> <<"wait-mod">>
+-spec get_max_participants(kz_term:proplist()) -> pos_integer().
+get_max_participants(Props) when is_list(Props) ->
+    case props:get_integer_value('maxParticipants', Props) of
+        N when is_integer(N), N =< ?TWIML_MAX_PARTICIPANTS, N > 2 ->
+            N;
+        _ ->
+            ?TWIML_MAX_PARTICIPANTS
     end.
 
--spec conference_member_flags(kz_term:proplist()) -> kz_term:api_ne_binary().
-conference_member_flags(ConfProps) ->
-    case props:get_is_true('endConferenceOnExit', ConfProps, 'false') of
-        'true' -> <<"endconf">>;
-        'false' -> 'undefined'
+-spec conference_play_entry_tone(kz_term:proplist()) -> boolean().
+conference_play_entry_tone(ConfProps) ->
+    case props:get_ne_binary_value('beep', ConfProps, <<"true">>) of
+        <<"true">> -> 'true';
+        <<"onEnter">> -> 'true';
+        _ -> 'false'
+    end.
+
+-spec conference_play_exit_tone(kz_term:proplist()) -> boolean().
+conference_play_exit_tone(ConfProps) ->
+    case props:get_ne_binary_value('beep', ConfProps, <<"true">>) of
+        <<"true">> -> 'true';
+        <<"onExit">> -> 'true';
+        _ -> 'false'
     end.
 
 -spec get_caller_endpoint(kapps_call:call()) -> kz_json:object().
