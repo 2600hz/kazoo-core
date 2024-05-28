@@ -424,6 +424,13 @@ service_addition_fold(Item, Acc) ->
             [BillableQuantity * Rate | Acc]
     end.
 
+-spec validate_previous_assigned_to(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+validate_previous_assigned_to('undefined') -> 'undefined';
+validate_previous_assigned_to(PrevAssignedTo) ->
+    case kz_datamgr:open_doc(PrevAssignedTo, PrevAssignedTo) of
+        {'error', 'not_found'} -> 'undefined';
+        _ -> PrevAssignedTo
+    end.
 -endif.
 
 -spec maybe_call_callbacks(knm_pipe:collection()) -> knm_pipe:collection().
@@ -606,11 +613,3 @@ maybe_age(T=#{'todo' := PNs}) ->
 -spec is_state_available(knm_phone_number:pn_record()) -> boolean().
 is_state_available(PN) ->
     ?NUMBER_STATE_AVAILABLE =:= knm_phone_number:state(PN).
-
--spec validate_previous_assigned_to(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
-validate_previous_assigned_to('undefined') -> 'undefined';
-validate_previous_assigned_to(PrevAssignedTo) ->
-    case kz_datamgr:open_doc(PrevAssignedTo, PrevAssignedTo) of
-        {'error', 'not_found'} -> 'undefined';
-        _ -> PrevAssignedTo
-    end.
