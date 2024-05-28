@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2023, 2600Hz
+%%% @copyright (C) 2013-2024, 2600Hz
 %%% @doc Handle the emulation of the Dial verb
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,16 +18,24 @@
 
 -include("kzt.hrl").
 
+-define(DEFAULT_TIMEOUT_S, 30).
+-define(MINIMUM_TIMEOUT_S, 0). %% note: min is 5s, but we add buffer so we get our 5s min back
+-define(TIMEOUT_BUFFER_S, 5).
+-define(MAXIMUM_TINEOUT_S, 600).
+
+-define(DEFAULT_TIME_LIMIT_S, 4 * ?SECONDS_IN_HOUR).
+-define(MAXIMUM_TIME_LIMIT_S, 4 * ?SECONDS_IN_HOUR).
+
 -spec exec(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts(), kz_types:xml_attribs()) ->
           {'ok' | 'stop', kapps_call:call()}.
 exec(Call, [#xmlText{type='text'}|_]=DialMeTxts, Attrs) ->
-    kapps_call_command:answer(Call),
-
     case cleanup_dial_me(kz_xml:texts_to_binary(DialMeTxts)) of
         <<>> ->
-            lager:info("no text to dial, using only xml elements"),
-            exec(Call, kz_xml:elements(DialMeTxts), Attrs);
-        DialMe -> dial_me(Call, Attrs, knm_converters:normalize(DialMe))
+            lager:debug("no dial-able plain text, continuing to next verb..."),
+            {'ok', Call};
+        DialMe ->
+            Props = kz_xml:attributes_to_proplist(Attrs),
+            simple_dial(Call, Props, normalize_number(DialMe, Call))
     end;
 exec(Call
     ,[#xmlElement{name='Number'
@@ -36,22 +44,14 @@ exec(Call
                  }=_El
      ]
     ,DialAttrs) ->
-    lager:info("single <Number>"),
     case cleanup_dial_me(kz_xml:texts_to_binary(Number)) of
         <<>> ->
-            lager:debug("no dial-able Number in tag, continuing"),
+            lager:debug("no dial-able Number in tag, continuing to next verb"),
             {'ok', Call};
         NumberText ->
-            DialMe = knm_converters:normalize(NumberText),
+            DialProps = kz_xml:attributes_to_proplist(DialAttrs),
             NumberProps = kz_xml:attributes_to_proplist(NumberAttrs),
-
-            SendDigits = props:get_value('sendDigits', NumberProps),
-            _Url = props:get_value('url', NumberProps),
-            _Method = props:get_value('method', NumberProps),
-
-            lager:info("maybe sending number ~s: send ~s", [DialMe, SendDigits]),
-
-            dial_me(Call, DialAttrs, DialMe)
+            number_dial(Call, DialProps, NumberProps, normalize_number(NumberText, Call))
     end;
 exec(Call, [#xmlElement{name='Conference'
                        ,content=ConfIdTxts
@@ -60,7 +60,6 @@ exec(Call, [#xmlElement{name='Conference'
     kapps_call_command:answer(Call),
 
     ConfId = conference_id(ConfIdTxts),
-    lager:info("dialing into conference '~s'", [ConfId]),
 
     ConfProps = kz_xml:attributes_to_proplist(ConfAttrs),
     DialProps = kz_xml:attributes_to_proplist(DialAttrs),
@@ -95,8 +94,7 @@ exec(Call, [#xmlElement{name='Conference'
 
     {'ok', Call1} = kzt_receiver:wait_for_conference(AnsweredCall),
 
-    _ = maybe_end_dial(Call1, DialProps),
-    {'stop', Call1};
+    maybe_end_dial(Call1, DialProps);
 
 exec(Call, [#xmlElement{name='Queue'
                        ,content=QueueIdTxts
@@ -116,7 +114,7 @@ exec(Call, [#xmlElement{name='Queue'
                                ),
 
     lager:info("dialing into queue ~s, unsupported", [QueueId]),
-    {'stop', Call1};
+    {'stop', kzt_util:add_error(Call1, <<"not_implemented">>, <<"Queue is not implemented">>)};
 
 exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
     lager:info("dialing endpoints: ~p", [Endpoints]),
@@ -136,32 +134,37 @@ exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
 
             send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call1),
 
-            {'ok', Call2} = kzt_receiver:wait_for_offnet(kzt_util:update_call_status(?STATUS_RINGING, Call1)
-                                                        ,Props
-                                                        ),
+            {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props),
             maybe_end_dial(Call2, Props)
     end.
 
-dial_me(Call, Attrs, DialMe) ->
-    lager:info("dial text DID '~s'", [DialMe]),
-
-    Props = kz_xml:attributes_to_proplist(Attrs),
+-spec simple_dial(kapps_call:call(), kz_term:proplist(), kz_term:ne_binary()) ->
+          {'ok' | 'stop' | 'request', kapps_call:call()}.
+simple_dial(Call, Props, DialMe) ->
+    lager:debug("dial text DID '~s'", [DialMe]),
 
     Call1 = setup_call_for_dial(kapps_call:set_request(request_id(DialMe, Call), Call)
                                ,Props
                                ),
 
-    OffnetProps = [{<<"Timeout">>, kzt_util:get_call_timeout(Call1)}
-                  ,{<<"Media">>, media_processing(Call1)}
+    OffnetProps = [{<<"Media">>, media_processing(Call1)}
                   ,{<<"Force-Outbound">>, force_outbound(Props)}
-                  ,{<<"Server-ID">>, kapps_call:controller_queue(Call1)}
                   ],
-    'ok' = kzt_util:offnet_req(OffnetProps, Call1),
+    'ok' = kzt_util:offnet_req(Props, OffnetProps, Call1),
 
-    {'ok', Call2} = kzt_receiver:wait_for_offnet(kzt_util:update_call_status(?STATUS_RINGING, Call1)
-                                                ,Props
-                                                ),
+    {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props),
     maybe_end_dial(Call2, Props).
+
+-spec number_dial(kapps_call:call(), kz_term:proplist(), kz_term:proplist(), kz_term:ne_binary()) ->
+          {'ok' | 'stop' | 'request', kapps_call:call()}.
+number_dial(Call, DialProps, NumberProps, DialMe) ->
+    SendDigits = props:get_value('sendDigits', NumberProps),
+    _Url = props:get_value('url', NumberProps),
+    _Method = props:get_value('method', NumberProps),
+
+    lager:info("not implemented: maybe sending number ~s: send ~s", [DialMe, SendDigits]),
+
+    simple_dial(Call, DialProps, DialMe).
 
 send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
     B = [{<<"Application-Name">>, <<"bridge">>}
@@ -178,7 +181,8 @@ setup_call_for_dial(Call, Props) ->
     Setters = [{fun kapps_call:set_caller_id_number/2, caller_id(Props, Call)}
               ,{fun kzt_util:set_hangup_dtmf/2, hangup_dtmf(Props)}
               ,{fun kzt_util:set_record_call/2, should_record_call(Props)}
-              ,{fun kzt_util:set_call_timeout/2, kzt_twiml_util:timeout_s(Props)}
+              ,{fun kzt_util:set_recording_stereo/2, should_recording_stereo(Props)}
+              ,{fun kzt_util:set_call_timeout/2, dial_timeout(Props)}
               ,{fun kzt_util:set_call_time_limit/2, timelimit_s(Props)}
               ],
     kapps_call:exec(Setters, Call).
@@ -186,12 +190,21 @@ setup_call_for_dial(Call, Props) ->
 -spec maybe_end_dial(kapps_call:call(), kz_term:proplist()) ->
           {'ok' | 'stop' | 'request', kapps_call:call()}.
 maybe_end_dial(Call, Props) ->
-    maybe_end_dial(Call, Props, kzt_twiml_util:action_url(Props)).
+    IsHungup = kzt_util:get_is_caller_hungup(Call),
+    lager:debug("a-leg status after bridge: ~s is caller hungup:", [kzt_util:get_call_status(Call), IsHungup]),
+    maybe_end_dial(Call, Props, kzt_twiml_util:action_url(Props), IsHungup).
 
-maybe_end_dial(Call, _Props, 'undefined') ->
-    lager:debug("a-leg status after bridge: ~s", [kzt_util:get_call_status(Call)]),
-    {'ok', Call}; % will progress to next TwiML element
-maybe_end_dial(Call, Props, ActionUrl) ->
+-spec maybe_end_dial(kapps_call:call(), kz_term:proplist(), kz_term:api_ne_binary(), boolean()) ->
+          {'ok' | 'stop' | 'request', kapps_call:call()}.
+maybe_end_dial(Call, _Props, _ActionUrl, 'true') ->
+    lager:debug("caller leg is ended with ~s, not continuing twiml render"
+               ,[kzt_util:get_call_status(Call)]
+               ),
+    {'stop', Call};
+maybe_end_dial(Call, _Props, 'undefined', 'false') ->
+    %% will progress to next TwiML element if any
+    {'ok', Call};
+maybe_end_dial(Call, Props, ActionUrl, 'false') ->
     CurrentUri = kzt_util:get_voice_uri(Call),
     NewUri = kzt_util:resolve_uri(CurrentUri, ActionUrl),
     lager:debug("sending req to ~s: ~s", [ActionUrl, NewUri]),
@@ -203,13 +216,10 @@ maybe_end_dial(Call, Props, ActionUrl) ->
     {'request', kapps_call:exec(Setters, Call)}.
 
 -spec cleanup_dial_me(binary()) -> binary().
-cleanup_dial_me(<<_/binary>> = Txt) ->
-    << <<C>> || <<C>> <= Txt, is_numeric_or_plus(C)>>.
-
--spec is_numeric_or_plus(pos_integer()) -> boolean().
-is_numeric_or_plus(Num) when Num >= $0, Num =< $9 -> 'true';
-is_numeric_or_plus($+) -> 'true';
-is_numeric_or_plus(_) -> 'false'.
+cleanup_dial_me(<<"+", Txt/binary>>) ->
+    <<"+", (kz_binary:remove_non_numeric(Txt))/binary>>;
+cleanup_dial_me(Txt) ->
+    kz_binary:remove_non_numeric(Txt).
 
 %% To maintain compatibility with Twilo, we force the call offnet (otherwise
 %% the redirect onnet steals our callid, and callflow/trunkstore/other could
@@ -275,7 +285,7 @@ xml_elements_to_endpoints(Call
     _Url = props:get_value('url', Props),
     _Method = props:get_value('method', Props),
 
-    DialMe = knm_converters:normalize(kz_xml:texts_to_binary(Number)),
+    DialMe = normalize_number(kz_xml:texts_to_binary(Number), Call),
 
     lager:debug("maybe add number ~s: send ~s", [DialMe, SendDigits]),
 
@@ -330,22 +340,19 @@ sip_device(URI) ->
 
 request_id(N, Call) -> iolist_to_binary([N, <<"@">>, kapps_call:from_realm(Call)]).
 
--spec media_processing(kapps_call:call()) -> kz_term:ne_binary().
+-spec media_processing(kapps_call:call()) -> kz_term:api_ne_binary().
 media_processing(Call) ->
     media_processing(kzt_util:get_record_call(Call), kzt_util:get_hangup_dtmf(Call)).
 
--spec media_processing(boolean(), kz_term:api_binary()) -> kz_term:ne_binary().
+%% If not gonna record or process dtmf, bypass media for performance reasons?
+%% Best of luck if you are behind NAT!
+-spec media_processing(kz_term:api_boolean(), kz_term:api_binary()) -> kz_term:ne_binary().
 media_processing('false', 'undefined') -> <<"bypass">>;
-media_processing('true', _HangupDTMF) -> <<"process">>.
+media_processing(_, _) -> <<"process">>.
 
 get_max_participants(Props) when is_list(Props) ->
     get_max_participants(props:get_integer_value('maxParticipants', Props, 40));
 get_max_participants(N) when is_integer(N), N =< 40, N > 2 -> N.
-
--spec dial_timeout(kz_term:proplist() | pos_integer()) -> pos_integer().
-dial_timeout(Props) when is_list(Props) ->
-    dial_timeout(props:get_integer_value('timeout', Props, 20));
-dial_timeout(T) when is_integer(T), T > 0 -> T.
 
 dial_strategy(Props) ->
     case props:get_value('strategy', Props) of
@@ -360,21 +367,69 @@ caller_id(Props, Call) ->
       props:get_value('callerId', Props, kapps_call:caller_id_number(Call))
      ).
 
--spec hangup_dtmf(kz_term:proplist() | kz_term:api_binary()) -> kz_term:api_binary().
+-spec hangup_dtmf(kz_term:proplist() | kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+hangup_dtmf('undefined') ->
+    'undefined';
 hangup_dtmf(Props) when is_list(Props) ->
-    case props:get_value('hangupOnStar', Props) of
+    case props:is_true('hangupOnStar', Props) of
         'true' -> <<"*">>;
-        _ -> hangup_dtmf(props:get_binary_value('hangupOn', Props))
+        _ -> hangup_dtmf(props:get_ne_binary_value('hangupOn', Props))
     end;
-hangup_dtmf(DTMF) ->
+hangup_dtmf(<<DTMF/binary>>) ->
     case lists:member(DTMF, ?ANY_DIGIT) of
-        'true' -> DTMF;
-        'false' -> 'undefined'
+        'true' ->
+            DTMF;
+        'false' ->
+            lager:debug("unsupported digit ~s for hangupOn", [DTMF]),
+            'undefined'
     end.
 
-should_record_call(Props) -> kz_term:is_true(props:get_value('record', Props, 'false')).
+-spec should_record_call(kz_term:proplist()) -> boolean().
+should_record_call(Props) ->
+    %% new possible values:
+    %% - do-not-record
+    %% - record-from-answer
+    %% - record-from-ringing
+    %% - record-from-answer-dual
+    %% - record-from-ringing-dual
+    %% Backward compatibility: true is an alias for record-from-answer
+    %%                         false is an alias for do-not-record
+    case props:get_ne_binary_value('record', Props) of
+        <<"true">> -> 'true';
+        <<"record-from", _/binary>> -> 'true';
+        _ -> 'false'
+    end.
 
-timelimit_s(Props) -> props:get_integer_value('timeLimit', Props, 14400).
+-spec should_recording_stereo(kz_term:proplist()) -> boolean().
+should_recording_stereo(Props) ->
+    %% Backward compatibility: true is an alias for record-from-answer
+    %%                         false is an alias for do-not-record
+    %% In Kazoo, stereo (dual) is default, defaulting true to dual, so user must explicitly request mono.
+    case props:get_ne_binary_value('record', Props) of
+        'undefined' -> 'undefined';
+        <<"false">> -> 'undefined';
+        <<"true">> -> 'true';
+        <<"record-from-answer-dual">> -> 'true';
+        <<"record-from-ringing-dual">> -> 'true';
+        _ -> 'false'
+    end.
+
+-spec dial_timeout(kz_term:proplist()) -> pos_integer().
+dial_timeout(Props) ->
+    %% Add 5s timeout buffer
+    case props:get_integer_value('timeout', Props) of
+        'undefined' -> ?DEFAULT_TIMEOUT_S + ?TIMEOUT_BUFFER_S;
+        N when N >= ?MAXIMUM_TINEOUT_S -> ?MAXIMUM_TIME_LIMIT_S;
+        N -> erlang:max(?MINIMUM_TIMEOUT_S, N) + ?TIMEOUT_BUFFER_S
+    end.
+
+-spec timelimit_s(kz_term:proplist()) -> non_neg_integer().
+timelimit_s(Props) ->
+    case props:get_integer_value('timeLimit', Props) of
+        'undefined' -> ?DEFAULT_TIME_LIMIT_S;
+        N when N >= ?MAXIMUM_TIME_LIMIT_S -> ?MAXIMUM_TIME_LIMIT_S;
+        N -> erlang:max(?MINIMUM_TIMEOUT_S, N)
+    end.
 
 -spec build_conference_doc(kapps_call:call(), kz_term:ne_binary(), kz_term:proplist()) ->
           kz_json:object().
@@ -471,3 +526,7 @@ conference_member_flags(ConfProps) ->
 get_endpoints(UserId, Data, Call) ->
     Params = kz_json:set_value(<<"source">>, kz_term:to_binary(?MODULE), Data),
     kz_endpoints:by_owner_id(UserId, Params, Call).
+
+-spec normalize_number(kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
+normalize_number(Number, Call) ->
+    knm_converters:normalize(Number, kapps_call:account_id(Call)).
