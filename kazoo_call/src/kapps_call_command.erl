@@ -2372,13 +2372,18 @@ conference(ConfId, Mute, Deaf, Moderator, ProfileName, Reinvite, Call) ->
 conference(ConfId, Mute, Deaf, Moderator, ProfileName, Reinvite, VideoMute, Call) ->
     Command = [{<<"Application-Name">>, <<"conference">>}
               ,{<<"Conference-ID">>, ConfId}
-              ,{<<"Mute">>, Mute}
-              ,{<<"Deaf">>, Deaf}
-              ,{<<"Moderator">>, Moderator}
               ,{<<"Profile">>, ProfileName}
               ,{<<"Reinvite">>, Reinvite}
               ,{<<"Account-ID">>, kapps_call:account_id(Call)}
-              ,{<<"Video-Mute">>, VideoMute}
+              ,{<<"Join-Options">>
+               ,kz_json:from_list(
+                  [{<<"Mute">>, Mute}
+                  ,{<<"Deaf">>, Deaf}
+                  ,{<<"Moderator">>, Moderator}
+                  ,{<<"Video-Mute">>, VideoMute}
+                  ]
+                 )
+               }
               ],
     send_command(Command, Call).
 

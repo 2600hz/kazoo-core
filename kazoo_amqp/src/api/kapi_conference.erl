@@ -487,20 +487,76 @@ discovery_req_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Call">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Doc">>
+                                                            ,<<"Conference-Focus">>
                                                             ,<<"Conference-ID">>
                                                             ,<<"Conference-Name">>
+                                                            ,<<"Controller-Queue">>
+                                                            ,<<"Controls">>
+                                                            ,<<"Domain">>
+                                                            ,<<"Endconf-Grace-Time">>
+                                                            ,<<"Language">>
+                                                            ,<<"Last-Member-Endconf">>
+                                                            ,<<"Max-Members-Media">>
+                                                            ,<<"Max-Participants">>
+                                                            ,<<"Member-Join-Deaf">>
+                                                            ,<<"Member-Join-Muted">>
+                                                            ,<<"Member-Pins">>
                                                             ,<<"Moderator">>
+                                                            ,<<"Moderator-Controls">>
+                                                            ,<<"Moderator-Join-Deaf">>
+                                                            ,<<"Moderator-Join-Muted">>
+                                                            ,<<"Moderator-Pins">>
+                                                            ,<<"Participant-Join-Video-Muted">>
+                                                            ,<<"Play-Entry-Prompt">>
                                                             ,<<"Play-Entry-Tone">>
                                                             ,<<"Play-Exit-Tone">>
+                                                            ,<<"Play-Name-On-Join">>
                                                             ,<<"Play-Welcome">>
                                                             ,<<"Play-Welcome-Media">>
+                                                            ,<<"Profile-Name">>
+                                                            ,<<"Require-Moderator">>
+                                                            ,<<"Wait-For-Moderator">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
               ,{fun kapi_definition:set_types/2
-               ,[{<<"Moderator">>, fun kz_term:is_boolean/1}
+               ,[{<<"Conference-Doc">>, fun kz_json:is_json_object/1}
+                ,{<<"Conference-Focus">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Conference-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Conference-Name">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Controls">>, fun kz_json:is_json_object/1}
+                ,{<<"Domain">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Language">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Last-Member-EndConf">>, fun kz_term:is_boolean/1}
+                ,{<<"Max-Members-Media">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Max-Participants">>, fun is_integer/1}
+                ,{<<"Member-Join-Deaf">>, fun kz_term:is_boolean/1}
+                ,{<<"Member-Join-Muted">>, fun kz_term:is_boolean/1}
+                ,{<<"Member-Pins">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"Moderator">>, fun kz_term:is_boolean/1}
+                ,{<<"Moderator-Controls">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Moderator-Join-Deaf">>, fun kz_term:is_boolean/1}
+                ,{<<"Moderator-Join-Muted">>, fun kz_term:is_boolean/1}
+                ,{<<"Moderator-Pins">>, fun kz_term:is_ne_binaries/1}
+                ,{<<"Participant-Join-Video-Muted">>, fun kz_term:is_boolean/1}
+                ,{<<"Play-Entry-Prompt">>, fun kz_term:is_boolean/1}
+                ,{<<"Play-Entry-Tone">>, fun(Tone) ->
+                                                 kz_term:is_boolean(Tone)
+                                                     orelse kz_term:is_ne_binary(Tone)
+                                         end
+                 }
+                ,{<<"Play-Exit-Tone">>, fun(Tone) ->
+                                                kz_term:is_boolean(Tone)
+                                                    orelse kz_term:is_ne_binary(Tone)
+                                        end
+                 }
+                ,{<<"Play-Name-On-Join">>, fun kz_term:is_boolean/1}
                 ,{<<"Play-Welcome">>, fun kz_term:is_boolean/1}
+                ,{<<"Play-Welcome-Media">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Profile-Name">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Require-Moderator">>, fun kz_term:is_boolean/1}
+                ,{<<"Wait-For-Moderator">>, fun kz_term:is_boolean/1}
                 ]
                }
               ],

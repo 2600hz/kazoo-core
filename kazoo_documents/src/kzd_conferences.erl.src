@@ -14,9 +14,11 @@
 -export([conference_numbers/1, conference_numbers/2, set_conference_numbers/2]).
 -export([controls/1, controls/2, set_controls/2]).
 -export([domain/1, domain/2, set_domain/2]).
+-export([endconf_grace_time/1, endconf_grace_time/2, set_endconf_grace_time/2]).
 -export([flags/1, flags/2, set_flags/2]).
 -export([focus/1, focus/2, set_focus/2]).
 -export([language/1, language/2, set_language/2]).
+-export([last_member_endconf/1, last_member_endconf/2, set_last_member_endconf/2]).
 -export([max_members_media/1, max_members_media/2, set_max_members_media/2]).
 -export([max_participants/1, max_participants/2, set_max_participants/2]).
 -export([member/1, member/2, set_member/2]).
@@ -167,6 +169,18 @@ domain(Doc, Default) ->
 set_domain(Doc, Domain) ->
     kz_json:set_value([<<"domain">>], Domain, Doc).
 
+-spec endconf_grace_time(doc()) -> kz_term:api_integer().
+endconf_grace_time(Doc) ->
+    endconf_grace_time(Doc, 'undefined').
+
+-spec endconf_grace_time(doc(), Default) -> integer() | Default.
+endconf_grace_time(Doc, Default) ->
+    kz_json:get_integer_value([<<"endconf_grace_time">>], Doc, Default).
+
+-spec set_endconf_grace_time(doc(), integer()) -> doc().
+set_endconf_grace_time(Doc, EndconfGraceTime) ->
+    kz_json:set_value([<<"endconf_grace_time">>], EndconfGraceTime, Doc).
+
 -spec flags(doc()) -> kz_term:api_ne_binaries().
 flags(Doc) ->
     flags(Doc, 'undefined').
@@ -202,6 +216,18 @@ language(Doc, Default) ->
 -spec set_language(doc(), binary()) -> doc().
 set_language(Doc, Language) ->
     kz_json:set_value([<<"language">>], Language, Doc).
+
+-spec last_member_endconf(doc()) -> kz_term:api_boolean().
+last_member_endconf(Doc) ->
+    last_member_endconf(Doc, 'undefined').
+
+-spec last_member_endconf(doc(), Default) -> boolean() | Default.
+last_member_endconf(Doc, Default) ->
+    kz_json:get_boolean_value([<<"last_member_endconf">>], Doc, Default).
+
+-spec set_last_member_endconf(doc(), boolean()) -> doc().
+set_last_member_endconf(Doc, LastMemberEndconf) ->
+    kz_json:set_value([<<"last_member_endconf">>], LastMemberEndconf, Doc).
 
 -spec max_members_media(doc()) -> kz_term:api_binary().
 max_members_media(Doc) ->

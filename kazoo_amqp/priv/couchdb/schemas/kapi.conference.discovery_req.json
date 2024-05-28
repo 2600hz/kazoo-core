@@ -9,11 +9,30 @@
         "Conference-Doc": {
             "type": "string"
         },
+        "Conference-Focus": {
+            "minLength": 1,
+            "type": "string"
+        },
         "Conference-ID": {
+            "minLength": 1,
             "type": "string"
         },
         "Conference-Name": {
+            "minLength": 1,
             "type": "string"
+        },
+        "Controller-Queue": {
+            "type": "string"
+        },
+        "Controls": {
+            "type": "object"
+        },
+        "Domain": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Endconf-Grace-Time": {
+            "type": "integer"
         },
         "Event-Category": {
             "enum": [
@@ -27,7 +46,58 @@
             ],
             "type": "string"
         },
+        "Language": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Last-Member-EndConf": {
+            "type": "boolean"
+        },
+        "Last-Member-Endconf": {
+            "type": "string"
+        },
+        "Max-Members-Media": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Max-Participants": {
+            "type": "string"
+        },
+        "Member-Join-Deaf": {
+            "type": "string"
+        },
+        "Member-Join-Muted": {
+            "type": "string"
+        },
+        "Member-Pins": {
+            "items": {
+                "type": "string"
+            },
+            "type": "string"
+        },
         "Moderator": {
+            "type": "string"
+        },
+        "Moderator-Controls": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Moderator-Join-Deaf": {
+            "type": "string"
+        },
+        "Moderator-Join-Muted": {
+            "type": "string"
+        },
+        "Moderator-Pins": {
+            "items": {
+                "type": "string"
+            },
+            "type": "string"
+        },
+        "Participant-Join-Video-Muted": {
+            "type": "string"
+        },
+        "Play-Entry-Prompt": {
             "type": "string"
         },
         "Play-Entry-Tone": {
@@ -36,10 +106,24 @@
         "Play-Exit-Tone": {
             "type": "string"
         },
+        "Play-Name-On-Join": {
+            "type": "string"
+        },
         "Play-Welcome": {
             "type": "string"
         },
         "Play-Welcome-Media": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Profile-Name": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Require-Moderator": {
+            "type": "string"
+        },
+        "Wait-For-Moderator": {
             "type": "string"
         }
     },

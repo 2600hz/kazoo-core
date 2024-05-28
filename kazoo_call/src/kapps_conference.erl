@@ -57,6 +57,8 @@
 -export([entry_tone/1, moderator_entry_tone/1]).
 -export([exit_tone/1, moderator_exit_tone/1]).
 -export([extra_settings/1]).
+-export([endconf/1, set_endconf/2]).
+-export([endconf_grace_time/1, set_endconf_grace_time/2]).
 
 -export([kvs_append/3
         ,kvs_append_list/3
@@ -127,6 +129,8 @@
 %%  account_id                    %% account id
 %%  moderator_controls            moderator controls (config settings)
 %%  caller_controls               caller controls (config settings)
+%%  enconf                        when last member with this flag exits the conference, conference will end after grace time
+%%  enconf_grace_time             how much time all members have before the conference is terminated when the last member with endconf leaves in seconds
 %%
 
 -record(kapps_conference, {id :: kz_term:api_ne_binary()
@@ -166,6 +170,8 @@
                           ,caller_controls = <<"default">> :: kz_term:ne_binary()
                           ,controls :: kz_term:api_object()
                           ,discovery_request :: kz_term:api_object()
+                          ,endconf = 'false' :: boolean()
+                          ,endconf_grace_time :: 'undefined' | integer()
                           }).
 
 -type tone() :: boolean() | kz_term:ne_binary().
@@ -239,6 +245,8 @@ do_from_json(JObj, Conference) ->
                                ,moderator_controls = kz_json:get_ne_binary_value(<<"Moderator-Controls">>, JObj, moderator_controls(Conference))
                                ,caller_controls = kz_json:get_ne_binary_value(<<"Caller-Controls">>, JObj, caller_controls(Conference))
                                ,discovery_request = JObj
+                               ,endconf = kz_json:is_true(<<"Last-Member-Endconf">>, JObj, endconf(Conference))
+                               ,endconf_grace_time = kz_json:get_integer_value(<<"Endconf-Grace-Time">>, JObj, endconf_grace_time(Conference))
                                }.
 
 -spec load_call(kz_json:object(), kapps_call:call() | 'undefined') -> kapps_call:call() | 'undefined'.
@@ -301,6 +309,8 @@ to_proplist(#kapps_conference{}=Conference) ->
     ,{<<"Profile-Name">>, profile_name(Conference)}
     ,{<<"Require-Moderator">>, require_moderator(Conference)}
     ,{<<"Wait-For-Moderator">>, wait_for_moderator(Conference)}
+    ,{<<"Last-Member-Endconf">>, endconf(Conference)}
+    ,{<<"Endconf-Grace-Time">>, endconf_grace_time(Conference)}
     ].
 
 -spec is_conference(any()) -> boolean().
@@ -371,6 +381,8 @@ from_conference_doc(JObj, Conference) ->
                                ,moderator_controls = kzd_conferences:moderator_controls(JObj, moderator_controls(Conference))
                                ,caller_controls = kzd_conferences:caller_controls(JObj, caller_controls(Conference))
                                ,conference_doc = JObj
+                               ,endconf = kzd_conferences:last_member_endconf(JObj, endconf(Conference))
+                               ,endconf_grace_time = kzd_conferences:endconf_grace_time(JObj, endconf_grace_time(Conference))
                                }.
 
 -type updater_1() :: fun((conference()) -> conference()).
@@ -765,6 +777,22 @@ wait_for_moderator(#kapps_conference{wait_for_moderator=WaitForModerator}) ->
 -spec set_wait_for_moderator(boolean(), conference()) -> conference().
 set_wait_for_moderator(WaitForModerator, Conference) when is_boolean(WaitForModerator) ->
     Conference#kapps_conference{wait_for_moderator=WaitForModerator}.
+
+-spec endconf(conference()) -> boolean().
+endconf(#kapps_conference{endconf=Endconf}) ->
+    Endconf.
+
+-spec set_endconf(boolean(), conference()) -> conference().
+set_endconf(Endconf, Conference) when is_boolean(Endconf) ->
+    Conference#kapps_conference{endconf=Endconf}.
+
+-spec endconf_grace_time(conference()) -> kz_term:api_integer().
+endconf_grace_time(#kapps_conference{endconf_grace_time=EndconfGraceTime}) ->
+    EndconfGraceTime.
+
+-spec set_endconf_grace_time(integer(), conference()) -> conference().
+set_endconf_grace_time(EndconfGraceTime, Conference) when is_integer(EndconfGraceTime) ->
+    Conference#kapps_conference{endconf_grace_time=EndconfGraceTime}.
 
 -spec play_name_on_join(conference()) -> boolean().
 play_name_on_join(#kapps_conference{play_name_on_join=PlayNameOnJoin}) ->
