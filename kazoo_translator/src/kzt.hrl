@@ -10,12 +10,14 @@
 -type request_return() :: {'request', kapps_call:call()}.
 -type error_return() :: {'error', kapps_call:call()} |
                         {'error', kapps_call:call(), list()}.
+-type stop_with_resp_return() :: {'stop_with_response', kapps_call:call()}.
 
 -type exec_element_return() ::
         ok_return() |
         stop_return() |
         usurp_return() |
         error_return() |
+        stop_with_resp_return() |
         request_return().
 
 -type exec_return() :: exec_element_return().
@@ -28,12 +30,14 @@
 
 -define(STATUS_QUEUED, <<"queued">>).
 -define(STATUS_RINGING, <<"ringing">>).
--define(STATUS_ANSWERED, <<"in-progress">>).
+-define(STATUS_IN_PROGRESS, <<"in-progress">>).
 -define(STATUS_COMPLETED, <<"completed">>).
 -define(STATUS_BUSY, <<"busy">>).
 -define(STATUS_FAILED, <<"failed">>).
 -define(STATUS_NOANSWER, <<"no-answer">>).
 -define(STATUS_CANCELED, <<"canceled">>).
+
+-define(STATUS_ANSWERED, <<"answered">>). %% For DialCallStatus when calling conference
 
 -define(APP_NAME, <<"translator">>).
 -define(APP_VERSION, <<"4.0.0">>).
