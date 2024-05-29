@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2023, 2600Hz
+%%% @copyright (C) 2015-2024, 2600Hz
 %%% @doc Bulk operations on numbers.
 %%%
 %%% <div class="notice">Functions should not throw, instead should return
@@ -355,7 +355,7 @@ services_group_numbers([PhoneNumber|PNs], Updates) ->
     AssignedTo = kz_term:to_api_term(
                    knm_phone_number:assigned_to(PhoneNumber)
                   ),
-    PrevAssignedTo = kz_term:to_api_term(
+    PrevAssignedTo = validate_previous_assigned_to(
                        knm_phone_number:prev_assigned_to(PhoneNumber)
                       ),
     Props = services_group_number(PhoneNumber, AssignedTo, PrevAssignedTo),
@@ -417,6 +417,13 @@ service_addition_fold(Item, Acc) ->
             [BillableQuantity * Rate | Acc]
     end.
 
+-spec validate_previous_assigned_to(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+validate_previous_assigned_to(PrevAssignedTo) ->
+    case kzd_accounts:fetch(PrevAssignedTo) of
+        {'error', 'invalid_db_name'} -> 'undefined';
+        {'error', 'not_found'} -> 'undefined';
+        _ -> PrevAssignedTo
+    end.
 -endif.
 
 -spec maybe_call_callbacks(knm_pipe:collection()) -> knm_pipe:collection().
