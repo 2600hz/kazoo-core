@@ -33,7 +33,8 @@ parse_cmds(XMLBin) ->
 -spec exec(kapps_call:call(), kz_types:xml_el() | kz_term:text()) ->
           {'error', kapps_call:call()} |
           {'request', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'stop_call', kapps_call:call()}.
 exec(Call, #xmlElement{name='Response', content=Els}) ->
     exec_elements(Call, kz_xml:filter_empty_text(Els));
 exec(Call, Resp) ->
@@ -52,8 +53,8 @@ exec(Call, Resp) ->
 -spec exec_elements(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts()) ->
           {'error', kapps_call:call()} |
           {'request', kapps_call:call()} |
-          {'stop_with_response', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'stop_call', kapps_call:call()}.
 exec_elements(Call, []) -> {'ok', Call};
 exec_elements(Call, [#xmlText{}=_El|Els]) ->
     exec_elements(Call, Els);
@@ -62,8 +63,8 @@ exec_elements(Call, [El|Els]) ->
         {'ok', Call1} -> exec_elements(Call1, Els);
         {'request', _Call}=REQ -> REQ;
         {'error', _Call}=ERR -> ERR;
-        {'stop_with_response', _Call}=STOP_RESP -> STOP_RESP;
-        {'stop', _Call}=STOP -> STOP
+        {'stop', _Call}=STOP_PIVOT -> STOP_PIVOT;
+        {'stop_call', _Call}=STOP_CALL -> STOP_CALL
     catch
         'throw':{'unknown_element', Name} ->
             lager:error("unknown element in response: ~s", [Name]),
@@ -77,8 +78,8 @@ exec_elements(Call, [El|Els]) ->
 -spec exec_element(kapps_call:call(), kz_types:xml_el()) ->
           {'ok', kapps_call:call()} |
           {'request', kapps_call:call()} |
-          {'stop_with_response', kapps_call:call()} |
           {'stop', kapps_call:call()} |
+          {'stop_call', kapps_call:call()} |
           {'error', kapps_call:call()}.
 exec_element(Call, #xmlElement{name='Dial'
                               ,content=Endpoints
@@ -178,14 +179,13 @@ req_params(Call) ->
 %% Verbs
 %%------------------------------------------------------------------------------
 -spec hangup(kapps_call:call()) ->
-          {'stop', kapps_call:call()}.
+          {'stop_call', kapps_call:call()}.
 hangup(Call) ->
     kapps_call_command:answer(Call),
-    kapps_call_command:hangup(Call),
-    {'stop', kzt_util:update_call_status(?STATUS_COMPLETED, Call)}.
+    {'stop_call', kzt_util:update_call_status(?STATUS_COMPLETED, Call)}.
 
 -spec reject(kapps_call:call(), kz_types:xml_attribs()) ->
-          {'stop_with_response', kapps_call:call()}.
+          {'stop_call', kapps_call:call()}.
 reject(Call, Attrs) ->
     Props = kz_xml:attributes_to_proplist(Attrs),
 
@@ -194,7 +194,7 @@ reject(Call, Attrs) ->
 
     lager:debug("rejecting call with ~s(~s)", [Reason, Code]),
     _ = kapps_call_command:response(Code, Reason, kzt_twiml_util:reject_prompt(Props), Call),
-    {'stop_with_response', kzt_util:update_call_status(kzt_twiml_util:reject_status(Code), Call)}.
+    {'stop_call', kzt_util:update_call_status(kzt_twiml_util:reject_status(Code), Call)}.
 
 -spec pause(kapps_call:call(), kz_types:xml_attribs()) ->
           {'ok', kapps_call:call()}.

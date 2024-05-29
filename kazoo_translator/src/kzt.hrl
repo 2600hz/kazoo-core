@@ -5,7 +5,7 @@
 -include_lib("kazoo_translator/include/kazoo_translator.hrl").
 
 -type ok_return() :: {'ok', kapps_call:call()}.
--type stop_return() :: {'stop', kapps_call:call()}.
+-type stop_return() :: {'stop', kapps_call:call()} | {'stop_call', kapps_call:call()}.
 -type usurp_return() :: {'usurp', kapps_call:call()}.
 -type request_return() :: {'request', kapps_call:call()}.
 -type error_return() :: {'error', kapps_call:call()} |
