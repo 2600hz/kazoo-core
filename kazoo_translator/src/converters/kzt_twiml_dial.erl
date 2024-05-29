@@ -26,6 +26,8 @@
 -define(DEFAULT_TIME_LIMIT_S, 4 * ?SECONDS_IN_HOUR).
 -define(MAXIMUM_TIME_LIMIT_S, 4 * ?SECONDS_IN_HOUR).
 
+-define(MAX_DIAL_NOUNS, 10).
+
 -spec exec(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts(), kz_types:xml_attribs()) ->
           {'ok' | 'stop', kapps_call:call()}.
 exec(Call, [#xmlText{type='text'}|_]=DialMeTxts, Attrs) ->
@@ -116,17 +118,17 @@ exec(Call, [#xmlElement{name='Queue'
     {'stop', kzt_util:add_error(Call1, <<"not_implemented">>, <<"Queue is not implemented">>)};
 
 exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
-    lager:info("dialing endpoints: ~p", [Endpoints]),
+    lager:debug("collecting endpoints inside Dial"),
 
     Props = kz_xml:attributes_to_proplist(Attrs),
     Call1 = setup_call_for_dial(Call, Props),
 
-    case xml_elements_to_endpoints(Call1, Endpoints) of
+    case collecting_endpoints(Call1, Endpoints) of
         [] ->
-            lager:info("no endpoints were found to dial"),
-            {'stop', Call1};
+            lager:debug("no endpoints were found to dial, continuing"),
+            {'ok', Call};
         EPs ->
-            lager:debug("endpoints created, sending dial"),
+            lager:debug("~s endpoint(s) created, sending bridge command", [length(EPs)]),
             Timeout = dial_timeout(Props),
             IgnoreEarlyMedia = kz_endpoints:ignore_early_media(EPs),
             Strategy = dial_strategy(Props),
@@ -156,24 +158,25 @@ simple_dial(Call, Props, DialMe) ->
 
 -spec number_dial(kapps_call:call(), kz_term:proplist(), kz_term:proplist(), kz_term:ne_binary()) ->
           {'ok' | 'stop' | 'request', kapps_call:call()}.
-number_dial(Call, DialProps, NumberProps, DialMe) ->
-    SendDigits = props:get_value('sendDigits', NumberProps),
-    _Url = props:get_value('url', NumberProps),
-    _Method = props:get_value('method', NumberProps),
+number_dial(Call, DialProps, _NumberProps, DialMe) ->
+    %% TODO: impelement these
+    %% SendDigits = props:get_value('sendDigits', NumberProps),
+    %% _Url = props:get_value('url', NumberProps),
+    %% _Method = props:get_value('method', NumberProps),
 
-    lager:info("not implemented: maybe sending number ~s: send ~s", [DialMe, SendDigits]),
+    lager:info("not implemented: maybe sending number ~s", [DialMe]),
 
     simple_dial(Call, DialProps, DialMe).
 
 send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
-    B = [{<<"Application-Name">>, <<"bridge">>}
-        ,{<<"Endpoints">>, EPs}
-        ,{<<"Timeout">>, Timeout}
-        ,{<<"Ignore-Early-Media">>, IgnoreEarlyMedia}
-        ,{<<"Dial-Endpoint-Method">>, Strategy}
-        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-        ],
-    kapps_call_command:send_command(B, Call).
+    Command = [{<<"Application-Name">>, <<"bridge">>}
+              ,{<<"Endpoints">>, EPs}
+              ,{<<"Timeout">>, Timeout}
+              ,{<<"Ignore-Early-Media">>, IgnoreEarlyMedia}
+              ,{<<"Dial-Endpoint-Method">>, Strategy}
+              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+              ],
+    kapps_call_command:send_command(Command, Call).
 
 -spec setup_call_for_dial(kapps_call:call(), kz_term:proplist()) -> kapps_call:call().
 setup_call_for_dial(Call, Props) ->
@@ -226,102 +229,90 @@ cleanup_dial_me(Txt) ->
 %% capture the failed B-leg and continue processing the TwiML (if any).
 force_outbound(Props) -> props:get_is_true('continueOnFail', Props, 'true').
 
--spec xml_elements_to_endpoints(kapps_call:call(), kz_types:xml_els()) ->
+-spec collecting_endpoints(kapps_call:call(), kz_types:xml_els()) ->
           kz_json:objects().
-xml_elements_to_endpoints(Call, EPs) ->
-    xml_elements_to_endpoints(Call, EPs, []).
+collecting_endpoints(Call, EPs) ->
+    collecting_endpoints(Call, EPs, []).
 
--spec xml_elements_to_endpoints(kapps_call:call(), kz_types:xml_els(), kz_json:objects()) ->
+-spec collecting_endpoints(kapps_call:call(), kz_types:xml_els(), kz_json:objects()) ->
           kz_json:objects().
-xml_elements_to_endpoints(_, [], Acc) -> Acc;
-xml_elements_to_endpoints(Call
-                         ,[#xmlElement{name='Device'
-                                      ,content=DeviceIdTxt
-                                      ,attributes=_DeviceAttrs
-                                      }
-                          | EPs
-                          ]
-                         ,Acc
-                         ) ->
+collecting_endpoints(_, [], Acc) ->
+    EPs = lists:reverse(Acc),
+    try lists:split(?MAX_DIAL_NOUNS, EPs) of
+        {LimitedEPs, _} -> LimitedEPs
+    catch
+        'error':'badarg' -> EPs
+    end;
+collecting_endpoints(Call, [#xmlElement{name='Device'} = EP | EPs], Acc) ->
+    #xmlElement{content=DeviceIdTxt} = EP,
+
     DeviceId = kz_xml:texts_to_binary(DeviceIdTxt),
-    lager:debug("maybe adding device ~s to ring group", [DeviceId]),
+    lager:debug("adding device ~s to ring group", [DeviceId]),
     case kz_endpoint:build(DeviceId, Call) of
-        {'ok', DeviceEPs} -> xml_elements_to_endpoints(Call, EPs, DeviceEPs ++ Acc);
+        {'ok', DeviceEPs} ->
+            collecting_endpoints(Call, EPs, lists:reverse(DeviceEPs) ++ Acc);
         {'error', _E} ->
             lager:debug("failed to add device ~s: ~p", [DeviceId, _E]),
-            xml_elements_to_endpoints(Call, EPs, Acc)
+            collecting_endpoints(Call, EPs, Acc)
     end;
-xml_elements_to_endpoints(Call
-                         ,[#xmlElement{name='User'
-                                      ,content=UserIdTxt
-                                      ,attributes=_UserAttrs
-                                      }
-                          | EPs
-                          ]
-                         ,Acc
-                         ) ->
+collecting_endpoints(Call, [#xmlElement{name='User'} = EP | EPs], Acc) ->
+    #xmlElement{content=UserIdTxt} = EP,
+
     UserId = kz_xml:texts_to_binary(UserIdTxt),
-    lager:debug("maybe adding user ~s to ring group", [UserId]),
+    lager:debug("adding user ~s to ring group", [UserId]),
 
     case get_endpoints(UserId, kz_json:new(), Call) of
         [] ->
             lager:debug("no user endpoints built for ~s, skipping", [UserId]),
-            xml_elements_to_endpoints(Call, EPs, Acc);
-        UserEPs -> xml_elements_to_endpoints(Call, EPs, UserEPs ++ Acc)
+            collecting_endpoints(Call, EPs, Acc);
+        UserEPs ->
+            collecting_endpoints(Call, EPs, lists:reverse(UserEPs) ++ Acc)
     end;
-xml_elements_to_endpoints(Call
-                         ,[#xmlElement{name='Number'
-                                      ,content=Number
-                                      ,attributes=Attrs
-                                      }
-                          | EPs
-                          ]
-                         ,Acc
-                         ) ->
-    Props = kz_xml:attributes_to_proplist(Attrs),
+collecting_endpoints(Call, [#xmlElement{name='Number'} = EP | EPs], Acc) ->
+    #xmlElement{content=Number, attributes=_Attrs} = EP,
 
-    SendDigits = props:get_value('sendDigits', Props),
-    _Url = props:get_value('url', Props),
-    _Method = props:get_value('method', Props),
+    %% Props = kz_xml:attributes_to_proplist(Attrs),
+
+    %% TODO: impelement these
+    %% SendDigits = props:get_value('sendDigits', Props),
+    %% _Url = props:get_value('url', Props),
+    %% _Method = props:get_value('method', Props),
 
     DialMe = normalize_number(kz_xml:texts_to_binary(Number), Call),
 
-    lager:debug("maybe add number ~s: send ~s", [DialMe, SendDigits]),
+    lager:debug("adding Number with DID ~s", [DialMe]),
 
     CallFwd = kz_json:from_list([{<<"enabled">>, 'true'}
                                 ,{<<"number">>, DialMe}
                                 ,{<<"require_keypress">>, 'false'}
                                 ,{<<"substitute">>, 'true'}
                                 ]),
+    Device = kz_doc:set_account_id(kz_json:new(), kapps_call:account_id(Call)),
     Unconditional = kzd_call_forward:set_unconditional(CallFwd, CallFwd),
-    Endpoint = kzd_endpoint:set_call_forward(kz_json:new(), Unconditional),
-    EP = kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call),
+    Endpoint = kzd_endpoint:set_call_forward(Device, Unconditional),
+    FwdEP = kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call),
 
-    xml_elements_to_endpoints(Call, EPs, [EP|Acc]);
+    collecting_endpoints(Call, EPs, [FwdEP|Acc]);
 
-xml_elements_to_endpoints(Call
-                         ,[#xmlElement{name='Sip'
-                                      ,content=Number
-                                      ,attributes=Attrs
-                                      }
-                          | EPs
-                          ]
-                         ,Acc
-                         ) ->
+collecting_endpoints(Call,[#xmlElement{name='Sip'} = EP | EPs], Acc) ->
+    #xmlElement{content=Number, attributes=Attrs} = EP,
+
+    lager:debug("adding Sip with uri ~s", [Number]),
+
     _Props = kz_xml:attributes_to_proplist(Attrs),
 
     try kzsip_uri:parse(kz_xml:texts_to_binary(Number)) of
         URI ->
-            xml_elements_to_endpoints(Call, EPs, [sip_uri(Call, URI)|Acc])
+            collecting_endpoints(Call, EPs, [sip_uri(Call, URI)|Acc])
     catch
         'throw':_E ->
             lager:debug("failed to parse SIP uri: ~p", [_E]),
-            xml_elements_to_endpoints(Call, EPs, Acc)
+            collecting_endpoints(Call, EPs, Acc)
     end;
 
-xml_elements_to_endpoints(Call, [_Xml|EPs], Acc) ->
+collecting_endpoints(Call, [_Xml|EPs], Acc) ->
     lager:debug("unknown endpoint, skipping: ~p", [_Xml]),
-    xml_elements_to_endpoints(Call, EPs, Acc).
+    collecting_endpoints(Call, EPs, Acc).
 
 -spec sip_uri(kapps_call:call(), kzsip_uri:sip_uri()) -> kz_json:object().
 sip_uri(Call, URI) ->
@@ -354,9 +345,8 @@ get_max_participants(N) when is_integer(N), N =< 40, N > 2 -> N.
 
 dial_strategy(Props) ->
     case props:get_value('strategy', Props) of
-        'undefined' -> <<"simultaneous">>;
-        <<"simultaneous">> -> <<"simultaneous">>;
-        <<"single">> -> <<"single">>
+        <<"single">> -> <<"single">>;
+        _ -> <<"simultaneous">>
     end.
 
 -spec caller_id(kz_term:proplist(), kapps_call:call()) -> kz_term:ne_binary().
