@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2023, 2600Hz
+%%% @copyright (C) 2014-2024, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -56,7 +56,11 @@ filter_empty_text([_|_]=Els) ->
     ].
 
 -spec is_empty_text(kz_types:xml_text() | kz_types:xml_el()) -> boolean().
-is_empty_text(#xmlText{value=" "}) -> 'true';
+is_empty_text(#xmlText{value=Vs}) ->
+    case texts_to_binary(Vs) of
+        <<>> -> 'true';
+        _ -> 'false'
+    end;
 is_empty_text(_El) -> 'false'.
 
 %%------------------------------------------------------------------------------
