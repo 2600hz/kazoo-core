@@ -191,7 +191,7 @@ setup_call_for_dial(Call, Props) ->
           {'ok' | 'stop' | 'request', kapps_call:call()}.
 maybe_end_dial(Call, Props) ->
     IsHungup = kzt_util:get_is_caller_hungup(Call),
-    lager:debug("a-leg status after bridge: ~s is caller hungup:", [kzt_util:get_call_status(Call), IsHungup]),
+    lager:debug("a-leg status after bridge: ~s is caller hungup: ~p", [kzt_util:get_call_status(Call), IsHungup]),
     maybe_end_dial(Call, Props, kzt_twiml_util:action_url(Props), IsHungup).
 
 -spec maybe_end_dial(kapps_call:call(), kz_term:proplist(), kz_term:api_ne_binary(), boolean()) ->
