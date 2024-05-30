@@ -159,6 +159,10 @@ record_call_command(Data, Call) ->
             ,{<<"Media-Recording-ID">>, MediaDocId}
             ,{<<"Record-Sample-Rate">>, SampleRate}
             ,{<<"Record-Min-Sec">>, kz_term:to_binary(RecordMinSec)}
+            ,{<<"Record-Silence-Detection">>, kz_json:is_true(<<"silence_detection">>, Data)}
+            ,{<<"Record-Silence-Threshold">>, kz_json:get_integer_value(<<"silence_threshold">>, Data)}
+            ,{<<"Record-Silence-Initial-Timeout">>, kz_json:get_integer_value(<<"silence_initial_timeout">>, Data)}
+            ,{<<"Record-Silence-Final-Timeout">>, kz_json:get_integer_value(<<"silence_final_timeout">>, Data)}
             ,{<<"Media-Recorder">>, Recorder}
             ,{<<"Recording-Variables">>, kz_json:from_list(Vars)}
             ,{<<"Channels-As-Stereo">>, RecordAsStereo}

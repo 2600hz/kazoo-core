@@ -1315,6 +1315,10 @@ record_call_definition() ->
                                                             ,<<"Recording-Variables">>
                                                             ,<<"Record-Min-Sec">>
                                                             ,<<"Record-Sample-Rate">>
+                                                            ,<<"Record-Silence-Detection">>
+                                                            ,<<"Record-Silence-Final-Timeout">>
+                                                            ,<<"Record-Silence-Initial-Timeout">>
+                                                            ,<<"Record-Silence-Threshold">>
                                                             ,<<"Track-Media-Recording">>
                                                             ,<<"Time-Limit">>
                                                             ]}
