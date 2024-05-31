@@ -11,6 +11,7 @@
 -module(kzt_util).
 
 -export([http_method/1
+        ,record_store_method/1
         ,resolve_uri/2
         ,offnet_req/3
         ,update_call_status/2, get_call_status/1
@@ -64,6 +65,7 @@
 -include_lib("kazoo_amqp/include/kapi_offnet_resource.hrl").
 
 -define(DEFAULT_HTTP_METHOD, 'post').
+-define(ALLOWED_RECORD_METHOD, [<<"post">>, <<"put">>, <<"patch">>]).
 
 -spec http_method(kz_term:api_binary() | list()) -> 'get' | 'post'.
 http_method(L) when is_list(L) ->
@@ -80,6 +82,23 @@ http_method(<<_/binary>> = Method) ->
         _E:_R -> ?DEFAULT_HTTP_METHOD
     end;
 http_method(Method) -> http_method(kz_term:to_binary(Method)).
+
+-spec record_store_method(kz_term:proplist()) -> kz_term:api_ne_binary().
+record_store_method(Props) ->
+    case props:get_ne_binary_value('recordingMethod', Props) of
+        'undefined' ->
+            'undefined';
+        Method0 ->
+            Method = kz_term:to_lower_binary(Method0),
+            case lists:member(Method, ?ALLOWED_RECORD_METHOD) of
+                'true' ->
+                    Method;
+                'false' ->
+                    lager:warning("store record method ~s is not allowed", [Method]),
+                    'undefined'
+            end
+    end.
+
 
 -spec resolve_uri(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
 resolve_uri(Path, NewPath) ->
@@ -222,8 +241,10 @@ set_record_call(R, Call) -> kapps_call:kvs_store(<<"record_call">>, R, Call).
 -spec get_record_call(kapps_call:call()) -> kz_term:api_boolean().
 get_record_call(Call) -> kapps_call:kvs_fetch(<<"record_call">>, Call).
 
--spec set_recording_stereo(kz_term:api_boolean(), kapps_call:call()) -> kapps_call:call().
-set_recording_stereo(R, Call) -> kapps_call:kvs_store(<<"recording_stereo">>, R, Call).
+-spec set_recording_stereo(kz_term:api_binary(), kapps_call:call()) -> kapps_call:call().
+set_recording_stereo(<<"record-from-bridge-dual">>, Call) -> kapps_call:kvs_store(<<"recording_stereo">>, 'true', Call);
+set_recording_stereo(<<"record-from-ringing-dual">>, Call) -> kapps_call:kvs_store(<<"recording_stereo">>, 'true', Call);
+set_recording_stereo(_Condition, Call) -> Call.
 
 -spec get_recording_stereo(kapps_call:call()) -> kz_term:api_boolean().
 get_recording_stereo(Call) -> kapps_call:kvs_fetch(<<"recording_stereo">>, Call).

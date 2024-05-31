@@ -26,6 +26,7 @@
         ,reject_reason/1
         ,reject_code/1
         ,reject_status/1
+        ,record_silence_vars/1
         ]).
 
 -include("kzt.hrl").
@@ -155,3 +156,20 @@ reject_code(<<"rejected">>) -> <<"603">>.
 -spec reject_status(kz_term:ne_binary()) -> kz_term:ne_binary().
 reject_status(<<"486">>) -> ?STATUS_BUSY;
 reject_status(<<"603">>) -> ?STATUS_REJECTED.
+
+-spec record_silence_vars(kz_term:proplist()) -> kz_term:proplist().
+record_silence_vars(Props) ->
+    case props:get_integer_value('timeout', Props, 5) of
+        0 ->
+            [];
+        N when N < 0 ->
+            [{<<"silence_initial_timeout">>, 5 * ?MILLISECONDS_IN_SECOND}
+            ,{<<"silence_final_timeout">>, 5 * ?MILLISECONDS_IN_SECOND}
+            ,{<<"silence_detection">>, 'true'}
+            ];
+        N ->
+            [{<<"silence_initial_timeout">>, N * ?MILLISECONDS_IN_SECOND}
+            ,{<<"silence_final_timeout">>, N * ?MILLISECONDS_IN_SECOND}
+            ,{<<"silence_detection">>, 'true'}
+            ]
+    end.
