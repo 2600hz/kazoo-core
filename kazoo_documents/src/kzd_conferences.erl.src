@@ -18,12 +18,12 @@
 -export([flags/1, flags/2, set_flags/2]).
 -export([focus/1, focus/2, set_focus/2]).
 -export([language/1, language/2, set_language/2]).
--export([last_member_endconf/1, last_member_endconf/2, set_last_member_endconf/2]).
 -export([max_members_media/1, max_members_media/2, set_max_members_media/2]).
 -export([max_participants/1, max_participants/2, set_max_participants/2]).
 -export([member/1, member/2, set_member/2]).
 -export([member_join_deaf/1, member_join_deaf/2, set_member_join_deaf/2]).
 -export([member_join_muted/1, member_join_muted/2, set_member_join_muted/2]).
+-export([member_leave_endconf/1, member_leave_endconf/2, set_member_leave_endconf/2]).
 -export([member_numbers/1, member_numbers/2, set_member_numbers/2]).
 -export([member_pins/1, member_pins/2, set_member_pins/2]).
 -export([member_play_entry_prompt/1, member_play_entry_prompt/2, set_member_play_entry_prompt/2]).
@@ -31,6 +31,7 @@
 -export([moderator_controls/1, moderator_controls/2, set_moderator_controls/2]).
 -export([moderator_join_deaf/1, moderator_join_deaf/2, set_moderator_join_deaf/2]).
 -export([moderator_join_muted/1, moderator_join_muted/2, set_moderator_join_muted/2]).
+-export([moderator_leave_endconf/1, moderator_leave_endconf/2, set_moderator_leave_endconf/2]).
 -export([moderator_numbers/1, moderator_numbers/2, set_moderator_numbers/2]).
 -export([moderator_pins/1, moderator_pins/2, set_moderator_pins/2]).
 -export([name/1, name/2, set_name/2]).
@@ -217,18 +218,6 @@ language(Doc, Default) ->
 set_language(Doc, Language) ->
     kz_json:set_value([<<"language">>], Language, Doc).
 
--spec last_member_endconf(doc()) -> kz_term:api_boolean().
-last_member_endconf(Doc) ->
-    last_member_endconf(Doc, 'undefined').
-
--spec last_member_endconf(doc(), Default) -> boolean() | Default.
-last_member_endconf(Doc, Default) ->
-    kz_json:get_boolean_value([<<"last_member_endconf">>], Doc, Default).
-
--spec set_last_member_endconf(doc(), boolean()) -> doc().
-set_last_member_endconf(Doc, LastMemberEndconf) ->
-    kz_json:set_value([<<"last_member_endconf">>], LastMemberEndconf, Doc).
-
 -spec max_members_media(doc()) -> kz_term:api_binary().
 max_members_media(Doc) ->
     max_members_media(Doc, 'undefined').
@@ -288,6 +277,18 @@ member_join_muted(Doc, Default) ->
 -spec set_member_join_muted(doc(), boolean()) -> doc().
 set_member_join_muted(Doc, MemberJoinMuted) ->
     kz_json:set_value([<<"member">>, <<"join_muted">>], MemberJoinMuted, Doc).
+
+-spec member_leave_endconf(doc()) -> kz_term:api_boolean().
+member_leave_endconf(Doc) ->
+    member_leave_endconf(Doc, 'undefined').
+
+-spec member_leave_endconf(doc(), Default) -> boolean() | Default.
+member_leave_endconf(Doc, Default) ->
+    kz_json:get_boolean_value([<<"member">>, <<"leave_endconf">>], Doc, Default).
+
+-spec set_member_leave_endconf(doc(), boolean()) -> doc().
+set_member_leave_endconf(Doc, MemberLeaveEndconf) ->
+    kz_json:set_value([<<"member">>, <<"leave_endconf">>], MemberLeaveEndconf, Doc).
 
 -spec member_numbers(doc()) -> kz_term:ne_binaries().
 member_numbers(Doc) ->
@@ -372,6 +373,18 @@ moderator_join_muted(Doc, Default) ->
 -spec set_moderator_join_muted(doc(), boolean()) -> doc().
 set_moderator_join_muted(Doc, ModeratorJoinMuted) ->
     kz_json:set_value([<<"moderator">>, <<"join_muted">>], ModeratorJoinMuted, Doc).
+
+-spec moderator_leave_endconf(doc()) -> kz_term:api_boolean().
+moderator_leave_endconf(Doc) ->
+    moderator_leave_endconf(Doc, 'undefined').
+
+-spec moderator_leave_endconf(doc(), Default) -> boolean() | Default.
+moderator_leave_endconf(Doc, Default) ->
+    kz_json:get_boolean_value([<<"moderator">>, <<"leave_endconf">>], Doc, Default).
+
+-spec set_moderator_leave_endconf(doc(), boolean()) -> doc().
+set_moderator_leave_endconf(Doc, ModeratorLeaveEndconf) ->
+    kz_json:set_value([<<"moderator">>, <<"leave_endconf">>], ModeratorLeaveEndconf, Doc).
 
 -spec moderator_numbers(doc()) -> kz_term:ne_binaries().
 moderator_numbers(Doc) ->
