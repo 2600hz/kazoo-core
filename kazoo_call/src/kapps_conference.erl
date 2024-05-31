@@ -381,7 +381,6 @@ from_conference_doc(JObj, Conference) ->
                                ,moderator_controls = kzd_conferences:moderator_controls(JObj, moderator_controls(Conference))
                                ,caller_controls = kzd_conferences:caller_controls(JObj, caller_controls(Conference))
                                ,conference_doc = JObj
-                               ,endconf = kzd_conferences:last_member_endconf(JObj, endconf(Conference))
                                ,endconf_grace_time = kzd_conferences:endconf_grace_time(JObj, endconf_grace_time(Conference))
                                }.
 
