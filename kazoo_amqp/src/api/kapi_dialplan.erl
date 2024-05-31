@@ -1316,9 +1316,6 @@ record_call_definition() ->
                                                             ,<<"Record-Min-Sec">>
                                                             ,<<"Record-Sample-Rate">>
                                                             ,<<"Record-Silence-Detection">>
-                                                            ,<<"Record-Silence-Final-Timeout">>
-                                                            ,<<"Record-Silence-Initial-Timeout">>
-                                                            ,<<"Record-Silence-Threshold">>
                                                             ,<<"Track-Media-Recording">>
                                                             ,<<"Time-Limit">>
                                                             ]}
@@ -1339,6 +1336,7 @@ record_call_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Record-Sample-Rate">>, fun is_integer/1}
                 ,{<<"Track-Media-Recording">>, fun is_boolean/1}
+                ,{<<"Record-Silence-Detection">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],
