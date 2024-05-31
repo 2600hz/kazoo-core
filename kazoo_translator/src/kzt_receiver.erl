@@ -18,7 +18,7 @@
         ,wait_for_conference/1
         ,say_loop/6, say_loop/7
         ,play_loop/3, play_loop/4
-        ,record_loop/2
+        ,wait_for_record/3
         ,collect_dtmfs/4, collect_dtmfs/5
 
         ,recording_meta/2
@@ -221,63 +221,107 @@ play_loop(Call, PlayMe, Terminators, N) ->
             ERR
     end.
 
--spec record_loop(kapps_call:call(), pos_integer()) ->
+-spec wait_for_record(kapps_call:call(), pos_integer(), kz_term:ne_binaries()) ->
           {'ok', kapps_call:call()} |
-          {'empty', kapps_call:call()} |
-          {'error', atom(), kapps_call:call()}.
-record_loop(Call, SilenceTimeout) ->
-    case wait_for_call_event(Call, <<"RECORD_STOP">>) of
-        {'ok', EvtJObj} ->
-            Len = kz_time:milliseconds_to_seconds(kz_json:get_value(<<"Length">>, EvtJObj, 0)),
-            DTMF = kz_json:get_value(<<"Terminator">>, EvtJObj, <<"hangup">>),
-
-            case {kz_json:is_true(<<"Silence-Terminated">>, EvtJObj, 'false')
-                 ,SilenceTimeout >= Len
-                 }
-            of
-                {'true', 'true'} ->
-                    lager:debug("recording stopped by silence, and was ~b s long (timeout was ~b, considering this empty", [Len, SilenceTimeout]),
-                    {'empty', Call};
-                _ ->
-                    Fs = [{fun kzt_util:set_digit_pressed/2, DTMF}
-                         ,{fun kzt_util:set_recording_duration/2, Len}
+          {'error', kz_json:object() | 'timeout'}.
+wait_for_record(Call, Timeout, Terminators) ->
+    Start = kz_time:start_time(),
+    case kapps_call_command:receive_event(Timeout) of
+        {'ok', JObj} ->
+            case kapps_call_command:get_event_type(JObj) of
+                {<<"error">>, _, <<"record">>} ->
+                    lager:debug("channel execution error while waiting for record to start ~p", [kz_json:encode(JObj)]),
+                    {'error', JObj};
+                {<<"call_event">>,<<"CHANNEL_DESTROY">>, _} ->
+                    lager:debug("channel has gone down before record started"),
+ 
+                    Fs = [{fun kzt_util:set_digit_pressed/2, <<"hangup">>}
+                         ,{fun kzt_util:set_recording_duration/2, 0}
                          ],
-                    {'ok', kapps_call:exec(Fs, Call)}
+                    {'ok', kapps_call:exec(Fs, Call)};
+                {<<"call_event">>, <<"RECORD_START">>, <<"record">>} ->
+                    lager:debug("recording have started"),
+                    record_loop(Call, Timeout, Terminators);
+                {<<"call_event">>, <<"RECORD_STOP">>, <<"record">>} ->
+                    record_finished(Call, JObj);
+                {<<"call_event">>, <<"DTMF">>, _} ->
+                    handle_record_dtmf(Call, kz_time:decr_timeout(Timeout, Start), Terminators, JObj, fun wait_for_record/3);
+                _T ->
+                    lager:debug("ignoring non recrod event ~p", [_T]),
+                    wait_for_record(Call, kz_time:decr_timeout(Timeout, Start), Terminators)
             end;
-        {'error', 'channel_destroy', EvtJObj} ->
-            Len = kz_time:milliseconds_to_seconds(kz_json:get_value(<<"Length">>, EvtJObj, 0)),
-
-            lager:debug("recording ended (hangup): len: ~p", [Len]),
-
-            Fs = [{fun kzt_util:set_digit_pressed/2, <<"hangup">>}
-                 ,{fun kzt_util:set_recording_duration/2, Len}
-                 ],
-            {'ok', kapps_call:exec(Fs, Call)};
-        {'error', E, _}=ERR ->
-            lager:debug("error: ~p", [E]),
-            ERR
+        {'error', _}=Error ->
+            Error
     end.
 
-wait_for_call_event(Call, EvtName) ->
-    case kapps_call_command:receive_event(?DEFAULT_EVENT_WAIT) of
+-spec record_loop(kapps_call:call(), pos_integer(), kz_term:ne_binaries()) ->
+          {'ok', kapps_call:call()} |
+          {'error', kz_json:object() | 'timeout'}.
+record_loop(Call, Timeout, Terminators) ->
+    Start = kz_time:start_time(),
+    case kapps_call_command:receive_event(Timeout) of
         {'ok', JObj} ->
-            process_call_event(Call, EvtName, JObj);
-        {'error', 'timeout'} ->
-            case kapps_call_command:b_channel_status(Call) of
-                {'ok', _} -> wait_for_call_event(Call, EvtName);
-                {'error', 'timeout'} -> wait_for_call_event(Call, EvtName);
-                {'error', E} -> {'error', E, Call}
+            case kapps_call_command:get_event_type(JObj) of
+                {<<"error">>, _, <<"record">>} ->
+                    lager:debug("channel execution error while waiting for end of recording", [kz_json:encode(JObj)]),
+                    {'error', JObj};
+                {<<"call_event">>,<<"CHANNEL_DESTROY">>, _} ->
+                    Length = kz_time:milliseconds_to_seconds(kz_json:get_value(<<"Length">>, JObj, 0)),
+                    lager:debug("destroy occurred while recording (length: ~b), waiting 60000 ms for RECORD_STOP", [Length]),
+                    record_loop(kzt_util:set_digit_pressed(<<"hangup">>, Call), 60 * ?MILLISECONDS_IN_SECOND, Terminators);
+                {<<"call_event">>, <<"RECORD_STOP">>, <<"record">>} ->
+                    record_finished(Call, JObj);
+                {<<"call_event">>, <<"DTMF">>, _} ->
+                    handle_record_dtmf(Call, kz_time:decr_timeout(Timeout, Start), Terminators, JObj, fun record_loop/3);
+                _T ->
+                    lager:debug("ignore non record event ~p", [_T]),
+                    record_loop(Call, kz_time:decr_timeout(Timeout, Start), Terminators)
+            end;
+        {'error', _}=Error ->
+            Error
+    end.
+
+-spec record_finished(kapps_call:call(), kz_json:object()) -> {'ok', kapps_call:call()}.
+record_finished(Call, JObj) ->
+    DocId = kz_recording:id(JObj),
+    Length = recording_length(JObj),
+
+    Data = kz_recording:data(JObj, kz_json:new()),
+    DefaultUrl = kz_binary:join([<<"accounts">>, kapps_call:account_id(Call), <<"recordings">>, DocId], <<"/">>),
+    Url = kz_json:get_ne_binary_value(<<"url">>, Data, <<"/", DefaultUrl/binary>>),
+
+    lager:debug("recording is finished, length: ~b doc_id: ~s", [Length, DocId]),
+
+    Updates = [{fun kzt_util:set_recording_sid/2, DocId}
+              ,{fun kzt_util:set_recording_duration/2, Length}
+              ,{fun kzt_util:set_recording_url/2, Url}
+              ],
+    {'ok', kapps_call:exec(Updates, Call)}.
+
+-spec handle_record_dtmf(kapps_call:call(), pos_integer(), kz_term:ne_binaries(), kz_json:object(), function()) ->
+          {'ok', kapps_call:call()} |
+          {'error', kz_json:object() | 'timeout'}.
+handle_record_dtmf(Call, Timeout, [], JObj, LoopFun) ->
+    LoopFun(Call, Timeout, JObj);
+handle_record_dtmf(Call, Timeout, Terminators, JObj, LoopFun) ->
+    case kz_call_event:dtmf_digit(JObj) of
+        'undefined' ->
+            LoopFun(Call, Timeout, JObj);
+        DTMF ->
+            case lists:member(DTMF, Terminators) of
+                'true' ->
+                    lager:debug("recveived record stop DTMF, stopping record and waiting 60000 ms for RECORD_STOP"),
+                    LoopFun(kapps_call:stop_recording(Call), 60 * ?MILLISECONDS_IN_SECOND, []);
+                'false' ->
+                    LoopFun(Call, Timeout, JObj)
             end
     end.
 
-process_call_event(Call, EvtName, JObj) ->
-    case kz_api:event_type(JObj) of
-        {<<"call_event">>, EvtName} ->
-            {'ok', JObj};
-        {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
-            {'error', 'channel_destroy', JObj};
-        {_, _} ->
-            wait_for_call_event(Call, EvtName)
+-spec recording_length(kz_json:object()) -> integer().
+recording_length(JObj) ->
+    case kz_call_event:recording_length(JObj) of
+        'undefined' -> 0;
+        Length -> kz_time:milliseconds_to_seconds(Length)
     end.
 
 -spec decr_loop_counter(timeout()) -> timeout().

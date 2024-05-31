@@ -68,11 +68,11 @@ exec_elements(Call, [El|Els]) ->
         'throw':{'unknown_element', Name} ->
             lager:error("unknown element in response: ~s", [Name]),
             {'error', kzt_util:add_error(Call, <<"unknown_element">>, Name)};
-        ?STACKTRACE(_E, _R, ST)
-        lager:error("'~s' when execing el ~p: ~p", [_E, El, _R]),
-        kz_log:log_stacktrace(ST),
-        {'error', Call}
-        end.
+        _T:_E:ST ->
+            lager:error("exception ~p:~p when executing element ~p", [_T, _E, El]),
+            kz_log:log_stacktrace(ST),
+            {'error', Call}
+    end.
 
 -spec exec_element(kapps_call:call(), kz_types:xml_el()) ->
           {'ok', kapps_call:call()} |
@@ -357,92 +357,79 @@ gather_finished(Call, Props) ->
             {'request', kapps_call:exec(Setters, Call)}
     end.
 
-record_call(Call, Attrs) ->
+record_call(Call0, Attrs) ->
+    kapps_call_command:answer(Call0),
+
     Props = kz_xml:attributes_to_proplist(Attrs),
-    Timeout = kzt_twiml_util:timeout_s(Props, 5),
     FinishOnKey = kzt_twiml_util:get_finish_key(Props),
     MaxLength = kzt_twiml_util:get_max_length(Props),
 
-    MediaName = media_name(Call),
-
-    lager:info("RECORD: ~s for at most ~b s", [MediaName, MaxLength]),
-
-    case props:is_true('playBeep', Props, 'true') of
-        'true' -> play_beep(Call);
-        'false' -> 'ok'
-    end,
-
-    kapps_call_command:record(MediaName, FinishOnKey, MaxLength, 200, Timeout, Call),
-
-    case kzt_receiver:record_loop(Call, Timeout) of
-        {'ok', Call1} -> finish_record_call(Call1, Props, MediaName);
-        {'empty', Call1} -> {'ok', Call1};
-        _E -> lager:debug("call record failed: ~p", [_E]), {'stop', Call}
-    end.
-
--spec finish_record_call(kapps_call:call(), kz_term:proplist(), kz_term:ne_binary()) ->
-          {'request', kapps_call:call()}.
-finish_record_call(Call, Props, MediaName) ->
-    CurrentUri = kzt_util:get_voice_uri(Call),
-    NewUri = kzt_util:resolve_uri(CurrentUri, kzt_twiml_util:action_url(Props)),
+    ActionUrl =kzt_twiml_util:action_url(Props),
     Method = kzt_util:http_method(Props),
 
-    lager:info("recording of ~s finished; using method '~s' to ~s from ~s", [MediaName, Method, NewUri, CurrentUri]),
+    Data = kz_json:from_list(
+             [{<<"url">>, props:get_ne_binary_value('recordingUrl', Props)}
+             ,{<<"method">>, Method}
+             ,{<<"time_limit">>, MaxLength}
+             | record_silence_vars(Props)
+             ]
+            ),
 
-    Setters = [{fun kzt_util:set_voice_uri_method/2, Method}
-              ,{fun kzt_util:set_voice_uri/2, NewUri}
+    Updates = [{fun kzt_util:update_call_status/2, ?STATUS_IN_PROGRESS}
               ],
+    Call = kapps_call:exec(Updates, Call0),
 
-    RecordingUrl = props:get_binary_value('recordingUrl', Props, NewUri),
-    AccountId = kapps_call:account_id(Call),
-    Setters1 =
-        case kapps_call_recording:should_store_recording(AccountId, RecordingUrl) of
-            'false' ->
-                lager:info("not storing the recording"),
-                Setters;
-            {'true', 'local'} ->
-                {'ok', MediaJObj} = kzt_receiver:recording_meta(Call, MediaName),
-                StoreUrl = media_local_store_url(Call, MediaJObj),
+    lager:info("starting call recording for at most ~b", [MaxLength]),
 
-                lager:info("storing ~s locally to ~s", [MediaName, StoreUrl]),
+    case props:is_true('playBeep', Props, 'true') of
+        'true' ->
+            timer:sleep(?MILLISECONDS_IN_SECOND div 10),
+            play_beep(Call);
+        'false' ->
+            'ok'
+    end,
 
-                _ = kapps_call_command:store_file(filename:join([<<"/tmp">>, MediaName]), StoreUrl, Call),
-                [{fun kzt_util:set_recording_url/2, StoreUrl}
-                | Setters
-                ];
-            {'true', 'other', Url} ->
-                StoreUrl = kapi_dialplan:offsite_store_url(Url, MediaName),
+    Call1 = kapps_call:start_recording(Data, Call),
 
-                lager:info("storing ~s offsite to ~s", [MediaName, StoreUrl]),
+    WaitMs = (MaxLength * ?MILLISECONDS_IN_SECOND) + (3 * ?MILLISECONDS_IN_SECOND),
+    case kzt_receiver:wait_for_record(Call1, WaitMs, FinishOnKey) of
+        {'error', 'timeout'} ->
+            lager:warning("timeout waiting for recrod stop"),
+            {'stop', Call};
+        {'error', _JObj} ->
+            {'stop', Call};
+        {'ok', Call2} ->
+            CurrentUri = kzt_util:get_voice_uri(Call2),
+            NewUri = kzt_util:resolve_uri(CurrentUri, ActionUrl),
 
-                _ = kapps_call_command:store_file(filename:join([<<"/tmp">>, MediaName]), StoreUrl, Call),
-                [{fun kzt_util:set_recording_url/2, StoreUrl}
-                | Setters]
-        end,
-    {'request', lists:foldl(fun({F, V}, C) -> F(V, C) end, Call, Setters1)}.
+            Setters = [{fun kzt_util:set_voice_uri_method/2, Method}
+                      ,{fun kzt_util:set_voice_uri/2, NewUri}
+                      ],
 
+            {'request', kapps_call:exec(Setters, Call2)}
+    end.
+
+-spec record_silence_vars(kz_term:proplist()) -> kz_term:proplist().
+record_silence_vars(Props) ->
+    case props:get_integer_value('timeout', Props, 5) of
+        0 ->
+            [];
+        N when N < 0 ->
+            [{<<"silence_initial_timeout">>, 5 * ?MILLISECONDS_IN_SECOND}
+            ,{<<"silence_final_timeout">>, 5 * ?MILLISECONDS_IN_SECOND}
+            ,{<<"silence_detection">>, 'true'}
+            ];
+        N ->
+            [{<<"silence_initial_timeout">>, N * ?MILLISECONDS_IN_SECOND}
+            ,{<<"silence_final_timeout">>, N * ?MILLISECONDS_IN_SECOND}
+            ,{<<"silence_detection">>, 'true'}
+            ]
+    end.
+
+-spec play_beep(kapps_call:call()) ->'ok'.
 play_beep(Call) ->
     Tone = kz_json:from_list([{<<"Frequencies">>, [<<"440">>]}
                              ,{<<"Duration-ON">>, <<"500">>}
                              ,{<<"Duration-OFF">>, <<"100">>}
                              ]),
     kapps_call_command:tones([Tone], Call).
-
-media_name(Call) ->
-    Format = kapps_config:get_ne_binary(<<"callflow">>, [<<"call_recording">>, <<"extension">>], <<"mp3">>),
-    <<"call_recording_", (kapps_call:call_id(Call))/binary, ".", Format/binary>>.
-
-%%------------------------------------------------------------------------------
-%% Nouns
-%%------------------------------------------------------------------------------
-
-%%------------------------------------------------------------------------------
-%% Helpers
-%%------------------------------------------------------------------------------
--spec media_local_store_url(kapps_call:call(), kz_json:object()) ->
-          kz_term:ne_binary().
-media_local_store_url(Call, JObj) ->
-    AccountDb = kapps_call:account_db(Call),
-    MediaId = kz_doc:id(JObj),
-    MediaName = kz_json:get_value(<<"name">>, JObj),
-    <<_/binary>> = kz_datamgr:attachment_url(AccountDb, MediaId, MediaName).
