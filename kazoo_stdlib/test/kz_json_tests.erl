@@ -1172,9 +1172,8 @@ are_all_there(Values, Keys, Vs, Ks) ->
 
 codec_test_() ->
     [?_assertEqual(?CODEC_JOBJ, kz_json:decode(kz_json:encode(?CODEC_JOBJ)))
-     %% commented out until we resolve the jiffy patches
-     %% ,?_assertException('error',{'invalid_ejson','undefined'}, kz_json:encode('undefined'))
-     %% ,?_assertException('error',{'invalid_ejson','undefined'}, kz_json:encode(?JSON_WRAPPER(?PROPS_WITH_UNDEFINED)))
+    ,?_assertException('error',{'invalid_ejson','undefined'}, kz_json:encode('undefined'))
+    ,?_assertException('error',{'invalid_ejson','undefined'}, kz_json:encode(?JSON_WRAPPER(?PROPS_WITH_UNDEFINED)))
     ,?_assert(kz_json:are_equal(kz_json:from_list(?PROPS_WITH_UNDEFINED)
                                ,kz_json:decode(kz_json:encode(kz_json:from_list(?PROPS_WITH_UNDEFINED)))
                                ))
