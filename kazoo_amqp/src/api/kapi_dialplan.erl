@@ -1344,21 +1344,14 @@ record_call_definition() ->
 
 -spec validate_silence_detection(any()) -> boolean().
 validate_silence_detection(JObj) ->
-    InitialTimeout = kz_json:get_integer_value(<<"Initial-Timeout">>, JObj),
-    FinalTimeout = kz_json:get_integer_value(<<"Final-Timeout">>, JObj),
-    case kz_json:all(fun({_, V}) ->
-                             is_integer(V)
-                                 andalso V >= 0
-                     end, JObj)
-    of
-        'true' when FinalTimeout < InitialTimeout ->
-            lager:warning("silence initial timeout ~b is lower than silence final timeout ~b, ignoring silence options"
-                         ,[InitialTimeout, FinalTimeout]
-                         ),
-            'false';
-        Bool ->
-            Bool
-    end.
+    kz_json:all(fun({_K, V}) ->
+                        case is_integer(V) and V >= 0 of
+                            'true' -> 'true';
+                            'false' ->
+                                lager:debug("expected positive integer value for ~s but got ~p", [_K, V]),
+                                'false'
+                        end
+                end, JObj).
 
 -spec answer_definition() -> kapi_definition:api().
 answer_definition() ->
