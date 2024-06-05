@@ -177,20 +177,9 @@ silence_detection(Data) ->
 silence_detection(_Data, 'false') ->
     'undefined';
 silence_detection(Data, 'true') ->
-    Threshold = kz_json:get_integer_value(<<"silence_threshold">>, Data, 200),
-    InitialTimeout = kz_json:get_integer_value(<<"silence_initial_timeout">>, Data, 0),
-    FinalTimeout = kz_json:get_integer_value(<<"silence_final_timeout">>, Data, 5),
-    case FinalTimeout < InitialTimeout of
-        'true' ->
-            lager:warning("silence initial timeout ~b is lower than silence final timeout ~b, ignoring silence options"
-                         ,[InitialTimeout, FinalTimeout]
-                         ),
-            'undefined';
-        'false' ->
-            kz_json:from_list(
-              [{<<"Threshold">>, kz_term:to_binary(Threshold)}
-              ,{<<"Initial-Timeout">>, kz_term:to_binary(InitialTimeout)}
-              ,{<<"Final-Timeout">>, kz_term:to_binary(FinalTimeout)}
-              ]
-             )
-    end.
+    kz_json:from_list(
+      [{<<"Threshold">>, kz_json:get_integer_value(<<"silence_threshold">>, Data, 200)}
+      ,{<<"Initial-Timeout">>, kz_json:get_integer_value(<<"silence_initial_timeout">>, Data, 0)}
+      ,{<<"Final-Timeout">>, kz_json:get_integer_value(<<"silence_final_timeout">>, Data, 5)}
+      ]
+     ).

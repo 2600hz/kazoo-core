@@ -1336,11 +1336,29 @@ record_call_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Record-Sample-Rate">>, fun is_integer/1}
                 ,{<<"Track-Media-Recording">>, fun is_boolean/1}
-                ,{<<"Record-Silence-Detection">>, fun kz_json:is_json_object/1}
+                ,{<<"Record-Silence-Detection">>, fun validate_silence_detection/1}
                 ]
                }
               ],
     kapi_definition:setters(Setters).
+
+-spec validate_silence_detection(any()) -> boolean().
+validate_silence_detection(JObj) ->
+    InitialTimeout = kz_json:get_integer_value(<<"Initial-Timeout">>, JObj),
+    FinalTimeout = kz_json:get_integer_value(<<"Final-Timeout">>, JObj),
+    case kz_json:all(fun({_, V}) ->
+                             is_integer(V)
+                                 andalso V >= 0
+                     end, JObj)
+    of
+        'true' when FinalTimeout < InitialTimeout ->
+            lager:warning("silence initial timeout ~b is lower than silence final timeout ~b, ignoring silence options"
+                         ,[InitialTimeout, FinalTimeout]
+                         ),
+            'false';
+        Bool ->
+            Bool
+    end.
 
 -spec answer_definition() -> kapi_definition:api().
 answer_definition() ->
