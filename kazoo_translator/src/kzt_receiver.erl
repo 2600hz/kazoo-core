@@ -46,77 +46,63 @@
 -spec default_on_first_fun(any()) -> 'ok'.
 default_on_first_fun(_) -> 'ok'.
 
--spec collect_dtmfs(kapps_call:call(), kz_term:api_ne_binary(), timeout(), pos_integer()) ->
+-spec collect_dtmfs(kapps_call:call(), kz_term:api_ne_binary(), timeout(), timeout()) ->
           collect_dtmfs_return().
-collect_dtmfs(Call, FinishKey, Timeout, N) ->
+collect_dtmfs(Call, FinishKey, Timeout, MaxDigits) ->
     collect_dtmfs(Call
                  ,FinishKey
                  ,Timeout
-                 ,N
+                 ,MaxDigits
                  ,fun default_on_first_fun/1
                  ,kzt_util:get_digits_collected(Call)
                  ).
 
--spec collect_dtmfs(kapps_call:call(), kz_term:api_ne_binary(), timeout(), pos_integer(), function()) ->
+-spec collect_dtmfs(kapps_call:call(), kz_term:api_ne_binary(), timeout(), timeout(), function()) ->
           collect_dtmfs_return().
-collect_dtmfs(Call
-             ,FinishKey
-             ,Timeout
-             ,N
-             ,OnFirstFun
-             ) when is_function(OnFirstFun, 1) ->
+collect_dtmfs(Call, FinishKey, Timeout, MaxDigits, OnFirstFun) when is_function(OnFirstFun, 1) ->
     collect_dtmfs(Call
                  ,FinishKey
                  ,Timeout
-                 ,N
+                 ,MaxDigits
                  ,OnFirstFun
                  ,kzt_util:get_digits_collected(Call)
                  ).
 
--spec collect_dtmfs(kapps_call:call(), kz_term:api_ne_binary(), timeout(), pos_integer(), function(), binary()) ->
+-spec collect_dtmfs(kapps_call:call(), kz_term:api_ne_binary(), timeout(), timeout(), function(), binary()) ->
           collect_dtmfs_return().
-collect_dtmfs(Call
-             ,_FinishKey
-             ,_Timeout
-             ,N
-             ,_OnFirstFun
-             ,Collected
-             ) when byte_size(Collected) =:= N ->
+collect_dtmfs(Call,_ ,_ , MaxDigits, _, Collected)
+  when is_integer(MaxDigits)
+       andalso byte_size(Collected) =:= MaxDigits ->
     {'ok', Call};
-collect_dtmfs(Call
-             ,FinishKey
-             ,Timeout
-             ,N
-             ,OnFirstFun
-             ,Collected
-             ) ->
-    lager:debug("collect_dtmfs: n: ~p collected: ~s", [N, Collected]),
+collect_dtmfs(Call, FinishKey, Timeout, MaxDigits, OnFirstFun, Collected) ->
+    lager:debug("collecting ~p dtmfs, so far collected: ~s", [MaxDigits, Collected]),
     Start = kz_time:start_time(),
 
     case kapps_call_command:receive_event(collect_timeout(Call, Timeout), 'false') of
         {'ok', JObj} ->
             collect_dtmfs(Call, FinishKey, collect_decr_timeout(Call, Timeout, Start)
-                         ,N, OnFirstFun, Collected, JObj
+                         ,MaxDigits, OnFirstFun, Collected, JObj
                          );
-        {'error', 'timeout'} -> {'ok', 'timeout', Call};
+        {'error', 'timeout'} ->
+            {'ok', 'timeout', Call};
         {'other', {'DOWN', Ref, 'process', Pid, _Reason}} ->
             case kzt_util:get_gather_pidref(Call) of
                 {Pid, Ref} when is_pid(Pid), is_reference(Ref) ->
                     lager:info("subactions are done, timer can start"),
                     collect_dtmfs(kzt_util:set_gather_pidref('undefined', Call)
-                                 ,FinishKey, collect_decr_timeout(Call, Timeout, Start), N, OnFirstFun, Collected
+                                 ,FinishKey, collect_decr_timeout(Call, Timeout, Start), MaxDigits, OnFirstFun, Collected
                                  );
                 _ ->
-                    collect_dtmfs(Call, FinishKey, collect_decr_timeout(Call, Timeout, Start), N, OnFirstFun, Collected)
+                    collect_dtmfs(Call, FinishKey, collect_decr_timeout(Call, Timeout, Start), MaxDigits, OnFirstFun, Collected)
             end;
         {'other', OtherJObj} ->
             lager:debug("other message: ~p", [OtherJObj]),
-            collect_dtmfs(Call, FinishKey, collect_decr_timeout(Call, Timeout, Start), N, OnFirstFun, Collected)
+            collect_dtmfs(Call, FinishKey, collect_decr_timeout(Call, Timeout, Start), MaxDigits, OnFirstFun, Collected)
     end.
 
--spec collect_dtmfs(kapps_call:call(), kz_term:api_ne_binary(), timeout(), pos_integer(), function(), binary(), kz_json:object()) ->
+-spec collect_dtmfs(kapps_call:call(), kz_term:api_ne_binary(), timeout(), timeout(), function(), binary(), kz_json:object()) ->
           collect_dtmfs_return().
-collect_dtmfs(Call, FinishKey, Timeout, N, OnFirstFun, Collected, JObj) ->
+collect_dtmfs(Call, FinishKey, Timeout, MaxDigits, OnFirstFun, Collected, JObj) ->
     case kz_api:event_type(JObj) of
         {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
             {'stop', Call};
@@ -124,43 +110,43 @@ collect_dtmfs(Call, FinishKey, Timeout, N, OnFirstFun, Collected, JObj) ->
             handle_dtmf(Call
                        ,FinishKey
                        ,Timeout
-                       ,N
+                       ,MaxDigits
                        ,OnFirstFun
                        ,Collected
                        ,kz_call_event:dtmf_digit(JObj)
                        );
         _Evt ->
-            collect_dtmfs(Call, FinishKey, Timeout, N, OnFirstFun, Collected)
+            collect_dtmfs(Call, FinishKey, Timeout, MaxDigits, OnFirstFun, Collected)
     end.
 
--spec handle_dtmf(kapps_call:call(), kz_term:api_ne_binary(), timeout(), pos_integer(), function(), binary(), kz_term:api_ne_binary()) ->
+-spec handle_dtmf(kapps_call:call(), kz_term:api_ne_binary(), timeout(), timeout(), function(), binary(), kz_term:api_ne_binary()) ->
           collect_dtmfs_return().
-handle_dtmf(Call, FinishKey, _Timeout, _N, _OnFirstFun, _Collected, FinishKey) when is_binary(FinishKey) ->
+handle_dtmf(Call, FinishKey, _, _, _, _, FinishKey) when is_binary(FinishKey) ->
     lager:info("finish key '~s' pressed", [FinishKey]),
     {'ok', 'dtmf_finish', Call};
-handle_dtmf(Call, _FinishKey, _Timeout, _N, _OnFirstFun, _Collected, <<>>) ->
+handle_dtmf(Call, _, _, _, _, _, <<>>) ->
     lager:info("no dtmf pressed in time"),
     {'ok', 'timeout', Call};
-handle_dtmf(Call, _FinishKey, _Timeout, _N, _OnFirstFun, _Collected, 'undefined') ->
+handle_dtmf(Call, _, _, _, _, _, 'undefined') ->
     lager:info("no dtmf pressed in time"),
     {'ok', 'timeout', Call};
-handle_dtmf(Call, FinishKey, Timeout, N, OnFirstFun, <<>>, DTMF) ->
+handle_dtmf(Call, FinishKey, Timeout, MaxDigits, OnFirstFun, <<>>, DTMF) ->
     lager:info("first dtmf pressed: ~s", [DTMF]),
     Call1 = kzt_util:add_digit_collected(DTMF, Call),
     _ = try OnFirstFun(Call1) of _ -> 'ok' catch _:_ -> 'ok' end,
     collect_dtmfs(kzt_util:set_gather_pidref('undefined', Call1)
                  ,FinishKey
                  ,Timeout
-                 ,N
+                 ,MaxDigits
                  ,fun default_on_first_fun/1
                  ,DTMF
                  );
-handle_dtmf(Call, FinishKey, Timeout, N, OnFirstFun, Collected, DTMF) ->
+handle_dtmf(Call, FinishKey, Timeout, MaxDigits, OnFirstFun, Collected, DTMF) ->
     lager:debug("dtmf pressed: '~s'", [DTMF]),
     collect_dtmfs(kzt_util:add_digit_collected(DTMF, Call)
                  ,FinishKey
                  ,Timeout
-                 ,N
+                 ,MaxDigits
                  ,OnFirstFun
                  ,<<DTMF/binary, Collected/binary>>
                  ).

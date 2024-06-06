@@ -319,8 +319,8 @@ gather(Call, Attrs) ->
           {'request', kapps_call:call()} |
           {'error', _, kapps_call:call()} |
           {'stop', kapps_call:call()}.
-gather(Call, FinishKey, Timeout, Props, N) ->
-    case kzt_receiver:collect_dtmfs(Call, FinishKey, Timeout, N, fun on_first_dtmf/1) of
+gather(Call, FinishKey, Timeout, Props, MaxDigits) ->
+    case kzt_receiver:collect_dtmfs(Call, FinishKey, Timeout, MaxDigits, fun on_first_dtmf/1) of
         {'ok', 'timeout', C} -> gather_finished(C, Props);
         {'ok', 'dtmf_finish', C} -> gather_finished(C, Props);
         {'ok', C} -> gather_finished(C, Props);
