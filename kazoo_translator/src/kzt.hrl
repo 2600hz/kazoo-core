@@ -2,7 +2,7 @@
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
--include("kazoo_translator.hrl").
+-include_lib("kazoo_translator/include/kazoo_translator.hrl").
 
 -type ok_return() :: {'ok', kapps_call:call()}.
 -type stop_return() :: {'stop', kapps_call:call()}.
@@ -42,6 +42,7 @@
 -define(APP_NAME, <<"translator">>).
 -define(APP_VERSION, <<"4.0.0">>).
 
+-define(DEFAULT_TTS_ENGINE(Call), kazoo_tts:default_provider(Call)).
 -define(DEFAULT_TTS_LANG, kazoo_tts:default_language()).
 -define(DEFAULT_TTS_VOICE, kazoo_tts:default_voice()).
 
