@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2021, 2600Hz
+%%% @copyright (C) 2018-2024, 2600Hz
 %%% @doc This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -138,10 +138,10 @@ handle_response({'ok', _Code, _Hdrs, Content2}) ->
     lager:debug("resp: ~s", [Content2]),
     {'error', 'asr_provider_failure', Content2}.
 
--spec get_sentence(kz_json:object()) -> kz_term:ne_binary().
+-spec get_sentence(kz_json:object()) -> binary().
 get_sentence(Alternative) ->
     [Sentence|_] = kz_json:get_list_value(<<"alternatives">>, Alternative),
-    kz_json:get_value(<<"transcript">>, Sentence).
+    kz_json:get_binary_value(<<"transcript">>, Sentence, <<>>).
 
 %%%-----------------------------------------------------------------------------
 %%% @doc Set the asr key
