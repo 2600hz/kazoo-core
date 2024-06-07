@@ -22,6 +22,7 @@
         ,default_provider/0, default_provider/1, set_default_provider/1
         ,default_language/0, set_default_language/1
         ,default_voice/0, set_default_voice/1
+        ,supported_tts_providers/0
 
         ,provider_module/1
         ]).
@@ -66,6 +67,9 @@ decode(Provider, Contents, Metadata, ProviderData) ->
 -spec provider_module(kz_term:ne_binary()) -> atom().
 provider_module(Provider) ->
     kz_term:to_atom(<<"kazoo_tts_", Provider/binary>>, 'true').
+
+-spec supported_tts_providers() -> list().
+supported_tts_providers() -> ?SUPPORTED_TTS_PROVIDERS.
 
 -spec cache_time_ms() -> pos_integer().
 cache_time_ms() ->
