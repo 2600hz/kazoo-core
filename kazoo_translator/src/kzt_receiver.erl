@@ -306,14 +306,14 @@ handle_record_dtmf(Call, Timeout, [], JObj, LoopFun) ->
 handle_record_dtmf(Call, Timeout, Terminators, JObj, LoopFun) ->
     case kz_call_event:dtmf_digit(JObj) of
         'undefined' ->
-            LoopFun(Call, Timeout, JObj);
+            LoopFun(Call, Timeout, Terminators);
         DTMF ->
             case lists:member(DTMF, Terminators) of
                 'true' ->
                     lager:debug("recveived record stop DTMF, stopping record and waiting 60000 ms for RECORD_STOP"),
                     LoopFun(kapps_call:stop_recording(Call), 60 * ?MILLISECONDS_IN_SECOND, []);
                 'false' ->
-                    LoopFun(Call, Timeout, JObj)
+                    LoopFun(Call, Timeout, Terminators)
             end
     end.
 
