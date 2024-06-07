@@ -8,6 +8,12 @@
 -define(TTS_API_KEY, kapps_config:get_binary(?MOD_CONFIG_CAT, <<"tts_api_key">>, <<>>)).
 -define(TMP_PATH, kapps_config:get_binary(?MOD_CONFIG_CAT, <<"temporary_storage_path">>, <<"/tmp">>)).
 
+-define(SUPPORTED_TTS_PROVIDERS, [<<"flite">>
+                                 ,<<"google">>
+                                 ,<<"ispeech">>
+                                 ,<<"voicefabric">>
+                                 ]).
+
 -record(voice_desc, {voice_name :: kz_term:ne_binary()
                     ,language_code :: kz_term:ne_binary()
                     ,gender :: voice_gender()

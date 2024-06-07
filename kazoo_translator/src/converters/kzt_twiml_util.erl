@@ -60,7 +60,11 @@ get_voice(Props) ->
 get_engine(Call, Props) ->
     case props:get_ne_binary_value('engine', Props) of
         'undefined' -> ?DEFAULT_TTS_ENGINE(Call);
-        Engine -> Engine
+        Engine ->
+            case lists:member(Engine, kazoo_tts:supported_tts_providers()) of
+                'true' -> Engine;
+                'false' -> ?DEFAULT_TTS_ENGINE(Call)
+            end
     end.
 
 -spec loop_count(kz_term:proplist()) -> integer().
