@@ -369,7 +369,6 @@ record_call(Call0, Attrs) ->
 
     Data = kz_json:from_list(
              [{<<"url">>, props:get_ne_binary_value('recordingUrl', Props)}
-             ,{<<"method">>, Method}
              ,{<<"time_limit">>, MaxLength}
              | record_silence_vars(Props)
              ]
