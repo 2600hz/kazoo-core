@@ -89,6 +89,7 @@ call_forward_base_properties(_EndpointId, _AccountId, _Endpoint, CallForward, _I
     ,{<<"Call-Forward-Number">>, <<"${kz_ctx_request_e164}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
     ,{<<"Call-Forward-Diversions">>, <<"${sip_diversions}">>}
+    ,{<<"Call-Forward-From-Endpoint-ID">>, <<"${Caller-Endpoint-ID}">>}
     ].
 
 -spec cfw_single_reject() -> kz_term:ne_binaries().
