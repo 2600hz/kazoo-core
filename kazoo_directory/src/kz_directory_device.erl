@@ -258,6 +258,7 @@ build_profile(Context) ->
               ,{<<"CallForward">> , kz_directory_cfwd:call_forward(EndpointId, AccountId, Endpoint)}
               ,{<<"Failover">> , kz_directory_failover:failover(EndpointId, AccountId, Endpoint)}
               ,{<<"Expires">>, ?DIRECORY_CACHE_TIME_MS}
+              ,{<<"Revision">>, kz_doc:revision(Endpoint)}
               ],
     Context#{profile => kz_json:from_list(Profile)}.
 
