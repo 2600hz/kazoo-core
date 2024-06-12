@@ -107,16 +107,31 @@ account_schema(Config) when is_binary(Config) ->
     Name = account_schema_name(Config),
     case kz_json_schema:load(Name) of
         {'ok', Schema} -> Schema;
-        _ -> system_config_no_schema()
+        _ -> account_config_no_schema(Config)
     end.
 
 -spec system_config_no_schema() -> kz_json:object().
 system_config_no_schema() ->
+    config_no_schema([]).
+
+-spec account_config_no_schema(kz_term:ne_binary()) -> kz_json:object().
+account_config_no_schema(Config) ->
+    SystemName = system_schema_name(Config),
+    %% If there is no system schema, this is most likely a custom configs doc
+    AdditionalProperties = kz_json_schema:load(SystemName) =:= {'error', 'not_found'},
+
+    %% Prevent accidentally exposing `system_config' properties for configs that
+    %% don't have an `account_config' equivalent
+    config_no_schema([{[<<"additionalProperties">>], AdditionalProperties}]).
+
+-spec config_no_schema(kz_json:flat_proplist()) -> kz_json:object().
+config_no_schema(ExtraProps) ->
     Flat = [
             {[<<"$schema">>],<<"http://json-schema.org/draft-04/schema#">>}
            ,{[<<"id">>], <<"system_config">>}
            ,{[<<"properties">>, <<"id">>, <<"type">>], <<"string">>}
            ,{[<<"type">>], <<"object">>}
+           | ExtraProps
            ],
     kz_json:expand(kz_json:from_list(Flat)).
 
