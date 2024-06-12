@@ -159,6 +159,7 @@ record_call_command(Data, Call) ->
             ,{<<"Media-Recording-ID">>, MediaDocId}
             ,{<<"Record-Sample-Rate">>, SampleRate}
             ,{<<"Record-Min-Sec">>, kz_term:to_binary(RecordMinSec)}
+            ,{<<"Record-Silence-Detection">>, silence_detection(Data)}
             ,{<<"Media-Recorder">>, Recorder}
             ,{<<"Recording-Variables">>, kz_json:from_list(Vars)}
             ,{<<"Channels-As-Stereo">>, RecordAsStereo}
@@ -168,3 +169,17 @@ record_call_command(Data, Call) ->
             | kz_api:default_headers(<<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
             ],
     kz_json:from_list(Media).
+
+-spec silence_detection(kz_json:object()) -> kz_term:api_object().
+silence_detection(Data) ->
+    silence_detection(Data, kz_json:is_true(<<"silence_detection">>, Data)).
+
+silence_detection(_Data, 'false') ->
+    'undefined';
+silence_detection(Data, 'true') ->
+    kz_json:from_list(
+      [{<<"Threshold">>, kz_json:get_integer_value(<<"silence_threshold">>, Data, 200)}
+      ,{<<"Initial-Timeout">>, kz_json:get_integer_value(<<"silence_initial_timeout">>, Data, 0)}
+      ,{<<"Final-Timeout">>, kz_json:get_integer_value(<<"silence_final_timeout">>, Data, 5)}
+      ]
+     ).

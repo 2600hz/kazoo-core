@@ -1315,6 +1315,7 @@ record_call_definition() ->
                                                             ,<<"Recording-Variables">>
                                                             ,<<"Record-Min-Sec">>
                                                             ,<<"Record-Sample-Rate">>
+                                                            ,<<"Record-Silence-Detection">>
                                                             ,<<"Track-Media-Recording">>
                                                             ,<<"Time-Limit">>
                                                             ]}
@@ -1335,10 +1336,22 @@ record_call_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Record-Sample-Rate">>, fun is_integer/1}
                 ,{<<"Track-Media-Recording">>, fun is_boolean/1}
+                ,{<<"Record-Silence-Detection">>, fun validate_silence_detection/1}
                 ]
                }
               ],
     kapi_definition:setters(Setters).
+
+-spec validate_silence_detection(any()) -> boolean().
+validate_silence_detection(JObj) ->
+    kz_json:all(fun({_K, V}) ->
+                        case is_integer(V) and V >= 0 of
+                            'true' -> 'true';
+                            'false' ->
+                                lager:debug("expected positive integer value for ~s but got ~p", [_K, V]),
+                                'false'
+                        end
+                end, JObj).
 
 -spec answer_definition() -> kapi_definition:api().
 answer_definition() ->
