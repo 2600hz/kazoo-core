@@ -498,7 +498,7 @@ handle_offnet_bridged(#dial_req{call=Call}=OffnetReq, JObj) ->
                                               ,'pooled'
                                               ]),
 
-    MediaJObj = maybe_start_recording(OffnetReq),
+    MediaJObj = maybe_start_recording(OffnetReq, OtherLegId),
 
     Updates = [{fun kzt_util:set_media_meta/2, MediaJObj}
               ,{fun kzt_util:update_call_status/2, ?STATUS_IN_PROGRESS}
@@ -670,17 +670,19 @@ process_conference_event(#dial_req{call=Call}=OffnetReq, JObj) ->
             wait_for_conference_events(update_offnet_timers(OffnetReq))
     end.
 
-maybe_start_recording(#dial_req{record_call='false'}) -> 'undefined';
+maybe_start_recording(#dial_req{record_call='false'}, _OtherLegId) -> 'undefined';
 maybe_start_recording(#dial_req{record_call='true'
                                ,call=Call
                                ,call_time_limit=CallTimeLimit
-                               }) ->
-    OtherLegId = kzt_util:get_dial_call_sid(Call),
+                               }
+                     ,OtherLegId) ->
     RecordingName = recording_name(kapps_call:call_id(Call), OtherLegId),
 
     lager:info("starting recording '~s'", [RecordingName]),
     {'ok', MediaJObj} = recording_meta(Call, RecordingName),
-    kapps_call_command:record_call([{<<"Media-Name">>, RecordingName}]
+    kapps_call_command:record_call([{<<"Media-Name">>, RecordingName}
+                                   ,{<<"Media-Recording-ID">>, kz_json:get_value(<<"_id">>, MediaJObj)}
+                                   ]
                                   ,<<"start">>
                                   ,CallTimeLimit
                                   ,Call
