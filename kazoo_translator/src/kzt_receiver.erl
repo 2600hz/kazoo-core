@@ -682,6 +682,7 @@ maybe_start_recording(#dial_req{record_call='true'
     {'ok', MediaJObj} = recording_meta(Call, RecordingName),
     kapps_call_command:record_call([{<<"Media-Name">>, RecordingName}
                                    ,{<<"Media-Recording-ID">>, kz_json:get_value(<<"_id">>, MediaJObj)}
+                                   ,{<<"Media-Recorder">>, ?KZT_DIAL_RECORDER}
                                    ]
                                   ,<<"start">>
                                   ,CallTimeLimit
