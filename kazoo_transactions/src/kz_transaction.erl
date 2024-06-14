@@ -22,6 +22,12 @@
         ,set_unit_amount/2
         ,set_dollar_amount/2
         ]).
+-export([surcharge/1
+        ,unit_surcharge/1
+        ,dollar_surcharge/1
+        ,set_unit_surcharge/2
+        ,set_dollar_surcharge/2
+        ]).
 -export([description/1
         ,set_description/2
         ]).
@@ -102,6 +108,7 @@
 -record(transaction, {account_id :: kz_term:api_ne_binary()
                      ,account_name :: kz_term:api_ne_binary()
                      ,amount = 0 :: kz_currency:units()
+                     ,surcharge = 0 :: kz_currency:units()
                      ,description :: kz_term:api_binary()
                      ,executor_trigger :: kz_term:api_binary()
                      ,executor_module :: kz_term:api_binary()
@@ -213,6 +220,46 @@ set_unit_amount(Transaction, Amount) ->
 -spec set_dollar_amount(transaction(), kz_currency:dollars()) -> transaction().
 set_dollar_amount(Transaction, Amount) ->
     Transaction#transaction{amount=kz_currency:dollars_to_units(Amount)}.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec surcharge(transaction()) -> kz_currency:units().
+surcharge(Transaction) ->
+    unit_surcharge(Transaction).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec unit_surcharge(transaction()) -> kz_currency:units().
+unit_surcharge(#transaction{surcharge=Surcharge}) ->
+    abs(Surcharge).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec dollar_surcharge(transaction()) -> kz_currency:dollars().
+dollar_surcharge(#transaction{surcharge=Surcharge}) ->
+    kz_currency:units_to_dollars(Surcharge).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_unit_surcharge(transaction(), kz_currency:units()) -> transaction().
+set_unit_surcharge(Transaction, Surcharge) ->
+    Transaction#transaction{surcharge=abs(Surcharge)}.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_dollar_surcharge(transaction(), kz_currency:dollars()) -> transaction().
+set_dollar_surcharge(Transaction, Surcharge) ->
+    Transaction#transaction{surcharge=kz_currency:dollars_to_units(Surcharge)}.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -546,6 +593,7 @@ setters(Transaction, Routines) ->
 -spec public_json(transaction()) -> kz_json:object().
 public_json(Transaction) ->
     Routines = [fun amount_to_dollars/1
+               ,fun surcharge_to_dollars/1
                ,fun kz_doc:public_fields/1
                ],
     lists:foldl(fun(F, J) ->
@@ -560,6 +608,11 @@ amount_to_dollars(TransactionJObj) ->
     Amount = kzd_transactions:dollar_amount(TransactionJObj),
     kz_json:set_value(<<"amount">>, Amount, TransactionJObj).
 
+-spec surcharge_to_dollars(kzd_transactions:doc()) -> kzd_transactions:doc().
+surcharge_to_dollars(TransactionJObj) ->
+    Surcharge = kzd_transactions:dollar_surcharge(TransactionJObj),
+    kz_json:set_value(<<"surcharge">>, Surcharge, TransactionJObj).
+
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
@@ -569,6 +622,7 @@ to_json(#transaction{private_fields=PrivateFields}=Transaction) ->
     Setters = [{fun kzd_transactions:set_account_id/2, account_id(Transaction)}
               ,{fun kzd_transactions:set_account_name/2, account_name(Transaction)}
               ,{fun kzd_transactions:set_unit_amount/2, unit_amount(Transaction)}
+              ,{fun kzd_transactions:set_unit_surcharge/2, unit_surcharge(Transaction)}
               ,{fun kzd_transactions:set_description/2, description(Transaction)}
               ,{fun kzd_transactions:set_executor_trigger/2, executor_trigger(Transaction)}
               ,{fun kzd_transactions:set_executor_module/2, executor_module(Transaction)}
@@ -613,6 +667,7 @@ from_json(JObj) ->
     Setters = [{fun set_account_id/2, kzd_transactions:account_id(JObj)}
               ,{fun set_account_name/2, kzd_transactions:account_name(JObj)}
               ,{fun set_unit_amount/2, kzd_transactions:unit_amount(JObj)}
+              ,{fun set_unit_surcharge/2, kzd_transactions:unit_surcharge(JObj)}
               ,{fun set_description/2, kzd_transactions:description(JObj)}
               ,{fun set_executor_trigger/2, kzd_transactions:executor_trigger(JObj)}
               ,{fun set_executor_module/2, kzd_transactions:executor_module(JObj)}
@@ -798,6 +853,7 @@ handle_bookkeeper_result(Transaction, {'ok', Result}) ->
         <<"success">> ->
             Setters = [{fun set_status/2, status_completed()}
                       ,{fun set_bookkeeper_results/2, BookkeeperResult}
+                      | handle_surcharge_result(Transaction, BookkeeperResult)
                       ],
             UpdatedTransaction = setters(Transaction, Setters),
             _ = send_notification(UpdatedTransaction),
@@ -837,6 +893,35 @@ handle_bookkeeper_result(Transaction, {'error', _Else}) ->
     _ = send_notification(UpdatedTransaction),
     save(UpdatedTransaction).
 
+-spec handle_surcharge_result(transaction(), kz_json:object()) -> kz_term:proplist().
+handle_surcharge_result(Transaction, BookkeeperResult) ->
+    case kz_json:get_ne_binary_value([<<"details">>, <<"surcharge">>, <<"surcharge_percentage">>], BookkeeperResult) of
+        'undefined' -> [];
+        SurchargePercentage ->
+            [{fun set_description/2
+             ,append_surcharge_description(Transaction, BookkeeperResult, SurchargePercentage)
+             },
+             {fun set_unit_surcharge/2, get_surcharge_total(BookkeeperResult)}
+            ]
+    end.
+
+-spec append_surcharge_description(transaction(), kz_json:object(), kz_term:ne_binary()) -> kz_term:ne_binary().
+append_surcharge_description(Transaction, BookkeeperResult, SurchargePercentage) ->
+    case kz_json:get_ne_binary_value([<<"details">>, <<"surcharge">>, <<"dollar_amount">>], BookkeeperResult) of
+        'undefined' ->
+            <<(description(Transaction))/binary
+             ," (additional ", SurchargePercentage/binary, "% credit card fee)"
+            >>;
+        DollarAmount ->
+            <<(description(Transaction))/binary
+             ," ($", DollarAmount/binary, " with ", SurchargePercentage/binary, "% credit card fee)"
+            >>
+    end.
+
+-spec get_surcharge_total(kz_json:object()) -> kz_currency:units().
+get_surcharge_total(BookkeeperResult) ->
+    kz_term:to_integer(kz_json:get_ne_binary_value([<<"details">>, <<"surcharge">>, <<"surcharge_amount">>], BookkeeperResult, 0)).
+
 -spec send_notification(transaction()) -> 'ok'.
 send_notification(Transaction) ->
     lager:debug("sending ~s notification", [status(Transaction)]),
@@ -845,6 +930,7 @@ send_notification(Transaction) ->
     Notification =
         [{<<"Account-ID">>, account_id(Transaction)}
         ,{<<"Amount">>, dollar_amount(Transaction)}
+        ,{<<"Surcharge">>, dollar_surcharge(Transaction)}
         ,{<<"Response">>, find_response(Transaction)}
         ,{<<"Success">>, status_completed(Transaction)}
         ,{<<"Timestamp">>, created(Transaction)}

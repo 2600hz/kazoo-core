@@ -38,6 +38,14 @@
         ,dollar_amount/2
         ,set_dollar_amount/2
         ]).
+-export([unit_surcharge/1
+        ,unit_surcharge/2
+        ,set_unit_surcharge/2
+        ]).
+-export([dollar_surcharge/1
+        ,dollar_surcharge/2
+        ,set_dollar_surcharge/2
+        ]).
 -export([description/1
         ,description/2
         ,set_description/2
@@ -106,6 +114,7 @@
 -define(ACCOUNT_ID, [?ACCOUNT, <<"id">>]).
 -define(ACCOUNT_NAME, [?ACCOUNT, <<"name">>]).
 -define(AMOUNT, <<"amount">>).
+-define(SURCHARGE, <<"surcharge">>).
 -define(DESCRIPTION, <<"description">>).
 -define(EXECUTOR, <<"executor">>).
 -define(EXECUTOR_TRIGGER, [?EXECUTOR, <<"trigger">>]).
@@ -276,6 +285,48 @@ dollar_amount(Doc, Default) ->
 set_dollar_amount(Doc, Amount) ->
     Units = kz_currency:dollars_to_units(Amount),
     kz_json:set_value(?AMOUNT, Units, Doc).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec unit_surcharge(doc()) -> kz_currency:units() | 'undefined'.
+unit_surcharge(Doc) ->
+    unit_surcharge(Doc, 'undefined').
+
+-spec unit_surcharge(doc(), Default) -> kz_currency:units() | Default.
+unit_surcharge(Doc, Default) ->
+    kz_json:get_integer_value(?SURCHARGE, Doc, Default).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_unit_surcharge(doc(), kz_currency:units()) -> doc().
+set_unit_surcharge(Doc, Surcharge) ->
+    kz_json:set_value(?SURCHARGE, Surcharge, Doc).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec dollar_surcharge(doc()) -> kz_currency:dollars() | 'undefined'.
+dollar_surcharge(Doc) ->
+    dollar_surcharge(Doc, 'undefined').
+
+-spec dollar_surcharge(doc(), Default) -> kz_currency:dollars() | Default.
+dollar_surcharge(Doc, Default) ->
+    Units = unit_surcharge(Doc, Default),
+    kz_currency:units_to_dollars(Units).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_dollar_surcharge(doc(), kz_currency:dollars()) -> doc().
+set_dollar_surcharge(Doc, Surcharge) ->
+    Units = kz_currency:dollars_to_units(Surcharge),
+    kz_json:set_value(?SURCHARGE, Units, Doc).
 
 %%------------------------------------------------------------------------------
 %% @doc
