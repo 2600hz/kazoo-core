@@ -46,5 +46,6 @@
 -define(DEFAULT_TTS_LANG, kazoo_tts:default_language()).
 -define(DEFAULT_TTS_VOICE, kazoo_tts:default_voice()).
 
+-define(KZT_DIAL_RECORDER, <<"kz_media_recording">>).
 -define(KZT_HRL, 'true').
 -endif.
