@@ -538,13 +538,21 @@ handle_command_result(#'basic.cancel_ok'{consumer_tag=CTag}
     Consumer ! {?MODULE, {'remove_consumer_tag', #'basic.consume'{consumer_tag=CTag}}},
     lager:debug("canceled consumer ~s via channel ~p", [CTag, _Channel]);
 handle_command_result(#'confirm.select_ok'{}
-                     ,_Command
+                     ,#'confirm.select'{}
                      ,#kz_amqp_assignment{channel=Channel
                                          ,consumer=Consumer
                                          }=_Assignment
                      ) ->
     Consumer ! {'$server_confirms', 'true'},
     lager:debug("publisher confirms activated on channel ~p", [Channel]);
+handle_command_result(_Result
+                     ,#'confirm.select'{}
+                     ,#kz_amqp_assignment{channel=Channel
+                                         ,consumer=Consumer
+                                         }=_Assignment
+                     ) ->
+    Consumer ! {'$server_confirms', 'false'},
+    lager:debug("publisher confirms failed on channel ~p : ~p", [Channel, _Result]);
 handle_command_result(#'channel.flow_ok'{active=Active}
                      ,_Command
                      ,#kz_amqp_assignment{channel=Channel
