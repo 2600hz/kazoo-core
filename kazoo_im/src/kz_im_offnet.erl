@@ -29,9 +29,12 @@
 
 -define(SERVER, ?MODULE).
 
+-define(CONNECTION_EXPIRED_PERIOD, 5 * ?MILLISECONDS_IN_MINUTE).
+
 -record(state, {connection :: amqp_listener_connection()
                ,confirms = #{count => 1, pids => #{}} :: map()
                ,registered = false :: boolean()
+               ,expires_ref = undefined :: reference() | undefined
                }).
 -type state() :: #state{}.
 
@@ -125,7 +128,17 @@ route(Pid, Payload) ->
 %%------------------------------------------------------------------------------
 -spec init([amqp_listener_connection()]) -> {'ok', state()}.
 init([#amqp_listener_connection{}=Connection]) ->
-    {'ok', #state{connection=Connection}}.
+    {'ok', start_connection_timer(#state{connection = Connection})}.
+
+-spec start_connection_timer(state()) -> state().
+start_connection_timer(#state{expires_ref = undefined} = State) ->
+    State#state{expires_ref = erlang:start_timer(?CONNECTION_EXPIRED_PERIOD, self(), connection_expired)}.
+
+-spec cancel_connection_timer(state()) -> state().
+cancel_connection_timer(#state{expires_ref = undefined} = State) -> State;
+cancel_connection_timer(#state{expires_ref = Ref} = State) ->
+    _ = erlang:cancel_timer(Ref),
+    State#state{expires_ref = undefined}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -163,7 +176,7 @@ handle_cast({'gen_listener', {'is_consuming', 'false'}}
     lager:warning("unexpected state => ~p", [State]),
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', 'true'}}, State) ->
-    {'noreply', State};
+    {'noreply', cancel_connection_timer(State)};
 handle_cast({'gen_listener',{'server_confirms', 'true'}}
            ,#state{registered = 'false', confirms = Confirms} = State
            ) ->
@@ -189,6 +202,8 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
+handle_info({'timeout', Ref, 'connection_expired'}, #state{expires_ref = Ref} = State) ->
+    {'stop', {'shutdown', 'no_connection'}, State};
 handle_info(_Info, State) ->
     lager:debug("external listener unhandled info: ~p", [_Info]),
     {'noreply', State}.
