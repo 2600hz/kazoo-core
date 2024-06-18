@@ -1186,6 +1186,7 @@ emergency_bridge_definition() ->
                                                             ,<<"Emergency-Test-Call">>
                                                             ,<<"Emergency-Caller-ID-Name">>
                                                             ,<<"Emergency-Caller-ID-Number">>
+                                                            ,<<"Emergency-Address-House-Number">>
                                                             ,<<"Emergency-Address-Street-1">>
                                                             ,<<"Emergency-Address-Street-2">>
                                                             ,<<"Emergency-Address-City">>

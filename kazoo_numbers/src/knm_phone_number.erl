@@ -50,8 +50,8 @@
         ,batch_run/1, set_batch_run/2
         ,mdn_run/1, set_mdn_run/2
         ,locality/1, set_locality/2
-        ,doc/1, update_doc/2, reset_doc/2, reset_doc/1
-        ,current_doc/1
+        ,doc/1, set_doc/2, update_doc/2, reset_doc/2, reset_doc/1
+        ,current_doc/1, set_current_doc/2
         ,modified/1, set_modified/2
         ,created/1, set_created/2
         ]).
@@ -113,8 +113,8 @@
                           ,batch_run = 'false' :: boolean()
                           ,mdn_run = 'false' :: boolean()
                           ,locality :: kz_term:api_object()
-                          ,doc :: kz_term:api_object()
-                          ,current_doc :: kz_term:api_object()
+                          ,doc :: kz_term:api_object()                          %% public fields of the number doc
+                          ,current_doc :: kzd_phone_numbers:doc() | 'undefined' %% full doc
                           ,modified :: kz_time:api_seconds()             %%%
                           ,created :: kz_time:api_seconds()              %%%
                           ,is_dirty = 'false' :: boolean()
@@ -151,7 +151,7 @@
 -ifdef(FUNCTION_NAME).
 -define(DIRTY(PN),
         begin
-            dev:debug("dirty ~s ~s/~p", [number(PN), ?FUNCTION_NAME, ?FUNCTION_ARITY]),
+            ?LOG_DEV("dirty ~s ~s/~p", [number(PN), ?FUNCTION_NAME, ?FUNCTION_ARITY]),
             (PN)#knm_phone_number{is_dirty = 'true'
                                  ,modified = kz_time:now_s()
                                  }
@@ -159,14 +159,12 @@
 -else.
 -define(DIRTY(PN),
         begin
-            dev:debug("dirty ~s", [number(PN)]),
+            ?LOG_DEV("dirty ~s", [number(PN)]),
             (PN)#knm_phone_number{is_dirty = 'true'
                                  ,modified = kz_time:now_s()
                                  }
         end).
 -endif.
-
-
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -243,6 +241,7 @@ do_fetch(NumberDb, NormalizedNum, Options) ->
           {'ok', pn_record()} |
           {'error', 'unauthorized'}.
 handle_fetch(JObj, Options) ->
+    ?LOG_DEV("fetched number doc ~s", [kz_json:encode(JObj)]),
     PN = from_json_with_options(JObj, Options),
     case state(PN) =:= ?NUMBER_STATE_AVAILABLE
         orelse is_authorized(PN)
@@ -354,7 +353,7 @@ is_mdn_for_mdn_run(PN, IsMDNRun) ->
 take_not_to_save(T0=#{'todo' := PNs, 'options' := Options}) ->
     case knm_options:dry_run(Options) of
         'true' ->
-            ?LOG_DEBUG("dry_run-ing btw"),
+            ?LOG_DEBUG("dry_run-ing save btw"),
             %% FIXME: opaque
             T = T0#{'todo' => [], 'succeeded' => []},
             {T, PNs};
@@ -364,14 +363,13 @@ take_not_to_save(T0=#{'todo' := PNs, 'options' := Options}) ->
             lists:foldl(fun take_not_to_save_fold/2, {T, []}, PNs)
     end.
 
-take_not_to_save_fold(PN, {T, NotToSave}) ->
-    NotDirty = not PN#knm_phone_number.is_dirty,
-    case NotDirty
+take_not_to_save_fold(#knm_phone_number{is_dirty=IsDirty}=PN, {T, NotToSave}) ->
+    case (not IsDirty)
         orelse ?NUMBER_STATE_DELETED =:= state(PN)
     of
         'false' -> {knm_pipe:set_succeeded(T, PN), NotToSave};
         'true' ->
-            log_why_not_to_save(NotDirty, number(PN)),
+            log_why_not_to_save(not IsDirty, number(PN)),
             {T, [PN|NotToSave]}
     end.
 
@@ -453,7 +451,7 @@ read_only_settings(PN) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec to_json(pn_record()) -> kz_json:object().
-to_json(PN=#knm_phone_number{doc=JObj}) ->
+to_json(PN=#knm_phone_number{current_doc=CurrentDoc, doc=PublicDoc}) ->
     Setters = [{fun kz_doc:set_id/2, number(PN)}
               ,{fun kz_doc:set_created/2, created(PN)}
               ,{fun kz_doc:set_modified/2, modified(PN)}
@@ -475,7 +473,9 @@ to_json(PN=#knm_phone_number{doc=JObj}) ->
                   ,{fun kzd_phone_numbers:set_pvt_used_by/2, used_by(PN)}
                   ])
               ],
-    kz_doc:setters(sanitize_public_fields(JObj), Setters).
+    %% merges right, so only fields in CurrentDoc not set will be added
+    MergedDoc = kz_json:merge(kz_doc:private_fields(CurrentDoc), sanitize_public_fields(PublicDoc)),
+    kz_doc:setters(MergedDoc, Setters).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -727,9 +727,9 @@ setters_fold_apply(Fun, Args) ->
 number(#knm_phone_number{number=Num}) -> Num.
 
 -spec set_number(pn_record(), kz_term:ne_binary()) -> pn_record().
-set_number(#knm_phone_number{number_db=PNNumberDb}=PN, <<"+",_:8,_/binary>>=NormalizedNum) ->
+set_number(#knm_phone_number{number=Number, number_db=PNNumberDb}=PN, <<"+",_:8,_/binary>>=NormalizedNum) ->
     NumberDb = knm_converters:to_db(NormalizedNum),
-    case {PN#knm_phone_number.number, PNNumberDb} of
+    case {Number, PNNumberDb} of
         {'undefined', 'undefined'} ->
             PN#knm_phone_number{number = NormalizedNum
                                ,number_db = NumberDb
@@ -839,12 +839,12 @@ used_by(#knm_phone_number{used_by=UsedBy}) -> UsedBy.
 
 %% This is never called from from_json/1. See set_assigned_to/3
 -spec set_used_by(pn_record(), kz_term:api_ne_binary()) -> pn_record().
-set_used_by(PN=#knm_phone_number{used_by = V}, V) -> PN;
-set_used_by(PN, UsedBy='undefined') ->
-    ?LOG_DEBUG("unassigning ~s from ~s", [number(PN), PN#knm_phone_number.used_by]),
+set_used_by(#knm_phone_number{used_by = V}=PN, V) -> PN;
+set_used_by(#knm_phone_number{used_by = _V}=PN, UsedBy='undefined') ->
+    ?LOG_DEBUG("unassigning ~s from ~s", [number(PN), _V]),
     ?DIRTY(PN#knm_phone_number{used_by = UsedBy});
-set_used_by(PN, UsedBy=?NE_BINARY) ->
-    ?LOG_DEBUG("assigning ~s to ~s from ~s", [number(PN), UsedBy, PN#knm_phone_number.used_by]),
+set_used_by(#knm_phone_number{used_by = _V}=PN, UsedBy=?NE_BINARY) ->
+    ?LOG_DEBUG("assigning ~s to ~s from ~s", [number(PN), UsedBy, _V]),
     ?DIRTY(PN#knm_phone_number{used_by = UsedBy}).
 
 %%------------------------------------------------------------------------------
@@ -863,15 +863,15 @@ features_list(PN) ->
     lists:usort(kz_json:get_keys(features(PN))).
 
 -spec set_features(pn_record(), kz_json:object()) -> pn_record().
-set_features(PN=#knm_phone_number{features = 'undefined'}, Features) ->
+set_features(#knm_phone_number{features='undefined'}=PN, Features) ->
     'true' = kz_json:is_json_object(Features),
     case kz_json:is_empty(Features) of
         'true' -> PN;  %% See last part of from_json/1
         'false' -> PN#knm_phone_number{features = Features}
     end;
-set_features(PN, Features) ->
+set_features(#knm_phone_number{features=Fs}=PN, Features) ->
     'true' = kz_json:is_json_object(Features),
-    case kz_json:are_equal(PN#knm_phone_number.features, Features) of
+    case kz_json:are_equal(Fs, Features) of
         'true' -> PN;
         'false' -> ?DIRTY(PN#knm_phone_number{features = Features})
     end.
@@ -883,13 +883,14 @@ feature(PN, Feature) ->
 -spec set_feature(pn_record(), kz_term:ne_binary(), kz_json:api_json_term()) ->
           pn_record().
 set_feature(#knm_phone_number{}=PN0
-           ,<<Feature/binary>>
-           ,Data
+           ,<<FeatureName/binary>>
+           ,FeatureData
            ) ->
     Features = features(PN0, ?DEFAULT_FEATURES),
-    PN = set_features(PN0, kz_json:set_value(Feature, Data, Features)),
+    PN = set_features(PN0, kz_json:set_value(FeatureName, FeatureData, Features)),
 
-    maybe_log_feature(PN, Feature, Data),
+    maybe_log_feature(PN, FeatureName, FeatureData),
+    ?LOG_DEV("set feature pn: ~p~n", [PN]),
     PN.
 
 maybe_log_feature(#knm_phone_number{is_dirty='true'}=PN, Feature, Data) ->
@@ -1014,7 +1015,7 @@ set_reserve_history(PN0=#knm_phone_number{reserve_history = 'undefined'}, Histor
         %% Since add_reserve_history/2 is exported, it has to dirty things itself.
         %% Us reverting here is the only way to work around that.
         'true' ->
-            dev:debug("undirty ~s", [number(PN2)]),
+            ?LOG_DEV("undirty ~s", [number(PN2)]),
             PN2#knm_phone_number{is_dirty = 'false'
                                 ,modified = PN0#knm_phone_number.modified
                                 }
@@ -1051,10 +1052,12 @@ unwind_reserve_history(T=#{'todo' := PNs}) ->
 unwind_reserve_history(PN0) ->
     case reserve_history(PN0) of
         [_AssignedTo, NewAssignedTo | NewReserveHistory] ->
+            lager:info("unwinding reserve history from ~s to new ~s", [_AssignedTo, NewAssignedTo]),
             PN1 = set_assigned_to(PN0, NewAssignedTo),
             PN2 = set_reserve_history(PN1, [NewAssignedTo|NewReserveHistory]),
             set_state(PN2, ?NUMBER_STATE_RESERVED);
         _ ->
+            lager:info("unwinding reserve history is EOL"),
             PN1 = set_assigned_to(PN0, 'undefined'),
             PN2 = set_reserve_history(PN1, []),
             set_state(PN2, knm_config:released_state())
@@ -1263,12 +1266,12 @@ set_mdn_run(PN, MDNRun) when is_boolean(MDNRun) ->
 locality(#knm_phone_number{locality=Locality}) -> Locality.
 
 -spec set_locality(pn_record(), kz_json:object()) -> pn_record().
-set_locality(PN=#knm_phone_number{locality = 'undefined'}, JObj) ->
+set_locality(#knm_phone_number{locality='undefined'}=PN, JObj) ->
     'true' = kz_json:is_json_object(JObj),
     PN#knm_phone_number{locality = JObj};
-set_locality(PN, JObj) ->
+set_locality(#knm_phone_number{locality=Locality}=PN, JObj) ->
     'true' = kz_json:is_json_object(JObj),
-    case kz_json:are_equal(JObj, PN#knm_phone_number.locality) of
+    case kz_json:are_equal(JObj, Locality) of
         'true' -> PN;
         'false' -> ?DIRTY(PN#knm_phone_number{locality = JObj})
     end.
@@ -1281,48 +1284,51 @@ set_locality(PN, JObj) ->
 doc(#knm_phone_number{doc=Doc}) -> Doc.
 
 -spec set_doc(pn_record(), kz_json:object()) -> pn_record().
-set_doc(PN=#knm_phone_number{doc = 'undefined'}, JObj0) ->
-    'true' = kz_json:is_json_object(JObj0),
-    JObj = doc_from_public_fields(JObj0),
-    case kz_json:are_equal(JObj, JObj0) of
-        'true' -> PN#knm_phone_number{doc = JObj};
-        'false' -> ?DIRTY(PN#knm_phone_number{doc = JObj})
+set_doc(#knm_phone_number{doc='undefined'}=PN, PNDoc) ->
+    'true' = kz_json:is_json_object(PNDoc),
+    UpdatedPNDoc = cleanup_public_fields(PNDoc),
+    case kz_json:are_equal(UpdatedPNDoc, PNDoc) of
+        'true' -> PN#knm_phone_number{doc = UpdatedPNDoc};
+        'false' -> ?DIRTY(PN#knm_phone_number{doc = UpdatedPNDoc})
     end;
-set_doc(PN, JObj0) ->
-    'true' = kz_json:is_json_object(JObj0),
-    JObj = doc_from_public_fields(JObj0),
-    case kz_json:are_equal(JObj, PN#knm_phone_number.doc) of
+set_doc(#knm_phone_number{doc=PNDoc}=PN, NewPNDoc) ->
+    'true' = kz_json:is_json_object(NewPNDoc),
+    UpdatedPNDoc = cleanup_public_fields(NewPNDoc),
+    case kz_json:are_equal(UpdatedPNDoc, PNDoc) of
         'true' -> PN;
-        'false' -> ?DIRTY(PN#knm_phone_number{doc = JObj})
+        'false' -> ?DIRTY(PN#knm_phone_number{doc = UpdatedPNDoc})
     end.
 
--spec update_doc(pn_record(), kz_json:object()) -> pn_record().
-update_doc(PN=#knm_phone_number{doc = Doc}, JObj0) ->
-    'true' = kz_json:is_json_object(JObj0),
-    JObj1 = kz_json:merge(Doc, kz_doc:public_fields(JObj0)),
-    JObj = doc_from_public_fields(JObj1),
-    case kz_json:are_equal(JObj, PN#knm_phone_number.doc) of
+-spec update_doc(pn_record(), kzd_phone_numbers:doc()) -> pn_record().
+update_doc(#knm_phone_number{doc='undefined'}=PN, NewPNDoc) ->
+    'true' = kz_json:is_json_object(NewPNDoc),
+    UpdatedPNDoc = cleanup_public_fields(NewPNDoc),
+    ?DIRTY(PN#knm_phone_number{doc=UpdatedPNDoc});
+update_doc(#knm_phone_number{doc=PNDoc}=PN, NewPNDoc) ->
+    'true' = kz_json:is_json_object(NewPNDoc),
+    MergedPNDoc = kz_json:merge(PNDoc, kz_doc:public_fields(NewPNDoc)),
+    UpdatedPNDoc = cleanup_public_fields(MergedPNDoc),
+    case kz_json:are_equal(UpdatedPNDoc, PNDoc) of
         'true' -> PN;
-        'false' -> ?DIRTY(PN#knm_phone_number{doc = JObj})
+        'false' -> ?DIRTY(PN#knm_phone_number{doc=UpdatedPNDoc})
     end.
 
--spec reset_doc(pn_record(), kz_json:object()) -> pn_record().
-reset_doc(PN=#knm_phone_number{doc = Doc}, JObj0) ->
-    'true' = kz_json:is_json_object(JObj0),
-    JObj1 = kz_json:merge(kz_doc:public_fields(JObj0), kz_doc:private_fields(Doc)),
-    JObj = doc_from_public_fields(JObj1),
-    case kz_json:are_equal(JObj, PN#knm_phone_number.doc) of
+-spec reset_doc(pn_record(), knm_phone_numbers:doc()) -> pn_record().
+reset_doc(PN=#knm_phone_number{doc = ExistingPNDoc}, NewPNDoc) ->
+    'true' = kz_json:is_json_object(NewPNDoc),
+    MergedPNDoc = kz_json:merge(kz_doc:public_fields(NewPNDoc), kz_doc:private_fields(ExistingPNDoc)),
+    UpdatedPNDoc = cleanup_public_fields(MergedPNDoc),
+    case kz_json:are_equal(UpdatedPNDoc, ExistingPNDoc) of
         'true' -> PN;
-        'false' -> ?DIRTY(PN#knm_phone_number{doc = JObj})
+        'false' -> ?DIRTY(PN#knm_phone_number{doc = UpdatedPNDoc})
     end.
 
 -spec reset_doc(pn_record()) -> pn_record().
 reset_doc(PN) ->
     reset_doc(PN, kz_json:new()).
 
-doc_from_public_fields(JObj) ->
-    maybe_rename_public_features(
-      sanitize_public_fields(JObj)).
+cleanup_public_fields(JObj) ->
+    maybe_rename_public_features(sanitize_public_fields(JObj)).
 
 %% @doc only return 'true' if deleted, otherwise 'undefined', for filtering
 -spec is_deleted(pn_record()) -> 'true' | 'undefined'.
@@ -1341,9 +1347,8 @@ is_deleted(#knm_phone_number{doc=JObj}) ->
 -spec current_doc(pn_record()) -> kz_json:object().
 current_doc(#knm_phone_number{current_doc=Doc}) -> Doc.
 
--spec set_current_doc(pn_record(), kz_json:object()) -> pn_record().
-set_current_doc(PN=#knm_phone_number{}, JObj) ->
-    %% Only during from_json/1
+-spec set_current_doc(pn_record(), kzd_phone_numbers:doc()) -> pn_record().
+set_current_doc(#knm_phone_number{}=PN, JObj) ->
     'true' = kz_json:is_json_object(JObj),
     PN#knm_phone_number{current_doc = JObj}.
 
@@ -1618,7 +1623,7 @@ delete_from_fold(_Db, [], T, _IgnoreDbNotFound) ->
     knm_pipe:add_succeeded(T, []);
 delete_from_fold(Db, PNs, T, IgnoreDbNotFound) ->
     Nums = [number(PN) || PN <- PNs],
-    ?LOG_DEBUG("deleting from ~s: ~p", [Db, Nums]),
+    ?LOG_DEBUG("deleting numbers from ~s: ~p", [Db, Nums]),
     case delete_docs(Db, Nums) of
         {'ok', []} ->
             ?LOG_DEBUG("no docs were deleted"),
@@ -1646,33 +1651,36 @@ existing_db_key(Db) ->
 
 -spec save_to(group_by_fun(), bulk_change_error_fun(), knm_pipe:collection()) -> knm_pipe:collection().
 save_to(GroupFun, ErrorF, T0) ->
-    F = fun FF ('undefined', PNs, T) ->
-                %% NumberDb can never be 'undefined', AccountDb can.
-                ?LOG_DEBUG("no db for ~p", [[number(PN) || PN <- PNs]]),
-                knm_pipe:add_succeeded(T, PNs);
-            FF (Db, PNs, T) ->
-                ?LOG_DEBUG("saving to ~s", [Db]),
-                Docs = [to_json(PN) || PN <- PNs],
-                IsNumberDb = 'numbers' =:= kz_datamgr:db_classification(Db),
-                case save_docs(Db, Docs) of
-                    {'ok', JObjs} ->
-                        RetryF = fun(Db1, PNs1, Num, T1) ->
-                                         retry_save(Db1, PNs1, ErrorF, Num, T1)
-                                 end,
-                        handle_bulk_change(Db, JObjs, PNs, T, ErrorF, RetryF);
-                    {'error', 'not_found'} when IsNumberDb ->
-                        Nums = [kz_doc:id(Doc) || Doc <- Docs],
-                        ?LOG_DEBUG("creating new number db '~s' for numbers ~p", [Db, Nums]),
-                        'true' = kz_datamgr:db_create(Db),
-                        _ = kapps_maintenance:refresh(Db),
-                        FF(Db, PNs, T);
-                    {'error', E} ->
-                        Nums = [kz_doc:id(Doc) || Doc <- Docs],
-                        ?LOG_ERROR("failed to assign numbers to ~s (~p): ~p", [Db, E, Nums]),
-                        database_error(Nums, E, T)
-                end
-        end,
-    maps:fold(F, T0, group_by(knm_pipe:todo(T0), GroupFun)).
+    TODO = knm_pipe:todo(T0),
+    Grouped = group_by(TODO, GroupFun),
+    {_, T1} = maps:fold(fun save_to_fun/3, {ErrorF, T0}, Grouped),
+    T1.
+
+save_to_fun('undefined', PNs, {ErrorF, T}) ->
+    %% NumberDb can never be 'undefined', AccountDb can.
+    ?LOG_DEBUG("no db for ~p", [[number(PN) || PN <- PNs]]),
+    {ErrorF, knm_pipe:add_succeeded(T, PNs)};
+save_to_fun(Db, PNs, {ErrorF, T}) ->
+    ?LOG_DEBUG("saving to ~s", [Db]),
+    Docs = [to_json(PN) || PN <- PNs],
+    IsNumberDb = 'numbers' =:= kz_datamgr:db_classification(Db),
+    case save_docs(Db, Docs) of
+        {'ok', JObjs} ->
+            RetryF = fun(Db1, PNs1, Num, T1) ->
+                             retry_save(Db1, PNs1, ErrorF, Num, T1)
+                     end,
+            {ErrorF, handle_bulk_change(Db, JObjs, PNs, T, ErrorF, RetryF)};
+        {'error', 'not_found'} when IsNumberDb ->
+            Nums = [kz_doc:id(Doc) || Doc <- Docs],
+            ?LOG_DEBUG("creating new number db '~s' for numbers ~p", [Db, Nums]),
+            'true' = kz_datamgr:db_create(Db),
+            _ = kapps_maintenance:refresh(Db),
+            save_to_fun(Db, PNs, {ErrorF, T});
+        {'error', E} ->
+            Nums = [kz_doc:id(Doc) || Doc <- Docs],
+            ?LOG_ERROR("failed to assign numbers to ~s (~p): ~p", [Db, E, Nums]),
+            {ErrorF, database_error(Nums, E, T)}
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Works the same with the output of save_docs and del_docs
@@ -1770,7 +1778,8 @@ delete_docs(Db, Ids) ->
           {'ok', kz_json:objects()} |
           kz_datamgr:data_error().
 save_docs(Db, Docs) ->
-    kz_datamgr:save_docs(Db, prepare_docs(Db, Docs, [])).
+    PreparedDocs = prepare_docs(Db, Docs, []),
+    kz_datamgr:save_docs(Db, PreparedDocs).
 
 -spec prepare_docs(kz_term:ne_binary(), kz_json:objects(), kz_json:objects()) ->
           kz_json:objects().

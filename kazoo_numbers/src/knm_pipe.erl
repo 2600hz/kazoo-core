@@ -265,7 +265,7 @@ to_json(#{'succeeded' := PNs, 'failed' := Failed}) ->
 
 %%------------------------------------------------------------------------------
 %% @doc
-%% FIXME: this is being used by knm_provders and knm_carriers modules. refactor
+%% FIXME: this is being used by knm_providers and knm_carriers modules. refactor
 %% all those modules (returning kz_either as oppose to throwing error) and
 %% get rid of this _thing_.
 %% @end
