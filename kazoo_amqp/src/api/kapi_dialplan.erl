@@ -1354,8 +1354,7 @@ answer_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
                                                             ,<<"Call-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Insert-At">>
-                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Insert-At">>]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"answer">>}
                 ,?INSERT_AT_TUPLE
@@ -1380,8 +1379,7 @@ echo_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
                                                             ,<<"Call-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Insert-At">>
-                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Insert-At">>]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"echo">>}
                 ,?INSERT_AT_TUPLE
