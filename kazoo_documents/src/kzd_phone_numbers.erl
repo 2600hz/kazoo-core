@@ -73,8 +73,10 @@
 -export([porting_requested_port_date/1, porting_requested_port_date/2, set_porting_requested_port_date/2]).
 -export([porting_service_provider/1, porting_service_provider/2, set_porting_service_provider/2]).
 
+-elvis([{elvis_style, god_modules, disable}]).
 
 -include("kz_documents.hrl").
+-include_lib("kazoo_numbers/include/knm_phone_number.hrl").
 
 -type doc() :: kz_json:object().
 -export_type([doc/0]).
@@ -335,7 +337,11 @@ pvt_state(Doc, Default) ->
 
 -spec set_pvt_state(doc(), kz_term:api_ne_binary()) -> doc().
 set_pvt_state(Doc, Value) ->
-    kz_json:set_value(pvt_state_path(), Value, Doc).
+    kz_json:set_values([{pvt_state_path(), Value}
+                       ,{?PVT_STATE_LEGACY, 'null'}
+                       ]
+                      ,Doc
+                      ).
 
 -spec pvt_state_path() -> kz_json:path().
 pvt_state_path() -> [<<"pvt_state">>].
@@ -600,13 +606,14 @@ set_e911_locality(Doc, E911Locality) ->
 e911_location_id(Doc) ->
     e911_location_id(Doc, 'undefined').
 
+%% Location ID is added by the supporting E911 provider but isn't write-able.
 -spec e911_location_id(doc(), Default) -> binary() | Default.
 e911_location_id(Doc, Default) ->
-    kz_json:get_binary_value([<<"e911">>, <<"location_id">>], Doc, Default).
+    kz_json:get_binary_value([<<"pvt_location_id">>], Doc, Default).
 
--spec set_e911_location_id(doc(), binary()) -> doc().
+-spec set_e911_location_id(doc(), 'null' | binary()) -> doc().
 set_e911_location_id(Doc, E911LocationId) ->
-    kz_json:set_value([<<"e911">>, <<"location_id">>], E911LocationId, Doc).
+    kz_json:set_value([<<"pvt_location_id">>], E911LocationId, Doc).
 
 -spec e911_location_identifier(doc()) -> kz_term:api_integer().
 e911_location_identifier(Doc) ->

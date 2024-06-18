@@ -403,7 +403,7 @@ number_denied_features(#feature_parameters{denied_features = DeniedFeatures}) ->
     DeniedFeatures.
 -else.
 number_denied_features(#feature_parameters{denied_features = []}) ->
-    ?LOG_DEV("empty features set on number document"),
+    ?LOG_DEV("empty denied features set on number document"),
     [];
 number_denied_features(#feature_parameters{denied_features = DeniedFeatures}) ->
     ?LOG_DEV("denied features set on number document: ~s", [?PP(DeniedFeatures)]),
@@ -436,13 +436,11 @@ legacy_provider_to_feature(Else) -> Else.
 -spec requested_modules(knm_phone_number:pn_record()) -> kz_term:ne_binaries().
 requested_modules(PhoneNumber) ->
     AccountId = knm_phone_number:assigned_to(PhoneNumber),
-    Doc = knm_phone_number:doc(PhoneNumber),
+    PNDoc = knm_phone_number:doc(PhoneNumber),
     RequestedFeatures = [Key || Key <- ?FEATURES_ROOT_KEYS,
-                                'undefined' =/= kz_json:get_value(Key, Doc)
+                                'undefined' =/= kz_json:get_value(Key, PNDoc)
                         ],
-    ?LOG_DEV("asked on public fields: ~s", [?PP(RequestedFeatures)]),
     ExistingFeatures = knm_phone_number:features_list(PhoneNumber),
-    ?LOG_DEV("previously allowed: ~s", [?PP(ExistingFeatures)]),
     %% ?FEATURE_LOCAL is never user-writable thus must not be included.
     Features = (RequestedFeatures ++ ExistingFeatures) -- [?FEATURE_LOCAL],
     provider_modules(Features, AccountId).
@@ -505,17 +503,17 @@ do_exec(T0=#{'todo' := PNs}, Action) ->
 -spec exec(knm_phone_number:pn_record(), exec_action()) -> knm_phone_number:pn_record().
 exec(PN, Action='delete') ->
     RequestedModules = requested_modules(PN),
-    ?LOG_DEV("deleting feature providers: ~s", [?PP(RequestedModules)]),
+    ?LOG_DEV("exec action ~s on modules ~p", [Action, RequestedModules]),
     exec(PN, Action, RequestedModules);
 exec(PN, Action='save') ->
     PN1 = remove_deprecated_features(PN),
     {NewPN, AllowedModules, DeniedModules0} = maybe_rename_carrier_and_strip_denied(PN1),
-    DeniedModules = DeniedModules0 -- ?REMOVED_DENIED_FEATURES,
-    case DeniedModules  =:= [] of
-        'true' ->
+    case DeniedModules0 -- ?REMOVED_DENIED_FEATURES of
+        [] ->
+            ?LOG_DEBUG("exec action ~s on modules ~p", [Action, AllowedModules]),
             exec(NewPN, Action, AllowedModules);
-        'false' ->
-            ?LOG_DEV("denied feature providers: ~s", [?PP(DeniedModules)]),
+        DeniedModules ->
+            ?LOG_DEBUG("denied feature providers: ~s", [?PP(DeniedModules)]),
             knm_errors:unauthorized()
     end.
 
@@ -532,14 +530,13 @@ remove_deprecated_features(PN) ->
 -spec maybe_rename_carrier_and_strip_denied(knm_phone_number:pn_record()) -> {knm_phone_number:pn_record(), kz_term:ne_binaries(), kz_term:ne_binaries()}.
 maybe_rename_carrier_and_strip_denied(PN) ->
     {AllowedRequests, DeniedRequests} = split_requests(PN),
-    ?LOG_DEV("allowing feature providers: ~s", [?PP(AllowedRequests)]),
+
     case lists:member(?PROVIDER_RENAME_CARRIER, AllowedRequests) of
         'false' -> {PN, AllowedRequests, DeniedRequests};
         'true' ->
             PN1 = exec(PN, 'save', [?PROVIDER_RENAME_CARRIER]),
             PN2 = remove_denied_features(PN1),
             {NewAllowed, NewDenied} = split_requests(PN2),
-            ?LOG_DEV("allowing feature providers: ~s", [?PP(NewAllowed)]),
             {PN2, NewAllowed, NewDenied}
     end.
 
@@ -554,24 +551,29 @@ features_denied(PN) ->
 -spec split_requests(knm_phone_number:pn_record()) -> {kz_term:ne_binaries(), kz_term:ne_binaries()}.
 split_requests(PN) ->
     RequestedModules = requested_modules(PN),
-    ?LOG_DEV("requested feature providers: ~s", [?PP(RequestedModules)]),
     AllowedModules = allowed_modules(PN),
-    ?LOG_DEV("allowed providers: ~s", [?PP(AllowedModules)]),
     F = fun (Feature) -> lists:member(Feature, AllowedModules) end,
     lists:partition(F, RequestedModules).
 
 -spec exec(knm_phone_number:pn_record(), exec_action(), kz_term:ne_binaries()) ->
           knm_phone_number:pn_record().
-exec(PN, _, []) -> PN;
-exec(PN, Action, [Provider|Providers]) ->
+exec(PN, Action, Providers) ->
+    exec(PN, Action, Providers, kz_time:start_time()).
+
+exec(PN, _Action, [], StartTime) ->
+    ?LOG_DEV("finished executing ~s in ~pms", [_Action, kz_time:elapsed_ms(StartTime)]),
+    PN;
+exec(PN, Action, [Provider|Providers], StartTime) ->
     case kz_module:ensure_loaded(Provider) of
         'false' ->
             ?LOG_DEV("provider ~s is unknown, skipping", [Provider]),
-            exec(PN, Action, Providers);
+            exec(PN, Action, Providers, StartTime);
         Module ->
             ?LOG_DEV("attempting ~s:~s/1", [Module, Action]),
+            MStartTime = kz_time:start_time(),
             UpdatedPN = erlang:apply(Module, Action, [PN]),
-            exec(UpdatedPN, Action, Providers)
+            ?LOG_DEV("finished ~s:~s/1 in ~pms", [Module, Action, kz_time:elapsed_ms(MStartTime)]),
+            exec(UpdatedPN, Action, Providers, StartTime)
     end.
 
 %%------------------------------------------------------------------------------
@@ -589,11 +591,11 @@ activate_feature(PN, FeatureToSet={?NE_BINARY,_}) ->
 
 -spec do_activate_feature(knm_phone_number:pn_record(), set_feature()) ->
           knm_phone_number:pn_record().
-do_activate_feature(PhoneNumber, {Feature,FeatureData}) ->
+do_activate_feature(PhoneNumber, {FeatureName, FeatureData}) ->
     ?LOG_DEV("adding feature ~s to ~s"
-            ,[Feature, knm_phone_number:number(PhoneNumber)]
+            ,[FeatureName, knm_phone_number:number(PhoneNumber)]
             ),
-    knm_phone_number:set_feature(PhoneNumber, Feature, FeatureData).
+    knm_phone_number:set_feature(PhoneNumber, FeatureName, FeatureData).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -602,6 +604,7 @@ do_activate_feature(PhoneNumber, {Feature,FeatureData}) ->
 -spec deactivate_feature(knm_phone_number:pn_record(), kz_term:ne_binary()) -> knm_phone_number:pn_record().
 deactivate_feature(PhoneNumber, Feature) ->
     Features = knm_phone_number:features(PhoneNumber),
+    ?LOG_DEV("deactivating feature ~s", [Feature]),
     knm_phone_number:set_features(PhoneNumber, kz_json:delete_key(Feature, Features)).
 
 %%------------------------------------------------------------------------------

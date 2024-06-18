@@ -180,12 +180,17 @@ release(Nums) ->
 
 -spec release(kz_term:ne_binaries(), knm_options:options()) -> knm_pipe:collection().
 release(Nums, Options) ->
-    knm_pipe:pipe(do_get(Nums, Options)
-                 ,[fun try_release/1
-                  ,fun knm_providers:delete/1
-                  ,fun unwind_maybe_disconnect/1
-                  ,fun save_phone_numbers/1
-                  ]).
+    ?LOG_DEV("releasing numbers ~p", [Nums]),
+    StartTime = kz_time:start_time(),
+    Result = knm_pipe:pipe(do_get(Nums, Options)
+                          ,[fun try_release/1
+                           ,fun knm_providers:delete/1
+                           ,fun reset_features/1
+                           ,fun unwind_maybe_disconnect/1
+                           ,fun save_phone_numbers/1
+                           ]),
+    ?LOG_DEV("release took ~pms", [kz_time:elapsed_ms(StartTime)]),
+    Result.
 
 %%------------------------------------------------------------------------------
 %% @doc Remove numbers from the system without doing any state checking.
@@ -198,10 +203,12 @@ delete(Nums, Options) ->
         'false' ->
             knm_pipe:new(Options, [], Nums, knm_errors:to_json('unauthorized'));
         'true' ->
-            T0 = do_get(Nums, Options),
-            F1 = fun knm_providers:delete/1,
-            F2 = fun knm_phone_number:delete/1,
-            knm_pipe:do(F2, knm_pipe:do(F1, T0))
+            ?LOG_DEV("exec delete on ~p", [Nums]),
+            knm_pipe:pipe(do_get(Nums, Options)
+                         ,[fun knm_providers:delete/1
+                          ,fun knm_phone_number:delete/1
+                          ]
+                         )
     end.
 
 %%------------------------------------------------------------------------------
@@ -519,7 +526,6 @@ try_release(T) ->
     knm_pipe:pipe(T
                  ,[fun can_release/1
                   ,fun knm_phone_number:is_authorized/1
-                  ,fun reset_features/1
                   ]).
 
 -spec can_release(knm_pipe:collection()) -> knm_pipe:collection().
