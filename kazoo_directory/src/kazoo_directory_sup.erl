@@ -30,6 +30,7 @@
 
 -define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}
                      ,{'flush_callback', fun kz_directory_cache:flushed/1}
+                     ,{'default_expires', fun kz_directory_cache:cache_lifetime/0}
                      ]).
 
 -define(CHILDREN, [?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)]).
