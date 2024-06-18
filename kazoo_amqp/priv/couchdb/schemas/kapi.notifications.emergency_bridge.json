@@ -33,6 +33,9 @@
         "Emergency-Address-City": {
             "type": "string"
         },
+        "Emergency-Address-House-Number": {
+            "type": "string"
+        },
         "Emergency-Address-Latitude": {
             "type": "string"
         },
