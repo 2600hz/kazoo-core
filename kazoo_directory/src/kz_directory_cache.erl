@@ -126,4 +126,4 @@ publish_cache_logid() ->
 
 -spec cache_lifetime() -> timeout().
 cache_lifetime() ->
-    kz_app_config:get_timeout(?APP, <<"cache_lifetime">>, ?SECONDS_IN_HOUR).
+    kz_app_config:get_timeout(?APP, <<"cache_lifetime">>, infinity).
