@@ -148,6 +148,8 @@ simple_dial(Call, Props, DialMe) ->
                                ,Props
                                ),
 
+    ack_dial_action(Call, Props),
+
     OffnetProps = [{<<"Media">>, media_processing(Call1)}
                   ,{<<"Force-Outbound">>, force_outbound(Props)}
                   ],
@@ -518,3 +520,13 @@ get_endpoints(UserId, Data, Call) ->
 -spec normalize_number(kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
 normalize_number(Number, Call) ->
     knm_converters:normalize(Number, kapps_call:account_id(Call)).
+
+-spec ack_dial_action(kapps_call:call(), kz_term:proplist()) -> 'ok'.
+ack_dial_action(Call, Props) ->
+    case kzt_twiml_util:action_url(Props) of
+        'undefined' -> 'ok';
+        _ ->
+            Srv = kzt_util:get_amqp_listener(Call),
+            Srv ! 'dial_action_exists',
+            'ok'
+    end.
