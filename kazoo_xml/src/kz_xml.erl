@@ -27,9 +27,9 @@ elements(Els) -> [El || #xmlElement{}=El <- Els].
 -spec elements(list(), atom()) -> kz_types:xml_els().
 elements(Els, Name) -> [El || #xmlElement{name=N}=El <- Els, N =:= Name].
 
--spec texts_to_binary(kz_types:xml_texts()) -> binary().
+-spec texts_to_binary(kz_types:xml_text() | kz_types:xml_el() | kz_types:xml_texts()) -> binary().
 texts_to_binary(Vs) when not is_list(Vs) ->
-  texts_to_binary([Vs]);
+    texts_to_binary([Vs]);
 texts_to_binary([]) -> <<>>;
 texts_to_binary([_|_]=Vs) ->
     lists:foldl(fun(C, B) ->
