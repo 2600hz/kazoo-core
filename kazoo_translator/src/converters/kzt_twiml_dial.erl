@@ -161,7 +161,7 @@ simple_dial(Call, Props, DialMe) ->
 -spec number_dial(kapps_call:call(), kz_term:proplist(), kz_term:proplist(), kz_term:ne_binary()) ->
           {'ok' | 'stop' | 'request', kapps_call:call()}.
 number_dial(Call, DialProps, _NumberProps, DialMe) ->
-    %% TODO: impelement these
+    %% TODO: implement these
     %% SendDigits = props:get_value('sendDigits', NumberProps),
     %% _Url = props:get_value('url', NumberProps),
     %% _Method = props:get_value('method', NumberProps),
@@ -275,7 +275,7 @@ collecting_endpoints(Call, [#xmlElement{name='Number'} = EP | EPs], Acc) ->
 
     %% Props = kz_xml:attributes_to_proplist(Attrs),
 
-    %% TODO: impelement these
+    %% TODO: implement these
     %% SendDigits = props:get_value('sendDigits', Props),
     %% _Url = props:get_value('url', Props),
     %% _Method = props:get_value('method', Props),
