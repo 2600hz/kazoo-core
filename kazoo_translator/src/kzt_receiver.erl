@@ -331,7 +331,7 @@ wait_for_offnet(Call, DialProps) ->
     HangupDTMF = kzt_util:get_hangup_dtmf(Call),
     RecordCall = kzt_util:get_record_call(Call),
 
-    CollectDTMF = props:get_is_true('collect_dtmf', DialProps, 'false'),
+    CollectDTMF = props:get_is_true('collectDtmf', DialProps, 'false'),
 
     CallTimeLimit = kzt_util:get_call_time_limit(Call) * ?MILLISECONDS_IN_SECOND,
     CallTimeout = kzt_util:get_call_timeout(Call) * ?MILLISECONDS_IN_SECOND,
