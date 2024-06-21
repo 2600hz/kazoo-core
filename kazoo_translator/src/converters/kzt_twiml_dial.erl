@@ -128,7 +128,7 @@ exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
             lager:debug("no endpoints were found to dial, continuing"),
             {'ok', Call};
         EPs ->
-            lager:debug("~s endpoint(s) created, sending bridge command", [length(EPs)]),
+            lager:debug("~p endpoint(s) created, sending bridge command", [length(EPs)]),
             Timeout = dial_timeout(Props),
             IgnoreEarlyMedia = kz_endpoints:ignore_early_media(EPs),
             Strategy = dial_strategy(Props),
@@ -297,11 +297,13 @@ collecting_endpoints(Call, [#xmlElement{name='Number'} = EP | EPs], Acc) ->
 collecting_endpoints(Call,[#xmlElement{name='Sip'} = EP | EPs], Acc) ->
     #xmlElement{content=Number, attributes=Attrs} = EP,
 
-    lager:debug("adding Sip with uri ~s", [Number]),
+    SipUri = kz_xml:texts_to_binary(Number),
+
+    lager:debug("adding Sip with uri ~s", [SipUri]),
 
     _Props = kz_xml:attributes_to_proplist(Attrs),
 
-    try kzsip_uri:parse(kz_xml:texts_to_binary(Number)) of
+    try kzsip_uri:parse(SipUri) of
         URI ->
             collecting_endpoints(Call, EPs, [sip_uri(Call, URI)|Acc])
     catch
@@ -316,17 +318,26 @@ collecting_endpoints(Call, [_Xml|EPs], Acc) ->
 
 -spec sip_uri(kapps_call:call(), kzsip_uri:sip_uri()) -> kz_json:object().
 sip_uri(Call, URI) ->
-    lager:debug("maybe adding SIP endpoint: ~s", [kzsip_uri:encode(URI)]),
-    SIPDevice = sip_device(URI),
+    AccountId = kapps_call:account_id(Call),
+    SIPDevice = sip_device(URI, AccountId),
     kz_endpoint:create_sip_endpoint(SIPDevice, kz_json:new(), Call).
 
--spec sip_device(kzsip_uri:sip_uri()) -> kzd_devices:doc().
-sip_device(URI) ->
+-spec sip_device(kzsip_uri:sip_uri(), kz_term:ne_binary()) -> kzd_devices:doc().
+sip_device(URI, AccountId) ->
     lists:foldl(fun({F, V}, D) -> F(D, V) end
                ,kzd_devices:new()
                ,[{fun kzd_devices:set_sip_invite_format/2, <<"route">>}
                 ,{fun kzd_devices:set_sip_route/2, kzsip_uri:encode(URI)}
+                 %% TODO: fix endpoint_id
+                ,{fun set_endpoint_id/2, <<"dc63ae7465d0ab513e1ab96699ee30c6">>}
+                ,{fun set_pvt_account_id/2, AccountId}
                 ]).
+
+set_endpoint_id(Doc, Id) ->
+    kz_json:set_value([<<"Endpoint-ID">>], Id, Doc).
+
+set_pvt_account_id(Doc, Id) ->
+    kz_json:set_value([<<"pvt_account_id">>], Id, Doc).
 
 request_id(N, Call) -> iolist_to_binary([N, <<"@">>, kapps_call:from_realm(Call)]).
 
