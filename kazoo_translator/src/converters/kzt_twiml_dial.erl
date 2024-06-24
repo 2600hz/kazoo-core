@@ -10,7 +10,8 @@
 %%%-----------------------------------------------------------------------------
 -module(kzt_twiml_dial).
 
--export([exec/3]).
+-export([exec/3
+        ,lookup_callflow/2]).
 
 -ifdef(TEST).
 -export([cleanup_dial_me/1]).
@@ -318,23 +319,25 @@ collecting_endpoints(Call, [_Xml|EPs], Acc) ->
 
 -spec sip_uri(kapps_call:call(), kzsip_uri:sip_uri()) -> kz_json:object().
 sip_uri(Call, URI) ->
-    AccountId = kapps_call:account_id(Call),
-    SIPDevice = sip_device(URI, AccountId),
+    SIPDevice = sip_device(URI, Call),
     kz_endpoint:create_sip_endpoint(SIPDevice, kz_json:new(), Call).
 
 -spec sip_device(kzsip_uri:sip_uri(), kz_term:ne_binary()) -> kzd_devices:doc().
-sip_device(URI, AccountId) ->
+sip_device(URI, Call) ->
+    AccountId = kapps_call:account_id(Call),
+    URI1 = kzsip_uri:encode(URI),
     lists:foldl(fun({F, V}, D) -> F(D, V) end
                ,kzd_devices:new()
                ,[{fun kzd_devices:set_sip_invite_format/2, <<"route">>}
-                ,{fun kzd_devices:set_sip_route/2, kzsip_uri:encode(URI)}
+                ,{fun kzd_devices:set_sip_route/2, URI1}
                  %% TODO: fix endpoint_id
-                ,{fun set_endpoint_id/2, <<"dc63ae7465d0ab513e1ab96699ee30c6">>}
+                ,{fun set_endpoint_id/2, {URI1, Call}}
                 ,{fun set_pvt_account_id/2, AccountId}
                 ]).
 
-set_endpoint_id(Doc, Id) ->
-    kz_json:set_value([<<"Endpoint-ID">>], Id, Doc).
+set_endpoint_id(Doc, {URI, Call}) ->
+    EndpointId = lookup_callflow(URI, Call),
+    kz_json:set_value([<<"Endpoint-ID">>], EndpointId, Doc).
 
 set_pvt_account_id(Doc, Id) ->
     kz_json:set_value([<<"pvt_account_id">>], Id, Doc).
@@ -529,3 +532,22 @@ get_endpoints(UserId, Data, Call) ->
 -spec normalize_number(kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
 normalize_number(Number, Call) ->
     knm_converters:normalize(Number, kapps_call:account_id(Call)).
+
+-spec lookup_callflow(kz_term:binary(), kapps_call:call()) -> term().
+lookup_callflow(SipURI, Call) ->
+    Number = number_from_sip_uri(SipURI),
+    AccountId = kapps_call:account_id(Call),
+    case cf_flow:lookup(Number, AccountId) of
+        {'ok', Callflow, _NoMatch} -> get_endpoint_from_callflow(Callflow);
+        {'error', _}=E -> E
+    end.
+
+-spec get_endpoint_from_callflow(kz_json:object()) -> term().
+get_endpoint_from_callflow(Callflow) ->
+    _Type = kz_json:get_value([<<"flow">>, <<"module">>], Callflow),
+    kz_json:get_value([<<"flow">>, <<"data">>, <<"id">>], Callflow).
+
+number_from_sip_uri(Sip) ->
+    [SipNumber, _] = binary:split(Sip, <<"@">>),
+    [_Sip, Number] = binary:split(SipNumber, <<":">>),
+    Number.
