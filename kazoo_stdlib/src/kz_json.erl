@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc proplists-like interface to json objects
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -117,6 +117,7 @@
         ,expand/1
         ,diff/2
         ,flatten_deep/1, expand_deep/1, diff_deep/2
+        ,print_diff_deep/2
         ]).
 
 -export([sum/2, sum/3]).
@@ -2087,6 +2088,27 @@ diff_deep(J1, J2) ->
     ?JSON_WRAPPER(L2) = flatten_deep(J2),
     UniqueSet1 = sets:subtract(sets:from_list(L1), sets:from_list(L2)),
     expand_deep(from_list(sets:to_list(UniqueSet1))).
+
+-spec print_diff_deep(object(), object()) -> 'ok'.
+print_diff_deep(J1, J2) ->
+    ?JSON_WRAPPER(L1) = flatten_deep(J1),
+    ?JSON_WRAPPER(L2) = flatten_deep(J2),
+    ?LOG_INFO("diff:"),
+    print_diff_list(lists:sort(L1), lists:sort(L2)).
+
+print_diff_list([], []) -> 'ok';
+print_diff_list([], New) ->
+    ?LOG_INFO("new properties: ~p", [expand_deep(?JSON_WRAPPER(New))]);
+print_diff_list(Old, []) ->
+    ?LOG_INFO("removed properties: ~p", [expand_deep(?JSON_WRAPPER(Old))]);
+print_diff_list([{K, V} | Old], [{K, V} | New]) ->
+    print_diff_list(Old, New); % no change
+print_diff_list([{K, VOld} | Old], [{K, VNew} | New]) ->
+    ?LOG_INFO("~p: ~p => ~p", [K, VOld, VNew]),
+    print_diff_list(Old, New);
+print_diff_list([{KOld, VOld} | Old], New) ->
+    ?LOG_INFO("old key ~p gone: ~p", [KOld, VOld]),
+    print_diff_list(Old, New).
 
 -type exec_fun_1() :: fun((object()) -> object()).
 -type exec_fun_2() :: {fun((Value, object()) -> object()), Value}.

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Notification messages, like voicemail left.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -1186,6 +1186,7 @@ emergency_bridge_definition() ->
                                                             ,<<"Emergency-Test-Call">>
                                                             ,<<"Emergency-Caller-ID-Name">>
                                                             ,<<"Emergency-Caller-ID-Number">>
+                                                            ,<<"Emergency-Address-House-Number">>
                                                             ,<<"Emergency-Address-Street-1">>
                                                             ,<<"Emergency-Address-Street-2">>
                                                             ,<<"Emergency-Address-City">>

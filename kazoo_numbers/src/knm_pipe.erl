@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2023, 2600Hz
+%%% @copyright (C) 2015-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -265,7 +265,7 @@ to_json(#{'succeeded' := PNs, 'failed' := Failed}) ->
 
 %%------------------------------------------------------------------------------
 %% @doc
-%% FIXME: this is being used by knm_provders and knm_carriers modules. refactor
+%% FIXME: this is being used by knm_providers and knm_carriers modules. refactor
 %% all those modules (returning kz_either as oppose to throwing error) and
 %% get rid of this _thing_.
 %% @end

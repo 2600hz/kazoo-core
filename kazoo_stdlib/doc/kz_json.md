@@ -71,7 +71,7 @@ Several predicates exist that will return booleans.
 
 You can merge two (or more) objects together and specify which objects' value will be used when there are conflicting keys.
 
--   `merge([JObj1, JObj2,...])`: Defaults to using the `merge_right` strategy where the object on the "right" will have its value used when both objects have a value at a give key path.
+-   `merge([JObj1, JObj2,...])`: Defaults to using the `merge_right` strategy where the object on the "right" will have its value used when both objects have a value at a given key path.
 -   `merge(Strategy, JObjs)`: Choose a strategy, either `fun kz_json:merge_right/2` or `fun kz_json:merge_left/2` (or define your own), and apply it to the list of objects.
 
 Both `merge_left/2` and `merge_right/2` will keep the left or right empty objects (respectively) when they exist at a given key path if the other value is also an object (empty or not). To override this behavior and always recursively merge the values when both are objects, specify `'recursive' => 'true'` in the `Options` map passed in `merge(JObjs, Options)`, `merge(JObj1, JObj2, Options)`, `merge(Strategy, JObjs, Options)`, or `merge(JObj1, JObj2, Options)`, as arg 4 to `merge/4`, or as arg 5 to `merge/5`.

@@ -674,7 +674,8 @@ is_dirty5() ->
                   )
 
     ,?_assertEqual(features_5(OldJObj)
-                  ,kz_json:to_map(kzd_phone_numbers:pvt_features(JObj)))
+                  ,kz_json:to_map(kzd_phone_numbers:pvt_features(JObj))
+                  )
     ,?_assertEqual(features_5(OldJObj)
                   ,kz_json:to_map(kzd_phone_numbers:pvt_features(NewJObj)))
     ,?_assert(kz_json:are_equal(features_5(OldJObj), knm_phone_number:features(PN)))
@@ -698,6 +699,7 @@ is_dirty6() ->
     JObj = knm_phone_number:to_json(PN),
     NewJObj = kz_json:decode(list_to_binary(knm_util:fixture("old_vsn_6_out.json"))),
     {'ok', OldJObj} = kazoo_fixturedb:open_doc('undefined', knm_converters:to_db(?TEST_OLD6_NUM), ?TEST_OLD6_NUM, []),
+
     [?_assertEqual(kz_doc:id(NewJObj)
                   ,kz_doc:id(JObj)
                   )
@@ -775,17 +777,19 @@ is_dirty6() ->
     ,?_assertEqual('false', knm_phone_number:is_dirty(PN))
 
     ,?_assertEqual(63640935218, kz_doc:modified(OldJObj))
-    ,?_assertEqual(kz_doc:modified(OldJObj)
-                  ,kz_doc:modified(JObj))
-    ,?_assertEqual(kz_doc:modified(OldJObj)
-                  ,kz_doc:modified(NewJObj))
-    ,?_assertEqual(kz_doc:modified(OldJObj)
-                  ,knm_phone_number:modified(PN))
+    ,?_assertEqual(kz_doc:modified(OldJObj), kz_doc:modified(JObj))
+    ,?_assertEqual(kz_doc:modified(OldJObj), kz_doc:modified(NewJObj))
+
+    ,?_assertEqual(kz_doc:modified(OldJObj), knm_phone_number:modified(PN))
 
     ,?_assertEqual(kz_json:to_map(kzd_phone_numbers:pvt_features(OldJObj))
-                  ,kz_json:to_map(kzd_phone_numbers:pvt_features(JObj)))
+                  ,kz_json:to_map(kzd_phone_numbers:pvt_features(JObj))
+                  )
+
     ,?_assertEqual(kz_json:to_map(kzd_phone_numbers:pvt_features(OldJObj))
-                  ,kz_json:to_map(kzd_phone_numbers:pvt_features(NewJObj)))
+                  ,kz_json:to_map(kzd_phone_numbers:pvt_features(NewJObj))
+                  )
+
     ,?_assert(kz_json:are_equal(kzd_phone_numbers:pvt_features(OldJObj)
                                ,knm_phone_number:features(PN)
                                )
@@ -793,17 +797,24 @@ is_dirty6() ->
 
     ,?_assertEqual(<<"trunkstore">>, kz_json:get_value(<<"used_by">>, OldJObj))
     ,?_assertEqual(<<"trunkstore">>, kzd_phone_numbers:pvt_used_by(OldJObj))
+
     ,?_assertEqual(kzd_phone_numbers:pvt_used_by(OldJObj)
-                  ,kzd_phone_numbers:pvt_used_by(JObj))
+                  ,kzd_phone_numbers:pvt_used_by(JObj)
+                  )
+
     ,?_assertEqual(kzd_phone_numbers:pvt_used_by(OldJObj)
-                  ,kzd_phone_numbers:pvt_used_by(NewJObj))
+                  ,kzd_phone_numbers:pvt_used_by(NewJObj)
+                  )
+
     ,?_assertEqual(kzd_phone_numbers:pvt_used_by(OldJObj)
                   ,knm_phone_number:used_by(PN))
 
-    ,?_assertEqual(kz_json:to_map(kz_doc:public_fields(JObj))
-                  ,kz_json:to_map(kz_doc:public_fields(NewJObj)))
-    ,?_assertEqual(kz_json:to_map(kz_doc:public_fields(JObj))
-                  ,kz_json:to_map(kz_doc:public_fields(kz_json:delete_key(<<"used_by">>, OldJObj))))
+    ,?_assert(kz_json:are_equal(kz_doc:public_fields(JObj), kz_doc:public_fields(NewJObj)))
+
+    ,?_assert(kz_json:are_equal(kz_doc:public_fields(JObj)
+                               ,kz_doc:public_fields(kz_json:delete_key(<<"used_by">>, OldJObj))
+                               )
+             )
     ].
 
 
