@@ -135,6 +135,7 @@
                              'modb_ish' |
                              'yodb' |
                              'numbers' |
+                             'messaging' |
                              'provisioner' |
                              'ratedeck' |
                              'resource_selectors' |

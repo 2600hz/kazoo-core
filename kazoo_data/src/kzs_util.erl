@@ -93,6 +93,7 @@ db_classification(?KZ_ACCOUNTS_DB) -> 'aggregate';
 db_classification(?KZ_TOKEN_DB) -> 'aggregate';
 db_classification(?KZ_SIP_DB) -> 'aggregate';
 db_classification(?KZ_FAXES_DB) -> 'aggregate';
+db_classification(?KZ_MESSAGES_DB) -> 'aggregate';
 db_classification(?KZ_ACDC_DB) -> 'aggregate';
 db_classification(?KZ_SERVICES_DB) -> 'aggregate';
 db_classification(?KZ_PORT_REQUESTS_DB) -> 'aggregate';
@@ -109,6 +110,10 @@ db_classification(?MATCH_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month)) -> 'mo
 db_classification(?MATCH_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month)) -> 'modb';%   "account..." then the
 db_classification(?MATCH_MODB_SUFFIX_encoded(_A,_B,_Rest,_Year,_Month)) -> 'modb';%   right size.
 db_classification(?MATCH_MODB_SUFFIX_RAW(_Account,_Year,_Month)) -> 'modb';%   right size.
+db_classification(?MATCH_MESSAGES_SUFFIX_UNENCODED(_A,_B,_Rest)) -> 'messaging';
+db_classification(?MATCH_MESSAGES_SUFFIX_ENCODED(_A,_B,_Rest)) -> 'messaging';
+db_classification(?MATCH_MESSAGES_SUFFIX_encoded(_A,_B,_Rest)) -> 'messaging';
+db_classification(?MATCH_MESSAGES_SUFFIX_RAW(_A,_B,_Rest)) -> 'messaging';
 db_classification(?MATCH_TYPE_MODB_SUFFIX_RAW(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
 db_classification(?MATCH_TYPE_MODB_SUFFIX_UNENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
 db_classification(?MATCH_TYPE_MODB_SUFFIX_ENCODED(_A,_B,_Rest,_Year,_Month,_Any)) -> 'modb_ish';
@@ -213,6 +218,7 @@ db_priority(?KZ_WEBHOOKS_DB, _) -> 6;
 db_priority(?KZ_RATES_DB, _) -> 7;
 db_priority(?KZ_ACDC_DB, _) -> 8;
 db_priority(?KZ_FAXES_DB, _) -> 9;
+db_priority(?KZ_MESSAGES_DB, _) -> 9;
 db_priority(?KZ_SCHEMA_DB, _) -> 10;
 db_priority(?KZ_SERVICES_DB, _) -> 11;
 db_priority(?KZ_PORT_REQUESTS_DB, _) -> 12;
@@ -376,6 +382,8 @@ raw_account_id(?MATCH_RESOURCE_SELECTORS_UNENCODED(A, B, Rest)) ->
     ?MATCH_RESOURCE_SELECTORS_RAW(A, B, Rest);
 raw_account_id(?MATCH_RESOURCE_SELECTORS_ENCODED(A, B, Rest)) ->
     ?MATCH_RESOURCE_SELECTORS_RAW(A, B, Rest);
+raw_account_id(?MATCH_MESSAGES_SUFFIX_ENCODED(A, B, Rest)) ->
+    ?MATCH_ACCOUNT_RAW(A, B, Rest);
 raw_account_id(<<"number/", _/binary>>=Other) ->
     Other;
 raw_account_id(<<"system_", _/binary>>=Other) ->
