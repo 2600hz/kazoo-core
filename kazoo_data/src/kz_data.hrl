@@ -135,6 +135,7 @@
                              'type_modb' |
                              'yodb' |
                              'numbers' |
+                             'messaging' |
                              'provisioner' |
                              'ratedeck' |
                              'resource_selectors' |

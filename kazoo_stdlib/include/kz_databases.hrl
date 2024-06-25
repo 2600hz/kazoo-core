@@ -8,6 +8,7 @@
 -define(KZ_ALERTS_DB, <<"alerts">>).
 -define(KZ_RATES_DB, <<"ratedeck">>).
 -define(KZ_FAXES_DB, <<"faxes">>).
+-define(KZ_MESSAGES_DB, <<"messages">>).
 -define(KZ_SERVICES_DB, <<"services">>).
 -define(KZ_OFFNET_DB, <<"offnet">>).
 -define(KZ_DEDICATED_IP_DB, <<"dedicated_ips">>).
@@ -43,6 +44,7 @@
                        ,?KZ_ACCOUNTS_DB
                        ,?KZ_RATES_DB
                        ,?KZ_FAXES_DB
+                       ,?KZ_MESSAGES_DB
                        ,?KZ_SERVICES_DB
                        ,?KZ_OFFNET_DB
                        ,?KZ_ANONYMOUS_CDR_DB
