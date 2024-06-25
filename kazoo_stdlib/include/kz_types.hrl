@@ -264,6 +264,27 @@
         >>
        ).
 
+-define(MATCH_MESSAGES_SUFFIX_UNENCODED(A, B, Rest)
+       ,<<"account/", (A):2/binary, "/", (B):2/binary, "/", (Rest):28/binary
+         ,"-messages"
+        >>
+       ).
+-define(MATCH_MESSAGES_SUFFIX_ENCODED(A, B, Rest)
+       ,<<"account%2F", (A):2/binary, "%2F", (B):2/binary, "%2F", (Rest):28/binary
+         ,"-messages"
+        >>
+       ).
+-define(MATCH_MESSAGES_SUFFIX_encoded(A, B, Rest)
+       ,<<"account%2f", (A):2/binary, "%2f", (B):2/binary, "%2f", (Rest):28/binary
+         ,"-messages"
+        >>
+       ).
+-define(MATCH_MESSAGES_SUFFIX_RAW(A, B, Rest)
+       ,<<(A):2/binary, (B):2/binary, (Rest):28/binary
+         ,"-messages"
+        >>
+       ).
+
 -define(MATCH_RFC4122_UUID, ?MATCH_RFC4122_UUID(_, _, _, _, _)).
 -define(MATCH_RFC4122_UUID(S1, S2, S3, S4, S5)
        ,<<S1:8/binary, $-, S2:4/binary, $-, S3:4/binary, $-, S4:4/binary, $-, S5:12/binary>>

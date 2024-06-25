@@ -114,6 +114,7 @@ get_dataplan(DBName) ->
         'account' -> account_dataplan(Database);
         'resource_selectors' -> account_dataplan(Database);
         'aggregate' -> aggregate_dataplan(Database);
+        'messaging' -> account_modb_dataplan(DBName);
         Else -> system_dataplan(Database, Else)
     end.
 
@@ -128,6 +129,7 @@ get_dataplan(DBName, DocType) ->
         'account' -> account_dataplan(Database, DocType);
         'resource_selectors' -> account_dataplan(Database, DocType);
         'aggregate' -> aggregate_dataplan(Database, DocType);
+        'messaging' -> account_modb_dataplan(DBName);
         Else -> system_dataplan(Database, Else)
     end.
 
@@ -140,6 +142,7 @@ get_dataplan(DBName, DocType, DocOwner) ->
         'yodb' -> account_yodb_dataplan(kzs_util:raw_account_yodb(DBName), DocType, DocOwner);
         'account' -> account_dataplan(Database, DocType, DocOwner);
         'resource_selectors' -> account_dataplan(Database, DocType, DocOwner);
+        'messaging' -> account_modb_dataplan(DBName);
         Else -> system_dataplan(Database, Else)
     end.
 
