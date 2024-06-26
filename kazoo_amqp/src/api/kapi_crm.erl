@@ -185,7 +185,8 @@ caller_info_resp_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun caller_info_resp_v/1}
               ,{fun kapi_definition:set_required_headers/2, [<<"Caller-Info-Response">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Query-Interaction-Response">>
+                                                            ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
