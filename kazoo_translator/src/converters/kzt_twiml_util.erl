@@ -60,13 +60,16 @@ get_voice(Props) ->
 get_engine(Call, Props) ->
     case props:get_ne_binary_value('engine', Props) of
         'undefined' -> ?DEFAULT_TTS_ENGINE(Call);
-        Engine -> Engine
+        Engine ->
+            case lists:member(Engine, kazoo_tts:supported_tts_providers()) of
+                'true' -> Engine;
+                'false' -> ?DEFAULT_TTS_ENGINE(Call)
+            end
     end.
 
 -spec loop_count(kz_term:proplist()) -> integer().
 loop_count(Props) ->
     case props:get_integer_value('loop', Props, 1) of
-        'undefined' -> 1;
         N when N =< 0 -> 0;
         N -> N
     end.
@@ -96,8 +99,7 @@ get_finish_key(Props) ->
 -spec get_max_length(kz_term:proplist()) -> pos_integer().
 get_max_length(Props) ->
     Max = kapps_config:get_integer(<<?MODULE_STRING>>, <<"max_length">>, ?SECONDS_IN_HOUR),
-    case props:get_integer_value('maxLength', Props) of
-        'undefined' -> Max;
+    case props:get_integer_value('maxLength', Props, Max) of
         N when N =< 1 -> 1;
         N when N =< Max -> N;
         _ -> Max
@@ -108,7 +110,7 @@ get_max_length(Props) ->
 pause_for(Props) ->
     case props:get_integer_value('length', Props) of
         'undefined' -> ?MILLISECONDS_IN_SECOND;
-        N when N =< 0 -> 1;
+        N when N =< 0 -> ?MILLISECONDS_IN_SECOND;
         N when N =< ?SECONDS_IN_HOUR -> N * ?MILLISECONDS_IN_SECOND;
         _ -> ?MILLISECONDS_IN_HOUR
     end.
@@ -125,7 +127,6 @@ timeout_s(Props) -> timeout_s(Props, 30).
 -spec timeout_s(kz_term:proplist(), pos_integer()) -> pos_integer().
 timeout_s(Props, Default) ->
     case props:get_integer_value('timeout', Props, Default) of
-        'undefined' -> Default;
         N when N =< 0 -> Default;
         N when N =< ?SECONDS_IN_HOUR -> N;
         _ -> Default
