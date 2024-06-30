@@ -241,7 +241,7 @@ do_fetch(NumberDb, NormalizedNum, Options) ->
           {'ok', pn_record()} |
           {'error', 'unauthorized'}.
 handle_fetch(JObj, Options) ->
-    ?LOG_DEV("fetched number doc ~s", [kz_json:encode(JObj)]),
+    ?LOG_INFO("fetched number doc ~s", [kz_json:encode(JObj)]),
     PN = from_json_with_options(JObj, Options),
     case state(PN) =:= ?NUMBER_STATE_AVAILABLE
         orelse is_authorized(PN)
@@ -1778,19 +1778,15 @@ delete_docs(Db, Ids) ->
           {'ok', kz_json:objects()} |
           kz_datamgr:data_error().
 save_docs(Db, Docs) ->
-    PreparedDocs = prepare_docs(Db, Docs, []),
+    PreparedDocs = [prepare_doc(Db, Doc) || Doc <- Docs],
     kz_datamgr:save_docs(Db, PreparedDocs).
 
--spec prepare_docs(kz_term:ne_binary(), kz_json:objects(), kz_json:objects()) ->
-          kz_json:objects().
-prepare_docs(_Db, [], Updated) ->
-    Updated;
-prepare_docs(Db, [Doc|Docs], Updated) ->
+prepare_doc(Db, Doc) ->
     case kz_datamgr:lookup_doc_rev(Db, kz_doc:id(Doc)) of
         {'ok', Rev} ->
-            prepare_docs(Db, Docs, [kz_doc:set_revision(Doc, Rev)|Updated]);
+            kz_doc:set_revision(Doc, Rev);
         {'error', _} ->
-            prepare_docs(Db, Docs, [kz_doc:delete_revision(Doc)|Updated])
+            kz_doc:delete_revision(Doc)
     end.
 
 %%%=============================================================================
