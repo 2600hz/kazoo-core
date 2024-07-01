@@ -40,10 +40,9 @@
 
 -define(CACHE_KEY(Number), {'cnam', Number}).
 
--define(CNAM_EXPIRES,
-        kapps_config:get_integer(?CNAM_CONFIG_CAT, <<"cnam_expires">>, ?DEFAULT_EXPIRES)).
--define(CNAM_PROVIDER_MODULE,
-        kz_term:to_atom(<<"cnam_", (kapps_config:get_binary(?CNAM_CONFIG_CAT, <<"provider">>, ?DEFAULT_PROVIDER))/binary>>, 'true')).
+-define(CNAM_EXPIRES
+       ,kapps_config:get_integer(?CNAM_CONFIG_CAT, <<"cnam_expires">>, ?DEFAULT_EXPIRES)
+       ).
 
 %%%=============================================================================
 %%% API
@@ -71,11 +70,8 @@ render(JObj, Template) ->
     end.
 
 -spec lookup(kz_json:object() | kz_term:ne_binary()) -> kz_json:object().
-lookup(<<_/binary>> = Number) ->
-    Num = case ?DISABLE_NORMALIZE of
-              'false' -> knm_converters:normalize(Number);
-              'true'  -> Number
-          end,
+lookup(<<Number/binary>>) ->
+    Num = maybe_normalize(Number),
     lookup(kz_json:set_values([{<<"phone_number">>, kz_http_util:urlencode(Num)}
                               ,{<<"Caller-ID-Number">>, Num}
                               ]
@@ -84,10 +80,7 @@ lookup(<<_/binary>> = Number) ->
           );
 lookup(JObj) ->
     Number = kz_json:get_value(<<"Caller-ID-Number">>, JObj,  kz_privacy:anonymous_caller_id_number()),
-    Num = case ?DISABLE_NORMALIZE of
-              'false' -> knm_converters:normalize(Number);
-              'true'  -> Number
-          end,
+    Num = maybe_normalize(Number),
     case kz_cache:fetch_local(?CACHE_NAME, cache_key(Num)) of
         {'ok', CNAM} ->
             update_request(JObj, CNAM, 'true');
@@ -100,7 +93,7 @@ lookup(JObj) ->
 set_phone_number(Num, JObj) ->
     kz_json:set_value(<<"phone_number">>, kz_http_util:urlencode(Num), JObj).
 
--spec update_request(kz_json:object(), kz_term:api_binary(), boolean()) -> kz_json:object().
+-spec update_request(kz_json:object(), kz_term:api_ne_binary(), boolean()) -> kz_json:object().
 update_request(JObj, 'undefined', _) -> JObj;
 update_request(JObj, CNAM, FromCache) ->
     Props = [{<<"Caller-ID-Name">>, CNAM}
@@ -189,7 +182,7 @@ code_change(_OldVsn, TemplateName, _Extra) ->
 -spec cache_key(kz_term:ne_binary()) -> {'cnam', kz_term:ne_binary()}.
 cache_key(Number) -> ?CACHE_KEY(Number).
 
--spec fetch_cnam(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_binary().
+-spec fetch_cnam(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_ne_binary().
 fetch_cnam(Number, JObj) ->
     case make_request(Number, JObj) of
         'undefined' -> 'undefined';
@@ -199,7 +192,7 @@ fetch_cnam(Number, JObj) ->
             CNAM
     end.
 
--spec make_request(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_binary().
+-spec make_request(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_ne_binary().
 make_request(Number, JObj) ->
     Timeout = 2.99 * ?MILLISECONDS_IN_SECOND,
     case kz_process:runs_in(Timeout, fun request/2, [Number, JObj]) of
@@ -207,7 +200,21 @@ make_request(Number, JObj) ->
         'timeout' -> 'undefined'
     end.
 
--spec request(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_binary().
+-spec request(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_ne_binary().
 request(Number, JObj) ->
-    Mod = ?CNAM_PROVIDER_MODULE,
-    Mod:request(Number, JObj).
+    Provider = kapps_config:get_binary(?CNAM_CONFIG_CAT, <<"provider">>, ?DEFAULT_PROVIDER),
+    Module = kz_term:to_atom(<<"cnam_", Provider/binary>>, 'true'),
+    case kz_module:is_exported(Module, 'request', 2) of
+        'false' ->
+            lager:warning("CNAM provider configured as ~s but no request/2 found", [Module]),
+            'undefined';
+        'true' ->
+            lager:info("requesting CNAM on ~s using ~s", [Number, Module]),
+            Module:request(Number, JObj)
+    end.
+
+maybe_normalize(Number) ->
+    case ?DISABLE_NORMALIZE of
+        'false' -> knm_converters:normalize(Number);
+        'true'  -> Number
+    end.
