@@ -94,7 +94,7 @@
         "summarize_cdrs": {
             "map": [
                 "function(doc) {",
-                "  if (doc.pvt_type != 'cdr' || doc.pvt_deleted || !doc.custom_channel_vars || doc.channel_name.indexOf('loopback') !== -1 || (doc.call_direction == 'inbound' && doc.custom_channel_vars.authorizing_id) || (doc.call_direction == 'outbound' && !doc.custom_channel_vars.resource_id)) return;",
+                "  if (doc.pvt_type != 'cdr' || doc.pvt_deleted || !doc.custom_channel_vars || (doc.channel_name && doc.channel_name.indexOf('loopback') !== -1) || (doc.call_direction == 'inbound' && doc.custom_channel_vars.authorizing_id) || (doc.call_direction == 'outbound' && !doc.custom_channel_vars.resource_id)) return;",
                 "  if (doc.call_direction == 'inbound') {",
                 "    var domain = doc.from.substr(doc.from.indexOf('@') + 1);",
                 "  } else {",

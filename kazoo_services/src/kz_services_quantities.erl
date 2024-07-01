@@ -110,7 +110,7 @@ fetch(Database, View, ViewOptions) ->
             Quantities = fetched_quantities(JObjs),
             fetch_to_json(Quantities);
         {'error', _Message} ->
-            ?SUP_LOG_WARNING("failed to query account quantities: ~s with error: ~p", [Database, _Message]),
+            ?SUP_LOG_WARNING("failed to query account quantities with view ~s: ~s with error: ~p", [View, Database, _Message]),
             kz_json:new()
     end.
 
