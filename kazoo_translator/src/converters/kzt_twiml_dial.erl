@@ -422,13 +422,16 @@ publish_conference_request(Call, Id, Name, ConfProps) ->
           [{<<"Call">>, kapps_call:to_json(Call)}
           ,{<<"Conference-ID">>, Id}
           ,{<<"Conference-Name">>, Name}
+          ,{<<"End-On-Last-Member-Leave">>, props:is_true('endConferenceOnLastMemberExit', ConfProps, 'undefined')}
+          ,{<<"End-On-Leave">>, props:is_true('endConferenceOnExit', ConfProps, 'undefined')}
+           %% add this kapi_conference (first time conf is created):
+          ,{<<"Max-Participants">>, get_max_participants(ConfProps)}
           ,{<<"Moderator">>, IsModerator}
           ,{<<"Play-Entry-Tone">>, conference_play_entry_tone(ConfProps)}
           ,{<<"Play-Exit-Tone">>, conference_play_exit_tone(ConfProps)}
           ,{<<"Profile-Name">>, ProfileName}
+           %% add this kapi_conference (first time conf is created):
           ,{<<"Wait-For-Moderator">>, not IsModerator}
-          ,{<<"Max-Participants">>, get_max_participants(ConfProps)}
-          ,{<<"Last-Member-Endconf">>, props:is_true('endConferenceOnExit', ConfProps, 'false')}
           | deaf_muted_headers(ConfProps, IsModerator) ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
           ]
          ),
