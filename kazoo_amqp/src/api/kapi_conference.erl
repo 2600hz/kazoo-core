@@ -520,7 +520,7 @@ discovery_req_definition() ->
                 ,{<<"Play-Entry-Tone">>, fun binary_or_boolean/1}
                 ,{<<"Play-Exit-Tone">>, fun binary_or_boolean/1}
                 ,{<<"Play-Welcome">>, fun kz_term:is_boolean/1}
-                ,{<<"Play-Welcome-Media">>, fun kz_term:is_ne_binary/1/1}
+                ,{<<"Play-Welcome-Media">>, fun kz_term:is_ne_binary/1}
                 ]
                }
               ],
