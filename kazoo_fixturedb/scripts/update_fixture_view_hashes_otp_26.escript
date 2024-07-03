@@ -7,7 +7,6 @@
 -export([main/1]).
 
 main(_) ->
-    _ = io:setopts(user, [{encoding, unicode}]),
     ScriptsDir = filename:dirname(escript:script_name()),
     'ok' = file:set_cwd(filename:absname(ScriptsDir ++ "/..")),
     Files = filelib:wildcard("priv/dbs/*/view-index.csv"),

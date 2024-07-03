@@ -7,7 +7,6 @@
 -export([main/1]).
 
 main(_) ->
-    _ = io:setopts(user, [{encoding, unicode}]),
     Views = kzc_account_crossbar_listings:metadata(),
     _ = maps:fold(fun config_module/3, [], Views),
     io:format('user', "bye~n", []).
