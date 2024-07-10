@@ -12,17 +12,17 @@ Integrating Kazoo to MFA providers to secure accessing the Crossbar API endpoint
 MFA process involves these steps:
 
 1. Initiate the authentication with your auth module/method with your user name and password (or token) as before.
-2. If the auth method that you are using is configured to preforms the multi factor it goes to kazoo multi factor auth to process the request.
+2. If the auth method that you are using is configured to performs the multi factor it goes to kazoo multi factor auth to process the request.
 3. Based on auth module configuration, MFA provider settings will be fetched either from account's that have configured the auth module or from default provider in `system_auth`
 4. If no MFA provider configuration was found, the auth request will be successful and a token will be generated as a normal auth-request as before
 5. If the MFA provider is disabled based on the configuration, a HTTP `401 unauthorized` error will be returned.
 6. Provider module will try to validate the request and settings and return a HTTP `401 unauthorized` if some parameters is invalid and provide an appropriate error message.
-7. If the request doesn't have a response from MFA provider (if there is no `multi_factor_response` inside the body of the request) it will generate the required information that the client needs to preform second-factor auth with the provider. Crossbar will reply a HTTP `401 unauthorized` with the payload similar to this:
+7. If the request doesn't have a response from MFA provider (if there is no `multi_factor_response` inside the body of the request) it will generate the required information that the client needs to perform second-factor auth with the provider. Crossbar will reply a HTTP `401 unauthorized` with the payload similar to this:
 
 ```json
 {
   "data": {
-    "messages": "client needs to preform second-factor authentication",
+    "messages": "client needs to perform second-factor authentication",
     "multi_factor_request": {
       "provider_name": "{PROVIDER_NAME}",
       "settings": {
@@ -98,7 +98,7 @@ If the first factor authentication (usually using a user name and password) has 
 ```json
 {
   "data": {
-    "messages": "client needs to preform second-factor authentication",
+    "messages": "client needs to perform second-factor authentication",
     "multi_factor_request": {
       "provider_name": "duo",
       "settings": {

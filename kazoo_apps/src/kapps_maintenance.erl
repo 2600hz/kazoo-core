@@ -1837,7 +1837,7 @@ maybe_add_extension({A, CT}=T) ->
 -spec maybe_update_attachment(kz_term:ne_binary(), kz_term:ne_binary(), attachment_and_content(), attachment_and_content()) -> 'ok'.
 maybe_update_attachment(_, _, {Attachment, CT}, {Attachment, CT}) -> 'ok';
 maybe_update_attachment(AccountDb, Id, {OrigAttach, _CT1}, {NewAttach, CT}) ->
-    %% this preforms the following:
+    %% this performs the following:
     %% 1. Get the current attachment
     %% 2. Fix the name and content type then put the new attachment on the doc
     %% 3. Save the old attachment content (I am paranoid) to disk

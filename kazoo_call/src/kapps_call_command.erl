@@ -2412,7 +2412,7 @@ b_conference(ConfId, Mute, Deaf, Moderator, Profile, Reinvite, VideoMute, Call) 
     wait_for_message(Call, <<"conference">>, <<"CHANNEL_EXECUTE">>).
 
 %%------------------------------------------------------------------------------
-%% @doc Produces the low level AMQP request to preform a `noop'.
+%% @doc Produces the low level AMQP request to perform a `noop'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec noop_id() -> kz_term:ne_binary().
@@ -2431,7 +2431,7 @@ noop(Call) ->
 b_noop(Call) -> wait_for_noop(Call, noop(Call)).
 
 %%------------------------------------------------------------------------------
-%% @doc Produces the low level AMQP request to preform a `wait_for_answer'.
+%% @doc Produces the low level AMQP request to perform a `wait_for_answer'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec wait_for_answer(kapps_call:call()) -> 'ok'.

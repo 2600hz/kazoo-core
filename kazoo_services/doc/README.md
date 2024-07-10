@@ -736,6 +736,6 @@ A reconciliation can be triggered via `sup kazoo_services_maintenance reconcile 
 
 # Synchronization
 
-Synchronization is the process of ensuring that the bookkeepers accurately reflect the invoice(s) generated from the assigned service plan(s).  When synchronizing an account the current quantities are fetched from the services document as well as the service plan(s) assigned to the account.  These are combined to generated the account's invoice(s) and grouped by the associated bookkeeper.  Each bookkeeper application is then issued an AMQP request with the invoice and expected to preform the appropriate action to ensure that the bookkeeper properly reflects the invoice.
+Synchronization is the process of ensuring that the bookkeepers accurately reflect the invoice(s) generated from the assigned service plan(s).  When synchronizing an account the current quantities are fetched from the services document as well as the service plan(s) assigned to the account.  These are combined to generated the account's invoice(s) and grouped by the associated bookkeeper.  Each bookkeeper application is then issued an AMQP request with the invoice and expected to perform the appropriate action to ensure that the bookkeeper properly reflects the invoice.
 
 A synchronization can be triggered via `sup kazoo_services_maintenance sync {ACCOUNT_ID}` or the API as `POST /v2/accounts/{ACCOUNT_ID}/services/synchronization`

@@ -270,7 +270,7 @@ remove_number(PN) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @doc Make a REST request to dash e911 emergency provisioning API to preform
+%% @doc Make a REST request to dash e911 emergency provisioning API to perform
 %% the given verb (validatelocation, addlocation, etc).
 %% @end
 %%------------------------------------------------------------------------------

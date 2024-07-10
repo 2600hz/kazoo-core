@@ -220,7 +220,7 @@ should_lookup_cnam() -> 'true'.
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
-%% @doc Make a REST request to Bandwidth.com Numbers API to preform the
+%% @doc Make a REST request to Bandwidth.com Numbers API to perform the
 %% given verb (purchase, search, provision, etc).
 %% @end
 %%------------------------------------------------------------------------------
