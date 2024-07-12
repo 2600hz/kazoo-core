@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -37,12 +37,12 @@ system_alert(Subject, Format, Args, Headers) ->
     Msg = io_lib:format(Format, Args),
     system_alert(Subject, Msg, Headers).
 
--spec detailed_alert(string(), list(), kz_term:proplist()) -> 'ok'.
+-spec detailed_alert(io:format(), list(), kz_term:proplist()) -> 'ok'.
 detailed_alert(Format, Args, Props) ->
     Msg = io_lib:format(Format, Args),
     detailed_alert(Msg, Msg, [{<<"Format">>, kz_term:to_binary(Format)} | Props], []).
 
--spec detailed_alert(string() | kz_term:ne_binary(), string() | kz_term:ne_binary(), kz_term:proplist(), kz_term:proplist()) -> 'ok'.
+-spec detailed_alert(kz_term:text(), kz_term:text(), kz_term:proplist(), kz_term:proplist()) -> 'ok'.
 detailed_alert(Subject, Msg, Props, Headers)
   when not is_binary(Subject);
        not is_binary(Msg) ->
