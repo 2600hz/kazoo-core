@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2023, 2600Hz
+%%% @copyright (C) 2017-2024, 2600Hz
 %%% @doc Module to authenticate a user with a multi factor provider.
 %%% @author Hesaam Farhang
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -33,7 +33,7 @@ authenticate(Claims) ->
         {'disabled', _Provider} ->
             ErrorMsg = io_lib:format("provider ~s is disabled", [_Provider]),
             {'error', kz_term:to_binary(ErrorMsg)};
-        ?NE_BINARY=Provider ->
+        <<Provider/binary>> ->
             Module = module_name(Provider),
             lager:debug("performing authentication factor with ~s(~p) provider"
                        ,[Provider, Module]
@@ -47,7 +47,10 @@ authenticate(Claims) ->
 %% @doc Get MFA provider and checks it's enabled or not.
 %% @end
 %%------------------------------------------------------------------------------
--spec provider(kz_term:api_object()) -> kz_term:ne_binary() | {'disabled', kz_term:ne_binary()} | {'error', 'no_provider'}.
+-spec provider(kz_term:api_object()) ->
+          kz_term:ne_binary() |
+          {'disabled', kz_term:ne_binary()} |
+          {'error', 'no_provider'}.
 provider(Configs) ->
     Name = kz_json:get_ne_value(<<"provider_name">>, Configs),
     IsDefined = kz_term:is_not_empty(Name),
@@ -78,12 +81,12 @@ get_account_configs(_AccountId, 'undefined') -> get_system_configs();
 get_account_configs(AccountId, ConfigId) ->
     case kz_datamgr:open_cache_doc(AccountId, ConfigId) of
         {'ok', JObj} ->
-            lager:debug("fetched authentication factor config from ~s/~s"
+            lager:debug("fetched authentication factor config from account ~s config: ~s"
                        ,[AccountId, ConfigId]
                        ),
             kz_json:set_value(<<"from">>, AccountId, JObj);
         {'error', _Reason} ->
-            lager:debug("failed to open authentication factor configuration from ~s/~s : ~p"
+            lager:debug("failed to open authentication factor configuration from account ~s config: ~s: ~p"
                        ,[AccountId, ConfigId, _Reason]
                        ),
             maybe_from_auth_db(AccountId, ConfigId)
@@ -92,12 +95,12 @@ get_account_configs(AccountId, ConfigId) ->
 maybe_from_auth_db(AccountId, ConfigId) ->
     case kz_datamgr:open_cache_doc(?KZ_AUTH_DB, ConfigId) of
         {'ok', JObj} ->
-            lager:debug("fetched account ~s authentication factor config from ~s/~s"
+            lager:debug("fetched account ~s authentication factor config from db: ~s id: ~s"
                        ,[AccountId, ?KZ_AUTH_DB, ConfigId]
                        ),
             kz_json:set_value(<<"from">>, AccountId, JObj);
         {'error', _E} ->
-            lager:debug("failed to find config ~s in ~s: ~p", [ConfigId, ?KZ_AUTH_DB, _E]),
+            lager:debug("failed to find config ~s in db ~s: ~p", [ConfigId, ?KZ_AUTH_DB, _E]),
             'undefined'
     end.
 
