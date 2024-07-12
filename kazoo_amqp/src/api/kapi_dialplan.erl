@@ -216,6 +216,10 @@
         ,build_command/2
         ]).
 
+-export([send_display/1
+        ,send_display_v/1
+        ]).
+
 %% API Helpers
 -export([dial_method_single/0
         ,dial_method_simultaneous/0
@@ -311,6 +315,7 @@ api_definitions() ->
     ,queue_definition()
     ,error_definition()
     ,detect_speech_definition()
+    ,send_display_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -440,7 +445,9 @@ api_definition(<<"queue">>) ->
 api_definition(<<"error">>) ->
     error_definition();
 api_definition(<<"detect_speech">>) ->
-    detect_speech_definition().
+    detect_speech_definition();
+api_definition(<<"send_display">>) ->
+    send_display_definition().
 
 -spec bridge_definition() -> kapi_definition:api().
 bridge_definition() ->
@@ -2485,6 +2492,34 @@ queue_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+-spec send_display_definition() -> kapi_definition:api().
+send_display_definition() ->
+    EventName = <<"command">>,
+    Category = <<"call">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Send Display">>}
+              ,{fun kapi_definition:set_description/2, <<"Create a Display on the channel">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun send_display/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun send_display_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Caller-Name">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"send_display">>}
+                ,?INSERT_AT_TUPLE
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Caller-Name">>, fun kz_term:is_ne_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
 -spec error_definition() -> kapi_definition:api().
 error_definition() ->
     EventName = <<"dialplan">>,
@@ -3610,3 +3645,16 @@ detect_speech_definition() ->
                }
               ],
     kapi_definition:setters(Setters).
+
+%%------------------------------------------------------------------------------
+%% @doc Create a display on the channel.
+%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec send_display(kz_term:api_terms()) -> kz_api:api_formatter_return().
+send_display(Req) ->
+    kapi_definition:build_message(Req, send_display_definition()).
+
+-spec send_display_v(kz_term:api_terms()) -> boolean().
+send_display_v(Req) ->
+    kapi_definition:validate(Req, send_display_definition()).

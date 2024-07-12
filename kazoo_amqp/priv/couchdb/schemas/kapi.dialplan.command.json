@@ -90,7 +90,8 @@
                 "tones",
                 "transfer",
                 "tts",
-                "unbridge"
+                "unbridge",
+                "send_display"
             ],
             "type": "string"
         },
