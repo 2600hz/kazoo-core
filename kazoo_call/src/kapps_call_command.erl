@@ -242,6 +242,8 @@
         ,b_eavesdrop/2, b_eavesdrop/3
         ]).
 
+-export([send_display/2]).
+
 -include("kapps_call_command.hrl").
 
 -elvis([{elvis_style, god_modules, disable}]).
@@ -3816,3 +3818,19 @@ b_eavesdrop(TargetCallId, Call) ->
 b_eavesdrop(TargetCallId, EnableDTMF, Call) ->
     eavesdrop(TargetCallId, EnableDTMF, Call),
     wait_for_application(Call, <<"eavesdrop">>).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces the low level AMQP request to update the display.
+%% @end
+%%------------------------------------------------------------------------------
+-spec send_display(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+send_display(CallerName, Call) ->
+    Cmd = send_display_command(CallerName),
+    send_command(Cmd, Call).
+
+-spec send_display_command(kz_term:ne_binary()) -> kz_term:proplist().
+send_display_command(CallerName) ->
+    props:filter_undefined(
+      [{<<"Caller-Name">>, CallerName}
+      ,{<<"Application-Name">>, <<"send_display">>}
+      ]).
