@@ -34,7 +34,7 @@
                          {'channel_flow', boolean()} |
                          {'consume_options', consume_options()} |
                          {'declare_exchanges', declare_exchanges()} |
-                         {'monitor_message_queue', boolean()} | 'monitor_message_queue' |
+                         {'monitor', boolean()} | 'monitor' |
                          {'queue_name', binary()} |
                          {'queue_name_always_generate', boolean()} |
                          {'queue_options', queue_options()} |

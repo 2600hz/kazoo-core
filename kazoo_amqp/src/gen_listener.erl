@@ -556,17 +556,17 @@ init(Module, Params, ModuleState, TimeoutRef) ->
                   ,handle_event_mfa = listener_utils:responder_mfa(Module, 'handle_event')
                   ,auto_ack = props:is_true('auto_ack', Params, 'false')
                   },
-    maybe_monitor_process_mailbox(Params),
+    maybe_monitor_me(Params),
     {'ok', start_initial_bindings(State)}.
 
 %% if true, add self() to kz_monitor to keep tabs on how self()'s
-%% process mailbox grows. Will alert when the mailbox exceeds a threshold
-maybe_monitor_process_mailbox(Params) ->
-    case props:is_true('monitor_message_queue', Params, 'false') of
+%% process mailbox and heap grow. Will alert when thresholds are hit
+maybe_monitor_me(Params) ->
+    case props:is_true('monitor', Params, 'false') of
         'false' -> 'ok';
         'true' ->
             kz_monitor:track_me(),
-            lager:info("process mailbox monitoring initiated")
+            lager:info("process monitoring initiated")
     end.
 
 -spec maybe_set_queue_name(atom(), start_params()) -> start_params().
