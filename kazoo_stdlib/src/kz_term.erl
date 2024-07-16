@@ -12,7 +12,6 @@
 -module(kz_term).
 
 -export([shuffle_list/1]).
--export([uniq_list/1]).
 
 -export([to_integer/1, to_integer/2
         ,to_float/1, to_float/2
@@ -277,14 +276,6 @@ randomize_list(T, List) ->
                ,randomize_list(List)
                ,lists:seq(1, (T - 1))
                ).
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec uniq_list(list()) -> list().
-uniq_list([]) -> [];
-uniq_list([H|T]) -> [H | [X || X <- uniq_list(T), X =/= H]].
 
 %%------------------------------------------------------------------------------
 %% @doc must be a term that can be changed to a list
