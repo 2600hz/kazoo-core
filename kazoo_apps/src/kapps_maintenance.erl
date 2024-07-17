@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -1338,7 +1338,7 @@ ensure_tree_is_tree_fold(#{fixed_trees := FixedTrees
                           }=State
                         ,AccountId, Tree) ->
     UpdatedTree = ensure_tree_is_tree_fold(State, AccountId, Tree, []),
-    UniqTree = kz_term:uniq_list(UpdatedTree),
+    UniqTree = lists:uniq(UpdatedTree),
     case UniqTree =:= Tree of
         'true' ->
             %% tree is okay
