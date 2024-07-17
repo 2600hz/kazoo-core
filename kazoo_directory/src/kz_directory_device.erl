@@ -17,7 +17,12 @@
 
 -include("kazoo_directory.hrl").
 
--spec profile(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-type cid() :: {kz_term:api_binary(), kz_term:api_binary()}. %% {Number, Name}
+-export_type([cid/0]).
+
+-spec profile(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 profile(EndpointId, AccountId) ->
     profile(EndpointId, AccountId, []).
 
@@ -234,8 +239,9 @@ build_profile(Context) ->
     Context#{profile => kz_json:from_list(Profile)}.
 
 build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
-    {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
+    CID = {CIDNumber, CIDName} = kz_attributes:get_endpoint_cid(<<"internal">>, Endpoint),
     {CEDNumber, CEDName} = kz_attributes:get_endpoint_cid(<<"external">>, Endpoint),
+    {EPCIDNumber, EPCIDName} = endpoint_caller_id(Endpoint, CID),
 
     [{<<"Internal-Caller-ID-Number">>, CIDNumber}
     ,{<<"Internal-Caller-ID-Name">>, CIDName}
@@ -247,12 +253,19 @@ build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
     ,{<<"Endpoint-Device-Type">>, kzd_devices:device_type(Endpoint)}
     ,{<<"Endpoint-Application">>, kzd_devices:application_name(Endpoint)}
     ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
-    ,{<<"Endpoint-Caller-ID-Number">>, CIDNumber}
-    ,{<<"Endpoint-Caller-ID-Name">>, CIDName}
+    ,{<<"Endpoint-Caller-ID-Number">>, EPCIDNumber}
+    ,{<<"Endpoint-Caller-ID-Name">>, EPCIDName}
     ,{<<"Endpoint-Presence-ID">>, kz_json:get_ne_binary_value(<<"Presence-ID">>, CCVs)}
     ,{<<"Endpoint-Presence-Aliases">>, presence_aliases(Endpoint)}
     ,{<<"Endpoint-DND">>, dnd(Endpoint)}
     ].
+
+-spec endpoint_caller_id(kz_kson:object(), cid()) -> cid().
+endpoint_caller_id(Endpoint, Default) ->
+    case unsafe_caller_id(Endpoint) of
+        true -> {undefined, undefined};
+        false -> Default
+    end.
 
 -spec get_device_module(kz_json:object()) -> atom().
 get_device_module(Endpoint) ->
@@ -558,6 +571,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, Module) ->
               ,{fun relay_id/2, Endpoint}
               ,{fun sip_auth/3, Module, Endpoint}
               ,{fun inbound_ccvs/3, Module, Endpoint}
+              ,{fun unsafe_caller_id/2, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
@@ -582,6 +596,18 @@ generate_routing_ccvs(Endpoint, _Options, Module) ->
 -spec inbound_ccvs(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 inbound_ccvs(Mod, Endpoint, CCVs) ->
     Mod:inbound_ccvs(Endpoint, CCVs).
+
+
+-spec unsafe_caller_id(kz_kson:object()) -> boolean().
+unsafe_caller_id(Endpoint) ->
+    kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"device">>, <<"unsafe_caller_id">>], Endpoint).
+
+-spec unsafe_caller_id(kz_json:object(), kz_json:object()) -> kz_json:object().
+unsafe_caller_id(Endpoint, CCVs) ->
+    case unsafe_caller_id(Endpoint) of
+        true -> kz_json:set_value(<<"Endpoint-Unsafe-CID">>, true, CCVs);
+        false -> CCVs
+    end.
 
 -spec sip_auth(module(), kz_json:object(), kz_json:object()) -> kz_json:object().
 sip_auth(Mod, Endpoint, CCVs) ->
