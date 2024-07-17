@@ -93,6 +93,7 @@ caller_id(Attribute, Call) ->
           orelse (kapps_call:is_transfer(Call)
                   andalso kapps_call:authorizing_id(Call) =:= 'undefined'
                  )
+          orelse kz_json:is_true(<<"Endpoint-Unsafe-CID">>, CCVs)
           orelse kz_json:is_true(<<"Retain-CID">>, CCVs))
         andalso kz_term:is_false(kapps_call:kvs_fetch('force_dynamic_cid', 'false', Call))
     of
