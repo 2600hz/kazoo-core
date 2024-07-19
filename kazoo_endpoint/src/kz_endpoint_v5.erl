@@ -497,15 +497,8 @@ merge_attribute(<<"call_forward">> = Key, Account, Endpoint, Owner) ->
                 'false' -> Endpoint
             end
     end;
-merge_attribute(<<"call_settings">> = Key, Account, Endpoint, Owner) ->
-    EndpointAttr = kz_json:get_json_value(Key, Endpoint, kz_json:new()),
-    AccountAttr = kz_json:get_json_value(Key, Account, kz_json:new()),
-    OwnerAttr = kz_json:get_json_value(Key, Owner, kz_json:new()),
-    Merged = kz_json:merge([AccountAttr, OwnerAttr, EndpointAttr]),
-    case kz_term:is_empty(Merged) of
-        'true' -> Endpoint;
-        'false' -> kz_json:set_value(Key, Merged, Endpoint)
-    end;
+merge_attribute(<<"call_settings">>, Account, Endpoint, Owner) ->
+    merge_call_settings(Account, Endpoint, Owner);
 merge_attribute(<<"call_waiting">> = Key, Account, Endpoint, Owner) ->
     AccountAttr = kz_json:get_ne_value(Key, Account, kz_json:new()),
     EndpointAttr = kz_json:get_ne_value(Key, Endpoint, kz_json:new()),
@@ -1688,3 +1681,30 @@ endpoint_owner_id(Endpoint, <<"user">>) ->
 endpoint_owner_id(Endpoint, <<"device">>) ->
     kz_json:get_ne_binary_value(<<"owner_id">>, Endpoint);
 endpoint_owner_id(_Endpoint,_) -> 'undefined'.
+
+default_private_call_settings_keys() ->
+    ?DEFAULT_PRIVATE_CALL_SETTINGS_KEYS.
+
+private_call_settings_keys() ->
+    Default = default_private_call_settings_keys(),
+    Keys = kz_app_config:get_ne_binaries(?APP, <<"call_settings.private_keys">>, Default),
+    [binary:split(Key, <<".">>, [global]) || Key <- Keys].
+
+private_call_settings(Endpoint) ->
+    kz_json:get_json_value(<<"pvt_call_settings">>, kz_doc:private_fields(Endpoint), kz_json:new()).
+
+remove_private_call_settings(Endpoint) ->
+    kz_json:delete_keys(private_call_settings_keys(), Endpoint).
+
+call_settings(Endpoint) ->
+    Settings = kz_json:get_json_value(<<"call_settings">>, Endpoint, kz_json:new()),
+    Removed = remove_private_call_settings(Settings),
+    Private = private_call_settings(Endpoint),
+    kz_json:merge(Removed, Private).
+
+merge_call_settings(Account, Endpoint, Owner) ->
+    Merged = kz_json:merge(lists:map(fun call_settings/1, [Account, Owner, Endpoint])),
+    case kz_term:is_empty(Merged) of
+        'true' -> Endpoint;
+        'false' -> kz_json:set_value(<<"call_settings">>, Merged, Endpoint)
+    end.
