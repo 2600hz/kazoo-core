@@ -5,6 +5,7 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_numbers/include/knm_phone_number.hrl").
 
+-define(APP, kazoo_endpoint).
 -define(APP_NAME, <<"kazoo_endpoint">>).
 -define(APP_VERSION, kz_application:application_version('kazoo_endpoint')).
 -define(CONFIG_CAT, <<"kazoo_endpoint">>).
@@ -35,6 +36,10 @@
 
 -define(MOD,(?EPMODVERSION)).
 -define(MOD(V),(?EPMODVERSION(V))).
+
+-define(DEFAULT_PRIVATE_CALL_SETTINGS_KEYS, [<<"directory.device.unsafe_caller_id">>
+                                            ,<<"directory.contact_api">>
+                                            ]).
 
 -define(KAZOO_ENDPOINT_HRL, 'true').
 -endif.
