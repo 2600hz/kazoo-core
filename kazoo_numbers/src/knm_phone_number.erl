@@ -1699,7 +1699,6 @@ handle_bulk_change_fold(JObj, T, Db, PNsMap, ErrorF) ->
             ?LOG_DEBUG("successfully changed ~s in ~s", [Num, Db]),
             knm_pipe:set_succeeded(T, maps:get(Num, PNsMap));
         'false' ->
-            %% Weirdest thing here is on conflict doc was actually properly saved!
             R = kz_json:get_ne_value(<<"error">>, JObj),
             ?LOG_WARNING("error changing ~s in ~s: ~s", [Num, Db, kz_json:encode(JObj)]),
             ErrorF(Num, kz_term:to_atom(R, 'true'), T)
