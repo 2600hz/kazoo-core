@@ -194,10 +194,15 @@ get_revisions(Server, DbName, NeedsRev) ->
     end.
 
 get_revision_from_all_docs_result(Result, Acc) ->
-    get_revision_from_all_docs_result(Result, Acc, kz_doc:id(Result)).
+    IsDeleted = kz_json:get_boolean_value([<<"value">>, <<"deleted">>], Result, 'false'),
+    get_revision_from_all_docs_result(Result, Acc, kz_doc:id(Result), IsDeleted).
 
-get_revision_from_all_docs_result(_Result, Acc, 'undefined') -> Acc;
-get_revision_from_all_docs_result(Result, Acc, DocId) ->
+get_revision_from_all_docs_result(_Result, Acc, 'undefined', _IsDeleted) -> Acc;
+get_revision_from_all_docs_result(_Result, Acc, _, 'true') ->
+    %% Docs that are deleted, but still have tombstones, are treated like docs that have never been
+    %% created and for which deletion is being attempted -> doc is ignored
+    Acc;
+get_revision_from_all_docs_result(Result, Acc, DocId, 'false') ->
     Doc = kz_doc:setters([{fun kz_doc:set_id/2, DocId}
                          ,{fun kz_doc:set_revision/2, kz_json:get_value([<<"value">>, <<"rev">>], Result)}
                          ]),
