@@ -462,6 +462,8 @@ to_json(PN=#knm_phone_number{doc=Doc}) ->
               ,{fun kzd_phone_numbers:set_pvt_state/2, state(PN)}
               | props:filter_empty(
                   [{fun kz_doc:set_revision/2, rev(PN)}
+                   %% TODO (2600hz/kazoo-core#902):
+                   %% Fix properly later (`set_doc' opts for sanitization control)
                   ,{fun kzd_phone_numbers:set_e911_location_id/2, kzd_phone_numbers:e911_location_id(Doc)}
                   ,{fun kzd_phone_numbers:set_pvt_assigned_to/2, assigned_to(PN)}
                   ,{fun kzd_phone_numbers:set_pvt_carrier_data/2, carrier_data(PN)}
