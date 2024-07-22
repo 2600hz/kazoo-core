@@ -451,7 +451,7 @@ read_only_settings(PN) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec to_json(pn_record()) -> kz_json:object().
-to_json(PN=#knm_phone_number{current_doc=CurrentDoc, doc=PublicDoc}) ->
+to_json(PN=#knm_phone_number{doc=Doc}) ->
     Setters = [{fun kz_doc:set_id/2, number(PN)}
               ,{fun kz_doc:set_created/2, created(PN)}
               ,{fun kz_doc:set_modified/2, modified(PN)}
@@ -462,6 +462,7 @@ to_json(PN=#knm_phone_number{current_doc=CurrentDoc, doc=PublicDoc}) ->
               ,{fun kzd_phone_numbers:set_pvt_state/2, state(PN)}
               | props:filter_empty(
                   [{fun kz_doc:set_revision/2, rev(PN)}
+                  ,{fun kzd_phone_numbers:set_e911_location_id/2, kzd_phone_numbers:e911_location_id(Doc)}
                   ,{fun kzd_phone_numbers:set_pvt_assigned_to/2, assigned_to(PN)}
                   ,{fun kzd_phone_numbers:set_pvt_carrier_data/2, carrier_data(PN)}
                   ,{fun kzd_phone_numbers:set_pvt_features/2, features(PN)}
@@ -473,9 +474,7 @@ to_json(PN=#knm_phone_number{current_doc=CurrentDoc, doc=PublicDoc}) ->
                   ,{fun kzd_phone_numbers:set_pvt_used_by/2, used_by(PN)}
                   ])
               ],
-    %% merges right, so only fields in CurrentDoc not set will be added
-    MergedDoc = kz_json:merge(kz_doc:private_fields(CurrentDoc), sanitize_public_fields(PublicDoc)),
-    kz_doc:setters(MergedDoc, Setters).
+    kz_doc:setters(sanitize_public_fields(Doc), Setters).
 
 %%------------------------------------------------------------------------------
 %% @doc
