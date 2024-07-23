@@ -36,12 +36,15 @@ get_config(Account, Config) ->
                ,fun load_default_config/2
                ],
     Schema = account_schema(Config),
-    kz_json_schema:filter(get_config(Account, Config, Programm), Schema).
+    get_filtered_config(Account, Config, Programm, Schema).
 
--spec get_config(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:functions()) -> kz_json:object().
-get_config(Account, Config, Programm) ->
+-spec get_filtered_config(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:functions(), kz_json:object()) ->
+          kz_json:object().
+get_filtered_config(Account, Config, Programm, Schema) ->
     Confs = [maybe_new(P(Account, Config)) || P <- Programm],
-    kz_json:merge(lists:reverse(Confs)).
+    MergedConfig = kz_json:merge(lists:reverse(Confs)),
+    FilteredConfig = kz_json_schema:filter(kz_doc:public_fields(MergedConfig, 'false'), Schema),
+    kz_json:merge(kz_doc:private_fields(MergedConfig), FilteredConfig).
 
 -spec get_reseller_config(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:object().
 get_reseller_config(Account, Config) ->
@@ -50,7 +53,7 @@ get_reseller_config(Account, Config) ->
                ,fun load_default_config/2
                ],
     Schema = account_schema(Config),
-    kz_json_schema:filter(get_config(Account, Config, Programm), Schema).
+    get_filtered_config(Account, Config, Programm, Schema).
 
 -spec load_config_from_account(kz_term:api_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
@@ -117,11 +120,12 @@ system_config_no_schema() ->
 -spec account_config_no_schema(kz_term:ne_binary()) -> kz_json:object().
 account_config_no_schema(Config) ->
     SystemName = system_schema_name(Config),
-    %% If there is no system schema, this is most likely a custom configs doc
+    %% If there is no system schema, this account is most likely writing
+    %% arbitrary custom configs, allow them
     AdditionalProperties = kz_json_schema:load(SystemName) =:= {'error', 'not_found'},
 
     %% Prevent accidentally exposing `system_config' properties for configs that
-    %% don't have an `account_config' equivalent
+    %% haven't been whitelisted by an `account_config' equivalent
     config_no_schema([{[<<"additionalProperties">>], AdditionalProperties}]).
 
 -spec config_no_schema(kz_json:flat_proplist()) -> kz_json:object().
