@@ -17,7 +17,7 @@
             ]
         },
         "Query-Interaction-Response": {
-            "type": "string"
+            "type": "object"
         }
     },
     "required": [
