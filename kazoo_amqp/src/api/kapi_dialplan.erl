@@ -2048,15 +2048,10 @@ conference_definition() ->
                                                             ,<<"Call-ID">>
                                                             ,<<"Conference-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Deaf">>
-                                                            ,<<"Insert-At">>
-                                                            ,<<"Member-Nospeak">> %% sets joining member to nospeak relations
-                                                            ,<<"Moderator">>
-                                                            ,<<"Mute">>
-                                                            ,<<"Nospeak-Check">> %% update relations
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Insert-At">>
+                                                            ,<<"Join-Options">>
                                                             ,<<"Profile">>
                                                             ,<<"Reinvite">>
-                                                            ,<<"Video-Mute">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"conference">>}
@@ -2067,11 +2062,8 @@ conference_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Call-ID">>, fun is_binary/1}
                 ,{<<"Conference-ID">>, fun is_binary/1}
-                ,{<<"Mute">>, fun kz_term:is_boolean/1}
-                ,{<<"Deaf">>, fun kz_term:is_boolean/1}
-                ,{<<"Moderator">>, fun kz_term:is_boolean/1}
+                ,{<<"Join-Options">>, fun kz_json:is_json_object/1}
                 ,{<<"Reinvite">>, fun kz_term:is_boolean/1}
-                ,{<<"Video-Mute">>, fun kz_term:is_boolean/1}
                 ]
                }
               ],
