@@ -252,6 +252,8 @@
                            ,<<"unlock">>
                            ,<<"add-member">>
                            ,<<"del-member">>
+                           ,<<"start-recording">>
+                           ,<<"stop-recording">>
                            | ?MEMBER_UPDATE_EVENTS
                            ]).
 

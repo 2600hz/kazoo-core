@@ -180,12 +180,14 @@ play(Media, ParticipantId, Conference) ->
 
 -spec record(kapps_conference:conference()) -> 'ok'.
 record(Conference) ->
-    Command = [{<<"Application-Name">>, <<"record">>}],
+    Command = [{<<"Application-Name">>, <<"record">>}
+              ,{<<"Media-Name">>, recording_name(Conference)}],
     send_command(Command, Conference).
 
 -spec recordstop(kapps_conference:conference()) -> 'ok'.
 recordstop(Conference) ->
-    Command = [{<<"Application-Name">>, <<"recordstop">>}],
+    Command = [{<<"Application-Name">>, <<"recordstop">>}
+              ,{<<"Media-Name">>, recording_name(Conference)}],
     send_command(Command, Conference).
 
 -spec relate_participants(non_neg_integer(), non_neg_integer(), kapps_conference:conference()) -> 'ok'.
@@ -309,3 +311,8 @@ play_macro(Macro, Conference) ->
            | Values
            ],
     send_command(Prop, Conference).
+
+-spec recording_name(kapps_conference:conference()) -> binary().
+recording_name(Conference) ->
+    Timestamp = kz_time:pretty_print_datetime(calendar:universal_time()),
+    list_to_binary([<<"conf_">>, kapps_conference:id(Conference), <<"_">>, Timestamp, <<".mp3">>]).
