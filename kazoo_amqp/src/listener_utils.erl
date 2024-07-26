@@ -16,6 +16,7 @@
         ,responder_mfa/2
         ]).
 
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include("listener_types.hrl").
 
 -define(DEFAULT_CALLBACK, 'handle_req').

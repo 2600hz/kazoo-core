@@ -1,8 +1,6 @@
 -ifndef(KZ_LISTENER_TYPES_HRL).
 
 -include_lib("kazoo_amqp/include/kz_amqp.hrl").
--include_lib("kazoo_stdlib/include/kz_types.hrl").
--include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -type binding_module() :: atom() | kz_term:ne_binary().
 
@@ -27,14 +25,13 @@
 -type declare_exchanges() :: [declare_exchange()].
 
 -type start_params() :: [{'auto_ack', boolean()} |
-                         {'auto_gc', boolean()} |
                          {'basic_qos', non_neg_integer()} |
                          {'bindings', bindings()} |
                          {'broker' | 'broker_tag', kz_term:ne_binary()} |
                          {'channel_flow', boolean()} |
                          {'consume_options', consume_options()} |
                          {'declare_exchanges', declare_exchanges()} |
-                         {'monitor', boolean()} | 'monitor' |
+                         {'kz_monitor', boolean()} | 'kz_monitor' |
                          {'queue_name', binary()} |
                          {'queue_name_always_generate', boolean()} |
                          {'queue_options', queue_options()} |

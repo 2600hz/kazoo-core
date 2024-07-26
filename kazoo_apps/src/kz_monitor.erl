@@ -20,7 +20,6 @@
 %%%   processes should use off_heap.
 %%%
 %%% Discussion: https://erlangforums.com/t/message-queue-data-off-heap-use-case/1119/9
-%%%   Dynamically switch to off_heap when message_queue_len exceeds threshold
 %%%   Probably affects gen_listener that back up
 %%%   Related PR: https://github.com/erlang/otp/pull/5768
 %%%   Note: do not oscillate between on_heap/off_heap (switching is expensive
@@ -118,7 +117,7 @@ track_pid(Pid) when is_pid(Pid) ->
 track_pids(Pids) when is_list(Pids) ->
     gen_server:cast(?SERVER, {'track', Pids}).
 
--spec tracked_pids() -> kz_term:proplist_kv(pid(), any()).
+-spec tracked_pids() -> kz_term:proplist_kv(pid(), proc_info()).
 tracked_pids() ->
     gen_server:call(?SERVER, 'tracked_pids').
 
@@ -142,9 +141,9 @@ pp_tracked_pid({Pid, #proc_info{tstamp=TStamp
 -spec init(any()) -> {'ok', state()}.
 init(_) ->
     lager:info("starting kz_monitor"),
-    erlang:system_monitor(self(), [{'long_gc', ?LONG_GC_TIME_MS}
-                                  ,{'large_heap', ?LARGE_HEAP_SIZE_WORDS}
-                                  ]),
+    _ = erlang:system_monitor(self(), [{'long_gc', ?LONG_GC_TIME_MS}
+                                      ,{'large_heap', ?LARGE_HEAP_SIZE_WORDS}
+                                      ]),
     {'ok', #{'timer_ref' => start_check_timer()}}.
 
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
@@ -195,6 +194,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%=============================================================================
 
+%%------------------------------------------------------------------------------
+%% @doc Start tracking the message queue length and heap size of `Pid'. Will
+%% warn if thresholds are exceeded as of the start of tracking.
+%% @end
+%%------------------------------------------------------------------------------
+-spec track_pid(pid(), state()) -> state().
 track_pid(Pid, State) ->
     case State of
         #{Pid := _} -> State;
@@ -214,6 +219,11 @@ track_pid(Pid, State) ->
                                     }}
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc Handle a system monitor message sent by ERTS. Handling is throttled per
+%% PID.
+%% @end
+%%------------------------------------------------------------------------------
 -spec handle_system_monitor_msg(pid(), system_monitor_msg(), state()) -> state().
 handle_system_monitor_msg(Pid, Msg, State) ->
     case State of
@@ -243,6 +253,11 @@ update_tracked_pid(Pid, #proc_info{has_long_message_queue=HasLongMQ}=Info) ->
                           }
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc Update some monitored info for `Pid' as a result of a system monitor
+%% message. Will warn if thresholds are exceeded.
+%% @end
+%%------------------------------------------------------------------------------
 -spec update_monitored_info(pid(), system_monitor_msg(), proc_info(), boolean()) -> proc_info().
 update_monitored_info(Pid, {'long_gc', MonInfo}, #proc_info{}=Info, ShouldWarn) ->
     GCTime = props:get_integer_value('timeout', MonInfo),
@@ -256,6 +271,11 @@ update_monitored_info(Pid, {'large_heap', MonInfo}, #proc_info{}=Info, ShouldWar
     maybe_warn_large_heap(Pid, TotalHeapSize, ShouldWarn),
     Info#proc_info{total_heap_size=total_heap_size(MonInfo)}.
 
+%%------------------------------------------------------------------------------
+%% @doc Update the timestamp of the last recorded monitored info if past the
+%% throttle time delta since the last recording.
+%% @end
+%%------------------------------------------------------------------------------
 -spec maybe_update_timestamp(proc_info(), time_ms()) -> {proc_info(), boolean()}.
 maybe_update_timestamp(#proc_info{tstamp=TStamp}=Info, NowMs) when TStamp + ?THROTTLE_MIN_MS > NowMs ->
     {Info, 'true'};

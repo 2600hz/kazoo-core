@@ -97,13 +97,7 @@
                       {'via', atom(), any()} |
                       pid().
 
--type gen_server_name() :: {'local', atom()} |
-                           {'global', any()} |
-                           {'via', atom(), any()}.
--type gen_server_option() :: {'debug', list()} |
-                             {'timeout', non_neg_integer()} |
-                             {'spawn_opt', list()}.
--type gen_server_options() :: [gen_server_option()].
+-type gen_server_options() :: [gen_server:start_opt()].
 
 
 %% XML types
@@ -164,8 +158,6 @@
              ,handle_fsm_ret/1
              ,handle_sync_event_ret/1
              ,server_ref/0
-             ,gen_server_name/0
-             ,gen_server_option/0
              ,gen_server_options/0
              ,xml_attrib_name/0
              ,xml_attrib_value/0

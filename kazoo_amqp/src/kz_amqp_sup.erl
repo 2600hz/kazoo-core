@@ -26,8 +26,6 @@
 
 -define(SERVER, ?MODULE).
 
--define(CONFIG_SECTION, <<"amqp">>).
-
 -define(POOL_NAME, 'kz_amqp_pool').
 
 -define(POOL_THRESHOLD, kz_config:get_integer(?CONFIG_SECTION, <<"pool_threshold">>, ?DEFAULT_POOL_THRESHOLD)).
