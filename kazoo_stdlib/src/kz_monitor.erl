@@ -63,7 +63,7 @@
         ,code_change/3
         ]).
 
--include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include("kz_types.hrl").
 
 -define(SERVER, ?MODULE).
 
