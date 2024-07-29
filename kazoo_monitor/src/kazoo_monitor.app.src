@@ -1,0 +1,7 @@
+{application,kazoo_monitor,
+             [{applications,[kazoo_stdlib,kernel,lager,stdlib]},
+              {description,"An erlang:system_monitor/2 message receiver"},
+              {vsn,"1.0.0"},
+              {modules,[]},
+              {registered,[kz_monitor,kazoo_monitor_sup]},
+              {mod,{kazoo_monitor_app,[]}}]}.
