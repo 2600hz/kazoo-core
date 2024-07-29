@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2021, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -103,13 +103,14 @@ init([]) ->
         end,
     PoolServerConfirms = kz_config:get_boolean(?CONFIG_SECTION, <<"pool_server_confirms">>, ?DEFAULT_POOL_SERVER_CONFIRMS),
 
+    PoolName = kz_amqp_sup:pool_name(),
     PoolArgs = [{'worker_module', 'kz_amqp_worker'}
-               ,{'name', {'local', kz_amqp_sup:pool_name()}}
+               ,{'name', {'local', PoolName}}
                ,{'size', PoolSize}
                ,{'max_overflow', PoolOverflow}
                ,{'strategy', 'fifo'}
                ,{'neg_resp_threshold', PoolThreshold}
                ,{'amqp_server_confirms', PoolServerConfirms}
                ],
-
-    {'ok', {SupFlags, ?CHILDREN ++ [?POOL_NAME_ARGS(kz_amqp_sup:pool_name(), [PoolArgs])]}}.
+    lager:info("starting AMQP pool ~s", [PoolName]),
+    {'ok', {SupFlags, ?CHILDREN ++ [?POOL_NAME_ARGS(PoolName, [PoolArgs])]}}.

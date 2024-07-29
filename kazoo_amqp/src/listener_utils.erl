@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2021, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Utility functions for AMQP listeners to use to add/remove responders.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -16,6 +16,7 @@
         ,responder_mfa/2
         ]).
 
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include("listener_types.hrl").
 
 -define(DEFAULT_CALLBACK, 'handle_req').

@@ -1,6 +1,6 @@
 {application,kazoo_amqp,
              [{applications,[amqp_client,crypto,gproc,kazoo_config,
-                             kazoo_stdlib,kernel,lager,
+                             kazoo_monitor,kazoo_stdlib,kernel,lager,
                              rabbit_common,stdlib]},
               {description,"AMQP client helpers for interacting with a AMQP server"},
               {vsn,"4.0.0"},

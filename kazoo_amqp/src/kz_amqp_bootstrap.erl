@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2020, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc Karls Hackity Hack....
 %%% We want to block during startup until we have a AMQP connection
 %%% but due to the way `kz_amqp_mgr' is structured we can't block in
@@ -144,7 +144,7 @@ get_from_zone(ZoneName) ->
     case props:get_value('local', Props, []) of
         [] ->
             lager:info("no local zone configured, adding default AMQP"),
-            [{'local', kz_config:get(<<"amqp">>, <<"uri">>, [?DEFAULT_AMQP_URI])}
+            [{'local', kz_config:get(?CONFIG_SECTION, <<"uri">>, [?DEFAULT_AMQP_URI])}
             | Props
             ];
         _Else -> Props
