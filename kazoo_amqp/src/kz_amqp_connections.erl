@@ -574,6 +574,6 @@ uris() ->
 -spec configured_brokers() -> configured_brokers().
 configured_brokers() ->
     case kz_config:get_section('zone') of
-        [] -> kz_config:get_section('amqp');
+        [] -> kz_config:get_section(?CONFIG_SECTION);
         Zones -> Zones
     end.

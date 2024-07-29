@@ -144,7 +144,7 @@ get_from_zone(ZoneName) ->
     case props:get_value('local', Props, []) of
         [] ->
             lager:info("no local zone configured, adding default AMQP"),
-            [{'local', kz_config:get(<<"amqp">>, <<"uri">>, [?DEFAULT_AMQP_URI])}
+            [{'local', kz_config:get(?CONFIG_SECTION, <<"uri">>, [?DEFAULT_AMQP_URI])}
             | Props
             ];
         _Else -> Props
