@@ -44,7 +44,6 @@
                   ,?WORKER('kapps_controller')
                   ,?CACHE_ARGS(?KAPPS_GETBY_CACHE, ?KAPPS_GETBY_PROPS)
                   ,?WORKER('kz_epmd')
-                  ,?WORKER('kz_monitor')
                   ]).
 -endif.
 

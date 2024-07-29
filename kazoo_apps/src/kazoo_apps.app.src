@@ -9,5 +9,5 @@
               {id,"9fd3b140-8727-11e0-9d78-0800200c9a66"},
               {vsn,"4.0.0"},
               {modules,[]},
-              {registered,[kz_monitor,kazoo_apps_sup]},
+              {registered,[kazoo_apps_sup]},
               {mod,{kazoo_apps_app,[]}}]}.

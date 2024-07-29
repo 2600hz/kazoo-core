@@ -1,6 +1,7 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2024, 2600Hz
+%%% @copyright (C) 2024, 2600Hz
 %%% @doc Monitors processes for various conditions and logs loudly
+%%%
 %%% There was an EEP that went nowhere: https://www.erlang.org/eeps/eep-0042
 %%%   `max_heap_size' was implemented as a process flag, but not max
 %%%   `message_queue_len'
@@ -42,6 +43,8 @@
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
 %%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%%
+%%% @author James Aimonetti
+%%% @author Daniel Finke <danielfinke2011@gmail.com>
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kz_monitor).
@@ -63,7 +66,7 @@
         ,code_change/3
         ]).
 
--include("kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -define(SERVER, ?MODULE).
 
@@ -141,6 +144,7 @@ pp_tracked_pid({Pid, #proc_info{tstamp=TStamp
 -spec init(any()) -> {'ok', state()}.
 init(_) ->
     lager:info("starting kz_monitor"),
+    _ = kz_process:set_startup(),
     _ = erlang:system_monitor(self(), [{'long_gc', ?LONG_GC_TIME_MS}
                                       ,{'large_heap', ?LARGE_HEAP_SIZE_WORDS}
                                       ]),
