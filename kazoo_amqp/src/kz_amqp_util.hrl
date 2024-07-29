@@ -10,5 +10,7 @@
 -define(APP_NAME, <<"kazoo_amqp">>).
 -define(APP_VERSION, <<"4.0.0">>).
 
+-define(CONFIG_SECTION, <<"amqp">>).
+
 -define(KZ_AMQP_UTIL_HRL, 'true').
 -endif.
