@@ -181,21 +181,24 @@ get_bucket(App, Key) ->
 get_bucket(App, Key, 'record') ->
     case ets:lookup(table_id(), {App, Key}) of
         [] -> 'undefined';
-        [Bucket] -> Bucket
+        [#bucket{}=Bucket] -> Bucket
     end;
 get_bucket(App, Key, 'server') ->
     T = {App, Key},
-    case ets:lookup(table_id(), T) of
-        [] -> 'undefined';
-        [#bucket{srv=Srv}] ->
+    case ets:lookup_element(table_id(), T, #bucket.srv, 'undefined') of
+        'undefined' -> 'undefined';
+        Srv ->
             case is_process_alive(Srv) of
                 'true' ->
-                    gen_server:cast(?SERVER, {'bucket_accessed', T}),
+                    bump_access(T),
                     Srv;
                 'false' ->
                     'undefined'
             end
     end.
+
+bump_access(Key) ->
+    ets:update_element(table_id(), Key, {#bucket.accessed, kz_time:now_s()}).
 
 -spec exists(kz_term:ne_binary()) -> boolean().
 exists(Key) ->
@@ -277,11 +280,9 @@ print_bucket_info(#bucket{key={App, _}}=Bucket, _OldApp) ->
 
 -spec tokens_remaining(kz_term:ne_binary(), kz_term:ne_binary()) -> non_neg_integer().
 tokens_remaining(App, Key) ->
-    case ets:lookup(table_id(), {App, Key}) of
-        [] ->
-            ?MAX_TOKENS(App);
-        [#bucket{srv=P}] ->
-            kz_token_bucket:tokens(P)
+    case ets:lookup_element(table_id(), {App, Key}, #bucket.srv, 'undefined') of
+        'undefined' -> ?MAX_TOKENS(App);
+        Pid -> kz_token_bucket:tokens(Pid)
     end.
 
 %%%=============================================================================
@@ -295,9 +296,14 @@ tokens_remaining(App, Key) ->
 -spec table_id() -> atom().
 table_id() -> ?MODULE.
 
+%% see https://www.erlang.org/doc/apps/stdlib/ets.html#new/2
 -spec table_options() -> list().
 table_options() ->
-    ['named_table' | kazoo_etsmgr_srv:default_table_options()].
+    ['named_table', 'set', 'public'
+    ,{'keypos', #bucket.key}
+    ,{'write_concurrency', 'auto'} % recommended for OTP 25+
+    ,{'decentralized_counters', 'true'} % recommended pairing with write_concurrency
+    ].
 
 -spec gift_data() -> 'ok'.
 gift_data() -> 'ok'.
@@ -327,14 +333,15 @@ handle_call({'start', _App, _Name, _MaxTokens, _FillRate, _FillTime}
     lager:debug("not starting token bucket for ~p ~p, table not ready"
                ,[_App, _Name]
                ),
-    {'reply', 'error', State};
-handle_call({'start', App, Name, MaxTokens, FillRate, FillTime}, _From, #state{table_id=Tbl}=State) ->
+    {'reply', 'ok', State};
+handle_call({'start', App, Name, MaxTokens, FillRate, FillTime}
+           ,_From
+           ,#state{table_id=Tbl}=State
+           ) ->
     lager:debug("maybe starting token bucket for ~s, ~s (~b at ~b/~s)"
                ,[App, Name, MaxTokens, FillRate, FillTime]
                ),
-    case not exists(App, Name)
-        andalso kz_buckets_sup:start_bucket(MaxTokens, FillRate, FillTime)
-    of
+    case kz_buckets_sup:start_bucket(MaxTokens, FillRate, FillTime) of
         {'ok', Pid} when is_pid(Pid) ->
             T = {App, Name},
             _ = case ets:insert_new(Tbl, new_bucket(Pid, T)) of
@@ -343,15 +350,11 @@ handle_call({'start', App, Name, MaxTokens, FillRate, FillTime}, _From, #state{t
                         lager:debug("hmm, bucket appears to exist for ~s, ~s, stopping ~p", [App, Name, Pid]),
                         kz_buckets_sup:stop_bucket(Pid)
                 end,
-            kz_token_bucket:set_name(Pid, T),
-            {'reply', 'ok', State};
-        'false' ->
-            lager:debug("good chance the bucket ~s, ~s already exists", [App, Name]),
-            {'reply', 'exists', State};
+            kz_token_bucket:set_name(Pid, T);
         _E ->
-            lager:debug("error: starting bucket: ~p", [_E]),
-            {'reply', 'error', State}
-    end;
+            lager:debug("error: starting bucket: ~p", [_E])
+    end,
+    {'reply', 'ok', State};
 handle_call(_Request, _From, State) ->
     {'reply', {'error', 'not_implemented'}, State}.
 
@@ -362,9 +365,6 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast(_Req, #state{table_id='undefined'}=State) ->
     lager:debug("ignoring req: ~p", [_Req]),
-    {'noreply', State};
-handle_cast({'bucket_accessed', Key}, State) ->
-    ets:update_element(table_id(), Key, {#bucket.accessed, kz_time:now_s()}),
     {'noreply', State};
 handle_cast(_Msg, State) ->
     {'noreply', State}.
@@ -377,7 +377,21 @@ handle_cast(_Msg, State) ->
 handle_info({'ETS-TRANSFER', Tbl, _From, _Data}, #state{table_id='undefined'}=State) ->
     lager:debug("recv ets transfer from ~p for ~p", [_From, Tbl]),
     {'noreply', State#state{table_id=Tbl}};
+handle_info({'DOWN', Ref, 'process', Pid, 'normal'}, #state{table_id=Tbl}=State) ->
+    kz_process:spawn(fun cleanup_bucket_pid/3, [Tbl, Pid, Ref]),
+    {'noreply', State};
 handle_info({'DOWN', Ref, 'process', Pid, _Reason}, #state{table_id=Tbl}=State) ->
+    lager:info("bucket ~p(~p) died: ~p", [Pid, Ref, _Reason]),
+    kz_process:spawn(fun cleanup_bucket_pid/3, [Tbl, Pid, Ref]),
+    {'noreply', State};
+handle_info(?INACTIVITY_MSG, #state{inactivity_timer_ref=_OldRef}=State) ->
+    _Pid = kz_process:spawn(fun check_for_inactive_buckets/0),
+    {'noreply', State#state{inactivity_timer_ref=start_inactivity_timer()}};
+handle_info(_Info, State) ->
+    lager:debug("unhandled message: ~p", [_Info]),
+    {'noreply', State}.
+
+cleanup_bucket_pid(Tbl, Pid, Ref) ->
     Match = [{#bucket{srv='$1'
                      ,ref='$2'
                      ,_='_'
@@ -388,17 +402,7 @@ handle_info({'DOWN', Ref, 'process', Pid, _Reason}, #state{table_id=Tbl}=State) 
              ,['true']
              }
             ],
-    case ets:select_delete(Tbl, Match) of
-        N when N > 0 -> lager:debug("bucket ~p down: ~p", [Pid, _Reason]);
-        0 -> lager:debug("unknown process ~p(~p) down: ~p", [Pid, Ref, _Reason])
-    end,
-    {'noreply', State};
-handle_info(?INACTIVITY_MSG, #state{inactivity_timer_ref=_OldRef}=State) ->
-    _Pid = kz_process:spawn(fun check_for_inactive_buckets/0),
-    {'noreply', State#state{inactivity_timer_ref=start_inactivity_timer()}};
-handle_info(_Info, State) ->
-    lager:debug("unhandled message: ~p", [_Info]),
-    {'noreply', State}.
+    _ = ets:select_delete(Tbl, Match).
 
 %%------------------------------------------------------------------------------
 %% @doc This function is called by a `gen_server' when it is about to
