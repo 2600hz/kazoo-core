@@ -555,7 +555,7 @@ init(Module, Params, ModuleState, TimeoutRef) ->
 %% if true, add self() to kz_monitor to keep tabs on how self()'s
 %% process mailbox and heap grow. Will alert when thresholds are hit
 maybe_monitor_me(Params) ->
-    case props:is_true('kz_monitor', Params, ?DEFAULT_KZ_MONITOR) of
+    case props:get_value('kz_monitor', Params, ?DEFAULT_KZ_MONITOR) of
         'false' -> 'ok';
         V ->
             monitor_me(V),
