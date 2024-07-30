@@ -169,10 +169,10 @@ handle_cast(_Cast, State) ->
     {'noreply', State}.
 
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'DOWN', Ref, 'process', Pid, _Reason}, State) ->
-    case maps:take({Pid, Ref}, State) of
+handle_info({'DOWN', _Ref, 'process', Pid, _Reason}, State) ->
+    case maps:take(Pid, State) of
         'error' -> {'noreply', State};
-        {_MonitorInfo, NewState} ->
+        {_ProcInfo, NewState} ->
             lager:info("pid ~p down: ~p", [Pid, _Reason]),
             {'noreply', NewState}
     end;
