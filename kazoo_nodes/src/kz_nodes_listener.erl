@@ -60,6 +60,7 @@
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, [{'no_local', 'true'}]).
+-define(LARGE_HEAP_SIZE_WORDS, 100_000).
 
 -define(HEARTBEAT, 10 * ?MILLISECONDS_IN_SECOND + rand:uniform(10 * ?MILLISECONDS_IN_SECOND)).
 -define(EXPIRE_PERIOD, 1 * ?MILLISECONDS_IN_SECOND).
@@ -100,6 +101,7 @@ start_link() ->
                             ,{'queue_name', ?QUEUE_NAME}
                             ,{'queue_options', ?QUEUE_OPTIONS}
                             ,{'consume_options', ?CONSUME_OPTIONS}
+                            ,{'kz_monitor', #{'large_heap' => ?LARGE_HEAP_SIZE_WORDS}}
                             ]
                            ,[]
                            ).

@@ -557,10 +557,14 @@ init(Module, Params, ModuleState, TimeoutRef) ->
 maybe_monitor_me(Params) ->
     case props:is_true('kz_monitor', Params, ?DEFAULT_KZ_MONITOR) of
         'false' -> 'ok';
-        'true' ->
-            kz_monitor:track_me(),
+        V ->
+            monitor_me(V),
             lager:info("process monitoring initiated")
     end.
+
+-spec monitor_me('true' | kz_monitor:proc_thresholds()) -> 'ok'.
+monitor_me('true') -> kz_monitor:track_me();
+monitor_me(ProcThresholds) -> kz_monitor:track_me(ProcThresholds).
 
 -spec maybe_set_queue_name(module(), start_params()) -> start_params().
 maybe_set_queue_name(Module, Params) ->
