@@ -128,7 +128,7 @@ exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
             lager:debug("no endpoints were found to dial, continuing"),
             {'ok', Call};
         EPs ->
-            lager:debug("~s endpoint(s) created, sending bridge command", [length(EPs)]),
+            lager:debug("~b endpoint(s) created, sending bridge command", [length(EPs)]),
             Timeout = dial_timeout(Props),
             IgnoreEarlyMedia = kz_endpoints:ignore_early_media(EPs),
             Strategy = dial_strategy(Props),
@@ -171,6 +171,7 @@ number_dial(Call, DialProps, _NumberProps, DialMe) ->
 send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
     Command = [{<<"Application-Name">>, <<"bridge">>}
               ,{<<"Endpoints">>, EPs}
+              ,{<<"Loopback-Bowout">>, <<"true">>}
               ,{<<"Timeout">>, Timeout}
               ,{<<"Ignore-Early-Media">>, IgnoreEarlyMedia}
               ,{<<"Dial-Endpoint-Method">>, Strategy}
@@ -279,20 +280,14 @@ collecting_endpoints(Call, [#xmlElement{name='Number'} = EP | EPs], Acc) ->
     %% _Method = props:get_value('method', Props),
 
     DialMe = normalize_number(kz_xml:texts_to_binary(Number), Call),
-
-    lager:debug("adding Number with DID ~s", [DialMe]),
-
-    CallFwd = kz_json:from_list([{<<"enabled">>, true}
-                                ,{<<"number">>, DialMe}
-                                ,{<<"require_keypress">>, 'false'}
-                                ,{<<"substitute">>, 'true'}
-                                ]),
-    Device = kz_doc:set_account_id(kz_json:new(), kapps_call:account_id(Call)),
-    Unconditional = kzd_call_forward:set_unconditional(CallFwd, CallFwd),
-    Endpoint = kzd_endpoint:set_call_forward(Device, Unconditional),
-    FwdEP = kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call),
-
-    collecting_endpoints(Call, EPs, [FwdEP|Acc]);
+    case kz_term:is_empty(DialMe) of
+        'true' ->
+            collecting_endpoints(Call, EPs, Acc);
+        'false' ->
+            lager:debug("adding Number with DID ~s", [DialMe]),
+            FwdEP = create_fwd_endpoint(DialMe, Call),
+            collecting_endpoints(Call, EPs, [FwdEP|Acc])
+    end;
 
 collecting_endpoints(Call,[#xmlElement{name='Sip'} = EP | EPs], Acc) ->
     #xmlElement{content=Number, attributes=Attrs} = EP,
@@ -313,6 +308,24 @@ collecting_endpoints(Call,[#xmlElement{name='Sip'} = EP | EPs], Acc) ->
 collecting_endpoints(Call, [_Xml|EPs], Acc) ->
     lager:debug("unknown endpoint, skipping: ~p", [_Xml]),
     collecting_endpoints(Call, EPs, Acc).
+
+-spec create_fwd_endpoint(kz_term:ne_binary(), kapps_call:call()) -> kz_json:object().
+create_fwd_endpoint(Number, Call) ->
+    CallFwd = kz_json:from_list([{<<"enabled">>, 'true'}
+                                ,{<<"number">>, Number}
+                                ,{<<"require_keypress">>, 'false'}
+                                ,{<<"substitute">>, 'true'}
+                                ]),
+    Unconditional = kzd_call_forward:set_unconditional(CallFwd, CallFwd),
+    case kz_endpoint:get(Call) of
+        {'ok', Endpoint0} ->
+            Endpoint = kzd_endpoint:set_call_forward(Endpoint0, Unconditional),
+            kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call);
+        {'error', _} ->
+            {'ok', Endpoint0} = kzd_accounts:fetch(kapps_call:account_id(Call)),
+            Endpoint = kzd_endpoint:set_call_forward(Endpoint0, Unconditional),
+            kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call)
+    end.
 
 -spec sip_uri(kapps_call:call(), kzsip_uri:sip_uri()) -> kz_json:object().
 sip_uri(Call, URI) ->
