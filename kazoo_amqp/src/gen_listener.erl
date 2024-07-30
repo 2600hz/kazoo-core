@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Behaviour for setting up an AMQP listener.
 %%% Add/remove responders for `Event-Cat'/`Event-Name' pairs. Each responder
 %%% corresponds to a module that has defined a `handle/1' function, receiving
@@ -35,8 +35,8 @@
 %%%   <dt>`{declare_exchanges, declare_exchanges()}'</dt>
 %%%   <dd>Optional, for declaring dynamic exchanges used only in this connection.</dd>
 %%
-%%%   <dt>`{auto_gc, boolean()}'</dt>
-%%%   <dd>Optional, defaults to 'true', toggles whether to gc process after handle_event is processed</dd>
+%%%   <dt>`{kz_monitor, boolean()}'</dt>
+%%%   <dd>Optional, defaults to 'true', toggles whether the process's mailbox/heap are tracked by kz_monitor.</dd>
 %%% </dl>
 %%%
 %%% @author James Aimonetti
@@ -119,16 +119,15 @@
 -export([delayed_cast/3]).
 -export([distribute_event/3]).
 
-
+-include("kz_amqp_util.hrl").
 -include("listener_types.hrl").
-
--define(SERVER, ?MODULE).
 
 -define(SERVER_RETRY_PERIOD, 30 * ?MILLISECONDS_IN_SECOND).
 -define(TIMEOUT_RETRY_CONN, 5 * ?MILLISECONDS_IN_SECOND).
 -define(CALLBACK_TIMEOUT_MSG, 'callback_timeout').
 
 -define(BIND_WAIT, 100).
+-define(DEFAULT_KZ_MONITOR, kz_config:get_boolean(?CONFIG_SECTION, <<"kz_monitor_listeners">>, 'true')).
 
 -type module_state() :: any().
 
@@ -146,7 +145,7 @@
                ,bindings = [] :: bindings() % {authentication, [{key, value},...]}
                ,delayed_bindings = [] :: bindings() % for when AMQP channel isn't quite ready
                ,params = [] :: start_params()
-               ,module :: atom()
+               ,module :: module()
                ,module_state :: module_state()
                ,module_timeout_ref :: kz_term:api_reference() % when the client sets a timeout, gen_listener calls shouldn't negate it, only calls that pass through to the client
                ,other_queues = [] :: other_queues()
@@ -238,33 +237,36 @@ crash(Server) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec start_link(atom(), start_params(), list()) -> kz_types:startlink_ret().
+-spec start_link(module(), start_params(), list()) -> kz_types:startlink_ret().
 start_link(Module, Params, InitArgs) when is_atom(Module),
                                           is_list(Params),
                                           is_list(InitArgs)
                                           ->
-    gen_server:start_link(?SERVER, [Module, Params, InitArgs], []).
+    start_link(Module, Params, InitArgs, []).
 
--spec start_link(kz_types:gen_server_name() | atom(), atom() | start_params(), start_params() | list(), kz_types:gen_server_options() | list()) -> kz_types:startlink_ret().
+-spec start_link(module(), start_params(), list(), kz_types:gen_server_options()) -> kz_types:startlink_ret();
+                (gen_server:server_name(), module(), start_params(), list()) -> kz_types:startlink_ret().
 start_link(Module, Params, InitArgs, Options) when is_atom(Module),
                                                    is_list(Params),
                                                    is_list(InitArgs),
                                                    is_list(Options)
                                                    ->
-    gen_server:start_link(?MODULE, [Module, Params, InitArgs], Options);
+    Options1 = add_default_options(Options),
+    gen_server:start_link(?MODULE, {Module, Params, InitArgs}, Options1);
 start_link(Name, Module, Params, InitArgs) when is_atom(Module),
                                                 is_list(Params),
                                                 is_list(InitArgs)
                                                 ->
-    gen_server:start_link(Name, ?MODULE, [Module, Params, InitArgs], []).
+    start_link(Name, Module, Params, InitArgs, []).
 
--spec start_link(kz_types:gen_server_name(), atom(), start_params(), list(), kz_types:gen_server_options()) -> kz_types:startlink_ret().
+-spec start_link(gen_server:server_name(), module(), start_params(), list(), kz_types:gen_server_options()) -> kz_types:startlink_ret().
 start_link(Name, Module, Params, InitArgs, Options) when is_atom(Module),
                                                          is_list(Params),
                                                          is_list(InitArgs),
                                                          is_list(Options)
                                                          ->
-    gen_server:start_link(Name, ?MODULE, [Module, Params, InitArgs], Options).
+    Options1 = add_default_options(Options),
+    gen_server:start_link(Name, ?MODULE, {Module, Params, InitArgs}, Options1).
 
 -spec stop(kz_types:server_ref()) -> 'ok'.
 stop(Server) ->
@@ -330,23 +332,19 @@ delayed_cast(Name, Request, Wait) when is_integer(Wait), Wait > 0 ->
 -spec reply(kz_term:pid_ref(), any()) -> any().
 reply(From, Msg) -> gen_server:reply(From, Msg).
 
--type server_name() :: {'global' | 'local', atom()} | pid().
-
--spec enter_loop(atom(), start_params(), any()) -> no_return().
+-spec enter_loop(module(), start_params(), any()) -> no_return().
 enter_loop(Module, Options, ModuleState) ->
     enter_loop(Module, Options, ModuleState, self(), 'infinity').
 
--spec enter_loop(atom(), start_params(), any(), timeout() | server_name()) -> no_return().
-enter_loop(Module, Options, ModuleState, {Scope, _Name}=ServerName)
-  when Scope =:= 'local'
-       orelse Scope =:= 'global' ->
+-spec enter_loop(module(), start_params(), any(), timeout() | gen_server:server_name()) -> no_return().
+enter_loop(Module, Options, ModuleState, ServerName) when is_tuple(ServerName) ->
     enter_loop(Module, Options, ModuleState, ServerName, 'infinity');
-enter_loop(Module, Option, ModuleState, Timeout) ->
-    enter_loop(Module, Option, ModuleState, self(), Timeout).
+enter_loop(Module, Options, ModuleState, Timeout) ->
+    enter_loop(Module, Options, ModuleState, self(), Timeout).
 
--spec enter_loop(atom(), start_params(), any(), server_name(), timeout()) -> no_return().
+-spec enter_loop(module(), start_params(), any(), gen_server:server_name() | pid(), timeout()) -> no_return().
 enter_loop(Module, Options, ModuleState, ServerName, Timeout) ->
-    {'ok', MyState} = init_state([Module, Options, ModuleState]),
+    {'ok', MyState} = init_state(Module, Options, ModuleState),
     gen_server:enter_loop(?MODULE, [], MyState, ServerName, Timeout).
 
 -spec add_responder(kz_types:server_ref(), responder_callback(), responder_callback_mapping() | responder_callback_mappings()) -> 'ok'.
@@ -478,9 +476,9 @@ execute(Srv, Function) when is_function(Function) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--type init_args() :: [atom() | start_params() | kz_term:proplist(),...].
--spec init(init_args()) ->
-          {'ok', 'null', {'continue', init_args()}}.
+-type init_args() :: {module(), start_params(), list()}.
+
+-spec init(init_args()) -> {'ok', 'null', {'continue', init_args()}}.
 init(Args) ->
     {'ok', 'null', {'continue', Args}}.
 
@@ -488,10 +486,8 @@ init(Args) ->
 %% @doc Takes an existing process and turns it into a `gen_listener'.
 %% @end
 %%------------------------------------------------------------------------------
--spec init_state(init_args()) -> {'ok', state()} |
-          {'stop', any()} |
-          'ignore'.
-init_state([Module, Params, ModuleState]) ->
+-spec init_state(module(), start_params(), module_state()) -> {'ok', state()} | {'stop', any()} | 'ignore'.
+init_state(Module, Params, ModuleState) ->
     process_flag('trap_exit', 'true'),
     kz_log:put_callid(Module),
 
@@ -501,11 +497,8 @@ init_state([Module, Params, ModuleState]) ->
     lager:debug("continuing as a gen_listener proc : ~s ~s", [Application, Module]),
     init(Module, Params, ModuleState, 'undefined').
 
--spec do_init(init_args()) ->
-          {'ok', state()} |
-          {'stop', any()} |
-          'ignore'.
-do_init([Module, Params, InitArgs]) ->
+-spec do_init(init_args()) -> {'ok', state()} | {'stop', any()} | 'ignore'.
+do_init({Module, Params, InitArgs}) ->
     process_flag('trap_exit', 'true'),
     kz_log:put_callid(Module),
 
@@ -525,8 +518,7 @@ do_init([Module, Params, InitArgs]) ->
         'ignore' -> 'ignore'
     end.
 
--spec init(atom(), start_params(), module_state(), kz_term:api_reference()) ->
-          {'ok', state()}.
+-spec init(module(), start_params(), module_state(), kz_term:api_reference()) -> {'ok', state()}.
 init(Module, Params, ModuleState, TimeoutRef) ->
     _ = [add_responder(self(), Mod, Events)
          || {Mod, Events} <- props:get_value('responders', Params, [])
@@ -538,9 +530,20 @@ init(Module, Params, ModuleState, TimeoutRef) ->
                   ,handle_event_mfa = listener_utils:responder_mfa(Module, 'handle_event')
                   ,auto_ack = props:is_true('auto_ack', Params, 'false')
                   },
+    maybe_monitor_me(Params),
     {'ok', start_initial_bindings(State)}.
 
--spec maybe_set_queue_name(atom(), start_params()) -> start_params().
+%% if true, add self() to kz_monitor to keep tabs on how self()'s
+%% process mailbox and heap grow. Will alert when thresholds are hit
+maybe_monitor_me(Params) ->
+    case props:is_true('kz_monitor', Params, ?DEFAULT_KZ_MONITOR) of
+        'false' -> 'ok';
+        'true' ->
+            kz_monitor:track_me(),
+            lager:info("process monitoring initiated")
+    end.
+
+-spec maybe_set_queue_name(module(), start_params()) -> start_params().
 maybe_set_queue_name(Module, Params) ->
     case props:is_false('queue_name_always_generate', Params, 'true')
         andalso props:get_value('queue_name', Params) =:= <<>>
@@ -799,7 +802,6 @@ handle_info({#'basic.deliver'{}=BD
             CallId = kz_log:get_callid(),
             Reply = handle_event(binary:copy(Payload), {CT, CE}, {BD, Basic}, State),
             kz_log:put_callid(CallId),
-            maybe_gc(props:is_true('auto_gc', Params, 'true')),
             Reply;
         'true'  ->
             kz_process:spawn(fun handle_event/4, [Payload, {CT, CE}, {BD, Basic}, State]),
@@ -992,6 +994,17 @@ code_change(_OldVersion, State, _Extra) ->
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc Add default `gen_server' options to those passed for starting this
+%% listener.
+%% @end
+%%------------------------------------------------------------------------------
+-spec add_default_options(kz_types:gen_server_options()) -> kz_types:gen_server_options().
+add_default_options(Options) ->
+    SpawnOptions = props:get_value('spawn_opt', Options, []),
+    SpawnOptions1 = props:insert_value('message_queue_data', 'off_heap', SpawnOptions),
+    props:set_value('spawn_opt', SpawnOptions1, Options).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -1266,7 +1279,7 @@ start_amqp(Props, AutoAck) ->
 
 -spec set_qos(binary(), 'undefined' | non_neg_integer()) -> 'ok'.
 set_qos(<<>>, 'undefined') ->
-    case kz_config:get_integer(<<"amqp">>, <<"prefetch">>) of
+    case kz_config:get_integer(?CONFIG_SECTION, <<"prefetch">>) of
         [N] when is_integer(N) ->
             lager:debug("random queue getting config.ini QoS settings(~p) applied", [N]),
             set_qos(N);
@@ -1815,55 +1828,3 @@ handle_consuming_requests(Requests) ->
 reply_to_request({From, TRef}) ->
     _ = reply(From, 'ok'),
     'ok' = erlang:cancel_timer(TRef, [{'async', 'true'}, {'info', 'false'}]).
-
-%% @doc force GC of process if total_heap_size exceeds 10K
-%%
-%% In production, when compacting kz_amqp_workers and other
-%% gen_listener processes, we see a reduction in total_heap_size to
-%% about 4K on most processes.
-%%
-%% Old heap is used for "long-lived" terms. One of the issues was that
-%% when a binary Payload was received from AMQP, we would decode it
-%% directly which causes refc binaries to be put in the gen_listener's
-%% heap, keeping the binary alive. By using binary:copy/1 before
-%% decoding, Payload can be freed sooner. I suspect that Payload
-%% itself is a refc into the larger AMQP binary payload parsed by the
-%% AMQP client library.
-%%
-%% It is possible that apps may load more memory into their state
-%% which would cause gen_listener's state to exceed 100K in the steady
-%% state. We advise app developers to not do this :)
-%%
-%% Additional heuristics added for when to GC a gen_listener:
-%%   - when total_heap_size &gt; 100K
-%%   - when message_queue_len &lt; 100
-%%
-%% As seen in production, a gen_listener was overwhelmed with messages
-%% (2.4 million) and heap was obviously ballooning (>250Mb) causing GC
-%% on every new AMQP message. As the heap and message queue were so
-%% large, this GC caused massive slowdowns (some messages weren't
-%% being cleared for 15 minutes).
--spec maybe_gc(boolean()) -> 'ok'.
-maybe_gc('false') -> 'ok';
-maybe_gc('true') ->
-    maybe_gc_process(process_info(self(), ['total_heap_size'])
-                    ,100 * ?BYTES_K
-                    ,process_info(self(), ['message_queue_len'])
-                    ,100
-                    ).
-
-maybe_gc_process([{'total_heap_size', Words}], MaxBytes, [{'message_queue_len', QueueLength}], MaxQueueLength) ->
-    maybe_gc_process(kz_term:words_to_bytes(Words), MaxBytes, QueueLength, MaxQueueLength);
-maybe_gc_process(Heap, Max, QueueLength, MaxQueueLength)
-  when Heap > Max
-       andalso QueueLength < MaxQueueLength
-       ->
-    erlang:garbage_collect(self()),
-    [{'total_heap_size', NewHeapWords}] = process_info(self(), ['total_heap_size']),
-    NewHeap = kz_term:words_to_bytes(NewHeapWords),
-    amqp:debug("new heap size ~p (delta ~p)", [NewHeap, Heap-NewHeap]);
-maybe_gc_process(Heap, Max, QueueLength, MaxQueueLength) when Heap > Max, QueueLength >= MaxQueueLength ->
-    lager:notice("heap ~p is growing past max ~p while queue len ~p is bigger than ~p"
-                ,[Heap, Max, QueueLength, MaxQueueLength]
-                );
-maybe_gc_process(_Heap, _Max, _QL, _MaxQL) -> 'ok'.
