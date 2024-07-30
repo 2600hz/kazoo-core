@@ -804,15 +804,15 @@ get_user(AccountDb, OwnerId, Options) when is_binary(OwnerId) ->
     end;
 get_user(AccountDb, Endpoint, Options) ->
     case kzd_devices:hotdesk_ids(Endpoint) of
-        undefined ->
+        'undefined' ->
             get_user(AccountDb, kzd_devices:owner_id(Endpoint), Options);
         [] ->
             get_user(AccountDb, kzd_devices:owner_id(Endpoint), Options);
         [OwnerId] ->
             OwnerJObj = get_user(AccountDb, OwnerId, Options),
             case kz_term:is_empty(OwnerJObj) of
-                true -> get_user(AccountDb, kzd_devices:owner_id(Endpoint), Options);
-                false ->  fix_user_restrictions(OwnerJObj)
+                'true' -> get_user(AccountDb, kzd_devices:owner_id(Endpoint), Options);
+                'false' ->  fix_user_restrictions(OwnerJObj)
             end;
         [_|_] = OwnerIds ->
             case get_users(AccountDb, OwnerIds, Options) of
@@ -1570,7 +1570,7 @@ maybe_set_call_forward({Endpoint, Call, CallFwd, CCVs}, Number) ->
     LoopbackURI = list_to_binary(["sip:", Number, "@", kapps_call:account_realm(Call)]),
     {Endpoint, Call, CallFwd
     ,kz_json:set_values([{<<"Call-Forward">>, <<"true">>}
-                        ,{<<"Authorizing-Type">>, <<"device">>}
+                        ,{<<"Authorizing-Type">>, kz_doc:type(Endpoint, <<"device">>)}
                         ,{<<"Authorizing-ID">>, kz_doc:id(Endpoint)}
                         ,{<<"Call-Forward-From">>, kapps_call:inception_type(Call)}
                         ,{<<"Call-Forward-For-UUID">>, kapps_call:other_leg_call_id(Call)}
@@ -1907,7 +1907,7 @@ default_private_call_settings_keys() ->
 private_call_settings_keys() ->
     Default = default_private_call_settings_keys(),
     Keys = kz_app_config:get_ne_binaries(?APP, <<"call_settings.private_keys">>, Default),
-    [binary:split(Key, <<".">>, [global]) || Key <- Keys].
+    [binary:split(Key, <<".">>, ['global']) || Key <- Keys].
 
 private_call_settings(Endpoint) ->
     kz_json:get_json_value(<<"pvt_call_settings">>, kz_doc:private_fields(Endpoint), kz_json:new()).
