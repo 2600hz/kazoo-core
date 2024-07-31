@@ -36,6 +36,7 @@
 -define(STATUS_FAILED, <<"failed">>).
 -define(STATUS_NOANSWER, <<"no-answer">>).
 -define(STATUS_CANCELED, <<"canceled">>).
+-define(STATUS_REJECTED, <<"rejected">>).
 
 -define(STATUS_ANSWERED, <<"answered">>). %% For DialCallStatus when calling conference
 
