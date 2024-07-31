@@ -27,7 +27,7 @@
                          {'channel_flow', boolean()} |
                          {'consume_options', consume_options()} |
                          {'declare_exchanges', declare_exchanges()} |
-                         {'kz_monitor', boolean()} | 'kz_monitor' |
+                         {'kz_monitor', boolean() | kz_monitor:proc_thresholds()} | 'kz_monitor' |
                          {'queue_name', binary()} |
                          {'queue_name_always_generate', boolean()} |
                          {'queue_options', queue_options()} |
