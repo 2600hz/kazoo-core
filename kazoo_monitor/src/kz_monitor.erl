@@ -51,11 +51,11 @@
 -behaviour(gen_server).
 
 -export([start_link/0
-        ,track_me/0
-        ,track_pid/1
-        ,track_pids/1
-
+        ,track_me/0, track_me/1
+        ,track_pid/1, track_pid/2
+        ,track_pids/1, track_pids/2
         ,tracked_pids/0, pp_tracked_pids/0
+        ,set_thresholds/2
         ]).
 
 -export([init/1
@@ -65,6 +65,8 @@
         ,terminate/2
         ,code_change/3
         ]).
+
+-export_type([proc_thresholds/0]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
@@ -76,6 +78,7 @@
                    ,total_heap_size :: size_words()
                    ,has_long_message_queue :: boolean()
                    ,message_queue_len :: message_queue_len()
+                   ,thresholds :: proc_thresholds()
                    }).
 -type proc_info() :: #proc_info{}.
 
@@ -86,6 +89,13 @@
 -type time_ms() :: non_neg_integer().
 -type size_words() :: non_neg_integer().
 -type message_queue_len() :: non_neg_integer().
+
+%% Per-proc custom thresholds
+-type proc_thresholds() :: #{'long_gc' => time_ms()
+                            ,'large_heap' => size_words()
+                            ,'long_message_queue_low' => message_queue_len()
+                            ,'long_message_queue_high' => message_queue_len()
+                            }.
 
 -type system_monitor_msg() :: {'long_gc', long_gc_info()} |
                               {'large_heap', gc_info()}.
@@ -112,13 +122,25 @@ start_link() ->
 track_me() ->
     track_pid(self()).
 
+-spec track_me(proc_thresholds()) -> 'ok'.
+track_me(Thresholds) ->
+    track_pid(self(), Thresholds).
+
 -spec track_pid(pid()) -> 'ok'.
 track_pid(Pid) when is_pid(Pid) ->
     track_pids([Pid]).
 
--spec track_pids(kz_term:pids()) -> 'ok'.
+-spec track_pid(pid(), proc_thresholds()) -> 'ok'.
+track_pid(Pid, Thresholds) when is_pid(Pid) ->
+    track_pids([{Pid, Thresholds}]).
+
+-spec track_pids(kz_term:pids() | kz_term:proplist_kv(pid(), proc_thresholds())) -> 'ok'.
 track_pids(Pids) when is_list(Pids) ->
     gen_server:cast(?SERVER, {'track', Pids}).
+
+-spec track_pids(kz_term:pids(), proc_thresholds()) -> 'ok'.
+track_pids(Pids, Thresholds) when is_list(Pids) ->
+    track_pids([{Pid, Thresholds} || Pid <- Pids]).
 
 -spec tracked_pids() -> kz_term:proplist_kv(pid(), proc_info()).
 tracked_pids() ->
@@ -140,6 +162,10 @@ pp_tracked_pid({Pid, #proc_info{tstamp=TStamp
     io:format("~15s | ~15.3f | ~p~n"
              ,[kz_term:to_binary(Pid), TStamp / 1000, MQLen]
              ).
+
+-spec set_thresholds(pid(), proc_thresholds()) -> 'ok'.
+set_thresholds(Pid, Thresholds) ->
+    gen_server:cast(?SERVER, {'set_thresholds', Pid, Thresholds}).
 
 -spec init(any()) -> {'ok', state()}.
 init(_) ->
@@ -163,8 +189,14 @@ tracked_pid_info(_, _, Acc) -> Acc.
 
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'track', Pids}, State) ->
-    NewState = lists:foldl(fun track_pid/2, State, Pids),
+    NewState = lists:foldl(fun do_track_pid/2, State, Pids),
     {'noreply', NewState};
+handle_cast({'set_thresholds', Pid, Thresholds}, State) ->
+    case State of
+        #{Pid := #proc_info{}=Info} ->
+            {'noreply', State#{Pid => Info#proc_info{thresholds=Thresholds}}};
+        #{} -> {'noreply', State}
+    end;
 handle_cast(_Cast, State) ->
     {'noreply', State}.
 
@@ -203,23 +235,26 @@ code_change(_OldVsn, State, _Extra) ->
 %% warn if thresholds are exceeded as of the start of tracking.
 %% @end
 %%------------------------------------------------------------------------------
--spec track_pid(pid(), state()) -> state().
-track_pid(Pid, State) ->
+-spec do_track_pid(pid() | {pid(), proc_thresholds()}, state()) -> state().
+do_track_pid(Pid, State) when is_pid(Pid) ->
+    do_track_pid({Pid, #{}}, State);
+do_track_pid({Pid, Thresholds}, State) ->
     case State of
         #{Pid := _} -> State;
         #{} ->
             MonitorRef = erlang:monitor('process', Pid),
             [{'total_heap_size', TotalHeapSize}, {'message_queue_len', MQLen}]
                 = process_info(Pid, ['total_heap_size', 'message_queue_len']),
-            HasLongMQ = has_long_message_queue('false', MQLen),
+            HasLongMQ = has_long_message_queue('false', MQLen, Thresholds),
 
-            maybe_warn_large_heap(Pid, TotalHeapSize, 'true'),
+            maybe_warn_large_heap(Pid, TotalHeapSize, Thresholds, 'true'),
             maybe_log_long_message_queue(Pid, 'false', HasLongMQ, MQLen),
 
             State#{Pid => #proc_info{monitor_ref=MonitorRef
                                     ,total_heap_size=TotalHeapSize
                                     ,has_long_message_queue=HasLongMQ
                                     ,message_queue_len=MQLen
+                                    ,thresholds=Thresholds
                                     }}
     end.
 
@@ -243,13 +278,15 @@ update_tracked_pids(State) ->
     maps:map(fun update_tracked_pid/2, State).
 
 update_tracked_pid('timer_ref', TimerRef) -> TimerRef;
-update_tracked_pid(Pid, #proc_info{has_long_message_queue=HasLongMQ}=Info) ->
+update_tracked_pid(Pid, #proc_info{has_long_message_queue=HasLongMQ
+                                  ,thresholds=Thresholds
+                                  }=Info) ->
     case process_info(Pid, 'message_queue_len') of
         'undefined' ->
             %% Process `DOWN' coming soon!
             Info;
         {'message_queue_len', MQLen} ->
-            HasLongMQ1 = has_long_message_queue(HasLongMQ, MQLen),
+            HasLongMQ1 = has_long_message_queue(HasLongMQ, MQLen, Thresholds),
             maybe_log_long_message_queue(Pid, HasLongMQ, HasLongMQ1, MQLen),
             Info#proc_info{tstamp=kz_time:now_ms()
                           ,has_long_message_queue=HasLongMQ1
@@ -263,16 +300,16 @@ update_tracked_pid(Pid, #proc_info{has_long_message_queue=HasLongMQ}=Info) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec update_monitored_info(pid(), system_monitor_msg(), proc_info(), boolean()) -> proc_info().
-update_monitored_info(Pid, {'long_gc', MonInfo}, #proc_info{}=Info, ShouldWarn) ->
+update_monitored_info(Pid, {'long_gc', MonInfo}, #proc_info{thresholds=Thresholds}=Info, ShouldWarn) ->
     GCTime = props:get_integer_value('timeout', MonInfo),
     TotalHeapSize = total_heap_size(MonInfo),
-    maybe_warn_long_gc(Pid, GCTime, TotalHeapSize, ShouldWarn),
+    maybe_warn_long_gc(Pid, GCTime, TotalHeapSize, Thresholds, ShouldWarn),
     Info#proc_info{gc_time=GCTime
                   ,total_heap_size=TotalHeapSize
                   };
-update_monitored_info(Pid, {'large_heap', MonInfo}, #proc_info{}=Info, ShouldWarn) ->
+update_monitored_info(Pid, {'large_heap', MonInfo}, #proc_info{thresholds=Thresholds}=Info, ShouldWarn) ->
     TotalHeapSize = total_heap_size(MonInfo),
-    maybe_warn_large_heap(Pid, TotalHeapSize, ShouldWarn),
+    maybe_warn_large_heap(Pid, TotalHeapSize, Thresholds, ShouldWarn),
     Info#proc_info{total_heap_size=total_heap_size(MonInfo)}.
 
 %%------------------------------------------------------------------------------
@@ -301,24 +338,38 @@ is_total_heap_size_summand('old_heap_block_size') -> 'true';
 is_total_heap_size_summand('mbuf_size') -> 'true';
 is_total_heap_size_summand(_K) -> 'false'.
 
--spec has_long_message_queue(boolean(), message_queue_len()) -> boolean().
-has_long_message_queue('false', MQLen) when MQLen >= ?LONG_MQ_THRESHOLD_HIGH -> 'true';
-has_long_message_queue('true', MQLen) when MQLen =< ?LONG_MQ_THRESHOLD_LOW -> 'false';
-has_long_message_queue(PrevHasLongMQ, _MQLen) -> PrevHasLongMQ.
+-spec has_long_message_queue(boolean()
+                            ,message_queue_len()
+                            ,proc_thresholds() | {message_queue_len(), message_queue_len()}
+                            ) -> boolean().
+has_long_message_queue(PrevHasLongMQ, MQLen, Thresholds) when is_map(Thresholds) ->
+    MQThresholds = {maps:get('long_message_queue_low', Thresholds, ?LONG_MQ_THRESHOLD_LOW)
+                   ,maps:get('long_message_queue_high', Thresholds, ?LONG_MQ_THRESHOLD_HIGH)
+                   },
+    has_long_message_queue(PrevHasLongMQ, MQLen, MQThresholds);
+has_long_message_queue('false', MQLen, {_, HighThreshold}) when MQLen >= HighThreshold -> 'true';
+has_long_message_queue('true', MQLen, {LowThreshold, _}) when MQLen =< LowThreshold -> 'false';
+has_long_message_queue(PrevHasLongMQ, _MQLen, _MQThresholds) -> PrevHasLongMQ.
 
--spec maybe_warn_long_gc(pid(), time_ms(), size_words(), boolean()) -> 'ok'.
-maybe_warn_long_gc(Pid, Time, TotalHeapSize, 'true') when Time >= ?LONG_GC_TIME_MS ->
+-spec maybe_warn_long_gc(pid(), time_ms(), size_words(), proc_thresholds() | time_ms(), boolean()) -> 'ok'.
+maybe_warn_long_gc(Pid, Time, TotalHeapSize, Thresholds, 'true') when is_map(Thresholds) ->
+    TimeThreshold = maps:get('long_gc', Thresholds, ?LONG_GC_TIME_MS),
+    maybe_warn_long_gc(Pid, Time, TotalHeapSize, TimeThreshold, 'true');
+maybe_warn_long_gc(Pid, Time, TotalHeapSize, TimeThreshold, 'true') when Time >= TimeThreshold ->
     lager:warning("long GC (time: ~bms) detected for pid ~p! (heap: ~b B)"
                  ,[Time, Pid, kz_term:words_to_bytes(TotalHeapSize)]
                  );
-maybe_warn_long_gc(_, _, _, _ShouldWarn) -> 'ok'.
+maybe_warn_long_gc(_, _, _, _, _ShouldWarn) -> 'ok'.
 
--spec maybe_warn_large_heap(pid(), size_words(), boolean()) -> 'ok'.
-maybe_warn_large_heap(Pid, Size, 'true') when Size >= ?LARGE_HEAP_SIZE_WORDS ->
+-spec maybe_warn_large_heap(pid(), size_words(), proc_thresholds() | size_words(), boolean()) -> 'ok'.
+maybe_warn_large_heap(Pid, Size, Thresholds, 'true') when is_map(Thresholds) ->
+    SizeThreshold = maps:get('large_heap', Thresholds, ?LARGE_HEAP_SIZE_WORDS),
+    maybe_warn_large_heap(Pid, Size, SizeThreshold, 'true');
+maybe_warn_large_heap(Pid, Size, SizeThreshold, 'true') when Size >= SizeThreshold ->
     lager:warning("large heap (~b B) detected for pid ~p!"
                  ,[kz_term:words_to_bytes(Size), Pid]
                  );
-maybe_warn_large_heap(_, _, _ShouldWarn) -> 'ok'.
+maybe_warn_large_heap(_, _, _, _ShouldWarn) -> 'ok'.
 
 -spec maybe_log_long_message_queue(pid(), boolean(), boolean(), message_queue_len()) -> 'ok'.
 maybe_log_long_message_queue(Pid, 'false', 'true', MQLen) ->
