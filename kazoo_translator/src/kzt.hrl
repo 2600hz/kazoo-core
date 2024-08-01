@@ -10,14 +10,12 @@
 -type request_return() :: {'request', kapps_call:call()}.
 -type error_return() :: {'error', kapps_call:call()} |
                         {'error', kapps_call:call(), list()}.
--type stop_with_resp_return() :: {'stop_with_response', kapps_call:call()}.
 
 -type exec_element_return() ::
         ok_return() |
         stop_return() |
         usurp_return() |
         error_return() |
-        stop_with_resp_return() |
         request_return().
 
 -type exec_return() :: exec_element_return().
