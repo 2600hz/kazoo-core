@@ -150,8 +150,8 @@ reject_reason(Props) ->
 
 -spec reject_code(kz_term:ne_binary()) -> kz_term:ne_binary().
 reject_code(<<"busy">>) -> <<"486">>;
-reject_code(<<"rejected">>) -> <<"503">>.
+reject_code(<<"rejected">>) -> <<"603">>.
 
 -spec reject_status(kz_term:ne_binary()) -> kz_term:ne_binary().
 reject_status(<<"486">>) -> ?STATUS_BUSY;
-reject_status(<<"503">>) -> ?STATUS_NOANSWER.
+reject_status(<<"603">>) -> ?STATUS_REJECTED.
