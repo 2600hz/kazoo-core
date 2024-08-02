@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Dialplan API commands.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -1344,14 +1344,15 @@ record_call_definition() ->
 
 -spec validate_silence_detection(any()) -> boolean().
 validate_silence_detection(JObj) ->
-    kz_json:all(fun({_K, V}) ->
-                        case is_integer(V) and V >= 0 of
-                            'true' -> 'true';
-                            'false' ->
-                                lager:debug("expected positive integer value for ~s but got ~p", [_K, V]),
-                                'false'
-                        end
-                end, JObj).
+    kz_json:all(fun({_K, V}) when is_integer(V)
+                                  andalso V >= 0 ->
+                        'true';
+                   ({_K, V}) ->
+                        lager:debug("expected positive integer value for ~s but got ~p", [_K, V]),
+                        'false'
+                end
+               ,JObj
+               ).
 
 -spec answer_definition() -> kapi_definition:api().
 answer_definition() ->
