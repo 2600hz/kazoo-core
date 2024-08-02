@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc Dialplan API commands.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -1315,6 +1315,7 @@ record_call_definition() ->
                                                             ,<<"Recording-Variables">>
                                                             ,<<"Record-Min-Sec">>
                                                             ,<<"Record-Sample-Rate">>
+                                                            ,<<"Record-Silence-Detection">>
                                                             ,<<"Track-Media-Recording">>
                                                             ,<<"Time-Limit">>
                                                             ]}
@@ -1335,10 +1336,23 @@ record_call_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Record-Sample-Rate">>, fun is_integer/1}
                 ,{<<"Track-Media-Recording">>, fun is_boolean/1}
+                ,{<<"Record-Silence-Detection">>, fun validate_silence_detection/1}
                 ]
                }
               ],
     kapi_definition:setters(Setters).
+
+-spec validate_silence_detection(any()) -> boolean().
+validate_silence_detection(JObj) ->
+    kz_json:all(fun({_K, V}) when is_integer(V)
+                                  andalso V >= 0 ->
+                        'true';
+                   ({_K, V}) ->
+                        lager:debug("expected positive integer value for ~s but got ~p", [_K, V]),
+                        'false'
+                end
+               ,JObj
+               ).
 
 -spec answer_definition() -> kapi_definition:api().
 answer_definition() ->

@@ -544,6 +544,9 @@
         "Record-Sample-Rate": {
             "type": "string"
         },
+        "Record-Silence-Detection": {
+            "type": "object"
+        },
         "Recording-Variables": {
             "type": "string"
         },
