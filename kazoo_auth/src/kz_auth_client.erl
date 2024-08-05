@@ -325,7 +325,7 @@ request(URL, Token) ->
 -spec request(kz_http:method(), kz_term:ne_binary(), kz_http:http_body(), map()) -> {'ok', binary()} | {'error', any()}.
 request(Verb, URL, Body, #{token := #{authorization := Authorization}}) ->
     Options = [{'headers_as_is', 'true'}
-              ,{'ssl', [{'versions', ['tlsv1.2']}]}
+              ,{'ssl', kz_ssl:ssl_opts()}
               ],
     #{host := Host} = uri_string:parse(URL),
     Headers = [{"host", Host}

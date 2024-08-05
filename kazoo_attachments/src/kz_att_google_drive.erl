@@ -184,7 +184,7 @@ do_delete_attachment({'error', _}, _ContentId, HandlerProps, DbName, DocId, ANam
 %%------------------------------------------------------------------------------
 -spec get_json_from_url(kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 get_json_from_url(Url, ReqHeaders) ->
-    case kz_http:get(kz_term:to_list(Url), ReqHeaders, [{'ssl', [{'versions', ['tlsv1.2']}]}]) of
+    case kz_http:get(kz_term:to_list(Url), ReqHeaders, [{'ssl', kz_ssl:ssl_opts()}]) of
         {'ok', 200, _RespHeaders, Body} ->
             JObj = kz_json:decode(Body),
             case kz_term:is_empty(JObj) of

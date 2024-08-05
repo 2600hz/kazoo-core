@@ -21,7 +21,7 @@
 -export([onedrive_default_fields/0]).
 
 -define(GRAPH_HTTP_OPTIONS, [{'version', "HTTP/1.1"}
-                            ,{'ssl', [{'versions', ['tlsv1.2']}]}
+                            ,{'ssl', kz_ssl:ssl_opts()}
                             ,{'follow_redirect', 'true'}
                             ,{'max_redirect', 5}
                             ,'with_body'

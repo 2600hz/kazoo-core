@@ -96,7 +96,7 @@ maybe_load_profile(#{auth_provider := #{profile_url := _ProfileURL} = Provider
                     ,access_token := AccessToken
                     } = Token) ->
     Options = [{'headers_as_is', 'true'}
-              ,{'ssl', [{'versions', ['tlsv1.2']}]}
+              ,{'ssl', kz_ssl:ssl_opts()}
               ],
     URL = kz_term:to_list(profile_url(Token)),
     Verb = profile_access_verb(Provider),

@@ -98,7 +98,7 @@ get_http_options(Url) ->
 
 -spec maybe_enable_ssl(nonempty_string(), kz_term:proplist()) -> kz_term:proplist().
 maybe_enable_ssl("https://" ++ _, Props) ->
-    [{'ssl', [{'verify', 'verify_none'}]}|Props];
+    [{'ssl', [{'verify', 'verify_none'}]} | Props];
 maybe_enable_ssl(_Url, Props) -> Props.
 
 -spec maybe_enable_auth([{nonempty_string(), nonempty_string()}]) ->

@@ -20,13 +20,21 @@
 -export([run/2]).
 -export([compose_url/2]).
 
--spec get_json_from_url(kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec get_json_from_url(kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 get_json_from_url(Url) ->
     get_json_from_url(Url, []).
 
--spec get_json_from_url(kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec get_json_from_url(kz_term:ne_binary(), kz_term:proplist()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 get_json_from_url(Url, ReqHeaders) ->
-    case kz_http:get(kz_term:to_list(Url), ReqHeaders, [{'ssl', [{'versions', ['tlsv1.2']}]}]) of
+    case kz_http:get(kz_term:to_list(Url)
+                    ,ReqHeaders
+                    ,[{'ssl', kz_ssl:ssl_opts()}]
+                    )
+    of
         {'ok', 200, _RespHeaders, Body} ->
             JObj = kz_json:decode(Body),
             case kz_term:is_empty(JObj) of
@@ -34,10 +42,10 @@ get_json_from_url(Url, ReqHeaders) ->
                 'false' -> {'ok', JObj}
             end;
         {'ok', Code, _RespHeaders, Body} ->
-            lager:debug("unexpected code ~b downloading json from ~s : ~s", [Code, Url, Body]),
+            lager:info("unexpected resp code ~b downloading JSON from ~s : ~s", [Code, Url, Body]),
             {'error', 'unexpected_result'};
         Else ->
-            lager:debug("error downloading json from ~s : ~p", [Url, Else]),
+            lager:warning("error contacting ~s: ~p", [Url, Else]),
             {'error', Else}
     end.
 
@@ -62,20 +70,31 @@ fetch_access_code(#{auth_app := #{name := ClientId
                                  ,pvt_secret := Secret
                                  }
                    ,auth_provider := #{access_code_url := URL}
-                   }, AuthorizationCode, RedirectUri) ->
+                   }
+                 ,AuthorizationCode
+                 ,RedirectURI) ->
     Headers = [{"Content-Type", "application/x-www-form-urlencoded"}],
 
-    Fields = [{"client_id", ClientId}
-             ,{"redirect_uri", RedirectUri}
-             ,{"client_secret", Secret}
-             ,{"grant_type", "authorization_code"}
-             ,{"code", AuthorizationCode}
-             ],
-    Body = string:join(lists:append(lists:map(fun({K,V}) -> [string:join([K, kz_term:to_list(V)], "=") ] end, Fields)),"&"),
-    case kz_http:post(kz_term:to_list(URL), Headers, Body, [{'ssl', [{'versions', ['tlsv1.2']}]}]) of
-        {'ok', 200, _RespHeaders, RespXML} -> {'ok', kz_json:decode(RespXML)};
-        Else ->
-            lager:error("~p", [Else]),
+    FormBody = ["client_id=", ClientId
+               ,"&redirect_uri=", RedirectURI
+               ,"&client_secret=", Secret
+               ,"&grant_type=authorization_code"
+               ,"&code", AuthorizationCode
+               ],
+    case kz_http:post(kz_term:to_list(URL)
+                     ,Headers
+                     ,FormBody
+                     ,[{'ssl', kz_ssl:ssl_opts()}]
+                     )
+    of
+        {'ok', 200, _RespHeaders, RespJSON} ->
+            {'ok', kz_json:decode(RespJSON)};
+        {'ok', Code, _RespHeaders, _RespBody} ->
+            lager:warning("failure contacting ~s: ~p: ~p", [URL, Code, _RespHeaders]),
+            lager:warning("~s", [_RespBody]),
+            {'error', Code};
+        {'error', _Error}=Else ->
+            lager:warning("failure contacting ~s: ~p", [URL, _Error]),
             {'error', Else}
     end.
 
@@ -83,17 +102,17 @@ fetch_access_code(#{auth_app := #{name := ClientId
 run(Token, []) -> {'ok', Token};
 run(Token, [Fun | Routines]) ->
     try Fun(Token) of
-        #{error := _Err}=Error -> {'error', Error};
+        #{'error' := _Err}=Error -> {'error', Error};
         {'ok', NewToken} -> run(NewToken, Routines);
         {'done', NewToken} -> {'ok', NewToken};
         {'error', Error} -> {'error', Token#{error => Error}};
         NewToken -> run(NewToken, Routines)
     catch
-        ?STACKTRACE(_E, _R, ST)
-        lager:debug("exception executing ~p : ~p , ~p, ~p", [Fun, _E, _R, Token]),
-        kz_log:log_stacktrace(ST),
-        {'error', Token}
-        end.
+        _E:_R:ST ->
+            lager:debug("exception executing ~p : ~p , ~p, ~p", [Fun, _E, _R, Token]),
+            kz_log:log_stacktrace(ST),
+            {'error', Token}
+    end.
 
 -define(COMPOSE_URL_REGEX, <<"\/\:([^\/]+)">>).
 -define(COMPOSE_URL_REGEX_OPTIONS, [{'capture', 'all_but_first', 'binary'}, 'global']).
@@ -108,7 +127,7 @@ compose_url(Url, Params) ->
 
 -spec compose_url(kz_term:ne_binary(), kz_term:ne_binaries(), map()) -> binary().
 compose_url(Url, Fields, Params) ->
-    lists:foldl(compose_url_fun(Params), Url ,Fields).
+    lists:foldl(compose_url_fun(Params), Url, Fields).
 
 compose_url_fun(Params) ->
     fun(Field, Acc) ->
