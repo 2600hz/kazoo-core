@@ -424,7 +424,7 @@ flush_cache_docs(Db, Docs, Options) ->
 
 -spec cache_strategy() -> cache_strategy().
 cache_strategy() ->
-    application:get_env('kazoo_data', 'cache_strategy', 'none').
+    application:get_env('kazoo_data', 'cache_strategy', 'async').
 
 -spec set_cache_strategy(cache_strategy()) -> 'ok'.
 set_cache_strategy(Strategy)
