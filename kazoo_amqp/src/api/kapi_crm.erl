@@ -208,7 +208,7 @@ interaction_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun interaction_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_interaction/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Duration">>
-                                                            ,<<"Contact-ID">>
+                                                            ,<<"Callee-ID">>
                                                             ,<<"Direction">>
                                                             ,<<"Account-ID">>
                                                             ]}
@@ -216,6 +216,7 @@ interaction_definition() ->
                                                             ,<<"Status">>
                                                             ,<<"Description">>
                                                             ,<<"Disposition">>
+                                                            ,<<"Caller-ID">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
