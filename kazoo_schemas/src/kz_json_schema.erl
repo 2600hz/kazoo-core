@@ -60,6 +60,7 @@
                         {'default_schema_ver', binary()} |
                         {'schema_loader_fun', schema_loader_fun()} |
                         {'external_validator', extra_validator()} |
+                        {'external_format_validator', jesse:external_format_validator()} |
                         {'setter_fun', setter_fun()} |
                         {'getter_fun', getter_fun()} |
                         {'validator_options', validator_options()} |
@@ -82,6 +83,10 @@ setup_extra_validator(Options) ->
                   kz_json_schema_extensions:extra_validator(Value, State, ExtraOptions)
           end,
     props:set_value({'external_validator', Fun}, Options).
+
+setup_extra_format_validator(Options) ->
+    props:insert_value({'external_format_validator', fun kz_json_schema_extensions:validate_format/2}, Options).
+
 
 -type load_return() :: {'ok', kz_json:object()} |
                        {'error', 'not_found'} |
@@ -282,7 +287,8 @@ validate(<<Schema/binary>>, DataJObj, Options) ->
     validate(SchemaJObj, DataJObj, props:insert_values([{'schema_loader_fun', ?DEFAULT_LOADER}], Options));
 validate(SchemaJObj, DataJObj, Options0) when is_list(Options0) ->
     Options1 = props:insert_values(?DEFAULT_OPTIONS, Options0),
-    Options = setup_extra_validator(Options1),
+    Options2 = setup_extra_validator(Options1),
+    Options = setup_extra_format_validator(Options2),
     jesse:validate_with_schema(SchemaJObj, DataJObj, Options).
 
 -type option() :: {'version', kz_term:ne_binary()} |
@@ -303,8 +309,9 @@ errors_to_jobj(Errors) ->
 errors_to_jobj(Errors, Options) ->
     [error_to_jobj(Error, Options) || Error <- Errors].
 
+%% For anyOf errors, a list of error objects could be returns
 -spec error_to_jobj(jesse_error:error_reason()) ->
-          validation_error().
+          validation_error() | validation_errors().
 error_to_jobj(Error) ->
     error_to_jobj(Error, [{'version', ?CURRENT_VERSION}]).
 
@@ -773,6 +780,16 @@ error_to_jobj({'data_invalid'
                       )
                     ,Options
                     );
+
+error_to_jobj({'data_invalid'
+              ,_FailedSchemaJObj
+              ,{'any_schemas_not_valid', Errors}
+              ,_FailedValue
+              ,_FailedKeyPath
+              }
+             ,_Options
+             ) ->
+    errors_to_jobj(Errors);
 error_to_jobj({'data_invalid'
               ,_FailedSchemaJObj
               ,FailMsg
@@ -903,6 +920,10 @@ validation_error(Property, <<"additionalItems">> = C, Message, Options) ->
 validation_error(Property, <<"wrong_format">> = C, Message, Options) ->
     depreciated_validation_error(Property, C, Message, Options);
 validation_error(Property, <<"not_one_schema_valid">> = C, Message, Options) ->
+    depreciated_validation_error(Property, C, Message, Options);
+validation_error(Property, <<"any_schemas_not_valid">> = C, Message, Options) ->
+    depreciated_validation_error(Property, C, Message, Options);
+validation_error(Property, <<"error">> = C, Message, Options) ->
     depreciated_validation_error(Property, C, Message, Options);
 validation_error(Property, Code, Message, Options) ->
     lager:warning("UNKNOWN ERROR CODE: ~p", [Code]),

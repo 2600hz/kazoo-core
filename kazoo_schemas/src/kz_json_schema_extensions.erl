@@ -9,7 +9,9 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_json_schema_extensions).
 
--export([extra_validator/3]).
+-export([extra_validator/3
+        ,validate_format/2
+        ]).
 
 -include_lib("kernel/include/inet.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -125,11 +127,6 @@ extra_validation(<<"faxbox.notifications.outbound.callback.url">>, URL, State) -
     url_validation(URL, State);
 extra_validation(<<"storage.attachment.http.url">>, URL, State) ->
     url_validation(URL, State);
-extra_validation(<<"resources.server">>, URL, State) ->
-    case is_valid_host(URL) of
-        'true' -> State;
-        'false' -> url_error(URL, State)
-    end;
 extra_validation(<<"resources.realm">>, URL, State) ->
     case is_valid_host(URL) of
         'true' -> State;
@@ -410,8 +407,9 @@ is_valid_dns(Host, 'true') ->
     case kz_network_utils:lookup_dns(kz_binary:remove_white_spaces(Host), 'a', LookupOptions) of
         {'ok', []} ->
             maybe_local_dns(Host);
-        {'ok', Lookup} ->
-            lists:all(fun is_valid_host/1, Lookup)
+        {'ok', IPTuples} ->
+            lager:info("valid hosts found for ~s: ~p", [Host, IPTuples]),
+            lists:all(fun is_valid_host/1, IPTuples)
     end.
 
 maybe_local_dns(Host) ->
@@ -451,3 +449,30 @@ check_hostent(HostL, #hostent{h_name = MainHost
             lists:all(fun is_valid_host/1, AddrList)
     end.
 -endif.
+
+-spec validate_format(kz_json:json_term(), kz_term:ne_binary()) -> boolean().
+validate_format(Hostname, <<"sip_hostname">>) ->
+    validate_sip_hostname(Hostname);
+validate_format(Value, Format) ->
+    lager:info("check format ~s on ~p", [Format, Value]),
+    'true'.
+
+validate_sip_hostname(Hostname) ->
+    validate_sip_hostname(Hostname, kz_network_utils:is_ip(Hostname)).
+
+validate_sip_hostname(Hostname, 'true') ->
+    is_valid_host_value(Hostname, 'true', kz_http_util:client_ip_blacklist());
+validate_sip_hostname(Hostname, 'false') ->
+    SRV = <<"_sip._udp.", Hostname/binary>>,
+    case kz_network_utils:lookup_dns(SRV, 'srv', []) of
+        {'ok', []} ->
+            lager:info("no SRV records for hostname '~s', checking A", [Hostname]),
+            is_valid_host(Hostname);
+        {'ok', SRVRecords} ->
+            lager:info("checking SRV records from hostname ~s", [Hostname]),
+            lists:all(fun is_valid_srv/1, SRVRecords)
+    end.
+
+is_valid_srv({_Priority, _Weight, _Port, Target}) ->
+    lager:info("validating SRV target ~s", [Target]),
+    validate_sip_hostname(kz_term:to_binary(Target)).
