@@ -30,6 +30,8 @@
 
 -spec exec(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts(), kz_types:xml_attribs()) ->
           {'ok' | 'stop', kapps_call:call()}.
+exec(Call, [#xmlComment{}|Rest], Attrs) ->
+    exec(Call, Rest, Attrs);
 exec(Call, [#xmlText{type='text'}|_]=DialMeTxts, Attrs) ->
     case cleanup_dial_me(kz_xml:texts_to_binary(DialMeTxts)) of
         <<>> ->
@@ -137,7 +139,10 @@ exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
 
             {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props),
             maybe_end_dial(Call2, Props)
-    end.
+    end;
+exec(Call, [Elm|Rest], Attrs) ->
+    lager:debug("unhandled XML object: ~p", [Elm]),
+    exec(Call, Rest, Attrs).
 
 -spec simple_dial(kapps_call:call(), kz_term:proplist(), kz_term:ne_binary()) ->
           {'ok' | 'stop' | 'request', kapps_call:call()}.
@@ -148,8 +153,7 @@ simple_dial(Call, Props, DialMe) ->
                                ,Props
                                ),
 
-    OffnetProps = [{<<"Media">>, media_processing(Call1)}
-                  ,{<<"Force-Outbound">>, force_outbound(Props)}
+    OffnetProps = [{<<"Force-Outbound">>, force_outbound(Props)}
                   ],
     'ok' = kzt_util:offnet_req(Props, OffnetProps, Call1),
 
@@ -171,11 +175,14 @@ number_dial(Call, DialProps, _NumberProps, DialMe) ->
 send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
     Command = [{<<"Application-Name">>, <<"bridge">>}
               ,{<<"Endpoints">>, EPs}
-              ,{<<"Loopback-Bowout">>, <<"true">>}
+              ,{<<"Loopback-Bowout">>, <<"false">>}
               ,{<<"Timeout">>, Timeout}
               ,{<<"Ignore-Early-Media">>, IgnoreEarlyMedia}
               ,{<<"Dial-Endpoint-Method">>, Strategy}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+              ,{<<"Fail-On-Single-Reject">>, <<"false">>}
+              ,{<<"Dial-Endpoint-Method">>, <<"simultaneous">>}
+              ,{<<"Ignore-Forward">>, <<"false">>}
+              | kz_api:default_headers(kapps_call:controller_queue(Call), ?APP_NAME, ?APP_VERSION)
               ],
     kapps_call_command:send_command(Command, Call).
 
@@ -316,15 +323,9 @@ create_fwd_endpoint(Number, Call) ->
                                 ,{<<"substitute">>, 'true'}
                                 ]),
     Unconditional = kzd_call_forward:set_unconditional(CallFwd, CallFwd),
-    case kz_endpoint:get(Call) of
-        {'ok', Endpoint0} ->
-            Endpoint = kzd_endpoint:set_call_forward(Endpoint0, Unconditional),
-            kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call);
-        {'error', _} ->
-            {'ok', Endpoint0} = kzd_accounts:fetch(kapps_call:account_id(Call)),
-            Endpoint = kzd_endpoint:set_call_forward(Endpoint0, Unconditional),
-            kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call)
-    end.
+    Endpoint0 = get_caller_endpoint(Call),
+    Endpoint = kzd_endpoint:set_call_forward(Endpoint0, Unconditional),
+    kz_endpoint:create_call_fwd_endpoint(Endpoint, kz_json:new(), Call).
 
 -spec sip_uri(kapps_call:call(), kzsip_uri:sip_uri()) -> kz_json:object().
 sip_uri(Call, URI) ->
@@ -341,15 +342,6 @@ sip_device(URI) ->
                 ]).
 
 request_id(N, Call) -> iolist_to_binary([N, <<"@">>, kapps_call:from_realm(Call)]).
-
--spec media_processing(kapps_call:call()) -> kz_term:api_ne_binary().
-media_processing(Call) ->
-    media_processing(kzt_util:get_record_call(Call), kzt_util:get_hangup_dtmf(Call)).
-
-%% If not gonna record or process dtmf, bypass media for performance reasons?
-%% Best of luck if you are behind NAT!
-media_processing('false', 'undefined') -> <<"bypass">>;
-media_processing(_, _) -> <<"process">>.
 
 get_max_participants(Props) when is_list(Props) ->
     get_max_participants(props:get_integer_value('maxParticipants', Props, 40));
@@ -519,6 +511,16 @@ conference_member_flags(ConfProps) ->
     case props:get_is_true('endConferenceOnExit', ConfProps, 'false') of
         'true' -> <<"endconf">>;
         'false' -> 'undefined'
+    end.
+
+-spec get_caller_endpoint(kapps_call:call()) -> kz_json:object().
+get_caller_endpoint(Call) ->
+    case kz_endpoint:get(Call) of
+        {'ok', Endpoint} ->
+            Endpoint;
+        {'error', _} ->
+            {'ok', Endpoint} = kzd_accounts:fetch(kapps_call:account_id(Call)),
+            kz_doc:set_type(Endpoint, <<"device">>)
     end.
 
 -spec get_endpoints(binary(), kz_json:object(), kapps_call:call()) ->
