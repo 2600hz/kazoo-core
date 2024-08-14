@@ -34,12 +34,13 @@ parse_cmds(XMLBin) ->
           {'error', kapps_call:call()} |
           {'request', kapps_call:call()} |
           {'stop', kapps_call:call()}.
-exec(Call, #xmlElement{name='Response', content=Els}) ->
+exec(Call0, #xmlElement{name='Response', content=Els}) ->
+    Call = maybe_set_authorizing_id(Call0),
     exec_elements(Call, kz_xml:filter_empty_text(Els));
 exec(Call, Resp) ->
     try xmerl_scan:string(kz_term:to_list(Resp), [{'space', 'normalize'}]) of
-        {#xmlElement{name='Response', content=Els}, _} ->
-            exec_elements(Call, kz_xml:filter_empty_text(Els));
+        {#xmlElement{name='Response'}=RespXML, _} ->
+            exec(Call, RespXML);
         _Other ->
             lager:debug("failed to scan XML: ~p", [_Other]),
             {'error', Call}
@@ -47,6 +48,20 @@ exec(Call, Resp) ->
         _E:_R ->
             lager:error("xml extraction fail: ~s: ~p: ~p", [_E, _R, Resp]),
             {'error', Call}
+    end.
+
+-spec maybe_set_authorizing_id(kapps_call:call()) -> kapps_call:call().
+maybe_set_authorizing_id(Call) ->
+    %% set authorizing-id to account in case the call is originated
+    %% from offnet. This avoids not constantly checking for undefined
+    %% authorizing id when creating endpoints in Dial.
+    case {kapps_call:authorizing_id(Call), kapps_call:account_id(Call)} of
+        {'undefined', 'undefined'} ->
+            Call;
+        {'undefined', AccountId} ->
+            kapps_call:set_authorizing_id(AccountId, Call);
+        _ ->
+            Call
     end.
 
 -spec exec_elements(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts()) ->
@@ -77,6 +92,8 @@ exec_elements(Call, [El|Els]) ->
           {'request', kapps_call:call()} |
           {'stop', kapps_call:call()} |
           {'error', kapps_call:call()}.
+exec_element(Call, #xmlComment{}) ->
+    {'ok', Call};
 exec_element(Call, #xmlElement{name='Dial'
                               ,content=Endpoints
                               ,attributes=Attrs
