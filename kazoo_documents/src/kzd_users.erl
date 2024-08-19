@@ -97,6 +97,8 @@
         ,full_name/1, full_name/2, full_name/3
         ,validate/3
         ,get_setters/0
+
+        ,is_password_expired/1, password_expiration_timestamp/1, password_expiry_s/0
         ]).
 
 -elvis([{elvis_style, god_modules, disable}]).
@@ -111,6 +113,8 @@
 -define(PVT_TYPE, <<"user">>).
 
 -define(PHOTO, <<"photo">>).
+
+-define(KEY_PASS_TIMESTAMP, <<"pvt_password_created">>).
 
 -define(LIST_BY_USERNAME, <<"users/list_by_username">>).
 -define(LIST_BY_HOTDESK_ID, <<"users/list_by_hotdesk_id">>).
@@ -1026,7 +1030,17 @@ fetch(_Account, 'undefined') ->
     {'error', 'not_found'};
 fetch(Account, UserId=?NE_BINARY) ->
     AccountDb = kzs_util:format_account_db(Account),
-    kz_datamgr:open_cache_doc(AccountDb, UserId).
+    case kz_datamgr:open_cache_doc(AccountDb, UserId) of
+        {'error', _}=Error ->
+            Error;
+        {'ok', UserJObj} ->
+            case is_password_expired(UserJObj) of
+                'true' ->
+                    lager:info("password is expired, requiring update"),
+                    {'ok', set_require_password_update(UserJObj, 'true')};
+                'false' -> {'ok', UserJObj}
+            end
+    end.
 
 -spec to_vcard(doc()) -> binary().
 to_vcard(UserDoc) ->
@@ -1540,9 +1554,7 @@ maybe_rehash_creds(AccountId, UserId, {Doc, []}=ValidateAcc) ->
             lager:debug("requested no username or password"),
             maybe_generate_creds_hash(AccountId, GenerateCreds, ValidateAcc);
         {'true', 'false', 'false'} ->
-            lager:debug("requested same username (new: ~s current: ~s) with a password"
-                       ,[Username, CurrentUsername]
-                       ),
+            lager:debug("username is unchanged with a password"),
             rehash_creds(AccountId, Username, Password, ValidateAcc);
         {'true', 'false', 'true'} ->
             lager:debug("requested same username (new: ~s current: ~s) without a password"
@@ -1631,7 +1643,7 @@ generate_password() ->
 -spec remove_creds(doc()) -> doc().
 remove_creds(Doc) ->
     lager:debug("removing user creds"),
-    HashKeys = [<<"pvt_md5_auth">>, <<"pvt_sha1_auth">>],
+    HashKeys = [<<"pvt_md5_auth">>, <<"pvt_sha1_auth">>, ?KEY_PASS_TIMESTAMP],
     kz_json:delete_keys(HashKeys, Doc).
 
 %%------------------------------------------------------------------------------
@@ -1656,20 +1668,30 @@ rehash_creds(_AccountId, Username0, {'valid', Password}, {Doc, Errors}) ->
     DocMD5 = kz_json:get_ne_value(<<"pvt_md5_auth">>, Doc),
     DocSHA1 = kz_json:get_ne_value(<<"pvt_sha1_auth">>, Doc),
     {MD5, SHA1} = kzd_module_utils:pass_hashes(Username, Password),
+    PassTS = maybe_password_timestamp(),
     UpdatedDoc = kz_json:set_values([{<<"pvt_md5_auth">>, MD5}
                                     ,{<<"pvt_sha1_auth">>, SHA1}
+                                    ,{?KEY_PASS_TIMESTAMP, PassTS}
                                     ]
-                                   ,Doc
+                                   ,set_require_password_update(Doc, is_password_expired(PassTS))
                                    ),
+
     case ?SHOULD_RESET_IDENTITY_SECRET_ON_REHASH
         andalso (DocMD5 =/= MD5
-                 orelse DocSHA1 =/= SHA1)
+                 orelse DocSHA1 =/= SHA1
+                )
     of
         'false' ->
             {kz_json:delete_key(<<"password">>, UpdatedDoc), Errors};
         'true' ->
             lager:debug("resetting identity secret"),
             {kz_auth_identity:reset_doc_secret(kz_json:delete_key(<<"password">>, UpdatedDoc)), Errors}
+    end.
+
+maybe_password_timestamp() ->
+    case password_expiry_s() of
+        'undefined' -> lager:info("not configured for password expiry"), 'null';
+        _-> lager:info("setting password expiration timestamp"), kz_time:now_s()
     end.
 
 %%------------------------------------------------------------------------------
@@ -1735,3 +1757,47 @@ maybe_migrate_user_addresses(User) ->
             %% 'undefined' or already using new implementation. Not need to migrate it.
             User
     end.
+
+-spec is_password_expired(doc() | kz_term:api_integer() | 'null') -> boolean().
+is_password_expired(Atom) when is_atom(Atom) ->
+    lager:debug("no password timestamp, considering expired"),
+    'true';
+is_password_expired(CreatedS) when is_integer(CreatedS) ->
+    is_password_expired(CreatedS, password_expiry_s());
+is_password_expired(User) ->
+    is_password_expired(password_created(User), password_expiry_s()).
+
+password_created(User) ->
+    kz_json:get_integer_value([?KEY_PASS_TIMESTAMP], User).
+
+-spec password_expiry_s() -> kz_term:api_integer().
+password_expiry_s() ->
+    kapps_config:get_integer(?CROSSBAR_CONFIG_CAT, <<"password_expiry_s">>).
+
+is_password_expired(_CreatedS, 'undefined') ->
+    lager:debug("no password expiry defined"),
+    'false';
+is_password_expired('undefined', _Expiry) ->
+    lager:debug("no password timestamp, considering expired"),
+    'true';
+is_password_expired(CreatedS, Expiry) ->
+    NowS = kz_time:now_s(),
+    case CreatedS + Expiry < NowS of
+        'true' ->
+            lager:info("password has expired (~p + ~p) < ~p", [CreatedS, Expiry, NowS]),
+            'true';
+        'false' ->
+            'false'
+    end.
+
+-spec password_expiration_timestamp(doc() | 'undefined') -> kz_term:api_integer().
+password_expiration_timestamp('undefined') -> 'undefined';
+password_expiration_timestamp(User) ->
+    password_expiration_timestamp(password_created(User), password_expiry_s()).
+
+%% no expiration
+password_expiration_timestamp(_CreatedS, 'undefined') -> 'undefined';
+%% expired in the past already
+password_expiration_timestamp('undefined', Expiry) -> kz_time:now_s() - Expiry;
+%% return when password expires
+password_expiration_timestamp(CreatedS, Expiry) -> CreatedS + Expiry.

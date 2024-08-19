@@ -9,6 +9,8 @@
 -define(APP_NAME, (atom_to_binary(?APP, 'utf8'))).
 -define(APP_VERSION, <<"4.0.0">>).
 
+-define(CROSSBAR_CONFIG_CAT, <<"crossbar">>).
+
 -define(FAX_SETTINGS_KEY, <<"fax_settings">>).
 -define(FAX_TIMEZONE_KEY, <<"fax_timezone">>).
 
