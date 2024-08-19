@@ -9,17 +9,15 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_module_utils).
 
--include("kz_documents.hrl").
-
 -export([get_setters/1
         ,maybe_normalize_emergency_caller_id_number/1
         ,pass_hashes/2
         ,validate_schema/3
         ]).
 
--define(KEY_EMERGENCY_NUMBER, [<<"caller_id">>, <<"emergency">>, <<"number">>]).
+-include("kz_documents.hrl").
 
--define(CROSSBAR_CONFIG_CAT, <<"crossbar">>).
+-define(KEY_EMERGENCY_NUMBER, [<<"caller_id">>, <<"emergency">>, <<"number">>]).
 
 -define(SHOULD_ENSURE_SCHEMA_IS_VALID
        ,kapps_config:get_is_true(?CROSSBAR_CONFIG_CAT, <<"ensure_valid_schema">>, 'true')
