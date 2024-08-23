@@ -29,7 +29,8 @@
 -type resp_code() :: pos_integer() | atom().
 %% HTTP status codes line `400', `404', `409', etc.
 -type resp_body() :: binary() | bitstring() | atom().
-%% Response body in forms of binary encoded of `map()' or literal binary `<<"example">>' or atoms like `not_found' or `return_id_missing', etc.
+%% Response body in forms of binary encoded of `map()' or literal
+%% binary `<<"example">>' or atoms like `not_found' or `return_id_missing', etc.
 -type resp_headers() :: kz_term:proplist().
 
 -type extended_error() :: #{'db_name' => gen_attachment:db_name()
