@@ -15,6 +15,9 @@
             "enum": [
                 "caller_info_reply"
             ]
+        },
+        "Query-Interaction-Response": {
+            "type": "object"
         }
     },
     "required": [
