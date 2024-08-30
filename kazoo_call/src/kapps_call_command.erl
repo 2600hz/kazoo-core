@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -3312,8 +3312,7 @@ send_command(Command, Call) when is_list(Command) ->
             kapi_dialplan:publish_command(CtrlQ, props:filter_undefined(Prop));
         'false' -> 'ok'
     end;
-send_command(JObj, Call) ->
-send_command(kz_json:to_proplist(JObj), Call).
+send_command(JObj, Call) -> send_command(kz_json:to_proplist(JObj), Call).
 
 %%------------------------------------------------------------------------------
 %% @doc Get the T38 settings for an endpoint based on carrier and device.
