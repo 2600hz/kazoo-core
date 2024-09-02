@@ -41,11 +41,13 @@
 -type s3_error() :: {'aws_error', {'socket_error', binary()}} |
                     {'aws_error', {'http_error', pos_integer(), string(), binary()}} |
                     {'s3_error', string(), string()}.
--type existing_att_op() :: fun((handler_props()
-                               ,bpc()
-                               ,kz_att_error:update_routines()
+-type existing_att_op() :: fun((handler_props(),
+                                kz_term:ne_binary(),
+                                bpc(),
+                                kz_att_error:update_routines()
                                ) -> gen_attachment:fetch_response()
                                         ).
+
 -type bpc_provider() :: fun(() -> bpc()).
 -type bpc_consumer(ReturnType) :: fun((bpc()) -> ReturnType).
 -type http_headers() :: kz_term:proplist_kv(string(), string() | binary()).
@@ -89,7 +91,7 @@ put_attachment(Params, DbName, DocId, AName, Contents, Options) ->
                       ,gen_attachment:att_name()
                       ) -> gen_attachment:fetch_response().
 fetch_attachment(Conn, DbName, DocId, AName) ->
-    FetchAttachment = fun(_, BPC, Routines) ->
+    FetchAttachment = fun(_, _, BPC, Routines) ->
                               fetch_attachment(BPC, Routines)
                       end,
     do_if_attachment_is_retrievable(Conn, DbName, DocId, AName, FetchAttachment).
@@ -104,7 +106,7 @@ fetch_attachment(Conn, DbName, DocId, AName) ->
                        ,gen_attachment:att_name()
                        ) -> gen_attachment:fetch_response().
 delete_attachment(Conn, DbName, DocId, AName) ->
-    do_if_attachment_is_retrievable(Conn, DbName, DocId, AName, fun maybe_delete_attachment/3).
+    do_if_attachment_is_retrievable(Conn, DbName, DocId, AName, fun maybe_delete_attachment/4).
 
 %%------------------------------------------------------------------------------
 %% @doc Update the metadata on an attachment stored in an S3 bucket. The only
@@ -119,7 +121,7 @@ delete_attachment(Conn, DbName, DocId, AName) ->
                      ,kz_doc:doc()
                      ) -> gen_attachment:update_metadata_response().
 update_metadata(Conn, DbName, DocId, AName, Doc) ->
-    UpdateMetadata = fun(HandlerProps, BPC, Routines) ->
+    UpdateMetadata = fun(HandlerProps, _, BPC, Routines) ->
                              update_metadata(HandlerProps, BPC, Doc, Routines)
                      end,
     do_if_attachment_is_retrievable(Conn, DbName, DocId, AName, UpdateMetadata).
@@ -172,12 +174,12 @@ fetch_attachment({Bucket, FilePath, Config}, ErrorRoutines) ->
 %% handler.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_delete_attachment(handler_props(), bpc(), kz_att_error:update_routines()) ->
+-spec maybe_delete_attachment(handler_props(), kz_term:ne_binary(), bpc(), kz_att_error:update_routines()) ->
           gen_attachment:fetch_response().
-maybe_delete_attachment(HandlerProps, BPC, ErrorRoutines) ->
-    case kz_att_util:should_del_att(HandlerProps) of
+maybe_delete_attachment(_, S3, BPC, ErrorRoutines) ->
+    case kz_att_util:should_del_att(decode_retrieval(S3)) of
         'true' -> delete_attachment(BPC, ErrorRoutines);
-        'false' -> {'ok', <<>>}
+        'false' -> {'ok', <<"not_enabled">>}
     end.
 
 %%------------------------------------------------------------------------------
@@ -253,7 +255,7 @@ do_if_attachment_is_retrievable(Conn, DbName, DocId, AName, Fun) ->
 do_on_existing_attachment(HandlerProps, RetrievalKey, DbName, DocId, AName, ErrorRoutines, Fun) ->
     catch_unauthorized(
       fun() -> aws_bpc(RetrievalKey, HandlerProps, {DbName, DocId, AName}) end
-     ,fun(BPC) -> Fun(HandlerProps, BPC, ErrorRoutines) end
+     ,fun(BPC) -> Fun(HandlerProps, RetrievalKey, BPC, ErrorRoutines) end
      ,ErrorRoutines
      ).
 

@@ -212,7 +212,7 @@ external_attachment(Map, DbName, JObj, Att, Props) ->
     end.
 
 -spec delete_attachment(map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
+          {'ok', kz_json:object() | binary()} |
           data_error().
 delete_attachment(#{}=Server, DbName, DocId, AName, Options) ->
     case kzs_cache:open_cache_doc(Server, DbName, DocId, []) of
