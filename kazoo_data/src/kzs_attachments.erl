@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2024, 2600Hz
 %%% @doc data adapter behaviour
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -212,7 +212,7 @@ external_attachment(Map, DbName, JObj, Att, Props) ->
     end.
 
 -spec delete_attachment(map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
+          {'ok', kz_json:object() | binary()} |
           data_error().
 delete_attachment(#{}=Server, DbName, DocId, AName, Options) ->
     case kzs_cache:open_cache_doc(Server, DbName, DocId, []) of
