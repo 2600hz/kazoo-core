@@ -1535,7 +1535,7 @@ play_command(Media, Terminators, Leg, Call) ->
                   ,kz_term:api_boolean()
                   ,kapps_call:call() | kz_term:ne_binary()) -> kz_json:object().
 play_command(Media, Terminators, Leg, Endless, Call) ->
-    play_command(Media, Terminators, Leg, Endless, 'undefined', kapps_call:call_id(Call)).
+    play_command(Media, Terminators, Leg, Endless, 'undefined', Call).
 
 -spec play_command(kz_term:ne_binary()
                   ,kz_term:api_binaries()
