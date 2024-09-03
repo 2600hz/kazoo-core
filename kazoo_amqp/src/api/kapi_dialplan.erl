@@ -1132,6 +1132,7 @@ play_definition() ->
                                                             ,<<"Language">>
                                                             ,<<"Leg">>
                                                             ,<<"Loop-Count">>
+                                                            ,<<"Playback-Timeout">>
                                                             ,<<"Terminators">>
                                                             ,<<"Voice">>
                                                             ]}
