@@ -499,6 +499,9 @@
         "Pitch": {
             "type": "string"
         },
+        "Playback-Timeout": {
+            "type": "integer"
+        },
         "Privacy-Hide-Name": {
             "type": "string"
         },
