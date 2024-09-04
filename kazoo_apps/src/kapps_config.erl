@@ -559,7 +559,10 @@ get_zone_value(Category, _Node, Keys, Default, JObj) ->
           Default | _.
 get_default_value(Category, [?KEY_DEFAULT | Keys]=Path, Default, JObj) ->
     case kz_json:get_value(Path, JObj) of
-        'undefined' ->
+        'undefined' when Default =/= 'undefined' ->
+            lager:debug("failed to find value at ~s in ~s, setting default ~p"
+                       ,[kz_binary:join(Path, <<".">>), Category, Default]
+                       ),
             _ = set(Category, Keys, Default),
             Default;
         Else -> Else

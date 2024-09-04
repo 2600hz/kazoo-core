@@ -463,16 +463,25 @@ validate_sip_hostname(Hostname) ->
 validate_sip_hostname(Hostname, 'true') ->
     is_valid_host_value(Hostname, 'true', kz_http_util:client_ip_blacklist());
 validate_sip_hostname(Hostname, 'false') ->
-    SRV = <<"_sip._udp.", Hostname/binary>>,
-    case kz_network_utils:lookup_dns(SRV, 'srv', []) of
-        {'ok', []} ->
-            lager:info("no SRV records for hostname '~s', checking A", [Hostname]),
-            is_valid_host(Hostname);
-        {'ok', SRVRecords} ->
-            lager:info("checking SRV records from hostname ~s", [Hostname]),
-            lists:all(fun is_valid_srv/1, SRVRecords)
+    SRVHosts = [<<"_sip._udp.", Hostname/binary>>
+               ,<<"_sip._tcp.", Hostname/binary>>
+               ,<<"_sip._tls.", Hostname/binary>>
+               ],
+    case lists:any(fun is_valid_srv/1, SRVHosts) of
+        'true' -> 'true';
+        'false' -> is_valid_host(Hostname)
     end.
 
-is_valid_srv({_Priority, _Weight, _Port, Target}) ->
+is_valid_srv(SRV) ->
+    case kz_network_utils:lookup_dns(SRV, 'srv', []) of
+        {'ok', []} ->
+            lager:info("no DNS for SRV ~s", [SRV]),
+            'false';
+        {'ok', SRVRecords} ->
+            lager:info("checking SRV records from ~s", [SRV]),
+            lists:all(fun is_valid_srv_record/1, SRVRecords)
+    end.
+
+is_valid_srv_record({_Priority, _Weight, _Port, Target}) ->
     lager:info("validating SRV target ~s", [Target]),
     validate_sip_hostname(kz_term:to_binary(Target)).
