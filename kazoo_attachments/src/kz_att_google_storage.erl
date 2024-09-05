@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2023, 2600Hz
+%%% @copyright (C) 2017-2024, 2600Hz
 %%% @doc Google Storage for attachments.
 %%% @author Luis Azedo
 %%%
@@ -199,7 +199,8 @@ send_attachment(Authorization, Bucket, AName, CT, Options, Contents) ->
         Resp -> {'error', Url, Resp}
     end.
 
-%% Google Storage REST API errors reference: https://cloud.google.com/storage/docs/json_api/v1/status-codes#error-response-format
+%% Google Storage REST API errors
+%% reference: https://cloud.google.com/storage/docs/json_api/v1/status-codes#error-response-format
 -spec handle_http_error_response(kz_http:ret(), kz_att_error:update_routines()) -> kz_att_error:error().
 handle_http_error_response({'ok', RespCode, RespHeaders, RespBody} = _E, Routines) ->
     Reason = get_reason(RespCode, RespBody),
