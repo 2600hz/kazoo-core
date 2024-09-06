@@ -47,7 +47,7 @@ put_attachment(Settings, DbName, DocId, AName, Contents, Options) ->
                ],
     try
         case erlazure:put_block_blob(Pid, Container, Name, Contents, AzureOptions) of
-            {'ok', Headers, _Body} ->
+            {201, Headers, _Body} ->
                 props:to_log(Headers, <<"AZURE HEADERS">>),
                 Data = base64:encode(term_to_binary({Settings#{file => Name}, Name})),
                 Metadata = kz_json:from_list(kz_att_util:headers_as_binaries(Headers)),
