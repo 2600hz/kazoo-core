@@ -241,10 +241,18 @@ do_track_pid(Pid, State) when is_pid(Pid) ->
 do_track_pid({Pid, Thresholds}, State) ->
     case State of
         #{Pid := _} -> State;
-        #{} ->
+        #{} -> track_pid_if_alive({Pid, Thresholds}, State)
+    end.
+
+-spec track_pid_if_alive({pid(), proc_thresholds()}, state()) -> state().
+track_pid_if_alive({Pid, Thresholds}, State) ->
+    %% It is possible for `Pid' to die before we get here, handle gracefully
+    case process_info(Pid, ['total_heap_size', 'message_queue_len']) of
+        'undefined' ->
+            %% Process died too soon :(...
+            State;
+        [{'total_heap_size', TotalHeapSize}, {'message_queue_len', MQLen}] ->
             MonitorRef = erlang:monitor('process', Pid),
-            [{'total_heap_size', TotalHeapSize}, {'message_queue_len', MQLen}]
-                = process_info(Pid, ['total_heap_size', 'message_queue_len']),
             HasLongMQ = has_long_message_queue('false', MQLen, Thresholds),
 
             maybe_warn_large_heap(Pid, TotalHeapSize, Thresholds, 'true'),
@@ -329,7 +337,8 @@ total_heap_size(Info) ->
 
 %%------------------------------------------------------------------------------
 %% @doc
-%% @see erlang:process_flag/2. `size' flag as reference for the calculation
+%% See: [https://www.erlang.org/doc/apps/erts/erlang.html#process_flag_max_heap_size]
+%% as reference for the calculation
 %% @end
 %%------------------------------------------------------------------------------
 -spec is_total_heap_size_summand(gc_info_key() | 'timeout') -> boolean().
