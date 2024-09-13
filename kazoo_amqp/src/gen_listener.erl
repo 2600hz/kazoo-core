@@ -925,7 +925,10 @@ handle_info({'kapi'
             }
            ,State
            ) ->
-    handle_event(Payload, {CT, CE}, {Deliver, Basic}, State);
+    CallId = kz_log:get_callid(),
+    Reply = handle_event(Payload, {CT, CE}, {Deliver, Basic}, State),
+    kz_log:put_callid(CallId),
+    Reply;
 handle_info(Message, State) ->
     handle_callback_info(Message, State).
 
