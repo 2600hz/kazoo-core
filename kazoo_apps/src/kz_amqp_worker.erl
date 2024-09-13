@@ -26,7 +26,7 @@
 %% API
 -export([start_link/1
 
-        ,call/2, call/3, call/4, call/5
+        ,call/2, call/3, call/4
         ,call_collect/2, call_collect/3, call_collect/4
 
         ,call_custom/4, call_custom/5
@@ -39,7 +39,6 @@
         ,collect_until_timeout/0
         ,collect_from_whapp/1
         ,collect_from_whapp_or_validate/2
-        ,send_request/4
         ,checkout_worker/0, checkout_worker/1
         ,checkin_worker/1, checkin_worker/2
         ,worker_pool/0, worker_pool/1
@@ -218,10 +217,7 @@ call(Req, PubFun, VFun) ->
 call(Req, PubFun, VFun, Worker) when is_pid(Worker) ->
     call(Req, PubFun, VFun, default_timeout(), Worker);
 call(Req, PubFun, VFun, Timeout) ->
-    case next_worker() of
-        {'error', _}=E -> E;
-        Worker -> call(Req, PubFun, VFun, Timeout, Worker)
-    end.
+    call(Req, PubFun, VFun, Timeout, worker_pool()).
 
 -spec call(kz_term:api_terms(), publish_fun(), validate_fun(), timeout(), pid()  | atom()) ->
           request_return().
@@ -619,7 +615,7 @@ handle_call({'stop_relay', RelayPid}, _From, #state{client_pid=RelayPid
                                                    }=State) ->
     erlang:demonitor(Ref, ['flush']),
     lager:debug("stopping relay to ~p", [RelayPid]),
-    {'reply', 'ok', reset(State)};
+    {'reply', 'ok', reset(State), 'hibernate'};
 handle_call({'request', ReqProp, PublishFun, VFun, Timeout}
            ,{ClientPid, _}=From
            ,#state{queue=Q, confirms=Confirm}=State
@@ -664,7 +660,7 @@ handle_call({'request', ReqProp, PublishFun, VFun, Timeout}
             };
         {'error', Err}=Error ->
             lager:debug("failed to send request: ~p", [Err]),
-            {'reply', Error, reset(State)}
+            {'reply', Error, reset(State), 'hibernate'}
     end;
 handle_call({'call_collect', ReqProp, PublishFun, UntilFun, Timeout, Acc}
            ,{ClientPid, _}=From
@@ -691,7 +687,6 @@ handle_call({'call_collect', ReqProp, PublishFun, UntilFun, Timeout, Acc}
                         ,confirm_start_time = kz_time:start_time()
                         ,timeout = Timeout
                         ,method = 'call_collect'
-
                         ,callid = CallId
                         }
             };
@@ -713,7 +708,7 @@ handle_call({'call_collect', ReqProp, PublishFun, UntilFun, Timeout, Acc}
             };
         {'error', Err}=Error ->
             lager:debug("failed to send request: ~p", [Err]),
-            {'reply', Error, reset(State)}
+            {'reply', Error, reset(State), 'hibernate'}
     end;
 
 handle_call({'publish', ReqProp0, PublishFun}
@@ -760,10 +755,10 @@ handle_call({'publish', ReqProp, PublishFun}
             };
         'ok' ->
             lager:debug("published message ~s for ~p", [kz_api:msg_id(ReqProp), Pid]),
-            {'reply', 'ok', reset(State)};
+            {'reply', 'ok', reset(State), 'hibernate'};
         {'error', _E}=Err ->
             lager:error("failed to publish message ~s for ~p: ~p", [kz_api:msg_id(ReqProp), Pid, _E]),
-            {'reply', Err, reset(State)}
+            {'reply', Err, reset(State), 'hibernate'}
     end;
 handle_call(_Request, _From, State) ->
     {'reply', {'error', 'not_implemented'}, State}.
@@ -773,8 +768,6 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast('hibernate', State) ->
-    {'noreply', State, 'hibernate'};
 handle_cast({'gen_listener', {'created_queue', Q}}, #state{defer='undefined'}=State) ->
     lager:debug("AMQP queue created ~s", [Q]),
     {'noreply', State#state{queue=Q}};
@@ -785,6 +778,9 @@ handle_cast({'gen_listener', {'created_queue', Q}}, #state{defer={Call,From}}=St
         {'reply', Reply, NewState} ->
             gen_server:reply(From, Reply),
             {'noreply', NewState};
+        {'reply', Reply, NewState, 'hibernate'} ->
+            gen_server:reply(From, Reply),
+            {'noreply', NewState, 'hibernate'};
         {'noreply', _NewState}=NoReply ->
             NoReply
     end;
@@ -799,18 +795,21 @@ handle_cast({'gen_listener', {'return', JObj, BasicReturn}}
     _ = kz_log:put_callid(JObj),
     case kz_api:msg_id(JObj) of
         MsgId ->
+            %% Return from call/call_collect
             lager:debug("published message was returned from the broker"),
             gen_server:reply(From, {'returned', JObj, BasicReturn}),
             {'noreply', reset(State), 'hibernate'};
         _MsgId when Confirms =:= 'true' ->
+            %% Return from cast
             lager:debug("published message was returned from the broker"),
             gen_server:reply(From, {'returned', JObj, BasicReturn}),
             {'noreply', reset(State), 'hibernate'};
         _MsgId ->
+            %% Return from expired call/call_collect
             lager:debug("ignoring published message was returned from the broker"),
             lager:debug("payload: ~p", [JObj]),
             lager:debug("return: ~p", [BasicReturn]),
-            {'noreply', State, 'hibernate'}
+            {'noreply', State}
     end;
 
 
@@ -835,18 +834,23 @@ handle_cast({'gen_listener',{'channel_flow_control', Active}}, State) ->
 handle_cast('check_in', #state{client_pid='undefined'
                               ,client_ref='undefined'
                               }=State) ->
-    {'noreply', State};
+    %% Must hibernate again; we've interrupted scheduled hibernation by sending
+    %% this msg & GC was not performed
+    %% We still hibernate in most callbacks, at the end of request flows,
+    %% because it is possible for the client to die between receiving our
+    %% replies and calling `checkin_worker'
+    {'noreply', reset(State), 'hibernate'};
 handle_cast('check_in', #state{client_pid=RelayPid
                               ,client_ref=Ref
                               ,client_from='relay'
                               }=State) ->
     erlang:demonitor(Ref, ['flush']),
     lager:debug("stopping relay to ~p", [RelayPid]),
-    {'noreply', reset(State)};
+    {'noreply', reset(State), 'hibernate'};
 
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),
-    {'noreply', State, 'hibernate'}.
+    {'noreply', State}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling all non call/cast messages.
@@ -942,9 +946,7 @@ handle_event(JObj, #state{client_from='relay'
 handle_event(JObj, State) ->
     case handle_payload(kz_api:msg_id(JObj), JObj, State) of
         {'noreply', NewState} ->  {'ignore', NewState};
-        {'noreply', NewState, 'hibernate'} ->
-            gen_listener:cast(self(), 'hibernate'),
-            {'ignore', NewState}
+        {'noreply', NewState, 'hibernate'} -> {'ignore', NewState, 'hibernate'}
     end.
 
 %%------------------------------------------------------------------------------
@@ -1214,7 +1216,7 @@ handle_payload(MsgId, JObj
                     {'noreply', reset(State), 'hibernate'};
                 'true' ->
                     lager:debug("deferred response for msg id ~s, waiting for primary response", [MsgId]),
-                    {'noreply', State#state{defer_response=JObj}, 'hibernate'}
+                    {'noreply', State#state{defer_response=JObj}}
             end;
         'false' ->
             case kz_json:is_true(<<"Defer-Response">>, JObj) of
@@ -1250,14 +1252,14 @@ handle_payload(MsgId, JObj
             gen_server:reply(From, {'ok', Responses}),
             {'noreply', reset(State), 'hibernate'};
         'false' ->
-            {'noreply', State#state{responses=Responses}, 'hibernate'};
+            {'noreply', State#state{responses=Responses}};
         {'false', Acc0} ->
-            {'noreply', State#state{responses=Responses, acc=Acc0}, 'hibernate'}
+            {'noreply', State#state{responses=Responses, acc=Acc0}}
     catch
         _E:_R ->
             lager:warning("supplied until_fun crashed: ~s: ~p", [_E, _R]),
             lager:debug("pretending like until_fun returned false"),
-            {'noreply', State#state{responses=Responses}, 'hibernate'}
+            {'noreply', State#state{responses=Responses}}
     end;
 handle_payload(MsgId, JObj
               ,#state{current_msg_id = MsgId
@@ -1279,12 +1281,12 @@ handle_payload(MsgId, JObj
             gen_server:reply(From, {'ok', Responses}),
             {'noreply', reset(State), 'hibernate'};
         'false' ->
-            {'noreply', State#state{responses=Responses}, 'hibernate'}
+            {'noreply', State#state{responses=Responses}}
     catch
         _E:_R ->
             lager:warning("supplied until_fun crashed: ~s: ~p", [_E, _R]),
             lager:debug("pretending like until_fun returned false"),
-            {'noreply', State#state{responses=Responses}, 'hibernate'}
+            {'noreply', State#state{responses=Responses}}
     end;
 handle_payload(_MsgId, JObj
               ,#state{current_msg_id='undefined'}=State
