@@ -231,8 +231,8 @@ create_alert(Days, 'true') ->
                                       ,{<<"value">>, AccountId}
                                       ])
                    ],
-            To = [kz_json:from_list([{<<"type">>, AccountId}
-                                    ,{<<"value">>, <<"admins">>}
+            To = [kz_json:from_list([{<<"type">>, <<"admins">>}
+                                    ,{<<"value">>, AccountId}
                                     ])
                  ],
             Title = <<"kazoo telemetry grace period active">>,

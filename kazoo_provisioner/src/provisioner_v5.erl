@@ -704,11 +704,11 @@ create_alert(JObj, AccountId, AuthToken, 'true') ->
                               ])
            ],
 
-    To = [kz_json:from_list([{<<"type">>, AccountId}
-                            ,{<<"value">>, <<"admins">>}
+    To = [kz_json:from_list([{<<"type">>, <<"admins">>}
+                            ,{<<"value">>, AccountId}
                             ])
-         ,kz_json:from_list([{<<"type">>, kz_services_reseller:get_id(AccountId)}
-                            ,{<<"value">>, <<"admins">>}
+         ,kz_json:from_list([{<<"type">>, <<"admins">>}
+                            ,{<<"value">>, kz_services_reseller:get_id(AccountId)}
                             ])
          ],
 
