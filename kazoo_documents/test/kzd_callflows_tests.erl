@@ -24,7 +24,7 @@ simple_successful_validation_test_() ->
                               ,{<<"data">>, ChildData}
                               ]
                              ),
-    Doc = kz_json:from_list([{?FLOW, Child}]),
+    Doc = kzd_callflows:set_flow(kz_json:new(), Child),
 
     {'ok', ValidatedDoc} = kzd_callflows:validate_flow(Doc),
 
@@ -103,12 +103,12 @@ nested_children_failure_test_() ->
                               ,Child
                               ),
 
-    Doc = kz_json:from_list([{?FLOW, Nested}]),
+    Doc = kzd_callflows:set_flow(kz_json:new(), Nested),
 
     {'error', Errors} = kzd_callflows:validate_flow(Doc),
 
-    [?_assertMatch([{'data_invalid', _SchemaJObj, 'wrong_type', 'true', [<<"children">>, <<"_">>, <<"data">>, <<"key2">>]}
-                   ,{'data_invalid', _SchemaJObj, 'wrong_type', 'true', [<<"data">>, <<"key2">>]}
+    [?_assertMatch([{'data_invalid', _, 'wrong_type', 'true', [<<"children">>, <<"_">>, <<"data">>, <<"key2">>]}
+                   ,{'data_invalid', _, 'wrong_type', 'true', [<<"data">>, <<"key2">>]}
                    ]
                   ,Errors
                   )

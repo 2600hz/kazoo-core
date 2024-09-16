@@ -53,7 +53,7 @@ extended_validation(Value, State, _Options) ->
 
 -spec extra_validation(jesse:json_term(), jesse_state:state()) -> jesse_state:state().
 extra_validation(Value, State) ->
-    SchemaId = jesse_state:get_current_schema_id(State),
+    SchemaId = kz_term:to_binary(jesse_state:get_current_schema_id(State)),
     Path = lists:reverse(jesse_state:get_current_path(State)),
 
     ElementId = kz_term:to_binary(lists:last(Path)),
@@ -76,7 +76,8 @@ extra_validation(<<"metaflow.module">>, Value, State) ->
     lager:debug("validating metaflow action '~s'", [Value]),
     Schema = <<"metaflows.", Value/binary>>,
     State1 = jesse_state:resolve_ref(State, Schema),
-    State2 = case jesse_state:get_current_schema_id(State1) of
+    CurrSchemaL = jesse_state:get_current_schema_id(State1),
+    State2 = case kz_term:to_binary(CurrSchemaL) of
                  Schema -> State1;
                  _OtherSchema -> jesse_error:handle_data_invalid({'external_error', <<"unable to find metaflow schema for module ", Value/binary>>}, Value, State)
              end,
@@ -91,9 +92,12 @@ extra_validation(<<"callflows.action.data">>, Value, State) ->
 extra_validation(<<"callflows.action.module">>, Value, State) ->
     Schema = <<"callflows.", Value/binary>>,
     State1 = jesse_state:resolve_ref(State, Schema),
-    State2 = case jesse_state:get_current_schema_id(State1) of
+    CurrentSchemaL = jesse_state:get_current_schema_id(State1),
+    State2 = case kz_term:to_binary(CurrentSchemaL) of
                  Schema -> State1;
-                 _OtherSchema -> jesse_error:handle_data_invalid({'external_error', <<"unable to find callflow schema for module ", Value/binary>>}, Value, State)
+                 _OtherSchema ->
+                     io:format('user', "~nschema id ~s returned, expected ~s, no module ~s~n", [_OtherSchema, Schema, Value]),
+                     jesse_error:handle_data_invalid({'external_error', <<"unable to find callflow schema for module ", Value/binary>>}, Value, State)
              end,
     jesse_state:undo_resolve_ref(State2, State);
 extra_validation(<<"webhooks.uri">>, URL, State) ->
@@ -171,7 +175,8 @@ announcement_validation(Value, State) ->
 
 validate_module_data(Schema, Value, State) ->
     State1 = jesse_state:resolve_ref(State, Schema),
-    State2 = case jesse_state:get_current_schema_id(State1) of
+    CurrSchemaL = jesse_state:get_current_schema_id(State1),
+    State2 = case kz_term:to_binary(CurrSchemaL) of
                  Schema ->
                      SchemaObj = jesse_state:get_current_schema(State1),
                      jesse_schema_validator:validate_with_state(SchemaObj, Value, State1);
