@@ -521,7 +521,7 @@ get_caller_endpoint(Call) ->
             Endpoint;
         {'error', _} ->
             {'ok', Endpoint} = kzd_accounts:fetch(kapps_call:account_id(Call)),
-            kz_doc:set_type(Endpoint, <<"device">>)
+            Endpoint
     end.
 
 -spec get_endpoints(binary(), kz_json:object(), kapps_call:call()) ->
