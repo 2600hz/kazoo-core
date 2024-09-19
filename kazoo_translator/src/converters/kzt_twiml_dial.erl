@@ -295,6 +295,7 @@ collecting_endpoints(Call, [#xmlElement{name='Number'} = EP | EPs], Acc) ->
             FwdEP = create_fwd_endpoint(DialMe, Call),
             collecting_endpoints(Call, EPs, [FwdEP|Acc])
     end;
+
 collecting_endpoints(Call,[#xmlElement{name='Sip'} = EP | EPs], Acc) ->
     #xmlElement{content=Number, attributes=Attrs} = EP,
 
@@ -520,7 +521,7 @@ get_caller_endpoint(Call) ->
             Endpoint;
         {'error', _} ->
             {'ok', Endpoint} = kzd_accounts:fetch(kapps_call:account_id(Call)),
-            kz_doc:set_type(Endpoint, <<"device">>)
+            Endpoint
     end.
 
 -spec get_endpoints(binary(), kz_json:object(), kapps_call:call()) ->

@@ -63,7 +63,7 @@
 -export([outbound_flags/1, outbound_flags/2, set_outbound_flags/2]).
 -export([owner_id/1, owner_id/2, set_owner_id/2]).
 -export([presence_id/1, presence_id/2, set_presence_id/2
-        ,calculate_presence_id/1, calculate_presence_id/2
+        ,calculate_presence_id/1, calculate_presence_id/2, calculate_presence_id/3
         ]).
 -export([presence_aliases/1, presence_aliases/2, set_presence_aliases/2]).
 -export([provision/1, provision/2, set_provision/2]).
@@ -831,17 +831,21 @@ calculate_presence_id(Doc, Default) ->
         PresenceId -> maybe_fix_presence_id(Doc, PresenceId)
     end.
 
--spec maybe_fix_presence_id(doc(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec maybe_fix_presence_id(doc(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 maybe_fix_presence_id(Doc, PresenceId) ->
     case binary:match(PresenceId, <<"@">>) of
         'nomatch' -> fix_presence_id(Doc, PresenceId);
         _Match -> PresenceId
     end.
 
--spec fix_presence_id(doc(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec fix_presence_id(doc(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 fix_presence_id(Doc, PresenceId) ->
-    AccountRealm = kzd_accounts:fetch_realm(kz_doc:account_id(Doc)),
-    <<PresenceId/binary, "@", AccountRealm/binary>>.
+    case kzd_accounts:fetch_realm(kz_doc:account_id(Doc)) of
+        'undefined' ->
+            'undefined';
+        AccountRealm ->
+            <<PresenceId/binary, "@", AccountRealm/binary>>
+    end.
 
 -spec calculate_presence_id(doc(), Default, kz_term:api_ne_binary()) -> kz_term:ne_binary() | Default.
 calculate_presence_id(Doc, DevicePresenceId, 'undefined') ->
