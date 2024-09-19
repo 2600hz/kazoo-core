@@ -1624,7 +1624,7 @@ b_play(Media, Terminators, Leg, Call) ->
 -spec b_play(kz_term:ne_binary(), kz_term:api_binaries(), kz_term:api_binary(), kz_term:api_boolean(), kapps_call:call()) ->
           kapps_api_std_return().
 b_play(Media, Terminators, Leg, Endless, Call) ->
-    wait_for_noop(Call, play(Media, Terminators, Leg, Endless, Call)).
+    wait_for_noop(Call, play(Media, Terminators, Leg, 'undefined', Endless, Call)).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces the low level AMQP request to seek through the playing media.

@@ -500,6 +500,8 @@ presence_id(Call) ->
     presence_id(kapps_call:authorizing_id(Call), Call).
 
 -spec presence_id(kz_term:api_binary() | kz_json:object(), kapps_call:call()) -> kz_term:api_binary().
+presence_id('undefined', _Call) ->
+    'undefined';
 presence_id(EndpointId, Call) when is_binary(EndpointId) ->
     case kz_endpoint:get(EndpointId, Call) of
         {'ok', Endpoint} -> presence_id(Endpoint, Call);
