@@ -779,6 +779,26 @@ error_to_jobj({'data_invalid'
                     );
 error_to_jobj({'data_invalid'
               ,_FailedSchemaJObj
+              ,{'any_schemas_not_valid', Errors}
+              ,_FailedValue
+              ,_FailedKeyPath
+              }
+             ,_Options
+             ) ->
+    lager:info("any schemas not valid for key ~s", [_FailedKeyPath]),
+    errors_to_jobj(Errors);
+error_to_jobj({'data_invalid'
+              ,_FailedSchemaJObj
+              ,{'not_one_schema_valid', Errors}
+              ,_FailedValue
+              ,_FailedKeyPath
+              }
+             ,_Options
+             ) ->
+    lager:info("not one schema valid for key ~s", [_FailedKeyPath]),
+    errors_to_jobj(Errors);
+error_to_jobj({'data_invalid'
+              ,_FailedSchemaJObj
               ,FailMsg
               ,FailedValue
               ,FailedKeyPath
