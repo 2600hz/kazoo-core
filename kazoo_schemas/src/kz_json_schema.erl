@@ -797,14 +797,21 @@ error_to_jobj({'data_invalid'
     errors_to_jobj(Errors);
 error_to_jobj({'data_invalid'
               ,_FailedSchemaJObj
-              ,{'not_one_schema_valid', Errors}
-              ,_FailedValue
-              ,_FailedKeyPath
+              ,{'not_one_schema_valid', _Errors}
+              ,FailedValue
+              ,FailedKeyPath
               }
-             ,_Options
+             ,Options
              ) ->
-    lager:info("not one schema valid for key ~s", [_FailedKeyPath]),
-    errors_to_jobj(Errors);
+    lager:info("not one schema valid for key ~s", [FailedKeyPath]),
+    validation_error(FailedKeyPath
+                    ,<<"not_one_schema_valid">>
+                    ,kz_json:from_list(
+                       [{<<"message">>, <<"no available schema could validate the data">>}
+                       ,{<<"value">>, FailedValue}
+                       ])
+                    ,Options
+                    );
 error_to_jobj({'data_invalid'
               ,_FailedSchemaJObj
               ,FailMsg
