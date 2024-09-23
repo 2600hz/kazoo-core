@@ -211,6 +211,9 @@
 -export([detect_speech/1
         ,detect_speech_v/1
         ]).
+-export([stream/1
+        ,stream_v/1
+        ]).
 
 -export([build_command/1
         ,build_command/2
@@ -311,6 +314,7 @@ api_definitions() ->
     ,queue_definition()
     ,error_definition()
     ,detect_speech_definition()
+    ,stream_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -440,7 +444,9 @@ api_definition(<<"queue">>) ->
 api_definition(<<"error">>) ->
     error_definition();
 api_definition(<<"detect_speech">>) ->
-    detect_speech_definition().
+    detect_speech_definition();
+api_definition(<<"stream">>) ->
+    stream_definition().
 
 -spec bridge_definition() -> kapi_definition:api().
 bridge_definition() ->
@@ -2520,6 +2526,65 @@ error_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+-spec stream_definition() -> kapi_definition:api().
+stream_definition() ->
+    EventName = <<"command">>,
+    Category = <<"call">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Stream">>}
+              ,{fun kapi_definition:set_description/2, <<"Stream media">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun stream/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun stream_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Action">>
+                                                            ,<<"Application-Name">>
+                                                            ,<<"Call-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Connect-Payload">>
+                                                            ,<<"Channels-As-Stereo">>
+                                                            ,<<"Insert-At">>
+                                                            ,<<"Sample-Rate">>
+                                                            ,<<"Stream-ID">>
+                                                            ,<<"Stream-URL">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"stream">>}
+                ,{<<"Record-Action">>, [<<"start">>
+                                       ,<<"stop">>
+                                       ,<<"pause">>
+                                       ,<<"resume">>
+                                       ]
+                 }
+                ,?INSERT_AT_TUPLE
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Action">>, fun validate_stream_action/2}
+                ,{<<"Connect-Payload">>, fun(V) ->
+                                    kz_json:is_json_object(V)
+                                        andalso kz_json:is_not_empty(V)
+                                    end}
+                ,{<<"Channel-As-Stereo">>, fun is_boolean/1}
+                ,{<<"Sample-Rate">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Stream-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Stream-URL">>, fun(<<"ws://", _/binary>>) -> 'true';
+                                       (<<"wss://", _/binary>>) -> 'true';
+                                       (_) -> 'false'
+                                    end
+                 }
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec validate_stream_action(kz_term:ne_binary(), kz_term:proplist()) -> boolean().
+validate_stream_action(<<"start">>, Prop) ->
+    props:is_defined(<<"Stream-URL">>, Prop);
+validate_stream_action(_, _) ->
+    'true'.
+
 -spec optional_bridge_req_headers() -> kz_term:ne_binaries().
 optional_bridge_req_headers() ->
     kapi_definition:optional_headers(bridge_definition()).
@@ -3618,3 +3683,16 @@ detect_speech_definition() ->
                }
               ],
     kapi_definition:setters(Setters).
+
+%%------------------------------------------------------------------------------
+%% @doc Stream media.
+%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec stream(kz_term:api_terms()) -> kz_api:api_formatter_return().
+stream(Req) ->
+    kapi_definition:build_message(Req, stream_definition()).
+
+-spec stream_v(kz_term:api_terms()) -> boolean().
+stream_v(Req) ->
+    kapi_definition:validate(Req, stream_definition()).

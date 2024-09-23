@@ -637,7 +637,7 @@ type_check_all(Prop, {Key, Fun}) ->
         %% isn't defined in Prop, has_all will error if req'd
         'undefined' -> 'true';
         Value ->
-            try Fun(Value) of % returns boolean
+            try exec_type_check_fun(Fun, Value, Prop) of % returns boolean
                 'true' -> 'true';
                 'false' ->
                     ?LOG_DEBUG("API key '~s' value '~p' failed validation fun", [Key, Value]),
@@ -648,6 +648,12 @@ type_check_all(Prop, {Key, Fun}) ->
                     'false'
             end
     end.
+
+-spec exec_type_check_fun(formatter_fun(), valid_value(), api_valid_values()) -> boolean().
+exec_type_check_fun(Fun, Value, _Prop) when is_function(Fun, 1) ->
+    Fun(Value);
+exec_type_check_fun(Fun, Value, Prop) when is_function(Fun, 2) ->
+    Fun(Value, Prop).
 
 -spec is_federated_event(kz_json:object()) -> boolean().
 is_federated_event(JObj) ->

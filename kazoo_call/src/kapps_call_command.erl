@@ -98,6 +98,12 @@
         ,resume_record_call/2
         ,stop_record_call/2
         ]).
+-export([stream/2, stream/3
+        ,start_stream/2, start_stream/3, start_stream/4, start_stream/5
+        ,pause_stream/1, pause_stream/2
+        ,resume_stream/1, resume_stream/2
+        ,stop_stream/1, stop_stream/2
+        ]).
 -export([store/3, store/4, store/5, store/6
         ,store_fax/2, store_fax/3
         ]).
@@ -1908,6 +1914,86 @@ b_record_call(MediaName, Action, TimeLimit, Call) ->
 b_record_call(MediaName, Action, TimeLimit, Terminators, Call) ->
     record_call(MediaName, Action, TimeLimit, Terminators, Call),
     wait_for_headless_application(<<"record">>, <<"RECORD_STOP">>, <<"call_event">>, ?MAX_WAIT_MS).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces the low level AMQP request to start streaming a call's media
+%% to websocket.
+%% @end
+%%------------------------------------------------------------------------------
+-spec start_stream(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+start_stream(StreamURL, Call) ->
+    start_stream(StreamURL, 'true', Call).
+
+-spec start_stream(kz_term:ne_binary(), kz_term:api_boolean(), kapps_call:call()) -> 'ok'.
+start_stream(StreamURL, ChannelAsStereo, Call) ->
+    start_stream(StreamURL, ChannelAsStereo, 'undefined', Call).
+
+-spec start_stream(kz_term:ne_binary(), kz_term:api_boolean(),  kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+start_stream(StreamURL, ChannelAsStereo, SampleRate, Call) ->
+    start_stream(StreamURL, ChannelAsStereo, SampleRate, 'undefined',  Call).
+
+-spec start_stream(kz_term:ne_binary(), kz_term:api_boolean(),  kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> 'ok'.
+start_stream(StreamURL, ChannelAsStereo, SampleRate, ConnectPayload, Call) ->
+    Headers = [{<<"Stream-URL">>, StreamURL}
+              ,{<<"Channel-As-Stereo">>, ChannelAsStereo}
+              ,{<<"Sample-Rate">>, SampleRate}
+              ,{<<"Connect-Payload">>, ConnectPayload}
+              ],
+    stream(<<"start">>, Headers, Call).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces AMQP request to pause streaming media
+%% @end
+%%------------------------------------------------------------------------------
+-spec pause_stream(kapps_call:call()) -> 'ok'.
+pause_stream(Call) ->
+    pause_stream(<<"all">>, Call).
+
+-spec pause_stream(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+pause_stream(StreamId, Call) ->
+    stream(<<"pause">>, [{<<"Stream-ID">>, StreamId}], Call).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces AMQP request to resume streaming media
+%% @end
+%%------------------------------------------------------------------------------
+-spec resume_stream(kapps_call:call()) -> 'ok'.
+resume_stream(Call) ->
+    resume_stream(<<"all">>, Call).
+
+-spec resume_stream(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+resume_stream(StreamId, Call) ->
+    stream(<<"resume">>, [{<<"Stream-ID">>, StreamId}], Call).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces AMQP request to stop streaming media
+%% @end
+%%------------------------------------------------------------------------------
+-spec stop_stream(kapps_call:call()) -> 'ok'.
+stop_stream(Call) ->
+    stop_stream(<<"all">>, Call).
+
+-spec stop_stream(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+stop_stream(StreamId, Call) ->
+    stream(<<"stop">>, [{<<"Stream-ID">>, StreamId}], Call).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces the low level AMQP request for stream command to control streaming
+%% the call's media to a websocket server.
+%% @end
+%%------------------------------------------------------------------------------
+-spec stream(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+stream(Action, Call) ->
+    stream(Action, [], Call).
+
+-spec stream(kz_term:ne_binary(), kz_term:proplist(), kapps_call:call()) -> 'ok'.
+stream(Action, Options, Call) ->
+    Command = [{<<"Application-Name">>, <<"stream">>}
+              ,{<<"Action">>, Action}
+              ,{<<"Insert-At">>, <<"now">>}
+              | Options
+              ],
+    send_command(Command, Call).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces the low level AMQP request to store the file.
