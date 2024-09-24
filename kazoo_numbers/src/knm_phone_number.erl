@@ -1316,7 +1316,7 @@ update_doc(#knm_phone_number{doc=PNDoc}=PN, NewPNDoc) ->
         'false' -> ?DIRTY(PN#knm_phone_number{doc=UpdatedPNDoc})
     end.
 
--spec reset_doc(pn_record(), knm_phone_numbers:doc()) -> pn_record().
+-spec reset_doc(pn_record(), kzd_phone_numbers:doc()) -> pn_record().
 reset_doc(PN=#knm_phone_number{doc = ExistingPNDoc}, NewPNDoc) ->
     'true' = kz_json:is_json_object(NewPNDoc),
     MergedPNDoc = kz_json:merge(kz_doc:public_fields(NewPNDoc), kz_doc:private_fields(ExistingPNDoc)),

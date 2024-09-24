@@ -83,9 +83,9 @@ globals() ->
 apps() ->
     [App || {App, _, _} <- kz_application:running_apps()].
 
--spec loaded_apps() -> kz_types:kapps_version_info().
+-spec loaded_apps() -> [{kz_term:ne_binary(), kz_types:kapp_version()}].
 loaded_apps() ->
-    [{KappVersion#kapp_version.name, KappVersion} || KappVersion <- kz_application:loaded_apps()].
+    [{Kapp, KappVersion} || #kapp_version{name=Kapp}=KappVersion <- kz_application:loaded_apps()].
 
 -spec node_info() -> kz_json:object().
 node_info() ->

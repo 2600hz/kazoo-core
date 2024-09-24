@@ -287,11 +287,11 @@ build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
     ,{<<"Endpoint-Call-Waiting">>, call_waiting(Endpoint)}
     ].
 
--spec endpoint_caller_id(kz_kson:object(), cid()) -> cid().
+-spec endpoint_caller_id(kz_json:object(), cid()) -> cid().
 endpoint_caller_id(Endpoint, Default) ->
     case unsafe_caller_id(Endpoint) of
-        true -> {undefined, undefined};
-        false -> Default
+        'true' -> {'undefined', 'undefined'};
+        'false' -> Default
     end.
 
 -spec get_device_module(kz_json:object()) -> atom().
@@ -651,15 +651,15 @@ inbound_ccvs(Mod, Endpoint, CCVs) ->
     Mod:inbound_ccvs(Endpoint, CCVs).
 
 
--spec unsafe_caller_id(kz_kson:object()) -> boolean().
+-spec unsafe_caller_id(kz_json:object()) -> boolean().
 unsafe_caller_id(Endpoint) ->
     kz_json:is_true([<<"call_settings">>, <<"directory">>, <<"device">>, <<"unsafe_caller_id">>], Endpoint).
 
 -spec unsafe_caller_id(kz_json:object(), kz_json:object()) -> kz_json:object().
 unsafe_caller_id(Endpoint, CCVs) ->
     case unsafe_caller_id(Endpoint) of
-        true -> kz_json:set_value(<<"Endpoint-Unsafe-CID">>, true, CCVs);
-        false -> CCVs
+        'true' -> kz_json:set_value(<<"Endpoint-Unsafe-CID">>, 'true', CCVs);
+        'false' -> CCVs
     end.
 
 -spec sip_auth(module(), kz_json:object(), kz_json:object()) -> kz_json:object().

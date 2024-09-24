@@ -21,7 +21,6 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -elvis([{'elvis_style', 'no_debug_call', 'disable'}]).
--type(kapp_version() :: #kapp_version{}).
 
 -spec process_fold([tuple()], atom()) -> tuple() | atom().
 process_fold([], App) -> App;
@@ -134,7 +133,7 @@ running_apps() ->
         is_kapp(App)
     ].
 
--spec loaded_apps() -> [kapp_version()].
+-spec loaded_apps() -> [kz_types:kapp_version()].
 loaded_apps() ->
     lists:foldl(fun loaded_app_from_path/2
                ,[]
