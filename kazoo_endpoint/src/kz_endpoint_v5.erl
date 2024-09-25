@@ -406,9 +406,13 @@ merge_attributes(Device, <<"device">>, Options, Keys) ->
     Endpoint = kz_json:set_value(<<"owner_id">>, kz_doc:id(Owner), Device),
     merge_attributes(Keys, Options, endpoint_account(kz_doc:account_id(Device), Options), Endpoint, Owner);
 merge_attributes(AccountDoc, <<"account">>, Options, Keys) ->
-    kz_json:values(kz_doc:private_fields(AccountDoc)
-                  ,merge_attributes(Keys, Options, AccountDoc, kz_json:new(), kz_json:new())
-                  );
+    Setters = [{fun kz_doc:set_account_id/2, kz_doc:account_id(AccountDoc)}
+              ,{fun kz_doc:set_account_db/2, kz_doc:account_db(AccountDoc)}
+              ,{fun kz_doc:set_id/2, kz_doc:id(AccountDoc)}
+              ,{fun kz_doc:set_revision/2, kz_doc:revision(AccountDoc)}
+              ,{fun kz_doc:set_type/2, kz_doc:type(AccountDoc)}
+              ],
+    kz_doc:setters(merge_attributes(Keys, Options, AccountDoc, kz_json:new(), kz_json:new()), Setters);
 merge_attributes(Endpoint, Type, _Keys, _Options) ->
     lager:debug("unhandled endpoint type on merge attributes : ~p : ~p", [Type, Endpoint]),
     kz_json:new().
