@@ -51,6 +51,8 @@
 
 - "Performance Testing": kazoo_perf/doc/maintenance.md
 
+- "YODB Maintenance": kazoo_yodb/doc/maintenance.md
+
 - "Schema Maintenance": kazoo_schemas/doc/maintenance.md
 
 - "Services Maintenance": kazoo_services/doc/maintenance.md
@@ -59,3 +61,4 @@
 
 - "voicemail Maintenance": kazoo_voicemail/doc/maintenance.md
 
+- "Web Maintenance": kazoo_voicemail/doc/maintenance.md
