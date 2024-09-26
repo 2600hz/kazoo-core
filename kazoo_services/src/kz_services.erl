@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -266,11 +266,11 @@ remove_plans(Services) ->
     reset_plans(set_services_jobj(Services, ServicesJObj)).
 
 -spec find_object_plans(kz_services_quantities:billables(), kz_services_quantities:billables()) -> kz_json:objects().
-find_object_plans(JObjsA, JObjsB) when is_list(JObjsA), is_list(JObjsB) ->
+find_object_plans(ProposedBillables, CurrentBillables) when is_list(ProposedBillables), is_list(CurrentBillables) ->
     FilterFun = find_object_plans_filter(
-                  find_object_plans(JObjsB)
+                  find_object_plans(CurrentBillables)
                  ),
-    lists:filter(FilterFun, find_object_plans(JObjsA)).
+    lists:filter(FilterFun, find_object_plans(ProposedBillables)).
 
 -spec find_object_plans_filter(kz_services_quantities:billables()) -> fun((kz_services_quantities:billable()) -> boolean()).
 find_object_plans_filter(ObjectPlans) ->
