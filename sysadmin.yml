@@ -2,11 +2,11 @@
   - "Migration Commands": kazoo_modb/doc/kazoo_modb_migrate_maintenance.md
   - "Maintenance": kazoo_modb/doc/maintenance.md
 
-- "Number Management"
+- "Number Management":
   - "Migration Commands": kazoo_numbers/doc/knm_converter_migrate_maintenance.md
   - "Maintenance": kazoo_numbers/doc/maintenance.md
 
-- "Add Carriers"
+- "Add Carriers":
   - kazoo_numbers/doc/knm_bandwidth2.md
   - kazoo_numbers/doc/knm_rename_carrier.md
   - kazoo_numbers/doc/knm_telnyx.md
@@ -33,7 +33,7 @@
 - "Data Maintenance": kazoo_data/doc/maintenance.md
 - "Directory Maintenance": kazoo_directory/doc/maintenance.md # Only flush
 
-- "Kazoo Documents"
+- "Kazoo Documents":
   - "Maintenance": kazoo_documents/doc/kazoo_ui_apps_maintenance.md
   - "Old UI Maintenance": kazoo_documents/doc/maintenance.md
 
