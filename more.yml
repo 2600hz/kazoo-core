@@ -1,0 +1,114 @@
+# - core/amqp_leader/doc/README.md # Community?
+- "AMQP":
+  - core/kazoo_amqp/doc/README.md
+  - core/kazoo_amqp/doc/amqp_workers.md
+  - core/kazoo_amqp/doc/event_pools.md
+  - core/kazoo_amqp/doc/gen_listener.md
+- "App Exchange":
+  - core/kazoo_appex/doc/architecture.md
+- "Notifications, Versions"
+  # - core/kazoo_apps/doc/README.md # Empty
+  - core/kazoo_apps/doc/kapps_notify_publisher.md
+  - core/kazoo_apps/doc/kapps_versions.md
+- "Attachment Handlers"
+  - core/kazoo_attachments/README.md
+- "Authentication": 
+  - core/kazoo_auth/doc/multi_factor.md
+  - core/kazoo_auth/doc/oauth.md
+  - core/kazoo_auth/doc/password.md
+# - "Bindings":
+#   - core/kazoo_bindings/doc/README.md # Empty
+- "Caches":
+  - core/kazoo_caches/doc/README.md
+
+- "Calls":
+  - core/kazoo_call/doc/README.md
+
+- "CNAM":
+  - core/kazoo_cnam/doc/cnam.md
+
+# - "Config"
+#   - core/kazoo_config/doc/README.md # Empty
+- "File Format Conversions":
+  - core/kazoo_convert/doc/README.md
+  - core/kazoo_convert/doc/fax_converter.md
+  - core/kazoo_convert/doc/fax_converter_convertapi.md
+
+
+# - "Couch DB":
+#   # - core/kazoo_couch/doc/README.md # Empty
+#   - core/kazoo_couch/doc/view_changes.md # This is a changelog entry
+
+- "Data Access Abstraction Layer": 
+  - core/kazoo_data/doc/loadtest.md
+
+
+# - core/kazoo_edr/doc/README.md # Is this not... Community. Also why is it here in core.
+
+- "Endpoints and Endpoint Attributes"
+  - core/kazoo_endpoint/doc/formatters.md
+  - core/kazoo_endpoint/doc/privacy-cid.md
+
+# - core/kazoo_etsmgr/doc/README.md # Empty
+- "FixtureDB - CouchDB Mock for testing"
+  - core/kazoo_fixturedb/doc/README.md
+  - core/kazoo_fixturedb/doc/db-to-disk.md
+
+- "IM"
+  - core/kazoo_im/doc/README.md
+
+- "IP reservation"
+  - core/kazoo_ips/doc/README.md
+
+
+
+# - core/kazoo_media/doc/README.md # Empty
+
+- "Month-Only DataBases"
+  - core/kazoo_modb/doc/README.md
+
+- "Number Management"
+  - core/kazoo_numbers/doc/README.md
+  - core/kazoo_numbers/doc/carrier_types.md
+  - core/kazoo_numbers/doc/carriers.md
+  - core/kazoo_numbers/doc/number_states.md
+
+
+# - core/kazoo_oauth/doc/README.md # Empty
+
+- "Billing and Service Limit Support" :
+  - core/kazoo_services/doc/README.md
+  - core/kazoo_services/doc/bookkeepers.md
+  - core/kazoo_services/doc/lifecycle.md
+
+# - core/kazoo_sip/doc/README.md # Empty
+
+- 'Speech providers - TTS and ASR':
+  - core/kazoo_speech/doc/README.md
+  - core/kazoo_speech/doc/google.md
+  - core/kazoo_speech/doc/ispeech.md
+
+# - core/kazoo_stats/doc/README.md # Empty
+
+- "JSON": core/kazoo_stdlib/doc/kz_json.md
+
+- "Telemetry Configuration": core/kazoo_telemetry/doc/README.md
+
+# Not on the old docsite!
+# - core/kazoo_temporal_routes/README.md
+# - core/kazoo_temporal_routes/doc/engineering.md
+
+# - core/kazoo_token_buckets/doc/README.md # Empty
+
+# - core/kazoo_transactions/doc/README.md # Empty
+
+# - core/kazoo_translator/doc/README.md # Empty
+
+- "Voicemail": core/kazoo_voicemail/doc/README.md
+
+- "HTTP/HTML Manipulation Utils": core/kazoo_web/doc/README.md
+
+# - core/kazoo_xml/doc/README.md # Empty
+# - core/kazoo_yodb/doc/README.md # Empty
+
+

@@ -1,0 +1,61 @@
+- "MODB":
+  - "Migration Commands": kazoo_modb/doc/kazoo_modb_migrate_maintenance.md
+  - "Maintenance": kazoo_modb/doc/maintenance.md
+
+- "Number Management"
+  - "Migration Commands": kazoo_numbers/doc/knm_converter_migrate_maintenance.md
+  - "Maintenance": kazoo_numbers/doc/maintenance.md
+
+- "Add Carriers"
+  - kazoo_numbers/doc/knm_bandwidth2.md
+  - kazoo_numbers/doc/knm_rename_carrier.md
+  - kazoo_numbers/doc/knm_telnyx.md
+  - kazoo_numbers/doc/knm_voip_innovations.md
+  - kazoo_numbers/doc/knm_voxbone.md
+
+- "Enable TopUp": kazoo_transactions/doc/top_up.md
+
+- "AMQP Maintenance": kazoo_amqp/doc/maintenance.md
+- "APP Exchange Maintenance": kazoo_appex/doc/appex_client_maintenance.md
+# These are... indiscernable. Mostly the last four? SHOULD CHECK THROUGH FOR DUPLICATES
+- "Node Maintenance": kazoo_apps/doc/kazoo_maintenance.md
+- "Kapps Maintenance": kazoo_apps/doc/kapps_maintenance.md
+- "Kazoo Apps Maintenance": kazoo_apps/doc/maintenance.md
+- "Account Config Commands": kazoo_apps/doc/kapps_account_config.md
+- "kazoo_apps Config Commands": kazoo_apps/doc/kapps_config.md
+- "kazoo_apps Config Maintenance": kazoo_apps/doc/kapps_config_maintenance.md
+
+
+- "Auth Maintenance": kazoo_auth/doc/maintenance.md
+# - kazoo_cnam/doc/cnam_maintenance.md # Empty -- only has flush which is covered in the other maintenance file
+- "CNAM Maintenance": kazoo_cnam/doc/maintenance.md
+- "File Conversion Maintenance": kazoo_convert/doc/maintenance.md
+- "Data Maintenance": kazoo_data/doc/maintenance.md
+- "Directory Maintenance": kazoo_directory/doc/maintenance.md # Only flush
+
+- "Kazoo Documents"
+  - "Maintenance": kazoo_documents/doc/kazoo_ui_apps_maintenance.md
+  - "Old UI Maintenance": kazoo_documents/doc/maintenance.md
+
+- "Endpoint Maintenance": kazoo_endpoint/doc/maintenance.md # Only flush
+
+- "Fixture DB Maintenance": kazoo_fixturedb/doc/kz_fixturedb_maintenance.md
+
+- "IPs Maintenance": kazoo_ips/doc/maintenance.md
+
+- "Ledgers Maintenance": kazoo_ledgers/doc/maintenance.md
+
+- "Media Maintenance": kazoo_media/doc/maintenance.md
+
+- "OAuth Maintenance": kazoo_oauth/doc/maintenance.md
+
+- "Performance Testing": kazoo_perf/doc/maintenance.md
+
+- "Schema Maintenance": kazoo_schemas/doc/maintenance.md
+
+- "Services Maintenance": kazoo_services/doc/maintenance.md
+
+- "Speech Maintenance": kazoo_speech/doc/maintenance.md
+
+- "voicemail Maintenance": kazoo_voicemail/doc/maintenance.md
+
