@@ -6,11 +6,11 @@
   - core/kazoo_amqp/doc/gen_listener.md
 - "App Exchange":
   - core/kazoo_appex/doc/architecture.md
-- "Notifications, Versions"
+- "Notifications, Versions":
   # - core/kazoo_apps/doc/README.md # Empty
   - core/kazoo_apps/doc/kapps_notify_publisher.md
   - core/kazoo_apps/doc/kapps_versions.md
-- "Attachment Handlers"
+- "Attachment Handlers":
   - core/kazoo_attachments/README.md
 - "Authentication": 
   - core/kazoo_auth/doc/multi_factor.md
@@ -45,29 +45,29 @@
 
 # - core/kazoo_edr/doc/README.md # Is this not... Community. Also why is it here in core.
 
-- "Endpoints and Endpoint Attributes"
+- "Endpoints and Endpoint Attributes":
   - core/kazoo_endpoint/doc/formatters.md
   - core/kazoo_endpoint/doc/privacy-cid.md
 
 # - core/kazoo_etsmgr/doc/README.md # Empty
-- "FixtureDB - CouchDB Mock for testing"
+- "FixtureDB - CouchDB Mock for testing":
   - core/kazoo_fixturedb/doc/README.md
   - core/kazoo_fixturedb/doc/db-to-disk.md
 
-- "IM"
+- "IM":
   - core/kazoo_im/doc/README.md
 
-- "IP reservation"
+- "IP reservation":
   - core/kazoo_ips/doc/README.md
 
 
 
 # - core/kazoo_media/doc/README.md # Empty
 
-- "Month-Only DataBases"
+- "Month-Only DataBases":
   - core/kazoo_modb/doc/README.md
 
-- "Number Management"
+- "Number Management":
   - core/kazoo_numbers/doc/README.md
   - core/kazoo_numbers/doc/carrier_types.md
   - core/kazoo_numbers/doc/carriers.md
