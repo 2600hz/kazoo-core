@@ -10,9 +10,17 @@
             "type": "string"
         },
         "Conference-ID": {
+            "minLength": 1,
             "type": "string"
         },
         "Conference-Name": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "End-On-Last-Member-Leave": {
+            "type": "string"
+        },
+        "End-On-Leave": {
             "type": "string"
         },
         "Event-Category": {
@@ -27,7 +35,22 @@
             ],
             "type": "string"
         },
+        "Member-Join-Deaf": {
+            "type": "string"
+        },
+        "Member-Join-Muted": {
+            "type": "string"
+        },
         "Moderator": {
+            "type": "string"
+        },
+        "Moderator-Join-Deaf": {
+            "type": "string"
+        },
+        "Moderator-Join-Muted": {
+            "type": "string"
+        },
+        "Participant-Join-Video-Muted": {
             "type": "string"
         },
         "Play-Entry-Tone": {
@@ -40,6 +63,10 @@
             "type": "string"
         },
         "Play-Welcome-Media": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Wait-For-Moderator": {
             "type": "string"
         }
     },
