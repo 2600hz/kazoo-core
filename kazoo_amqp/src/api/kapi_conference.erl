@@ -493,6 +493,7 @@ discovery_req_definition() ->
                                                             ,<<"End-On-Leave">>
                                                             ,<<"Member-Join-Deaf">>
                                                             ,<<"Member-Join-Muted">>
+                                                            ,<<"Wait-For-Moderator">>
                                                             ,<<"Moderator">>
                                                             ,<<"Moderator-Join-Deaf">>
                                                             ,<<"Moderator-Join-Muted">>
@@ -513,6 +514,7 @@ discovery_req_definition() ->
                 ,{<<"End-On-Leave">>, fun kz_term:is_boolean/1}
                 ,{<<"Member-Join-Deaf">>, fun kz_term:is_boolean/1}
                 ,{<<"Member-Join-Muted">>, fun kz_term:is_boolean/1}
+                ,{<<"Wait-For-Moderator">>, fun kz_term:is_boolean/1}
                 ,{<<"Moderator">>, fun kz_term:is_boolean/1}
                 ,{<<"Moderator-Join-Deaf">>, fun kz_term:is_boolean/1}
                 ,{<<"Moderator-Join-Muted">>, fun kz_term:is_boolean/1}
