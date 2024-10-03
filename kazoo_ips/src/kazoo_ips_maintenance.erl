@@ -9,8 +9,6 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_ips_maintenance).
 
--include("kazoo_ips.hrl").
-
 -export([refresh/0]).
 -export([add/0
         ,add/3
@@ -27,6 +25,10 @@
 -export([summary/0
         ,summary/1
         ]).
+
+-include("kazoo_ips.hrl").
+
+-elvis([{elvis_style, no_debug_call, disable}]).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -162,31 +164,26 @@ summary(Host) ->
 
 -spec print_summary(kz_json:objects()) -> 'ok'.
 print_summary(JObjs) ->
-    FormatString = "| ~-15s | ~-10s | ~-10s | ~-30s | ~-32s |~n",
-    io:format("+-----------------+------------+------------+--------------------------------+----------------------------------+~n", []),
-    print_summary_headers(FormatString),
-    io:format("+=================+============+============+================================+==================================+~n", []),
-    print_summary_row(JObjs, FormatString),
-    io:format("+-----------------+------------+------------+--------------------------------+----------------------------------+~n", []).
-
--spec print_summary_headers(string()) -> 'ok'.
-print_summary_headers(FormatString) ->
     Headers = [<<"IP">>
               ,<<"Status">>
               ,<<"Zone">>
               ,<<"Host">>
               ,<<"Account">>
               ],
-    io:format(FormatString, Headers).
 
--spec print_summary_row(kz_json:objects(), string()) -> 'ok'.
-print_summary_row([], _) -> 'ok';
-print_summary_row([JObj|JObjs], FormatString) ->
-    io:format(FormatString,
-              [kz_json:get_value(<<"ip">>, JObj)
-              ,kz_json:get_value(<<"status">>, JObj)
-              ,kz_json:get_value(<<"zone">>, JObj)
-              ,kz_json:get_value(<<"host">>, JObj)
-              ,kz_json:get_value(<<"assigned_to">>, JObj)
-              ]),
-    print_summary_row(JObjs, FormatString).
+    Rows = summary_rows(JObjs, []),
+    kz_log:print_table([Headers | Rows], #{header_divider => $=}).
+
+
+-spec summary_rows(kz_json:objects(), list()) -> list().
+summary_rows([], Rows) -> lists:reverse(Rows);
+summary_rows([JObj|JObjs], Rows) ->
+    summary_rows(JObjs
+                ,[[kzd_ip:ip(JObj)
+                  ,kz_json:get_value(<<"status">>, JObj)
+                  ,kzd_ip:zone(JObj)
+                  ,kzd_ip:host(JObj)
+                  ,kz_json:get_value(<<"assigned_to">>, JObj)
+                  ]
+                 | Rows
+                 ]).

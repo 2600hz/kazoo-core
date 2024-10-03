@@ -21,6 +21,8 @@
         ,put_callid/1, put_callid/2, get_callid/0, find_callid/1
         ,kz_log_md_clear/0, kz_log_md_put/2
         ,format/2, format/3
+
+        ,print_table/1, print_table/2
         ]).
 -export([redactor/1]).
 
@@ -296,6 +298,131 @@ log_format('rfc3339', Acc) ->
     [RFC3339 | Acc];
 log_format(Term, Acc) ->
     [Term | Acc].
+
+-spec print_table([[any()]]) -> 'ok'.
+print_table(Rows) ->
+    print_table(Rows, #{}).
+
+-type cell_spacing() :: #{field_width => pos_integer() | 'undefined' % will be calculated if not defined
+                         ,justification => 'left' | 'right' % defaults right per-cell
+                         ,precision => 'undefined' % unused as of yet
+                         ,pad_char => char() % padding character to use to fill the cell, if needed, default: $\s
+                         ,control_sequence_modifier => 'unicode' | 'unprintable'
+                         ,control_sequence => $s | $p % how to print the data
+                         }.
+-type table_options() :: #{row_spacing => [cell_spacing() | 'left' | 'right'] | 'undefined'
+                          ,cell_divider => char() | 'undefined'
+                          ,header_divider => char() | 'undefined'
+                          }.
+
+-spec print_table(list(list()), table_options()) -> 'ok'.
+print_table([], _) -> 'ok';
+print_table([MaybeHeader | Rows], Options) ->
+    RowSpacing = lists:foldl(fun format_row/2
+                            ,maps:get('row_spacing', Options, [])
+                            ,[MaybeHeader | Rows]
+                            ),
+    Fmt = spacing_fmt(RowSpacing, Options),
+    %% io:format("using fmt: ~p~n", [Fmt]),
+
+    case opt_header_divider(Options) of
+        'undefined' -> print_rows(Fmt, [MaybeHeader | Rows]);
+        HeaderDivider ->
+            DividerRow = spacing_fmt_pad(RowSpacing, HeaderDivider),
+            print_rows(Fmt, [MaybeHeader]),
+            print_rows(Fmt, [DividerRow]),
+            print_rows(Fmt, Rows)
+    end.
+
+spacing_fmt_pad(RowSpacing, HeaderDivider) ->
+    [[HeaderDivider || _ <- lists:seq(1, FieldWidth+2)] ||
+        #{field_width := FieldWidth} <- RowSpacing
+    ].
+
+print_rows(Fmt, Rows) ->
+    lists:foreach(fun(R) -> io:format(Fmt, lists:map(fun pad_cell_value/1, R)) end
+                 ,Rows
+                 ).
+
+pad_cell_value(Cell) ->
+    kz_term:to_binary(Cell).
+%% <<" ", Bin/binary, " ">>.
+
+spacing_fmt(RowSpacing, Options) ->
+    CellDivider = opt_cell_divider(Options),
+    iolist_to_binary([CellDivider
+                     ,kz_binary:join([cell_spacing_fmt(CellSpacing) || CellSpacing <- RowSpacing], <<CellDivider>>)
+                     ,CellDivider
+                     ,"~n"
+                     ]).
+
+opt_cell_divider(#{cell_divider := Char}) when is_integer(Char) ->
+    Char;
+opt_cell_divider(_) -> $|.
+
+opt_header_divider(#{header_divider := Char}) when is_integer(Char) ->
+    Char;
+opt_header_divider(_) -> 'undefined'.
+
+%% ~F.P.PadModC
+%% F = field_width
+%% P = precision (unused)
+%% Pad = padding char
+%% Mod = control sequence modifier
+-spec cell_spacing_fmt(cell_spacing()) -> iodata().
+cell_spacing_fmt(#{control_sequence := ControlSeq
+                  ,field_width := CellSize
+                  ,justification := Justification
+                  ,pad_char := PadChar
+                  }
+                ) ->
+    [justification(Justification)
+    ,kz_term:to_list(CellSize), ".."
+    ,PadChar, ControlSeq
+    ].
+
+justification('right') ->
+    "~";
+justification('left') ->
+    "~-".
+
+format_row(Row, RowSpacing) ->
+    row_spacing(Row, RowSpacing, []).
+
+row_spacing([], [], CalcdSpacing) ->
+    lists:reverse(CalcdSpacing);
+row_spacing([Cell | Cells], [], CalcdSpacing) ->
+    CellSpacing = cell_spacing(Cell),
+    row_spacing(Cells, [], [CellSpacing | CalcdSpacing]);
+row_spacing([Cell | Cells], [CellSpacing | CellSpacings], CalcdSpacings) ->
+    CellSize = cell_field_width(CellSpacing),
+
+    case cell_spacing(Cell) of
+        #{field_width:=Size}=Settings when Size > CellSize ->
+            Merged = maps:merge(Settings, ensure_map(CellSpacing)),
+            row_spacing(Cells, CellSpacings, [Merged#{field_width=>Size} | CalcdSpacings]);
+        Settings ->
+            Merged = maps:merge(Settings, CellSpacing),
+            row_spacing(Cells, CellSpacings, [Merged | CalcdSpacings])
+    end.
+
+ensure_map('left') ->
+    #{justification => 'left'};
+ensure_map('right') ->
+    #{justification => 'right'};
+ensure_map(#{}=Map) -> Map.
+
+-spec cell_spacing(any()) -> cell_spacing().
+cell_spacing(Cell) ->
+    Bin = kz_term:to_binary(Cell),
+    #{field_width => byte_size(Bin) % will be calculated if not defined
+     ,justification => 'right' % defaults right
+     ,pad_char => $\s % padding character to use to fill the cell, if needed, default: $\s
+     ,control_sequence => $s
+     }.
+
+cell_field_width(#{field_width:=FieldWidth}) -> FieldWidth;
+cell_field_width(_) -> 0.
 
 -ifdef(TEST).
 

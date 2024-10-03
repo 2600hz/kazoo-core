@@ -189,8 +189,11 @@ top_mem_consumers(Len) when is_integer(Len), Len > 0 ->
 -spec ets_info() -> 'ok'.
 ets_info() ->
     io:format("ETS table memory usage:~n"),
-    _ = [print_table(T) || T <- sort_tables(ets:all())],
-    'ok'.
+    Rows = [[Name, kz_term:pretty_print_bytes(Mem, 'truncated')] || {Name, Mem} <- sort_tables(ets:all())],
+    kz_log:print_table([["Table Name", "Memory"] | Rows]
+                      ,#{header_divider => $=
+                        ,row_spacing => ['left']
+                        }).
 
 -spec sort_tables([ets:tab()]) -> [{string(), integer()}].
 sort_tables(Ts) ->
@@ -204,16 +207,11 @@ sort_tables(Ts) ->
 table_size(T) ->
     kz_term:words_to_bytes(ets:info(T, 'memory')).
 
--spec print_table({string(), integer()}) -> 'ok'.
-print_table({Name, Mem}) ->
-    io:format("  ~-25s: ~6s~n", [Name
-                                ,kz_term:pretty_print_bytes(Mem, 'truncated')
-                                ]).
-
 -spec log_table({string(), integer()}, file:name_all()) -> 'ok'.
 log_table({Name, Mem}, Filename) ->
-    Bytes = io_lib:format("  ~-25s: ~6s~n", [Name
-                                            ,kz_term:pretty_print_bytes(Mem, 'truncated')]),
+    Bytes = io_lib:format("  ~-25s: ~6s~n"
+                         ,[Name, kz_term:pretty_print_bytes(Mem, 'truncated')]
+                         ),
     'ok' = file:write_file(Filename, Bytes, ['append']).
 
 -spec mem_info() -> 'ok'.
@@ -223,9 +221,10 @@ mem_info() ->
 -spec mem_info(kz_term:ne_binary() | pos_integer()) -> 'ok'.
 mem_info(TopN) ->
     io:format(" VM Memory Info:~n"),
-    [print_memory_type(Info) || Info <- erlang:memory()],
-    print_app_mem_info(TopN, app_mem_info()),
-    'ok'.
+    MemRows = [[Type, kz_term:pretty_print_bytes(Size, 'truncated')] || {Type, Size} <- erlang:memory()],
+    kz_log:print_table(MemRows, #{row_spacing => ['left', 'left']}),
+
+    print_app_mem_info(TopN, app_mem_info()).
 
 -type app_mem_info() :: #{app_usage => non_neg_integer()
                          ,proc_count => non_neg_integer()
@@ -248,16 +247,24 @@ sort_app_mem_info({_, #{app_usage:=A}}, {_, #{app_usage:=B}}) -> A < B.
 -spec print_app_mem_info([{atom(), app_mem_info()}]) -> 'ok'.
 print_app_mem_info(Sorted) ->
     io:format("~n App Memory Info:~n"),
-    io:format("~-15s | ~-6s | ~-6s | ~s~n", ["Application", "Memory", "Procs", "BigPid"]),
-    [io:format("~-15s | ~6s | ~6b | ~p ~s~n"
-              ,[App
-               ,kz_term:pretty_print_bytes(Mem, 'truncated')
-               ,PC, BP
-               ,kz_term:pretty_print_bytes(BPM, 'truncated')
-               ])
-     || {App, #{app_usage:=Mem, proc_count:=PC, big_pid:={BP, BPM}}} <- Sorted
-    ],
-    io:format("~n").
+
+    Headers = ["Application", "Memory", "Procs", "BigPid", "BigPid Mem"],
+
+    Rows = [Headers |
+            [[App
+             ,kz_term:pretty_print_bytes(Mem, 'truncated')
+             ,PC
+             ,kz_term:to_binary(BP)
+             ,kz_term:pretty_print_bytes(BPM, 'truncated')
+             ]
+             || {App, #{app_usage:=Mem, proc_count:=PC, big_pid:={BP, BPM}}} <- Sorted
+            ]
+           ],
+    kz_log:print_table(Rows
+                      ,#{header_divider => $=
+                        ,row_spacing => [#{justification => 'left'}, #{}, #{}, #{justification => 'left'}]
+                        }
+                      ).
 
 app_mem_info() ->
     lists:foldl(fun add_mem_info/2, #{}, processes()).
@@ -310,10 +317,6 @@ default_init_call(Pid) ->
 %% From erlang.el
 -type memory_type() :: 'total' | 'processes' | 'processes_used' | 'system'
                      | 'atom' | 'atom_used' | 'binary' | 'code' | 'ets'.
-
--spec print_memory_type({memory_type(), integer()}) -> 'ok'.
-print_memory_type({Type, Size}) ->
-    io:format("  ~-15s : ~6s~n", [Type, kz_term:pretty_print_bytes(Size, 'truncated')]).
 
 -spec log_memory_type({memory_type(), integer()}, file:name_all()) -> 'ok'.
 log_memory_type({Type, Size}, Filename) ->

@@ -1065,18 +1065,21 @@ topup_status() ->
 
 -spec topup_status(kz_term:ne_binary()) -> 'ok'.
 topup_status(AccountId) ->
-    {'ok', ReplinishUnits, ThresholdUnits} = kz_services_topup:get_topup(AccountId),
-    io:format("+-----------------+------------------+------------------+---------------+-------------------------+~n"),
-    io:format("| Current Balance | Notify threshold | Top up threshold | Top up Amount | Auto top up in 24 hours |~n"),
-    io:format("+=================+==================+==================+===============+=========================+~n"),
-    io:format("| ~-15w | ~-16w | ~-16w | ~-13w | ~-23w |~n"
-             ,[kz_currency:available_dollars(AccountId, 0)
-              ,get_notify_threshold(AccountId)
-              ,kz_currency:units_to_dollars(ThresholdUnits)
-              ,kz_currency:units_to_dollars(ReplinishUnits)
-              ,kz_services_topup:should_topup(AccountId)
-              ]),
-    io:format("+-----------------+------------------+------------------+---------------+-------------------------+~n").
+    case kz_services_topup:get_topup(AccountId) of
+        {'ok', ReplinishUnits, ThresholdUnits} -> print_topup_status(AccountId, ReplinishUnits, ThresholdUnits);
+        {'error', E} ->
+            io:format("topup status for account ~s failed: ~p~n", [AccountId, E])
+    end.
+
+print_topup_status(AccountId, ReplinishUnits, ThresholdUnits) ->
+    Header = ["Current Balance", "Notify threshold", "Top up threshold", "Top up Amount", "Auto top up in 24 hours"],
+    Row = [kz_currency:available_dollars(AccountId, 0)
+          ,get_notify_threshold(AccountId)
+          ,kz_currency:units_to_dollars(ThresholdUnits)
+          ,kz_currency:units_to_dollars(ReplinishUnits)
+          ,kz_services_topup:should_topup(AccountId)
+          ],
+    kz_log:print_table([Header, Row], #{header_divider => $=}).
 
 -spec get_notify_threshold(kz_term:ne_binary()) -> kz_term:api_float().
 get_notify_threshold(AccountId) ->
