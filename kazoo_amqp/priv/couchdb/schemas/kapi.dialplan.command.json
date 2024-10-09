@@ -369,6 +369,9 @@
             ],
             "type": "string"
         },
+        "Join-Options": {
+            "type": "object"
+        },
         "Language": {
             "type": "string"
         },
