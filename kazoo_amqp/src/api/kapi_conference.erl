@@ -493,6 +493,7 @@ discovery_req_definition() ->
                                                             ,<<"End-On-Leave">>
                                                             ,<<"Member-Join-Deaf">>
                                                             ,<<"Member-Join-Muted">>
+                                                            ,<<"Wait-For-Moderator">>
                                                             ,<<"Moderator">>
                                                             ,<<"Moderator-Join-Deaf">>
                                                             ,<<"Moderator-Join-Muted">>
@@ -501,6 +502,7 @@ discovery_req_definition() ->
                                                             ,<<"Play-Exit-Tone">>
                                                             ,<<"Play-Welcome">>
                                                             ,<<"Play-Welcome-Media">>
+                                                            ,<<"Max-Participants">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
@@ -513,6 +515,7 @@ discovery_req_definition() ->
                 ,{<<"End-On-Leave">>, fun kz_term:is_boolean/1}
                 ,{<<"Member-Join-Deaf">>, fun kz_term:is_boolean/1}
                 ,{<<"Member-Join-Muted">>, fun kz_term:is_boolean/1}
+                ,{<<"Wait-For-Moderator">>, fun kz_term:is_boolean/1}
                 ,{<<"Moderator">>, fun kz_term:is_boolean/1}
                 ,{<<"Moderator-Join-Deaf">>, fun kz_term:is_boolean/1}
                 ,{<<"Moderator-Join-Muted">>, fun kz_term:is_boolean/1}
@@ -521,6 +524,7 @@ discovery_req_definition() ->
                 ,{<<"Play-Exit-Tone">>, fun binary_or_boolean/1}
                 ,{<<"Play-Welcome">>, fun kz_term:is_boolean/1}
                 ,{<<"Play-Welcome-Media">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Max-Participants">>, fun kz_term:is_pos_integer/1}
                 ]
                }
               ],
