@@ -110,7 +110,7 @@ exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
 
             send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call1),
 
-            {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props),
+            {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props, 'bridge'),
             maybe_end_dial(Call2, Props)
     end;
 exec(Call, [Elm|Rest], Attrs) ->
@@ -126,17 +126,20 @@ simple_dial(Call, Props, DialMe) ->
                                ,Props
                                ),
 
-    OffnetProps = [{<<"Force-Outbound">>, force_outbound(Props)}
-                  ],
-    'ok' = kzt_util:offnet_req(Props, OffnetProps, Call1),
+    OffnetProps = [{<<"Force-Outbound">>, force_outbound(Props)}],
 
-    {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props),
-    maybe_end_dial(Call2, Props).
+    Call2 = maybe_start_dial_record(Props, Call1),
+
+    'ok' = kzt_util:offnet_req(Props, OffnetProps, Call2),
+
+    {'ok', Call3} = kzt_receiver:wait_for_offnet(Call2, Props, 'offnet'),
+
+    maybe_end_dial(Call3, Props).
 
 -spec number_dial(kapps_call:call(), kz_term:proplist(), kz_term:proplist(), kz_term:ne_binary()) ->
           {'ok' | 'stop' | 'request', kapps_call:call()}.
 number_dial(Call, DialProps, _NumberProps, DialMe) ->
-    %% TODO: impelement these
+    %% TODO: implement these
     %% SendDigits = props:get_value('sendDigits', NumberProps),
     %% _Url = props:get_value('url', NumberProps),
     %% _Method = props:get_value('method', NumberProps),
@@ -180,8 +183,6 @@ send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
 setup_call_for_dial(Call, Props) ->
     Setters = [{fun kapps_call:set_caller_id_number/2, caller_id(Props, Call)}
               ,{fun kzt_util:set_hangup_dtmf/2, hangup_dtmf(Props)}
-              ,{fun kzt_util:set_record_call/2, should_record_call(Props)}
-              ,{fun kzt_util:set_recording_stereo/2, should_recording_stereo(Props)}
               ,{fun kzt_util:set_call_timeout/2, dial_timeout(Props)}
               ,{fun kzt_util:set_call_time_limit/2, timelimit_s(Props)}
               ],
@@ -379,20 +380,6 @@ should_record_call(Props) ->
         _ -> 'false'
     end.
 
--spec should_recording_stereo(kz_term:proplist()) -> boolean().
-should_recording_stereo(Props) ->
-    %% Backward compatibility: true is an alias for record-from-answer
-    %%                         false is an alias for do-not-record
-    %% In Kazoo, stereo (dual) is default, defaulting true to dual, so user must explicitly request mono.
-    case props:get_ne_binary_value('record', Props) of
-        'undefined' -> 'undefined';
-        <<"false">> -> 'undefined';
-        <<"true">> -> 'true';
-        <<"record-from-answer-dual">> -> 'true';
-        <<"record-from-ringing-dual">> -> 'true';
-        _ -> 'false'
-    end.
-
 -spec dial_timeout(kz_term:proplist()) -> pos_integer().
 dial_timeout(Props) ->
     %% Add 5s timeout buffer
@@ -497,3 +484,40 @@ get_endpoints(UserId, Data, Call) ->
 -spec normalize_number(kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
 normalize_number(Number, Call) ->
     knm_converters:normalize(Number, kapps_call:account_id(Call)).
+
+-spec maybe_start_dial_record(kz_term:proplist(), kapps_call:call()) -> kapps_call:call().
+maybe_start_dial_record(Props, Call) ->
+    Setters = [{fun kzt_util:set_record_call/2, should_record_call(Props)}
+              ,{fun kzt_util:set_recording_stereo/2, props:get_ne_binary_value('record', Props)}
+              ,{fun kapps_call:start_recording/2, get_recording_data(Props)}],
+    kapps_call:exec(Setters, Call).
+
+-spec get_recording_data(kz_term:proplist()) -> kz_term:api_object().
+get_recording_data(Props) ->
+    case should_record_call(Props) of
+        'false' -> 'undefined';
+        'true' ->
+            kz_json:from_list([{<<"record_on_bridge">>, record_from_bridge(Props)}
+                              ,{<<"record_on_answer">>, record_from_answer(Props)}
+                              ,{<<"url">>, props:get_ne_binary_value('recordingUrl', Props)}
+                              ,{<<"method">>, kzt_util:record_store_method(Props)}
+                              ]
+                             )
+    end.
+
+-spec record_from_answer(kz_term:proplist()) -> 'true' | 'undefined'.
+record_from_answer(Props) ->
+    case props:get_ne_binary_value('record', Props) of
+        <<"record-from-answer">> -> 'true';
+        <<"record-from-answer-dual">> -> 'true';
+        <<"true">> -> 'true';
+        _ -> 'undefined'
+    end.
+
+-spec record_from_bridge(kz_term:proplist()) -> 'true' | 'undefined'.
+record_from_bridge(Props) ->
+    case props:get_ne_binary_value('record', Props) of
+        <<"record-from-ringing">> -> 'true';
+        <<"record-from-ringing-dual">> -> 'true';
+        _ -> 'undefined'
+    end.
