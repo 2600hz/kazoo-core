@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2024, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -489,7 +489,14 @@ discovery_req_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Doc">>
                                                             ,<<"Conference-ID">>
                                                             ,<<"Conference-Name">>
+                                                            ,<<"End-On-Last-Member-Leave">>
+                                                            ,<<"End-On-Leave">>
+                                                            ,<<"Member-Join-Deaf">>
+                                                            ,<<"Member-Join-Muted">>
                                                             ,<<"Moderator">>
+                                                            ,<<"Moderator-Join-Deaf">>
+                                                            ,<<"Moderator-Join-Muted">>
+                                                            ,<<"Participant-Join-Video-Muted">>
                                                             ,<<"Play-Entry-Tone">>
                                                             ,<<"Play-Exit-Tone">>
                                                             ,<<"Play-Welcome">>
@@ -499,12 +506,30 @@ discovery_req_definition() ->
                ,kapi_definition:event_type_headers(Category, EventName)
                }
               ,{fun kapi_definition:set_types/2
-               ,[{<<"Moderator">>, fun kz_term:is_boolean/1}
+               ,[{<<"Conference-Doc">>, fun kz_json:is_json_object/1}
+                ,{<<"Conference-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Conference-Name">>, fun kz_term:is_ne_binary/1}
+                ,{<<"End-On-Last-Member-Leave">>, fun kz_term:is_boolean/1}
+                ,{<<"End-On-Leave">>, fun kz_term:is_boolean/1}
+                ,{<<"Member-Join-Deaf">>, fun kz_term:is_boolean/1}
+                ,{<<"Member-Join-Muted">>, fun kz_term:is_boolean/1}
+                ,{<<"Moderator">>, fun kz_term:is_boolean/1}
+                ,{<<"Moderator-Join-Deaf">>, fun kz_term:is_boolean/1}
+                ,{<<"Moderator-Join-Muted">>, fun kz_term:is_boolean/1}
+                ,{<<"Participant-Join-Video-Muted">>, fun kz_term:is_boolean/1}
+                ,{<<"Play-Entry-Tone">>, fun binary_or_boolean/1}
+                ,{<<"Play-Exit-Tone">>, fun binary_or_boolean/1}
                 ,{<<"Play-Welcome">>, fun kz_term:is_boolean/1}
+                ,{<<"Play-Welcome-Media">>, fun kz_term:is_ne_binary/1}
                 ]
                }
               ],
     kapi_definition:setters(Setters).
+
+-spec binary_or_boolean(any()) -> boolean().
+binary_or_boolean(<<_/binary>>) -> 'true';
+binary_or_boolean(Bool) when is_boolean(Bool) -> 'true';
+binary_or_boolean(_) -> 'false'.
 
 -spec discovery_resp_definition() -> kapi_definition:api().
 discovery_resp_definition() ->

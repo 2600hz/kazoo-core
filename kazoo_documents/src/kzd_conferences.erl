@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2024, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,7 @@
 -export([conference_numbers/1, conference_numbers/2, set_conference_numbers/2]).
 -export([controls/1, controls/2, set_controls/2]).
 -export([domain/1, domain/2, set_domain/2]).
+-export([endconf_grace_time/1, endconf_grace_time/2, set_endconf_grace_time/2]).
 -export([flags/1, flags/2, set_flags/2]).
 -export([focus/1, focus/2, set_focus/2]).
 -export([language/1, language/2, set_language/2]).
@@ -139,6 +140,18 @@ domain(Doc) ->
 -spec domain(doc(), Default) -> binary() | Default.
 domain(Doc, Default) ->
     kz_json:get_binary_value([<<"domain">>], Doc, Default).
+
+-spec set_endconf_grace_time(doc(), integer()) -> doc().
+set_endconf_grace_time(Doc, EndconfGraceTime) ->
+    kz_json:set_value([<<"endconf_grace_time">>], EndconfGraceTime, Doc).
+
+-spec endconf_grace_time(doc()) -> kz_term:api_integer().
+endconf_grace_time(Doc) ->
+    endconf_grace_time(Doc, 'undefined').
+
+-spec endconf_grace_time(doc(), Default) -> integer() | Default.
+endconf_grace_time(Doc, Default) ->
+    kz_json:get_integer_value([<<"endconf_grace_time">>], Doc, Default).
 
 -spec set_domain(doc(), binary()) -> doc().
 set_domain(Doc, Domain) ->
