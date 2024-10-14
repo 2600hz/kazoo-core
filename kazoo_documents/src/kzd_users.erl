@@ -1276,11 +1276,11 @@ full_name(?NE_BINARY = First, _, _) ->
 full_name(_, _, Default) ->
     Default.
 
--spec md5_auth(doc()) -> kz_term:api_binary().
+-spec md5_auth(doc()) -> kz_term:api_ne_binary().
 md5_auth(Doc) ->
     kz_json:get_ne_binary_value(<<"pvt_md5_auth">>, Doc).
 
--spec sha1_auth(doc()) -> kz_term:api_object().
+-spec sha1_auth(doc()) -> kz_term:api_ne_binary().
 sha1_auth(Doc) ->
     kz_json:get_ne_binary_value(<<"pvt_sha1_auth">>, Doc).
 
@@ -1668,12 +1668,17 @@ rehash_creds(_AccountId, Username0, {'valid', Password}, {Doc, Errors}) ->
     DocMD5 = kz_json:get_ne_value(<<"pvt_md5_auth">>, Doc),
     DocSHA1 = kz_json:get_ne_value(<<"pvt_sha1_auth">>, Doc),
     {MD5, SHA1} = kzd_module_utils:pass_hashes(Username, Password),
+
     PassTS = maybe_password_timestamp(),
+
     UpdatedDoc = kz_json:set_values([{<<"pvt_md5_auth">>, MD5}
                                     ,{<<"pvt_sha1_auth">>, SHA1}
-                                    ,{?KEY_PASS_TIMESTAMP, PassTS}
                                     ]
-                                   ,set_require_password_update(Doc, is_password_expired(PassTS))
+                                   ,kz_doc:setters(Doc
+                                                  ,[{fun set_require_password_update/2, is_password_expired(PassTS)}
+                                                   ,{fun set_password_created/2, PassTS}
+                                                   ]
+                                                  )
                                    ),
 
     case ?SHOULD_RESET_IDENTITY_SECRET_ON_REHASH
@@ -1690,8 +1695,8 @@ rehash_creds(_AccountId, Username0, {'valid', Password}, {Doc, Errors}) ->
 
 maybe_password_timestamp() ->
     case password_expiry_s() of
-        'undefined' -> lager:info("not configured for password expiry"), 'null';
-        _-> lager:info("setting password expiration timestamp"), kz_time:now_s()
+        'undefined' -> 'null';
+        _-> kz_time:now_s()
     end.
 
 %%------------------------------------------------------------------------------
@@ -1759,28 +1764,29 @@ maybe_migrate_user_addresses(User) ->
     end.
 
 -spec is_password_expired(doc() | kz_term:api_integer() | 'null') -> boolean().
-is_password_expired(Atom) when is_atom(Atom) ->
-    lager:debug("no password timestamp, considering expired"),
-    'true';
-is_password_expired(CreatedS) when is_integer(CreatedS) ->
-    is_password_expired(CreatedS, password_expiry_s());
 is_password_expired(User) ->
-    is_password_expired(password_created(User), password_expiry_s()).
+    is_password_expired(User, password_expiry_s()).
 
+-spec password_created(doc()) -> kz_term:api_integer().
 password_created(User) ->
     kz_json:get_integer_value([?KEY_PASS_TIMESTAMP], User).
+
+set_password_created(User, Timestamp) ->
+    kz_json:set_value(?KEY_PASS_TIMESTAMP, Timestamp, User).
 
 -spec password_expiry_s() -> kz_term:api_integer().
 password_expiry_s() ->
     kapps_config:get_integer(?CROSSBAR_CONFIG_CAT, <<"password_expiry_s">>).
 
 is_password_expired(_CreatedS, 'undefined') ->
-    lager:debug("no password expiry defined"),
     'false';
 is_password_expired('undefined', _Expiry) ->
     lager:debug("no password timestamp, considering expired"),
     'true';
-is_password_expired(CreatedS, Expiry) ->
+is_password_expired('null', _Expiry) ->
+    lager:debug("no password timestamp, considering expired"),
+    'true';
+is_password_expired(CreatedS, Expiry) when is_integer(CreatedS) ->
     NowS = kz_time:now_s(),
     case CreatedS + Expiry < NowS of
         'true' ->
@@ -1788,7 +1794,9 @@ is_password_expired(CreatedS, Expiry) ->
             'true';
         'false' ->
             'false'
-    end.
+    end;
+is_password_expired(User, Expiry) ->
+    is_password_expired(password_expiration_timestamp(User), Expiry).
 
 -spec password_expiration_timestamp(doc() | 'undefined') -> kz_term:api_integer().
 password_expiration_timestamp('undefined') -> 'undefined';
@@ -1798,6 +1806,7 @@ password_expiration_timestamp(User) ->
 %% no expiration
 password_expiration_timestamp(_CreatedS, 'undefined') -> 'undefined';
 %% expired in the past already
-password_expiration_timestamp('undefined', Expiry) -> kz_time:now_s() - Expiry;
+password_expiration_timestamp('undefined', Expiry) ->
+    kz_time:now_s() - Expiry - 1;
 %% return when password expires
 password_expiration_timestamp(CreatedS, Expiry) -> CreatedS + Expiry.
