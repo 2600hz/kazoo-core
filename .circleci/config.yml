@@ -25,11 +25,6 @@ workflows:
           requires:
             - 'preparation-<< matrix.platform >>'
       -
-        kazoo/eunit-tests:
-          context: Private-Builds
-          requires:
-            - preparation-centos-7
-      -
         kazoo/analyze:
           requires:
             - beams-centos-7
@@ -78,16 +73,6 @@ workflows:
               platform: [centos-7, rockylinux-8, rockylinux-9]
           requires:
             - 'preparation-<< matrix.platform >>'
-          filters:
-            tags:
-              only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
-            branches:
-              ignore: '/.*/'
-      -
-        kazoo/eunit-tests:
-          context: Private-Builds
-          requires:
-            - preparation-centos-7
           filters:
             tags:
               only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
