@@ -1070,7 +1070,39 @@ delete_attachment(DbName, DocId, AName) ->
           data_error().
 delete_attachment(DbName, DocId, AName, Options) ->
     Database = kzs_util:to_database(DbName),
-    kzs_attachments:delete_attachment(kzs_plan:plan(Database, DocId), Database, DocId, AName, Options).
+    case attachment_options(Database, DocId, Options) of
+        {'ok', NewOpts} ->
+            NewOptions = props:delete('plan_override', props:delete('rev', NewOpts)),
+            Dataplan = kzs_plan:plan(Database, NewOpts),
+            Resp = kzs_attachments:delete_attachment(Dataplan, Database, DocId, AName, NewOptions),
+            handle_delete_attachment(Resp, DbName, DocId, AName);
+        {'error', _} = Error -> Error
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Remove "pvt_attachment" from the media doc.
+%% @end
+%%------------------------------------------------------------------------------
+-spec handle_delete_attachment({'ok', kz_json:object()} | data_error(), kz_json:ne_binary(), kz_json:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          data_error().
+handle_delete_attachment({'ok', <<"not_enabled">>}, DbName, DocId, AName) ->
+    lager:info("delete attachment (~p) is disabled in ~p/~p", [AName, DbName, DocId]),
+    {'ok', kz_json:new()};
+handle_delete_attachment({'ok', _} = Resp, DbName, DocId, AName) ->
+    case open_cache_doc(DbName, DocId) of
+        {'ok', Doc} ->
+            kzs_cache:flush_cache_doc(DbName, DocId),
+            _ = maybe_save_updated_doc(Doc, kz_doc:delete_attachment(Doc, AName), DbName),
+            'ok';
+        {'error', _} -> 'ok'
+    end,
+    Resp;
+handle_delete_attachment(Resp, _DbName, _DocId, _AName) -> Resp.
+
+-spec maybe_save_updated_doc(kz_json:object(), kz_json:object(), kz_json:ne_binary()) -> any().
+maybe_save_updated_doc(OriginalDoc, OriginalDoc, _DbName) -> 'ok';
+maybe_save_updated_doc(_OriginalDoc, UpdatedDoc, DbName) -> save_doc(DbName, UpdatedDoc).
 
 %%------------------------------------------------------------------------------
 %% @doc Update the metadata on an attachment, provided there is an attachment
