@@ -10,6 +10,8 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_app_config).
 
+-export([init/0]).
+
 -export([get_binary/2, get_binary/3]).
 -export([get_json/2, get_json/3]).
 -export([get_jsons/2, get_jsons/3]).
@@ -32,6 +34,17 @@
 -type account_id() :: kz_term:api_ne_binary().
 -type app() :: atom() | {atom(), account_id()}.
 -type app_key() :: kz_term:ne_binary() | kz_term:ne_binaries().
+
+%% by default use system and account config getters
+-spec init() -> 'ok'.
+init() ->
+    Terms = [{'kz_account_config', fun kapps_account_config:get_global/3}
+            ,{'kz_config', fun kapps_config:get/2}
+            ],
+    lists:foreach(fun set_config/1, Terms).
+
+set_config({Key, Value}) ->
+    persistent_term:put(Key, Value).
 
 -spec get_pos_integer(app(), app_key()) -> kz_term:api_pos_integer().
 get_pos_integer(App, Key) ->
@@ -216,7 +229,7 @@ get_timeout(App, Key, Default) ->
     end.
 
 -spec get(app(), app_key()) -> 'undefined' | {'ok', any()}.
-get(App, <<_/binary>>=Key) ->
+get(App, <<Key/binary>>) ->
     get(App, binary:split(Key, <<".">>, ['global']));
 get(App, Keys) ->
     fetch_value(App, Keys).
@@ -292,7 +305,7 @@ fetch_value(App, Key, Fun) ->
 
 get_env(AccountId, App, Keys) ->
     case get_env(App, [AccountId | Keys]) of
-        undefined -> get_env(App, Keys);
+        'undefined' -> get_env(App, Keys);
         Value -> Value
     end.
 

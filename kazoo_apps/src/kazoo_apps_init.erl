@@ -144,10 +144,4 @@ start_distribution() ->
 
 -spec set_config() -> 'ok'.
 set_config() ->
-    Terms = [{'kz_account_config', fun kapps_account_config:get_global/3}
-            ,{'kz_config', fun kapps_config:get/2}
-            ],
-    lists:foreach(fun set_config/1, Terms).
-
-set_config({Key, Value}) ->
-    persistent_term:put(Key, Value).
+    kz_app_config:init().

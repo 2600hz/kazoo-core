@@ -681,12 +681,12 @@ rand_number(Min, Max) ->
     rand:uniform_real() * (Max - Min + 1) + Min.
 
 -spec to_api_json(api_proplist()) -> api_object().
-to_api_json(undefined) -> undefined;
+to_api_json('undefined') -> 'undefined';
 to_api_json([]) -> kz_json:new();
 to_api_json([_ | _] = Props) ->
     case lists:all(fun is_tuple/1, Props) of
-        true -> kz_json:from_list(Props);
-        false -> erlang:error(arg_is_not_proplist, [Props])
+        'true' -> kz_json:from_list(Props);
+        'false' -> erlang:error('arg_is_not_proplist', [Props])
     end;
 to_api_json(Other) ->
-    erlang:error(arg_is_not_proplist, [Other]).
+    erlang:error('arg_is_not_proplist', [Other]).
