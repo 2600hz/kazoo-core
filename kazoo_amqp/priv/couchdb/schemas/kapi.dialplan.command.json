@@ -163,6 +163,9 @@
         "Caller-ID-Number": {
             "type": "string"
         },
+        "Channel-As-Stereo": {
+            "type": "string"
+        },
         "Channels-As-Stereo": {
             "type": "string"
         },
@@ -182,6 +185,9 @@
             "type": "string"
         },
         "Confirm-Key": {
+            "type": "string"
+        },
+        "Connect-Payload": {
             "type": "string"
         },
         "Continue-After": {
@@ -606,6 +612,10 @@
             ],
             "type": "string"
         },
+        "Sample-Rate": {
+            "minLength": 1,
+            "type": "string"
+        },
         "Say-Text": {
             "type": "string"
         },
@@ -629,6 +639,13 @@
                 "read",
                 "write"
             ],
+            "type": "string"
+        },
+        "Stream-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Stream-URL": {
             "type": "string"
         },
         "Suppress-Error-Report": {
