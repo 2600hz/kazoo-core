@@ -144,4 +144,6 @@ start_distribution() ->
 
 -spec set_config() -> 'ok'.
 set_config() ->
-    kz_app_config:init().
+    %% by default use system and account config getters
+    kz_app_config:set_config_getter(fun kapps_config:get/2),
+    kz_app_config:set_account_config_getter(fun kapps_account_config:get_global/3).

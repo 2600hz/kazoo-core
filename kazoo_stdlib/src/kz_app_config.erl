@@ -10,7 +10,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_app_config).
 
--export([init/0]).
+-export([set_config_getter/1, set_account_config_getter/1]).
 
 -export([get_binary/2, get_binary/3]).
 -export([get_json/2, get_json/3]).
@@ -35,13 +35,20 @@
 -type app() :: atom() | {atom(), account_id()}.
 -type app_key() :: kz_term:ne_binary() | kz_term:ne_binaries().
 
-%% by default use system and account config getters
--spec init() -> 'ok'.
-init() ->
-    Terms = [{'kz_account_config', fun kapps_account_config:get_global/3}
-            ,{'kz_config', fun kapps_config:get/2}
-            ],
-    lists:foreach(fun set_config/1, Terms).
+-type config_getter() :: fun((kz_json:key(), kz_json:get_key()) -> kz_json:api_json_term()).
+-type account_config_getter() :: fun((kz_term:api_ne_binary(), kz_json:key(), kz_json:get_key()) -> kz_json:api_json_term()).
+
+-export_type([config_getter/0
+             ,account_config_getter/0
+             ]).
+
+-spec set_config_getter(config_getter()) -> 'ok'.
+set_config_getter(GetterFun) when is_function(GetterFun, 2) ->
+    set_config({'kz_config', GetterFun}).
+
+-spec set_account_config_getter(account_config_getter()) -> 'ok'.
+set_account_config_getter(GetterFun) when is_function(GetterFun, 3) ->
+    set_config({'kz_account_config', GetterFun}).
 
 set_config({Key, Value}) ->
     persistent_term:put(Key, Value).
