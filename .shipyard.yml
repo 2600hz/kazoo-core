@@ -78,5 +78,6 @@ metapackage:
     name: meta-kazoo-applications
     type: required
     branch: '5.3'
+    
     package: kazoo-core
 dependencies: null
