@@ -58,10 +58,11 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_amqp/include/kz_api.hrl").
 -include_lib("kazoo_amqp/include/kz_amqp.hrl").
+-include("kazoo_apps.hrl").
 
 -define(SERVER, ?MODULE).
 
--define(FUDGE, 2600).
+-define(FUDGE_MS, 2600).
 -define(BINDINGS, [{'self', []}]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
@@ -153,6 +154,7 @@ start_link(Args) ->
                             ,{'queue_name', maybe_queuename(Args)}
                             ,{'queue_options', ?QUEUE_OPTIONS}
                             ,{'consume_options', ?CONSUME_OPTIONS}
+                            ,{'calling_application', ?APP}
                             | maybe_broker(Args)
                              ++ maybe_exchanges(Args)
                              ++ maybe_server_confirms(Args)
@@ -1017,7 +1019,7 @@ reset(#state{req_timeout_ref = ReqRef
 
 -spec fudge_timeout(timeout()) -> timeout().
 fudge_timeout('infinity'=T) -> T;
-fudge_timeout(T) -> T + ?FUDGE.
+fudge_timeout(T) -> T + ?FUDGE_MS.
 
 -spec start_req_timeout(timeout()) -> reference().
 start_req_timeout('infinity') -> make_ref();

@@ -510,10 +510,9 @@ init_state(Module, Params, ModuleState) ->
     process_flag('trap_exit', 'true'),
     kz_log:put_callid(Module),
 
-    Application = kz_process:get_application(),
-    kz_process:put_application(Application),
+    CallingApplication = put_application(Params),
 
-    lager:debug("continuing as a gen_listener proc : ~s ~s", [Application, Module]),
+    lager:debug("continuing as a gen_listener proc : ~s ~s", [CallingApplication, Module]),
     init(Module, Params, ModuleState, 'undefined').
 
 -spec do_init(init_args()) -> {'ok', state()} | {'stop', any()} | 'ignore'.
@@ -521,11 +520,10 @@ do_init({Module, Params, InitArgs}) ->
     process_flag('trap_exit', 'true'),
     kz_log:put_callid(Module),
 
-    Application = kz_process:get_application(),
-    kz_process:put_application(Application),
+    CallingApplication = put_application(Params),
 
     lager:debug("starting new gen_listener proc : ~s ~s"
-               ,[Application, Module]
+               ,[CallingApplication, Module]
                ),
 
     'true' = erlang:function_exported(Module, 'init', 1),
@@ -536,6 +534,14 @@ do_init({Module, Params, InitArgs}) ->
         {'stop', _R} = STOP -> STOP;
         'ignore' -> 'ignore'
     end.
+
+put_application(Params) ->
+    Application = case props:get_value('calling_application', Params) of
+                      'undefined' -> kz_process:get_application();
+                      App -> App
+                  end,
+    kz_process:put_application(Application),
+    Application.
 
 -spec init(module(), start_params(), module_state(), kz_term:api_reference()) -> {'ok', state()}.
 init(Module, Params, ModuleState, TimeoutRef) ->

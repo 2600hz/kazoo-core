@@ -28,6 +28,7 @@
                          {'basic_qos', non_neg_integer()} |
                          {'bindings', bindings()} |
                          {'broker' | 'broker_tag', kz_term:ne_binary()} |
+                         {'calling_application', atom()} |
                          {'channel_flow', boolean()} |
                          {'consume_options', consume_options()} |
                          {'declare_exchanges', declare_exchanges()} |
