@@ -10,6 +10,8 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_app_config).
 
+-export([set_config_getter/1, set_account_config_getter/1]).
+
 -export([get_binary/2, get_binary/3]).
 -export([get_json/2, get_json/3]).
 -export([get_jsons/2, get_jsons/3]).
@@ -32,6 +34,24 @@
 -type account_id() :: kz_term:api_ne_binary().
 -type app() :: atom() | {atom(), account_id()}.
 -type app_key() :: kz_term:ne_binary() | kz_term:ne_binaries().
+
+-type config_getter() :: fun((kz_json:key(), kz_json:get_key()) -> kz_json:api_json_term()).
+-type account_config_getter() :: fun((kz_term:api_ne_binary(), kz_json:key(), kz_json:get_key()) -> kz_json:api_json_term()).
+
+-export_type([config_getter/0
+             ,account_config_getter/0
+             ]).
+
+-spec set_config_getter(config_getter()) -> 'ok'.
+set_config_getter(GetterFun) when is_function(GetterFun, 2) ->
+    set_config({'kz_config', GetterFun}).
+
+-spec set_account_config_getter(account_config_getter()) -> 'ok'.
+set_account_config_getter(GetterFun) when is_function(GetterFun, 3) ->
+    set_config({'kz_account_config', GetterFun}).
+
+set_config({Key, Value}) ->
+    persistent_term:put(Key, Value).
 
 -spec get_pos_integer(app(), app_key()) -> kz_term:api_pos_integer().
 get_pos_integer(App, Key) ->
@@ -216,7 +236,7 @@ get_timeout(App, Key, Default) ->
     end.
 
 -spec get(app(), app_key()) -> 'undefined' | {'ok', any()}.
-get(App, <<_/binary>>=Key) ->
+get(App, <<Key/binary>>) ->
     get(App, binary:split(Key, <<".">>, ['global']));
 get(App, Keys) ->
     fetch_value(App, Keys).
@@ -292,7 +312,7 @@ fetch_value(App, Key, Fun) ->
 
 get_env(AccountId, App, Keys) ->
     case get_env(App, [AccountId | Keys]) of
-        undefined -> get_env(App, Keys);
+        'undefined' -> get_env(App, Keys);
         Value -> Value
     end.
 
