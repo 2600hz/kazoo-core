@@ -427,7 +427,6 @@ publish_conference_request(Call, Id, Name, ConfProps) ->
           | deaf_muted_headers(ConfProps, IsModerator) ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
           ]
          ),
-    lager:debug("twiml conference props ~p", [props:delete(<<"Call">>, ConfReq)]),
     kapi_conference:publish_discovery_req(ConfReq).
 
 -spec deaf_muted_headers(kz_term:proplist(), boolean()) -> kz_term:proplist().
@@ -440,8 +439,8 @@ deaf_muted_headers(ConfProps, 'false') ->
     ,{<<"Member-Join-Muted">>, props:is_true('muted', ConfProps, 'false')}
     ].
 
--spec get_max_participants(kz_term:proplist()) -> pos_integer().
-get_max_participants(Props) when is_list(Props) ->
+-spec get_max_participants(kz_term:proplist()) -> 1..250.
+get_max_participants(Props) ->
     case props:get_integer_value('maxParticipants', Props) of
         N when is_integer(N), N =< ?TWIML_MAX_PARTICIPANTS, N > 2 ->
             N;
