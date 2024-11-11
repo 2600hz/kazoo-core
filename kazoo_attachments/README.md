@@ -1,4 +1,4 @@
-# Kazoo Attachments
+# {% BRAND_NAME %} Attachments
 
 This application is meant to be used with [storage plans](https://github.com/2600hz/kazoo/blob/master/applications/crossbar/doc/storage.md#plans).
 

@@ -2,7 +2,7 @@
 
 CNAM is a service provided by various companies that take the caller's number and return the "correct" caller ID name.
 
-KAZOO can be configured to do this lookup (sometimes called a CNAM dip) using different providers (like Telnyx or OpenCNAM).
+{% BRAND_NAME %} can be configured to do this lookup (sometimes called a CNAM dip) using different providers (like Telnyx or OpenCNAM).
 
 ## System configuration
 
@@ -10,12 +10,12 @@ The CNAM provider and settings are controlled in the `system_config/cnam` docume
 
 ### Provider settings
 
-- `default.provider`: Configured to use `opencnam` (which means `cnam_opencnam` module exists in KAZOO and exports `request/2`). Change to match the KAZOO CNAM module of choice.
+- `default.provider`: Configured to use `opencnam` (which means `cnam_opencnam` module exists in {% BRAND_NAME %} and exports `request/2`). Change to match the {% BRAND_NAME %} CNAM module of choice.
 
-### Customizable KAZOO settings
+### Customizable {% BRAND_NAME %} settings
 
 - `default.disable_normalize`: when set to `true`, the caller's number is used as provided by the upstream carrier. No attempt to normalize to E164 is made.
-- `default.cnam_expires`: How long, in seconds, should a CNAM result be cached by KAZOO.
+- `default.cnam_expires`: How long, in seconds, should a CNAM result be cached by {% BRAND_NAME %}.
 
 ### Customizable HTTP request settings
 
@@ -24,7 +24,7 @@ The CNAM provider and settings are controlled in the `system_config/cnam` docume
 - `default.http_method` to set the HTTP verb to use for the request (defaults to a GET)
 - `default.http_content_type_header` is the value for the `Content-Type` HTTP header which should match the `http_body` (if any).
 - `default.http_user_agent_header` is the value sent in the `User-Agent` HTTP header.
-- `default.http_connect_timeout_ms` is the TCP connection timeout, in milliseconds. The time the provider takes to accept the HTTP connection will add to the caller's PDD (post-dial delay) experience and KAZOO's processing of the call.
+- `default.http_connect_timeout_ms` is the TCP connection timeout, in milliseconds. The time the provider takes to accept the HTTP connection will add to the caller's PDD (post-dial delay) experience and {% BRAND_NAME %}'s processing of the call.
 - `default.http_basic_auth_username` and `default.http_basic_auth_password` if the provider requires HTTP Basic Auth
 
 
@@ -51,9 +51,9 @@ The CNAM provider and settings are controlled in the `system_config/cnam` docume
 
 If `default.http_token_auth_token` is defined, an `Authorization` HTTP header will be included with this value.
 
-## CNAM Dips in KAZOO
+## CNAM Dips in {% BRAND_NAME %}
 
-When a call comes into FreeSWITCH from a resource (upstream carrier), a `directory` fetch request is sent to KAZOO.
+When a call comes into FreeSWITCH from a resource (upstream carrier), a `directory` fetch request is sent to {% BRAND_NAME %}.
 
 A series of checks are then performed to determine if a CNAM dip is needed. If any step is 'true', no CNAM dip will occur
 

@@ -1,4 +1,4 @@
-# Kazoo Number Manager maintenance
+# {% BRAND_NAME %} Number Manager maintenance
 
 ## SUP-able functions
 

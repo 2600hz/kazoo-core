@@ -1,13 +1,13 @@
 # View changes overview
 
-Here is a summary of changes to the views in Kazoo 5. As part of cleaning up, we removed old and used views, and normalized the common tasks of views (like list by DocId in `crossbar_listing` views) in a single uniform views. Also to indexing performance reason system core views are getting move to a single design document as far as possible.
+Here is a summary of changes to the views in {% BRAND_NAME %} 5. As part of cleaning up, we removed old and used views, and normalized the common tasks of views (like list by DocId in `crossbar_listing` views) in a single uniform views. Also to indexing performance reason system core views are getting move to a single design document as far as possible.
 
 There would be a mechanism for applications to add their own design/views.
 
-Also to Kazoo 5 is providing an abstraction over the way we retrieve the views data. The views accessors has been added as a standard way to access the data. The idea is that this accessors are providing the high level concept of entities and the database drivers are implementing the way to retrieving the data from the database.
+Also to {% BRAND_NAME %} 5 is providing an abstraction over the way we retrieve the views data. The views accessors has been added as a standard way to access the data. The idea is that this accessors are providing the high level concept of entities and the database drivers are implementing the way to retrieving the data from the database.
 
 ```
-[kzd modules] --> [kzv modules] --> [kazoo data and storage system] --> [database/storage driver]
+[kzd modules] --> [kzv modules] --> [{% BRAND_NAME %} data and storage system] --> [database/storage driver]
 ```
 
 ## Benefits of less design document

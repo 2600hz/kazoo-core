@@ -41,7 +41,7 @@ The `Params` argument is where the calling process defines what AMQP messages to
 
 In AMQP, a binding key links a queue with an exchange, effectively telling the exchange to put messages with a routing key that matches the binding key into the queue.
 
-In KAZOO, that process is abstracted behind the `kapi_*` modules.
+In {% BRAND_NAME %}, that process is abstracted behind the `kapi_*` modules.
 
 The `bindings` list is made up of the kapi module name (minus `kapi_`) as key and a list of arguments specific to that kapi module.
 
@@ -69,9 +69,9 @@ Most kapi modules can be found in `core/kazoo_amqp/src/api/`.
 
 #### Federated Bindings
 
-KAZOO manages AMQP connections to all configured brokers, in the local zone and in remote zones.
+{% BRAND_NAME %} manages AMQP connections to all configured brokers, in the local zone and in remote zones.
 
-While KAZOO strives to keep as much traffic in the local zone as possible, it is necessary to receive events from the remote zones in some cases (voice channel counts for limits, for instance).
+While {% BRAND_NAME %} strives to keep as much traffic in the local zone as possible, it is necessary to receive events from the remote zones in some cases (voice channel counts for limits, for instance).
 
 If the callback module wishes to receive events from remote zones, the binding properties associated with the binding need only include `'federate'` to the properties:
 

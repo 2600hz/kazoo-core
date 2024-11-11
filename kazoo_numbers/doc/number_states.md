@@ -1,4 +1,4 @@
-Numbers travel through a variety of states within Kazoo during their lifecycle.
+Numbers travel through a variety of states within {% BRAND_NAME %} during their lifecycle.
 
 Let's enumerate those states and then see how they fit together!
 

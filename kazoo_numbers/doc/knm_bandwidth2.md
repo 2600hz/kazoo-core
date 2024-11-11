@@ -1,10 +1,10 @@
-### Kazoo Number Manager Bandwidth (NEW API)
+### {% BRAND_NAME %} Number Manager Bandwidth (NEW API)
 
-The kazoo number manager Bandwidth2 module can be used to integrate Kazoo with http://www.bandwidth.com/ using the new api.
+The {% BRAND_NAME %} number manager Bandwidth2 module can be used to integrate {% BRAND_NAME %} with http://www.bandwidth.com/ using the new api.
 
 #### Configuring number manager
 
-To enable kazoo number manager to use the Bandwidth module you will need to first update the `number_manager` document in the `system_config` database.
+To enable {% BRAND_NAME %} number manager to use the Bandwidth module you will need to first update the `number_manager` document in the `system_config` database.
 
 In the configuration section that applies to your crossbar servers (or the default) add `"knm_bandwidth2"` to the `carrier_modules` parameter.
 
@@ -38,7 +38,7 @@ This document has the following parameters.
 * `debug`: If this parameter is set to `true` then each request and reply from Bandwidth will be written as a text file to /tmp/bandwidth.log for developers.
 * `enable_provisioning`: If this parameter is set to `true` then the ability to active numbers will be enabled.  If set to `false` then the module will only perform number searches.
 * `sandbox_provisioning`: intended to be used with `enable_provisioning`.  If set to `true` then all number provisioning will pretend to be successful without actually activating.
-* `order_name_prefix`: an arbitrary string that is added to the `"order-id"` field of a number provisioning request to bandwidth to identify which numbers where purchased by the Kazoo system.
+* `order_name_prefix`: an arbitrary string that is added to the `"order-id"` field of a number provisioning request to bandwidth to identify which numbers where purchased by the {% BRAND_NAME %} system.
 
 Example:
 

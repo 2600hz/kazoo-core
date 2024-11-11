@@ -1,2 +1,2 @@
-# Kazoo SIP *Kazoo SIP Parsing and UA Library*
-SIPifying Kazoo!
+# {% BRAND_NAME %} SIP *{% BRAND_NAME %} SIP Parsing and UA Library*
+SIPifying {% BRAND_NAME %}!

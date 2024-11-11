@@ -1,6 +1,6 @@
 # Overview
 
-The Kazoo number manager aims for the following:
+The {% BRAND_NAME %} number manager aims for the following:
 
 1. Provide a consistent interface to number management
 1. Abstract concepts of carriers, providers, converters, etc, to allow a more easily pluggable system

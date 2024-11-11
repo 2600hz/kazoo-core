@@ -9,7 +9,7 @@ Every number in the system has an internal property called `pvt_carrier_module` 
 This module is responsible for "local" numbers, that is number that only belongs to one account (*local to that account*) and not to the system.
 These numbers are expected to be added by the admin of the account (local admin) *for use with that account only*.
 Furthermore, it is expected the number is owned by the local admin and not the system operators.
-For example, if an account was using its own carriers (local resources) then all numbers would be owned by the local admin and not participate in any of the automatic facilities provided by Kazoo.
+For example, if an account was using its own carriers (local resources) then all numbers would be owned by the local admin and not participate in any of the automatic facilities provided by {% BRAND_NAME %}.
 
 These special numbers do not behave like any other numbers in the system:
 

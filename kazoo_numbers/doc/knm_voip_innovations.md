@@ -1,10 +1,10 @@
-### Kazoo Number Manager VoIP Innovations
+### {% BRAND_NAME %} Number Manager VoIP Innovations
 
-The kazoo number manager VoIP Innovations module can be used to integrate Kazoo with http://voipinnovations.com/
+The {% BRAND_NAME %} number manager VoIP Innovations module can be used to integrate {% BRAND_NAME %} with http://voipinnovations.com/
 
 #### Configuring number manager
 
-To enable kazoo number manager to use the VoIP Innovations module you will need to first update the `number_manager` document in the `system_config` database.
+To enable {% BRAND_NAME %} number manager to use the VoIP Innovations module you will need to first update the `number_manager` document in the `system_config` database.
 
 In the configuration section that applies to your crossbar servers (or the default) add `"knm_voip_innovations"` to the carrier_modules parameter.
 

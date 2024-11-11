@@ -1,2 +1,2 @@
-# Kazoo Applications *Kazoo Core Applications Library*
-The Kazoo junk drawer
+# {% BRAND_NAME %} Applications *{% BRAND_NAME %} Core Applications Library*
+The {% BRAND_NAME %} junk drawer

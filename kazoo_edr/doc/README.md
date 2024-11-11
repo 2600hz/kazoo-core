@@ -1,11 +1,11 @@
-# Kazoo EDR
+# {% BRAND_NAME %} EDR
 
-EDR is an extension of logging and events in Kazoo, making it easy to add new events, and consume
-them both by both Kazoo and external applications.
+EDR is an extension of logging and events in {% BRAND_NAME %}, making it easy to add new events, and consume
+them both by both {% BRAND_NAME %} and external applications.
 
 This is the core component of the EDR ecosystem, and allow for sending and subscribing to EDR events
-within kazoo applications. This is not to be confused with the edr application, which is used to
-take these events and distribute them to applications outside of Kazoo (or across AMQP).
+within {% BRAND_NAME %} applications. This is not to be confused with the edr application, which is used to
+take these events and distribute them to applications outside of {% BRAND_NAME %} (or across AMQP).
 
 ## edr.hrl
 

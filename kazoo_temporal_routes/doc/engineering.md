@@ -1,6 +1,6 @@
 # Engineering notes
 
-Describe using temporal routes within KAZOO Erlang code.
+Describe using temporal routes within {% BRAND_NAME %} Erlang code.
 
 ## Loading
 

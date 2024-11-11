@@ -1,1 +1,1 @@
-# Kazoo Translator *Interpret External Call Control Formats*
+# {% BRAND_NAME %} Translator *Interpret External Call Control Formats*

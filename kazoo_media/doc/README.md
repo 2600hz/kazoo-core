@@ -1,1 +1,1 @@
-# Kazoo Media *The Kazoo Core Media Streaming Library*
+# {% BRAND_NAME %} Media *The {% BRAND_NAME %} Core Media Streaming Library*

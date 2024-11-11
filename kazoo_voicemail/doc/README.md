@@ -1,10 +1,10 @@
-# Kazoo Voicemail
+# {% BRAND_NAME %} Voicemail
 
 This library is for accessing and managing all voicemail messages in the system.
 
-As of Kazoo 4.0 all new voicemail messages and CDRs are store in acount's MODB. If you're using Kazoo older than 4.0 (like 3.x) and want to upgrade to Kazoo 5+, the correct path to upgrade is first upgrade to the latest Kazoo 4.0, run migration for voicemails and CDRs then upgrade to Kazoo 5.
+As of {% BRAND_NAME %} 4.0 all new voicemail messages and CDRs are store in acount's MODB. If you're using {% BRAND_NAME %} older than 4.0 (like 3.x) and want to upgrade to {% BRAND_NAME %} 5+, the correct path to upgrade is first upgrade to the latest {% BRAND_NAME %} 4.0, run migration for voicemails and CDRs then upgrade to {% BRAND_NAME %} 5.
 
-> **Caution:** Kazoo 4.0 assumes you migrated all voicemail messages to MODB, and it's only using MODBs for accessing and managing messages. If you did not do the migration users can not access to their messages.
+> **Caution:** {% BRAND_NAME %} 4.0 assumes you migrated all voicemail messages to MODB, and it's only using MODBs for accessing and managing messages. If you did not do the migration users can not access to their messages.
 
 Additionally, the voicemail Crossbar API will no longer returns the `messages` array when fetching voicemail box settings.
 
@@ -19,11 +19,11 @@ All messages store in MODBs with their document id in the `YYYYMM-{32_random_cha
 
 Simply moving all messages alongside their media recording to MODBs have huge impact on the system, especially if for bigger systems with thousands of messages in each account or mailbox.
 
-For making this transition easy and without any side effect, Kazoo voicemail is just making a new document with each message's metadata and store them in the MODB of each account. The MODB is determined base on time stamp (when the message left) of the message.
+For making this transition easy and without any side effect, {% BRAND_NAME %} voicemail is just making a new document with each message's metadata and store them in the MODB of each account. The MODB is determined base on time stamp (when the message left) of the message.
 
 All media recording attachments (documents with type `private_media`) remain in account DB, and can be moved to message their counterpart documents in MODBs at later time. Each moved message documents contain necessary information for how to access their attachments from the account DB(soft attachment) if their attachment is not migrated.
 
-Kazoo Data Manager would fetch the actual media attachment from account DB if the message attachment is a soft attachment. This process is seamless from users and are handled entirely by Kazoo data layer.
+{% BRAND_NAME %} Data Manager would fetch the actual media attachment from account DB if the message attachment is a soft attachment. This process is seamless from users and are handled entirely by {% BRAND_NAME %} data layer.
 
 ## System Config Settings
 

@@ -8,7 +8,7 @@
 ## system_config
 #### Configuring number manager
 
-To enable kazoo number manager to use the voxbone module you will need to first update the `number_manager` document in the `system_config` database.
+To enable {% BRAND_NAME %} number manager to use the voxbone module you will need to first update the `number_manager` document in the `system_config` database.
 
 In the configuration section that applies to your crossbar servers (or the default) add `"knm_voxbone"` to the `carrier_modules` parameter.
 

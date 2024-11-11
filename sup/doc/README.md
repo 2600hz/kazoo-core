@@ -1,14 +1,14 @@
 # SUP
 
-SUP is a command-line tool for interacting with a KAZOO node.
+SUP is a command-line tool for interacting with a {% BRAND_NAME %} node.
 
-## Talking to KAZOO
+## Talking to {% BRAND_NAME %}
 
 SUP is built to talk to Erlang virtual machines (BEAM) and provide the user (you) with a command-line interface that is more familiar than connecting to the VM's shell and executing Erlang code directly on the VM.
 
 SUP also provides some protection from foot-guns.
 
-KAZOO provides a number of code modules, ending with the suffix `_maintenance`, callable from the SUP tool. Other modules can be called (provided any arguments from SUP are in the proper format and type expected by the Erlang module) as well but the maintenance mdoules are specifically built for SUP calls.
+{% BRAND_NAME %} provides a number of code modules, ending with the suffix `_maintenance`, callable from the SUP tool. Other modules can be called (provided any arguments from SUP are in the proper format and type expected by the Erlang module) as well but the maintenance mdoules are specifically built for SUP calls.
 
 ## Command line options
 
@@ -29,7 +29,7 @@ Usage: sup [-?] [-n [<node>]] [-c [<cookie>]] [-t [<timeout>]] [-v]
 
 ## Bash auto-completion
 
-From the KAZOO root, you can run `make sup_completion` to generate a `{ROOT}/sup.bash` file that will contain the current auto-completion options for SUP. These are the maintenance modules and some other oft-used modules (such as for setting `system_config` values).
+From the {% BRAND_NAME %} root, you can run `make sup_completion` to generate a `{ROOT}/sup.bash` file that will contain the current auto-completion options for SUP. These are the maintenance modules and some other oft-used modules (such as for setting `system_config` values).
 
 ## Remote hosts
 

@@ -1,4 +1,4 @@
-# Kazoo JSON
+# {% BRAND_NAME %} JSON
 
 Manipulating JSON objects in Erlang.
 

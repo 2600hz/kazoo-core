@@ -1,2 +1,2 @@
-# Kazoo Couch *The Kazoo Core Couch/BigCouch Manager*
+# {% BRAND_NAME %} Couch *The {% BRAND_NAME %} Core Couch/BigCouch Manager*
 Relax!

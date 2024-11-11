@@ -1,4 +1,4 @@
-# Kazoo AMQP
+# {% BRAND_NAME %} AMQP
 
 1. Maintaining connections to brokers
 2. Creating exchanges, queues, bindings
@@ -67,8 +67,8 @@ Creates an ETS table to track AMQP channel assignments.
 
 An assignment tracks:
 - The timstamp of the assignment
-- The consumer PID (typically the KAZOO PID, like a `gen_listener` process)
-- The KAZOO application of the consumer PID (if possible)
+- The consumer PID (typically the {% BRAND_NAME %} PID, like a `gen_listener` process)
+- The {% BRAND_NAME %} application of the consumer PID (if possible)
 - The `type` of channel
   - `float` channels will be created on whichever broker is available at the time
   - `sticky` channels will only be created on the specified broker when it is available

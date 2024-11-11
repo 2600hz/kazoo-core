@@ -1,4 +1,4 @@
-# Kazoo Caches
+# {% BRAND_NAME %} Caches
 
 The `kz_cache` interface exposes an LRU cache for storing Erlang terms in an ETS table.
 

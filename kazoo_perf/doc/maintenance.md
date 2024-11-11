@@ -1,4 +1,4 @@
-# Kazoo Perf maintenance
+# {% BRAND_NAME %} Perf maintenance
 
 
 ## graphite_metrics

@@ -1,13 +1,13 @@
-### Kazoo OAuth Integration
+### {% BRAND_NAME %} OAuth Integration
 
 #### Overview
 
-Kazoo can be configured to use third-party resources such as authentication, storage, etc.
+{% BRAND_NAME %} can be configured to use third-party resources such as authentication, storage, etc.
 
-#### Kazoo as a OAuth Client
+#### {% BRAND_NAME %} as a OAuth Client
 
 1. Create the oauth consumer in the third-party system (google, Microsoft, Salesforce, ...).
-2. Register the consumer in kazoo.
+2. Register the consumer in {% BRAND_NAME %}.
 3. Use `kz_auth_client` to obtain a `token` to use the third-party resources
 
 #### Using Google Drive for voicemails
@@ -33,7 +33,7 @@ Kazoo can be configured to use third-party resources such as authentication, sto
    3.2 navigate to WEB_URL
    3.3 click `authorize`
    3.4 gather `code : xxxx`
-   3.5 call kazoo API /v2/auth/callback (PUT)
+   3.5 call {% BRAND_NAME %} API /v2/auth/callback (PUT)
    ```json
    {
      "data": {

@@ -1,18 +1,18 @@
-# Kazoo Multi Factor Authentication
+# {% BRAND_NAME %} Multi Factor Authentication
 
 ## Overview
 
-Integrating Kazoo to MFA providers to secure accessing the Crossbar API endpoints. Users are authenticating with their usual Kazoo credentials and then will be authenticated through a second factors like a pin code received by text message or a phone call or a push notification.
+Integrating {% BRAND_NAME %} to MFA providers to secure accessing the Crossbar API endpoints. Users are authenticating with their usual {% BRAND_NAME %} credentials and then will be authenticated through a second factors like a pin code received by text message or a phone call or a push notification.
 
 !!! caution
-    Please make sure that **NTP** service is configured on Kazoo servers and that your server's time is correct! Otherwise MFA request would be failed or would be invalid.
+    Please make sure that **NTP** service is configured on {% BRAND_NAME %} servers and that your server's time is correct! Otherwise MFA request would be failed or would be invalid.
 
 ## Multi Factor Authentication Flow
 
 MFA process involves these steps:
 
 1. Initiate the authentication with your auth module/method with your user name and password (or token) as before.
-2. If the auth method that you are using is configured to performs the multi factor it goes to kazoo multi factor auth to process the request.
+2. If the auth method that you are using is configured to performs the multi factor it goes to {% BRAND_NAME %} multi factor auth to process the request.
 3. Based on auth module configuration, MFA provider settings will be fetched either from account's that have configured the auth module or from default provider in `system_auth`
 4. If no MFA provider configuration was found, the auth request will be successful and a token will be generated as a normal auth-request as before
 5. If the MFA provider is disabled based on the configuration, a HTTP `401 unauthorized` error will be returned.
@@ -34,7 +34,7 @@ MFA process involves these steps:
 ```
 
 8. After the client performed the MFA with the provider, it should issue the same auth request this time with payload included the response from MFA provider
-9. In this second request, kazoo provider module will try to verifying the request and provider response, if the provider response that user is claiming could be verified the request will be authorized and a token will be generated as before. Otherwise a HTTP `401 unauthorized` error will be returned.
+9. In this second request, {% BRAND_NAME %} provider module will try to verifying the request and provider response, if the provider response that user is claiming could be verified the request will be authorized and a token will be generated as before. Otherwise a HTTP `401 unauthorized` error will be returned.
 
 ## Provider Configuration
 
@@ -47,7 +47,7 @@ System config `auth/default_multi_factor_provider` contains the name of the defa
 
 ### Duo Two-Factor Authentication
 
-Two-factor authentication with [Duo](https://duo.com/) makes it easy to add strong two-factor authentication to Kazoo. Users can receive a text message, a phone call or push notification to their Duo mobile application.
+Two-factor authentication with [Duo](https://duo.com/) makes it easy to add strong two-factor authentication to {% BRAND_NAME %}. Users can receive a text message, a phone call or push notification to their Duo mobile application.
 
 #### Before you begin
 
@@ -61,14 +61,14 @@ import os, hashlib
 print hashlib.sha1(os.urandom(32)).hexdigest()
 ```
 
-#### Authenticate Users using Kazoo Duo integration
+#### Authenticate Users using {% BRAND_NAME %} Duo integration
 
 1. Use Crossbar multi factor API endpoint to configure Duo by you IKey, SKey, AKey, API hostname
 2. Enable multi factor (See [Crossbar Auth Config](../../../applications/crossbar/doc/multi_factor.md)) for a Crossbar auth module  (usually `cb_user_auth`)
 3. Users can now use a usual Crossbar authentication procedure (usually `cb_user_auth`)
-4. Kazoo auth MFA and Crossbar will return `sig_request` and `api_hostname` to client
+4. {% BRAND_NAME %} auth MFA and Crossbar will return `sig_request` and `api_hostname` to client
 5. Use `Duo-Web-v2.js` to implement Duo client side for performing 2FA authentication. See [Duo Web](https://duo.com/docs/duoweb) (steps 3 and beyond in **Instructions** section)
-6. Send back the Duo response to kazoo by repeating the auth request in step 3 by adding `multi_factor_response` as payload
+6. Send back the Duo response to {% BRAND_NAME %} by repeating the auth request in step 3 by adding `multi_factor_response` as payload
 7. If `sig_response` is valid, user's will be authenticated and a token will be generated, otherwise a HTTP `401 unauthorized` will be returned
 
 #### Sample Duo configuration (For Step 1 Above)
@@ -117,7 +117,7 @@ TX|dGVzdHVzZXJ8RElYWFhYWFhYWFhYWFhYWFhYWFh8MTQ4Njc2OTgwOQ==|28af5ae63742cfc52f36
 ```
 
 !!! note
-    Notice the `TX` and `APP` parts which separated by `:`. You need the `APP` part later to merge it with response from Duo when you're sending it to Kazoo.
+    Notice the `TX` and `APP` parts which separated by `:`. You need the `APP` part later to merge it with response from Duo when you're sending it to {% BRAND_NAME %}.
 
 #### Completing Second Factor Authentication
 
@@ -135,7 +135,7 @@ Duo will authenticate user by the whatever methods user has chosen and then will
 }
 ```
 
-Client needs to merge the value of the `cookie` with `APP` from previous part and send it to Kazoo with a below payload:
+Client needs to merge the value of the `cookie` with `APP` from previous part and send it to {% BRAND_NAME %} with a below payload:
 
 ```json
 {

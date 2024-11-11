@@ -1,1 +1,1 @@
-# Kazoo Token Buckets *Kazoo Implementation of the Token Bucket Algorithm*
+# {% BRAND_NAME %} Token Buckets *{% BRAND_NAME %} Implementation of the Token Bucket Algorithm*

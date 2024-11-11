@@ -1,6 +1,6 @@
-# How to take a database in KAZOO to disk for FixtureDB
+# How to take a database in {% BRAND_NAME %} to disk for FixtureDB
 
-It is helpful to do testing in KAZOO when developing a feature or testing a fix. However, to put all that work into a repeatable test when it involves the database is challenging with FixtureDB when the dataset is large.
+It is helpful to do testing in {% BRAND_NAME %} when developing a feature or testing a fix. However, to put all that work into a repeatable test when it involves the database is challenging with FixtureDB when the dataset is large.
 
 This guide will show the steps to take an existing database and populate the FixtureDB filesystem with the appropriate files and view indexes.
 

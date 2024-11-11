@@ -50,7 +50,7 @@ sup appex_client_maintenance reset_cluster_secret
 
 ### `set_cluster_meta_kazoo_version/1`
 
-Use this command to update your meta kazoo version which is already saved while linking the cluster with 2600Hz Marketplace.
+Use this command to update your meta {% BRAND_NAME %} version which is already saved while linking the cluster with 2600Hz Marketplace.
 
 ```
 sup appex_client_maintenance set_cluster_meta_kazoo_version "{KAZOO_VERSION}"
@@ -66,7 +66,7 @@ sup appex_client_maintenance set_cluster_name "{CLUSTER_NAME}"
 
 ### `set_cluster_secret/1`
 
-Use this command to set your new Marketplace secret to Kazoo Appex can connect to store.
+Use this command to set your new Marketplace secret to {% BRAND_NAME %} Appex can connect to store.
 
 * If you did not initiated the process, login to [2600Hz Marketplace](https://marketplace.2600hz.com)
 * Go to Manage Accounts -> Manage Cluster

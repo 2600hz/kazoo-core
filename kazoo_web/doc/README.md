@@ -1,1 +1,1 @@
-# Kazoo Web *HTTP / HTML Helpers for Kazoo*
+# {% BRAND_NAME %} Web *HTTP / HTML Helpers for {% BRAND_NAME %}*

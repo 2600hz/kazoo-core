@@ -1,9 +1,9 @@
-## SUP Commands for Kazoo UI Application Maintenance
+## SUP Commands for {% BRAND_NAME %} UI Application Maintenance
 
-This is SUP command maintenance module to work specifically with new Kazoo UI Application
+This is SUP command maintenance module to work specifically with new {% BRAND_NAME %} UI Application
 document.
 
-For old legacy maintenance commands please refer to [Kazoo Document
+For old legacy maintenance commands please refer to [{% BRAND_NAME %} Document
 Maintenance](./kazoo_ui_apps_maintenance.md).
 
 | Function | Arguments | Description |

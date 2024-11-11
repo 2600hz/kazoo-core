@@ -1,9 +1,9 @@
-# Kazoo Versions
+# {% BRAND_NAME %} Versions
 
-`kapps_versions` contains functions for querying, analyzing, and reporting the versions of Kazoo apps deployed in a given environment. This module is then used to implement two new `kapps_maintenance` commands:
+`kapps_versions` contains functions for querying, analyzing, and reporting the versions of {% BRAND_NAME %} apps deployed in a given environment. This module is then used to implement two new `kapps_maintenance` commands:
 
-- `show_kapps_versions`: prints the names and versions of all Kazoo apps on all nodes
-- `check_kapps_versions`: prints warnings if multiple versions of a Kazoo app are found in the environment
+- `show_kapps_versions`: prints the names and versions of all {% BRAND_NAME %} apps on all nodes
+- `check_kapps_versions`: prints warnings if multiple versions of a {% BRAND_NAME %} app are found in the environment
 
 ### The Data Model
 `kapps_versions` relies on a new record, `#node_app_version{}`, which holds the node, app name, app version, app description, and startup time.
@@ -16,13 +16,13 @@ While most of the built-in mapping and predicate functions operate on `#node_app
 
 ### How Version Information Is Gathered
 
-Each node running `kazoo_nodes` broadcasts a heartbeat message via AMQP.  Historically, this message included only the names and startup times of Kazoo applications running on the node.  In this PR, the list of running apps and their startup times is merged with the list of Kazoo apps _loaded_ on the node to produce a list of `#node_app_version{}`.  This list is added to the heartbeat payload in a new field called `kapps_loaded`.
+Each node running `{% BRAND_NAME %}_nodes` broadcasts a heartbeat message via AMQP.  Historically, this message included only the names and startup times of {% BRAND_NAME %} applications running on the node.  In this PR, the list of running apps and their startup times is merged with the list of {% BRAND_NAME %} apps _loaded_ on the node to produce a list of `#node_app_version{}`.  This list is added to the heartbeat payload in a new field called `kapps_loaded`.
 
 The `kapps_loaded` list is not guaranteed to contain a version string or a startup time for every app.  Here's why:
 
 1. FreeSWITCH doesn't report its version or startup time. If such a `#node_app_version{}` is in the list, it means that FreeSWITCH is in the environment and was running recently.
-2. Versions of Kazoo apps that predate this PR will not report their versions. For these records, the version will be `<<"unknown">>`.
-3. Kazoo apps that have been stopped or were never started may have a startup time of `undefined`.
+2. Versions of {% BRAND_NAME %} apps that predate this PR will not report their versions. For these records, the version will be `<<"unknown">>`.
+3. {% BRAND_NAME %} apps that have been stopped or were never started may have a startup time of `undefined`.
 
 ### Some Examples
 
@@ -52,7 +52,7 @@ Logical expressions are supported with the predicates `and`, `or`, and `not`:
 kapps_versions:filter([{'or', [{'name', <<"webhooks">>}, {'name', <<"trunkstore">>}]}], L).
 [#node_app_version{node = 'kazoo_apps@smflt006.craterhill.io',
                    name = <<"webhooks">>,
-                   description = <<"Webhooks: HTTP events from KAZOO to you">>,
+                   description = <<"Webhooks: HTTP events from {% BRAND_NAME %} to you">>,
                    version = <<"4.0.0">>,startup = 63852778295},
  #node_app_version{node = 'kazoo_apps@smflt006.craterhill.io',
                    name = <<"trunkstore">>,

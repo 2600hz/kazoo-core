@@ -10,7 +10,7 @@ The first [bookkeeper module](https://github.com/2600hz/kazoo/blob/master/core/k
 
 ## Define your own bookkeeper
 
-Now, it is possible to define your own bookkeeper service to interact with Kazoo. Kazoo will send your server a request via HTTP and, based on the response, update the requesting account accordingly.
+Now, it is possible to define your own bookkeeper service to interact with {% BRAND_NAME %}. {% BRAND_NAME %} will send your server a request via HTTP and, based on the response, update the requesting account accordingly.
 
 Define HTTP bookkeeper by creating the following \`system\_config > services.http\_sync\` document in the DB.
 
@@ -37,7 +37,7 @@ Assign the http bookkeeper to the master account in the \`system\_config > servi
 },
 ```
 
-After adding a SIP device, Kazoo will contact the remote bookkeeper with the new information.
+After adding a SIP device, {% BRAND_NAME %} will contact the remote bookkeeper with the new information.
 
 Here is some sample PHP code for testing the collection of data on the bookkeeper end.
 
@@ -67,7 +67,7 @@ file_put_contents('post_body.txt', file_get_contents('php://input'));
 ...
 ...
 ...
-/* Tell Kazoo that data update was successful */
+/* Tell {% BRAND_NAME %} that data update was successful */
 http_response_code(200);
 
 ```
@@ -75,14 +75,14 @@ http_response_code(200);
 
 ## Syncing
 
-Kazoo is configured to periodically (20s by default) look for accounts which are marked **dirty**. These are accounts that have changes to billable things that have not successfully synced to the configured bookkeeper. Kazoo will take these unsynced updates, apply the service plan(s) of the account, and create a full list of service items in the account. These are then sent to the bookkeeper for reconciliation.
+{% BRAND_NAME %} is configured to periodically (20s by default) look for accounts which are marked **dirty**. These are accounts that have changes to billable things that have not successfully synced to the configured bookkeeper. {% BRAND_NAME %} will take these unsynced updates, apply the service plan(s) of the account, and create a full list of service items in the account. These are then sent to the bookkeeper for reconciliation.
 
 
 # The HTTP Bookkeeper
 
-As an account grows in what's configured, a JSON object of these service items will be sent to the configured bookkeeper server, to be processed remotely. Depending on the response, Kazoo will mark the items as complete and the account as being in good standing or will either flag the account as no longer in good standing or retry the update (keep the account marked dirty) again later.
+As an account grows in what's configured, a JSON object of these service items will be sent to the configured bookkeeper server, to be processed remotely. Depending on the response, {% BRAND_NAME %} will mark the items as complete and the account as being in good standing or will either flag the account as no longer in good standing or retry the update (keep the account marked dirty) again later.
 
-NOTE: HTTP Bookkeeper will only send a JSON object if the account has an active service plan.  Kazoo will make no attempt to contact the remote HTTP bookkeeper if there is no active service plan.
+NOTE: HTTP Bookkeeper will only send a JSON object if the account has an active service plan.  {% BRAND_NAME %} will make no attempt to contact the remote HTTP bookkeeper if there is no active service plan.
 
 
 ## The Request
@@ -147,7 +147,7 @@ applications.
 
 ## The Response
 
-The HTTP response code will be used to determine how Kazoo proceeds with the update.
+The HTTP response code will be used to determine how {% BRAND_NAME %} proceeds with the update.
 
 | Response Code | Account Standing | Update Complete |
 |------------- |---------------- |--------------- |
@@ -158,7 +158,7 @@ The HTTP response code will be used to determine how Kazoo proceeds with the upd
 
 ### Response code: 200
 
-A response of 200 from the bookkeeper server means Kazoo will accept the update and consider the account in good standing (synced with the bookkeeping service).
+A response of 200 from the bookkeeper server means {% BRAND_NAME %} will accept the update and consider the account in good standing (synced with the bookkeeping service).
 
 
 ### Response code: 402

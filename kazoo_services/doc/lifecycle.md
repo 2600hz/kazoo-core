@@ -161,7 +161,7 @@ When a user from **D2** creates a SIP device, the request is processed right awa
 
 Let's see what happens when **R2** creates its first device!
 
-Interestingly, **R2** is not prompted to accept charges and the device is created. This seems to be a result of not having a service plan associated with **R2** and **R2** being a reseller. Since the change would not result in a charge for **R2** (according to Kazoo), the operation is successful.
+Interestingly, **R2** is not prompted to accept charges and the device is created. This seems to be a result of not having a service plan associated with **R2** and **R2** being a reseller. Since the change would not result in a charge for **R2** (according to {% BRAND_NAME %}), the operation is successful.
 
 ### **R1** makes changes to **R2**
 

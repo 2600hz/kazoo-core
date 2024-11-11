@@ -1,1 +1,1 @@
-# Kazoo Bindings *Inter-Application Event Routing*
+# {% BRAND_NAME %} Bindings *Inter-Application Event Routing*

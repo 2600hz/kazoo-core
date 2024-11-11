@@ -4,13 +4,13 @@
 
 It is all about control!
 
-With [numbers](https://github.com/2600hz/kazoo/blob/master/doc/internationalization/numbers.md) controlling how Kazoo processes phone numbers into and out of the system, it only made sense to add functionality to control the format of other fields that are commonly found.
+With [numbers](https://github.com/2600hz/kazoo/blob/master/doc/internationalization/numbers.md) controlling how {% BRAND_NAME %} processes phone numbers into and out of the system, it only made sense to add functionality to control the format of other fields that are commonly found.
 
 Enter *formatters*!
 
 #### Carriers
 
-When a call enters Kazoo from a carrier, Stepswitch receives the route request first (since no account information exists to identify the context of the call). Stepswitch will process this request to figure out what account the request is destined for and will replay the route request with the associated information.
+When a call enters {% BRAND_NAME %} from a carrier, Stepswitch receives the route request first (since no account information exists to identify the context of the call). Stepswitch will process this request to figure out what account the request is destined for and will replay the route request with the associated information.
 
 If the call came from a known resource, you can optionally define formatters to take the route request headers and format the values before they are replayed to the call processing applications.
 

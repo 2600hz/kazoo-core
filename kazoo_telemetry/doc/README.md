@@ -1,4 +1,4 @@
-# kazoo_telemetry
+# {% BRAND_NAME %} Telemetry
 
 ## Configuration
 |**key**                | **description** |

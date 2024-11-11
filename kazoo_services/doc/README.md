@@ -45,7 +45,7 @@ A special reserved item is `_all`.  When used in a category/item this keyword re
 
 If a category/item name from the plan match a quantity category/item name the plan's parameters will be applied to those quantities to generate a billable item on a quote/invoice.
 
-Kazoo will automatically provide quantities for the following category/item:
+{% BRAND_NAME %} will automatically provide quantities for the following category/item:
 * `users.{PRIV_LEVEL}` : For example, `users.admin` is the quantity of enabled user documents with the property `priv_level` set to 'admin'.  If the document has no `priv_level` property it will default to 'user'.
 * `devices.{DEVICE_TYPE}` : For example, `devices.softphone` is the quantity of enabled device documents with the property `device_type` set to 'softphone'.  If the device document has no `device_type` property it will default to 'sip_device'.
 * `limits.{TRUNK_TYPE}` : For example, `limits.twoway_trunks` is quantity of trunks that are available for either inbound or outbound flat rate calls.  At this time time there are only three trunk types, 'twoway_trunks', 'inbound_trunks' and 'outbound_trunks'.
@@ -686,7 +686,7 @@ We could create all sorts of different plans and apply multiple to this account.
 
 The admin for the account logs in and wants to create a device. Let's see what happens!
 
-When the `PUT /v2/accounts/{ACCOUNT_ID}/devices` comes in and is validated, it is time to actual try to create the device. However, Kazoo needs to find out if this would cause a billable event and warn the client making the request. A `dry_run` request is made to see what the impact of the change would be by providing kz_services with the version of the current document (if any) and the proposed change to the document.  The Erlang equivalent of the account's view 'services/quantities' is invoked to determine how the quantities might be impacted.  The service plan(s) assigned to the account are then fetched and any invoice(s) generated from both the current quantities as well as the proposed quantities.  The current and proposed invoice(s) are then compared to determine if there are any differences.
+When the `PUT /v2/accounts/{ACCOUNT_ID}/devices` comes in and is validated, it is time to actual try to create the device. However, {% BRAND_NAME %} needs to find out if this would cause a billable event and warn the client making the request. A `dry_run` request is made to see what the impact of the change would be by providing kz_services with the version of the current document (if any) and the proposed change to the document.  The Erlang equivalent of the account's view 'services/quantities' is invoked to determine how the quantities might be impacted.  The service plan(s) assigned to the account are then fetched and any invoice(s) generated from both the current quantities as well as the proposed quantities.  The current and proposed invoice(s) are then compared to determine if there are any differences.
 
 If the invoice(s) were modified by the request Crossbar now knows that if the action is performed, the account will be charged. Crossbar then checks to see if the request has explicitly indicated it will accept the charges (by including `"accept_charges":true` on the request payload). If the request is not accepting charges, a 402 response is sent back with the updated invoice(s). The client can then decide if they'd like to accept the charges and resubmit the `PUT` with `"accept_charges":true` set.
 

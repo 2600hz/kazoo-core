@@ -1,6 +1,6 @@
 ### knm_rename_carrier
 
-The kazoo number manager `rename_carrier` module can be used to change a number's carrier module.
+The {% BRAND_NAME %} number manager `rename_carrier` module can be used to change a number's carrier module.
 
 Only admins can use this feature, otherwise an exception is thrown.
 

@@ -1,6 +1,6 @@
-# Kazoo Auth Password
+# {% BRAND_NAME %} Auth Password
 
-By default Kazoo is not enforcing a secure password. This can be change per system configuration or per account.
+By default {% BRAND_NAME %} is not enforcing a secure password. This can be change per system configuration or per account.
 
 The enforce is implemented as a list of regular expressions. Each regular expression should
 return a match. Non match means the regex is rejecting the password as it is not secure.

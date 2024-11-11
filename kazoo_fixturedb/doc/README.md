@@ -1,16 +1,16 @@
-# Kazoo FixtureDB
+# {% BRAND_NAME %} FixtureDB
 
 What can you say about a data application? That it loves to be distributed and fault tolerant? That it listens to data streams and not understand a bit?
 
 ## Overview
 
-General speaking, FixtureDB removes dependency of Kazoo Data Manager to CouchDB and RabbitMQ for running EUnit tests and removes the burden of isolating source codes with `-ifdef(TEST)` when it comes to reading from database, which in part result in a tiny little bit more coverage (if any) by running through all Kazoo Data Manager code.
+General speaking, FixtureDB removes dependency of {% BRAND_NAME %} Data Manager to CouchDB and RabbitMQ for running EUnit tests and removes the burden of isolating source codes with `-ifdef(TEST)` when it comes to reading from database, which in part result in a tiny little bit more coverage (if any) by running through all {% BRAND_NAME %} Data Manager code.
 
 FixtureDB acts as a central repository for all fixtures which we simply use during tests.
 
 When writing your EUnit test you can use [_fixture_ test representation](http://erlang.org/doc/apps/eunit/chapter.html#Fixtures) to setup a your test environment by starting a dummy connection to FixtureDB, and cleanup the connection later.
 
-Below is an example with `setup` and `cleanup` method. In `setup()` function we're starting `kazoo_config` applications to read the default [`config-test.ini`](/rel/config-test.ini) and then starts the Kazoo data link supervisor. After these steps most of the calls to `kz_datamgr` functions will use FixtureDB (few operations, like view maintenance cleanup, are not implemented).
+Below is an example with `setup` and `cleanup` method. In `setup()` function we're starting `kazoo_config` applications to read the default [`config-test.ini`](/rel/config-test.ini) and then starts the {% BRAND_NAME %} data link supervisor. After these steps most of the calls to `kz_datamgr` functions will use FixtureDB (few operations, like view maintenance cleanup, are not implemented).
 
 ##### Example EUnit Test Using Setup/Cleanup Method
 
@@ -29,7 +29,7 @@ render_test_() ->
     }.
 
 setup() ->
-    ?LOG_DEBUG(":: Setting up Kazoo FixtureDB"),
+    ?LOG_DEBUG(":: Setting up {% BRAND_NAME %} FixtureDB"),
 
     {ok, _} = application:ensure_all_started(kazoo_config),
     {ok, LinkPid} = kazoo_data_link_sup:start_link(),
@@ -248,7 +248,7 @@ Better option is use data plan (although you may loose the ability to use those 
 
 ## FixtureDB Shell Target
 
-There is a target in the root [`Makefile`](https://github.com/2600hz/kazoo/blob/master/Makefile) and [`kz.mk`](/make/kz.mk) for start a shell with all core, applications and deps in path and has `KAZOO_CONFIG` set, so you can easily run `kz_fixturedb_util` functions where ever you're in Kazoo project path.
+There is a target in the root [`Makefile`](https://github.com/2600hz/kazoo/blob/master/Makefile) and [`kz.mk`](/make/kz.mk) for start a shell with all core, applications and deps in path and has `KAZOO_CONFIG` set, so you can easily run `kz_fixturedb_util` functions where ever you're in {% BRAND_NAME %} project path.
 
 ```shell
 kazoo $ make fixture_shell
