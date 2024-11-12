@@ -2563,9 +2563,9 @@ stream_definition() ->
               ,{fun kapi_definition:set_types/2
                ,[{<<"Action">>, fun validate_stream_action/2}
                 ,{<<"Connect-Payload">>, fun(V) ->
-                                    kz_json:is_json_object(V)
-                                        andalso kz_json:is_not_empty(V)
-                                    end}
+                                                 kz_json:is_json_object(V)
+                                                     andalso kz_json:is_not_empty(V)
+                                         end}
                 ,{<<"Channel-As-Stereo">>, fun is_boolean/1}
                 ,{<<"Sample-Rate">>, fun kz_term:is_ne_binary/1}
                 ,{<<"Stream-ID">>, fun kz_term:is_ne_binary/1}
