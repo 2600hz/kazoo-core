@@ -1944,23 +1944,23 @@ stream_start(StreamURL, ChannelAsStereo, SampleRate, ConnectPayload, Call) ->
               ],
     stream_command(<<"start">>, Headers, Call).
 
--spec b_stream_start(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+-spec b_stream_start(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, Call) ->
     b_stream_start(StreamURL, 'true', Call).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_boolean(), kapps_call:call()) -> 'ok'.
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_boolean(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, ChannelAsStereo, Call) ->
     b_stream_start(StreamURL, ChannelAsStereo, 'undefined', Call).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_boolean(),  kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_boolean(),  kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, ChannelAsStereo, SampleRate, Call) ->
     b_stream_start(StreamURL, ChannelAsStereo, SampleRate, 'undefined',  Call).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_boolean(),  kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> 'ok'.
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_boolean(),  kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, ChannelAsStereo, SampleRate, ConnectPayload, Call) ->
     b_stream_start(StreamURL, ChannelAsStereo, SampleRate, ConnectPayload, Call, ?MAX_STREAM_WAIT).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_boolean(),  kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call(), timeout()) -> 'ok'.
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_boolean(),  kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call(), timeout()) -> kapps_api_std_return().
 b_stream_start(StreamURL, ChannelAsStereo, SampleRate, ConnectPayload, Call, Timeout) ->
     stream_start(StreamURL, ChannelAsStereo, SampleRate, ConnectPayload,  Call),
     wait_for_stream(Call, Timeout).
@@ -1977,15 +1977,15 @@ stream_pause(Call) ->
 stream_pause(StreamId, Call) ->
     stream_command(<<"pause">>, [{<<"Stream-ID">>, StreamId}], Call).
 
--spec b_stream_pause(kapps_call:call()) -> 'ok'.
+-spec b_stream_pause(kapps_call:call()) -> kapps_api_std_return().
 b_stream_pause(Call) ->
     b_stream_pause(<<"all">>, Call).
 
--spec b_stream_pause(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+-spec b_stream_pause(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_pause(StreamId, Call) ->
     b_stream_pause(StreamId, Call, ?MAX_STREAM_WAIT).
 
--spec b_stream_pause(kz_term:ne_binary(), kapps_call:call(), timeout()) -> 'ok'.
+-spec b_stream_pause(kz_term:ne_binary(), kapps_call:call(), timeout()) -> kapps_api_std_return().
 b_stream_pause(StreamId, Call, Timeout) ->
     stream_pause(StreamId, Call),
     wait_for_stream(Call, Timeout).
@@ -2002,15 +2002,15 @@ stream_resume(Call) ->
 stream_resume(StreamId, Call) ->
     stream_command(<<"resume">>, [{<<"Stream-ID">>, StreamId}], Call).
 
--spec b_stream_resume(kapps_call:call()) -> 'ok'.
+-spec b_stream_resume(kapps_call:call()) -> kapps_api_std_return().
 b_stream_resume(Call) ->
     b_stream_resume(<<"all">>, Call).
 
--spec b_stream_resume(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+-spec b_stream_resume(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_resume(StreamId, Call) ->
     b_stream_resume(StreamId, Call, ?MAX_STREAM_WAIT).
 
--spec b_stream_resume(kz_term:ne_binary(), kapps_call:call(), timeout()) -> 'ok'.
+-spec b_stream_resume(kz_term:ne_binary(), kapps_call:call(), timeout()) -> kapps_api_std_return().
 b_stream_resume(StreamId, Call, Timeout) ->
     stream_resume(StreamId, Call),
     wait_for_stream(Call, Timeout).
@@ -2027,15 +2027,15 @@ stream_stop(Call) ->
 stream_stop(StreamId, Call) ->
     stream_command(<<"stop">>, [{<<"Stream-ID">>, StreamId}], Call).
 
--spec b_stream_stop(kapps_call:call()) -> 'ok'.
+-spec b_stream_stop(kapps_call:call()) -> kapps_api_std_return().
 b_stream_stop(Call) ->
     b_stream_stop(<<"all">>, Call).
 
--spec b_stream_stop(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+-spec b_stream_stop(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_stop(StreamId, Call) ->
     b_stream_stop(StreamId, Call, ?MAX_STREAM_WAIT).
 
--spec b_stream_stop(kz_term:ne_binary(), kapps_call:call(), timeout()) -> 'ok'.
+-spec b_stream_stop(kz_term:ne_binary(), kapps_call:call(), timeout()) -> kapps_api_std_return().
 b_stream_stop(StreamId, Call, Timeout) ->
     stream_stop(StreamId, Call),
     wait_for_stream(Call, Timeout).
