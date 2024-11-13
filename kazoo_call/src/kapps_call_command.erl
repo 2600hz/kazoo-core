@@ -1963,7 +1963,7 @@ b_stream_start(StreamURL, ChannelAsStereo, SampleRate, ConnectPayload, Call) ->
 -spec b_stream_start(kz_term:ne_binary(), kz_term:api_boolean(),  kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call(), timeout()) -> 'ok'.
 b_stream_start(StreamURL, ChannelAsStereo, SampleRate, ConnectPayload, Call, Timeout) ->
     stream_start(StreamURL, ChannelAsStereo, SampleRate, ConnectPayload,  Call),
-    wait_for_stream(Call, <<"kz_audio_fork_start">>, Timeout).
+    wait_for_stream(Call, Timeout).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces AMQP request to pause streaming media
@@ -1988,7 +1988,7 @@ b_stream_pause(StreamId, Call) ->
 -spec b_stream_pause(kz_term:ne_binary(), kapps_call:call(), timeout()) -> 'ok'.
 b_stream_pause(StreamId, Call, Timeout) ->
     stream_pause(StreamId, Call),
-    wait_for_stream(Call, <<"kz_audio_fork_pause">>, Timeout).
+    wait_for_stream(Call, Timeout).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces AMQP request to resume streaming media
@@ -2013,7 +2013,7 @@ b_stream_resume(StreamId, Call) ->
 -spec b_stream_resume(kz_term:ne_binary(), kapps_call:call(), timeout()) -> 'ok'.
 b_stream_resume(StreamId, Call, Timeout) ->
     stream_resume(StreamId, Call),
-    wait_for_stream(Call, <<"kz_audio_fork_resume">>, Timeout).
+    wait_for_stream(Call, Timeout).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces AMQP request to stop streaming media
@@ -2038,7 +2038,7 @@ b_stream_stop(StreamId, Call) ->
 -spec b_stream_stop(kz_term:ne_binary(), kapps_call:call(), timeout()) -> 'ok'.
 b_stream_stop(StreamId, Call, Timeout) ->
     stream_stop(StreamId, Call),
-    wait_for_stream(Call, <<"kz_audio_fork_stop">>, Timeout).
+    wait_for_stream(Call, Timeout).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces the low level AMQP request for stream command to control streaming
@@ -2053,14 +2053,13 @@ stream_command(Action, Call) ->
 stream_command(Action, Options, Call) ->
     Command = [{<<"Application-Name">>, <<"stream">>}
               ,{<<"Action">>, Action}
-              ,{<<"Insert-At">>, <<"now">>}
               | Options
               ],
     send_command(Command, Call).
 
--spec wait_for_stream(kapps_call:call(), kz_term:ne_binary(), timeout()) -> kapps_api_std_return().
-wait_for_stream(Call, StreamApp, Timeout) ->
-    wait_for_message(Call, StreamApp, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, Timeout).
+-spec wait_for_stream(kapps_call:call(), timeout()) -> kapps_api_std_return().
+wait_for_stream(Call, Timeout) ->
+    wait_for_message(Call, <<"stream">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, Timeout).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces the low level AMQP request to store the file.
