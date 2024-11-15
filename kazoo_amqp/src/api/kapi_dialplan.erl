@@ -2541,8 +2541,9 @@ stream_definition() ->
                                                             ,<<"Application-Name">>
                                                             ,<<"Call-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Connect-Payload">>
-                                                            ,<<"Channels-As-Stereo">>
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Audio-Mix">>
+                                                            ,<<"Audio-Tracks">>
+                                                            ,<<"Connect-Payload">>
                                                             ,<<"Insert-At">>
                                                             ,<<"Sample-Rate">>
                                                             ,<<"Stream-ID">>
@@ -2550,6 +2551,14 @@ stream_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"stream">>}
+                ,{<<"Audio-Mix">>, [<<"mono">>
+                                   ,<<"stereo">>
+                                   ]
+                 }
+                ,{<<"Audio-Tracks">>, [<<"mixed">>
+                                      ,<<"single">>
+                                      ]
+                 }
                 ,{<<"Record-Action">>, [<<"start">>
                                        ,<<"stop">>
                                        ,<<"pause">>
@@ -2566,7 +2575,6 @@ stream_definition() ->
                                                  kz_json:is_json_object(V)
                                                      andalso kz_json:is_not_empty(V)
                                          end}
-                ,{<<"Channel-As-Stereo">>, fun is_boolean/1}
                 ,{<<"Sample-Rate">>, fun kz_term:is_ne_binary/1}
                 ,{<<"Stream-ID">>, fun kz_term:is_ne_binary/1}
                 ,{<<"Stream-URL">>, fun(<<"ws://", _/binary>>) -> 'true';
