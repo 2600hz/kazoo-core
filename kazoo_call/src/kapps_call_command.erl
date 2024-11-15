@@ -98,6 +98,13 @@
         ,resume_record_call/2
         ,stop_record_call/2
         ]).
+-export([stream_command/2, stream_command/3
+        ,stream_start/2, stream_start/3, stream_start/4, stream_start/5, stream_start/6
+        ,b_stream_start/2, b_stream_start/3, b_stream_start/4, b_stream_start/5, b_stream_start/6, b_stream_start/7
+        ,stream_pause/1, stream_pause/2, b_stream_pause/1, b_stream_pause/2, b_stream_pause/3
+        ,stream_resume/1, stream_resume/2, b_stream_resume/1, b_stream_resume/2, b_stream_resume/3
+        ,stream_stop/1, stream_stop/2, b_stream_stop/1, b_stream_stop/2, b_stream_stop/3
+        ]).
 -export([store/3, store/4, store/5, store/6
         ,store_fax/2, store_fax/3
         ]).
@@ -307,6 +314,8 @@
 -define(BRIDGE_EXPORT_VARS, kapps_config:get_ne_binaries(?CONFIG_CAT, <<"export_bridge_variables">>, ?BRIDGE_DEFAULT_EXPORT_VARS)).
 -define(BRIDGE_DEFAULT_EXPORT_VARS, [<<"hold_music">>]).
 -define(DEFAULT_SEEK_DURATION, 10 * ?MILLISECONDS_IN_SECOND).
+
+-define(MAX_STREAM_WAIT, 5 * ?MILLISECONDS_IN_SECOND).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -1908,6 +1917,158 @@ b_record_call(MediaName, Action, TimeLimit, Call) ->
 b_record_call(MediaName, Action, TimeLimit, Terminators, Call) ->
     record_call(MediaName, Action, TimeLimit, Terminators, Call),
     wait_for_headless_application(<<"record">>, <<"RECORD_STOP">>, <<"call_event">>, ?MAX_WAIT_MS).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces the low level AMQP request to start streaming a call's media
+%% to websocket.
+%% @end
+%%------------------------------------------------------------------------------
+-spec stream_start(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+stream_start(StreamURL, Call) ->
+    stream_start(StreamURL, <<"single">>, Call).
+
+-spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+stream_start(StreamURL, AudioTracks, Call) ->
+    stream_start(StreamURL, AudioTracks, <<"mono">>, Call).
+
+-spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+stream_start(StreamURL, AudioTracks, AudioMix,  Call) ->
+    stream_start(StreamURL, AudioTracks, AudioMix, 'undefined',  Call).
+
+-spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+stream_start(StreamURL, AudioTracks, AudioMix,  SampleRate, Call) ->
+    stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, 'undefined',  Call).
+
+-spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> 'ok'.
+stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call) ->
+    Headers = [{<<"Stream-URL">>, StreamURL}
+              ,{<<"Audio-Mix">>, AudioMix}
+              ,{<<"Audio-Tracks">>, AudioTracks}
+              ,{<<"Sample-Rate">>, SampleRate}
+              ,{<<"Connect-Payload">>, ConnectPayload}
+              ],
+    stream_command(<<"start">>, Headers, Call).
+
+-spec b_stream_start(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+b_stream_start(StreamURL, Call) ->
+    b_stream_start(StreamURL, <<"single">>, Call).
+
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+b_stream_start(StreamURL, AudioTracks, Call) ->
+    b_stream_start(StreamURL, AudioTracks, <<"mono">>, Call).
+
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+b_stream_start(StreamURL, AudioTracks, AudioMix, Call) ->
+    b_stream_start(StreamURL, AudioTracks, AudioMix, 'undefined',  Call).
+
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, Call) ->
+    b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, 'undefined', Call).
+
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> kapps_api_std_return().
+b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call) ->
+    b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call, ?MAX_STREAM_WAIT).
+
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call(), timeout()) -> kapps_api_std_return().
+b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call, Timeout) ->
+    stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload,  Call),
+    wait_for_stream(Call, Timeout).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces AMQP request to pause streaming media
+%% @end
+%%------------------------------------------------------------------------------
+-spec stream_pause(kapps_call:call()) -> 'ok'.
+stream_pause(Call) ->
+    stream_pause(<<"all">>, Call).
+
+-spec stream_pause(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+stream_pause(StreamId, Call) ->
+    stream_command(<<"pause">>, [{<<"Stream-ID">>, StreamId}], Call).
+
+-spec b_stream_pause(kapps_call:call()) -> kapps_api_std_return().
+b_stream_pause(Call) ->
+    b_stream_pause(<<"all">>, Call).
+
+-spec b_stream_pause(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+b_stream_pause(StreamId, Call) ->
+    b_stream_pause(StreamId, Call, ?MAX_STREAM_WAIT).
+
+-spec b_stream_pause(kz_term:ne_binary(), kapps_call:call(), timeout()) -> kapps_api_std_return().
+b_stream_pause(StreamId, Call, Timeout) ->
+    stream_pause(StreamId, Call),
+    wait_for_stream(Call, Timeout).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces AMQP request to resume streaming media
+%% @end
+%%------------------------------------------------------------------------------
+-spec stream_resume(kapps_call:call()) -> 'ok'.
+stream_resume(Call) ->
+    stream_resume(<<"all">>, Call).
+
+-spec stream_resume(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+stream_resume(StreamId, Call) ->
+    stream_command(<<"resume">>, [{<<"Stream-ID">>, StreamId}], Call).
+
+-spec b_stream_resume(kapps_call:call()) -> kapps_api_std_return().
+b_stream_resume(Call) ->
+    b_stream_resume(<<"all">>, Call).
+
+-spec b_stream_resume(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+b_stream_resume(StreamId, Call) ->
+    b_stream_resume(StreamId, Call, ?MAX_STREAM_WAIT).
+
+-spec b_stream_resume(kz_term:ne_binary(), kapps_call:call(), timeout()) -> kapps_api_std_return().
+b_stream_resume(StreamId, Call, Timeout) ->
+    stream_resume(StreamId, Call),
+    wait_for_stream(Call, Timeout).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces AMQP request to stop streaming media
+%% @end
+%%------------------------------------------------------------------------------
+-spec stream_stop(kapps_call:call()) -> 'ok'.
+stream_stop(Call) ->
+    stream_stop(<<"all">>, Call).
+
+-spec stream_stop(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+stream_stop(StreamId, Call) ->
+    stream_command(<<"stop">>, [{<<"Stream-ID">>, StreamId}], Call).
+
+-spec b_stream_stop(kapps_call:call()) -> kapps_api_std_return().
+b_stream_stop(Call) ->
+    b_stream_stop(<<"all">>, Call).
+
+-spec b_stream_stop(kz_term:ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+b_stream_stop(StreamId, Call) ->
+    b_stream_stop(StreamId, Call, ?MAX_STREAM_WAIT).
+
+-spec b_stream_stop(kz_term:ne_binary(), kapps_call:call(), timeout()) -> kapps_api_std_return().
+b_stream_stop(StreamId, Call, Timeout) ->
+    stream_stop(StreamId, Call),
+    wait_for_stream(Call, Timeout).
+
+%%------------------------------------------------------------------------------
+%% @doc Produces the low level AMQP request for stream command to control streaming
+%% the call's media to a websocket server.
+%% @end
+%%------------------------------------------------------------------------------
+-spec stream_command(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+stream_command(Action, Call) ->
+    stream_command(Action, [], Call).
+
+-spec stream_command(kz_term:ne_binary(), kz_term:proplist(), kapps_call:call()) -> 'ok'.
+stream_command(Action, Options, Call) ->
+    Command = [{<<"Application-Name">>, <<"stream">>}
+              ,{<<"Action">>, Action}
+              | Options
+              ],
+    send_command(Command, Call).
+
+-spec wait_for_stream(kapps_call:call(), timeout()) -> kapps_api_std_return().
+wait_for_stream(Call, Timeout) ->
+    wait_for_message(Call, <<"stream">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"call_event">>, Timeout).
 
 %%------------------------------------------------------------------------------
 %% @doc Produces the low level AMQP request to store the file.
