@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2023, 2600Hz
+%%% @copyright (C) 2014-2024, 2600Hz
 %%% @doc Module for interacting with JSON schema docs
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
