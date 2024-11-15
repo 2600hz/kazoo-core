@@ -9,7 +9,7 @@
 -type api_valid_value() :: {kz_json:key(), valid_value()}.
 -type api_valid_values() :: [api_valid_value()].
 
--type formatter_fun() :: fun((valid_value()) -> boolean()).
+-type formatter_fun() :: fun((valid_value()) -> boolean()) | fun((valid_value(), api_valid_values()) -> boolean()).
 -type api_type() :: {kz_json:key(), formatter_fun()}.
 -type api_types() :: [api_type()].
 
