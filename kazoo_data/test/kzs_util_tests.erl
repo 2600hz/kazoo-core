@@ -110,3 +110,82 @@ format_account_mod_id_from_now(F) ->
 format_account_modb_raw(F) -> kzs_util:format_account_modb(F, 'raw').
 format_account_modb_encoded(F) -> kzs_util:format_account_modb(F, 'encoded').
 format_account_modb_unencoded(F) -> kzs_util:format_account_modb(F, 'unencoded').
+
+classify_test_() ->
+    Setup = [{'numbers', []}
+            ,{'resource_selectors', []}
+            ,{'modb', test_modbs()}
+            ,{'messaging', test_message_dbs()}
+            ,{'modb_ish', test_modbish()}
+            ,{'yodb', test_yodbs()}
+            ,{'account', test_account_dbs()}
+            ,{'provisioner', []}
+            ],
+
+    build_classify_tests(Setup).
+
+build_classify_tests(Setup) ->
+    lists:foldl(fun build_classify_test/2, [], Setup).
+
+build_classify_test({Classification, DBs}, Tests) ->
+    [{make_label(Classification, DB), ?_assertEqual(Classification, kzs_util:db_classification(DB))}
+     || DB <- DBs
+    ] ++ Tests.
+
+make_label(Classification, DB) ->
+    binary_to_list(iolist_to_binary(["classify ", DB, " as ", kz_term:to_list(Classification)])).
+
+test_account_dbs() ->
+    <<A:2/binary, B:2/binary, Rest/binary>> = AccountId = kz_binary:rand_hex(16),
+
+    [?MATCH_ACCOUNT_RAW(AccountId)
+    ,?MATCH_ACCOUNT_RAW(A, B, Rest)
+    ,?MATCH_ACCOUNT_UNENCODED(A, B, Rest)
+    ,?MATCH_ACCOUNT_ENCODED(A, B, Rest)
+    ,?MATCH_ACCOUNT_encoded(A, B, Rest)
+    ].
+
+test_modbs() ->
+    <<A:2/binary, B:2/binary, Rest/binary>> = kz_binary:rand_hex(16),
+    {Y, M, _} = erlang:date(),
+    Year = kz_term:to_binary(Y),
+    Month = kz_term:to_binary(M),
+
+    [?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month)
+    ,?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month)
+    ,?MATCH_MODB_SUFFIX_ENCODED(A, B, Rest, Year, Month)
+    ,?MATCH_MODB_SUFFIX_encoded(A, B, Rest, Year, Month)
+    ].
+
+test_modbish() ->
+    <<A:2/binary, B:2/binary, Rest/binary>> = kz_binary:rand_hex(16),
+    {Y, M, _} = erlang:date(),
+    Year = kz_term:to_binary(Y),
+    Month = kz_term:to_binary(M),
+
+    Type = kz_binary:rand_hex(8),
+
+    [?MATCH_TYPE_MODB_SUFFIX_RAW(A, B, Rest, Year, Month, Type)
+    ,?MATCH_TYPE_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month, Type)
+    ,?MATCH_TYPE_MODB_SUFFIX_ENCODED(A, B, Rest, Year, Month, Type)
+    ,?MATCH_TYPE_MODB_SUFFIX_encoded(A, B, Rest, Year, Month, Type)
+    ].
+
+test_yodbs() ->
+    <<A:2/binary, B:2/binary, Rest/binary>> = kz_binary:rand_hex(16),
+    {Y, _, _} = erlang:date(),
+    Year = kz_term:to_binary(Y),
+
+    [?MATCH_YODB_SUFFIX_RAW(A, B, Rest, Year)
+    ,?MATCH_YODB_SUFFIX_UNENCODED(A, B, Rest, Year)
+    ,?MATCH_YODB_SUFFIX_ENCODED(A, B, Rest, Year)
+    ,?MATCH_YODB_SUFFIX_encoded(A, B, Rest, Year)
+    ].
+
+test_message_dbs() ->
+    <<A:2/binary, B:2/binary, Rest/binary>> = kz_binary:rand_hex(16),
+    [?MATCH_MESSAGES_SUFFIX_UNENCODED(A, B, Rest)
+    ,?MATCH_MESSAGES_SUFFIX_ENCODED(A, B, Rest)
+    ,?MATCH_MESSAGES_SUFFIX_encoded(A, B, Rest)
+    ,?MATCH_MESSAGES_SUFFIX_RAW(A, B, Rest)
+    ].
