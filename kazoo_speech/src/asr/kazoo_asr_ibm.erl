@@ -33,7 +33,8 @@
 %%%------------------------------------------------------------------------------
 -spec available() -> boolean().
 available() ->
-    kz_term:is_not_empty(?IBM_ASR_KEY).
+    kz_term:is_not_empty(?IBM_ASR_KEY)
+        andalso kz_term:is_not_empty(?IBM_ASR_URL).
 
 %%%-----------------------------------------------------------------------------
 %%% @doc Return or set the preferred asr content type for the ASR provider

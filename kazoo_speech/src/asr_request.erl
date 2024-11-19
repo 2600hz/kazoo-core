@@ -174,7 +174,11 @@ add_error(Request, _) -> Request.
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
-fetch_attachment(#asr_req{account_modb=AccountMODB, attachment_id=AttachmentId, media_id=MediaId}=_Request) ->
+fetch_attachment(#asr_req{account_modb=AccountMODB
+                         ,attachment_id=AttachmentId
+                         ,media_id=MediaId
+                         }
+                ) ->
     case kz_datamgr:fetch_attachment(AccountMODB, MediaId, AttachmentId) of
         {'ok', Bin} ->
             lager:info("transcribing first attachment ~s", [AttachmentId]),
@@ -340,8 +344,9 @@ maybe_transcribe(#asr_req{account_modb=AccountDb
                          ,content_type=ContentType
                          ,media_id=MediaId
                          ,binary_media=Bin
-                         }=Request) ->
-    {'ok', MediaDoc} = kz_datamgr:open_doc(AccountDb, MediaId),
+                         }=Request
+                ) ->
+    {'ok', MediaDoc} = kz_datamgr:open_cache_doc(AccountDb, MediaId),
     case kazoo_asr:freeform(Bin, ContentType) of
         {'ok', Resp} ->
             lager:info("transcription resp: ~p", [Resp]),
@@ -627,9 +632,9 @@ is_valid(#asr_req{validated=Valid}) -> Valid.
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_valid_transcription(kz_term:api_binary(), binary(), kz_json:object()) -> 'undefined' | kz_term:api_object().
+-spec is_valid_transcription(kz_term:api_binary(), binary(), kz_json:object()) -> kz_term:api_object().
 is_valid_transcription(<<"success">>, ?NE_BINARY, Resp) -> Resp;
-is_valid_transcription(<<"success">>, <<"">>, Resp) ->
+is_valid_transcription(<<"success">>, <<>>, Resp) ->
     lager:info("successful but empty transcription"),
     Resp;
 is_valid_transcription(Res, Txt, _) ->
@@ -641,7 +646,11 @@ is_valid_transcription(Res, Txt, _) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec validate(asr_req()) -> asr_req().
-validate(#asr_req{account_authorized='true', reseller_authorized='true', content_type=ContentType}=Request) ->
+validate(#asr_req{account_authorized='true'
+                 ,reseller_authorized='true'
+                 ,content_type=ContentType
+                 }=Request
+        ) ->
     case lists:member(ContentType, kazoo_asr:accepted_content_types()) of
         'false' ->
             lager:info("content type ~s cannot be converted for transcription", [ContentType]),
