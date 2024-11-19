@@ -27,12 +27,13 @@
 -type conversion_return() :: {binary(), kz_term:ne_binary()} |
                              {'error', 'unsupported_content_type'}.
 
--type provider_error() :: 'invalid_voice' |
-                          'unknown_provider' |
-                          'unsupported_content_type' |
+-type provider_error() :: 'insufficient_funds' |
                           'invalid_format' |
+                          'invalid_voice' |
                           'media_not_found' |
-                          'insufficient_funds'.
+                          'unavailable' |
+                          'unknown_provider' |
+                          'unsupported_content_type'.
 
 -type provider_return() :: {'error', provider_error()} |
                            {'error', 'asr_provider_failure', kz_term:ne_binary()} |

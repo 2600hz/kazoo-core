@@ -135,13 +135,31 @@ freeform(Content, ContentType, Locale) ->
 freeform(Content, ContentType, Locale, Options) ->
     freeform(Content, ContentType, Locale, Options, default_provider()).
 
--spec freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binary()) -> asr_resp().
-freeform(Content, ContentType, Locale, Options, ASRProvider) ->
-    try (kz_term:to_atom(<<"kazoo_asr_", ASRProvider/binary>>, 'true')):freeform(Content, ContentType, Locale, Options)
-    catch
-        'error':'undef' ->
-            lager:error("unknown ASR provider ~s", [ASRProvider]),
+-spec freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binary() | module()) -> asr_resp().
+freeform(Content, ContentType, Locale, Options, <<ASRProvider/binary>>) ->
+    ASRModule = kz_term:to_atom(<<"kazoo_asr_", ASRProvider/binary>>, 'true'),
+    case kz_module:is_exported(ASRModule, 'freeform', 4) of
+        'true' ->
+            freeform(Content, ContentType, Locale, Options, ASRModule);
+        'false' ->
             {'error', 'unknown_provider'}
+    end;
+freeform(Content, ContentType, Locale, Options, ASRModule) ->
+    case ASRModule:available() of
+        'false' ->
+            lager:info("asr module ~s not available (check config)", [ASRModule]),
+            {'error', 'unavailable'};
+        'true' ->
+            try_freeform(Content, ContentType, Locale, Options, ASRModule)
+    end.
+
+try_freeform(Content, ContentType, Locale, Options, ASRModule) ->
+    try ASRModule:freeform(Content, ContentType, Locale, Options)
+    catch
+        _E:_R:ST ->
+            lager:info("failed to convert speech in ~s: ~s: ~p", [ASRModule, _E, _R]),
+            kz_log:log_stacktrace(ST),
+            {'error', 'unavailable'}
     end.
 
 %%%------------------------------------------------------------------------------
