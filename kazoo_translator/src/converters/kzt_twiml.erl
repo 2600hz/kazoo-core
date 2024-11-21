@@ -251,7 +251,7 @@ set_variables(Call, Els) when is_list(Els) ->
           {'error', _, kapps_call:call()}.
 play(Call, XmlText, Attrs) ->
     kapps_call_command:answer(Call),
-    PlayMe = kz_xml:texts_to_binary(XmlText),
+    PlayMe = kz_media_util:media_path(kz_xml:texts_to_binary(XmlText), kapps_call:account_id(Call)),
     lager:info("PLAY '~s'", [PlayMe]),
 
     Props = kz_xml:attributes_to_proplist(Attrs),
