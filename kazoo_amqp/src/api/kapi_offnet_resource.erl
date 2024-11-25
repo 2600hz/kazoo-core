@@ -162,6 +162,8 @@ req_definition() ->
                                                             ,?KEY_BODY
                                                             ,?KEY_BYPASS_E164
                                                             ,?KEY_CALL_ID
+                                                            ,?KEY_EXISTING_CALL_ID
+                                                            ,?KEY_SWITCH_NODENAME
                                                             ,?KEY_CALL_INTERACTION_ID
                                                             ,?KEY_CAVS
                                                             ,?KEY_CCVS

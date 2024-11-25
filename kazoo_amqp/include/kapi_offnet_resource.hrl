@@ -11,6 +11,8 @@
 -define(KEY_BYPASS_E164, <<"Bypass-E164">>).
 -define(KEY_B_LEG_EVENTS, <<"B-Leg-Events">>).
 -define(KEY_CALL_ID, <<"Call-ID">>).
+-define(KEY_EXISTING_CALL_ID, <<"Existing-Call-ID">>).
+-define(KEY_SWITCH_NODENAME, <<"Switch-Nodename">>).
 -define(KEY_CAVS, <<"Custom-Application-Vars">>).
 -define(KEY_CCVS, <<"Custom-Channel-Vars">>).
 -define(KEY_CONTROL_QUEUE, <<"Control-Queue">>).
