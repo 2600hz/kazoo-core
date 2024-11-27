@@ -176,6 +176,7 @@ req_definition() ->
                                                             ,?KEY_ENABLE_T38_GATEWAY
                                                             ,?KEY_ENABLE_T38_PASSTHROUGH
                                                             ,?KEY_ENABLE_T38_REQUEST
+                                                            ,?KEY_EXISTING_CALL_ID
                                                             ,?KEY_FAIL_ON_SINGLE_REJECT
                                                             ,?KEY_FAX_IDENTITY_NAME
                                                             ,?KEY_FAX_IDENTITY_NUMBER
@@ -212,6 +213,7 @@ req_definition() ->
                                                             ,?KEY_RINGBACK
                                                             ,?KEY_SIP_DIVERSIONS
                                                             ,?KEY_SIP_MULTIPARTS
+                                                            ,?KEY_SWITCH_NODENAME
                                                             ,?KEY_T38_ENABLED
                                                             ,?KEY_TIMEOUT
                                                             ]}
