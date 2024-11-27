@@ -11,8 +11,6 @@
 -define(KEY_BYPASS_E164, <<"Bypass-E164">>).
 -define(KEY_B_LEG_EVENTS, <<"B-Leg-Events">>).
 -define(KEY_CALL_ID, <<"Call-ID">>).
--define(KEY_EXISTING_CALL_ID, <<"Existing-Call-ID">>).
--define(KEY_SWITCH_NODENAME, <<"Switch-Nodename">>).
 -define(KEY_CAVS, <<"Custom-Application-Vars">>).
 -define(KEY_CCVS, <<"Custom-Channel-Vars">>).
 -define(KEY_CONTROL_QUEUE, <<"Control-Queue">>).
@@ -24,6 +22,7 @@
 -define(KEY_ENABLE_T38_GATEWAY, <<"Enable-T38-Gateway">>).
 -define(KEY_ENABLE_T38_PASSTHROUGH, <<"Enable-T38-Passthrough">>).
 -define(KEY_ENABLE_T38_REQUEST, <<"Enable-T38-Fax-Request">>).
+-define(KEY_EXISTING_CALL_ID, <<"Existing-Call-ID">>).
 -define(KEY_E_CALLER_ID_NAME, <<"Emergency-Caller-ID-Name">>).
 -define(KEY_E_CALLER_ID_NUMBER, <<"Emergency-Caller-ID-Number">>).
 -define(KEY_FAIL_ON_SINGLE_REJECT, <<"Fail-On-Single-Reject">>).
@@ -63,6 +62,7 @@
 -define(KEY_RINGBACK, <<"Ringback">>).
 -define(KEY_SIP_DIVERSIONS, <<"SIP-Diversions">>).
 -define(KEY_SIP_MULTIPARTS, <<"SIP-Multiparts">>).
+-define(KEY_SWITCH_NODENAME, <<"Switch-Nodename">>).
 -define(KEY_T38_ENABLED, <<"Fax-T38-Enabled">>).
 -define(KEY_TIMEOUT, <<"Timeout">>).
 -define(KEY_TO_DID, <<"To-DID">>).
