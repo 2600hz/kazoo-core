@@ -128,6 +128,9 @@
             ],
             "type": "string"
         },
+        "Existing-Call-ID": {
+            "type": "string"
+        },
         "Fail-On-Single-Reject": {
             "items": {
                 "type": "string"
@@ -270,6 +273,9 @@
         },
         "SIP-Multiparts": {
             "type": "object"
+        },
+        "Switch-Nodename": {
+            "type": "string"
         },
         "Timeout": {
             "type": "string"
