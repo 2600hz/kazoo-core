@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2014-2023, 2600Hz
+%%% @copyright (C) 2014-2024, 2600Hz
 %%% @doc Module for interacting with JSON schema docs
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -784,16 +784,6 @@ error_to_jobj({'data_invalid'
                       )
                     ,Options
                     );
-
-error_to_jobj({'data_invalid'
-              ,_FailedSchemaJObj
-              ,{'any_schemas_not_valid', Errors}
-              ,_FailedValue
-              ,_FailedKeyPath
-              }
-             ,_Options
-             ) ->
-    errors_to_jobj(Errors);
 error_to_jobj({'data_invalid'
               ,_FailedSchemaJObj
               ,{'any_schemas_not_valid', Errors}
