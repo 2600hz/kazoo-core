@@ -79,7 +79,7 @@ fetch_access_code(#{auth_app := #{name := ClientId
                ,"&redirect_uri=", RedirectURI
                ,"&client_secret=", Secret
                ,"&grant_type=authorization_code"
-               ,"&code", AuthorizationCode
+               ,"&code=", AuthorizationCode
                ],
     case kz_http:post(kz_term:to_list(URL)
                      ,Headers
