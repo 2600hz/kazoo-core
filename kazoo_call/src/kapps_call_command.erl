@@ -1957,19 +1957,19 @@ b_stream_start(StreamURL, Call) ->
 b_stream_start(StreamURL, AudioTracks, Call) ->
     b_stream_start(StreamURL, AudioTracks, <<"mono">>, Call).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, AudioTracks, AudioMix, Call) ->
     b_stream_start(StreamURL, AudioTracks, AudioMix, 'undefined',  Call).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, Call) ->
     b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, 'undefined', Call).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> kapps_api_std_return().
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call) ->
     b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call, ?MAX_STREAM_WAIT).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call(), timeout()) -> kapps_api_std_return().
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call(), timeout()) -> kapps_api_std_return().
 b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call, Timeout) ->
     stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload,  Call),
     wait_for_stream(Call, Timeout).
