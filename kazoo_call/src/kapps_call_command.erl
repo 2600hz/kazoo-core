@@ -1854,7 +1854,7 @@ start_record_call(Media, TimeLimit, Terminators, Call) ->
 
 -spec stop_record_call(kapps_call:call()) -> 'ok'.
 stop_record_call(Call) ->
-    stop_record_call(undefined, Call).
+    stop_record_call('undefined', Call).
 
 -spec stop_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 stop_record_call(Media, Call) ->
@@ -1862,7 +1862,7 @@ stop_record_call(Media, Call) ->
 
 -spec mask_record_call(kapps_call:call()) -> 'ok'.
 mask_record_call(Call) ->
-    mask_record_call(undefined, Call).
+    mask_record_call('undefined', Call).
 
 -spec mask_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 mask_record_call(Media, Call) ->
@@ -1870,7 +1870,7 @@ mask_record_call(Media, Call) ->
 
 -spec unmask_record_call(kapps_call:call()) -> 'ok'.
 unmask_record_call(Call) ->
-    unmask_record_call(undefined, Call).
+    unmask_record_call('undefined', Call).
 
 -spec unmask_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 unmask_record_call(Media, Call) ->
@@ -1878,7 +1878,7 @@ unmask_record_call(Media, Call) ->
 
 -spec pause_record_call(kapps_call:call()) -> 'ok'.
 pause_record_call(Call) ->
-    pause_record_call(undefined, Call).
+    pause_record_call('undefined', Call).
 
 -spec pause_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 pause_record_call(Media, Call) ->
@@ -1886,7 +1886,7 @@ pause_record_call(Media, Call) ->
 
 -spec resume_record_call(kapps_call:call()) -> 'ok'.
 resume_record_call(Call) ->
-    resume_record_call(undefined, Call).
+    resume_record_call('undefined', Call).
 
 -spec resume_record_call(kz_term:proplist() | kz_term:api_ne_binary() , kapps_call:call()) -> 'ok'.
 resume_record_call(Media, Call) ->
@@ -1894,7 +1894,7 @@ resume_record_call(Media, Call) ->
 
 -spec record_call_toggle_mask(kapps_call:call()) -> 'ok'.
 record_call_toggle_mask(Call) ->
-    record_call_toggle_mask(undefined, Call).
+    record_call_toggle_mask('undefined', Call).
 
 -spec record_call_toggle_mask(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 record_call_toggle_mask(Media, Call) ->
@@ -1902,7 +1902,7 @@ record_call_toggle_mask(Media, Call) ->
 
 -spec record_call_toggle_pause(kapps_call:call()) -> 'ok'.
 record_call_toggle_pause(Call) ->
-    record_call_toggle_pause(undefined, Call).
+    record_call_toggle_pause('undefined', Call).
 
 -spec record_call_toggle_pause(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 record_call_toggle_pause(Media, Call) ->
@@ -1921,7 +1921,7 @@ record_call(Media, Action, TimeLimit, Call) ->
     record_call(Media, Action, TimeLimit, ?ANY_DIGIT, Call).
 
 -spec record_call(kz_term:proplist() | kz_term:api_ne_binary(), kz_term:ne_binary(),  kz_term:api_binary() | pos_integer(), list(), kapps_call:call()) -> 'ok'.
-record_call(undefined, Action, TimeLimit, Terminators, Call) ->
+record_call('undefined', Action, TimeLimit, Terminators, Call) ->
     record_call([], Action, TimeLimit, Terminators, Call);
 record_call(<<Media/binary>>, Action, TimeLimit, Terminators, Call) ->
     record_call([{<<"Media-Name">>, Media}], Action, TimeLimit, Terminators, Call);
@@ -2001,19 +2001,19 @@ b_stream_start(StreamURL, Call) ->
 b_stream_start(StreamURL, AudioTracks, Call) ->
     b_stream_start(StreamURL, AudioTracks, <<"mono">>, Call).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, AudioTracks, AudioMix, Call) ->
     b_stream_start(StreamURL, AudioTracks, AudioMix, 'undefined',  Call).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, Call) ->
     b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, 'undefined', Call).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> kapps_api_std_return().
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> kapps_api_std_return().
 b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call) ->
     b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call, ?MAX_STREAM_WAIT).
 
--spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call(), timeout()) -> kapps_api_std_return().
+-spec b_stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call(), timeout()) -> kapps_api_std_return().
 b_stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call, Timeout) ->
     stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload,  Call),
     wait_for_stream(Call, Timeout).
