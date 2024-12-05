@@ -780,15 +780,15 @@ music_on_hold_media_id(Doc, Default) ->
 set_music_on_hold_media_id(Doc, MusicOnHoldMediaId) ->
     kz_json:set_value([<<"music_on_hold">>, <<"media_id">>], MusicOnHoldMediaId, Doc).
 
--spec password(doc()) -> kz_term:api_binary().
+-spec password(doc()) -> kz_term:api_ne_binary().
 password(Doc) ->
     password(Doc, 'undefined').
 
--spec password(doc(), Default) -> binary() | Default.
+-spec password(doc(), Default) -> kz_term:ne_binary() | Default.
 password(Doc, Default) ->
     kz_json:get_ne_binary_value([<<"password">>], Doc, Default).
 
--spec set_password(doc(), binary()) -> doc().
+-spec set_password(doc(), kz_term:ne_binary() | 'null') -> doc().
 set_password(Doc, Password) ->
     kz_json:set_value([<<"password">>], Password, Doc).
 
