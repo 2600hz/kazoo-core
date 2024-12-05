@@ -536,12 +536,44 @@ maybe_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId,
             ValidateAcc;
         'false' when CurrentValue =:= 'undefined' ->
             lager:debug("new callflow with ~p '~p', running unique checks", [Key, NewValue]),
-            do_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId, CallflowId, ValidateAcc);
+            Attributes = kz_json:get_list_value(Key, Doc, []),
+            split_numbers_or_patterns(1000, Key, Attributes, AccountId, CallflowId, ValidateAcc, []);
         'false' ->
             lager:debug("~p '~p' (currently '~p') have changed from the current callflow, running unique checks"
                        ,[Key, NewValue, CurrentValue]),
-            do_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId, CallflowId, ValidateAcc)
+            Attributes = kz_json:get_list_value(Key, Doc, []),
+            split_numbers_or_patterns(1000, Key, Attributes, AccountId, CallflowId, ValidateAcc, [])
     end.
+
+%%------------------------------------------------------------------------------
+%% @doc Split the callflow's `patterns' or `numbers' into small chunks to run
+%% the query parallelly.
+%% @end
+%%------------------------------------------------------------------------------
+-spec split_numbers_or_patterns(
+        pos_integer()
+       ,kz_term:ne_binary()
+       ,kz_term:ne_binaries()
+       ,kz_term:ne_binary()
+       ,kz_term:api_ne_binary()
+       ,kazoo_documents:doc_validation_acc()
+       ,kz_term:pids()
+       ) -> kazoo_documents:doc_validation_acc().
+split_numbers_or_patterns(_SplitAt, Key, [], AccountId, CallflowId, ValidateAcc, PidAcc) ->
+    validate_attribute_list_response(Key, AccountId, CallflowId, ValidateAcc, PidAcc);
+split_numbers_or_patterns(SplitAt, Key, Attributes, AccountId, CallflowId, ValidateAcc, PidAcc)
+        when length(Attributes) < SplitAt ->
+    Pid = do_validate_attribute_list_is_unique_within_account_callflows(Attributes
+                                                                       ,Key
+                                                                       ,AccountId),
+    validate_attribute_list_response(Key, AccountId, CallflowId, ValidateAcc, [Pid | PidAcc]);
+split_numbers_or_patterns(SplitAt, Key, Attributes1, AccountId, CallflowId, ValidateAcc, PidAcc) ->
+    {SplitAttr, Attributes2} = lists:split(SplitAt, Attributes1),
+    Pid = do_validate_attribute_list_is_unique_within_account_callflows(SplitAttr
+                                                                       ,Key
+                                                                       ,AccountId),
+    NewPidAcc = [Pid | PidAcc],
+    split_numbers_or_patterns(SplitAt, Key, Attributes2, AccountId, CallflowId, ValidateAcc, NewPidAcc).
 
 %%------------------------------------------------------------------------------
 %% @doc Check the callflow's `patterns' or `numbers' against the accounts
@@ -551,23 +583,52 @@ maybe_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId,
 %% @end
 %%------------------------------------------------------------------------------
 -spec do_validate_attribute_list_is_unique_within_account_callflows(
+        kz_term:ne_binaries()
+       ,kz_json:get_key()
+       ,kz_term:ne_binary()
+       ) -> pid().
+do_validate_attribute_list_is_unique_within_account_callflows(Attributes
+                                                             ,Key
+                                                             ,AccountId) ->
+    AccountDb = kzs_util:format_account_db(AccountId),
+    Session = self(),
+    View = get_view_by(Key),
+    kz_process:spawn(
+        fun() ->
+                Session ! {'check-unique-attributes'
+                          ,self()
+                          ,kz_datamgr:get_results(AccountDb, View, [{'keys', Attributes}])
+                          }
+        end
+    ).
+
+%%------------------------------------------------------------------------------
+%% @doc check attribute list is unique within account callflows.
+%% @end
+%%------------------------------------------------------------------------------
+-spec validate_attribute_list_response(
         kz_json:get_key()
        ,kz_term:ne_binary()
        ,kz_term:api_ne_binary()
        ,kazoo_documents:doc_validation_acc()
+       ,kz_term:pids()
        ) -> kazoo_documents:doc_validation_acc().
-do_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
-    AccountDb = kzs_util:format_account_db(AccountId),
-    Options = [{'keys', kz_json:get_list_value(Key, Doc, [])}],
-    View = get_view_by(Key),
-    case kz_datamgr:get_results(AccountDb, View, Options) of
-        {'ok', []} ->
-            ValidateAcc;
-        {'ok', CallflowViews} ->
+validate_attribute_list_response(_Key, _AccountId, _CallflowId, ValidateAcc, []) ->
+    ValidateAcc;
+validate_attribute_list_response(Key, AccountId, CallflowId, ValidateAcc, PidAcc1) ->
+    receive
+        {'check-unique-attributes', Pid, {'ok', []}} ->
+            PidAcc2 = lists:delete(Pid, PidAcc1),
+            validate_attribute_list_response(Key, AccountId, CallflowId, ValidateAcc, PidAcc2);
+        {'check-unique-attributes', _Pid, {'ok', CallflowViews}} ->
             validate_attribute_conflicts(Key, CallflowViews, CallflowId, ValidateAcc);
-        {'error', Error} ->
+        {'check-unique-attributes', _Pid, {'error', Error}} ->
+            View = get_view_by(Key),
+            AccountDb = kzs_util:format_account_db(AccountId),
             lager:error("failed to load view ~s from account ~s, error: ~p", [View, AccountDb, Error]),
             throw({'system_error', Error})
+    after 120 * ?MILLISECONDS_IN_SECOND ->
+            lager:warning("validate attribute list is unique within account callflows timeout")
     end.
 
 %%------------------------------------------------------------------------------
