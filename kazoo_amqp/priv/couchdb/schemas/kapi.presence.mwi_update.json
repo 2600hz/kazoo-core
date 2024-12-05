@@ -33,7 +33,7 @@
         "From-User": {
             "type": "string"
         },
-        "IsProbe": {
+        "Is-Probe": {
             "type": "boolean"
         },
         "Message-Account": {

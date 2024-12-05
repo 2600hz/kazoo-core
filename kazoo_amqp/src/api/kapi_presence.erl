@@ -421,7 +421,7 @@ mwi_update_definition() ->
                                                             ,<<"From">>
                                                             ,<<"From-Realm">>
                                                             ,<<"From-User">>
-                                                            ,<<"IsProbe">>
+                                                            ,<<"Is-Probe">>
                                                             ,<<"Message-Account">>
                                                             ,<<"Messages-Urgent">>
                                                             ,<<"Messages-Urgent-Saved">>

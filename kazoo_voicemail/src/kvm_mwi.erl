@@ -64,7 +64,7 @@ send_mwi_update(Account, BoxId, IsProbe) ->
               ,{<<"Messages-Saved">>, Saved}
               ,{<<"Extended-Presence-ID">>, extended_presence_id(AccountId, BoxJObj)}
               ,{<<"Call-ID">>, ?FAKE_CALLID(To)}
-              ,{<<"IsProbe">>, IsProbe}
+              ,{<<"Is-Probe">>, IsProbe}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
               ],
     kz_amqp_worker:cast(Command, fun kapi_presence:publish_mwi_update/1).
