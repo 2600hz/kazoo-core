@@ -47,7 +47,7 @@
 -export([transcribe/1, transcribe/2, set_transcribe/2]).
 -export([vm_message_forward_type/1, vm_message_forward_type/2, set_vm_message_forward_type/2]).
 -export([members/1, members/2, set_members/2]).
--export([shared_vmbox/1, shared_vmbox/2, set_shared_vmbox/2]).
+-export([is_shared_vmbox/1, is_shared_vmbox/2, set_shared_vmbox/2]).
 -export([shared_vmbox_notify_owner_email/1, shared_vmbox_notify_owner_email/2, set_shared_vmbox_notify_owner_email/2]).
 
 -elvis([{elvis_style, god_modules, disable}]).
@@ -539,12 +539,12 @@ members(Doc, Default) ->
 set_members(Doc, Members) ->
     kz_json:set_value([<<"members">>], Members, Doc).
 
--spec shared_vmbox(doc()) -> boolean().
-shared_vmbox(Doc) ->
-    shared_vmbox(Doc, 'false').
+-spec is_shared_vmbox(doc()) -> boolean().
+is_shared_vmbox(Doc) ->
+    is_shared_vmbox(Doc, 'false').
 
--spec shared_vmbox(doc(), Default) -> boolean() | Default.
-shared_vmbox(Doc, Default) ->
+-spec is_shared_vmbox(doc(), Default) -> boolean() | Default.
+is_shared_vmbox(Doc, Default) ->
     kz_json:get_boolean_value([<<"shared_vmbox">>], Doc, Default).
 
 -spec set_shared_vmbox(doc(), boolean()) -> doc().
