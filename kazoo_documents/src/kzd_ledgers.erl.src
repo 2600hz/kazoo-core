@@ -11,6 +11,7 @@
 -export([account_name/1, account_name/2, set_account_name/2]).
 -export([amount/1, amount/2, set_amount/2]).
 -export([description/1, description/2, set_description/2]).
+-export([draft/1, draft/2, set_draft/2]).
 -export([metadata/1, metadata/2, set_metadata/2]).
 -export([period/1, period/2, set_period/2]).
 -export([period_end/1, period_end/2, set_period_end/2]).
@@ -94,6 +95,18 @@ description(Doc, Default) ->
 -spec set_description(doc(), binary()) -> doc().
 set_description(Doc, Description) ->
     kz_json:set_value([<<"description">>], Description, Doc).
+
+-spec draft(doc()) -> kz_term:api_boolean().
+draft(Doc) ->
+    draft(Doc, 'undefined').
+
+-spec draft(doc(), Default) -> boolean() | Default.
+draft(Doc, Default) ->
+    kz_json:get_boolean_value([<<"draft">>], Doc, Default).
+
+-spec set_draft(doc(), boolean()) -> doc().
+set_draft(Doc, Draft) ->
+    kz_json:set_value([<<"draft">>], Draft, Doc).
 
 -spec metadata(doc()) -> kz_term:api_object().
 metadata(Doc) ->
