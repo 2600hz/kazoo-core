@@ -2555,8 +2555,9 @@ stream_definition() ->
                                    ,<<"stereo">>
                                    ]
                  }
-                ,{<<"Audio-Tracks">>, [<<"mixed">>
-                                      ,<<"single">>
+                ,{<<"Audio-Tracks">>, [<<"both">>
+                                      ,<<"inbound">>
+                                      ,<<"outbound">>
                                       ]
                  }
                 ,{<<"Record-Action">>, [<<"start">>

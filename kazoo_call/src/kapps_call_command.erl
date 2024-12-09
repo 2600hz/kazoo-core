@@ -1925,7 +1925,7 @@ b_record_call(MediaName, Action, TimeLimit, Terminators, Call) ->
 %%------------------------------------------------------------------------------
 -spec stream_start(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
 stream_start(StreamURL, Call) ->
-    stream_start(StreamURL, <<"single">>, Call).
+    stream_start(StreamURL, <<"inbound">>, Call).
 
 -spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 stream_start(StreamURL, AudioTracks, Call) ->
