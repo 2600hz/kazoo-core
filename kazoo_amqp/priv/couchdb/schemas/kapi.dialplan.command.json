@@ -115,8 +115,9 @@
         },
         "Audio-Tracks": {
             "enum": [
-                "single",
-                "mixed"
+                "both",
+                "inbound",
+                "outbound"
             ],
             "type": "string"
         },
