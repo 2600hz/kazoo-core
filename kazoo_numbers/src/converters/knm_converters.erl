@@ -118,8 +118,9 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec normalize(kz_term:ne_binary()) -> kz_term:ne_binary();
-               (kz_term:ne_binaries()) -> kz_term:ne_binaries().
+-spec normalize(binary()) -> binary();
+               (kz_term:binaries()) -> kz_term:binaries().
+normalize(<<>>) -> <<>>;
 normalize(Num=?NE_BINARY) ->
     (?CONVERTER_MOD):normalize(Num);
 normalize(Nums)
