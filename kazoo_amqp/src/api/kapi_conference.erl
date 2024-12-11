@@ -181,6 +181,11 @@
         ,publish_vars/2
         ,publish_vars/3
         ]).
+-export([fs_conference_setvar/1
+        ,fs_conference_setvar_v/1
+        ,publish_fs_conference_setvar/2
+        ,publish_fs_conference_setvar/3
+        ]).
 
 -export([bind_q/2
         ,unbind_q/2
@@ -236,6 +241,7 @@
                          ,appmap_tuple(<<"say">>, say_definition())
                          ,appmap_tuple(<<"tts">>, tts_definition())
                          ,appmap_tuple(<<"play_macro">>, play_macro_req_definition())
+                         ,appmap_tuple(<<"setvar">>, fs_setvar_definition())
                          ]).
 
 -define(MEMBER_UPDATE_EVENTS, [<<"stop-talking">>
@@ -296,6 +302,7 @@ api_definitions() ->
     ,dial_definition()
     ,dial_resp_definition()
     ,vars_definition()
+    ,fs_setvar_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -503,6 +510,8 @@ discovery_req_definition() ->
                                                             ,<<"Play-Welcome">>
                                                             ,<<"Play-Welcome-Media">>
                                                             ,<<"Max-Participants">>
+                                                            ,<<"Auto-Record">>
+                                                            ,<<"Recording-Data">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
@@ -525,6 +534,8 @@ discovery_req_definition() ->
                 ,{<<"Play-Welcome">>, fun kz_term:is_boolean/1}
                 ,{<<"Play-Welcome-Media">>, fun kz_term:is_ne_binary/1}
                 ,{<<"Max-Participants">>, fun kz_term:is_pos_integer/1}
+                ,{<<"Auto-Record">>, fun kz_term:is_boolean/1}
+                ,{<<"Recording-Data">>, fun kz_json:is_json_object/1}
                 ]
                }
               ],
@@ -1464,6 +1475,35 @@ vars_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+-spec fs_setvar_definition() -> kapi_definition:api().
+fs_setvar_definition() ->
+    EventName = <<"command">>,
+    Category = <<"conference">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Conference SetVar">>}
+              ,{fun kapi_definition:set_description/2, <<"Conference SetVar">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun fs_conference_setvar/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun fs_conference_setvar_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_fs_conference_setvar/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
+                                                            ,<<"Conference-ID">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Var">>
+                                                            ,<<"Conference-Val">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Application-Name">>, <<"setvar">>}
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Conference-Var">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Conference-Val">>, fun kz_term:is_ne_binary/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
@@ -2313,6 +2353,32 @@ publish_dial_resp(Queue, Req, ContentType) ->
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     kz_amqp_util:targeted_publish(Queue, Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Conference Set Value in FreeSWITCH.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec fs_conference_setvar(kz_term:api_terms()) -> kz_api:api_formatter_return().
+fs_conference_setvar(Req) ->
+    kapi_definition:build_message(Req, fs_setvar_definition()).
+
+-spec fs_conference_setvar_v(kz_term:api_terms()) -> boolean().
+fs_conference_setvar_v(Req) ->
+    kapi_definition:validate(Req, fs_setvar_definition()).
+
+-spec publish_fs_conference_setvar(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_fs_conference_setvar(ConferenceId, JObj) ->
+    publish_fs_conference_setvar(ConferenceId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_fs_conference_setvar(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_fs_conference_setvar(ConferenceId, Req, ContentType) ->
+    Definition = fs_setvar_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:conference_publish(Payload, 'command', ConferenceId, [], ContentType).
 
 %%------------------------------------------------------------------------------
 %% @doc Conference Vars.

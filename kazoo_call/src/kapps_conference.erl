@@ -58,6 +58,8 @@
 -export([exit_tone/1, moderator_exit_tone/1]).
 -export([extra_settings/1]).
 -export([endconf_grace_time/1, set_endconf_grace_time/2]).
+-export([auto_record/1, set_auto_record/2]).
+-export([recording_data/1, set_recording_data/2]).
 
 -export([kvs_append/3
         ,kvs_append_list/3
@@ -97,38 +99,40 @@
 
 %%%% conference record %%%%%%%%
 %%
-%%  id                            the conference id
-%%  focus                         the conference focus
-%%  profile_name                  conference profile_name (config settings)
-%%  controller_q                  the controller queue, for responses
-%%  bridge_username               the username used for a conference bridge
-%%  bridge_password               the password used for a conference bridge
-%%  member_pins                   a list of pins for use by members
-%%  moderator_pins                a list of pins for use by the moderators
-%%  moderator                     tri-state true/false if the caller is known to be a moderator, otherwise 'undefined'
-%%  member_join_muted             should the member join muted
-%%  member_join_deaf              should the member join deaf
-%%  moderator_join_muted          should the moderator join muted
-%%  moderator_join_deaf           should the moderator join deaf
-%%  participant_join_video_muted  should participants video feed be muted at join
-%%  max_participants              max number of participants
-%%  max_members_media             media to play instead of allowing new users to conference
-%%  require_moderator             does the conference require a moderator
-%%  wait_for_moderator            can members wait for a moderator
-%%  play_name_on_join             should participants have their name played on join
-%%  play_entry_prompt             Play prompt telling caller they're entering the conference
-%%  play_exit_tone                Play tone telling caller they have left the conference
-%%  play_entry_tone               Play tone telling caller they have entered the conference
-%%  play_welcome                  Play prompt welcoming caller to the conference
-%%  conference_doc                the complete conference doc used to create the record (when and if)
-%%  app_name                      The application name used during kapps_conference_command
-%%  app_version                   The application version used during kapps_conference_command
-%%  kvs                           allows conferences to set values that propagate to children
-%%  call                          kapps_call object
-%%  account_id                    %% account id
-%%  moderator_controls            moderator controls (config settings)
-%%  caller_controls               caller controls (config settings)
-%%  enconf_grace_time             how much time all members have before the conference is terminated when the last member with endconf leaves in seconds
+%%  id                                     the conference id
+%%  focus                                  the conference focus
+%%  profile_name                           conference profile_name (config settings)
+%%  controller_q                           the controller queue, for responses
+%%  bridge_username                        the username used for a conference bridge
+%%  bridge_password                        the password used for a conference bridge
+%%  member_pins                            a list of pins for use by members
+%%  moderator_pins                         a list of pins for use by the moderators
+%%  moderator                              tri-state true/false if the caller is known to be a moderator, otherwise 'undefined'
+%%  member_join_muted                      should the member join muted
+%%  member_join_deaf                       should the member join deaf
+%%  moderator_join_muted                   should the moderator join muted
+%%  moderator_join_deaf                    should the moderator join deaf
+%%  participant_join_video_muted           should participants video feed be muted at join
+%%  max_participants                       max number of participants
+%%  max_members_media                      media to play instead of allowing new users to conference
+%%  require_moderator                      does the conference require a moderator
+%%  wait_for_moderator                     can members wait for a moderator
+%%  play_name_on_join                      should participants have their name played on join
+%%  play_entry_prompt                      Play prompt telling caller they're entering the conference
+%%  play_exit_tone                         Play tone telling caller they have left the conference
+%%  play_entry_tone                        Play tone telling caller they have entered the conference
+%%  play_welcome                           Play prompt welcoming caller to the conference
+%%  conference_doc                         the complete conference doc used to create the record (when and if)
+%%  app_name                               The application name used during kapps_conference_command
+%%  app_version                            The application version used during kapps_conference_command
+%%  kvs                                    allows conferences to set values that propagate to children
+%%  call                                   kapps_call object
+%%  account_id                             %% account id
+%%  moderator_controls                     moderator controls (config settings)
+%%  caller_controls                        caller controls (config settings)
+%%  enconf_grace_time                      how much time all members have before the conference is terminated when the last member with endconf leaves in seconds
+%%  auto_record                            decide whether the conference should be recorded without calling record api, but it also requires min-required-recording-participants to be set in conference profile
+%%  recording_data                         recordingUrl and recordingMethod in object format
 %%
 
 -record(kapps_conference, {id :: kz_term:api_ne_binary()
@@ -169,6 +173,8 @@
                           ,controls :: kz_term:api_object()
                           ,discovery_request :: kz_term:api_object()
                           ,endconf_grace_time :: 'undefined' | integer()
+                          ,auto_record :: kz_term:api_boolean()
+                          ,recording_data :: kz_term:api_object()
                           }).
 
 -type tone() :: boolean() | kz_term:ne_binary().
@@ -243,6 +249,8 @@ do_from_json(JObj, Conference) ->
                                ,caller_controls = kz_json:get_ne_binary_value(<<"Caller-Controls">>, JObj, caller_controls(Conference))
                                ,discovery_request = JObj
                                ,endconf_grace_time = kz_json:get_integer_value(<<"Endconf-Grace-Time">>, JObj, endconf_grace_time(Conference))
+                               ,auto_record = kz_json:is_true(<<"Auto-Record">>, JObj, auto_record(Conference))
+                               ,recording_data = kz_json:get_value(<<"Recording-Data">>, JObj, recording_data(Conference))
                                }.
 
 -spec load_call(kz_json:object(), kapps_call:call() | 'undefined') -> kapps_call:call() | 'undefined'.
@@ -306,6 +314,8 @@ to_proplist(#kapps_conference{}=Conference) ->
     ,{<<"Require-Moderator">>, require_moderator(Conference)}
     ,{<<"Wait-For-Moderator">>, wait_for_moderator(Conference)}
     ,{<<"Endconf-Grace-Time">>, endconf_grace_time(Conference)}
+    ,{<<"Auto-Record">>, auto_record(Conference)}
+    ,{<<"Recording-Data">>, recording_data(Conference)}
     ].
 
 -spec is_conference(any()) -> boolean().
@@ -377,6 +387,8 @@ from_conference_doc(JObj, Conference) ->
                                ,caller_controls = kzd_conferences:caller_controls(JObj, caller_controls(Conference))
                                ,conference_doc = JObj
                                ,endconf_grace_time = kzd_conferences:endconf_grace_time(JObj, endconf_grace_time(Conference))
+                               ,auto_record = kzd_conferences:auto_record(JObj, auto_record(Conference))
+                               ,recording_data = kzd_conferences:recording_data(JObj, recording_data(Conference))
                                }.
 
 -type updater_1() :: fun((conference()) -> conference()).
@@ -779,6 +791,22 @@ endconf_grace_time(#kapps_conference{endconf_grace_time=EndconfGraceTime}) ->
 -spec set_endconf_grace_time(integer(), conference()) -> conference().
 set_endconf_grace_time(EndconfGraceTime, Conference) when is_integer(EndconfGraceTime) ->
     Conference#kapps_conference{endconf_grace_time=EndconfGraceTime}.
+
+-spec auto_record(conference()) -> kz_term:api_boolean().
+auto_record(#kapps_conference{auto_record=AutoRecord}) ->
+    AutoRecord.
+
+-spec set_auto_record(boolean(), conference()) -> conference().
+set_auto_record(AutoRecord, Conference) when is_boolean(AutoRecord) ->
+    Conference#kapps_conference{auto_record=AutoRecord}.
+
+-spec recording_data(conference()) -> kz_json:api_object().
+recording_data(#kapps_conference{recording_data=Data}) ->
+    Data.
+
+-spec set_recording_data(kz_json:api_object(), conference()) -> conference().
+set_recording_data(Data, Conference) ->
+    Conference#kapps_conference{recording_data=Data}.
 
 -spec play_name_on_join(conference()) -> boolean().
 play_name_on_join(#kapps_conference{play_name_on_join=PlayNameOnJoin}) ->

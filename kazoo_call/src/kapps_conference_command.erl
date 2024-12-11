@@ -21,7 +21,8 @@
 -export([prompt/2, prompt/3]).
 -export([play_command/1, play_command/2]).
 -export([play/2, play/3]).
--export([record/1, recordstop/1]).
+-export([record/1, record/2]).
+-export([recordstop/1, recordstop/2]).
 -export([relate_participants/3, relate_participants/4]).
 -export([stop_play/1, stop_play/2, stop_play/3]).
 -export([undeaf_participant/2]).
@@ -180,12 +181,24 @@ play(Media, ParticipantId, Conference) ->
 
 -spec record(kapps_conference:conference()) -> 'ok'.
 record(Conference) ->
-    Command = [{<<"Application-Name">>, <<"record">>}],
+    record(Conference, recording_name(Conference)).
+
+-spec record(kapps_conference:conference(), kz_term:ne_binary()) -> 'ok'.
+record(Conference, MediaName) ->
+    Command = [{<<"Application-Name">>, <<"record">>}
+              ,{<<"Media-Name">>, <<"/tmp/", MediaName/binary>>}
+              ],
     send_command(Command, Conference).
 
 -spec recordstop(kapps_conference:conference()) -> 'ok'.
 recordstop(Conference) ->
-    Command = [{<<"Application-Name">>, <<"recordstop">>}],
+    recordstop(Conference, recording_name(Conference)).
+
+-spec recordstop(kapps_conference:conference(), kz_term:ne_binary()) -> 'ok'.
+recordstop(Conference, MediaName) ->
+    Command = [{<<"Application-Name">>, <<"recordstop">>}
+              ,{<<"Media-Name">>, <<"/tmp/", MediaName/binary>>}
+              ],
     send_command(Command, Conference).
 
 -spec relate_participants(non_neg_integer(), non_neg_integer(), kapps_conference:conference()) -> 'ok'.
@@ -309,3 +322,9 @@ play_macro(Macro, Conference) ->
            | Values
            ],
     send_command(Prop, Conference).
+
+-spec recording_name(kapps_conference:conference()) -> kz_term:ne_binary().
+recording_name(Conference) ->
+    Id = kapps_conference:id(Conference),
+    Ext = kz_media_config:call_recording_extension(),
+    <<Id/binary, ".", Ext/binary>>.

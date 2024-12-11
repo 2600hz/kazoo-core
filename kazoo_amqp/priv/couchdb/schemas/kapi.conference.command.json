@@ -31,6 +31,7 @@
                 "relate_participants",
                 "say",
                 "set",
+                "setvar",
                 "stop_play",
                 "tones",
                 "tts",
@@ -50,6 +51,14 @@
             "type": "string"
         },
         "Conference-ID": {
+            "type": "string"
+        },
+        "Conference-Val": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Conference-Var": {
+            "minLength": 1,
             "type": "string"
         },
         "Custom-Application-Vars": {

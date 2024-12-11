@@ -3,6 +3,9 @@
     "_id": "kapi.conference.discovery_req",
     "description": "AMQP API for conference.discovery_req",
     "properties": {
+        "Auto-Record": {
+            "type": "string"
+        },
         "Call": {
             "type": "object"
         },
@@ -69,6 +72,9 @@
         "Play-Welcome-Media": {
             "minLength": 1,
             "type": "string"
+        },
+        "Recording-Data": {
+            "type": "object"
         },
         "Wait-For-Moderator": {
             "type": "string"

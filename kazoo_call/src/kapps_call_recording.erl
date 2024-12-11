@@ -15,6 +15,7 @@
         ,get_timelimit/1
         ,handler_from_url/1
         ,should_store_recording/2
+        ,media_recorder/2
         ]).
 
 -include("kapps_call_command.hrl").

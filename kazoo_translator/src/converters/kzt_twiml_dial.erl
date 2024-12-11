@@ -424,10 +424,13 @@ publish_conference_request(Call, Id, Name, ConfProps) ->
           ,{<<"Profile-Name">>, ProfileName}
            %% add this kapi_conference (first time conf is created):
           ,{<<"Wait-For-Moderator">>, not IsModerator}
+           %% conference with record function enabled
+          ,{<<"Auto-Record">>, is_conference_auto_record(ConfProps)}
+          ,{<<"Recording-Data">>, get_conference_record_data(ConfProps, Call)}
           | deaf_muted_headers(ConfProps, IsModerator) ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
           ]
          ),
-    ?DEV_LOG("Prop ~p~n", [props:delete(<<"Call">>, ConfReq)]),
+    lager:info("twiml conference props ~p", [props:delete(<<"Call">>, ConfReq)]),
     kapi_conference:publish_discovery_req(ConfReq).
 
 -spec deaf_muted_headers(kz_term:proplist(), boolean()) -> kz_term:proplist().
@@ -520,4 +523,24 @@ record_from_bridge(Props) ->
         <<"record-from-ringing">> -> 'true';
         <<"record-from-ringing-dual">> -> 'true';
         _ -> 'undefined'
+    end.
+
+-spec is_conference_auto_record(kz_term:proplist()) -> kz_term:api_boolean().
+is_conference_auto_record(ConfProps) ->
+    case props:get_ne_binary_value('record', ConfProps) of
+        <<"true">> -> 'true';
+        <<"record-from", _/binary>> -> 'true';
+        _ -> 'undefined'
+    end.
+
+-spec get_conference_record_data(kz_term:proplist(), kapps_call:call()) -> kz_term:api_object().
+get_conference_record_data(ConfProps, Call) ->
+    case is_conference_auto_record(ConfProps) of
+        'true' ->
+            Data = [{<<"url">>, props:get_binary_value('recordingUrl', ConfProps)}
+                   ,{<<"method">>, kzt_util:record_store_method(ConfProps)}
+                   ],
+            Recorder = kapps_call_recording:media_recorder(kz_json:from_list(Data), Call),
+            kz_json:from_list([{<<"Recorder">>, Recorder} | Data]);
+        'undefined' -> 'undefined'
     end.
