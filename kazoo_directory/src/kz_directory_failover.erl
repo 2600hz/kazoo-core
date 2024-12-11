@@ -83,12 +83,10 @@ call_failover_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable
     ,{<<"Ignore-Early-Media">>, 'true'}
     ,{<<"Call-Forward-From">>, <<"${kz_ctx_Inception}">>}
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
+    ,{<<"Call-Forward-Diversions">>, <<"${sip_diversions}">>}
+    ,{<<"Call-Forward-From-Endpoint-ID">>, <<"${Caller-Endpoint-ID}">>}
     ,{<<"Failover-Reasons">>, cfw_failover_reasons()}
     ].
-
--spec call_failover_cid_type_name(boolean()) -> kz_term:ne_binary().
-call_failover_cid_type_name('true') -> <<"External">>;
-call_failover_cid_type_name('false') -> <<"Internal">>.
 
 -spec cfw_single_reject() -> kz_term:ne_binaries().
 cfw_single_reject() ->
@@ -126,16 +124,9 @@ call_failover_confirm_properties(_EndpointId, _AccountId, Endpoint, _IsReconcila
     end.
 
 -spec call_failover_maybe_retain_cid(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), boolean()) -> kz_term:proplist().
-call_failover_maybe_retain_cid(_EndpointId, _AccountId, Endpoint, IsReconcilable) ->
+call_failover_maybe_retain_cid(_EndpointId, _AccountId, Endpoint, _IsReconcilable) ->
     Failover = kzd_endpoint:call_failover(Endpoint, kz_json:new()),
-    CIDTypeName = call_failover_cid_type_name(IsReconcilable),
-    case kzd_call_failover:keep_caller_id(Failover) of
-        'false' -> [];
-        'true' -> [{<<"Outbound-Caller-ID-Number">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Number|Caller-Caller-ID-Number)}">>}
-                  ,{<<"Outbound-Caller-ID-Name">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Name|Caller-Caller-ID-Name)}">>}
-                  ,{<<"Retain-CID">>, 'true'}
-                  ]
-    end.
+    [{<<"Retain-CID">>, kzd_call_failover:keep_caller_id(Failover)}].
 
 -spec get_realm(kz_json:object()) -> kz_term:ne_binary().
 get_realm(Endpoint) ->
