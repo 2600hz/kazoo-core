@@ -57,6 +57,8 @@
         ,set_advertise/2, get_advertise/1
         ,set_chat_permissions/2, get_chat_permissions/1
 
+        ,add_stream/3, get_streams/1
+
         ,iteration/1, increment_iteration/1
         ]).
 
@@ -249,16 +251,16 @@ set_recording_stereo(_Condition, Call) -> Call.
 -spec get_recording_stereo(kapps_call:call()) -> kz_term:api_boolean().
 get_recording_stereo(Call) -> kapps_call:kvs_fetch(<<"recording_stereo">>, Call).
 
--spec set_call_timeout(pos_integer(), kapps_call:call()) -> kapps_call:call().
+-spec set_call_timeout(timeout() | 'undefined', kapps_call:call()) -> kapps_call:call().
 set_call_timeout(T, Call) -> kapps_call:kvs_store(<<"call_timeout">>, T, Call).
 
--spec get_call_timeout(kapps_call:call()) -> kz_term:api_integer().
+-spec get_call_timeout(kapps_call:call()) -> timeout() | 'undefined'.
 get_call_timeout(Call) -> kapps_call:kvs_fetch(<<"call_timeout">>, Call).
 
--spec set_call_time_limit(pos_integer(), kapps_call:call()) -> kapps_call:call().
+-spec set_call_time_limit(timeout() | 'undefined', kapps_call:call()) -> kapps_call:call().
 set_call_time_limit(T, Call) -> kapps_call:kvs_store(<<"call_time_limit">>, T, Call).
 
--spec get_call_time_limit(kapps_call:call()) -> kz_term:api_integer().
+-spec get_call_time_limit(kapps_call:call()) -> timeout() | 'undefined'.
 get_call_time_limit(Call) -> kapps_call:kvs_fetch(<<"call_time_limit">>, Call).
 
 -spec set_voice_uri(kz_term:api_binary(), kapps_call:call()) -> kapps_call:call().
@@ -441,6 +443,19 @@ set_chat_permissions(JObj, Call) ->
 -spec get_chat_permissions(kapps_call:call()) -> kz_json:object().
 get_chat_permissions(Call) ->
     kapps_call:kvs_fetch(<<"chat_permissions">>, Call).
+
+-spec add_stream(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> kapps_call:call().
+add_stream(StreamId, StreamName, Call) ->
+    case get_streams(Call) of
+        [] ->
+            kapps_call:kvs_store(<<"streams">>, [{StreamId, StreamName}], Call);
+        Vs ->
+            kapps_call:kvs_append_list(<<"streams">>, [{StreamId, StreamName}|Vs], Call)
+    end.
+
+-spec get_streams(kapps_call:call()) -> kz_term:proplist().
+get_streams(Call) ->
+    kapps_call:kvs_fetch(<<"streams">>, [], Call).
 
 -spec get_request_vars(kapps_call:call()) -> kz_json:object().
 get_request_vars(Call) ->
