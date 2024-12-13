@@ -1257,6 +1257,7 @@ publish_usurp_control(CallId, JObj, ContentType) ->
     kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('usurp_control', CallId)
                                 ,Payload
                                 ,ContentType
+                                ,[{'headers', [{<<"call-id">>, 'binary', CallId}]}]
                                 ).
 
 %%------------------------------------------------------------------------------
@@ -1286,6 +1287,7 @@ publish_usurp_publisher(CallId, JObj, ContentType) ->
     kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('usurp_publisher', CallId)
                                 ,Payload
                                 ,ContentType
+                                ,[{'headers', [{<<"call-id">>, 'binary', CallId}]}]
                                 ).
 
 %%------------------------------------------------------------------------------
