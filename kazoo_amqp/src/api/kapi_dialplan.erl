@@ -1482,10 +1482,12 @@ hold_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Hold-Media">>
                                                             ,<<"Hold-Media-Options">>
+                                                            ,<<"Hold-Strategy">>
                                                             ,<<"Insert-At">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"hold">>}
+                ,{<<"Hold-Strategy">>, [<<"hold">>, <<"playback">>]}
                 ,?INSERT_AT_TUPLE
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]

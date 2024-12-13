@@ -366,6 +366,13 @@
             },
             "type": "object"
         },
+        "Hold-Strategy": {
+            "enum": [
+                "hold",
+                "playback"
+            ],
+            "type": "string"
+        },
         "Hook-DTMF": {
             "type": "string"
         },
