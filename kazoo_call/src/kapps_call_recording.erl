@@ -15,6 +15,7 @@
         ,get_timelimit/1
         ,handler_from_url/1
         ,should_store_recording/2
+        ,media_recorder/2
         ]).
 
 -include("kapps_call_command.hrl").
@@ -105,20 +106,20 @@ should_store_recording() ->
         'false' -> 'false'
     end.
 
--spec media_recorder(kz_json:object(), kapps_call:call()) -> kz_term:api_ne_binary().
-media_recorder(Data, Call) ->
-    media_recorder(Data, Call, kapps_call:kvs_fetch('recording_recorder', Call)).
-
--spec media_recorder(kz_json:object(), kapps_call:call(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
-media_recorder(Data, Call, 'undefined') ->
-    AccountId = kapps_call:account_id(Call),
+-spec media_recorder(kz_json:object(), kapps_call:call() | kz_term:ne_binary()) -> kz_term:api_ne_binary().
+media_recorder(Data, <<AccountId/binary>>) ->
     Url = kz_json:get_ne_binary_value(<<"url">>, Data),
     case should_store_recording(AccountId, Url) of
         'false' -> 'undefined';
         _ -> ?KZ_RECORDER
     end;
-media_recorder(_Data, _Call, Recorder) ->
-    Recorder.
+media_recorder(Data, Call) ->
+    case kapps_call:kvs_fetch('recording_recorder', Call) of
+        'undefined' ->
+            media_recorder(Data, kapps_call:account_id(Call));
+        Recorder ->
+            Recorder
+    end.
 
 media_name(Data, Call) ->
     Format = get_format(kz_json:get_ne_binary_value(<<"format">>, Data)),
