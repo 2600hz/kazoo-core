@@ -155,7 +155,7 @@ conference_dial(Call, Name, ConfProps, DialProps) ->
 
     lager:debug("dialing into conference ~s (~s)", [Name, Id]),
 
-    publish_conference_request(Call, Id, Name, ConfProps),
+    publish_conference_request(Call, Id, Name, DialProps, ConfProps),
 
     lager:debug("published conference request"),
 
@@ -397,8 +397,8 @@ timelimit_s(Props) ->
         N -> erlang:max(?MINIMUM_TIMEOUT_S, N)
     end.
 
--spec publish_conference_request(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
-publish_conference_request(Call, Id, Name, ConfProps) ->
+-spec publish_conference_request(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:proplist()) -> 'ok'.
+publish_conference_request(Call, Id, Name, DialProps, ConfProps) ->
     IsModerator = props:is_true('startConferenceOnEnter', ConfProps, 'true'),
     ProfileName = props:get_ne_binary_value('profileName', ConfProps),
 
@@ -408,6 +408,7 @@ publish_conference_request(Call, Id, Name, ConfProps) ->
                               ,[{'event', {Id, kapps_call:call_id_direct(Call)}}]
                               }
                              ]),
+    ShouldRecord = should_record_conference(DialProps, ConfProps),
 
     ConfReq =
         props:filter_undefined(
@@ -425,8 +426,8 @@ publish_conference_request(Call, Id, Name, ConfProps) ->
            %% add this kapi_conference (first time conf is created):
           ,{<<"Wait-For-Moderator">>, not IsModerator}
            %% conference with record function enabled
-          ,{<<"Auto-Record">>, is_conference_auto_record(ConfProps)}
-          ,{<<"Recording-Data">>, get_conference_record_data(ConfProps, Call)}
+          ,{<<"Auto-Record">>, ShouldRecord}
+          ,{<<"Recording-Data">>, conference_recording_data(ShouldRecord, ConfProps, Call)}
           | deaf_muted_headers(ConfProps, IsModerator) ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
           ]
          ),
@@ -525,22 +526,20 @@ record_from_bridge(Props) ->
         _ -> 'undefined'
     end.
 
--spec is_conference_auto_record(kz_term:proplist()) -> kz_term:api_boolean().
-is_conference_auto_record(ConfProps) ->
+-spec should_record_conference(kz_term:proplist(), kz_term:proplist()) -> boolean().
+should_record_conference(DialProps, ConfProps) ->
     case props:get_ne_binary_value('record', ConfProps) of
         <<"true">> -> 'true';
         <<"record-from", _/binary>> -> 'true';
-        _ -> 'undefined'
+        _ -> should_record_call(DialProps)
     end.
 
--spec get_conference_record_data(kz_term:proplist(), kapps_call:call()) -> kz_term:api_object().
-get_conference_record_data(ConfProps, Call) ->
-    case is_conference_auto_record(ConfProps) of
-        'true' ->
-            Data = [{<<"url">>, props:get_binary_value('recordingUrl', ConfProps)}
-                   ,{<<"method">>, kzt_util:record_store_method(ConfProps)}
-                   ],
-            Recorder = kapps_call_recording:media_recorder(kz_json:from_list(Data), Call),
-            kz_json:from_list([{<<"Recorder">>, Recorder} | Data]);
-        'undefined' -> 'undefined'
-    end.
+-spec conference_recording_data(boolean(), kz_term:proplist(), kapps_call:call()) -> kz_term:api_ne_binary().
+conference_recording_data('true', ConfProps, Call) ->
+    Data0 = [{<<"url">>, props:get_binary_value('recordingUrl', ConfProps)}
+            ,{<<"method">>, kzt_util:record_store_method(ConfProps)}
+            ],
+    {_MediName, Data} = kapps_conference_command:recording_data(kapps_call:account_id(Call), kz_json:from_list(Data0)),
+    Data;
+conference_recording_data('false', _ConfProps, _Call) ->
+    'undefined'.

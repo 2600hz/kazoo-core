@@ -150,6 +150,9 @@
         "Profile-Name": {
             "type": "string"
         },
+        "Recording-Data": {
+            "type": "string"
+        },
         "Relationship": {
             "enum": [
                 "clear",

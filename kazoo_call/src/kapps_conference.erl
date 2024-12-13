@@ -174,7 +174,7 @@
                           ,discovery_request :: kz_term:api_object()
                           ,endconf_grace_time :: 'undefined' | integer()
                           ,auto_record :: kz_term:api_boolean()
-                          ,recording_data :: kz_term:api_object()
+                          ,recording_data :: kz_term:api_ne_binary()
                           }).
 
 -type tone() :: boolean() | kz_term:ne_binary().
@@ -250,7 +250,7 @@ do_from_json(JObj, Conference) ->
                                ,discovery_request = JObj
                                ,endconf_grace_time = kz_json:get_integer_value(<<"Endconf-Grace-Time">>, JObj, endconf_grace_time(Conference))
                                ,auto_record = kz_json:is_true(<<"Auto-Record">>, JObj, auto_record(Conference))
-                               ,recording_data = kz_json:get_value(<<"Recording-Data">>, JObj, recording_data(Conference))
+                               ,recording_data = kz_json:get_ne_binary_value(<<"Recording-Data">>, JObj, recording_data(Conference))
                                }.
 
 -spec load_call(kz_json:object(), kapps_call:call() | 'undefined') -> kapps_call:call() | 'undefined'.
@@ -800,11 +800,11 @@ auto_record(#kapps_conference{auto_record=AutoRecord}) ->
 set_auto_record(AutoRecord, Conference) when is_boolean(AutoRecord) ->
     Conference#kapps_conference{auto_record=AutoRecord}.
 
--spec recording_data(conference()) -> kz_json:api_object().
+-spec recording_data(conference()) -> kz_json:api_ne_binary().
 recording_data(#kapps_conference{recording_data=Data}) ->
     Data.
 
--spec set_recording_data(kz_json:api_object(), conference()) -> conference().
+-spec set_recording_data(kz_json:api_ne_binary(), conference()) -> conference().
 set_recording_data(Data, Conference) ->
     Conference#kapps_conference{recording_data=Data}.
 

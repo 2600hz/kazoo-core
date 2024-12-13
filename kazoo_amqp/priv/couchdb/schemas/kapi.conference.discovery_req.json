@@ -74,7 +74,7 @@
             "type": "string"
         },
         "Recording-Data": {
-            "type": "object"
+            "type": "string"
         },
         "Wait-For-Moderator": {
             "type": "string"

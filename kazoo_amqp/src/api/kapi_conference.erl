@@ -535,7 +535,7 @@ discovery_req_definition() ->
                 ,{<<"Play-Welcome-Media">>, fun kz_term:is_ne_binary/1}
                 ,{<<"Max-Participants">>, fun kz_term:is_pos_integer/1}
                 ,{<<"Auto-Record">>, fun kz_term:is_boolean/1}
-                ,{<<"Recording-Data">>, fun kz_json:is_json_object/1}
+                ,{<<"Recording-Data">>, fun kz_term:is_ne_binary/1}
                 ]
                }
               ],
@@ -954,6 +954,7 @@ record_definition() ->
                                                             ,<<"Media-Name">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Call-ID">>
+                                                            ,<<"Recording-Data">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"record">>}
@@ -962,6 +963,7 @@ record_definition() ->
                }
               ,{fun kapi_definition:set_types/2
                ,[{<<"Conference-ID">>, fun is_binary/1}
+                ,{<<"Recording-Data">>, fun kz_term:is_ne_binary/1}
                 ]
                }
               ],
