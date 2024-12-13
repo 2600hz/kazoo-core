@@ -3,9 +3,6 @@
     "_id": "kapi.conference.discovery_req",
     "description": "AMQP API for conference.discovery_req",
     "properties": {
-        "Auto-Record": {
-            "type": "string"
-        },
         "Call": {
             "type": "object"
         },

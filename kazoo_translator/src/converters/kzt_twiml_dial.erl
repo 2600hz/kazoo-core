@@ -155,7 +155,7 @@ conference_dial(Call, Name, ConfProps, DialProps) ->
 
     lager:debug("dialing into conference ~s (~s)", [Name, Id]),
 
-    publish_conference_request(Call, Id, Name, DialProps, ConfProps),
+    publish_conference_request(Call, Id, Name, ConfProps),
 
     lager:debug("published conference request"),
 
@@ -397,8 +397,8 @@ timelimit_s(Props) ->
         N -> erlang:max(?MINIMUM_TIMEOUT_S, N)
     end.
 
--spec publish_conference_request(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:proplist()) -> 'ok'.
-publish_conference_request(Call, Id, Name, DialProps, ConfProps) ->
+-spec publish_conference_request(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+publish_conference_request(Call, Id, Name, ConfProps) ->
     IsModerator = props:is_true('startConferenceOnEnter', ConfProps, 'true'),
     ProfileName = props:get_ne_binary_value('profileName', ConfProps),
 
@@ -408,7 +408,6 @@ publish_conference_request(Call, Id, Name, DialProps, ConfProps) ->
                               ,[{'event', {Id, kapps_call:call_id_direct(Call)}}]
                               }
                              ]),
-    ShouldRecord = should_record_conference(ProfileName, DialProps, ConfProps),
 
     ConfReq =
         props:filter_undefined(
@@ -421,7 +420,6 @@ publish_conference_request(Call, Id, Name, DialProps, ConfProps) ->
           ,{<<"Play-Entry-Tone">>, conference_play_entry_tone(ConfProps)}
           ,{<<"Play-Exit-Tone">>, conference_play_exit_tone(ConfProps)}
           ,{<<"Wait-For-Moderator">>, not IsModerator}
-          ,{<<"Auto-Record">>, ShouldRecord}
            %% member join-options, safe to set per member
           ,{<<"End-On-Last-Member-Leave">>, props:is_true('endConferenceOnLastMemberExit', ConfProps, 'undefined')}
           ,{<<"End-On-Leave">>, props:is_true('endConferenceOnExit', ConfProps, 'undefined')}
@@ -429,7 +427,7 @@ publish_conference_request(Call, Id, Name, DialProps, ConfProps) ->
           | deaf_muted_headers(ConfProps, IsModerator) ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
           ]
          ),
-    lager:info("twiml conference props ~p", [props:delete(<<"Call">>, ConfReq)]),
+    lager:debug("twiml conference props ~p", [props:delete(<<"Call">>, ConfReq)]),
     kapi_conference:publish_discovery_req(ConfReq).
 
 -spec deaf_muted_headers(kz_term:proplist(), boolean()) -> kz_term:proplist().
@@ -522,18 +520,4 @@ record_from_bridge(Props) ->
         <<"record-from-ringing">> -> 'true';
         <<"record-from-ringing-dual">> -> 'true';
         _ -> 'undefined'
-    end.
-
--spec should_record_conference(kz_term:proplist(), kz_term:proplist(), kz_term:proplist()) -> boolean().
-should_record_conference(<<"default">>, _DialProps, _ConfProps) ->
-    'false';
-should_record_conference(<<"page">>, _DialProps, _ConfProps) ->
-    'false';
-should_record_conference(<<"video">>, _DialProps, _ConfProps) ->
-    'false';
-should_record_conference(_ProfileName, DialProps, ConfProps) ->
-    case props:get_ne_binary_value('record', ConfProps) of
-        <<"true">> -> 'true';
-        <<"record-from", _/binary>> -> 'true';
-        _ -> should_record_call(DialProps)
     end.

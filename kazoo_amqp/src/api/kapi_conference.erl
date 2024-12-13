@@ -510,7 +510,6 @@ discovery_req_definition() ->
                                                             ,<<"Play-Welcome">>
                                                             ,<<"Play-Welcome-Media">>
                                                             ,<<"Max-Participants">>
-                                                            ,<<"Auto-Record">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
@@ -533,7 +532,6 @@ discovery_req_definition() ->
                 ,{<<"Play-Welcome">>, fun kz_term:is_boolean/1}
                 ,{<<"Play-Welcome-Media">>, fun kz_term:is_ne_binary/1}
                 ,{<<"Max-Participants">>, fun kz_term:is_pos_integer/1}
-                ,{<<"Auto-Record">>, fun kz_term:is_boolean/1}
                 ]
                }
               ],
