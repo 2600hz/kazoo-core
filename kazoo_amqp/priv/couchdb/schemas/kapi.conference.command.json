@@ -53,14 +53,6 @@
         "Conference-ID": {
             "type": "string"
         },
-        "Conference-Val": {
-            "minLength": 1,
-            "type": "string"
-        },
-        "Conference-Var": {
-            "minLength": 1,
-            "type": "string"
-        },
         "Custom-Application-Vars": {
             "type": "object"
         },
@@ -148,9 +140,6 @@
             "type": "string"
         },
         "Profile-Name": {
-            "type": "string"
-        },
-        "Recording-Data": {
             "type": "string"
         },
         "Relationship": {

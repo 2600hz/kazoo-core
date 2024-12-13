@@ -159,9 +159,9 @@ endconf_grace_time(Doc, Default) ->
 set_auto_record(Doc, AutoRecord) ->
     kz_json:set_value([<<"auto_record">>], AutoRecord, Doc).
 
--spec auto_record(doc()) -> kz_term:api_boolean().
+-spec auto_record(doc()) -> boolean().
 auto_record(Doc) ->
-    auto_record(Doc, 'undefined').
+    auto_record(Doc, 'false').
 
 -spec auto_record(doc(), Default) -> boolean() | Default.
 auto_record(Doc, Default) ->

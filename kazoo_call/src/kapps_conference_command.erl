@@ -35,8 +35,6 @@
 -export([send_command/2]).
 -export([play_macro/2]).
 
--export([recording_data/2]).
-
 -spec search(kapps_conference:conference() | binary()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
@@ -183,21 +181,18 @@ play(Media, ParticipantId, Conference) ->
 
 -spec record(kapps_conference:conference()) -> 'ok'.
 record(Conference) ->
-    record(Conference, kz_json:new()).
+    record(Conference, recording_name()).
 
 -spec record(kapps_conference:conference(), kz_term:ne_binary()) -> 'ok'.
-record(Conference, Data0) ->
-    {MediaName, Data} = recording_data(kapps_conference:account_id(Conference), Data0),
+record(Conference, MediaName) ->
     Command = [{<<"Application-Name">>, <<"record">>}
               ,{<<"Media-Name">>, MediaName}
-              ,{<<"Recording-Data">>, Data}
               ],
     send_command(Command, Conference).
 
 -spec recordstop(kapps_conference:conference()) -> 'ok'.
 recordstop(Conference) ->
-    {MediaName, _} = recording_data(kapps_conference:account_id(Conference), kz_json:new()),
-    recordstop(Conference, MediaName).
+    recordstop(Conference, recording_name()).
 
 -spec recordstop(kapps_conference:conference(), kz_term:ne_binary()) -> 'ok'.
 recordstop(Conference, MediaName) ->
@@ -328,23 +323,8 @@ play_macro(Macro, Conference) ->
            ],
     send_command(Prop, Conference).
 
--spec recording_data(kz_term:ne_binary(),  kz_json:object()) ->
-          {kz_term:ne_binary(), kz_term:ne_binary()}.
-recording_data(AccountId, Data) ->
-    MediaName = recording_name(Data),
-    {Year, Month, _} = erlang:date(),
-    DefaultMediaDocId = ?MATCH_MODB_PREFIX(kz_term:to_binary(Year), kz_date:pad_month(Month), kz_binary:rand_hex(16)),
-    MediaDocId = kz_json:get_ne_binary_value(<<"media_id">>, Data, DefaultMediaDocId),
-    DefaultRecorder = kapps_call_recording:media_recorder(Data, AccountId),
-    Prop = [{<<"Name">>, MediaName}
-           ,{<<"Recorder">>, kz_json:get_ne_binary_value(<<"Recorder">>, Data, DefaultRecorder)}
-           ,{<<"ID">>, MediaDocId}
-           ],
-    {MediaName, base64:encode(term_to_binary(kz_json:set_values(Prop, Data)))}.
-
--spec recording_name(kz_json:object()) -> kz_term:ne_binary().
-recording_name(Data) ->
+-spec recording_name() -> kz_term:ne_binary().
+recording_name() ->
     RecID = kz_binary:rand_hex(16),
-    Format = kapps_call_recording:get_format(kz_json:get_ne_binary_value(<<"format">>, Data)),
-    DefaultMediaName = kapps_call_recording:get_media_name(RecID, Format),
-    kz_json:get_ne_binary_value(<<"media_name">>, Data, DefaultMediaName).
+    Format = kapps_call_recording:get_format('undefined'),
+    kapps_call_recording:get_media_name(RecID, Format).

@@ -73,9 +73,6 @@
             "minLength": 1,
             "type": "string"
         },
-        "Recording-Data": {
-            "type": "string"
-        },
         "Wait-For-Moderator": {
             "type": "string"
         }

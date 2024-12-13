@@ -408,26 +408,24 @@ publish_conference_request(Call, Id, Name, DialProps, ConfProps) ->
                               ,[{'event', {Id, kapps_call:call_id_direct(Call)}}]
                               }
                              ]),
-    ShouldRecord = should_record_conference(DialProps, ConfProps),
+    ShouldRecord = should_record_conference(ProfileName, DialProps, ConfProps),
 
     ConfReq =
         props:filter_undefined(
           [{<<"Call">>, kapps_call:to_json(Call)}
           ,{<<"Conference-ID">>, Id}
           ,{<<"Conference-Name">>, Name}
-          ,{<<"End-On-Last-Member-Leave">>, props:is_true('endConferenceOnLastMemberExit', ConfProps, 'undefined')}
-          ,{<<"End-On-Leave">>, props:is_true('endConferenceOnExit', ConfProps, 'undefined')}
-           %% add this kapi_conference (first time conf is created):
+          ,{<<"Profile-Name">>, ProfileName}
+           %% FIXME: we must not set these if profile name is default, video, or page
           ,{<<"Max-Participants">>, get_max_participants(ConfProps)}
-          ,{<<"Moderator">>, IsModerator}
           ,{<<"Play-Entry-Tone">>, conference_play_entry_tone(ConfProps)}
           ,{<<"Play-Exit-Tone">>, conference_play_exit_tone(ConfProps)}
-          ,{<<"Profile-Name">>, ProfileName}
-           %% add this kapi_conference (first time conf is created):
           ,{<<"Wait-For-Moderator">>, not IsModerator}
-           %% conference with record function enabled
           ,{<<"Auto-Record">>, ShouldRecord}
-          ,{<<"Recording-Data">>, conference_recording_data(ShouldRecord, ConfProps, Call)}
+           %% member join-options, safe to set per member
+          ,{<<"End-On-Last-Member-Leave">>, props:is_true('endConferenceOnLastMemberExit', ConfProps, 'undefined')}
+          ,{<<"End-On-Leave">>, props:is_true('endConferenceOnExit', ConfProps, 'undefined')}
+          ,{<<"Moderator">>, IsModerator}
           | deaf_muted_headers(ConfProps, IsModerator) ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
           ]
          ),
@@ -526,20 +524,16 @@ record_from_bridge(Props) ->
         _ -> 'undefined'
     end.
 
--spec should_record_conference(kz_term:proplist(), kz_term:proplist()) -> boolean().
-should_record_conference(DialProps, ConfProps) ->
+-spec should_record_conference(kz_term:proplist(), kz_term:proplist(), kz_term:proplist()) -> boolean().
+should_record_conference(<<"default">>, _DialProps, _ConfProps) ->
+    'false';
+should_record_conference(<<"page">>, _DialProps, _ConfProps) ->
+    'false';
+should_record_conference(<<"video">>, _DialProps, _ConfProps) ->
+    'false';
+should_record_conference(_ProfileName, DialProps, ConfProps) ->
     case props:get_ne_binary_value('record', ConfProps) of
         <<"true">> -> 'true';
         <<"record-from", _/binary>> -> 'true';
         _ -> should_record_call(DialProps)
     end.
-
--spec conference_recording_data(boolean(), kz_term:proplist(), kapps_call:call()) -> kz_term:api_ne_binary().
-conference_recording_data('true', ConfProps, Call) ->
-    Data0 = [{<<"url">>, props:get_binary_value('recordingUrl', ConfProps)}
-            ,{<<"method">>, kzt_util:record_store_method(ConfProps)}
-            ],
-    {_MediName, Data} = kapps_conference_command:recording_data(kapps_call:account_id(Call), kz_json:from_list(Data0)),
-    Data;
-conference_recording_data('false', _ConfProps, _Call) ->
-    'undefined'.

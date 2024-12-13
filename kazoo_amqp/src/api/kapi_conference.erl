@@ -511,7 +511,6 @@ discovery_req_definition() ->
                                                             ,<<"Play-Welcome-Media">>
                                                             ,<<"Max-Participants">>
                                                             ,<<"Auto-Record">>
-                                                            ,<<"Recording-Data">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
@@ -535,7 +534,6 @@ discovery_req_definition() ->
                 ,{<<"Play-Welcome-Media">>, fun kz_term:is_ne_binary/1}
                 ,{<<"Max-Participants">>, fun kz_term:is_pos_integer/1}
                 ,{<<"Auto-Record">>, fun kz_term:is_boolean/1}
-                ,{<<"Recording-Data">>, fun kz_term:is_ne_binary/1}
                 ]
                }
               ],
@@ -954,7 +952,6 @@ record_definition() ->
                                                             ,<<"Media-Name">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Call-ID">>
-                                                            ,<<"Recording-Data">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"record">>}
@@ -963,7 +960,6 @@ record_definition() ->
                }
               ,{fun kapi_definition:set_types/2
                ,[{<<"Conference-ID">>, fun is_binary/1}
-                ,{<<"Recording-Data">>, fun kz_term:is_ne_binary/1}
                 ]
                }
               ],
@@ -1490,18 +1486,18 @@ fs_setvar_definition() ->
               ,{fun kapi_definition:set_publish_fun/2, fun publish_fs_conference_setvar/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Application-Name">>
                                                             ,<<"Conference-ID">>
+                                                            ,<<"Parameter">>
+                                                            ,<<"Value">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Conference-Var">>
-                                                            ,<<"Conference-Val">>
-                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"setvar">>}
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
                }
               ,{fun kapi_definition:set_types/2
-               ,[{<<"Conference-Var">>, fun kz_term:is_ne_binary/1}
-                ,{<<"Conference-Val">>, fun kz_term:is_ne_binary/1}
+               ,[{<<"Parameter">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Value">>, fun kz_term:is_ne_binary/1}
                 ]
                }
               ],
