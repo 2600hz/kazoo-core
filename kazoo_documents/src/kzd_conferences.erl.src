@@ -84,6 +84,18 @@ allow_shareable_link(Doc, Default) ->
 set_allow_shareable_link(Doc, AllowShareableLink) ->
     kz_json:set_value([<<"allow_shareable_link">>], AllowShareableLink, Doc).
 
+-spec auto_record(doc()) -> boolean().
+auto_record(Doc) ->
+    auto_record(Doc, 'false').
+
+-spec auto_record(doc(), Default) -> boolean() | Default.
+auto_record(Doc, Default) ->
+    kz_json:get_boolean_value([<<"auto_record">>], Doc, Default).
+
+-spec set_auto_record(doc(), boolean()) -> doc().
+set_auto_record(Doc, AutoRecord) ->
+    kz_json:set_value([<<"auto_record">>], AutoRecord, Doc).
+
 -spec base_profile_name(doc()) -> kz_term:api_binary().
 base_profile_name(Doc) ->
     base_profile_name(Doc, 'undefined').
