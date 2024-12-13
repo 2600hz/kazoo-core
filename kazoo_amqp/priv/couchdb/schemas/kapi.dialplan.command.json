@@ -106,6 +106,21 @@
         "Attended-Transfer-Keys": {
             "type": "string"
         },
+        "Audio-Mix": {
+            "enum": [
+                "mono",
+                "stereo"
+            ],
+            "type": "string"
+        },
+        "Audio-Tracks": {
+            "enum": [
+                "both",
+                "inbound",
+                "outbound"
+            ],
+            "type": "string"
+        },
         "B-Leg-Events": {
             "items": {
                 "enum": [
@@ -182,6 +197,9 @@
             "type": "string"
         },
         "Confirm-Key": {
+            "type": "string"
+        },
+        "Connect-Payload": {
             "type": "string"
         },
         "Continue-After": {
@@ -606,6 +624,10 @@
             ],
             "type": "string"
         },
+        "Sample-Rate": {
+            "minLength": 1,
+            "type": "string"
+        },
         "Say-Text": {
             "type": "string"
         },
@@ -629,6 +651,13 @@
                 "read",
                 "write"
             ],
+            "type": "string"
+        },
+        "Stream-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Stream-URL": {
             "type": "string"
         },
         "Suppress-Error-Report": {
