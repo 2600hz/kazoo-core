@@ -57,7 +57,6 @@
 -export([profile_name/1, profile_name/2, set_profile_name/2]).
 -export([profile_rate/1, profile_rate/2, set_profile_rate/2]).
 -export([profile_unmuted_sound/1, profile_unmuted_sound/2, set_profile_unmuted_sound/2]).
--export([recording_data/1, recording_data/2, set_recording_data/2]).
 -export([require_moderator/1, require_moderator/2, set_require_moderator/2]).
 -export([video/1, video/2, set_video/2]).
 -export([wait_for_moderator/1, wait_for_moderator/2, set_wait_for_moderator/2]).
@@ -86,15 +85,15 @@ allow_shareable_link(Doc, Default) ->
 set_allow_shareable_link(Doc, AllowShareableLink) ->
     kz_json:set_value([<<"allow_shareable_link">>], AllowShareableLink, Doc).
 
--spec auto_record(doc()) -> kz_term:api_boolean().
+-spec auto_record(doc()) -> any().
 auto_record(Doc) ->
     auto_record(Doc, 'undefined').
 
--spec auto_record(doc(), Default) -> boolean() | Default.
+-spec auto_record(doc(), Default) -> any() | Default.
 auto_record(Doc, Default) ->
-    kz_json:get_boolean_value([<<"auto_record">>], Doc, Default).
+    kz_json:get_value([<<"auto_record">>], Doc, Default).
 
--spec set_auto_record(doc(), boolean()) -> doc().
+-spec set_auto_record(doc(), any()) -> doc().
 set_auto_record(Doc, AutoRecord) ->
     kz_json:set_value([<<"auto_record">>], AutoRecord, Doc).
 
@@ -685,18 +684,6 @@ profile_unmuted_sound(Doc, Default) ->
 -spec set_profile_unmuted_sound(doc(), binary()) -> doc().
 set_profile_unmuted_sound(Doc, ProfileUnmutedSound) ->
     kz_json:set_value([<<"profile">>, <<"unmuted_sound">>], ProfileUnmutedSound, Doc).
-
--spec recording_data(doc()) -> kz_term:api_object().
-recording_data(Doc) ->
-    recording_data(Doc, 'undefined').
-
--spec recording_data(doc(), Default) -> kz_json:object() | Default.
-recording_data(Doc, Default) ->
-    kz_json:get_json_value([<<"recording_data">>], Doc, Default).
-
--spec set_recording_data(doc(), kz_json:object()) -> doc().
-set_recording_data(Doc, RecordingData) ->
-    kz_json:set_value([<<"recording_data">>], RecordingData, Doc).
 
 -spec require_moderator(doc()) -> kz_term:api_boolean().
 require_moderator(Doc) ->
