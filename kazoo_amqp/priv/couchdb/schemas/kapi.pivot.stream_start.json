@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.pivot.stream_start",
+    "description": "AMQP API for pivot.stream_start",
+    "properties": {
+        "Account-ID": {
+            "type": "string"
+        },
+        "Call-ID": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "pivot"
+            ],
+            "type": "string"
+        },
+        "Event-Name": {
+            "enum": [
+                "processing"
+            ],
+            "type": "string"
+        },
+        "Stream-ID": {
+            "type": "string"
+        },
+        "Stream-Name": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Account-ID",
+        "Call-ID",
+        "Event-Category",
+        "Event-Name",
+        "Stream-ID",
+        "Stream-Name"
+    ],
+    "type": "object"
+}
