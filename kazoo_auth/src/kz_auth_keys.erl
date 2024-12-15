@@ -11,7 +11,7 @@
 
 -export([get_public_key_from_cert/1]).
 -export([get_public_key_from_private_key/1]).
--export([gen_private_key/0, gen_private_key/1]).
+-export([gen_private_key/0, gen_private_key/1, gen_private_key/2]).
 -export([get_public_key/2]).
 -export([get_private_key_from_file/1]).
 -export([from_pem/1, to_pem/1, to_pem/2]).
@@ -406,14 +406,25 @@ save_private_key(JObj, Key) ->
             Err
     end.
 
+-spec rsa_key_size() -> integer().
+rsa_key_size() ->
+    kz_app_config:get_pos_integer(?APP, <<"rsa.key.size">>, ?RSA_KEY_SIZE).
+
+-spec rsa_pubexp_size() -> integer().
+rsa_pubexp_size() ->
+    kz_app_config:get_pos_integer(?APP, <<"rsa.pubexp.size">>, ?RSA_PUBEXP_SIZE).
+
 -spec gen_private_key() -> {'ok', public_key:private_key()}.
 gen_private_key() ->
-    gen_private_key(?RSA_KEY_SIZE).
+    gen_private_key(rsa_key_size()).
 
 -spec gen_private_key(integer()) -> {'ok', public_key:private_key()}.
 gen_private_key(Size) ->
-    Key = public_key:generate_key({'rsa', Size, ?RSA_PUBEXP_SIZE}),
-    {'ok', Key}.
+    gen_private_key(Size, rsa_pubexp_size()).
+
+-spec gen_private_key(integer(), integer()) -> {'ok', public_key:private_key()}.
+gen_private_key(Size, PubExp) ->
+    {'ok', public_key:generate_key({'rsa', Size, PubExp})}.
 
 %% @equiv reset_private_key(kz_auth_apps:get_auth_app(<<"kazoo">>))
 -spec reset_kazoo_private_key() -> {'ok', kz_term:ne_binary()} | kz_datamgr:data_error().

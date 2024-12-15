@@ -9,6 +9,7 @@
 
 -define(CONFIG_CAT, <<"auth">>).
 
+-define(APP, auth).
 -define(APP_NAME, <<"auth">>).
 -define(APP_VERSION, <<"4.0.0">>).
 
@@ -39,7 +40,7 @@
 %% Recommends Fermat primes of {3, 5, 17, 257 or 65537}
 %% https://crypto.stackexchange.com/questions/10809/openssl-rsa-how-many-public-exponents-are-possible
 %% Small e are faster
--define(RSA_PUBEXP_SIZE, 17).
+-define(RSA_PUBEXP_SIZE, 65537).
 
 -define(SYSTEM_KEY_ID, kapps_config:get_ne_binary(?CONFIG_CAT, <<"system_key">>, kz_binary:rand_hex(16))).
 -define(SYSTEM_KEY_ATTACHMENT_NAME, <<"private_key.pem">>).
