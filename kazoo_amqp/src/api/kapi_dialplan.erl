@@ -574,6 +574,8 @@ bridge_endpoint_definition() ->
                                                             ,<<"Enable-T38-Gateway">>
                                                             ,<<"Enable-T38-Passthrough">>
                                                             ,<<"Endpoint-Actions">>
+                                                            ,<<"Endpoint-Channel">>
+                                                            ,<<"Endpoint-Channel-Data">>
                                                             ,<<"Endpoint-Delay">>
                                                             ,<<"Endpoint-ID">>
                                                             ,<<"Endpoint-Options">>
