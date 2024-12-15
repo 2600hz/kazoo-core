@@ -552,8 +552,7 @@ bridge_endpoint_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun bridge_endpoint/1}
               ,{fun kapi_definition:set_validate_fun/2, fun bridge_endpoint_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Invite-Format">>
-                                                            ]}
+              ,{fun kapi_definition:set_required_headers/2, []}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Account-ID">>
                                                             ,<<"Auth-Password">>
                                                             ,<<"Auth-Realm">>
@@ -590,6 +589,7 @@ bridge_endpoint_definition() ->
                                                             ,<<"Hold-Media-Options">>
                                                             ,<<"Ignore-Completed-Elsewhere">>
                                                             ,<<"Ignore-Early-Media">>
+                                                            ,<<"Invite-Format">>
                                                             ,<<"Loopback-Bowout">>
                                                             ,<<"Outbound-Callee-ID-Name">>
                                                             ,<<"Outbound-Callee-ID-Number">>
