@@ -79,7 +79,7 @@
         ,handle_info/2
         ,terminate/2
         ,code_change/3
-        ,format_status/2
+        ,format_status/1
         ]).
 
 %% gen_server API
@@ -1100,22 +1100,23 @@ handle_callback_info(Message
         {'stop', R, State}
         end.
 
--spec format_status('normal' | 'terminate', [kz_term:proplist() | state()]) -> any().
-format_status(_Opt
-             ,[_PDict
-              ,#state{module=Module
-                     ,module_state=ModuleState
-                     }=State
-              ]) ->
-    case erlang:function_exported(Module, 'format_status', 2) of
-        'true' -> Module:format_status(_Opt, [_PDict, ModuleState]);
+format_state(#state{module = Module, module_state = ModuleState} = State) ->
+    case erlang:function_exported(Module, 'format_status', 1) of
+        'true' ->
+            Module:format_status(#{state => ModuleState});
         'false' ->
-            [{'data', [{"Module State", ModuleState}
-                      ,{"Module", Module}
-                      ,{"Listener State", State}
-                      ]
-             }]
+            #{module => Module
+             ,module_state => ModuleState
+             ,listener_state => State
+             }
     end.
+
+format_status_map(state, State) -> format_state(State);
+format_status_map(_, Value) -> Value.
+
+-spec format_status(gen_server:format_status()) -> gen_server:format_status().
+format_status(Status) ->
+    maps:map(fun format_status_map/2, Status).
 
 -spec deliver_event(kz_json:object(), deliver(), state()) ->  kz_types:handle_info_ret().
 deliver_event(JObj, {_ , #'P_basic'{headers='undefined'}}=BasicDeliver, State) ->
