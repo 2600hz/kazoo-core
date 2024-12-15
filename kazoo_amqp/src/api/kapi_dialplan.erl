@@ -1336,6 +1336,8 @@ record_call_definition() ->
                                        ,<<"unmask">>
                                        ,<<"pause">>
                                        ,<<"resume">>
+                                       ,<<"toggle_mask">>
+                                       ,<<"toggle_pause">>
                                        ]
                  }
                 ,?INSERT_AT_TUPLE
