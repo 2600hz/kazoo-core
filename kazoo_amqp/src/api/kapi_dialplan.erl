@@ -621,7 +621,7 @@ bridge_endpoint_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[?INVITE_FORMAT_TUPLE
-                ,{<<"Endpoint-Type">>, [<<"sip">>, <<"freetdm">>, <<"skype">>]}
+                ,{<<"Endpoint-Type">>, [<<"sip">>, <<"freetdm">>, <<"skype">>, <<"application">>]}
                 ,{<<"Enable-T38-Gateway">>, [<<"self">>, <<"peer">>]}
                 ,{<<"SIP-Transport">>, [<<"udp">>, <<"tcp">>, <<"tls">>, <<"sctp">>]}
                 ]
