@@ -276,6 +276,7 @@ build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
     ,{<<"Endpoint-Type">>, <<"device">>}
     ,{<<"Endpoint-Device-Type">>, kzd_devices:device_type(Endpoint)}
     ,{<<"Endpoint-Application">>, kzd_devices:application_name(Endpoint)}
+    ,{<<"Endpoint-Channel-Data">>, kzd_devices:application_channel_data(Endpoint)}
     ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
     ,{<<"Endpoint-Caller-ID-Number">>, EPCIDNumber}
     ,{<<"Endpoint-Caller-ID-Name">>, EPCIDName}
