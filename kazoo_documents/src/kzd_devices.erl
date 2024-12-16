@@ -127,6 +127,7 @@
 -export([application/1, application/2
         ,application_name/1, application_name/2
         ,application_data/1, application_data/2
+        ,application_channel_data/1, application_channel_data/2
         ,application_dialstring/1, application_dialstring/2
         ]).
 
@@ -1497,6 +1498,14 @@ application_data(Doc) ->
 -spec application_data(doc(), Default) -> kz_json:object() | Default.
 application_data(Doc, Default) ->
     kz_json:get_json_value(<<"data">>, application(Doc, kz_json:new()), Default).
+
+-spec application_channel_data(doc()) -> kz_term:api_object().
+application_channel_data(Doc) ->
+    application_channel_data(Doc, 'undefined').
+
+-spec application_channel_data(doc(), Default) -> kz_json:object() | Default.
+application_channel_data(Doc, Default) ->
+    kz_json:get_json_value(<<"channel_data">>, application(Doc, kz_json:new()), Default).
 
 -spec application_dialstring(doc()) -> kz_term:api_ne_binary().
 application_dialstring(Doc) ->
