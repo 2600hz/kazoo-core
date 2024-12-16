@@ -207,8 +207,6 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options) ->
             ,{<<"Realm">>, Realm}
             ,{<<"Username">>, kzd_devices:sip_username(Endpoint)}
             ,{<<"SIP-Invite-Domain">>, Realm}
-            ,{<<"Ignore-Early-Media">>, 'true'}
-            ,{<<"Endpoint-Mark-Ring-Ready">>, 'true'}
             ],
     CCVs = kz_json:from_list(Props),
 
