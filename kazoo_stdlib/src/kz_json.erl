@@ -2024,8 +2024,10 @@ normalize_key_char(C) when is_integer(C), 16#C0 =< C, C =< 16#D6 -> C + 32; % fr
 normalize_key_char(C) when is_integer(C), 16#D8 =< C, C =< 16#DE -> C + 32; % so we only loop once
 normalize_key_char(C) -> C.
 
--type search_replace_format() :: {get_key(), get_key()} |
-                                 {get_key(), get_key(), fun((any()) -> any())}.
+-type search_replace_fun() :: fun((any()) -> any()).
+
+-type search_replace_format() :: {get_key(), get_key() | search_replace_fun()} |
+                                 {get_key(), get_key() | search_replace_fun(), search_replace_fun()}.
 -type search_replace_formatters() :: [search_replace_format()].
 
 -spec normalize_jobj(object(), paths() | keys(), search_replace_formatters()) -> object().
@@ -2037,9 +2039,16 @@ normalize_jobj(?JSON_WRAPPER(_)=JObj, RemoveKeys, SearchReplaceFormatters) ->
                  )).
 
 -spec search_replace_format(search_replace_format(), object()) -> object().
+search_replace_format({Key, Formatter}, JObj) when is_function(Formatter, 1) ->
+    set_value(Key, Formatter(get_value(Key, JObj)), delete_key(Key, JObj));
 search_replace_format({Old, New}, JObj) ->
     V = get_value(Old, JObj),
     set_value(New, V, delete_key(Old, JObj));
+search_replace_format({Key, KeyFormatter, ValueFormatter}, JObj)
+  when is_function(KeyFormatter, 1),
+       is_function(ValueFormatter, 1) ->
+    V = get_value(Key, JObj),
+    set_value(KeyFormatter(Key), ValueFormatter(V), delete_key(Key, JObj));
 search_replace_format({Old, New, Formatter}, JObj) when is_function(Formatter, 1) ->
     V = get_value(Old, JObj),
     set_value(New, Formatter(V), delete_key(Old, JObj)).
