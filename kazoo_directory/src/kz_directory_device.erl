@@ -376,8 +376,8 @@ guess_endpoint_type(Endpoint, []) ->
         _Else -> <<"sip">>
     end.
 
--spec endpoint_id(kz_json:object(), kz_json:object()) -> kz_json:object().
-endpoint_id(Endpoint, CCVs) ->
+-spec authorizing_id(kz_json:object(), kz_json:object()) -> kz_json:object().
+authorizing_id(Endpoint, CCVs) ->
     case kz_doc:id(Endpoint) of
         'undefined' -> CCVs;
         EndpointId ->
@@ -594,7 +594,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, Module) ->
     CCVs = kz_json:from_list(Props),
 
     CCVFuns = [{fun default_ccvs/2, Endpoint}
-              ,{fun endpoint_id/2, Endpoint}
+              ,{fun authorizing_id/2, Endpoint}
               ,{fun owner_id/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
               ,{fun hold_music_options/2, Endpoint}
