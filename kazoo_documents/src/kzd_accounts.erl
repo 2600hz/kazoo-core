@@ -74,6 +74,7 @@
         ,is_expired/1
 
         ,tree/1, tree/2, set_tree/2, path_tree/0
+        ,descendants/1, descendants/2
         ,default_timezone/0
         ,notification_preference/1, set_notification_preference/2, path_notification_preference/0
         ,allow_number_additions/1, set_allow_number_additions/2, path_allow_number_additions/0
@@ -901,6 +902,31 @@ path_tree() ->
 set_tree(JObj, Tree) ->
     kz_json:set_value([<<"pvt_tree">>], Tree, JObj).
 
+-spec descendants(kz_term:ne_binary() | doc()) -> kz_term:ne_binaries().
+descendants(JObj) ->
+    descendants(JObj, []).
+
+-spec descendants(kz_term:ne_binary() | doc(), Default) -> kz_term:ne_binaries() | Default.
+descendants(?NE_BINARY=AccountId, Default) ->
+    case fetch_descendants(AccountId) of
+        [] -> Default;
+        AccountIds -> AccountIds
+    end;
+descendants(JObj, Default) ->
+    descendants(id(JObj), Default).
+
+-spec fetch_descendants(kz_term:ne_binary()) -> kz_term:ne_binaries().
+fetch_descendants(AccountId) ->
+    View = <<"accounts/listing_by_descendants">>,
+    ViewOptions = [{'startkey', [AccountId]}
+                  ,{'endkey', [AccountId, kz_json:new()]}
+                  ],
+    case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, View, ViewOptions) of
+        {'ok', JObjs} -> [kz_doc:id(JObj) || JObj <- JObjs];
+        {'error', _R} -> []
+    end.
+
+
 -spec notification_preference(doc()) -> kz_term:api_binary().
 notification_preference(JObj) ->
     Pref = notification_preference(JObj, [[<<"pvt_notification_preference">>]
@@ -1015,7 +1041,9 @@ is_expired(JObj) ->
 is_trial_account(JObj) ->
     kz_json:is_true([<<"is_trial_account">>], JObj, 'false').
 
--spec is_reseller(doc()) -> boolean().
+-spec is_reseller(kz_term:ne_binary() | doc()) -> boolean().
+is_reseller(<<AccountId/binary>>) ->
+    fetch_value(AccountId, fun is_reseller/1);
 is_reseller(JObj) ->
     kz_json:is_true([<<"pvt_reseller">>], JObj)
         orelse is_superduper_admin(JObj).
