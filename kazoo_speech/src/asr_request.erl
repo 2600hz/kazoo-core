@@ -236,23 +236,23 @@ from_media_recording(Attachment, Props) ->
 -spec from_recording_props(asr_req(), binary(), kz_term:proplist()) -> asr_req().
 from_recording_props(Req, Attachment, Props) ->
     ASRProvider = kazoo_asr:default_provider(),
-    AccountId = props:get_binary_value(<<"account_id">>, Props),
+    AccountId = props:get_binary_value('account_id', Props),
 
     Req#asr_req{'account_authorized' = 'false'
                ,'account_db' = kzs_util:format_account_db(AccountId)
                ,'account_id' = AccountId
                ,'asr_provider' = ASRProvider
-               ,'call_id' = props:get_binary_value(<<"call_id">>, Props)
+               ,'call_id' = props:get_binary_value('call_id', Props)
                ,'description' = <<ASRProvider/binary, "ASR transcription from recored call">>
                ,'reseller_id' = kz_services_reseller:get_id(AccountId)
                ,'services' = kz_services:fetch(AccountId)
-               ,'media_id' = props:get_binary_value(<<"media_id">>, Props)
+               ,'media_id' = props:get_binary_value('media_id', Props)
                ,'binary_media' = Attachment
                 %% metadata that stored to doc by call record
-               ,'content_type' =  props:get_binary_value(<<"content_type">>, Props)
-               ,'account_modb' =  props:get_binary_value(<<"modb">>, Props)
-               ,'attachment_id' = props:get_binary_value(<<"attachment_id">>, Props)
-               ,'recording_milliseconds' = props:get_binary_value(<<"recording_milliseconds">>, Props)
+               ,'content_type' =  props:get_binary_value('content_type', Props)
+               ,'account_modb' =  props:get_binary_value('modb', Props)
+               ,'attachment_id' = props:get_binary_value('attachment_id', Props)
+               ,'recording_milliseconds' = props:get_binary_value('recording_milliseconds', Props)
                ,'timestamp' = kz_time:now_s()
                }.
 
