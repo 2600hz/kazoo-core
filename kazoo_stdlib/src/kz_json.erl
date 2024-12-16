@@ -19,6 +19,7 @@
 -export([recursive_to_proplist/1]).
 
 -export([get_first_defined/2, get_first_defined/3]).
+-export([get_first_defined_key_value/2, get_first_defined_key_value/3]).
 -export([get_binary_boolean/2, get_binary_boolean/3]).
 -export([get_boolean_value/2, get_boolean_value/3]).
 -export([get_integer_value/2, get_integer_value/3]).
@@ -1560,6 +1561,20 @@ get_first_defined([H|T], JObj, Default) ->
         V -> V
     catch
         'error':'badarg' -> get_first_defined(T, JObj, Default)
+    end.
+
+-spec get_first_defined_key_value(keys() | paths(), object()) -> api_json_term().
+get_first_defined_key_value(Keys, JObj) ->
+    get_first_defined_key_value(Keys, JObj, 'undefined').
+
+-spec get_first_defined_key_value(keys() | paths(), object(), Default) -> json_term() | Default.
+get_first_defined_key_value([], _JObj, Default) -> Default;
+get_first_defined_key_value([H|T], JObj, Default) ->
+    try get_value(H, JObj) of
+        'undefined' -> get_first_defined_key_value(T, JObj, Default);
+        V -> {H, V}
+    catch
+        'error':'badarg' -> get_first_defined_key_value(T, JObj, Default)
     end.
 
 -type take_return() :: 'false' |
