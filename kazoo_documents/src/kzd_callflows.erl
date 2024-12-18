@@ -521,11 +521,9 @@ maybe_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId,
                        {'ok', CurrentDoc} -> kz_json:get_list_value(Key, CurrentDoc, []);
                        {'error', _R} -> 'undefined'
                    end,
-    case kz_term:is_empty(NewValue)
-        orelse ( not (kz_term:is_empty(CurrentValue))
-                 andalso (length(NewValue) =:= length(CurrentValue))
-                 andalso ((NewValue -- CurrentValue) =:= [])
-               )
+    case not kz_term:is_empty(CurrentValue)
+        andalso (length(NewValue) =:= length(CurrentValue))
+        andalso ((NewValue -- CurrentValue) =:= [])
     of
         'true' when NewValue =:= 'undefined' ->
             lager:debug("~p is not set on callflow, skipping unique ~p checks", [Key, Key]),
@@ -562,7 +560,7 @@ maybe_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId,
 split_numbers_or_patterns(_SplitAt, Key, [], AccountId, CallflowId, ValidateAcc, PidAcc) ->
     validate_attribute_list_response(Key, AccountId, CallflowId, ValidateAcc, PidAcc);
 split_numbers_or_patterns(SplitAt, Key, Attributes, AccountId, CallflowId, ValidateAcc, PidAcc)
-        when length(Attributes) < SplitAt ->
+  when length(Attributes) < SplitAt ->
     Pid = do_validate_attribute_list_is_unique_within_account_callflows(Attributes
                                                                        ,Key
                                                                        ,AccountId),
@@ -667,16 +665,19 @@ filter_callflow_list(CallflowId, Callflows) ->
     ].
 
 %%------------------------------------------------------------------------------
-%% @doc Add all `numbers' or `patterns' conflict errors to the
+%% @doc Add only limited no of `numbers' or `patterns' conflict errors to the
 %% `doc_validation_acc()'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec add_attribute_conflict_errors(kz_json:get_key(), docs(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
 add_attribute_conflict_errors(_Key, [], ValidateAcc) -> ValidateAcc;
-add_attribute_conflict_errors(Key, [CallflowView | CallflowViews], ValidateAcc) ->
+add_attribute_conflict_errors(Key, [CallflowView | CallflowViews], ValidateAcc)
+  when length(ValidateAcc) < 50 ->
     UpdatedValidateAcc = add_attribute_conflict_error(Key, CallflowView, ValidateAcc),
-    add_attribute_conflict_errors(Key, CallflowViews, UpdatedValidateAcc).
+    add_attribute_conflict_errors(Key, CallflowViews, UpdatedValidateAcc);
+add_attribute_conflict_errors(_Key, _CallflowViews, ValidateAcc) ->
+    ValidateAcc.
 
 %%------------------------------------------------------------------------------
 %% @doc Add a `numbers' or `patterns' conflict error to the
