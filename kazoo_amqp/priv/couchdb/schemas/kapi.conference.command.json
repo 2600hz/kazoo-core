@@ -31,6 +31,7 @@
                 "relate_participants",
                 "say",
                 "set",
+                "setvar",
                 "stop_play",
                 "tones",
                 "tts",
@@ -130,6 +131,7 @@
                 "Caller-ID-Number",
                 "Max-Members"
             ],
+            "minLength": 1,
             "type": "string"
         },
         "Participant-Flags": {
@@ -186,6 +188,7 @@
             "type": "array"
         },
         "Value": {
+            "minLength": 1,
             "type": "string"
         },
         "Voice": {
