@@ -592,13 +592,14 @@ do_validate_attribute_list_is_unique_within_account_callflows(Attributes
     Session = self(),
     View = get_view_by(Key),
     kz_process:spawn(
-        fun() ->
-                Session ! {'check-unique-attributes'
-                          ,self()
-                          ,kz_datamgr:get_results(AccountDb, View, [{'keys', Attributes}])
-                          }
-        end
-    ).
+      fun() ->
+              Session ! {'check-unique-attributes'
+                        ,self()
+                        ,kz_datamgr:get_results(AccountDb, View, [{'keys', Attributes}
+                                                                 ,{'limit', length(Attributes)}])
+                        }
+      end
+     ).
 
 %%------------------------------------------------------------------------------
 %% @doc check attribute list is unique within account callflows.
