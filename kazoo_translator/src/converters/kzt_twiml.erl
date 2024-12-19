@@ -397,6 +397,7 @@ record_call(Call0, Attrs) ->
 
     Data = kz_json:from_list(
              [{<<"url">>, props:get_ne_binary_value('recordingUrl', Props)}
+             ,{<<"transcribe">>, props:get_is_true('transcribe', Props)}
              ,{<<"method">>, kzt_util:record_store_method(Props)}
              ,{<<"time_limit">>, MaxLength}
              | kzt_twiml_util:record_silence_vars(Props)
