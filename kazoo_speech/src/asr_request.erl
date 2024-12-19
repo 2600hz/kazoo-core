@@ -23,6 +23,7 @@
         ,error/1
         ,add_error/2
         ,from_call/1
+        ,from_media_recording/2
         ,from_voicemail/2
         ,impact_reseller/1, set_impact_reseller/2
         ,is_valid/1
@@ -222,6 +223,40 @@ from_voicemail(Call, MediaId) ->
     setters(new(), Setters).
 
 %%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec from_media_recording(binary(), kz_term:proplist()) -> asr_req().
+from_media_recording(Attachment, Props) ->
+    Setters = [{fun from_recording_props/3, Attachment, Props}
+              ,fun set_impact_reseller/1
+              ],
+    setters(new(), Setters).
+
+-spec from_recording_props(asr_req(), binary(), kz_term:proplist()) -> asr_req().
+from_recording_props(Req, Attachment, Props) ->
+    ASRProvider = kazoo_asr:default_provider(),
+    AccountId = props:get_binary_value('account_id', Props),
+
+    Req#asr_req{'account_authorized' = 'false'
+               ,'account_db' = kzs_util:format_account_db(AccountId)
+               ,'account_id' = AccountId
+               ,'asr_provider' = ASRProvider
+               ,'call_id' = props:get_binary_value('call_id', Props)
+               ,'description' = <<ASRProvider/binary, "ASR transcription from recored call">>
+               ,'reseller_id' = kz_services_reseller:get_id(AccountId)
+               ,'services' = kz_services:fetch(AccountId)
+               ,'media_id' = props:get_binary_value('media_id', Props)
+               ,'binary_media' = Attachment
+                %% metadata that stored to doc by call record
+               ,'content_type' =  props:get_binary_value('content_type', Props)
+               ,'account_modb' =  props:get_binary_value('modb', Props)
+               ,'attachment_id' = props:get_binary_value('attachment_id', Props)
+               ,'recording_milliseconds' = props:get_binary_value('recording_milliseconds', Props)
+               ,'timestamp' = kz_time:now_s()
+               }.
+
+%%------------------------------------------------------------------------------
 %% @doc should we bill the reseller
 %% @end
 %%------------------------------------------------------------------------------
@@ -249,6 +284,7 @@ maybe_impact_reseller(_ResellerId=_, _AccountId=_) -> 'false'.
 %%------------------------------------------------------------------------------
 -spec load_binary_media_into_request(asr_req()) -> asr_req().
 load_binary_media_into_request(#asr_req{validated='false'}=Request) -> Request;
+load_binary_media_into_request(#asr_req{binary_media=Media}=Request) when is_binary(Media) -> Request;
 load_binary_media_into_request(#asr_req{}=Request) ->
     case fetch_attachment(Request) of
         'undefined' ->
@@ -506,6 +542,10 @@ set_description(Request, Description) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec set_impact_reseller(asr_req()) -> asr_req().
+set_impact_reseller(Request) ->
+    Request#asr_req{impact_reseller=maybe_impact_reseller(Request)}.
+
 -spec set_impact_reseller(asr_req(), boolean()) -> asr_req().
 set_impact_reseller(Request, ImpactReseller) ->
     Request#asr_req{impact_reseller=ImpactReseller}.
