@@ -376,7 +376,7 @@ path_modified() ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec node(doc()) -> kz_term:ne_binary() | 'undefined'.
+-spec node(doc()) -> kz_term:api_ne_binary().
 node(JObj) ->
     node(JObj, 'undefined').
 
