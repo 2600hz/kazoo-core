@@ -1,2 +1,2 @@
-  - 'Kazoo Configuration Helper':
+  - '{% BRAND_NAME %} Configuration Helper':
     - 'core/kazoo_config/doc/README.md'

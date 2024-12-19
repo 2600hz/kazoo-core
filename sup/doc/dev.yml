@@ -1,2 +1,2 @@
-  - 'Accept RPC requests & push them into a running Kazoo VM':
+  - 'Accept RPC requests & push them into a running {% BRAND_NAME %} VM':
     - 'core/sup/doc/README.md'

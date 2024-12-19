@@ -21,7 +21,7 @@ At this time IP assignment remains the take of operations.  When a client needs 
 ## SUP Commands
 
 ### Refresh the Database
-This will create the dedicated_ips database, if it does not exist.  It will also overwrite or add the dedicated_ips view with the version packaged with Kazoo.
+This will create the dedicated_ips database, if it does not exist.  It will also overwrite or add the dedicated_ips view with the version packaged with {% BRAND_NAME %}.
 
     sup kazoo_ips_maintenance refresh
 

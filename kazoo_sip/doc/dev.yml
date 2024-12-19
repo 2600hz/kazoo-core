@@ -1,2 +1,2 @@
-  - 'Kazoo SIP Utilities':
+  - '{% BRAND_NAME %} SIP Utilities':
     - 'core/kazoo_sip/doc/README.md'

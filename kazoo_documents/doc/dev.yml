@@ -1,2 +1,2 @@
-  - 'Kazoo Document helper modules':
+  - '{% BRAND_NAME %} Document helper modules':
     - 'core/kazoo_documents/doc/maintenance.md'

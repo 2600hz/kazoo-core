@@ -1,2 +1,2 @@
-  - 'Kazoo Stats - An application for statistics tracking and analytics':
+  - '{% BRAND_NAME %} Stats - An application for statistics tracking and analytics':
     - 'core/kazoo_stats/doc/README.md'

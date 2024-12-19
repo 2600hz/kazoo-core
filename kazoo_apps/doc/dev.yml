@@ -1,4 +1,4 @@
-  - 'Applications on top of Kazoo':
+  - 'Applications on top of {% BRAND_NAME %}':
     - 'core/kazoo_apps/doc/README.md'
     - 'core/kazoo_apps/doc/kapps_account_config.md'
     - 'core/kazoo_apps/doc/kapps_config.md'

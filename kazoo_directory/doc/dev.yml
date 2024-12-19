@@ -1,2 +1,2 @@
-  - 'Kazoo Directory':
+  - '{% BRAND_NAME %} Directory':
     - 'core/kazoo_directory/doc/maintenance.md'

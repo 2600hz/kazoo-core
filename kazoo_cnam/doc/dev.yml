@@ -1,3 +1,3 @@
-  - 'Kazoo CNAM':
+  - '{% BRAND_NAME %} CNAM':
     - 'core/kazoo_cnam/doc/cnam_maintenance.md'
     - 'core/kazoo_cnam/doc/maintenance.md'

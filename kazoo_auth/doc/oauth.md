@@ -26,7 +26,7 @@
    1.11 Take note of the *client ID* and *client secret* values (we will need those later)
 
 2. Register the auth app:
-   2.1 example: *sup kazoo_auth_maintenance register_auth_app {kazoo_master_account_id} {gdrive_client_ID} {gdrive_client_secret} google*
+   2.1 example: *sup kazoo_auth_maintenance register_auth_app {master_account_id} {gdrive_client_ID} {gdrive_client_secret} google*
 
 3. Edit index.html in the example dir
    3.1 change YOUR_CLIENT_ID and WEB_URL
@@ -61,7 +61,7 @@
                }
            }
        },
-       "id": "{KAZOO_MASTER_ACCOUNT_ID}",
+       "id": "{MASTER_ACCOUNT_ID}",
        "plan": {
            "modb": {
                "types": {
@@ -69,7 +69,7 @@
                        "attachments": {
                            "handler": "5fa1f134417927ae200fb12879acec71"
                            "params": {
-                               "folder_name": "kazoo"
+                               "folder_name": "voice_messages"
                            },
                            "stub": true
                        }
@@ -80,9 +80,9 @@
      }
    }
 
-   $ curl -X PUT Kazoo API /v2/accounts/{account_id}/storage \
+   $ curl -X PUT {CROSSBAR_HTTP_API}/v2/accounts/{account_id}/storage \
        -H "Content-Type: application/json"
-       -H "X-Auth-Token: {YOUR_KAZOO_TOKEN}"
+       -H "X-Auth-Token: {YOUR_AUTH_TOKEN}"
        -d @data_plan.json
    ```
 

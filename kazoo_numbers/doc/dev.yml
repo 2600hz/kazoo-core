@@ -1,4 +1,4 @@
-  - 'Kazoo Number Management':
+  - '{% BRAND_NAME %} Number Management':
     - 'core/kazoo_numbers/doc/README.md'
     - 'core/kazoo_numbers/doc/carrier_types.md'
     - 'core/kazoo_numbers/doc/carriers.md'

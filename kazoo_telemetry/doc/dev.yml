@@ -1,2 +1,2 @@
-  - 'Telemetry gathers anonymous statistics of Kazoo clusters and running applications':
+  - 'Telemetry gathers anonymous statistics of {% BRAND_NAME %} clusters and running applications':
     - 'core/kazoo_telemetry/doc/README.md'

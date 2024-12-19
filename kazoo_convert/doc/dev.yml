@@ -1,4 +1,4 @@
-  - 'Kazoo convert provides support for converting document formats to and from TIFF/PDF/OpenOffice formats':
+  - '{% BRAND_NAME %} convert provides support for converting document formats to and from TIFF/PDF/OpenOffice formats':
     - 'core/kazoo_convert/doc/README.md'
     - 'core/kazoo_convert/doc/fax_converter.md'
     - 'core/kazoo_convert/doc/fax_converter_convertapi.md'

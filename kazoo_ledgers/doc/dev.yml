@@ -1,2 +1,2 @@
-  - 'Kazoo ledgers management':
+  - '{% BRAND_NAME %} ledgers management':
     - 'core/kazoo_ledgers/doc/maintenance.md'

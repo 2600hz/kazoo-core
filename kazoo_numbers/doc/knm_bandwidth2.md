@@ -54,7 +54,7 @@ Example:
        "debug": false,
        "sandbox_provisioning": false,
        "enable_provisioning": true,
-       "order_name_prefix": "East coast Kazoo",
+       "order_name_prefix": "East coast {% BRAND_NAME %}",
    }
 }
 ```

@@ -1,4 +1,4 @@
-# KAZOO App Config
+# {% BRAND_NAME %} App Config
 
 When fetching configuration values, this module allows the preferred source of configuration data to be set.
 
