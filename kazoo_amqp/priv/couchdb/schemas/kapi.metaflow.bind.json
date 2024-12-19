@@ -27,6 +27,7 @@
             "type": "string"
         },
         "Digit-Timeout": {
+            "minimum": 0,
             "type": "string"
         },
         "Endpoint-ID": {

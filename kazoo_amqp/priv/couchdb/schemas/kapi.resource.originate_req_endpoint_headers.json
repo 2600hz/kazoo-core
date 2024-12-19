@@ -72,6 +72,12 @@
         "Endpoint-Actions": {
             "type": "object"
         },
+        "Endpoint-Channel": {
+            "type": "string"
+        },
+        "Endpoint-Channel-Data": {
+            "type": "string"
+        },
         "Endpoint-Delay": {
             "type": "string"
         },
