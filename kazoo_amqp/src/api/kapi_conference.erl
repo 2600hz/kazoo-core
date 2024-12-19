@@ -400,7 +400,8 @@ event_definition() ->
                                                             ,<<"Event">>
                                                             ,<<"Instance-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Caller-ID-Name">>
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Account-ID">>
+                                                            ,<<"Caller-ID-Name">>
                                                             ,<<"Caller-ID-Number">>
                                                             ,<<"Call-ID">>
                                                             ,<<"Channel-Presence-ID">>
