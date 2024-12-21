@@ -64,7 +64,7 @@ print hashlib.sha1(os.urandom(32)).hexdigest()
 #### Authenticate Users using {% BRAND_NAME %} Duo integration
 
 1. Use Crossbar multi factor API endpoint to configure Duo by you IKey, SKey, AKey, API hostname
-2. Enable multi factor (See [Crossbar Auth Config](../../../applications/crossbar/doc/multi_factor.md)) for a Crossbar auth module  (usually `cb_user_auth`)
+2. Enable multi factor (See [Multi Factor API](https://docs.2600hz.com/git/2600hz/kazoo-crossbar/doc/multi_factor.md)) for a Crossbar auth module  (usually `cb_user_auth`)
 3. Users can now use a usual Crossbar authentication procedure (usually `cb_user_auth`)
 4. {% BRAND_NAME %} auth MFA and Crossbar will return `sig_request` and `api_hostname` to client
 5. Use `Duo-Web-v2.js` to implement Duo client side for performing 2FA authentication. See [Duo Web](https://duo.com/docs/duoweb) (steps 3 and beyond in **Instructions** section)

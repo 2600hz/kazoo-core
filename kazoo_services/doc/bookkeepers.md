@@ -5,7 +5,7 @@ Bookkeepers provide a way for external bookkeeping services to reconcile service
 
 ## A bit of history
 
-The first [bookkeeper module](https://github.com/2600hz/kazoo/blob/master/core/kazoo_services/src/bookkeepers/kz_bookkeeper_braintree.erl) was written to interface with Braintree but this was a tailored interface based on the needs of 2600Hz; most community members weren't working with Braintree for credit card processing.
+The first [Braintree](https://docs.2600hz.com/git/2600hz/kazoo-braintree/doc/README.md) {% BRAND_NAME %} application was written to interface with Braintree but this was a tailored interface based on the needs of 2600Hz; most community members weren't working with Braintree for credit card processing.
 
 
 ## Define your own bookkeeper

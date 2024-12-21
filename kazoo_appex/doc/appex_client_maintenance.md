@@ -24,7 +24,7 @@ sup appex_client_maintenance get_cluster
 
 Easy commands to link your cluster to 260Hz Marketplace. To link your cluster follow these steps:
 
-* start by getting an Access Code by login to [2600Hz Marketplace](https://marketplace.2600hz.com)
+* Start by getting an Access Code by login to [2600Hz Marketplace](https://marketplace.2600hz.com)
 * Go to Manage Accounts -> Manage Cluster
 * Generate an Access Code and copy
 * Use Monster UI App Exchange -> Marketplace Connector

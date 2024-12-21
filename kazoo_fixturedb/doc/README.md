@@ -8,9 +8,9 @@ General speaking, FixtureDB removes dependency of {% BRAND_NAME %} Data Manager 
 
 FixtureDB acts as a central repository for all fixtures which we simply use during tests.
 
-When writing your EUnit test you can use [_fixture_ test representation](http://erlang.org/doc/apps/eunit/chapter.html#Fixtures) to setup a your test environment by starting a dummy connection to FixtureDB, and cleanup the connection later.
+When writing your EUnit test you can use [_fixture_](http://erlang.org/doc/apps/eunit/chapter.html#Fixtures) test representation to setup a your test environment by starting a dummy connection to FixtureDB, and cleanup the connection later.
 
-Below is an example with `setup` and `cleanup` method. In `setup()` function we're starting `kazoo_config` applications to read the default [`config-test.ini`](/rel/config-test.ini) and then starts the {% BRAND_NAME %} data link supervisor. After these steps most of the calls to `kz_datamgr` functions will use FixtureDB (few operations, like view maintenance cleanup, are not implemented).
+Below is an example with `setup` and `cleanup` method. In `setup()` function we're starting `kazoo_config` applications to read the default `rel/config-test.ini` from {% BRAND_NAME %} root source directory and then starts the {% BRAND_NAME %} data link supervisor. After these steps most of the calls to `kz_datamgr` functions will use FixtureDB (few operations, like view maintenance cleanup, are not implemented).
 
 ##### Example EUnit Test Using Setup/Cleanup Method
 
@@ -44,7 +44,7 @@ cleanup(LinkPid) ->
 
 ### Database File Structure
 
-All of the fixtures are reside in [core/kazoo_fixturedb/priv/dbs](../priv/dbs). In `dbs` directory, each sub-directory is represented a database. For example `dbs/accounts` is represented `accounts` database. Inside these database directories, there are sub-directories to store the JSON document for this database (in `docs` directory) and CouchDB view result (in `views` directory):
+All of the fixtures are reside in `kazoo_fixturedb/priv/dbs`. In `dbs` directory, each sub-directory is represented a database. For example `dbs/accounts` is represented `accounts` database. Inside these database directories, there are sub-directories to store the JSON document for this database (in `docs` directory) and CouchDB view result (in `views` directory):
 
 ```shell
 $ tree core/kazoo_fixturedb/priv/dbs/
@@ -79,7 +79,7 @@ View results are exactly the same result sets which `kz_datamgr:get_results/2,3`
 
 FixtureDB acts as database driver for `kazoo_data`, so you need to start `kazoo_config` first to read the database configuration, then start `kazoo_data` connection link by running `kazoo_data_link_sup:start_link()` to bring up Kazoo data connection ETS table. `kazoo_data_link_sup` is a lite version of `kazoo_data_sup` which does not depend on `kazoo_amqp` and tracing capability to be available; its just making a new connection to a database (which in this case is FixtureDB).
 
-OS environment variable `KAZOO_CONFIG` is necessary for `kazoo_config` to read the correct FixtureDB database configuration and by default is set to [`$(ROOT)/rel/config-test.ini`](/rel/config-test.ini) in [`kz.mk`](/make/kz.mk) file for `test`, `eunit`, `proper` and `fixture_db` targets.
+OS environment variable `KAZOO_CONFIG` is necessary for `kazoo_config` to read the correct FixtureDB database configuration and by default is set to `${ROOT}/rel/config-test.ini` in `${ROOT}/make/kz.mk` file for `test`, `eunit`, `proper` and `fixture_db` targets.
 
 In tests which access the database, you have to bring up `kazoo_config` and `kazoo_data_link_sup`:
 
@@ -186,7 +186,7 @@ As you can see above when there is no complex view options (in this example an e
 "/opt/kazoo/core/kazoo_fixturedb/priv/dbs/account%2Fac%2Fco%2Funt0000000000000000000000001/views/users+crossbar_listing-ba9ee0020a95e519332f16eacf0a3324.json"
 ```
 
-The list of view options which will result in creating a hashed file name are defined in [`kz_fixturedb.hrl`](../src/kz_fixturedb.hrl). Current options are:
+The list of view options which will result in creating a hashed file name are defined in `kz_fixturedb.hrl`. Current options are:
 
 ```erlang
 -define(DANGEROUS_VIEW_OPTS, [startkey, endkey, key
@@ -248,7 +248,7 @@ Better option is use data plan (although you may loose the ability to use those 
 
 ## FixtureDB Shell Target
 
-There is a target in the root [`Makefile`](https://github.com/2600hz/kazoo/blob/master/Makefile) and [`kz.mk`](/make/kz.mk) for start a shell with all core, applications and deps in path and has `KAZOO_CONFIG` set, so you can easily run `kz_fixturedb_util` functions where ever you're in {% BRAND_NAME %} project path.
+There is a target in the root `${ROOT}/Makefile` and `${ROOT}/make/kz.mk` for start a shell with all core, applications and deps in path and has `KAZOO_CONFIG` set, so you can easily run `kz_fixturedb_util` functions where ever you're in {% BRAND_NAME %} project path.
 
 ```shell
 kazoo $ make fixture_shell

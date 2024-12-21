@@ -4,7 +4,7 @@ This core library governs integrations with [Text-to-Speech (TTS) providers](htt
 
 ## TTS
 
-{% BRAND_NAME %}, by default, will use the internal [mod_flite](https://freeswitch.org/confluence/display/FREESWITCH/mod_flite) to play the text from a [TTS callflow action](../../../applications/callflow/doc/tts.md).
+{% BRAND_NAME %}, by default, will use the internal [mod_flite](https://freeswitch.org/confluence/display/FREESWITCH/mod_flite) to play the text from a [TTS Callflow action](https://docs.2600hz.com/git/2600hz/kazoo-callflow/doc/tts.md).
 
 There are also modules for [iSpeech](http://www.ispeech.org/api/#text-to-speech) and [VoiceFabric](https://voicefabric.ru/user_documentation).
 

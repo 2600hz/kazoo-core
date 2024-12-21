@@ -3,8 +3,7 @@
 This is SUP command maintenance module to work specifically with new {% BRAND_NAME %} UI Application
 document.
 
-For old legacy maintenance commands please refer to [{% BRAND_NAME %} Document
-Maintenance](./kazoo_ui_apps_maintenance.md).
+For old legacy maintenance commands please refer to [UI Maintenance Command](./kazoo_ui_apps_maintenance.md).
 
 | Function | Arguments | Description |
 | -------- | --------- | ----------- |

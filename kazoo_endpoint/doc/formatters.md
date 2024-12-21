@@ -4,7 +4,7 @@
 
 It is all about control!
 
-With [numbers](https://github.com/2600hz/kazoo/blob/master/doc/internationalization/numbers.md) controlling how {% BRAND_NAME %} processes phone numbers into and out of the system, it only made sense to add functionality to control the format of other fields that are commonly found.
+[International Phone Numbers](https://docs.2600hz.com/git/2600hz/kazoo5/doc/internationalization/numbers.md) controls how {% BRAND_NAME %} processes phone numbers into and out of the system, it only made sense to add functionality to control the format of other fields that are commonly found.
 
 Enter *formatters*!
 
@@ -26,10 +26,11 @@ On the resource document, define a key `Formatters` which is a JSON object of ro
      }
 
 In the above partial example, the resource has defined formatters for the `request` and `caller-id-number` fields, and a list of two formatters for the `from` field.
+<!-- TODO: do not link directly to source code or JSON schemas -->
+For outbound (to the carrier) formatters, you can see the fields available by looking at the `kapi_offnet_resource` request [JSON Schema object](https://docs.2600hz.com/git/2600hz/kazoo-crossbar/priv/couchdb/schemas/kapi.offnet_resource.req.json).
 
-For outbound (to the carrier) formatters, you can see the fields available by looking at the [kapi_offnet_resource request schema](https://github.com/2600hz/kazoo/blob/master/applications/crossbar/priv/couchdb/schemas/kapi.offnet_resource.req.json).
-
-Inbound (from the carrier) fields are found in the [kapi_route request schema](https://github.com/2600hz/kazoo/blob/master/applications/crossbar/priv/couchdb/schemas/kapi_route.req.json).
+<!-- TODO: do not link directly to source code or JSON schemas -->
+Inbound (from the carrier) fields are found in the `kapi_route` request [JSON Schema object](https://github.com/2600hz/kazoo/blob/master/applications/crossbar/priv/couchdb/schemas/kapi_route.req.json).
 
 In both of the above cases the request, to and from fields are tracked outside of the mentioned schemas. 
 
@@ -37,7 +38,7 @@ In both of the above cases the request, to and from fields are tracked outside o
 
 It can be desirable to control the format of fields going to registered devices. You can place the `formatters` object on a device, user, or account, to have it be used when processing calls to endpoints. The `formatter` object(s) will be merged before being applied to the endpoint.
 
-Inbound fields are found in the [kapi_route request schema](https://github.com/2600hz/kazoo/blob/master/applications/crossbar/priv/couchdb/schemas/kapi_route.req.json); outbound fields are typically found when [bridging via kapi_dialplan](https://github.com/2600hz/kazoo/blob/master/applications/crossbar/priv/couchdb/schemas/kapi.dialplan.bridge.json).
+Inbound fields are found in the `kapi_route` request [JSON Schema object](https://github.com/2600hz/kazoo/blob/master/applications/crossbar/priv/couchdb/schemas/kapi_route.req.json); outbound fields are typically found when [bridging via kapi_dialplan](https://github.com/2600hz/kazoo/blob/master/applications/crossbar/priv/couchdb/schemas/kapi.dialplan.bridge.json).
 
 ## Formatter format
 
