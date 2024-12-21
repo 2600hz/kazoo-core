@@ -56,6 +56,7 @@ just_the_type(ContentType) ->
 
 -spec get_user_vars(kapps_call:call()) -> kz_json:object().
 get_user_vars(Call) ->
+    %% FIXME: these need to be formatted base on if its twiml or kazoo
     ReqVars = kzt_util:get_request_vars(Call),
     UserVars = kapps_call:kvs_fetch(?KZT_USER_VARS, kz_json:new(), Call),
     kz_json:merge_jobjs(ReqVars, UserVars).

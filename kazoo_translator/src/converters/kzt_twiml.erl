@@ -182,24 +182,24 @@ exec_element(Call, _Xml) ->
 -spec req_params(kapps_call:call()) -> kz_term:proplist().
 req_params(Call) ->
     props:filter_undefined(
-      [{<<"CallSid">>, kapps_call:call_id(Call)}
-      ,{<<"AccountSid">>, kapps_call:account_id(Call)}
-      ,{<<"From">>, kapps_call:from_user(Call)}
-      ,{<<"FromRealm">>, kapps_call:from_realm(Call)}
-      ,{<<"To">>, kapps_call:to_user(Call)}
-      ,{<<"ToRealm">>, kapps_call:to_realm(Call)}
-      ,{<<"CallStatus">>, kzt_util:get_call_status(Call)}
+      [{<<"AccountSid">>, kapps_call:account_id(Call)}
       ,{<<"ApiVersion">>, <<"2010-04-01">>}
-      ,{<<"Direction">>, <<"inbound">>}
+      ,{<<"CallSid">>, kapps_call:call_id(Call)}
+      ,{<<"CallStatus">>, kzt_util:get_call_status(Call)}
       ,{<<"CallerName">>, kapps_call:caller_id_name(Call)}
       ,{<<"CallerNumber">>, kapps_call:caller_id_number(Call)}
-      ,{<<"RecordingUrl">>, kzt_util:get_recording_url(Call)}
+      ,{<<"Digits">>, kzt_util:get_digit_pressed(Call)}
+      ,{<<"Direction">>, <<"inbound">>}
+      ,{<<"From">>, kapps_call:from_user(Call)}
+      ,{<<"FromRealm">>, kapps_call:from_realm(Call)}
       ,{<<"RecordingDuration">>, kzt_util:get_recording_duration(Call)}
       ,{<<"RecordingSid">>, kzt_util:get_recording_sid(Call)}
-      ,{<<"Digits">>, kzt_util:get_digit_pressed(Call)}
+      ,{<<"RecordingUrl">>, kzt_util:get_recording_url(Call)}
+      ,{<<"To">>, kapps_call:to_user(Call)}
+      ,{<<"ToRealm">>, kapps_call:to_realm(Call)}
       ,{<<"TranscriptionSid">>, kzt_util:get_transcription_sid(Call)}
-      ,{<<"TranscriptionText">>, kzt_util:get_transcription_text(Call)}
       ,{<<"TranscriptionStatus">>, kzt_util:get_transcription_status(Call)}
+      ,{<<"TranscriptionText">>, kzt_util:get_transcription_text(Call)}
       ,{<<"TranscriptionUrl">>, kzt_util:get_transcription_url(Call)}
       ]).
 

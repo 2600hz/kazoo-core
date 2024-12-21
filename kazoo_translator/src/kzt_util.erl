@@ -459,6 +459,7 @@ get_streams(Call) ->
 
 -spec get_request_vars(kapps_call:call()) -> kz_json:object().
 get_request_vars(Call) ->
+    %% FIXME: these need to be formatted base on if its twiml or kazoo
     kz_json:from_list(
       [{<<"Digits">>, get_digits_collected(Call)}
       ,{<<"RecordingUrl">>, get_recording_url(Call)}
