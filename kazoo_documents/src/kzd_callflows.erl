@@ -586,10 +586,12 @@ get_view_by(?KEY_PATTERNS) -> ?LIST_BY_PATTERN.
 -spec validate_attribute_conflicts(kz_json:get_key(), kz_json:objects(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
 validate_attribute_conflicts(Key, CallflowViews, 'undefined', ValidateAcc) ->
-    add_attribute_conflict_errors(Key, CallflowViews, ValidateAcc);
+    CallflowViewSample = conflicting_callflow_sample(CallflowViews),
+    add_attribute_conflict_errors(Key, CallflowViewSample, ValidateAcc);
 validate_attribute_conflicts(Key, CallflowViews, CallflowId, ValidateAcc) ->
-    ConflictingViewObj = filter_callflow_list(CallflowId, CallflowViews),
-    add_attribute_conflict_errors(Key, ConflictingViewObj, ValidateAcc).
+    ConflictingViewObjs = filter_callflow_list(CallflowId, CallflowViews),
+    CallflowViewSample = conflicting_callflow_sample(ConflictingViewObjs),
+    add_attribute_conflict_errors(Key, CallflowViewSample, ValidateAcc).
 
 %%------------------------------------------------------------------------------
 %% @doc Remove any callflows from a list of callflows where the callflow's id
@@ -604,6 +606,17 @@ filter_callflow_list(CallflowId, Callflows) ->
     ].
 
 %%------------------------------------------------------------------------------
+%% @doc Get sample of conflicting callflows to add conflict errors
+%% @end
+%%------------------------------------------------------------------------------
+-spec conflicting_callflow_sample(kz_json:objects()) -> kz_json:objects().
+conflicting_callflow_sample(CallflowViews) when length(CallflowViews) > 50 ->
+    {FirstFiftyViews, _} = lists:split(50, CallflowViews),
+    FirstFiftyViews;
+conflicting_callflow_sample(CallflowViews) ->
+    CallflowViews.
+
+%%------------------------------------------------------------------------------
 %% @doc Add all `numbers' or `patterns' conflict errors to the
 %% `doc_validation_acc()'.
 %% @end
@@ -611,12 +624,9 @@ filter_callflow_list(CallflowId, Callflows) ->
 -spec add_attribute_conflict_errors(kz_json:get_key(), docs(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
 add_attribute_conflict_errors(_Key, [], ValidateAcc) -> ValidateAcc;
-add_attribute_conflict_errors(Key, [CallflowView | CallflowViews], ValidateAcc)
-  when length(ValidateAcc) < 50 ->
+add_attribute_conflict_errors(Key, [CallflowView | CallflowViews], ValidateAcc) ->
     UpdatedValidateAcc = add_attribute_conflict_error(Key, CallflowView, ValidateAcc),
-    add_attribute_conflict_errors(Key, CallflowViews, UpdatedValidateAcc);
-add_attribute_conflict_errors(_Key, _CallflowViews, ValidateAcc) ->
-    ValidateAcc.
+    add_attribute_conflict_errors(Key, CallflowViews, UpdatedValidateAcc).
 
 %%------------------------------------------------------------------------------
 %% @doc Add a `numbers' or `patterns' conflict error to the
