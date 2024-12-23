@@ -19,6 +19,7 @@
 -export([recursive_to_proplist/1]).
 
 -export([get_first_defined/2, get_first_defined/3]).
+-export([get_first_defined_key_value/2, get_first_defined_key_value/3]).
 -export([get_binary_boolean/2, get_binary_boolean/3]).
 -export([get_boolean_value/2, get_boolean_value/3]).
 -export([get_integer_value/2, get_integer_value/3]).
@@ -1562,6 +1563,20 @@ get_first_defined([H|T], JObj, Default) ->
         'error':'badarg' -> get_first_defined(T, JObj, Default)
     end.
 
+-spec get_first_defined_key_value(keys() | paths(), object()) -> api_json_term().
+get_first_defined_key_value(Keys, JObj) ->
+    get_first_defined_key_value(Keys, JObj, 'undefined').
+
+-spec get_first_defined_key_value(keys() | paths(), object(), Default) -> json_term() | Default.
+get_first_defined_key_value([], _JObj, Default) -> Default;
+get_first_defined_key_value([H|T], JObj, Default) ->
+    try get_value(H, JObj) of
+        'undefined' -> get_first_defined_key_value(T, JObj, Default);
+        V -> {H, V}
+    catch
+        'error':'badarg' -> get_first_defined_key_value(T, JObj, Default)
+    end.
+
 -type take_return() :: 'false' |
                        {'value', json_term(), object()}.
 -spec take_value(get_key(), object()) -> take_return().
@@ -2009,8 +2024,10 @@ normalize_key_char(C) when is_integer(C), 16#C0 =< C, C =< 16#D6 -> C + 32; % fr
 normalize_key_char(C) when is_integer(C), 16#D8 =< C, C =< 16#DE -> C + 32; % so we only loop once
 normalize_key_char(C) -> C.
 
--type search_replace_format() :: {get_key(), get_key()} |
-                                 {get_key(), get_key(), fun((any()) -> any())}.
+-type search_replace_fun() :: fun((any()) -> any()).
+
+-type search_replace_format() :: {get_key(), get_key() | search_replace_fun()} |
+                                 {get_key(), get_key() | search_replace_fun(), search_replace_fun()}.
 -type search_replace_formatters() :: [search_replace_format()].
 
 -spec normalize_jobj(object(), paths() | keys(), search_replace_formatters()) -> object().
@@ -2022,9 +2039,16 @@ normalize_jobj(?JSON_WRAPPER(_)=JObj, RemoveKeys, SearchReplaceFormatters) ->
                  )).
 
 -spec search_replace_format(search_replace_format(), object()) -> object().
+search_replace_format({Key, Formatter}, JObj) when is_function(Formatter, 1) ->
+    set_value(Key, Formatter(get_value(Key, JObj)), delete_key(Key, JObj));
 search_replace_format({Old, New}, JObj) ->
     V = get_value(Old, JObj),
     set_value(New, V, delete_key(Old, JObj));
+search_replace_format({Key, KeyFormatter, ValueFormatter}, JObj)
+  when is_function(KeyFormatter, 1),
+       is_function(ValueFormatter, 1) ->
+    V = get_value(Key, JObj),
+    set_value(KeyFormatter(Key), ValueFormatter(V), delete_key(Key, JObj));
 search_replace_format({Old, New, Formatter}, JObj) when is_function(Formatter, 1) ->
     V = get_value(Old, JObj),
     set_value(New, Formatter(V), delete_key(Old, JObj)).

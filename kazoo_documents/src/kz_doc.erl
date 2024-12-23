@@ -44,6 +44,11 @@
         ,set_modified/2
         ,path_modified/0
         ]).
+-export([node/1
+        ,node/2
+        ,set_node/2
+        ,path_node/0
+        ]).
 -export([vsn/1, vsn/2
         ,set_vsn/2
         ,path_vsn/0
@@ -366,6 +371,30 @@ set_modified(JObj, Now) ->
 -spec path_modified() -> kz_json:path().
 path_modified() ->
     [?KEY_MODIFIED].
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec node(doc()) -> kz_term:api_ne_binary().
+node(JObj) ->
+    node(JObj, 'undefined').
+
+-spec node(doc(), Default) -> kz_term:ne_binary() | Default.
+node(JObj, Default) ->
+    kz_json:get_ne_binary_value(?KEY_NODE, JObj, Default).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec set_node(doc(), kz_term:ne_binary()) -> doc().
+set_node(JObj, Node) ->
+    kz_json:set_value(?KEY_NODE, Node, JObj).
+
+-spec path_node() -> kz_json:path().
+path_node() ->
+    [?KEY_NODE].
 
 %%------------------------------------------------------------------------------
 %% @doc

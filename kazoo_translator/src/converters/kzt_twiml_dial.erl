@@ -414,20 +414,19 @@ publish_conference_request(Call, Id, Name, ConfProps) ->
           [{<<"Call">>, kapps_call:to_json(Call)}
           ,{<<"Conference-ID">>, Id}
           ,{<<"Conference-Name">>, Name}
-          ,{<<"End-On-Last-Member-Leave">>, props:is_true('endConferenceOnLastMemberExit', ConfProps, 'undefined')}
-          ,{<<"End-On-Leave">>, props:is_true('endConferenceOnExit', ConfProps, 'undefined')}
-           %% add this kapi_conference (first time conf is created):
+          ,{<<"Profile-Name">>, ProfileName}
+           %% FIXME: we must not set these if profile name is default, video, or page
           ,{<<"Max-Participants">>, get_max_participants(ConfProps)}
-          ,{<<"Moderator">>, IsModerator}
           ,{<<"Play-Entry-Tone">>, conference_play_entry_tone(ConfProps)}
           ,{<<"Play-Exit-Tone">>, conference_play_exit_tone(ConfProps)}
-          ,{<<"Profile-Name">>, ProfileName}
-           %% add this kapi_conference (first time conf is created):
           ,{<<"Wait-For-Moderator">>, not IsModerator}
+           %% member join-options, safe to set per member
+          ,{<<"End-On-Last-Member-Leave">>, props:is_true('endConferenceOnLastMemberExit', ConfProps, 'undefined')}
+          ,{<<"End-On-Leave">>, props:is_true('endConferenceOnExit', ConfProps, 'undefined')}
+          ,{<<"Moderator">>, IsModerator}
           | deaf_muted_headers(ConfProps, IsModerator) ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
           ]
          ),
-    ?DEV_LOG("Prop ~p~n", [props:delete(<<"Call">>, ConfReq)]),
     kapi_conference:publish_discovery_req(ConfReq).
 
 -spec deaf_muted_headers(kz_term:proplist(), boolean()) -> kz_term:proplist().
@@ -440,8 +439,8 @@ deaf_muted_headers(ConfProps, 'false') ->
     ,{<<"Member-Join-Muted">>, props:is_true('muted', ConfProps, 'false')}
     ].
 
--spec get_max_participants(kz_term:proplist()) -> pos_integer().
-get_max_participants(Props) when is_list(Props) ->
+-spec get_max_participants(kz_term:proplist()) -> 1..250.
+get_max_participants(Props) ->
     case props:get_integer_value('maxParticipants', Props) of
         N when is_integer(N), N =< ?TWIML_MAX_PARTICIPANTS, N > 2 ->
             N;

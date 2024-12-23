@@ -319,7 +319,7 @@ handle_record_dtmf(Call, Timeout, Terminators, JObj, LoopFun) ->
             end
     end.
 
--spec recording_length(kz_json:object()) -> integer().
+-spec recording_length(kz_json:object()) -> non_neg_integer().
 recording_length(JObj) ->
     case kz_call_event:recording_length(JObj) of
         'undefined' -> 0;
@@ -366,6 +366,10 @@ process_noop_event(Call, NoopId, JObj) ->
             wait_for_noop(Call, NoopId)
     end.
 
+-spec to_timeout_ms(timeout() | 'undefined') -> timeout() | 'undefined'.
+to_timeout_ms(Timeout) when is_integer(Timeout) -> Timeout * ?MILLISECONDS_IN_SECOND;
+to_timeout_ms(Timeout) -> Timeout.
+
 -spec wait_for_offnet(kapps_call:call(), kz_term:proplist(), dial_type()) ->
           {'ok', kapps_call:call()}.
 wait_for_offnet(Call, DialProps, DialType) ->
@@ -374,10 +378,10 @@ wait_for_offnet(Call, DialProps, DialType) ->
 
     CollectDTMF = props:get_is_true('collect_dtmf', DialProps, 'false'),
 
-    CallTimeLimit = kzt_util:get_call_time_limit(Call) * ?MILLISECONDS_IN_SECOND,
-    CallTimeout = kzt_util:get_call_timeout(Call) * ?MILLISECONDS_IN_SECOND,
+    CallTimeLimit = to_timeout_ms(kzt_util:get_call_time_limit(Call)),
+    CallTimeout = to_timeout_ms(kzt_util:get_call_timeout(Call)),
 
-    lager:debug("waiting for offnet with call timeLimit: ~bs and answer timeout: ~bs"
+    lager:debug("waiting for offnet with call timeLimit: ~ps and answer timeout: ~ps"
                ,[kzt_util:get_call_time_limit(Call)
                 ,kzt_util:get_call_timeout(Call)
                 ]),
@@ -422,10 +426,10 @@ wait_for_conference(Call) ->
     HangupDTMF = kzt_util:get_hangup_dtmf(Call),
     RecordCall = kzt_util:get_record_call(Call),
 
-    CallTimeLimit = kzt_util:get_call_time_limit(Call) * ?MILLISECONDS_IN_SECOND,
-    CallTimeout = kzt_util:get_call_timeout(Call) * ?MILLISECONDS_IN_SECOND,
+    CallTimeLimit = to_timeout_ms(kzt_util:get_call_time_limit(Call)),
+    CallTimeout = to_timeout_ms(kzt_util:get_call_timeout(Call)),
 
-    lager:debug("waiting for conference with call timeLimit: ~bs and answer timeout: ~bs"
+    lager:debug("waiting for conference with call timeLimit: ~ps and answer timeout: ~ps"
                ,[kzt_util:get_call_time_limit(Call)
                 ,kzt_util:get_call_timeout(Call)
                 ]),
@@ -868,3 +872,4 @@ update_offnet_timers(#dial_req{call_timeout=CallTimeout
     OffnetReq#dial_req{call_timeout=Left
                       ,start=kz_time:start_time()
                       }.
+

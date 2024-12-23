@@ -552,8 +552,7 @@ bridge_endpoint_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun bridge_endpoint/1}
               ,{fun kapi_definition:set_validate_fun/2, fun bridge_endpoint_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_command/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Invite-Format">>
-                                                            ]}
+              ,{fun kapi_definition:set_required_headers/2, []}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Account-ID">>
                                                             ,<<"Auth-Password">>
                                                             ,<<"Auth-Realm">>
@@ -574,6 +573,8 @@ bridge_endpoint_definition() ->
                                                             ,<<"Enable-T38-Gateway">>
                                                             ,<<"Enable-T38-Passthrough">>
                                                             ,<<"Endpoint-Actions">>
+                                                            ,<<"Endpoint-Channel">>
+                                                            ,<<"Endpoint-Channel-Data">>
                                                             ,<<"Endpoint-Delay">>
                                                             ,<<"Endpoint-ID">>
                                                             ,<<"Endpoint-Options">>
@@ -588,6 +589,7 @@ bridge_endpoint_definition() ->
                                                             ,<<"Hold-Media-Options">>
                                                             ,<<"Ignore-Completed-Elsewhere">>
                                                             ,<<"Ignore-Early-Media">>
+                                                            ,<<"Invite-Format">>
                                                             ,<<"Loopback-Bowout">>
                                                             ,<<"Outbound-Callee-ID-Name">>
                                                             ,<<"Outbound-Callee-ID-Number">>
@@ -621,7 +623,7 @@ bridge_endpoint_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[?INVITE_FORMAT_TUPLE
-                ,{<<"Endpoint-Type">>, [<<"sip">>, <<"freetdm">>, <<"skype">>]}
+                ,{<<"Endpoint-Type">>, [<<"sip">>, <<"freetdm">>, <<"skype">>, <<"application">>]}
                 ,{<<"Enable-T38-Gateway">>, [<<"self">>, <<"peer">>]}
                 ,{<<"SIP-Transport">>, [<<"udp">>, <<"tcp">>, <<"tls">>, <<"sctp">>]}
                 ]
@@ -1334,6 +1336,8 @@ record_call_definition() ->
                                        ,<<"unmask">>
                                        ,<<"pause">>
                                        ,<<"resume">>
+                                       ,<<"toggle_mask">>
+                                       ,<<"toggle_pause">>
                                        ]
                  }
                 ,?INSERT_AT_TUPLE
@@ -1482,10 +1486,12 @@ hold_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Hold-Media">>
                                                             ,<<"Hold-Media-Options">>
+                                                            ,<<"Hold-Strategy">>
                                                             ,<<"Insert-At">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"hold">>}
+                ,{<<"Hold-Strategy">>, [<<"hold">>, <<"playback">>]}
                 ,?INSERT_AT_TUPLE
                 | kapi_definition:event_type_headers(Category, EventName)
                 ]
@@ -2555,8 +2561,9 @@ stream_definition() ->
                                    ,<<"stereo">>
                                    ]
                  }
-                ,{<<"Audio-Tracks">>, [<<"mixed">>
-                                      ,<<"single">>
+                ,{<<"Audio-Tracks">>, [<<"both">>
+                                      ,<<"inbound">>
+                                      ,<<"outbound">>
                                       ]
                  }
                 ,{<<"Record-Action">>, [<<"start">>

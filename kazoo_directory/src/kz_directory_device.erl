@@ -276,6 +276,7 @@ build_profile_vars(AccountId, EndpointId, Endpoint, CCVs) ->
     ,{<<"Endpoint-Type">>, <<"device">>}
     ,{<<"Endpoint-Device-Type">>, kzd_devices:device_type(Endpoint)}
     ,{<<"Endpoint-Application">>, kzd_devices:application_name(Endpoint)}
+    ,{<<"Endpoint-Channel-Data">>, kzd_devices:application_channel_data(Endpoint)}
     ,{<<"Endpoint-Owner-ID">>, kzd_endpoint:owner_id(Endpoint)}
     ,{<<"Endpoint-Caller-ID-Number">>, EPCIDNumber}
     ,{<<"Endpoint-Caller-ID-Name">>, EPCIDName}
@@ -376,8 +377,8 @@ guess_endpoint_type(Endpoint, []) ->
         _Else -> <<"sip">>
     end.
 
--spec endpoint_id(kz_json:object(), kz_json:object()) -> kz_json:object().
-endpoint_id(Endpoint, CCVs) ->
+-spec authorizing_id(kz_json:object(), kz_json:object()) -> kz_json:object().
+authorizing_id(Endpoint, CCVs) ->
     case kz_doc:id(Endpoint) of
         'undefined' -> CCVs;
         EndpointId ->
@@ -594,7 +595,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, Module) ->
     CCVs = kz_json:from_list(Props),
 
     CCVFuns = [{fun default_ccvs/2, Endpoint}
-              ,{fun endpoint_id/2, Endpoint}
+              ,{fun authorizing_id/2, Endpoint}
               ,{fun owner_id/2, Endpoint}
               ,{fun hold_music/2, Endpoint}
               ,{fun hold_music_options/2, Endpoint}
@@ -604,6 +605,7 @@ generate_ccvs(_EndpointId, AccountId, Endpoint, _Options, Module) ->
               ,{fun sip_auth/3, Module, Endpoint}
               ,{fun inbound_ccvs/3, Module, Endpoint}
               ,{fun unsafe_caller_id/2, Endpoint}
+              ,{fun additional_ccvs/2, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
 
@@ -624,6 +626,13 @@ generate_routing_ccvs(Endpoint, _Options, Module) ->
               ,{fun routing_ccvs/3, Module, Endpoint}
               ],
     kz_json:exec(CCVFuns, CCVs).
+
+-spec additional_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
+additional_ccvs(Endpoint, CCVs) ->
+    case kz_json:get_json_value([<<"call_settings">>, <<"directory">>, <<"device">>, <<"additional_ccvs">>], Endpoint, undefined) of
+        undefined -> CCVs;
+        ExtraCCVs -> kz_json:merge(CCVs, ExtraCCVs)
+    end.
 
 -spec default_ccvs(kz_json:object(), kz_json:object()) -> kz_json:object().
 default_ccvs(Endpoint, CCVs) ->

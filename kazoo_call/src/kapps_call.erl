@@ -51,6 +51,7 @@
 -export([set_callee_id_number/2, callee_id_number/1]).
 -export([set_callee_id/3, callee_id/1]).
 -export([set_caller_id/3, caller_id/1]).
+-export([raw_caller_id/1, raw_caller_id_number/1, raw_caller_id_name/1]).
 
 -export([set_request/2, request/1, request_user/1, request_realm/1]).
 -export([set_from/2, from/1, from_user/1, from_realm/1]).
@@ -463,9 +464,9 @@ from_route_req(RouteReq, #kapps_call{call_id=OldCallId
                     ,owner_id = kz_json:get_ne_binary_value(<<"Owner-ID">>, CCVs, owner_id(Call))
                     ,fetch_id = kz_json:get_ne_binary_value(<<"Fetch-ID">>, CCVs, fetch_id(Call))
                     ,bridge_id = kz_json:get_ne_binary_value(<<"Bridge-ID">>, CCVs, bridge_id(Call))
-                    ,caller_id_name = kz_json:get_binary_value(<<"Caller-ID-Name">>, RouteReq, caller_id_name(Call))
+                    ,caller_id_name = kz_json:get_binary_value(<<"Caller-ID-Name">>, RouteReq, raw_caller_id_name(Call))
                     ,callee_id_name = kz_json:get_binary_value(<<"Callee-ID-Name">>, RouteReq, callee_id_name(Call))
-                    ,caller_id_number = kz_json:get_binary_value(<<"Caller-ID-Number">>, RouteReq, caller_id_number(Call))
+                    ,caller_id_number = kz_json:get_binary_value(<<"Caller-ID-Number">>, RouteReq, raw_caller_id_number(Call))
                     ,callee_id_number = kz_json:get_binary_value(<<"Callee-ID-Number">>, RouteReq, ToUser)
                     ,ccvs = CCVs
                     ,cavs = CAVs
@@ -618,9 +619,9 @@ from_originate_resp(OriginateResp, #kapps_call{account_id=OldAccountId
                    ,owner_id = kz_json:get_ne_binary_value(<<"Owner-ID">>, CCVs, owner_id(Call))
                    ,fetch_id = kz_json:get_ne_binary_value(<<"Fetch-ID">>, CCVs, fetch_id(Call))
                    ,bridge_id = kz_json:get_ne_binary_value(<<"Bridge-ID">>, CCVs, bridge_id(Call))
-                   ,caller_id_name = kz_json:get_binary_value(<<"Caller-ID-Name">>, OriginateResp, caller_id_name(Call))
+                   ,caller_id_name = kz_json:get_binary_value(<<"Caller-ID-Name">>, OriginateResp, raw_caller_id_name(Call))
                    ,callee_id_name = kz_json:get_binary_value(<<"Callee-ID-Name">>, OriginateResp, callee_id_name(Call))
-                   ,caller_id_number = kz_json:get_binary_value(<<"Caller-ID-Number">>, OriginateResp, caller_id_number(Call))
+                   ,caller_id_number = kz_json:get_binary_value(<<"Caller-ID-Number">>, OriginateResp, raw_caller_id_number(Call))
                    ,callee_id_number = kz_json:get_binary_value(<<"Callee-ID-Number">>, OriginateResp, ToUser)
                    ,ccvs = CCVs
                    ,cavs = CAVs
@@ -664,8 +665,8 @@ from_json(JObj, #kapps_call{ccvs=OldCCVs
                    ,context=kz_json:get_ne_binary_value(<<"Context">>, JObj, context(Call))
                    ,control_q = kz_json:get_ne_binary_value(<<"Control-Queue">>, JObj, control_queue_direct(Call))
                    ,controller_q = kz_json:get_ne_binary_value(<<"Controller-Queue">>, JObj, controller_queue(Call))
-                   ,caller_id_name = kz_json:get_ne_binary_value(<<"Caller-ID-Name">>, JObj, caller_id_name(Call))
-                   ,caller_id_number = kz_json:get_ne_binary_value(<<"Caller-ID-Number">>, JObj, caller_id_number(Call))
+                   ,caller_id_name = kz_json:get_ne_binary_value(<<"Caller-ID-Name">>, JObj, raw_caller_id_name(Call))
+                   ,caller_id_number = kz_json:get_ne_binary_value(<<"Caller-ID-Number">>, JObj, raw_caller_id_number(Call))
                    ,callee_id_name = kz_json:get_ne_binary_value(<<"Callee-ID-Name">>, JObj, callee_id_name(Call))
                    ,callee_id_number = kz_json:get_ne_binary_value(<<"Callee-ID-Number">>, JObj, callee_id_number(Call))
                    ,request = kz_json:get_ne_binary_value(<<"Request">>, JObj, request(Call))
@@ -759,8 +760,8 @@ to_proplist(#kapps_call{}=Call) ->
     ,{<<"Call-ID">>, call_id_direct(Call)}
     ,{<<"Callee-ID-Name">>, callee_id_name(Call)}
     ,{<<"Callee-ID-Number">>, callee_id_number(Call)}
-    ,{<<"Caller-ID-Name">>, caller_id_name(Call)}
-    ,{<<"Caller-ID-Number">>, caller_id_number(Call)}
+    ,{<<"Caller-ID-Name">>, raw_caller_id_name(Call)}
+    ,{<<"Caller-ID-Number">>, raw_caller_id_number(Call)}
     ,{<<"Control-Queue">>, control_queue_direct(Call)}
     ,{<<"Controller-Queue">>, controller_queue(Call)}
     ,{<<"Custom-Application-Vars">>, custom_application_vars(Call)}
@@ -965,6 +966,17 @@ maybe_append_caller_id(CallerId, Suffix) ->
     BinSuffix   = kz_term:to_binary(Suffix),
     lager:info("appending cid with ~s~n", [BinSuffix]),
     <<CallerId/binary, BinSuffix/binary>>.
+
+-spec raw_caller_id_number(call()) -> kz_term:api_ne_binary().
+raw_caller_id_number(#kapps_call{caller_id_number=CIDNumber}) -> CIDNumber.
+
+-spec raw_caller_id_name(call()) -> kz_term:api_ne_binary().
+raw_caller_id_name(#kapps_call{caller_id_name=CIDName}) -> CIDName.
+
+-spec raw_caller_id(call()) -> {kz_term:api_ne_binary(), kz_term:api_ne_binary()}.
+raw_caller_id(#kapps_call{caller_id_number=CIDNumber, caller_id_name=CIDName}) ->
+    {CIDNumber, CIDName}.
+
 
 -spec set_caller_id(kz_term:ne_binary(), kz_term:ne_binary(), call()) -> call().
 -ifdef(TEST).

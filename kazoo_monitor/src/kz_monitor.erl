@@ -55,7 +55,7 @@
         ,track_pid/1, track_pid/2
         ,track_pids/1, track_pids/2
         ,tracked_pids/0, pp_tracked_pids/0
-        ,set_thresholds/2
+        ,set_thresholds/1, set_thresholds/2
         ]).
 
 -export([init/1
@@ -162,6 +162,10 @@ pp_tracked_pid({Pid, #proc_info{tstamp=TStamp
     io:format("~15s | ~15.3f | ~p~n"
              ,[kz_term:to_binary(Pid), TStamp / 1000, MQLen]
              ).
+
+-spec set_thresholds(proc_thresholds()) -> 'ok'.
+set_thresholds(Thresholds) ->
+    set_thresholds(self(), Thresholds).
 
 -spec set_thresholds(pid(), proc_thresholds()) -> 'ok'.
 set_thresholds(Pid, Thresholds) ->
@@ -375,7 +379,7 @@ maybe_warn_large_heap(Pid, Size, Thresholds, 'true') when is_map(Thresholds) ->
     SizeThreshold = maps:get('large_heap', Thresholds, ?LARGE_HEAP_SIZE_WORDS),
     maybe_warn_large_heap(Pid, Size, SizeThreshold, 'true');
 maybe_warn_large_heap(Pid, Size, SizeThreshold, 'true') when Size >= SizeThreshold ->
-    lager:warning("large heap (~b B) detected for pid ~p!"
+    lager:warning("large heap (~b B) detected for pid ~p"
                  ,[kz_term:words_to_bytes(Size), Pid]
                  );
 maybe_warn_large_heap(_, _, _, _ShouldWarn) -> 'ok'.

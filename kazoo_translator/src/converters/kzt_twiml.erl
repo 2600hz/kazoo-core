@@ -155,6 +155,21 @@ exec_element(Call, #xmlElement{name='Reject'
                               ,attributes=Attrs
                               }) ->
     reject(Call, Attrs);
+exec_element(Call, #xmlElement{name='Start'
+                              ,content=StreamAction
+                              ,attributes=_Attrs
+                              }) ->
+    kzt_twiml_stream:start(Call, kz_xml:elements(StreamAction), 'unidirectional');
+exec_element(Call, #xmlElement{name='Stop'
+                              ,content=StreamAction
+                              ,attributes=_Attrs
+                              }) ->
+    kzt_twiml_stream:stop(Call, kz_xml:elements(StreamAction));
+exec_element(Call, #xmlElement{name='Connect'
+                              ,content=StreamAction
+                              ,attributes=_Attrs
+                              }) ->
+    kzt_twiml_stream:start(Call, kz_xml:elements(StreamAction), 'bidirectional');
 exec_element(_Call, #xmlElement{name=Unknown
                                ,content=_Content
                                ,attributes=_Attrs
@@ -341,7 +356,7 @@ gather(Call, FinishKey, Timeout, Props, MaxDigits) ->
         {'stop', _C}=STOP -> STOP
     end.
 
--spec on_first_dtmf(kapps_call:call()) -> 'ok' | 'stop'.
+-spec on_first_dtmf(kapps_call:call()) -> 'ok' | 'true'.
 on_first_dtmf(Call) ->
     case kzt_util:get_gather_pidref(Call) of
         'undefined' -> 'ok';
@@ -382,6 +397,7 @@ record_call(Call0, Attrs) ->
 
     Data = kz_json:from_list(
              [{<<"url">>, props:get_ne_binary_value('recordingUrl', Props)}
+             ,{<<"transcribe">>, props:get_is_true('transcribe', Props)}
              ,{<<"method">>, kzt_util:record_store_method(Props)}
              ,{<<"time_limit">>, MaxLength}
              | kzt_twiml_util:record_silence_vars(Props)

@@ -70,9 +70,17 @@ extra_validation(<<"accounts.announcement">>, Value, State) ->
 extra_validation(<<"metaflow.data">>, Value, State) ->
     JObj = jesse_state:get_current_value(State),
     [_Data | Path] = jesse_state:get_current_path(State),
-    Module = jesse_json_path:path(lists:reverse([<<"module">> | Path]), JObj, 'undefined'),
-    lager:debug("validating metaflow action '~s' with data ~p", [Module, Value]),
-    validate_module_data(<<"metaflows.", Module/binary>>, Value, State);
+    case jesse_json_path:path(lists:reverse([<<"module">> | Path]), JObj, 'undefined') of
+        'undefined' ->
+            lager:debug("metaflow action missing in path ~p", [Path]),
+            jesse_error:handle_data_invalid({'external_error', <<"missing metaflow module">>}
+                                           ,Value
+                                           ,State
+                                           );
+        Module ->
+            lager:debug("validating metaflow action '~s' with data ~p", [Module, Value]),
+            validate_module_data(<<"metaflows.", Module/binary>>, Value, State)
+    end;
 
 extra_validation(<<"metaflow.module">>, Value, State) ->
     lager:debug("validating metaflow action '~s'", [Value]),
@@ -322,8 +330,29 @@ is_valid_host(?IPV6=IP) ->
 is_valid_host(Host, 'true') ->
     is_valid_host_value(Host, 'true', kz_http_util:client_ip_blacklist());
 is_valid_host(Host, 'false') ->
-    is_valid_host_value(Host, 'false', kz_http_util:client_host_blacklist())
-        andalso is_valid_dns(Host).
+    Hostname = extract_hostname(Host),
+    is_valid_host_value(Hostname, 'false', kz_http_util:client_host_blacklist())
+        andalso is_valid_dns(Hostname).
+
+extract_hostname(Host) ->
+    SIPHost = maybe_add_sip_prefix(Host),
+    {'hostname', Hostname} =
+        %% Host values like 'foo.bar' need the 'sip' scheme prefix 'sip:foo.bar'
+        case ersip_uri:parse(SIPHost) of
+            {'ok', URI} ->
+                case ersip_uri:host(URI) of
+                    {'hostname', H} -> {'hostname', H};
+                    _OtherHostType -> {'hostname', Host}
+                end;
+            {'error', _} ->
+                lager:info("failed to parse ~s", [SIPHost]),
+                {'hostname', Host}
+        end,
+    Hostname.
+
+maybe_add_sip_prefix(<<"sip:", _/binary>> = Host) -> Host;
+maybe_add_sip_prefix(<<"sips:", _/binary>> = Host) -> Host;
+maybe_add_sip_prefix(Host) -> <<"sip:", Host/binary>>.
 
 url_error(URL, State) ->
     lager:info("client URL '~s' not valid", [URL]),
@@ -451,7 +480,8 @@ check_hostent(HostL, #hostent{h_name = MainHost
 -endif.
 
 -spec validate_format(kz_json:json_term(), kz_term:ne_binary()) -> boolean().
-validate_format(Hostname, <<"sip_hostname">>) ->
+validate_format(Host, <<"sip_hostname">>) ->
+    Hostname = extract_hostname(Host),
     validate_sip_hostname(Hostname);
 validate_format(Value, Format) ->
     lager:info("check format ~s on ~p", [Format, Value]),

@@ -60,7 +60,7 @@
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, [{'no_local', 'true'}]).
--define(LARGE_HEAP_SIZE_WORDS, 100_000).
+-define(LARGE_HEAP_SIZE_WORDS, 500_000).
 
 -define(HEARTBEAT, 10 * ?MILLISECONDS_IN_SECOND + rand:uniform(10 * ?MILLISECONDS_IN_SECOND)).
 -define(EXPIRE_PERIOD, 1 * ?MILLISECONDS_IN_SECOND).
@@ -454,6 +454,7 @@ whapp_info_to_json(#whapp_info{startup=Start, roles=Roles}) ->
       ]).
 
 -spec kapp_versions_to_json([{kz_json:key(), kz_types:kapp_version()}]) -> kz_json:object().
+kapp_versions_to_json([]) -> undefined;
 kapp_versions_to_json(Kapps) ->
     List = [{Name, kapp_version_to_json(KappVersion)} || {Name, KappVersion} <- Kapps],
     kz_json:from_list(List).

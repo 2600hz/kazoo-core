@@ -46,6 +46,7 @@ lookup([Fun | Routines], EndpointId, AccountId, Options) ->
         _Error -> lookup(Routines, EndpointId, AccountId, Options)
     catch
         _Ex:_Err:_ST ->
+            kz_log:log_stacktrace(_ST),
             lookup(Routines, EndpointId, AccountId, Options)
     end.
 
