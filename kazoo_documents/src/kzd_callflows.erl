@@ -604,7 +604,7 @@ filter_callflow_list(CallflowId, Callflows) ->
     ].
 
 %%------------------------------------------------------------------------------
-%% @doc Add only limited no of `numbers' or `patterns' conflict errors to the
+%% @doc Add all `numbers' or `patterns' conflict errors to the
 %% `doc_validation_acc()'.
 %% @end
 %%------------------------------------------------------------------------------
