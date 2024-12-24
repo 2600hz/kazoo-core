@@ -556,7 +556,9 @@ maybe_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId,
        ) -> kazoo_documents:doc_validation_acc().
 do_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId, CallflowId, {Doc, _Errors}=ValidateAcc) ->
     AccountDb = kzs_util:format_account_db(AccountId),
-    Options = [{'keys', kz_json:get_list_value(Key, Doc, [])}],
+    Attributes = kz_json:get_list_value(Key, Doc, []),
+    Options = [{'keys', Attributes}
+              ,{'limit', kz_datamgr:max_bulk_read()}],
     View = get_view_by(Key),
     case kz_datamgr:get_results(AccountDb, View, Options) of
         {'ok', []} ->
@@ -617,7 +619,7 @@ conflicting_callflow_sample(CallflowViews) ->
     CallflowViews.
 
 %%------------------------------------------------------------------------------
-%% @doc Add all `numbers' or `patterns' conflict errors to the
+%% @doc Add initial `numbers' or `patterns' conflict errors to the
 %% `doc_validation_acc()'.
 %% @end
 %%------------------------------------------------------------------------------
