@@ -56,6 +56,8 @@
 -define(LIST_BY_NUMBER, <<"callflows/listing_by_number">>).
 -define(LIST_BY_PATTERN, <<"callflows/listing_by_pattern">>).
 
+-define(CONFLICT_SAMPLE_SIZE, 50).
+
 -spec new() -> doc().
 new() ->
     kz_doc:update_pvt_parameters(kz_json_schema:default_object(?SCHEMA)
@@ -612,8 +614,8 @@ filter_callflow_list(CallflowId, Callflows) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec conflicting_callflow_sample(kz_json:objects()) -> kz_json:objects().
-conflicting_callflow_sample(CallflowViews) when length(CallflowViews) > 50 ->
-    {FirstFiftyViews, _} = lists:split(50, CallflowViews),
+conflicting_callflow_sample(CallflowViews) when length(CallflowViews) > ?CONFLICT_SAMPLE_SIZE ->
+    {FirstFiftyViews, _} = lists:split(?CONFLICT_SAMPLE_SIZE, CallflowViews),
     FirstFiftyViews;
 conflicting_callflow_sample(CallflowViews) ->
     CallflowViews.
