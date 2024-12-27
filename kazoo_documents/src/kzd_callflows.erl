@@ -612,11 +612,8 @@ filter_callflow_list(CallflowId, Callflows) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec conflicting_callflow_sample(kz_json:objects()) -> kz_json:objects().
-conflicting_callflow_sample(CallflowViews) when length(CallflowViews) > ?CONFLICT_SAMPLE_SIZE ->
-    {FirstFiftyViews, _} = lists:split(?CONFLICT_SAMPLE_SIZE, CallflowViews),
-    FirstFiftyViews;
 conflicting_callflow_sample(CallflowViews) ->
-    CallflowViews.
+    lists:sublist(CallflowViews, ?CONFLICT_SAMPLE_SIZE).
 
 %%------------------------------------------------------------------------------
 %% @doc Add initial `numbers' or `patterns' conflict errors to the
