@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% @copyright (C) 2025, 2600Hz
+%%% @copyright (C) 2024-2025, 2600Hz
 %%% @doc
 %%% Check the HTML string contains the Cross Site Scripting (XSS)
 %%% 3 important elements will be checked
