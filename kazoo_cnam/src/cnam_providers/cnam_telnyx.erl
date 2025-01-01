@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018, Voxter Communications
+%%% @copyright (C) 2018-2025, Ooma Inc.
 %%% @doc CNAM lookup using Telnyx
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2024, 2600Hz
+%%% @copyright (C) 2016-2025, 2600Hz
 %%% @doc Utilities for tasks validation and stuff.
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public

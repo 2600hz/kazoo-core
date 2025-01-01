@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2024, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc Represent a date, and perform various manipulations on it.
 %%% @author Mark Magnusson
 %%% @author Karl Anderson

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2024, 2600Hz
+%%% @copyright (C) 2025, 2600Hz
 %%% @doc An erlang:system_monitor/2 message receiver
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2024, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc Wait for Bindings
 %%% @author Luis Azedo
 %%% This Source Code Form is subject to the terms of the Mozilla Public
