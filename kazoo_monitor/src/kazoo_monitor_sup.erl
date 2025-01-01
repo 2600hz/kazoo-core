@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2024, 2600Hz
+%%% @copyright (C) 2025, 2600Hz
 %%% @doc Supervises the named `kz_monitor' proc
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

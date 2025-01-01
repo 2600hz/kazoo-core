@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2024, 2600Hz
+%%% @copyright (C) 2017-2025, 2600Hz
 %%% @doc FreeSWITCH json
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

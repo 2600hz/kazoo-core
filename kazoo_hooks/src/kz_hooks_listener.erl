@@ -1,6 +1,6 @@
 %%%-----------------------------------------------------------------------------
 %%% @deprecated Use {@link kz_events}
-%%% @copyright (C) 2013-2024, 2600Hz
+%%% @copyright (C) 2013-2025, 2600Hz
 %%% @doc Listens for a list of events and gproc-sends them out to folks who
 %%% want them
 %%%

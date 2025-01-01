@@ -1,6 +1,6 @@
 %%%-----------------------------------------------------------------------------
 %%% @deprecated Use {@link kz_events}
-%%% @copyright (C) 2017-2024, 2600Hz
+%%% @copyright (C) 2017-2025, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public

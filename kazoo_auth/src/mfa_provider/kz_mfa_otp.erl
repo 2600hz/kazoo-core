@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2024, 2600Hz
+%%% @copyright (C) 2017-2025, 2600Hz
 %%% @doc Kazoo OTP (one-time password) multi factor authenticator.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public

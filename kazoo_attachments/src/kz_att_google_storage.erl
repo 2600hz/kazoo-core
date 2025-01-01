@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2024, 2600Hz
+%%% @copyright (C) 2017-2025, 2600Hz
 %%% @doc Google Storage for attachments.
 %%% @author Luis Azedo
 %%%

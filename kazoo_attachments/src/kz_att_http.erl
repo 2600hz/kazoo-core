@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2024, 2600Hz
+%%% @copyright (C) 2016-2025, 2600Hz
 %%% @doc Simple URL Storage for attachments.
 %%% @author Luis Azedo
 %%%

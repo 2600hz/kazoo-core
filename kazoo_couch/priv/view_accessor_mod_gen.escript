@@ -57,7 +57,7 @@ config_module(ViewName, Metadata, Acc) ->
 mod_header() ->
     iolist_to_binary(
       ["%%%-----------------------------------------------------------------------------\n"
-      ,"%%% @copyright (C) 2011-2020, 2600Hz\n"
+      ,"%%% @copyright (C) 2011-2025, 2600Hz\n"
       ,"%%% @doc\n"
       ,"%%% @author Hesaam Farhang\n"
       ,"%%%\n"

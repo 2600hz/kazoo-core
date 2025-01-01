@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2024, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc Utilities to facilitate AMQP interaction
 %%% @author James Aimonetti
 %%% @author Karl Anderson

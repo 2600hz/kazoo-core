@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2024, 2600Hz
+%%% @copyright (C) 2025, 2600Hz
 %%% @doc API for events related to webhooks and their configurations
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

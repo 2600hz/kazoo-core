@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2024, 2600Hz
+%%% @copyright (C) 2025, 2600Hz
 %%% @doc Monitors processes for various conditions and logs loudly
 %%%
 %%% There was an EEP that went nowhere: https://www.erlang.org/eeps/eep-0042
