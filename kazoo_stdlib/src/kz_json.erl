@@ -1665,8 +1665,8 @@ get_values(JObj) ->
 get_values(Key, JObj) ->
     get_values(get_value(Key, JObj, new())).
 
--type set_value_options() :: #{'keep_null' => boolean()
-                              ,'deep' => boolean()
+-type set_value_options() :: #{'keep_null' := boolean()
+                              ,'deep' := boolean()
                               }.
 -spec set_value_options() -> set_value_options().
 set_value_options() ->
@@ -2092,21 +2092,21 @@ flatten_key(K, V, _Option) when is_list(K) -> [{K, V}];
 flatten_key(K, V, _Option) -> [{[K], V}].
 
 -spec expand(flat_object()) -> object().
-expand(?JSON_WRAPPER(L)) when is_list(L) ->
-    expand(L, #{}).
+expand(?JSON_WRAPPER(L)=JObj) when is_list(L) ->
+    expand(JObj, set_value_options()).
 
 -spec expand(flat_object(), set_value_options()) -> object().
 expand(?JSON_WRAPPER(L), Options) ->
     lists:foldl(fun({K,V}, JObj) -> set_value(K, V, JObj, Options) end, new(), L).
 
 -spec expand_deep(flat_object()) -> object().
-expand_deep(?JSON_WRAPPER(L)) when is_list(L) ->
-    expand(L, #{'deep' => 'true'}).
+expand_deep(?JSON_WRAPPER(L)=JObj) when is_list(L) ->
+    expand(JObj, #{'deep' => 'true'}).
 
 %% @doc What is in J1 that is not in J2?
 -spec diff(object(), object()) -> object().
 diff(J1, J2) ->
-    diff(J1, J2, #{}).
+    diff(J1, J2, set_value_options()).
 
 -spec diff(object(), object(), set_value_options()) -> object().
 diff(J1, J2, Options) ->
@@ -2114,7 +2114,7 @@ diff(J1, J2, Options) ->
 
 -spec diff_deep(object(), object()) -> object().
 diff_deep(J1, J2) ->
-    diff_deep(J1, J2, #{}).
+    diff_deep(J1, J2, set_value_options()).
 
 -spec diff_deep(object(), object(), set_value_options()) -> object().
 diff_deep(J1, J2, Options) ->
