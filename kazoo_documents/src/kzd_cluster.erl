@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2023-, 2600Hz
+%%% @copyright (C) 2023-2025, 2600Hz
 %%% @doc Accessors for cluster document
 %%% @author Kalyan Krause
 %%% This Source Code Form is subject to the terms of the Mozilla Public

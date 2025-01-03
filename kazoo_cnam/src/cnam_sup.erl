@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc Root supervisor tree for stepswitch routing WhApp
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

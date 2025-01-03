@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2023, 2600Hz
+%%% @copyright (C) 2023-2025, 2600Hz
 %%% @doc S3 attachment handler tests
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

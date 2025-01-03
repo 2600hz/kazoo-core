@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% @copyright (C) 2023, 2600hz
+%%% @copyright (C) 2023-2025, 2600Hz
 %%% @doc
 %%% This file is a replication of mochiweb_html.erl
 %%% https://github.com/mochi/mochiweb/blob/main/src/mochiweb_html.erl
