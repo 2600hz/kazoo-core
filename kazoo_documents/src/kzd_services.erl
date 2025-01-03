@@ -58,13 +58,19 @@
 -export([reseller_id/1
         ,reseller_id/2
         ,set_reseller_id/2
+        ,path_reseller_id/0
+
         ,is_reseller/1
         ,is_reseller/2
         ,set_is_reseller/2
+        ,path_is_reseller/0
         ]).
 -export([tree/1
         ,tree/2
         ,set_tree/2
+        ,path_tree/0
+
+        ,path_tree_previously/0
         ]).
 -export([bookkeeper/1
         ,bookkeeper/2
@@ -399,6 +405,9 @@ reseller_id(JObj, Default) ->
 set_reseller_id(JObj, ResellerId) ->
     kz_json:set_value(?RESELLER_ID, ResellerId, JObj).
 
+-spec path_reseller_id() -> kz_term:ne_binary().
+path_reseller_id() -> ?RESELLER_ID.
+
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
@@ -419,6 +428,9 @@ is_reseller(JObj, Default) ->
 set_is_reseller(JObj, IsReseller) ->
     kz_json:set_value(?IS_RESELLER, IsReseller, JObj).
 
+-spec path_is_reseller() -> kz_term:ne_binary().
+path_is_reseller() -> ?IS_RESELLER.
+
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
@@ -438,6 +450,12 @@ tree(JObj, Default) ->
 -spec set_tree(doc(), kz_term:ne_binaries()) -> doc().
 set_tree(JObj, Tree) ->
     kz_json:set_value(?TREE, Tree, JObj).
+
+-spec path_tree() -> kz_term:ne_binary().
+path_tree() -> ?TREE.
+
+-spec path_tree_previously() -> kz_term:ne_binary().
+path_tree_previously() -> <<"pvt_previous_tree">>.
 
 %%------------------------------------------------------------------------------
 %% @doc
