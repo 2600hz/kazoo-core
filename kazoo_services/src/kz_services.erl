@@ -1172,9 +1172,8 @@ save_services_jobj(Services) ->
 
 -spec save_services_jobj(services(), kzd_services:doc()) -> services().
 save_services_jobj(Services, ProposedJObj) ->
-    Diff = kz_json:diff_deep(current_services_jobj(Services), ProposedJObj),
+    Diff = kz_json:diff_deep(ProposedJObj, current_services_jobj(Services), #{'keep_null' => 'true'}),
     ToUpdate = kz_json:to_proplist(kz_json:flatten(Diff)),
-
     Update = [{'update', ToUpdate}
              ,{'ensure_saved', 'true'}
              ],
