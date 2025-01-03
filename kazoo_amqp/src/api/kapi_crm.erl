@@ -47,6 +47,16 @@
         ,publish_interaction_resp/2
         ]).
 
+-export([call_history/1
+        ,call_history_v/1
+        ,publish_call_history/1
+        ,publish_call_history/2
+        ]).
+-export([call_history_resp/1
+        ,call_history_resp_v/1
+        ,publish_call_history_resp/2
+        ]).
+
 -include_lib("kz_amqp_util.hrl").
 -include("kapi_crm.hrl").
 
@@ -81,6 +91,10 @@ api_definitions() ->
     ,authenticate_resp_definition()
     ,caller_info_definition()
     ,caller_info_resp_definition()
+    ,interaction_definition()
+    ,interaction_resp_definition()
+    ,call_history_definition()
+    ,call_history_resp_definition()
     ].
 
 %%------------------------------------------------------------------------------
@@ -102,7 +116,11 @@ api_definition(<<"caller_info_resp">>) ->
 api_definition(<<"interaction">>) ->
     interaction_definition();
 api_definition(<<"interaction_resp">>) ->
-    interaction_resp_definition().
+    interaction_resp_definition();
+api_definition(<<"call_history">>) ->
+    call_history_definition();
+api_definition(<<"call_history_resp">>) ->
+    call_history_resp_definition().
 
 -spec authenticate_definition() -> kapi_definition:api().
 authenticate_definition() ->
@@ -257,6 +275,52 @@ interaction_resp_definition() ->
               ],
     kapi_definition:setters(Setters).
 
+-spec call_history_definition() -> kapi_definition:api().
+call_history_definition() ->
+    EventName = <<"query_interaction">>,
+    Category = <<"crm">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Call History">>}
+              ,{fun kapi_definition:set_description/2, <<"CRM call history">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun call_history/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun call_history_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_call_history/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Contact-ID">>
+                                                            ,<<"CRM-Platform">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, [{<<"Contact-ID">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"CRM-Platform">>, fun kz_term:is_ne_binary/1}
+                                                 ]}
+              ],
+    kapi_definition:setters(Setters).
+
+-spec call_history_resp_definition() -> kapi_definition:api().
+call_history_resp_definition() ->
+    EventName = <<"query_interaction_reply">>,
+    Category = <<"crm">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Call History Response">>}
+              ,{fun kapi_definition:set_description/2, <<"CRM call history response">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun call_history_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun call_history_resp_v/1}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Query-Interaction-Response">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2, [{<<"Query-Interaction-Response">>
+                                                  ,fun kz_json:is_json_object/1}
+                                                 ]}
+              ],
+    kapi_definition:setters(Setters).
+
 %%------------------------------------------------------------------------------
 %% @doc Sends an authenticate message to a CRM process.
 %% This will set the auth token in the state.
@@ -401,4 +465,50 @@ route(Args) ->
     Account   = props:get_value(<<"Account-ID">>, Args, <<"account_id">>),
     EventName = props:get_value(<<"Event-Name">>, Args, <<"event_name">>),
     ?CRM_ROUTE(Account, EventName).
+
+%%------------------------------------------------------------------------------
+%% @doc Query call history by contact ID from a given CRM.
+%% @end
+%%------------------------------------------------------------------------------
+-spec call_history(kz_term:api_terms()) -> kz_api:api_formatter_return().
+call_history(Req) ->
+    kapi_definition:build_message(Req, call_history_definition()).
+
+-spec call_history_v(kz_term:api_terms()) -> boolean().
+call_history_v(Req) ->
+    kapi_definition:validate(Req, call_history_definition()).
+
+-spec publish_call_history(kz_term:api_terms()) -> 'ok'.
+publish_call_history(JObj) ->
+    publish_call_history(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_call_history(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_call_history(API, ContentType) ->
+    Definition = call_history_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:basic_publish(?CRM_EXCHANGE, route(API), Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Reply to a CRM call history.
+%% @end
+%%------------------------------------------------------------------------------
+-spec call_history_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+call_history_resp(Req) ->
+    kapi_definition:build_message(Req, call_history_resp_definition()).
+
+-spec call_history_resp_v(kz_term:api_terms()) -> boolean().
+call_history_resp_v(Req) ->
+    kapi_definition:validate(Req, call_history_resp_definition()).
+
+-spec publish_call_history_resp(binary(), kz_term:api_terms()) -> 'ok'.
+publish_call_history_resp(Queue, Req) ->
+    Definition = call_history_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(Queue, Payload).
 
