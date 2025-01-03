@@ -311,7 +311,6 @@ start_debug(M) ->
     dbg:p('all', 'c').
 
 stop_debug() ->
-    dbg:stop_clear(),
     dbg:stop().
 
 prop_merge_with_null() ->
