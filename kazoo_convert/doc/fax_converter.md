@@ -1,4 +1,4 @@
-# {% BRAND_NAME %} Fax Converter
+# Fax Converter
 
 The fax converter writes files to a configurable working directory and converts them using system commands. The commands used to convert configurations are user configurable with defaults being set to recommended commands. The module is enabled as the default fax file converter.
 

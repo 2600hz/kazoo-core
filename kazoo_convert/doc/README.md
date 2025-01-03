@@ -1,6 +1,6 @@
-# {% BRAND_NAME %} File Format Converter Library
+# File Format Converter Library
 
-The {% BRAND_NAME %} converter provides a core library for converting file formats.
+The {% BRAND_NAME %} provides a core library for converting file formats.
 
 ## Modules
 

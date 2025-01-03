@@ -1,4 +1,4 @@
-# {% BRAND_NAME %} EDR
+# EDR
 
 EDR is an extension of logging and events in {% BRAND_NAME %}, making it easy to add new events, and consume
 them both by both {% BRAND_NAME %} and external applications.

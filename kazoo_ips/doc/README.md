@@ -1,4 +1,4 @@
-# {% BRAND_NAME %} IP Addresses *Manages Dedicated IP Addresses*
+# Managing Dedicated IP Addresses
 
 ## Purpose
 The purpose of the {% BRAND_NAME %} IPs library is to track IP addresses owned by system administrators and provided to clients for inbound routing assignments.
