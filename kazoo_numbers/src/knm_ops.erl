@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2024, 2600Hz
+%%% @copyright (C) 2015-2025, 2600Hz
 %%% @doc Bulk operations on numbers.
 %%%
 %%% <div class="notice">Functions should not throw, instead should return

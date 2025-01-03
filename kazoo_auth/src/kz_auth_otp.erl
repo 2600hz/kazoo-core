@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2025, 2600Hz
 %%% @doc One-time passwords (OTP) library for generating a user's TOTP
 %%% or HOTP passwords.
 %%%

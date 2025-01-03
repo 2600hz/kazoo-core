@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc Test module to work on recovering after AMQP disconnect in gen_listeners
 %%%
 %%% Creates a basic publisher and gen_listener consumer and starts

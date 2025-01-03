@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc Simple ETS-backed cache. Handles ETS operations
 %%% @author James Aimonetti
 %%% @author Karl Anderson

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc kapps_controller-esque controller for appex :)
 %%% 1. Fetches the listing of available apps for the cluster
 %%% 2. Loads the app when requested via kapps_controller

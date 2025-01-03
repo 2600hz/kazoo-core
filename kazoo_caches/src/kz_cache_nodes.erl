@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2023, 2600Hz
+%%% @copyright (C) 2018-2025, 2600Hz
 %%% @doc Handles flushing cached entries based on nodes coming and going
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc APIs for events concerning money (like credits, debits, and others).
 %%%
 %%% Types of events known:

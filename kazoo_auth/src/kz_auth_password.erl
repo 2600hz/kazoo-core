@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2025, 2600Hz
 %%% @doc All your password security compliance needs.
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public

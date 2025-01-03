@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc Utilities shared by a subset of `kapps'.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
