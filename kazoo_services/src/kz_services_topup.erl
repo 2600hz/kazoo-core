@@ -47,7 +47,7 @@
                         {'error', any()}.
 
 -define(DEFAULT_DESCRIPTION, <<"Usage top-up">>).
--define(EXECUTOR_MODULE, kz_term:to_binary(?MODULE)).
+-define(EXECUTOR_MODULE, <<?MODULE_STRING>>).
 -define(SOURCE_SERVICE, <<"payments">>).
 
 -define(AUTOMATIC_TRIGGER, <<"automatic">>).

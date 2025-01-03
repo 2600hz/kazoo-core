@@ -63,10 +63,10 @@ update_tree(Account, NewTree, NewResellerId) ->
     Services = kz_services:fetch(AccountId, ['skip_cache']),
     ServicesJObj = kz_services:services_jobj(Services),
     Props = props:filter_undefined(
-              [{?SERVICES_PVT_TREE, NewTree}
-              ,{?SERVICES_PVT_TREE_PREVIOUSLY, kzd_accounts:tree(ServicesJObj)}
-              ,{?SERVICES_PVT_MODIFIED, kz_time:now_s()}
-              ,{?SERVICES_PVT_RESELLER_ID, NewResellerId}
+              [{kzd_services:path_tree(), NewTree}
+              ,{kzd_services:path_tree_previously(), kzd_accounts:tree(ServicesJObj)}
+              ,{kz_doc:path_modified(), kz_time:now_s()}
+              ,{kzd_services:path_reseller_id(), NewResellerId}
               ]),
     %%FIXME: do something about setting pvt_auth_*_id
     {'ok', NewServicesJObj} = kz_datamgr:save_doc(?KZ_SERVICES_DB, kz_json:set_values(Props, ServicesJObj)),

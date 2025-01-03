@@ -744,7 +744,10 @@ save(Transaction, Account, Year, Month) ->
     MODb = kazoo_modb:get_modb(Account, Year, Month),
     save(set_modb(Transaction, MODb)).
 
--spec save(transaction()) -> {'ok', transaction()} | {'error', any()}.
+-spec save(transaction()) ->
+          {'ok', transaction()} |
+          {'error', 'invalid_bookkeeper'} |
+          kz_datamgr:data_error().
 save(Transaction) ->
     BookkeeperType = bookkeeper_type(Transaction),
     case kz_term:is_empty(BookkeeperType)
@@ -754,7 +757,9 @@ save(Transaction) ->
         'false' -> do_save(Transaction)
     end.
 
--spec do_save(transaction()) -> {'ok', transaction()} | {'error', any()}.
+-spec do_save(transaction()) ->
+          {'ok', transaction()} |
+          kz_datamgr:data_error().
 do_save(Transaction) ->
     MODb = modb(Transaction),
     {AccountId, _Year, _Month} = kazoo_modb_util:split_account_mod(MODb),
@@ -838,7 +843,8 @@ attempt_bookkeeper_refund(Transaction) ->
 
 -spec handle_bookkeeper_result(transaction(), kz_amqp_worker:request_return()) ->
           {'ok', transaction()} |
-          {'error', any()}.
+          {'error', 'invalid_bookkeeper'} |
+          kz_datamgr:data_error().
 handle_bookkeeper_result(Transaction, {'ok', Result}) ->
     RemoveKeys = [<<"Transaction-ID">>
                  ,<<"Transaction-DB">>
