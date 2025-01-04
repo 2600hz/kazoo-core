@@ -1667,9 +1667,10 @@ get_values(JObj) ->
 get_values(Key, JObj) ->
     get_values(get_value(Key, JObj, new())).
 
--type set_value_options() :: #{'keep_null' := boolean()
-                              ,'deep' := boolean()
+-type set_value_options() :: #{'keep_null' => boolean()
+                              ,'deep' => boolean()
                               }.
+
 -spec set_value_options() -> set_value_options().
 set_value_options() ->
     #{'keep_null' => 'false'
