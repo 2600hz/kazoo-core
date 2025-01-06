@@ -41,6 +41,7 @@ account_formats_test_() ->
     Formats = [AccountId, AccountDbUn, AccountDbEn
               ,MODbId, MODbEn, MODbUn
               ],
+
     %% Note: the whole point of exporting some of these is so that function_clause can be caught
     Funs = [{fun kzs_util:format_account_id/1, AccountId}
            ,{fun ?MODULE:format_account_id_raw/1, AccountId}

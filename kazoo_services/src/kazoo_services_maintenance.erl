@@ -18,7 +18,8 @@
         ]).
 -export([migrate_service_plans/0
         ,migrate_service_plans/1
-        ,migrate_service_plan/2]).
+        ,migrate_service_plan/2
+        ]).
 -export([migrate_services/0]).
 -export([fix_plan_apps/1]).
 -export([reconcile/0
@@ -311,6 +312,7 @@ migrate_service_plans(AccountDb, [JObj|JObjs]) ->
 
 -spec migrate_service_plan(kz_term:ne_binary(), kz_json:object()) -> kzd_services:doc().
 migrate_service_plan(AccountDb, JObj) ->
+    lager:info("~s/~s requires migration~n", [AccountDb, kz_doc:id(JObj)]),
     io:format("~s/~s requires migration~n", [AccountDb, kz_doc:id(JObj)]),
     Routines = [fun migrate_service_plans_bookkeeper/2
                ,fun migrate_service_plans_apps/2
@@ -401,7 +403,6 @@ migrate_service_plans_pvt_parameters(_AccountDb, JObj) ->
     Options = [{'crossbar_doc_vsn', 2}],
     kz_doc:update_pvt_parameters(JObj, ?KZ_SERVICES_DB, Options).
 
-
 -spec migrate_service_plans_ratedeck(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 migrate_service_plans_ratedeck(_AccountDb, JObj) ->
     Plan = kzd_service_plan:plan(JObj),
@@ -422,6 +423,7 @@ migrate_service_plans_ratedeck(_AccountDb, JObj) ->
 
 -spec store_migrated_services_plan(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 store_migrated_services_plan(AccountDb, JObj) ->
+    lager:info("  storing migrated service plan ~s/~s", [AccountDb, kz_doc:id(JObj)]),
     io:format("  storing migrated service plan ~s/~s~n", [AccountDb, kz_doc:id(JObj)]),
     {'ok', UpdatedJObj} = kz_datamgr:save_doc(AccountDb, JObj),
     UpdatedJObj.
