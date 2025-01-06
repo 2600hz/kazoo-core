@@ -915,6 +915,7 @@ create(_AccountId, {'error', 'not_found'}) ->
     'undefined';
 create(AccountId, {'ok', AccountJObj}) ->
     ResellerId = kz_services_reseller:find_id(AccountId),
+    lager:info("adding reseller ~s to services for ~s", [ResellerId, AccountId]),
     BaseJObj = kz_doc:update_pvt_parameters(kz_json:new()
                                            ,kzs_util:format_account_db(AccountId)
                                            ,[{'account_id', AccountId}
@@ -1172,12 +1173,7 @@ save_services_jobj(Services) ->
 
 -spec save_services_jobj(services(), kzd_services:doc()) -> services().
 save_services_jobj(Services, ProposedJObj) ->
-    Diff = kz_json:diff_deep(ProposedJObj, current_services_jobj(Services), #{'keep_null' => 'true'}),
-    ToUpdate = kz_json:to_proplist(kz_json:flatten(Diff)),
-    Update = [{'update', ToUpdate}
-             ,{'ensure_saved', 'true'}
-             ],
-    case kz_datamgr:update_doc(?KZ_SERVICES_DB, account_id(Services), Update) of
+    case kz_datamgr:save_doc(?KZ_SERVICES_DB, ProposedJObj) of
         {'ok', UpdatedJObj} ->
             lager:info("updated services document ~s"
                       ,[account_id(Services)]
