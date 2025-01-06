@@ -288,6 +288,7 @@ call_history_definition() ->
               ,{fun kapi_definition:set_publish_fun/2, fun publish_call_history/2}
               ,{fun kapi_definition:set_required_headers/2, [<<"Contact-ID">>
                                                             ,<<"CRM-Platform">>
+                                                            ,<<"Account-ID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
@@ -295,6 +296,7 @@ call_history_definition() ->
                }
               ,{fun kapi_definition:set_types/2, [{<<"Contact-ID">>, fun kz_term:is_ne_binary/1}
                                                  ,{<<"CRM-Platform">>, fun kz_term:is_ne_binary/1}
+                                                 ,{<<"Account-ID">>, fun kz_term:is_ne_binary/1}
                                                  ]}
               ],
     kapi_definition:setters(Setters).
