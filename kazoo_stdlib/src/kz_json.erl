@@ -115,9 +115,10 @@
 -export([unsafe_decode/1, unsafe_decode/2]).
 
 -export([flatten/1, flatten/2
-        ,expand/1
-        ,diff/2
-        ,flatten_deep/1, expand_deep/1, diff_deep/2
+        ,expand/1, expand/2
+        ,diff/2, diff/3
+        ,flatten_deep/1, expand_deep/1
+        ,diff_deep/2, diff_deep/3
         ,print_diff_deep/2
         ]).
 
@@ -1667,6 +1668,7 @@ get_values(Key, JObj) ->
 -type set_value_options() :: #{'keep_null' => boolean()
                               ,'deep' => boolean()
                               }.
+
 -spec set_value_options() -> set_value_options().
 set_value_options() ->
     #{'keep_null' => 'false'
@@ -2091,27 +2093,50 @@ flatten_key(K, V, _Option) when is_list(K) -> [{K, V}];
 flatten_key(K, V, _Option) -> [{[K], V}].
 
 -spec expand(flat_object()) -> object().
-expand(?JSON_WRAPPER(L)) when is_list(L) ->
-    lists:foldl(fun({K,V}, JObj) -> set_value(K, V, JObj) end, new(), L).
+expand(?JSON_WRAPPER(L)=JObj) when is_list(L) ->
+    expand(JObj, set_value_options()).
+
+-spec expand(flat_object(), set_value_options()) -> object().
+expand(?JSON_WRAPPER(L), Options) ->
+    lists:foldl(fun({K,V}, JObj) -> set_value(K, V, JObj, Options) end, new(), L).
 
 -spec expand_deep(flat_object()) -> object().
-expand_deep(?JSON_WRAPPER(L)) when is_list(L) ->
-    lists:foldl(fun({K,V}, JObj) -> set_value(K, V, JObj, #{'deep' => 'true'}) end, new(), L).
+expand_deep(?JSON_WRAPPER(L)=JObj) when is_list(L) ->
+    expand(JObj, #{'deep' => 'true'}).
 
 %% @doc What is in J1 that is not in J2?
 -spec diff(object(), object()) -> object().
 diff(J1, J2) ->
-    ?JSON_WRAPPER(L1) = flatten(J1),
-    ?JSON_WRAPPER(L2) = flatten(J2),
-    UniqueSet1 = sets:subtract(sets:from_list(L1), sets:from_list(L2)),
-    expand(from_list(sets:to_list(UniqueSet1))).
+    diff(J1, J2, set_value_options()).
+
+-spec diff(object(), object(), set_value_options()) -> object().
+diff(J1, J2, Options) ->
+    do_diff(flatten(J1), flatten(J2), Options).
 
 -spec diff_deep(object(), object()) -> object().
 diff_deep(J1, J2) ->
-    ?JSON_WRAPPER(L1) = flatten_deep(J1),
-    ?JSON_WRAPPER(L2) = flatten_deep(J2),
+    diff_deep(J1, J2, set_value_options()).
+
+-spec diff_deep(object(), object(), set_value_options()) -> object().
+diff_deep(J1, J2, Options) ->
+    do_diff(flatten_deep(J1), flatten_deep(J2), Options#{'deep' => 'true'}).
+
+-spec do_diff(flat_object(), flat_object(), set_value_options()) -> object().
+do_diff(?JSON_WRAPPER(L1), ?JSON_WRAPPER(L2), #{'keep_null' := 'true'} = Options) ->
+    Set1 = sets:from_list(L1),
+    Set2 = sets:from_list(L2),
+    Subtracted2 = sets:to_list(sets:subtract(Set1, Set2)),
+    Subtracted1 = sets:to_list(sets:subtract(Set2, Set1)),
+    Diff = lists:foldl(fun({K,_V}, D) ->
+                               case proplists:is_defined(K, D) of
+                                   'true' -> D;
+                                   'false' -> [{K, 'null'} | D]
+                               end
+                       end, Subtracted2, Subtracted1),
+    expand(from_list(Diff), Options);
+do_diff(?JSON_WRAPPER(L1), ?JSON_WRAPPER(L2), Options) ->
     UniqueSet1 = sets:subtract(sets:from_list(L1), sets:from_list(L2)),
-    expand_deep(from_list(sets:to_list(UniqueSet1))).
+    expand(from_list(sets:to_list(UniqueSet1)), Options).
 
 -spec print_diff_deep(object(), object()) -> 'ok'.
 print_diff_deep(J1, J2) ->

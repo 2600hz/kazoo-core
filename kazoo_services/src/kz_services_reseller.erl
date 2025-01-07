@@ -25,6 +25,8 @@
 
 -include("services.hrl").
 
+-elvis([{elvis_style, no_debug_call, disable}]).
+
 %%------------------------------------------------------------------------------
 %% @doc Returns true if the account id or kz_services:services belongs to a
 %% reseller otherwise returns false.
@@ -114,9 +116,9 @@ force_promote(Account) ->
 do_promote(AccountId) ->
     Update = [{kzd_accounts:path_reseller(), 'true'}],
     {'ok', _A} = kzd_accounts:update(AccountId, Update),
-    _ = maybe_update_services(AccountId, ?SERVICES_PVT_IS_RESELLER, 'true'),
+    _ = maybe_update_services(AccountId, kzd_services:path_is_reseller(), 'true'),
     io:format("promoting account ~s to reseller status, updating sub accounts~n", [AccountId]),
-    lager:debug("promoting account ~s to reseller status, updating sub accounts~n", [AccountId]),
+    lager:debug("promoting account ~s to reseller status, updating sub accounts", [AccountId]),
     cascade_reseller_id(AccountId, AccountId).
 
 %%------------------------------------------------------------------------------
@@ -145,7 +147,7 @@ force_demote(Account) ->
 do_demote(AccountId) ->
     Update = [{kzd_accounts:path_reseller(), 'false'}],
     _ = kzd_accounts:update(AccountId, Update),
-    _ = maybe_update_services(AccountId, ?SERVICES_PVT_IS_RESELLER, 'false'),
+    _ = maybe_update_services(AccountId, kzd_services:path_is_reseller(), 'false'),
     ResellerId = find_id(AccountId),
     io:format("demoting reseller status for account ~s, and now belongs to reseller ~s~n", [AccountId, ResellerId]),
     cascade_reseller_id(ResellerId, AccountId).
@@ -188,7 +190,7 @@ set_reseller_id(Reseller, Account) ->
     Update = [{kzd_accounts:path_reseller_id(), ResellerId}],
 
     _ = kzd_accounts:update(AccountId, Update),
-    maybe_update_services(AccountId, ?SERVICES_PVT_RESELLER_ID, ResellerId).
+    maybe_update_services(AccountId, kzd_services:path_reseller_id(), ResellerId).
 
 %%------------------------------------------------------------------------------
 %% @doc

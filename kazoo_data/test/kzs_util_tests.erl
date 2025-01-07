@@ -41,6 +41,7 @@ account_formats_test_() ->
     Formats = [AccountId, AccountDbUn, AccountDbEn
               ,MODbId, MODbEn, MODbUn
               ],
+
     %% Note: the whole point of exporting some of these is so that function_clause can be caught
     Funs = [{fun kzs_util:format_account_id/1, AccountId}
            ,{fun ?MODULE:format_account_id_raw/1, AccountId}
@@ -149,7 +150,7 @@ test_modbs() ->
     <<A:2/binary, B:2/binary, Rest/binary>> = kz_binary:rand_hex(16),
     {Y, M, _} = erlang:date(),
     Year = kz_term:to_binary(Y),
-    Month = kz_term:to_binary(M),
+    Month = kz_date:pad_month(M),
 
     [?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month)
     ,?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month)
@@ -161,7 +162,7 @@ test_modbish() ->
     <<A:2/binary, B:2/binary, Rest/binary>> = kz_binary:rand_hex(16),
     {Y, M, _} = erlang:date(),
     Year = kz_term:to_binary(Y),
-    Month = kz_term:to_binary(M),
+    Month = kz_date:pad_month(M),
 
     Type = kz_binary:rand_hex(8),
 

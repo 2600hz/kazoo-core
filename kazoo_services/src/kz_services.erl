@@ -915,6 +915,7 @@ create(_AccountId, {'error', 'not_found'}) ->
     'undefined';
 create(AccountId, {'ok', AccountJObj}) ->
     ResellerId = kz_services_reseller:find_id(AccountId),
+    lager:info("adding reseller ~s to services for ~s", [ResellerId, AccountId]),
     BaseJObj = kz_doc:update_pvt_parameters(kz_json:new()
                                            ,kzs_util:format_account_db(AccountId)
                                            ,[{'account_id', AccountId}
@@ -1071,7 +1072,7 @@ cascade_commit(Services) ->
 -spec commit_account(kz_term:ne_binary()|services()) -> services().
 commit_account(?NE_BINARY=AccountId) ->
     commit_account(fetch(AccountId));
-commit_account(Services) ->
+commit_account(#kz_services{}=Services) ->
     lager:debug("commit any changes to account ~s"
                ,[account_id(Services)]
                ),
@@ -1187,7 +1188,6 @@ save_services_jobj(Services, ProposedJObj) ->
                       ),
             Services
     end.
-
 
 %%------------------------------------------------------------------------------
 %% @doc
