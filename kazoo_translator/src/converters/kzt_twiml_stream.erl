@@ -69,7 +69,7 @@ parse_ws_url(Call, Props) ->
         #{scheme := <<"ws">>, host := Host}=Uri when Host =/= <<>> ->
             {'ok', uri_string:recompose(maps:without(['query', 'fragment'], Uri))};
         #{scheme := <<"wss">>, host := Host}=Uri when Host =/= <<>> ->
-            {'ok', kz_term:to_binary(maps:without(['query', 'fragment'], Uri))};
+            {'ok', uri_string:recompose(maps:without(['query', 'fragment'], Uri))};
         #{scheme := Scheme, host := Host} when Host =/= <<>> ->
             {'error', 'invalid_scheme', kzt_util:add_error(Call, <<"stream">>, kz_binary:format(<<"invalid websocket url scheme: ~s">>, [Scheme]))};
         _ ->
