@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.interaction_reply",
+    "description": "AMQP API for crm.interaction_reply",
+    "properties": {
+        "Event-Category": {
+            "enum": [
+                "crm"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "interaction_reply"
+            ]
+        },
+        "Interaction-Response": {
+            "type": "object"
+        }
+    },
+    "required": [
+        "Interaction-Response"
+    ],
+    "type": "object"
+}
