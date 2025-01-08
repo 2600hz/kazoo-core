@@ -9,7 +9,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_events).
 
--export([start_call_events/0
+-export([start_call_events/0, start_link_call_events/0
         ,stop_call_events/0
         ,restart_call_events/0
         ,bind_call_id/1, bind_call_id/2
@@ -19,7 +19,7 @@
         ,delete_async_call_event_handler/3
         ]).
 
--export([start_conf_events/0
+-export([start_conf_events/0, start_link_conf_events/0
         ,stop_conf_events/0
         ,restart_conf_events/0
         ,bind_conf_changes/4
@@ -27,7 +27,7 @@
         ,conf_event_binding/4
         ]).
 
--export([start_presence_events/0
+-export([start_presence_events/0, start_link_presence_events/0
         ,stop_presence_events/0
         ,restart_presence_events/0
         ,bind_presence_id/1
@@ -380,3 +380,18 @@ unreg_property(Binding) ->
 -spec binding_key(event_type(), list()) -> kz_term:ne_binary().
 binding_key(EventType, Args) ->
     kz_binary:join([<<?MODULE_STRING>>, kz_term:to_binary(EventType) | Args], <<".">>).
+
+-spec start_link_call_events() -> ignore.
+start_link_call_events() ->
+    start_call_events(),
+    ignore.
+
+-spec start_link_presence_events() -> ignore.
+start_link_presence_events() ->
+    start_presence_events(),
+    ignore.
+
+-spec start_link_conf_events() -> ignore.
+start_link_conf_events() ->
+    start_conf_events(),
+    ignore.
