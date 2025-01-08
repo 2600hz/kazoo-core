@@ -1,6 +1,6 @@
 -ifndef(KAZOO_TYPES_INCLUDED).
 -include_lib("xmerl/include/xmerl.hrl").
--include_lib("kazoo_stdlib/include/kz_records.hrl").
+-include("kz_records.hrl").
 
 -define(MILLISECONDS_IN_SECOND, 1000).
 -define(MILLISECONDS_IN_MINUTE, (?MILLISECONDS_IN_SECOND * ?SECONDS_IN_MINUTE)).
