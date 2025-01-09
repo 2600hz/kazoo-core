@@ -1,0 +1,62 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.crm.interaction",
+    "description": "AMQP API for crm.interaction",
+    "properties": {
+        "Account-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "CRM-Platform": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Callee-ID": {
+            "type": "string"
+        },
+        "Caller-ID": {
+            "type": "string"
+        },
+        "Contact-ID": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Description": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Direction": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Disposition": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Duration": {
+            "minimum": 1,
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "crm"
+            ]
+        },
+        "Event-Name": {
+            "enum": [
+                "interaction"
+            ]
+        },
+        "Status": {
+            "minLength": 1,
+            "type": "string"
+        }
+    },
+    "required": [
+        "Account-ID",
+        "Callee-ID",
+        "Direction",
+        "Duration"
+    ],
+    "type": "object"
+}
