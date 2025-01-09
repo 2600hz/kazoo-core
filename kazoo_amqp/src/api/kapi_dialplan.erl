@@ -2648,7 +2648,7 @@ v(Prop, DPApp) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Bridge a call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec bridge(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2670,7 +2670,7 @@ bridge_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Unbridge a call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec unbridge(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2683,7 +2683,7 @@ unbridge_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Endpoints for bridging a call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec bridge_endpoint(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2710,7 +2710,7 @@ bridge_endpoint_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Page a call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec page(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2730,7 +2730,7 @@ page_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Store Request.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec store(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2743,7 +2743,7 @@ store_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Store (via AMQP) Response.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec store_amqp_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2756,7 +2756,7 @@ store_amqp_resp_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Store (via HTTP) Response.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec store_http_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2774,7 +2774,7 @@ store_media_content_v(V) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Create a DTMF (or DTMFs) on the channel.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec send_dtmf(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2787,7 +2787,7 @@ send_dtmf_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Receive DTMF.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec recv_dtmf(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2800,7 +2800,7 @@ recv_dtmf_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Create a tone on the channel.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec tones(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2822,7 +2822,7 @@ tones_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc A Tone within a Tones request.
-%% Takes {@link kz_term:api_term()} and returns a proplist
+%% Takes {@link kz_term:api_terms()} and returns a proplist
 %% @end
 %%------------------------------------------------------------------------------
 -spec tones_req_tone(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2849,7 +2849,7 @@ tones_req_tone_headers(JObj) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Detect tones on the line.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec tone_detect(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2872,7 +2872,7 @@ tone_timeout_v(Timeout) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Send a list of dialplan applications in bulk.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec queue(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2885,7 +2885,7 @@ queue_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Play media.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec play(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2898,7 +2898,7 @@ play_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Moves to the next step in callflow.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec break(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2911,7 +2911,7 @@ break_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Stop media from playing.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec playstop(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2924,7 +2924,7 @@ playstop_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Change position in playing media.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec playseek(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2937,7 +2937,7 @@ playseek_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc TTS - Text-to-speech.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec tts(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2950,7 +2950,7 @@ tts_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Record media.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec record(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2963,7 +2963,7 @@ record_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Record call media.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec record_call(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2976,7 +2976,7 @@ record_call_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Answer a session.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec answer(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -2989,7 +2989,7 @@ answer_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Echo a session.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec echo(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3002,7 +3002,7 @@ echo_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Deflect a session
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec deflect(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3027,7 +3027,7 @@ privacy_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Progress a session.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec progress(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3040,7 +3040,7 @@ progress_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Ring a session.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec ring(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3053,7 +3053,7 @@ ring_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Receive a fax, storing it to local disk.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec receive_fax(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3066,7 +3066,7 @@ receive_fax_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Store a fax, storing it to the DB.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec store_fax(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3079,7 +3079,7 @@ store_fax_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Hangup a call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec hangup(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3092,7 +3092,7 @@ hangup_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Soft Hold.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec soft_hold(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3105,7 +3105,7 @@ soft_hold_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Hold a call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec hold(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3118,7 +3118,7 @@ hold_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Hold control.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec hold_control(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3131,7 +3131,7 @@ hold_control_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Park a call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec park(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3144,7 +3144,7 @@ park_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Audio level/mute.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec audio_level(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3157,7 +3157,7 @@ audio_level_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Set Custom Channel variables.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec set(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3170,7 +3170,7 @@ set_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Set Terminators for playback/record.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_terminators(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3183,7 +3183,7 @@ set_terminators_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Fetch Custom Channel variables.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec fetch(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3196,7 +3196,7 @@ fetch_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Play media and record digits.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec play_and_collect_digits(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3209,7 +3209,7 @@ play_and_collect_digits_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Pickup a call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec call_pickup(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3222,7 +3222,7 @@ call_pickup_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Connect a leg to the current leg.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec connect_leg(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3235,7 +3235,7 @@ connect_leg_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Eavesdrop.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec eavesdrop(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3248,7 +3248,7 @@ eavesdrop_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Say - convert text to speech.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec say(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3261,7 +3261,7 @@ say_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Respond a session.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec respond(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3274,7 +3274,7 @@ respond_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Redirect a session.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec redirect(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3287,7 +3287,7 @@ redirect_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Execute_Extension a session.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec execute_extension(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3300,7 +3300,7 @@ execute_extension_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Sleep - Pauses execution.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec sleep(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3313,7 +3313,7 @@ sleep_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Format a Dialplan: noop API call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec noop(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3326,7 +3326,7 @@ noop_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Conference - Sends caller to a conference.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec conference(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3417,7 +3417,7 @@ publish_originate_cancel(ServerId, API, ContentType) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Error - Sends error to Queue.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec error(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3548,7 +3548,7 @@ application_name(JObj) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Detect fax on the line.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec fax_detection(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3561,7 +3561,7 @@ fax_detection_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Store VoiceMail.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec store_vm(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3574,7 +3574,7 @@ store_vm_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Transfer.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec transfer(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3587,7 +3587,7 @@ transfer_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Media macro.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec media_macro(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3600,7 +3600,7 @@ media_macro_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Play macro.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec play_macro(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3613,7 +3613,7 @@ play_macro_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Sound touch.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec sound_touch(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3626,7 +3626,7 @@ sound_touch_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Format a Dialplan: noop API call.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec wait_for_answer(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3639,7 +3639,7 @@ wait_for_answer_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Event action.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec event_actions(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3652,7 +3652,7 @@ event_actions_v(Req) ->
 
 %%------------------------------------------------------------------------------
 %% @doc detect speech.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec detect_speech(kz_term:api_terms()) -> kz_api:api_formatter_return().
@@ -3701,7 +3701,7 @@ detect_speech_definition() ->
 
 %%------------------------------------------------------------------------------
 %% @doc Stream media.
-%% Takes {@link kz_term:api_term()}, creates JSON string or error.
+%% Takes {@link kz_term:api_terms()}, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
 -spec stream(kz_term:api_terms()) -> kz_api:api_formatter_return().

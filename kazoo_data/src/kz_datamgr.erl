@@ -1083,7 +1083,7 @@ delete_attachment(DbName, DocId, AName, Options) ->
 %% @doc Remove "pvt_attachment" from the media doc.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_delete_attachment({'ok', kz_json:object()} | data_error(), kz_json:ne_binary(), kz_json:ne_binary(), kz_term:ne_binary()) ->
+-spec handle_delete_attachment({'ok', kz_json:object()} | data_error(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
           data_error().
 handle_delete_attachment({'ok', <<"not_enabled">>}, DbName, DocId, AName) ->
@@ -1100,7 +1100,10 @@ handle_delete_attachment({'ok', _} = Resp, DbName, DocId, AName) ->
     Resp;
 handle_delete_attachment(Resp, _DbName, _DocId, _AName) -> Resp.
 
--spec maybe_save_updated_doc(kz_json:object(), kz_json:object(), kz_json:ne_binary()) -> any().
+-spec maybe_save_updated_doc(kz_json:object(), kz_json:object(), kz_term:ne_binary()) ->
+          'ok' |
+          {'ok', kz_json:object() | kz_json:objects()} |
+          data_error().
 maybe_save_updated_doc(OriginalDoc, OriginalDoc, _DbName) -> 'ok';
 maybe_save_updated_doc(_OriginalDoc, UpdatedDoc, DbName) -> save_doc(DbName, UpdatedDoc).
 

@@ -51,8 +51,9 @@
 -export([on_enter_extension/1, set_on_enter_extension/2]).
 -export([video/1, video/2, set_video/2]).
 
-
 -include("kz_documents.hrl").
+
+-elvis([{elvis_style, god_modules, disable}]).
 
 -type doc() :: kz_json:object().
 -export_type([doc/0]).
@@ -167,15 +168,15 @@ auto_record(Doc) ->
 auto_record(Doc, Default) ->
     kz_json:get_boolean_value([<<"auto_record">>], Doc, Default).
 
--spec set_recording_data(doc(), kz_json:api_object()) -> doc().
+-spec set_recording_data(doc(), kz_term:api_object()) -> doc().
 set_recording_data(Doc, Data) ->
     kz_json:set_value([<<"recording_data">>], Data, Doc).
 
--spec recording_data(doc()) -> kz_json:api_object().
+-spec recording_data(doc()) -> kz_term:api_object().
 recording_data(Doc) ->
     recording_data(Doc, 'undefined').
 
--spec recording_data(doc(), Default) -> kz_json:api_object() | Default.
+-spec recording_data(doc(), Default) -> kz_term:api_object() | Default.
 recording_data(Doc, Default) ->
     kz_json:get_json_value([<<"recording_data">>], Doc, Default).
 

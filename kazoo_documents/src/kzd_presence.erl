@@ -139,7 +139,7 @@ list_presence(AccountId) ->
 
 -spec fetch_presence(kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:objects()} |
-          kz_data:data_error().
+          kz_datamgr:data_error().
 fetch_presence(AccountId, PresenceId) ->
     ViewOptions = ['reduce'
                   ,'group'
