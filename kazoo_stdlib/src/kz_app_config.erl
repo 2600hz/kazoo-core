@@ -33,7 +33,7 @@
 
 -type account_id() :: kz_term:api_ne_binary().
 -type app() :: atom() | {atom(), account_id()}.
--type app_key() :: kz_term:ne_binary() | kz_term:ne_binaries().
+-type app_key() :: kz_term:ne_binary() | kz_term:ne_binaries() | atom() | [atom()].
 
 -type config_getter() :: fun((kz_json:key(), kz_json:get_key()) -> kz_json:api_json_term()).
 -type account_config_getter() :: fun((kz_term:api_ne_binary(), kz_json:key(), kz_json:get_key()) -> kz_json:api_json_term()).

@@ -344,7 +344,7 @@ stream_event_key(Props) ->
     CallId = props:get_value('call_id', Props, <<"*">>),
     kz_binary:join([Event, AccountId, kz_amqp_util:encode(CallId)], <<".">>).
 
--spec stream_event_routing(kz_term:ne_binary(), kz_term:api_term()) -> kz_term:ne_binary().
+-spec stream_event_routing(kz_term:ne_binary(), kz_term:api_terms()) -> kz_term:ne_binary().
 stream_event_routing(Event, Props) when is_list(Props) ->
     stream_event_routing(Event, kz_json:from_list(Props));
 stream_event_routing(Event, JObj) ->

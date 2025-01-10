@@ -26,6 +26,8 @@
 -export([trace_file/0, trace_file/1, trace_file/2, trace_file/3, trace_file/4]).
 -export([stop_trace/1]).
 
+-export_type([trace_ref/0]).
+
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -define(DEFAULT_TRACE_OUTPUT_FORMAT, ['time'
