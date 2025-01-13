@@ -20,8 +20,11 @@ ssl_opts() ->
 ssl_opts(Options) ->
     props:insert_values(
       [{'versions', ['tlsv1.2']}
+       %% equivalent to `httpc:ssl_verify_host_options('true')'.
       ,{'verify', 'verify_peer'}
       ,{'cacerts', public_key:cacerts_get()} % recommended since OTP-25
+       %% verify matching Presented Identifier (hostname) with Reference Identifier in wildcard cert
+      ,{'customize_hostname_check', [{'match_fun', public_key:pkix_verify_hostname_match_fun('https')}]}
       ]
      ,Options
      ).
