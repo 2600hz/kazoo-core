@@ -76,7 +76,7 @@ parse_ws_url(Call, Props) ->
             {'error', 'invalid_wss_url', kzt_util:add_error(Call, <<"stream">>, <<"invalid websocket url">>)}
     end.
 
--spec current_wss_uri(kz_term:ne_binary()) -> binary().
+-spec current_wss_uri(kz_term:api_binary()) -> binary().
 current_wss_uri(<<"https://", Rest/binary>>) -> <<"wss://", Rest/binary>>;
 current_wss_uri(<<"http://", Rest/binary>>) -> <<"wss://", Rest/binary>>;
 current_wss_uri(_) -> <<>>.
