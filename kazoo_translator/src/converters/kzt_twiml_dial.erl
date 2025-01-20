@@ -323,80 +323,50 @@ create_fwd_endpoint(Number, Call) ->
 -spec sip_uri(kapps_call:call(), kz_term:ne_binary(), kz_term:proplsit()) -> kz_json:object().
 sip_uri(Call, URI, Props) ->
     lager:debug("maybe adding SIP endpoint: ~s", [URI]),
-    SIPDevice = sip_device(URI, Props),
-    kz_endpoint:create_sip_endpoint(SIPDevice, kz_json:new(), Call).
+    sip_device(Call, URI, Props).
 
--spec sip_device(kz_term:ne_binary(), kz_json:proplist()) -> kzd_devices:doc().
-sip_device(URI, Props) ->
-    lists:foldl(fun({F, V}, D) -> F(D, V) end
-               ,kzd_devices:new()
-               ,[{fun set_endpoint_id/2, kz_binary:rand_hex(16)}
-                ,{fun set_invite_credentials/2, get_endpoint_credentials(Props)}
-                ,{fun set_custom_outbound_sip_headers/2, get_custom_sip_headers(URI)}
-                ,{fun kzd_devices:set_sip_invite_format/2, <<"route">>}
-                ,{fun kzd_devices:set_device_type/2, <<"sip_uri">>}
-                ,{fun kzd_devices:set_sip_route/2, get_base_uri(URI)}
-                ,{fun set_sip_transport/2, get_sip_transport(URI)}
-                ]).
+-spec sip_device(kapps_call:call(), kz_term:ne_binary(), kz_json:proplist()) -> kzd_devices:doc().
+sip_device(Call, URI, Props) ->
+    BaseURI = get_base_uri(URI),
+    kz_json:from_list(
+      [{<<"Invite-Format">>, <<"route">>}
+      ,{<<"Route">>, BaseURI}
+      ,{<<"Outbound-Caller-ID-Number">>, kapps_call:caller_id_number(Call)}
+      ,{<<"Outbound-Caller-ID-Name">>, kapps_call:caller_id_name(Call)}
+      ,{<<"Endpoint-Timeout">>, dial_timeout(Props)}
+      ,{<<"Account-ID">>, kapps_call:account_id(Call)}
+      ,{<<"Endpoint-URI">>, BaseURI}
+      ,{<<"Presence-ID">>, kz_attributes:presence_id(Call)}
+      ,{<<"Custom-SIP-Headers">>, get_custom_sip_headers(URI)}
+      ,{<<"SIP-Transport">>, get_sip_transport(URI)}
+      ,{<<"Auth-User">>, props:get_binary_value('username', Props, 'undefined')}
+      ,{<<"Auth-Password">>, props:get_binary_value('password', Props, 'undefined')}
+      ]).
 
 -spec get_base_uri(kz_term:ne_binary()) -> kz_term:ne_binary().
 get_base_uri(URI) ->
     [BaseURI | _] = binary:split(URI, [<<"?">>, <<";">>]),
     BaseURI.
 
--spec set_endpoint_id(kzd_devices:doc(), binary()) -> kzd_devices:doc().
-set_endpoint_id(Doc, Id) ->
-    kz_json:set_value([<<"Endpoint-ID">>], Id, Doc).
-
--spec set_invite_credentials(kzd_devices:doc(), 'undefined' | tuple()) -> kzd_devices:doc().
-set_invite_credentials(Doc, 'undefined') -> Doc;
-set_invite_credentials(Doc, {Username, Password}) ->
-    lists:foldl(fun({F, V}, D) -> F(D, V) end
-               ,Doc
-               ,[{fun kzd_devices:set_sip_method/2, <<"password">>}
-                ,{fun kzd_devices:set_sip_username/2, Username}
-                ,{fun kzd_devices:set_sip_password/2, Password}
-                ]).
-
--spec get_endpoint_credentials(kz_term:proplist()) -> 'undefined' | tuple().
-get_endpoint_credentials(Props) ->
-    Username = props:get_binary_value('username', Props, 'undefined'),
-    Password = props:get_binary_value('password', Props, 'undefined'),
-    case {is_binary(Username), is_binary(Password)} of
-        {'true', 'true'} ->
-            {Username, Password};
-        {_, _} ->
-            'undefined'
-    end.
-
--spec set_sip_transport(kzd_devices:doc(), 'undefined' | kz_term:proplist()) -> kzd_devices:doc().
-set_sip_transport(Doc, 'undefined') -> Doc;
-set_sip_transport(Doc, Type) ->
-    kzd_devices:set_sip_transport(Doc, Type).
-
--spec get_sip_transport(binary()) -> 'undefined' | binary().
+-spec get_sip_transport(binary()) -> kz_term:api_ne_binary().
 get_sip_transport(URI) ->
     case re:run(URI, ";transport=([^;]+)", [{'capture', 'all_but_first', 'binary'}]) of
         {'match', [Transport]} -> Transport;
         'nomatch' -> 'undefined'
     end.
 
--spec set_custom_outbound_sip_headers(kzd_devices:doc(), 'undefined' | kz_term:proplist()) -> kzd_devices:doc().
-set_custom_outbound_sip_headers(Doc, 'undefined') -> Doc;
-set_custom_outbound_sip_headers(Doc, Headers) ->
-    kzd_devices:set_custom_sip_headers_outbound(Doc, Headers).
-
--spec get_custom_sip_headers(binary()) -> 'undefined' | kz_term:proplist().
+-spec get_custom_sip_headers(binary()) -> kz_term:api_proplist().
 get_custom_sip_headers(URI) ->
     case binary:split(URI, <<"?">>) of
         [_Base, CustomHeaders] ->
             Headers = binary:split(CustomHeaders, <<"&">>, [global]),
-            lists:foldl(fun(Header, Acc) ->
-                                case binary:split(Header, <<"=">>) of
-                                    [Key, Value] -> [{Key, kz_http_util:urldecode(Value)} | Acc];
-                                    _ -> Acc
-                                end
-                        end, [], Headers);
+            CSHs = lists:foldl(fun(Header, Acc) ->
+                                       case binary:split(Header, <<"=">>) of
+                                           [Key, Value] -> [{Key, kz_http_util:urldecode(Value)} | Acc];
+                                           _ -> Acc
+                                       end
+                               end, [], Headers),
+            kz_json:from_list(CSHs);
         [_Base] ->
             'undefined'
     end.
