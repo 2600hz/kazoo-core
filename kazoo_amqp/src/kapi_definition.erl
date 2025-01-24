@@ -33,6 +33,15 @@
         ,values/1, values/2, set_values/2
         ]).
 
+
+%% bindings for out of core events publisher for a core defined kapi module
+-export([bind_api_definitions/3, unbind_api_definitions/3
+        ,bind_api_definition/3, unbind_api_definition/3
+        ,api_definitions/1, api_definition/2
+        ,build_message/3, validate/3, validate_message/3
+        ,find_publisher_fun/2, find_validator_fun/2
+        ]).
+
 -include_lib("kazoo_amqp/include/kapi_definition.hrl").
 -include_lib("kazoo_amqp/include/kz_api_literals.hrl").
 
@@ -53,6 +62,7 @@
              ,friendly_name/0
              ,binding/0
              ,build_fun/0
+             ,publish_fun/0
              ]).
 
 %%%=============================================================================
@@ -253,6 +263,15 @@ build_message(Prop, #kapi_definition{validate_fun = ValidateFun
 build_message(JObj, Definition) ->
     build_message(kz_json:to_proplist(JObj), Definition).
 
+-spec build_message(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_terms()) -> kz_api:api_formatter_return().
+build_message(BindingName, EventName, ApiTerm) ->
+    case api_definition(BindingName, EventName) of
+        'undefined' ->
+            {'error', io_lib:format("api definition for ~s/~s not found", [BindingName, EventName])};
+        Definition ->
+            build_message(ApiTerm, Definition)
+    end.
+
 %%------------------------------------------------------------------------------
 %% @doc Generic functions to validate API payload.
 %% @end
@@ -272,3 +291,106 @@ validate_message(Prop, #kapi_definition{required_headers = ReqH
     kz_api:validate_message(Prop, ReqH, Values, Types);
 validate_message(JObj, Definition) ->
     validate_message(kz_json:to_proplist(JObj), Definition).
+
+-spec validate(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_terms()) -> boolean().
+validate(BindingName, EventName, ApiTerm) ->
+    case api_definition(BindingName, EventName) of
+        'undefined' ->
+            lager:error("api definition for ~s/~s not found", [BindingName, EventName]),
+            'false';
+        Definition ->
+            validate(ApiTerm, Definition)
+    end.
+
+-spec validate_message(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_terms()) -> boolean().
+validate_message(BindingName, EventName, ApiTerm) ->
+    case api_definition(BindingName, EventName) of
+        'undefined' ->
+            lager:error("api definition for ~s/~s not found", [BindingName, EventName]),
+            'false';
+        Definition ->
+            validate_message(ApiTerm, Definition)
+    end.
+
+-spec find_publisher_fun(kz_term:ne_binary(), kz_term:ne_binary()) -> publish_fun().
+find_publisher_fun(BindingName, EventName) ->
+    case api_definition(BindingName, EventName) of
+        'undefined' ->
+            lager:error("api definition for ~s/~s not found", [BindingName, EventName]),
+            fun(_) -> 'ok' end;
+        Definition ->
+            publish_fun(Definition)
+    end.
+
+-spec find_validator_fun(kz_term:ne_binary(), kz_term:ne_binary()) -> validate_fun().
+find_validator_fun(BindingName, EventName) ->
+    case api_definition(BindingName, EventName) of
+        'undefined' ->
+            lager:error("api definition for ~s/~s not found", [BindingName, EventName]),
+            fun(_) -> 'false' end;
+        Definition ->
+            validate_fun(Definition)
+    end.
+
+
+%%%=============================================================================
+%%% API definition bindings for out of core events for a core KAPI module
+%%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec bind_api_definitions(kz_term:ne_binary(), module(), atom()) -> kazoo_bindings:bind_result().
+bind_api_definitions(BindingName, Module, Function) ->
+    kazoo_bindings:bind(kapi_list_binding_key(BindingName), Module, Function).
+
+-spec unbind_api_definitions(kz_term:ne_binary(), module(), atom()) -> kazoo_bindings:unbind_result().
+unbind_api_definitions(BindingName, Module, Function) ->
+    kazoo_bindings:unbind(kapi_list_binding_key(BindingName), Module, Function).
+
+-spec kapi_list_binding_key(kz_term:ne_binary()) -> kz_term:ne_binary().
+kapi_list_binding_key(BindingName) ->
+    <<"kapi.definitions.", BindingName/binary>>.
+
+-spec api_definitions(kz_term:ne_binary()) -> apis() | [].
+api_definitions(BindingName) ->
+    %%  try/catch is for kazoo_ast calling KAPI_MODULE:api_definitions on `make apis`.
+    try lists:flatten(kazoo_bindings:map(kapi_list_binding_key(BindingName), [])) of
+        [] -> [];
+        APIs ->
+            [API || #kapi_definition{}=API <- APIs]
+    catch
+        'error':Reason ->
+            lager:error("api definition for ~s got error ~p", [BindingName, Reason]),
+            []
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec bind_api_definition(kz_term:ne_binary(), module(), atom()) -> kazoo_bindings:bind_result().
+bind_api_definition(BindingName, Module, Function) ->
+    kazoo_bindings:bind(kapi_def_binding_key(BindingName), Module, Function).
+
+-spec unbind_api_definition(kz_term:ne_binary(), module(), atom()) -> kazoo_bindings:unbind_result().
+unbind_api_definition(BindingName, Module, Function) ->
+    kazoo_bindings:unbind(kapi_def_binding_key(BindingName), Module, Function).
+
+-spec kapi_def_binding_key(kz_term:ne_binary()) -> kz_term:ne_binary().
+kapi_def_binding_key(BindingName) ->
+    kz_binary:join([<<"kapi.definition">>, BindingName], <<".">>).
+
+-spec api_definition(kz_term:ne_binary(), kz_term:ne_binary()) -> api() | 'undefined'.
+api_definition(BindingName, EventName) ->
+    case [API
+          || #kapi_definition{}=API <- kazoo_bindings:map(kapi_def_binding_key(BindingName), [EventName])
+         ]
+    of
+        [] -> 'undefined';
+        [API] -> API;
+        [API|_] ->
+            lager:debug("found multiple api definition for ~s/~s, using the first one", [BindingName, EventName]),
+            API
+    end.

@@ -20,6 +20,10 @@
 
 -export([api_definitions/0, api_definition/1]).
 
+-export([notification_publish/2, notification_publish/3
+        ,notification_publish_fun/1
+        ]).
+
 -export([headers/1
         ,account_id/1, account_db/2
         ]).
@@ -274,27 +278,11 @@
 -export_type([doc/0]).
 
 -include_lib("kz_amqp_util.hrl").
+-include_lib("kazoo_amqp/include/kapi_notifications.hrl").
 
 -elvis([{'elvis_style', 'god_modules', 'disable'}]).
 
 -type doc() :: kz_json:object().
-
--define(DEFAULT_OPTIONAL_HEADERS, [<<"Account-DB">>
-                                  ,<<"Attachment-URL">>
-                                  ,<<"Bcc">>
-                                  ,<<"Cc">>
-                                  ,<<"From">>
-                                  ,<<"HTML">>
-                                  ,<<"Preview">>
-                                  ,<<"Reply-To">>
-                                  ,<<"Subject">>
-                                  ,<<"Text">>
-                                  ,<<"To">>
-                                  ]).
-
--define(BINDING_STRING(Category, Name), <<"notifications.", (Category)/binary, ".", (Name)/binary>>).
-
--define(NOTIFY_VALUES(Name), kapi_definition:event_type_headers(<<"notification">>, Name)).
 
 %%%=============================================================================
 %%% Internal Notifications Definitions
@@ -1993,6 +1981,7 @@ api_definitions() ->
     ,webhook_definition()
     ,webhook_disabled_definition()
     ,ephemeral_report_generated_definition()
+    | find_other_api_definitions()
     ].
 
 %%------------------------------------------------------------------------------
@@ -2000,7 +1989,7 @@ api_definitions() ->
 %% @see api_definitions/0
 %% @end
 %%------------------------------------------------------------------------------
--spec api_definition(kz_term:text()) -> kapi_definition:api().
+-spec api_definition(kz_term:text()) -> kapi_definition:api() | 'undefined'.
 api_definition(Name) when not is_binary(Name) ->
     api_definition(kz_term:to_binary(Name));
 api_definition(<<"notify_update">>) ->
@@ -2094,7 +2083,22 @@ api_definition(<<"ephemeral_report_generated">>) ->
 api_definition(<<"cf_notification">>) ->
     cf_notification_definition();
 api_definition(<<"number_feature_manual_action">>) ->
-    number_feature_manual_action_definition().
+    number_feature_manual_action_definition();
+api_definition(TemplateId) ->
+    Definition = find_other_api_definition(TemplateId),
+    'true' = Definition =/= 'undefined',
+    Definition.
+
+-spec find_other_api_definition(kz_term:ne_binary()) -> kapi_definition:api() | 'undefined'.
+find_other_api_definition(TemplateId) ->
+    Definition  = kapi_definition:api_definition(<<"notifications">>, TemplateId),
+    Found = Definition =/= 'undefined',
+    lager:debug("asked around for api definition of template ~s, found: ", [Found]),
+    Definition.
+
+-spec find_other_api_definitions() -> kapi_definition:apis() | [].
+find_other_api_definitions() ->
+    kapi_definition:api_definitions(<<"notifications">>).
 
 %%------------------------------------------------------------------------------
 %% @doc Bind to a queue to this API exchange and events.
@@ -2275,6 +2279,27 @@ headers(Name) ->
             lager:warning("no notification headers for ~s", [Name]),
             []
     end.
+
+%%------------------------------------------------------------------------------
+%% @doc Takes proplist, creates JSON string and publish it on AMQP.
+%% @end
+%%------------------------------------------------------------------------------
+-spec notification_publish(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+notification_publish(TemplateId, JObj) ->
+    notification_publish(TemplateId, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec notification_publish(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+notification_publish(TemplateId, API, ContentType) ->
+    Definition = api_definition(TemplateId),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
+
+-spec notification_publish_fun(kz_term:ne_binary()) -> kapi_definition:publish_fun().
+notification_publish_fun(TemplateId) ->
+    fun(ApiTerm) -> notification_publish(TemplateId, ApiTerm) end.
 
 %%%=============================================================================
 %%% Internal Notifications Functions
@@ -3490,12 +3515,17 @@ publish_email_verification(API, ContentType) ->
                                                 ),
     kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
 
--spec find_publisher(kz_term:ne_binary()) -> [{module(), atom()} | fun((kz_term:api_terms()) -> 'ok')].
+-spec find_publisher(kz_term:ne_binary()) -> [kapi_definition:publish_fun()] | kapi_definition:publish_fun() | 'undefined'.
 find_publisher(TemplateId) ->
-    [PubFun
-     || PubFun <- kazoo_bindings:map(binding_kapi_publisher(TemplateId), [TemplateId]),
-        is_callable(PubFun)
-    ].
+    case api_definition(TemplateId) of
+        'undefined' ->
+            [PubFun
+             || PubFun <- kazoo_bindings:map(binding_kapi_publisher(TemplateId), [TemplateId]),
+                is_callable(PubFun)
+            ];
+        Api ->
+            kapi_definition:publish_fun(Api)
+    end.
 
 -spec is_callable({module(), atom()} | fun((kz_term:api_terms()) -> 'ok') | any()) -> boolean().
 is_callable({Module, Function})
