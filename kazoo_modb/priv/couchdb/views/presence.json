@@ -1,0 +1,41 @@
+{
+    "_id": "_design/presence",
+    "kazoo": {
+        "view_map": [
+            {
+                "classification": "modb"
+            }
+        ]
+    },
+    "language": "javascript",
+    "views": {
+        "crossbar_listing": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'presence' || doc.pvt_deleted) return;",
+                "  emit(doc.presence_id, null);",
+                "}"
+            ]
+        },
+        "listing_by_presence": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'presence' || doc.pvt_deleted) return;",
+                "  emit([doc.presence_id], {",
+                "    'id': doc._id,",
+                "    'presence_id': doc.presence_id,",
+                "    'state': doc.state,",
+                "    'timestamp': doc.pvt_created",
+                "  });",
+                "}"
+            ],
+            "reduce": [
+                "function(keys, values, rereduce) {",
+                "  return values.reduce(function(reduceObj, obj) {",
+                "    return reduceObj.timestamp > obj.timestamp ? reduceObj : obj;",
+                "  });",
+                "}"
+            ]
+        }
+    }
+}
