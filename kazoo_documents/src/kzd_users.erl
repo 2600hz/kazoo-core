@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2024, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -780,15 +780,15 @@ music_on_hold_media_id(Doc, Default) ->
 set_music_on_hold_media_id(Doc, MusicOnHoldMediaId) ->
     kz_json:set_value([<<"music_on_hold">>, <<"media_id">>], MusicOnHoldMediaId, Doc).
 
--spec password(doc()) -> kz_term:api_binary().
+-spec password(doc()) -> kz_term:api_ne_binary().
 password(Doc) ->
     password(Doc, 'undefined').
 
--spec password(doc(), Default) -> binary() | Default.
+-spec password(doc(), Default) -> kz_term:ne_binary() | Default.
 password(Doc, Default) ->
     kz_json:get_ne_binary_value([<<"password">>], Doc, Default).
 
--spec set_password(doc(), binary()) -> doc().
+-spec set_password(doc(), kz_term:ne_binary() | 'null') -> doc().
 set_password(Doc, Password) ->
     kz_json:set_value([<<"password">>], Password, Doc).
 
