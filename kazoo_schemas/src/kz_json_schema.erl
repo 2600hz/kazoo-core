@@ -316,7 +316,7 @@ error_to_jobj(Error) ->
     error_to_jobj(Error, [{'version', ?CURRENT_VERSION}]).
 
 -spec error_to_jobj(jesse_error:error_reason(), options()) ->
-          validation_error().
+          validation_error() | validation_errors().
 error_to_jobj({'data_invalid'
               ,_FailedSchemaJObj
               ,{'external_error', Message}
