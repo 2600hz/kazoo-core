@@ -209,6 +209,7 @@ handle_outbound(JObj, Props, 'true') ->
     handle_outbound_resp(Props, handle_outbound_route(JObj, Props)).
 
 handle_outbound_resp(Props, 'ack') -> ack(Props);
+handle_outbound_resp(Props, 'nack') -> nack(Props, false);
 handle_outbound_resp(Props, {'nack', Requeue}) -> nack(Props, Requeue).
 
 ack(Props) ->
@@ -271,7 +272,7 @@ route_offnet(#{enabled := 'true'
     end;
 route_offnet(_Map) ->
     lager:debug_unsafe("not routing ~p", [_Map]),
-    'nack'.
+    {nack, false}.
 
 account(#{payload := JObj} = Map) ->
     case kz_im:account_id(JObj) of
