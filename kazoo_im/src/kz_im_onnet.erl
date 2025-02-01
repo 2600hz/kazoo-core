@@ -210,6 +210,7 @@ handle_outbound(JObj, Props, 'true') ->
 
 -spec handle_outbound_resp(kz_term:proplist(), 'ack' | {'nack', boolean()}) ->  'ok'.
 handle_outbound_resp(Props, 'ack') -> ack(Props);
+handle_outbound_resp(Props, 'nack') -> nack(Props, false);
 handle_outbound_resp(Props, {'nack', Requeue}) -> nack(Props, Requeue).
 
 ack(Props) ->
@@ -265,7 +266,7 @@ route_offnet(#{enabled := 'true'}=Map) ->
     maybe_route_by_provider(maps:get('module', Map, 'undefined'), Map);
 route_offnet(_Map) ->
     lager:debug_unsafe("not routing ~p", [_Map]),
-    'nack'.
+    {nack, false}.
 
 maybe_route_by_provider(<<Provider/binary>>, #{payload := Payload}=Map) ->
     case kz_module:is_exported(Provider, 'route_outbound_im', 1) of
