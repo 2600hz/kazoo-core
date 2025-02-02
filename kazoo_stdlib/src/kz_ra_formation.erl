@@ -292,6 +292,9 @@ do_ra_join(JoinLeader, Context) ->
         {'error', {'no_more_servers_to_try', _}} ->
             lager:info("failed to join ~s to cluster ~s", [node(), ra_name(Context)]),
             Context;
+        {error, cluster_change_not_permitted} ->
+            lager:info("failed to join ~s to cluster ~s because changes are not allowed", [node(), ra_name(Context)]),
+            Context;
         Error ->
             lager:error("failed to add member ~p to ~p for cluster ~s", [Member, Members, ra_name(Context)]),
             throw(Error)
