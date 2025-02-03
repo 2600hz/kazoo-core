@@ -83,6 +83,12 @@ handle_cast(_Msg, State) ->
     {'noreply', State}.
 
 -spec handle_info(any(), state()) -> {'noreply', state()}.
+handle_info({Ref, join, Group, Join}, #{monitor := Ref, ra_name:= Group, pids := Pids} = State) ->
+    lager:debug("pids ~p are joining group ~s", [Join, Group]),
+    {noreply, maps:put(pids, Pids ++ Join, State)};
+handle_info({Ref, leave, Group, Leave}, #{monitor := Ref, ra_name:= Group, pids := Pids} = State) ->
+    lager:debug("pids ~p are leaving group ~s", [Leave, Group]),
+    {noreply, maps:put(pids, Pids -- Leave, State)};
 handle_info(_Msg, State) ->
     lager:debug("unhandled info: ~p", [_Msg]),
     {'noreply', State}.
@@ -100,8 +106,9 @@ do_terminate(Context) ->
                ],
     kz_maps:exec(Routines, Context).
 
-pg_leave(#{joined := 'true'} = Context) ->
+pg_leave(#{joined := 'true', pg_scope := Scope, monitor := Ref} = Context) ->
     lager:debug("leaving pg ~s / ~s", [pg_scope(Context), ra_name(Context)]),
+    _ = pg:demonitor(Scope, Ref),
     pg:leave(pg_scope(Context), ra_name(Context), self()),
     Context;
 pg_leave(Context) -> Context.
@@ -177,8 +184,8 @@ pg_join(#{joined := 'true'} = Context) -> Context;
 pg_join(Context) ->
     lager:info("joining pg group ~s", [ra_name(Context)]),
     pg:join(pg_scope(Context), ra_name(Context), self()),
-    {Ref, _Pids} = pg:monitor(pg_scope(Context), ra_name(Context)),
-    Context#{joined => 'true', monitor => Ref}.
+    {Ref, Pids} = pg:monitor(pg_scope(Context), ra_name(Context)),
+    Context#{joined => 'true', monitor => Ref, pids => Pids}.
 
 pg_query_nodes(#{running := 'true'} = Context) -> Context;
 pg_query_nodes(Context) ->
