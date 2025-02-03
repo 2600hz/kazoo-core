@@ -111,7 +111,7 @@
 -define(LONG_GC_TIME_MS, 200).
 -define(LONG_MQ_THRESHOLD_LOW, 20).
 -define(LONG_MQ_THRESHOLD_HIGH, 100).
--define(LARGE_HEAP_SIZE_WORDS, 16384). %% Internal unspecified minimum, lower values adjusted up to this
+-define(LARGE_HEAP_SIZE_WORDS, 65536). %% Internal unspecified minimum, lower values adjusted up to this
 
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
