@@ -25,6 +25,12 @@
 
 -export([reset_system_dataplan/0]).
 
+-export([dataplan_match/3
+        ,dataplan_type_match/3
+        ,dataplan_type_match/4
+        ,dataplan_match_by_classification/4
+        ,dataplan_type_match_by_classification/5
+        ]).
 -on_load(onload/0).
 
 -include("kz_data.hrl").
@@ -648,7 +654,7 @@ start_connection(Tag, Params) ->
 init() ->
     lager:debug("initializing plans"),
     kazoo_bindings:flush_mod(?MODULE),
-    reload(),
+    _ = boot(),
     bind().
 
 -spec onload() -> 'ok'.
@@ -724,14 +730,18 @@ handle_deleted(JObj) ->
 flush() ->
     kz_cache:flush_local(?KAZOO_DATA_PLAN_CACHE).
 
+-spec boot() -> ok | pid().
+boot() ->
+    _ = load_dataplan(?SYSTEM_DATAPLAN_ID, fun fetch_simple_dataplan/1),
+    case kazoo_data_config:get_is_true(<<"preload_accounts_dataplan">>, false) of
+        true -> kz_process:spawn(fun load_accounts/0);
+        false -> ok
+    end.
+
 -spec reload() -> 'ok'.
 reload() ->
     _ = load_dataplan(?SYSTEM_DATAPLAN_ID, fun fetch_simple_dataplan/1),
-    case kz_datamgr:get_result_ids(?KZ_DATA_DB, ?KZS_PLAN_INIT_VIEW, []) of
-        {'ok', []} -> lager:info("no account dataplans to load");
-        {'ok', Accounts} -> load_accounts(Accounts);
-        Error -> lager:error("error reloading account dataplans ~p", [Error])
-    end.
+    load_accounts().
 
 -spec reset_system_dataplan() -> 'ok'.
 reset_system_dataplan() ->
@@ -750,6 +760,14 @@ reload(AccountId, StorageId) ->
     case kz_cache:peek_local(?KAZOO_DATA_PLAN_CACHE, {'plan', {AccountId, StorageId}}) of
         {'ok', _Plan} -> kz_cache:erase_local(?KAZOO_DATA_PLAN_CACHE, {'plan', {AccountId, StorageId}});
         _Else -> load_storage(AccountId, StorageId)
+    end.
+
+-spec load_accounts() -> 'ok'.
+load_accounts() ->
+    case kz_datamgr:get_result_ids(?KZ_DATA_DB, ?KZS_PLAN_INIT_VIEW, []) of
+        {'ok', []} -> ok;
+        {'ok', Accounts} -> load_accounts(Accounts);
+        {error, _Error} -> lager:error("error reading dataplan accounts => ~p", [_Error])
     end.
 
 -spec load_accounts(kz_term:ne_binaries()) -> 'ok'.

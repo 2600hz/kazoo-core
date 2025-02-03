@@ -37,7 +37,8 @@ render_test_() ->
     ,fun setup/0
     ,fun cleanup/1
     ,fun(_ReturnOfSetup) ->
-             [{"Simple system plan test.", ?_test(system_plan())}
+             [{"dataplan reload.", ?_test(reload_plan())}
+             ,{"Simple system plan test.", ?_test(system_plan())}
              ,{"Simple modb plan test.", ?_test(modb_plan())}
              ,{"Simple account plan test.", ?_test(account_plan())}
              ,{"Simple modb dataplan type match test.", ?_test(match_modb_dataplan_type())}
@@ -63,6 +64,9 @@ cleanup(Pid) ->
 %%%-----------------------------------------------------------------------------
 %%% tests
 %%%-----------------------------------------------------------------------------
+
+reload_plan() ->
+    ?assertMatch(ok, kzs_plan:reload()).
 
 system_plan() ->
     ?assertMatch(#{tag := ?SYS_TAG
