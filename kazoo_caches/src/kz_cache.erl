@@ -154,14 +154,15 @@ dump_local(Srv, ShowValue) when not is_boolean(ShowValue) ->
     dump_local(Srv, kz_term:to_boolean(ShowValue));
 dump_local(Name, ShowValue) ->
     _ = [dump_table(Tab, ShowValue)
-         || Tab <- [Name, kz_cache_ets:pointer_tab(Name), kz_cache_ets:monitor_tab(Name)]
+         || Tab <- [Name, kz_cache_ets:pointer_tab(Name), kz_cache_ets:monitor_tab(Name)],
+            'undefined' =/= ets:whereis(Tab)
         ],
     'ok'.
 
 -spec dump_table(atom(), boolean()) -> 'ok'.
 dump_table(Tab, ShowValue) ->
     Now = kz_time:now_s(),
-    io:format('user', "Table ~p~n", [ets:info(Tab, 'name')]),
+    io:format(format_output(), "Table ~p~n", [ets:info(Tab, 'name')]),
     _ = [display_cache_obj(CacheObj, ShowValue, Now)
          || CacheObj <- ets:match_object(Tab, #cache_obj{_ = '_'})
         ],
@@ -198,22 +199,28 @@ display_cache_obj(#cache_obj{key=Key
                  ,ShowValue
                  ,Now
                  ) ->
-    io:format('user', "Key: ~300p~n", [Key]),
-    io:format('user', "Expires(s): ~30p~n", [Expires]),
+    io:format(format_output(), "Key: ~300p~n", [Key]),
+    io:format(format_output(), "Expires(s): ~30p~n", [Expires]),
     case is_number(Expires) of
         'true' ->
-            io:format('user', "Remaining: ~30p~n"
+            io:format(format_output(), "Remaining: ~30p~n"
                      ,[(Timestamp div ?MILLISECONDS_IN_SECOND + Expires) - Now]
                      );
         'false' -> 'ok'
     end,
-    io:format('user', "Origin: ~300p~n", [Origin]),
-    io:format('user', "Callback: ~s~n", [Callback =/= 'undefined']),
+    io:format(format_output(), "Origin: ~300p~n", [Origin]),
+    io:format(format_output(), "Callback: ~s~n", [Callback =/= 'undefined']),
     case ShowValue of
-        'true' -> io:format('user', "Value: ~p~n", [Value]);
+        'true' -> io:format(format_output(), "Value: ~p~n", [Value]);
         'false' -> 'ok'
     end,
-    io:format('user', "~n", []).
+    io:format(format_output(), "~n", []).
+
+format_output() ->
+    case erlang:get('io_output') of
+        'undefined' -> group_leader();
+        Pid -> Pid
+    end.
 
 -spec wait_for_key_local(kz_types:server_ref(), any()) -> {'ok', any()} |
           {'error', 'timeout'}.
