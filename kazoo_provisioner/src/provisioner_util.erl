@@ -11,8 +11,9 @@
 %%%-----------------------------------------------------------------------------
 -module(provisioner_util).
 
--export([provision_device/3]).
+-export([provision_device/4]).
 -export([delete_provision/2]).
+-export([maybe_create_account/4]).
 -export([maybe_update_account/3]).
 -export([maybe_delete_account/2]).
 -export([maybe_send_contact_list/4]).
@@ -55,9 +56,10 @@
                                 ,'auth_token' => kz_term:ne_binary()
                                 }.
 
--spec provision_device(kzd_devices:doc(), kzd_devices:doc(), provisioner_options()) -> boolean().
-provision_device(NewDeviceDoc, OldDeviceDoc, ProvisionerOptions) ->
-    do_provision_device(ensure_mac_cleansed(NewDeviceDoc)
+-spec provision_device(kz_term:ne_binary(), kzd_devices:doc(), kzd_devices:doc(), provisioner_options()) -> boolean().
+provision_device(AccountId, NewDeviceDoc, OldDeviceDoc, ProvisionerOptions) ->
+    do_provision_device(AccountId
+                       ,ensure_mac_cleansed(NewDeviceDoc)
                        ,ensure_mac_cleansed(OldDeviceDoc)
                        ,ProvisionerOptions
                        ).
@@ -70,10 +72,11 @@ ensure_mac_cleansed(DeviceDoc) ->
             kzd_devices:set_mac_address(DeviceDoc, MacAddress)
     end.
 
--spec do_provision_device(kzd_devices:doc(), kzd_devices:doc(), provisioner_options()) -> boolean().
-do_provision_device(NewDeviceDoc, OldDeviceDoc, ProvisionerOptions) ->
+-spec do_provision_device(kz_term:ne_binary(), kzd_devices:doc(), kzd_devices:doc(), provisioner_options()) -> boolean().
+do_provision_device(_AccountId, NewDeviceDoc, OldDeviceDoc, ProvisionerOptions) ->
     case get_provisioning_type() of
         <<"provisioner_v5">> ->
+            %% TODO:  if AccountId is migrated, use provisioner v6
             update_provisioner_v5(NewDeviceDoc, OldDeviceDoc, ProvisionerOptions);
         _ -> 'false'
     end.
@@ -144,10 +147,25 @@ delete_provision(NewDeviceDoc, AuthToken) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec maybe_create_account(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> boolean().
+maybe_create_account(_CurrAccountId, NewAccountId, AuthToken, Doc) ->
+    case get_provisioning_type() of
+        <<"provisioner_v5">> ->
+            %% TODO: if CurrAccountId is migrated, use provisioner v6
+            _ = provisioner_v6:create_account(NewAccountId, Doc, AuthToken),
+            'true';
+        _Type -> 'false'
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec maybe_update_account(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> boolean().
 maybe_update_account(AccountId, AuthToken, Doc) ->
     case get_provisioning_type() of
         <<"provisioner_v5">> ->
+            %% TODO: if AccountId is migrated, use provisioner v6
             _ = provisioner_v5:update_account(AccountId, Doc, AuthToken),
             'true';
         _Type -> 'false'
