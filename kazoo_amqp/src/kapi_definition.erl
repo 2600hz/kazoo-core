@@ -361,8 +361,8 @@ api_definitions(BindingName) ->
         APIs ->
             [API || #kapi_definition{}=API <- APIs]
     catch
-        'error':Reason ->
-            lager:error("api definition for ~s got error ~p", [BindingName, Reason]),
+        'error':Reason:Stacktrace ->
+            lager:error("api definition for ~s got error ~p with stacktrace ~p", [BindingName, Reason, Stacktrace]),
             []
     end.
 
