@@ -329,7 +329,7 @@ notify_type(PublishFun) ->
     case catch erlang:fun_info_mfa(PublishFun) of
         {'kapi_notifications', Fun, 1} -> notify_type(cast_to_binary(Fun));
         _Other ->
-            lager:error("unknown notification publish function: ~p", [_Other]),
+            lager:info("unknown notification publish function, ignoring: ~p", [_Other]),
             'undefined'
     end.
 
