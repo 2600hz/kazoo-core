@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2024, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc Accessors for `vmboxes' document.
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -237,15 +237,15 @@ media_unavailable(Doc, Default) ->
 set_media_unavailable(Doc, MediaUnavailable) ->
     kz_json:set_value([<<"media">>, <<"unavailable">>], MediaUnavailable, Doc).
 
--spec members(doc()) -> kz_term:api_list().
+-spec members(doc()) -> kz_term:api_objects().
 members(Doc) ->
     members(Doc, 'undefined').
 
--spec members(doc(), Default) -> list() | Default.
+-spec members(doc(), Default) -> kz_json:objects() | Default.
 members(Doc, Default) ->
     kz_json:get_list_value([<<"members">>], Doc, Default).
 
--spec set_members(doc(), list()) -> doc().
+-spec set_members(doc(), kz_json:objects()) -> doc().
 set_members(Doc, Members) ->
     kz_json:set_value([<<"members">>], Members, Doc).
 
