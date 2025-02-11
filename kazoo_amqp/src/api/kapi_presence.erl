@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2024, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -190,8 +190,7 @@ search_req_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun search_req_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_search_req/1}
               ,{fun kapi_definition:set_binding/2, fun search_req_routing_key/1}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Realm">>
-                                                            ]}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Realm">>]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Event-Package">>
                                                             ,<<"Search-Type">>
                                                             ,<<"Username">>
@@ -216,8 +215,7 @@ search_partial_resp_definition() ->
               ,{fun kapi_definition:set_build_fun/2, fun search_partial_resp/1}
               ,{fun kapi_definition:set_validate_fun/2, fun search_partial_resp_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_search_partial_resp/2}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Subscriptions">>
-                                                            ]}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Subscriptions">>]}
               ,{fun kapi_definition:set_optional_headers/2, []}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
@@ -240,8 +238,7 @@ search_resp_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun search_resp_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_search_resp/2}
               ,{fun kapi_definition:set_required_headers/2, []}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Subscriptions">>
-                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Subscriptions">>]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)
                }
