@@ -418,6 +418,7 @@ mwi_update_definition() ->
                                                             ,<<"From">>
                                                             ,<<"From-Realm">>
                                                             ,<<"From-User">>
+                                                            ,<<"Is-Probe">>
                                                             ,<<"Message-Account">>
                                                             ,<<"Messages-Urgent">>
                                                             ,<<"Messages-Urgent-Saved">>
@@ -425,6 +426,7 @@ mwi_update_definition() ->
                                                             ,<<"Presence-ID">>
                                                             ,<<"To-Realm">>
                                                             ,<<"To-User">>
+                                                            ,<<"VMBox-ID">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,kapi_definition:event_type_headers(Category, EventName)

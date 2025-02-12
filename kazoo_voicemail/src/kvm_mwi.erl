@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2018-2023, 2600Hz
+%%% @copyright (C) 2018-2025, 2600Hz
 %%% @doc Message Wait Indicator utilities.
 %%% @author Luis Azedo
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -11,6 +11,7 @@
 -module(kvm_mwi).
 
 -export([notify_vmbox/2
+        ,notify_vmbox/3
         ,notify_owner/2
         ,notify_endpoint/2
         ]).
@@ -32,7 +33,11 @@
 
 -spec notify_vmbox(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 notify_vmbox(Account, BoxId) ->
-    send_mwi_update(Account, BoxId).
+    send_mwi_update(Account, BoxId, 'false').
+
+-spec notify_vmbox(kz_term:ne_binary(), kz_term:ne_binary(), boolean()) -> 'ok'.
+notify_vmbox(Account, BoxId, IsProbe) ->
+    send_mwi_update(Account, BoxId, IsProbe).
 
 -spec notify_owner(kz_term:api_binary(), kz_term:api_binary()) -> 'ok'.
 notify_owner(Account, OwnerId) ->
@@ -42,8 +47,8 @@ notify_owner(Account, OwnerId) ->
 notify_endpoint(Account, EndpointId) ->
     unsolicited_endpoint_mwi_update(Account, EndpointId).
 
--spec send_mwi_update(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
-send_mwi_update(Account, BoxId) ->
+-spec send_mwi_update(kz_term:ne_binary(), kz_term:ne_binary(), boolean()) -> 'ok'.
+send_mwi_update(Account, BoxId, IsProbe) ->
     AccountId = kzs_util:format_account_id(Account),
     AccountDb = kzs_util:format_account_db(AccountId),
     Realm = kzd_accounts:fetch_realm(AccountId),
@@ -59,6 +64,7 @@ send_mwi_update(Account, BoxId) ->
               ,{<<"Messages-Saved">>, Saved}
               ,{<<"Extended-Presence-ID">>, extended_presence_id(AccountId, BoxJObj)}
               ,{<<"Call-ID">>, ?FAKE_CALLID(To)}
+              ,{<<"Is-Probe">>, IsProbe}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
               ],
     kz_amqp_worker:cast(Command, fun kapi_presence:publish_mwi_update/1).

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc Accessors for `vmboxes' document.
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -46,6 +46,9 @@
 -export([timezone/1, timezone/2, set_timezone/2]).
 -export([transcribe/1, transcribe/2, set_transcribe/2]).
 -export([vm_message_forward_type/1, vm_message_forward_type/2, set_vm_message_forward_type/2]).
+-export([members/1, members/2, set_members/2]).
+-export([is_shared_vmbox/1, is_shared_vmbox/2, set_shared_vmbox/2]).
+-export([shared_vmbox_notify_owner_email/1, shared_vmbox_notify_owner_email/2, set_shared_vmbox_notify_owner_email/2]).
 
 -elvis([{elvis_style, god_modules, disable}]).
 
@@ -523,6 +526,42 @@ vm_message_forward_type(Doc, Default) ->
 -spec set_vm_message_forward_type(doc(), binary()) -> doc().
 set_vm_message_forward_type(Doc, VmMessageForwardType) ->
     kz_json:set_value([<<"vm_message_forward_type">>], VmMessageForwardType, Doc).
+
+-spec members(doc()) -> kz_term:api_ne_binaries().
+members(Doc) ->
+    members(Doc, 'undefined').
+
+-spec members(doc(), Default) -> kz_term:ne_binaries() | Default.
+members(Doc, Default) ->
+    kz_json:get_list_value([<<"members">>], Doc, Default).
+
+-spec set_members(doc(), kz_term:ne_binaries()) -> doc().
+set_members(Doc, Members) ->
+    kz_json:set_value([<<"members">>], Members, Doc).
+
+-spec is_shared_vmbox(doc()) -> boolean().
+is_shared_vmbox(Doc) ->
+    is_shared_vmbox(Doc, 'false').
+
+-spec is_shared_vmbox(doc(), Default) -> boolean() | Default.
+is_shared_vmbox(Doc, Default) ->
+    kz_json:get_boolean_value([<<"shared_vmbox">>], Doc, Default).
+
+-spec set_shared_vmbox(doc(), boolean()) -> doc().
+set_shared_vmbox(Doc, SharedVMBox) ->
+    kz_json:set_value([<<"shared_vmbox">>], SharedVMBox, Doc).
+
+-spec shared_vmbox_notify_owner_email(doc()) -> boolean().
+shared_vmbox_notify_owner_email(Doc) ->
+    shared_vmbox_notify_owner_email(Doc, 'false').
+
+-spec shared_vmbox_notify_owner_email(doc(), Default) -> boolean() | Default.
+shared_vmbox_notify_owner_email(Doc, Default) ->
+    kz_json:get_boolean_value([<<"shared_vmbox_notify_owner_email">>], Doc, Default).
+
+-spec set_shared_vmbox_notify_owner_email(doc(), boolean()) -> doc().
+set_shared_vmbox_notify_owner_email(Doc, SharedVMBoxNotifyOwner) ->
+    kz_json:set_value([<<"shared_vmbox_notify_owner_email">>], SharedVMBoxNotifyOwner, Doc).
 
 %%------------------------------------------------------------------------------
 %% @doc Returns the legacy notification email address or a specified default as

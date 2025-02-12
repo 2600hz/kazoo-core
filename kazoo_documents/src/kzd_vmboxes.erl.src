@@ -21,6 +21,7 @@
 -export([media/1, media/2, set_media/2]).
 -export([media_extension/1, media_extension/2, set_media_extension/2]).
 -export([media_unavailable/1, media_unavailable/2, set_media_unavailable/2]).
+-export([members/1, members/2, set_members/2]).
 -export([name/1, name/2, set_name/2]).
 -export([not_configurable/1, not_configurable/2, set_not_configurable/2]).
 -export([notify/1, notify/2, set_notify/2]).
@@ -33,6 +34,8 @@
 -export([require_pin/1, require_pin/2, set_require_pin/2]).
 -export([save_after_notify/1, save_after_notify/2, set_save_after_notify/2]).
 -export([seek_duration_ms/1, seek_duration_ms/2, set_seek_duration_ms/2]).
+-export([shared_vmbox/1, shared_vmbox/2, set_shared_vmbox/2]).
+-export([shared_vmbox_notify_owner_email/1, shared_vmbox_notify_owner_email/2, set_shared_vmbox_notify_owner_email/2]).
 -export([silence_hits/1, silence_hits/2, set_silence_hits/2]).
 -export([silence_threshold/1, silence_threshold/2, set_silence_threshold/2]).
 -export([skip_envelope/1, skip_envelope/2, set_skip_envelope/2]).
@@ -234,6 +237,18 @@ media_unavailable(Doc, Default) ->
 set_media_unavailable(Doc, MediaUnavailable) ->
     kz_json:set_value([<<"media">>, <<"unavailable">>], MediaUnavailable, Doc).
 
+-spec members(doc()) -> kz_term:api_objects().
+members(Doc) ->
+    members(Doc, 'undefined').
+
+-spec members(doc(), Default) -> kz_json:objects() | Default.
+members(Doc, Default) ->
+    kz_json:get_list_value([<<"members">>], Doc, Default).
+
+-spec set_members(doc(), kz_json:objects()) -> doc().
+set_members(Doc, Members) ->
+    kz_json:set_value([<<"members">>], Members, Doc).
+
 -spec name(doc()) -> kz_term:api_ne_binary().
 name(Doc) ->
     name(Doc, 'undefined').
@@ -377,6 +392,30 @@ seek_duration_ms(Doc, Default) ->
 -spec set_seek_duration_ms(doc(), integer()) -> doc().
 set_seek_duration_ms(Doc, SeekDurationMs) ->
     kz_json:set_value([<<"seek_duration_ms">>], SeekDurationMs, Doc).
+
+-spec shared_vmbox(doc()) -> boolean().
+shared_vmbox(Doc) ->
+    shared_vmbox(Doc, 'false').
+
+-spec shared_vmbox(doc(), Default) -> boolean() | Default.
+shared_vmbox(Doc, Default) ->
+    kz_json:get_boolean_value([<<"shared_vmbox">>], Doc, Default).
+
+-spec set_shared_vmbox(doc(), boolean()) -> doc().
+set_shared_vmbox(Doc, SharedVmbox) ->
+    kz_json:set_value([<<"shared_vmbox">>], SharedVmbox, Doc).
+
+-spec shared_vmbox_notify_owner_email(doc()) -> boolean().
+shared_vmbox_notify_owner_email(Doc) ->
+    shared_vmbox_notify_owner_email(Doc, 'false').
+
+-spec shared_vmbox_notify_owner_email(doc(), Default) -> boolean() | Default.
+shared_vmbox_notify_owner_email(Doc, Default) ->
+    kz_json:get_boolean_value([<<"shared_vmbox_notify_owner_email">>], Doc, Default).
+
+-spec set_shared_vmbox_notify_owner_email(doc(), boolean()) -> doc().
+set_shared_vmbox_notify_owner_email(Doc, SharedVmboxNotifyOwnerEmail) ->
+    kz_json:set_value([<<"shared_vmbox_notify_owner_email">>], SharedVmboxNotifyOwnerEmail, Doc).
 
 -spec silence_hits(doc()) -> kz_term:api_integer().
 silence_hits(Doc) ->

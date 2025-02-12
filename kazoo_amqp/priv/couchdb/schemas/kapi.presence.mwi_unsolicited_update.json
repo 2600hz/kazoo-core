@@ -33,6 +33,9 @@
         "From-User": {
             "type": "string"
         },
+        "Is-Probe": {
+            "type": "boolean"
+        },
         "Message-Account": {
             "type": "string"
         },
@@ -61,6 +64,9 @@
             "type": "string"
         },
         "To-User": {
+            "type": "string"
+        },
+        "VMBox-ID": {
             "type": "string"
         }
     },
