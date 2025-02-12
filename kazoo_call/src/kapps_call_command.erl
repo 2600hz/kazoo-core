@@ -92,11 +92,13 @@
 -export([record_call/2, record_call/3, record_call/4, record_call/5
         ,b_record_call/2, b_record_call/3, b_record_call/4, b_record_call/5
         ,start_record_call/2, start_record_call/3, start_record_call/4
-        ,mask_record_call/2
-        ,unmask_record_call/2
-        ,pause_record_call/2
-        ,resume_record_call/2
-        ,stop_record_call/2
+        ,mask_record_call/1, mask_record_call/2
+        ,unmask_record_call/1, unmask_record_call/2
+        ,pause_record_call/1, pause_record_call/2
+        ,resume_record_call/1, resume_record_call/2
+        ,record_call_toggle_mask/1, record_call_toggle_mask/2
+        ,record_call_toggle_pause/1, record_call_toggle_pause/2
+        ,stop_record_call/1, stop_record_call/2
         ]).
 -export([stream_command/2, stream_command/3
         ,stream_start/2, stream_start/3, stream_start/4, stream_start/5, stream_start/6
@@ -1838,59 +1840,101 @@ verify_media_name(JObj, MediaName) ->
         _ -> 'false'
     end.
 
--spec start_record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+-spec start_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 start_record_call(Media, Call) ->
     record_call(Media, <<"start">>, Call).
 
--spec start_record_call(kz_term:proplist(), kz_term:api_binary() | pos_integer(), kapps_call:call()) -> 'ok'.
+-spec start_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kz_term:api_binary() | pos_integer(), kapps_call:call()) -> 'ok'.
 start_record_call(Media, TimeLimit, Call) ->
     record_call(Media, <<"start">>, TimeLimit, Call).
 
--spec start_record_call(kz_term:proplist(), kz_term:api_binary() | pos_integer(), kz_term:ne_binaries(), kapps_call:call()) -> 'ok'.
+-spec start_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kz_term:api_binary() | pos_integer(), kz_term:ne_binaries(), kapps_call:call()) -> 'ok'.
 start_record_call(Media, TimeLimit, Terminators, Call) ->
     record_call(Media, <<"start">>, TimeLimit, Terminators, Call).
 
--spec stop_record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+-spec stop_record_call(kapps_call:call()) -> 'ok'.
+stop_record_call(Call) ->
+    stop_record_call(undefined, Call).
+
+-spec stop_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 stop_record_call(Media, Call) ->
     record_call(Media, <<"stop">>, Call).
 
--spec mask_record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+-spec mask_record_call(kapps_call:call()) -> 'ok'.
+mask_record_call(Call) ->
+    mask_record_call(undefined, Call).
+
+-spec mask_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 mask_record_call(Media, Call) ->
     record_call(Media, <<"mask">>, Call).
 
--spec unmask_record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+-spec unmask_record_call(kapps_call:call()) -> 'ok'.
+unmask_record_call(Call) ->
+    unmask_record_call(undefined, Call).
+
+-spec unmask_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 unmask_record_call(Media, Call) ->
     record_call(Media, <<"unmask">>, Call).
 
--spec pause_record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+-spec pause_record_call(kapps_call:call()) -> 'ok'.
+pause_record_call(Call) ->
+    pause_record_call(undefined, Call).
+
+-spec pause_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 pause_record_call(Media, Call) ->
     record_call(Media, <<"pause">>, Call).
 
--spec resume_record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+-spec resume_record_call(kapps_call:call()) -> 'ok'.
+resume_record_call(Call) ->
+    resume_record_call(undefined, Call).
+
+-spec resume_record_call(kz_term:proplist() | kz_term:api_ne_binary() , kapps_call:call()) -> 'ok'.
 resume_record_call(Media, Call) ->
     record_call(Media, <<"resume">>, Call).
 
--spec record_call(kz_term:proplist(), kapps_call:call()) -> 'ok'.
+-spec record_call_toggle_mask(kapps_call:call()) -> 'ok'.
+record_call_toggle_mask(Call) ->
+    record_call_toggle_mask(undefined, Call).
+
+-spec record_call_toggle_mask(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+record_call_toggle_mask(Media, Call) ->
+    record_call(Media, <<"toggle_mask">>, Call).
+
+-spec record_call_toggle_pause(kapps_call:call()) -> 'ok'.
+record_call_toggle_pause(Call) ->
+    record_call_toggle_pause(undefined, Call).
+
+-spec record_call_toggle_pause(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+record_call_toggle_pause(Media, Call) ->
+    record_call(Media, <<"toggle_pause">>, Call).
+
+-spec record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 record_call(Media, Call) ->
     record_call(Media, <<"start">>, Call).
 
--spec record_call(kz_term:proplist(), kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+-spec record_call(kz_term:proplist() | kz_term:api_ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
 record_call(Media, Action, Call) ->
     record_call(Media, Action, 600, Call).
 
--spec record_call(kz_term:proplist(), kz_term:ne_binary(),  kz_term:api_binary() | pos_integer(), kapps_call:call()) -> 'ok'.
+-spec record_call(kz_term:proplist() | kz_term:api_ne_binary(), kz_term:ne_binary(),  kz_term:api_binary() | pos_integer(), kapps_call:call()) -> 'ok'.
 record_call(Media, Action, TimeLimit, Call) ->
     record_call(Media, Action, TimeLimit, ?ANY_DIGIT, Call).
 
--spec record_call(kz_term:proplist(), kz_term:ne_binary(),  kz_term:api_binary() | pos_integer(), list(), kapps_call:call()) -> 'ok'.
+-spec record_call(kz_term:proplist() | kz_term:api_ne_binary(), kz_term:ne_binary(),  kz_term:api_binary() | pos_integer(), list(), kapps_call:call()) -> 'ok'.
+record_call(undefined, Action, TimeLimit, Terminators, Call) ->
+    record_call([], Action, TimeLimit, Terminators, Call);
+record_call(<<Media/binary>>, Action, TimeLimit, Terminators, Call) ->
+    record_call([{<<"Media-Name">>, Media}], Action, TimeLimit, Terminators, Call);
 record_call(Media, Action, TimeLimit, Terminators, Call) ->
     Limit = props:get_value(<<"Time-Limit">>, Media, kz_term:to_binary(TimeLimit)),
+    TrackMediaRecording = kapps_call:kvs_fetch('recording_track_media_recordings', 'true', Call),
     Command = props:filter_undefined(
                 [{<<"Application-Name">>, <<"record_call">>}
                 ,{<<"Record-Action">>, Action}
                 ,{<<"Time-Limit">>, Limit}
                 ,{<<"Terminators">>, Terminators}
                 ,{<<"Insert-At">>, <<"now">>}
+                ,{<<"Track-Media-Recording">>, TrackMediaRecording}
                 | Media
                 ]),
     send_command(Command, Call).
