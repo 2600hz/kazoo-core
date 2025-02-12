@@ -1226,14 +1226,14 @@ bridge_ccvs(Call) ->
 
 bridge_ccvs(CCVRoutines, Call) ->
     case lists:foldl(bridge_ccvs_fold(Call), [], CCVRoutines) of
-        [] -> undefined;
+        [] -> 'undefined';
         CCVs -> kz_json:from_list(CCVs)
     end.
 
 bridge_ccvs_fold(Call) ->
     fun({Name, Fun}, Acc) ->
             case Fun(Call) of
-                undefined -> Acc;
+                'undefined' -> Acc;
                 Value -> [{Name, Value} | Acc]
             end
     end.
@@ -1854,7 +1854,7 @@ start_record_call(Media, TimeLimit, Terminators, Call) ->
 
 -spec stop_record_call(kapps_call:call()) -> 'ok'.
 stop_record_call(Call) ->
-    stop_record_call(undefined, Call).
+    stop_record_call('undefined', Call).
 
 -spec stop_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 stop_record_call(Media, Call) ->
@@ -1862,7 +1862,7 @@ stop_record_call(Media, Call) ->
 
 -spec mask_record_call(kapps_call:call()) -> 'ok'.
 mask_record_call(Call) ->
-    mask_record_call(undefined, Call).
+    mask_record_call('undefined', Call).
 
 -spec mask_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 mask_record_call(Media, Call) ->
@@ -1870,7 +1870,7 @@ mask_record_call(Media, Call) ->
 
 -spec unmask_record_call(kapps_call:call()) -> 'ok'.
 unmask_record_call(Call) ->
-    unmask_record_call(undefined, Call).
+    unmask_record_call('undefined', Call).
 
 -spec unmask_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 unmask_record_call(Media, Call) ->
@@ -1878,7 +1878,7 @@ unmask_record_call(Media, Call) ->
 
 -spec pause_record_call(kapps_call:call()) -> 'ok'.
 pause_record_call(Call) ->
-    pause_record_call(undefined, Call).
+    pause_record_call('undefined', Call).
 
 -spec pause_record_call(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 pause_record_call(Media, Call) ->
@@ -1886,7 +1886,7 @@ pause_record_call(Media, Call) ->
 
 -spec resume_record_call(kapps_call:call()) -> 'ok'.
 resume_record_call(Call) ->
-    resume_record_call(undefined, Call).
+    resume_record_call('undefined', Call).
 
 -spec resume_record_call(kz_term:proplist() | kz_term:api_ne_binary() , kapps_call:call()) -> 'ok'.
 resume_record_call(Media, Call) ->
@@ -1894,7 +1894,7 @@ resume_record_call(Media, Call) ->
 
 -spec record_call_toggle_mask(kapps_call:call()) -> 'ok'.
 record_call_toggle_mask(Call) ->
-    record_call_toggle_mask(undefined, Call).
+    record_call_toggle_mask('undefined', Call).
 
 -spec record_call_toggle_mask(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 record_call_toggle_mask(Media, Call) ->
@@ -1902,7 +1902,7 @@ record_call_toggle_mask(Media, Call) ->
 
 -spec record_call_toggle_pause(kapps_call:call()) -> 'ok'.
 record_call_toggle_pause(Call) ->
-    record_call_toggle_pause(undefined, Call).
+    record_call_toggle_pause('undefined', Call).
 
 -spec record_call_toggle_pause(kz_term:proplist() | kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
 record_call_toggle_pause(Media, Call) ->
@@ -1921,7 +1921,7 @@ record_call(Media, Action, TimeLimit, Call) ->
     record_call(Media, Action, TimeLimit, ?ANY_DIGIT, Call).
 
 -spec record_call(kz_term:proplist() | kz_term:api_ne_binary(), kz_term:ne_binary(),  kz_term:api_binary() | pos_integer(), list(), kapps_call:call()) -> 'ok'.
-record_call(undefined, Action, TimeLimit, Terminators, Call) ->
+record_call('undefined', Action, TimeLimit, Terminators, Call) ->
     record_call([], Action, TimeLimit, Terminators, Call);
 record_call(<<Media/binary>>, Action, TimeLimit, Terminators, Call) ->
     record_call([{<<"Media-Name">>, Media}], Action, TimeLimit, Terminators, Call);
@@ -2647,7 +2647,7 @@ b_conference(ConfId, Mute, Deaf, Moderator, Profile, Reinvite, VideoMute, Call) 
     wait_for_message(Call, <<"conference">>, <<"CHANNEL_EXECUTE">>).
 
 %%------------------------------------------------------------------------------
-%% @doc Produces the low level AMQP request to preform a `noop'.
+%% @doc Produces the low level AMQP request to perform a `noop'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec noop_id() -> kz_term:ne_binary().
@@ -2666,7 +2666,7 @@ noop(Call) ->
 b_noop(Call) -> wait_for_noop(Call, noop(Call)).
 
 %%------------------------------------------------------------------------------
-%% @doc Produces the low level AMQP request to preform a `wait_for_answer'.
+%% @doc Produces the low level AMQP request to perform a `wait_for_answer'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec wait_for_answer(kapps_call:call()) -> 'ok'.

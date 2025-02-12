@@ -154,6 +154,8 @@
 -export([start_recording/1, start_recording/2
         ,mask_recording/1, mask_recording/2
         ,unmask_recording/1, unmask_recording/2
+        ,pause_recording/1, pause_recording/2
+        ,resume_recording/1, resume_recording/2
         ,stop_recording/1 ,stop_recording/2
         ,should_skip_feature_calls_recording/2
         ]).
@@ -1856,12 +1858,10 @@ stop_recording(LegId, OriginalCall) ->
             kapps_call_command:stop_record_call(API, OriginalCall),
             OriginalCall;
         {'ok', MediaName, Call} ->
-            kapps_call_command:stop_record_call([{<<"Media-Name">>, MediaName}], Call),
+            kapps_call_command:stop_record_call(MediaName, Call),
             Call;
         {'empty', Call} ->
-            MediaName = custom_channel_var(<<"Media-Name">>, Call),
-            API = props:filter_undefined([{<<"Media-Name">>, MediaName}]),
-            kapps_call_command:stop_record_call(API, Call),
+            kapps_call_command:stop_record_call(Call),
             Call
     end.
 
@@ -1876,12 +1876,10 @@ mask_recording(LegId, OriginalCall) ->
 mask_recording(LegId, OriginalCall, LegId) ->
     case retrieve_recording(OriginalCall) of
         {'ok', MediaName, Call} ->
-            kapps_call_command:mask_record_call([{<<"Media-Name">>, MediaName}], Call),
+            kapps_call_command:mask_record_call(MediaName, Call),
             Call;
         {'empty', Call} ->
-            MediaName = custom_channel_var(<<"Media-Name">>, Call),
-            API = props:filter_undefined([{<<"Media-Name">>, MediaName}]),
-            kapps_call_command:mask_record_call(API, Call),
+            kapps_call_command:mask_record_call(Call),
             Call
     end;
 mask_recording(LegId, OriginalCall, _OriginalCallId) ->
@@ -1900,17 +1898,61 @@ unmask_recording(LegId, OriginalCall) ->
 unmask_recording(LegId, OriginalCall, LegId) ->
     case retrieve_recording(OriginalCall) of
         {'ok', MediaName, Call} ->
-            kapps_call_command:unmask_record_call([{<<"Media-Name">>, MediaName}], Call),
+            kapps_call_command:unmask_record_call(MediaName, Call),
             Call;
         {'empty', Call} ->
-            MediaName = custom_channel_var(<<"Media-Name">>, Call),
-            API = props:filter_undefined([{<<"Media-Name">>, MediaName}]),
-            kapps_call_command:unmask_record_call(API, Call),
+            kapps_call_command:unmask_record_call(Call),
             Call
     end;
 unmask_recording(LegId, OriginalCall, _OriginalCallId) ->
     API = [{<<"Call-ID">>, LegId}],
     kapps_call_command:unmask_record_call(API, OriginalCall),
+    OriginalCall.
+
+-spec pause_recording(call()) -> call().
+pause_recording(OriginalCall) ->
+    pause_recording(call_id(OriginalCall), OriginalCall).
+
+-spec pause_recording(kz_term:ne_binary(), call()) -> call().
+pause_recording(LegId, OriginalCall) ->
+    pause_recording(LegId, OriginalCall, call_id(OriginalCall)).
+
+-spec pause_recording(kz_term:ne_binary(), call(), kz_term:ne_binary()) -> call().
+pause_recording(LegId, OriginalCall, LegId) ->
+    case retrieve_recording(OriginalCall) of
+        {'ok', MediaName, Call} ->
+            kapps_call_command:pause_record_call(MediaName, Call),
+            Call;
+        {'empty', Call} ->
+            kapps_call_command:pause_record_call(Call),
+            Call
+    end;
+pause_recording(LegId, OriginalCall, _OriginalCallId) ->
+    API = [{<<"Call-ID">>, LegId}],
+    kapps_call_command:pause_record_call(API, OriginalCall),
+    OriginalCall.
+
+-spec resume_recording(call()) -> call().
+resume_recording(OriginalCall) ->
+    resume_recording(call_id(OriginalCall), OriginalCall).
+
+-spec resume_recording(kz_term:ne_binary(), call()) -> call().
+resume_recording(LegId, OriginalCall) ->
+    resume_recording(LegId, OriginalCall, call_id(OriginalCall)).
+
+-spec resume_recording(kz_term:ne_binary(), call(), kz_term:ne_binary()) -> call().
+resume_recording(LegId, OriginalCall, LegId) ->
+    case retrieve_recording(OriginalCall) of
+        {'ok', MediaName, Call} ->
+            kapps_call_command:resume_record_call(MediaName, Call),
+            Call;
+        {'empty', Call} ->
+            kapps_call_command:resume_record_call(Call),
+            Call
+    end;
+resume_recording(LegId, OriginalCall, _OriginalCallId) ->
+    API = [{<<"Call-ID">>, LegId}],
+    kapps_call_command:resume_record_call(API, OriginalCall),
     OriginalCall.
 
 -spec store_recording(media_name(), call()) -> call().
