@@ -11,6 +11,10 @@
 | `flush_docs/1` | `(Account)` | |
 | `flush_docs/2` | `(Account,DocId)` | |
 | `load_doc_from_file/2` | `(Db,FilePath) | (Db,_FilePath)` | |
+| `move_recordings_to_external_storage/0` |  | |
+| `move_recordings_to_external_storage/1` | `(Year)` | |
+| `move_recordings_to_external_storage/2` | `(AccountId,Year)` | |
+| `move_recordings_to_external_storage/3` | `(AccountId,Year,Month)` | |
 | `open_document/2` | `(Db,Id)` | |
 | `open_document/3` | `(Db,Id,PP)` | |
 | `open_document_cached/2` | `(Db,Id)` | |

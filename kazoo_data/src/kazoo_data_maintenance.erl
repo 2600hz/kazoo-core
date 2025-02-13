@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2023, 2600Hz
+%%% @copyright (C) 2012-2025, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%%
@@ -10,8 +10,6 @@
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kazoo_data_maintenance).
-
--include("kz_data.hrl").
 
 -export([flush/0]).
 -export([flush_data_plans/0]).
@@ -33,6 +31,18 @@
 -export([cache_strategy/0, set_cache_strategy/1]).
 
 -export([dataplan_reload/0, dataplan_reload/1]).
+
+-export([move_recordings_to_external_storage/0
+        ,move_recordings_to_external_storage/1
+        ,move_recordings_to_external_storage/2
+        ,move_recordings_to_external_storage/3
+        ]).
+
+-include("kz_data.hrl").
+
+-elvis([{elvis_style, no_debug_call, disable}]).
+
+-define(CB_LIST_BY_ATTACHMENT, <<"recordings/list_by_attachment">>).
 
 -spec flush() -> 'ok'.
 flush() ->
@@ -169,3 +179,99 @@ dataplan_reload() ->
 dataplan_reload(AccountId) ->
     _ = kzs_plan:reload(AccountId),
     io:format("dataplan for account ~s reloaded~n", [AccountId]).
+
+%% @doc resaves attachments found MODBs for the given year, typically
+%% moving them to external storage after a storage plan is in place.
+-spec move_recordings_to_external_storage() -> 'ok' | data_error().
+move_recordings_to_external_storage() ->
+    {Year, _, _} = erlang:date(),
+    move_recordings_to_external_storage(Year).
+
+-spec move_recordings_to_external_storage(kz_time:year()) -> 'ok' | data_error().
+move_recordings_to_external_storage(Year) ->
+    case fetch_accounts() of
+        {'error', _Reason} = E ->
+            lager:debug("failed to query accounts listing: ~p", [_Reason]),
+            E;
+        {'ok', []} ->
+            lager:debug("no accounts found"),
+            {'error', 'no_accounts'};
+        {'ok', AccountIds} ->
+            _ = move_all_recordings(AccountIds, Year),
+            lager:debug("finished moving all recordings to external storage")
+    end.
+
+fetch_accounts() ->
+    kz_datamgr:get_result_ids(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_id">>).
+
+move_all_recordings(AccountIds, Year) ->
+    [move_recordings_to_external_storage(AccountId, Year) || AccountId <- AccountIds].
+
+-spec move_recordings_to_external_storage(kz_term:ne_binary(), kz_time:year()) -> 'ok'.
+move_recordings_to_external_storage(AccountId, Year) ->
+    _ = [move_recordings_to_external_storage(AccountId, Year, Month) || Month <- lists:seq(1, 12)],
+    'ok'.
+
+-spec move_recordings_to_external_storage(kz_term:ne_binary(), kz_time:year(), kz_time:month()) -> 'ok'.
+move_recordings_to_external_storage(AccountId, Year, Month) ->
+    MODB = kzs_util:format_account_mod_id(AccountId, Year, Month),
+    case fetch_recordings(MODB) of
+        {'ok', []} ->
+            lager:debug("no call recording attachments found for ~s ~p-~p"
+                       ,[AccountId, Year, Month]
+                       );
+        {'ok', JObjs} ->
+            _ = [move_recording(MODB, JObj) || JObj <- JObjs],
+            'ok';
+        {'error', _Reason} ->
+            lager:warning("failed to list call recording attachments for ~s ~p-~p: ~p"
+                         ,[AccountId, Year, Month, _Reason]
+                         )
+    end.
+
+fetch_recordings(MODB) ->
+    kazoo_modb:get_results(MODB, ?CB_LIST_BY_ATTACHMENT, [{'result_key', <<"value">>}]).
+
+move_recording(MODB, JObj) ->
+    DocId = kz_doc:id(JObj),
+    AName = kzd_call_recordings:name(JObj),
+    case kz_datamgr:fetch_attachment(MODB, DocId, AName) of
+        {'ok', Bin} ->
+            store_attachment(MODB, DocId, AName, Bin, kzd_call_recordings:content_type(JObj));
+        {'error', _Error} ->
+            lager:warning("failed to fetch the recording attachment ~s from ~s. Reason: ~p"
+                         ,[AName, MODB, _Error]
+                         )
+    end.
+
+store_attachment(MODB, DocId, AName, Bin, ContentType) ->
+    Options = [{'content_type', ContentType}],
+    case kz_datamgr:put_attachment(MODB, DocId, AName, Bin, Options) of
+        {'ok', _, _} ->
+            verify_move(MODB, DocId, AName);
+        {'ok', _} ->
+            verify_move(MODB, DocId, AName);
+        {'error', _Error} ->
+            lager:warning("failed to re-save the recording attachment ~s to ~s. Reason: ~p"
+                         ,[AName, MODB, _Error]
+                         )
+    end.
+
+verify_move(MODB, DocId, AName) ->
+    {'ok', Doc} = kz_datamgr:open_doc(MODB, DocId),
+    case kz_doc:external_attachments(Doc) of
+        'undefined' ->
+            lager:warning("failed to move call recording ~s from ~s in MODB ~s to external storage"
+                         ,[AName, DocId, MODB]
+                         );
+        _Handler ->
+            finalize_move(MODB, DocId, AName, Doc)
+    end.
+
+finalize_move(MODB, DocId, AName, Doc) ->
+    Options = [{'doc_type', kz_doc:type(Doc)}],
+    Dataplan = kzs_plan:plan(MODB, props:set_value('rev', kz_doc:revision(Doc), Options)),
+    {'ok', _} = kzs_attachments:delete_attachment(Dataplan, MODB, DocId, AName, Options),
+    lager:debug("call recording ~s from ~s in MODB ~s has been successfully moved to external storage"
+               ,[AName, DocId, MODB]
+               ).
