@@ -8,6 +8,8 @@
 -export([new/0]).
 -export([id/1, id/2, set_id/2]).
 -export([scopes/1, scopes/2, set_scopes/2]).
+-export([token_restriction/2, token_restriction/3, set_token_restriction/3]).
+-export([token_restrictions/1, token_restrictions/2, set_token_restrictions/2]).
 
 
 -include("kz_documents.hrl").
@@ -44,3 +46,27 @@ scopes(Doc, Default) ->
 -spec set_scopes(doc(), kz_term:ne_binaries()) -> doc().
 set_scopes(Doc, Scopes) ->
     kz_json:set_value([<<"scopes">>], Scopes, Doc).
+
+-spec token_restriction(doc(), kz_json:key()) -> kz_term:api_objects().
+token_restriction(Doc, TokenRestriction) ->
+    token_restriction(Doc, TokenRestriction, 'undefined').
+
+-spec token_restriction(doc(), kz_json:key(), Default) -> kz_json:objects() | Default.
+token_restriction(Doc, TokenRestriction, Default) ->
+    kz_json:get_list_value([<<"token_restrictions">>, TokenRestriction], Doc, Default).
+
+-spec set_token_restriction(doc(), kz_json:key(), kz_json:objects()) -> doc().
+set_token_restriction(Doc, TokenRestriction, Value) ->
+    kz_json:set_value([<<"token_restrictions">>, TokenRestriction], Value, Doc).
+
+-spec token_restrictions(doc()) -> kz_term:api_object().
+token_restrictions(Doc) ->
+    token_restrictions(Doc, 'undefined').
+
+-spec token_restrictions(doc(), Default) -> kz_json:object() | Default.
+token_restrictions(Doc, Default) ->
+    kz_json:get_json_value([<<"token_restrictions">>], Doc, Default).
+
+-spec set_token_restrictions(doc(), kz_json:object()) -> doc().
+set_token_restrictions(Doc, TokenRestrictions) ->
+    kz_json:set_value([<<"token_restrictions">>], TokenRestrictions, Doc).

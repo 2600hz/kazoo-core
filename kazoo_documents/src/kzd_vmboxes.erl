@@ -527,15 +527,15 @@ vm_message_forward_type(Doc, Default) ->
 set_vm_message_forward_type(Doc, VmMessageForwardType) ->
     kz_json:set_value([<<"vm_message_forward_type">>], VmMessageForwardType, Doc).
 
--spec members(doc()) -> kz_term:api_ne_binaries().
+-spec members(doc()) -> kz_term:api_object().
 members(Doc) ->
     members(Doc, 'undefined').
 
--spec members(doc(), Default) -> kz_term:ne_binaries() | Default.
+-spec members(doc(), Default) -> kz_json:objects() | Default.
 members(Doc, Default) ->
     kz_json:get_list_value([<<"members">>], Doc, Default).
 
--spec set_members(doc(), kz_term:ne_binaries()) -> doc().
+-spec set_members(doc(), kz_json:objects()) -> doc().
 set_members(Doc, Members) ->
     kz_json:set_value([<<"members">>], Members, Doc).
 

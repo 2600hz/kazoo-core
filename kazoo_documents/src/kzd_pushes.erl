@@ -29,6 +29,11 @@
 -export([content_mutable/1, content_mutable/2, set_content_mutable/2]).
 -export([data/1, data/2, set_data/2]).
 -export([fcm/1, fcm/2, set_fcm/2]).
+-export([fcm_android/1, fcm_android/2, set_fcm_android/2]).
+-export([fcm_android_channel_id/1, fcm_android_channel_id/2, set_fcm_android_channel_id/2]).
+-export([fcm_android_color/1, fcm_android_color/2, set_fcm_android_color/2]).
+-export([fcm_android_icon/1, fcm_android_icon/2, set_fcm_android_icon/2]).
+-export([fcm_android_tag/1, fcm_android_tag/2, set_fcm_android_tag/2]).
 -export([priority/1, priority/2, set_priority/2]).
 -export([sound/1, sound/2, set_sound/2]).
 -export([ttl/1, ttl/2, set_ttl/2]).
@@ -320,6 +325,66 @@ fcm(Doc, Default) ->
 -spec set_fcm(doc(), kz_json:object()) -> doc().
 set_fcm(Doc, Fcm) ->
     kz_json:set_value([<<"fcm">>], Fcm, Doc).
+
+-spec fcm_android(doc()) -> kz_term:api_object().
+fcm_android(Doc) ->
+    fcm_android(Doc, 'undefined').
+
+-spec fcm_android(doc(), Default) -> kz_json:object() | Default.
+fcm_android(Doc, Default) ->
+    kz_json:get_json_value([<<"fcm">>, <<"android">>], Doc, Default).
+
+-spec set_fcm_android(doc(), kz_json:object()) -> doc().
+set_fcm_android(Doc, FcmAndroid) ->
+    kz_json:set_value([<<"fcm">>, <<"android">>], FcmAndroid, Doc).
+
+-spec fcm_android_channel_id(doc()) -> kz_term:api_binary().
+fcm_android_channel_id(Doc) ->
+    fcm_android_channel_id(Doc, 'undefined').
+
+-spec fcm_android_channel_id(doc(), Default) -> binary() | Default.
+fcm_android_channel_id(Doc, Default) ->
+    kz_json:get_binary_value([<<"fcm">>, <<"android">>, <<"channel_id">>], Doc, Default).
+
+-spec set_fcm_android_channel_id(doc(), binary()) -> doc().
+set_fcm_android_channel_id(Doc, FcmAndroidChannelId) ->
+    kz_json:set_value([<<"fcm">>, <<"android">>, <<"channel_id">>], FcmAndroidChannelId, Doc).
+
+-spec fcm_android_color(doc()) -> kz_term:api_binary().
+fcm_android_color(Doc) ->
+    fcm_android_color(Doc, 'undefined').
+
+-spec fcm_android_color(doc(), Default) -> binary() | Default.
+fcm_android_color(Doc, Default) ->
+    kz_json:get_binary_value([<<"fcm">>, <<"android">>, <<"color">>], Doc, Default).
+
+-spec set_fcm_android_color(doc(), binary()) -> doc().
+set_fcm_android_color(Doc, FcmAndroidColor) ->
+    kz_json:set_value([<<"fcm">>, <<"android">>, <<"color">>], FcmAndroidColor, Doc).
+
+-spec fcm_android_icon(doc()) -> kz_term:api_binary().
+fcm_android_icon(Doc) ->
+    fcm_android_icon(Doc, 'undefined').
+
+-spec fcm_android_icon(doc(), Default) -> binary() | Default.
+fcm_android_icon(Doc, Default) ->
+    kz_json:get_binary_value([<<"fcm">>, <<"android">>, <<"icon">>], Doc, Default).
+
+-spec set_fcm_android_icon(doc(), binary()) -> doc().
+set_fcm_android_icon(Doc, FcmAndroidIcon) ->
+    kz_json:set_value([<<"fcm">>, <<"android">>, <<"icon">>], FcmAndroidIcon, Doc).
+
+-spec fcm_android_tag(doc()) -> kz_term:api_binary().
+fcm_android_tag(Doc) ->
+    fcm_android_tag(Doc, 'undefined').
+
+-spec fcm_android_tag(doc(), Default) -> binary() | Default.
+fcm_android_tag(Doc, Default) ->
+    kz_json:get_binary_value([<<"fcm">>, <<"android">>, <<"tag">>], Doc, Default).
+
+-spec set_fcm_android_tag(doc(), binary()) -> doc().
+set_fcm_android_tag(Doc, FcmAndroidTag) ->
+    kz_json:set_value([<<"fcm">>, <<"android">>, <<"tag">>], FcmAndroidTag, Doc).
 
 -spec priority(doc()) -> binary().
 priority(Doc) ->
