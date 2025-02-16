@@ -170,6 +170,13 @@ exec_element(Call, #xmlElement{name='Connect'
                               ,attributes=_Attrs
                               }) ->
     kzt_twiml_stream:start(Call, kz_xml:elements(StreamAction), 'bidirectional');
+exec_element(Call, #xmlElement{name='Refer'
+                              ,content=Endpoint
+                              ,attributes=Attrs
+                              }) ->
+    kapps_call_command:answer(Call),
+    EP = kz_xml:elements(Endpoint),
+    kzt_twiml_refer:exec(Call, EP, Attrs);
 exec_element(_Call, #xmlElement{name=Unknown
                                ,content=_Content
                                ,attributes=_Attrs
