@@ -1479,7 +1479,7 @@ application(Doc) ->
 -spec application(doc(), Default) -> kz_json:object() | Default.
 application(Doc, Default) ->
     case device_type(Doc) of
-        <<"application">> -> kz_json:get_json_value([<<"pvt_application">>], Doc);
+        <<"application">> -> kz_json:get_json_value([<<"pvt_application">>], Doc, Default);
         _Other -> Default
     end.
 
