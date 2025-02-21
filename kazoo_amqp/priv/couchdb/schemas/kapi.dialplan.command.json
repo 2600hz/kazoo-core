@@ -106,6 +106,13 @@
         "Attended-Transfer-Keys": {
             "type": "string"
         },
+        "Audio-Codec": {
+            "enum": [
+                "L16",
+                "PCMU"
+            ],
+            "type": "string"
+        },
         "Audio-Mix": {
             "enum": [
                 "mono",

@@ -101,7 +101,7 @@
         ,stop_record_call/1, stop_record_call/2
         ]).
 -export([stream_command/2, stream_command/3
-        ,stream_start/2, stream_start/3, stream_start/4, stream_start/5, stream_start/6
+        ,stream_start/2, stream_start/3, stream_start/4, stream_start/5, stream_start/6, stream_start/7
         ,b_stream_start/2, b_stream_start/3, b_stream_start/4, b_stream_start/5, b_stream_start/6, b_stream_start/7
         ,stream_pause/1, stream_pause/2, b_stream_pause/1, b_stream_pause/2, b_stream_pause/3
         ,stream_resume/1, stream_resume/2, b_stream_resume/1, b_stream_resume/2, b_stream_resume/3
@@ -1969,23 +1969,28 @@ b_record_call(MediaName, Action, TimeLimit, Terminators, Call) ->
 %%------------------------------------------------------------------------------
 -spec stream_start(kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
 stream_start(StreamURL, Call) ->
-    stream_start(StreamURL, <<"inbound">>, Call).
+    stream_start(StreamURL, <<"L16">>, Call).
 
 -spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
-stream_start(StreamURL, AudioTracks, Call) ->
-    stream_start(StreamURL, AudioTracks, <<"mono">>, Call).
+stream_start(StreamURL, AudioCodec, Call) ->
+    stream_start(StreamURL, AudioCodec, <<"inbound">>, Call).
 
--spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
-stream_start(StreamURL, AudioTracks, AudioMix,  Call) ->
-    stream_start(StreamURL, AudioTracks, AudioMix, 'undefined',  Call).
+-spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+stream_start(StreamURL, AudioCodec, AudioTracks, Call) ->
+    stream_start(StreamURL, AudioCodec, AudioTracks, <<"mono">>, Call).
 
--spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
-stream_start(StreamURL, AudioTracks, AudioMix,  SampleRate, Call) ->
-    stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, 'undefined',  Call).
+-spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+stream_start(StreamURL, AudioCodec, AudioTracks, AudioMix,  Call) ->
+    stream_start(StreamURL, AudioCodec, AudioTracks, AudioMix, 'undefined',  Call).
 
--spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> 'ok'.
-stream_start(StreamURL, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call) ->
+-spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> 'ok'.
+stream_start(StreamURL, AudioCodec, AudioTracks, AudioMix,  SampleRate, Call) ->
+    stream_start(StreamURL, AudioCodec, AudioTracks, AudioMix, SampleRate, 'undefined',  Call).
+
+-spec stream_start(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(),  kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_object(), kapps_call:call()) -> 'ok'.
+stream_start(StreamURL, AudioCodec, AudioTracks, AudioMix, SampleRate, ConnectPayload, Call) ->
     Headers = [{<<"Stream-URL">>, StreamURL}
+              ,{<<"Audio-Codec">>, AudioCodec}
               ,{<<"Audio-Mix">>, AudioMix}
               ,{<<"Audio-Tracks">>, AudioTracks}
               ,{<<"Sample-Rate">>, SampleRate}
