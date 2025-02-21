@@ -79,7 +79,7 @@ lookup(<<Number/binary>>) ->
                              )
           );
 lookup(JObj) ->
-    Number = kz_json:get_value(<<"Caller-ID-Number">>, JObj,  kz_privacy:anonymous_caller_id_number()),
+    Number = kz_json:get_value(<<"Caller-ID-Number">>, JObj, kz_privacy:anonymous_caller_id_number()),
     Num = maybe_normalize(Number),
     case kz_cache:fetch_local(?CACHE_NAME, cache_key(Num)) of
         {'ok', CNAM} ->
