@@ -86,17 +86,19 @@ current_wss_uri(_) -> <<>>.
           {'stop', kapps_call:call()}.
 start_call_stream(Call, Url, Type, CustomParams, Props) ->
     Name = props:get_ne_binary_value('name', Props, kz_binary:rand_hex(6)),
-    Data = [{<<"url">>, Url}
-           ,{<<"type">>, stream_type(Type, Props)}
-           ,{<<"name">>, Name}
-           ,{<<"track">>, stream_audio_tracks(Props)}
-           ,{<<"mix">>, stream_audio_mix(Props)}
-           ,{<<"sample_rate">>, stream_audio_sample_rate(Props)}
-           ,{<<"custom_params">>, CustomParams}
-           ],
-
-    gen_listener:cast(kzt_util:get_amqp_listener(Call), {'stream_start', self(), kz_json:from_list(Data)}),
-    wait_for_stream_start(Type, Name, Call, ?START_WAIT_TIMEOUT_MS).
+    Data0 = [{<<"url">>, Url}
+            ,{<<"type">>, stream_type(Type, Props)}
+            ,{<<"name">>, Name}
+            ,{<<"custom_params">>, CustomParams}
+            ],
+    case get_audio_data(Props) of
+        {'ok', AudioData} ->
+            Data = props:set_values(AudioData, Data0),
+            gen_listener:cast(kzt_util:get_amqp_listener(Call), {'stream_start', self(), kz_json:from_list(Data)}),
+            wait_for_stream_start(Type, Name, Call, ?START_WAIT_TIMEOUT_MS);
+        {'error', Error} ->
+            {'stop', kzt_util:add_error(Call, <<"stream">>, Error)}
+    end.
 
 -spec stream_type(stream_type(), kz_term:proplist()) -> kz_term:ne_binary().
 stream_type('unidirectional' = Type, Props) ->
@@ -107,32 +109,101 @@ stream_type('unidirectional' = Type, Props) ->
 stream_type(Type, _) ->
     kz_term:to_binary(Type).
 
--spec stream_audio_tracks(kz_term:proplist()) -> kz_term:ne_binary().
+get_audio_data(Props) ->
+    case stream_audio_tracks(Props) of
+        {'ok', Track} ->
+            get_audio_data(Props, Track);
+        {'error', _}=Error ->
+            Error
+    end.
+
+-spec get_audio_data(kz_term:proplist(), kz_term:ne_binary()) ->
+          {'ok', kz_term:proplist()} |
+          {'error', kz_term:ne_binary()}.
+get_audio_data(Props, Track) ->
+    case kz_term:to_lower_binary(props:get_ne_binary_value('audioFormat', Props, <<"pcm">>)) of
+        <<"pcm">> ->
+            get_audio_data(Props, Track, <<"L16">>);
+        <<"pcm16">> ->
+            get_audio_data(Props, Track, <<"pcm16">>);
+        <<"g711_ulaw">> ->
+            get_audio_data(Props, Track, <<"g711_ulaw">>);
+        <<"pcmu">> ->
+            get_audio_data(Props, Track, <<"g711_ulaw">>);
+        _Unsupported ->
+            {'error', <<"unsupported audio format">>}
+    end.
+
+-spec get_audio_data(kz_term:proplist(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_term:proplist()} |
+          {'error', kz_term:ne_binary()}.
+get_audio_data(Props, Track, <<"L16">>) ->
+    Data0 = [{<<"format">>, <<"L16">>}
+            ,{<<"track">>, Track}
+            ],
+    Funs = [fun maybe_set_audio_mix/1
+           ,fun maybe_set_audio_sample_rate/1
+           ],
+    case kz_either:pipe({'ok', {Props, Data0}}, Funs) of
+        {'ok', {_, Data}} -> {'ok', Data};
+        {'error', _}=Error -> Error
+    end;
+get_audio_data(_Props, Track, <<"pcm16">>) ->
+    {'ok'
+    ,[{<<"format">>, <<"L16">>}
+     ,{<<"track">>, Track}
+     ,{<<"mix">>, <<"mono">>}
+     ,{<<"sample_rate">>, <<"24k">>}
+     ]
+    };
+get_audio_data(_Props, Track, <<"g711_ulaw">>) ->
+    {'ok'
+    ,[{<<"format">>, <<"PCMU">>}
+     ,{<<"track">>, Track}
+     ,{<<"mix">>, <<"mono">>}
+     ,{<<"sample_rate">>, <<"8k">>}
+     ]
+    }.
+
+-spec stream_audio_tracks(kz_term:proplist()) -> {'ok', kz_term:ne_binary()} | {'error', kz_term:ne_binary()}.
 stream_audio_tracks(Props) ->
     Tracks = [<<"inbound_track">>, <<"outbound_track">>, <<"both_tracks">>],
     Track = props:get_ne_binary_value('track', Props, <<"inbound_track">>),
     case lists:member(Track, Tracks) of
         'true' ->
-            Track;
+            {'ok', Track};
         'false' ->
-            lager:debug("invalid stream audio track ~s, falling back to inbound_track"),
-            <<"inbound_track">>
+            {'error', <<"invalid stream audio track">>}
     end.
 
--spec stream_audio_mix(kz_term:proplist()) -> kz_term:ne_binary().
-stream_audio_mix(Props) ->
+-spec maybe_set_audio_mix({kz_term:proplist(), kz_term:proplist()}) ->
+          {'ok', {kz_term:proplist(), kz_term:proplist()}} |
+          {'error', kz_term:ne_binary()}.
+maybe_set_audio_mix({Props, Data}) ->
     Mixes = [<<"mono">>, <<"stereo">>],
     Mix = props:get_ne_binary_value('audioMix', Props, <<"mono">>),
     case lists:member(Mix, Mixes) of
         'true' ->
-            Mix;
+            {'ok', props:set_value(<<"mix">>, Mix, Data)};
         'false' ->
-            lager:debug("invalid stream audio mix ~s, falling back to mono"),
-            <<"mono">>
+            {'error', <<"invalid stream audio mix">>}
     end.
 
--spec stream_audio_sample_rate(kz_term:proplist()) -> kz_term:ne_binary().
-stream_audio_sample_rate(Props) ->
+-spec maybe_set_audio_sample_rate({kz_term:proplist(), kz_term:proplist()}) ->
+          {'ok', {kz_term:proplist(), kz_term:proplist()}} |
+          {'error', kz_term:ne_binary()}.
+maybe_set_audio_sample_rate({Props, Data}) ->
+    case get_sample_rate(Props) of
+        {'ok', Rate} ->
+            {'ok', props:set_value(<<"sample_rate">>, Rate, Data)};
+        {'error', _}=Error ->
+            Error
+    end.
+
+-spec get_sample_rate(kz_term:proplist()) ->
+          {'ok', kz_term:ne_binary()} |
+          {'error', kz_term:ne_binary()}.
+get_sample_rate(Props) ->
     SampleRate = props:get_ne_binary_value('sampleRate', Props, <<"8000">>),
     case kz_binary:reverse(SampleRate) of
         <<"k", Etar/binary>> ->
@@ -143,18 +214,16 @@ stream_audio_sample_rate(Props) ->
             safe_sample_rate(SampleRate, RateInt, 1)
     end.
 
--spec safe_sample_rate(kz_term:ne_binary(), kz_term:api_integer(), integer()) -> kz_term:ne_binary().
+-spec safe_sample_rate(kz_term:ne_binary(), kz_term:api_integer(), integer()) -> {'ok', kz_term:ne_binary()} | {'error', kz_term:ne_binary()}.
 safe_sample_rate(_Value, 'undefined', _) ->
-    lager:debug("invalid stream audio samplerate ~s, using 8000 as fallback", [_Value]),
-    <<"8000">>;
+    {'error', <<"invalid stream audio samplerate">>};
 safe_sample_rate(_Value, RateInt, Multiply1K) ->
     Rate = (RateInt * Multiply1K),
     case Rate rem 8000 of
         0 ->
-            kz_term:to_binary(Rate);
+            {'ok', kz_term:to_binary(Rate)};
         _ ->
-            lager:debug("stream audio samplerate ~s is not divisable by 8000, using 8000 as fallback", [_Value]),
-            <<"8000">>
+            {'error', <<"stream audio samplerate is not divisable by 8000">>}
     end.
 
 -spec wait_for_stream_start(stream_type(), kz_term:ne_binary(), kapps_call:call(), timeout()) ->
