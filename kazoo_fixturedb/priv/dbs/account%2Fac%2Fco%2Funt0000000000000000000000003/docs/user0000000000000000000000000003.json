@@ -231,6 +231,9 @@
     "pvt_request_id": "request0000000000000000000000001",
     "pvt_type": "user",
     "pvt_vsn": "1",
+    "pvt_hashed_password_is": "changeme",
+    "pvt_md5_auth": "dbba21f2f2332c2202479e6daa30b4f8",
+    "pvt_sha1_auth": "1629c7e5bf53bbfb0150080434270905ddd262c9",
     "register_overwrite_notify": false,
     "require_password_update": true,
     "ringtones": {

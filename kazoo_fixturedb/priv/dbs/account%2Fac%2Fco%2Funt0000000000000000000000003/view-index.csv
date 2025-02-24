@@ -2,3 +2,4 @@ view_name, view_options, view_file_name
 callflows/listing_by_number, [{key,<<"+13977031887">>}], callflows+listing_by_number-24b8d61392742fc017d6668f2d9ea740.json
 maintenance/listing_by_type, [{key,<<"user">>},include_docs], maintenance+listing_by_type-b25f1b5370c70b48d3166d7c8512715e.json
 trunkstore/lookup_did, [{key,<<"+13977031887">>}], trunkstore+lookup_did-24b8d61392742fc017d6668f2d9ea740.json
+users/list_by_username, [{key,<<"userthree">>}], users+list_by_username-399ad355f4e8681079b9cc2165c36252.json

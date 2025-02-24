@@ -1656,7 +1656,7 @@ rehash_creds(AccountId, Username, <<Password/binary>>, {Doc, Errors}) ->
     rehash_creds(AccountId, Username, kz_auth_password:enforce(AccountId, Doc, Password), {Doc, Errors});
 rehash_creds(_AccountId, _Username, {'invalid', PassEnforceErrors}, {Doc, Errors}) ->
     Msg = kz_json:from_list(
-            [{<<"message">>, <<"The provided password is non-compliant with your account's security level">>}
+            [{<<"message">>, <<"The provided password is non-compliant with security level">>}
             ,{<<"cause">>, <<"password">>}
             ,{<<"details">>, PassEnforceErrors}
             ]),

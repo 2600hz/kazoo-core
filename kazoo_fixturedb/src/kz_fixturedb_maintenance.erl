@@ -12,6 +12,8 @@
 -export([dummy_plan/0
         ,new_connection/0, new_connection/1
         ,db_to_disk/1, db_to_disk/2
+
+        ,persist_doc/2, unpersist_doc/2
         ]).
 
 -include("kz_fixturedb.hrl").
@@ -78,16 +80,33 @@ db_to_disk_persist(_Database, _FilterFun, {'error', _E}=Error) ->
 
 -spec filter_and_persist(kz_term:ne_binary(), filter_fun(), kz_json:objects()) -> 'ok'.
 filter_and_persist(Database, FilterFun, ViewResults) ->
-    _ = [persist(Database, Document) || ViewResult <- ViewResults,
+    _ = [persist_doc(Database, Document) || ViewResult <- ViewResults,
                                         Document <- [kz_json:get_json_value(<<"doc">>, ViewResult)],
                                         FilterFun(Document)
         ],
     'ok'.
 
--spec persist(kz_term:ne_binary(), kz_json:object()) -> 'ok'.
-persist(Database, Document) ->
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec persist_doc(kz_term:ne_binary(), kz_json:object()) -> 'ok'.
+persist_doc(Database, Document) ->
     Path = kz_fixturedb_util:get_doc_path(Database, kz_doc:id(Document)),
     'ok' = filelib:ensure_dir(Path),
 
     lager:info("  persisting doc ~s to ~s", [kz_doc:id(Document), Path]),
-    'ok' = file:write_file(Database, kz_json:encode(Document, ['pretty'])).
+    'ok' = file:write_file(Path, kz_json:encode(Document, ['pretty'])).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec unpersist_doc(kz_term:ne_binary(), kz_json:object() | kz_term:ne_binary()) -> 'ok'.
+unpersist_doc(Database, <<Id/binary>>) ->
+    Path = kz_fixturedb_util:get_doc_path(Database, Id),
+    lager:info("  unpersisting doc ~s to ~s", [Id, Path]),
+    'ok' = file:delete(Path);
+unpersist_doc(Database, Document) ->
+    'true' = kz_json:is_json_object(Document),
+    unpersist_doc(Database, kz_doc:id(Document)).

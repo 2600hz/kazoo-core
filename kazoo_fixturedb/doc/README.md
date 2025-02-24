@@ -108,7 +108,10 @@ Documents are the exact copy of a real CouchDB documents. Document's filename is
 
 You can use `kz_fixturedb_util:get_doc_path/2,3` to get document's file path.
 
-Saving a document is not really saving the JObj in a file, instead it just returned an updated JObj with bumped `_rev` and updated `pvt_document_hash`. If database (the database folder) does not exists it returns error `{'error', 'not_found'}`. If you try to save a document which exists in the `docs` without correct `_rev` then the result is `{'error', 'conflict'}` as expected.
+Saving a document is not really saving the JObj in a file, instead it just returned an updated JObj with bumped `_rev` and updated `pvt_document_hash`. If database (the database folder) does not exists it returns error `{'error', 'not_found'}`.
+If you try to save a document which exists in the `docs` without correct `_rev` then the result is `{'error', 'conflict'}` as expected.
+
+See below on a workaround for tests that need to temprorary save and persist a __NEW__ document.
 
 Delete document(s) is result in a bulk save in Couchbeam, so it returns a bulk save result:
 
@@ -281,3 +284,46 @@ Eshell V8.3  (abort with ^G)
 {ok,<0.117.0>}
 (fixturedb@hes.2600hz.com)3>
 ```
+
+## Persist a new temprorary document
+
+Often you may need to test scenarios that you need to actually persist a doc. Like if you want to test a system config with or without.
+
+For these scenarios, in your `setup` in a Setup Eunit fixture function you may use `kz_fixturedb_maintenance:persist_doc/2` to save and persist the JObj on the disk.
+
+You have to delete it afterwars! Otherwise CI may detect a new untracked file and failes!
+
+- in your your setup function:
+
+```erlang
+have_fun_test_() ->
+    {'setup'
+    ,fun setup_fixturedb/0
+    ,fun teardown_fixturedb/1
+    ,fun(_) ->
+        [
+          %% your tests goes here
+        ]
+     end
+    }.
+
+setup_fixturedb() ->
+    'ok' = kz_fixturedb_maintenance:persist_doc(DbName, Doc),
+    kazoo_fixturedb:start().
+
+unsetup_test_password(FixturesPid) ->
+    kz_fixturedb_maintenance:unpersist_doc(DbName, DocOrDocId),
+    kz_fixturedb_util:start_me(FixturesPid).
+```
+
+For an example of this, look for `kz_suers_tests` for password requirements.
+
+## Persist a document save
+
+You may hack your way around the limitation of save not actually saving to disk by handling it yourself.
+
+You need to read/open the doc first in your test setup function and a data structure with both FxitureDB Pid and the current doc.
+
+Either update the doc in setup function or in one for your test cases (you may even use `meck` for `kz_datamgr:save_doc/2,3`).
+
+When you are done then restore the doc to its own original state in your test's cleanup function.

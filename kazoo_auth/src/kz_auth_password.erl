@@ -65,20 +65,20 @@
 
 -define(MOD_CAT, <<(?CONFIG_CAT)/binary, ".password">>).
 
--define(SHOULD_ENFORCE_STRENGTH(AccountId)
+-define(SHOULD_ENFORCE_STRENGTH
        ,kz_term:is_true(
-          kapps_account_config:get_with_strategy(<<"global_merge">>, AccountId, ?MOD_CAT, <<"should_enforce_strength">>, 'false')
+          kapps_config:is_true(?MOD_CAT, <<"should_enforce_strength">>, 'false')
          )
        ).
 
--define(SHOULD_PREVENT_REUSE(AccountId)
+-define(SHOULD_PREVENT_REUSE
        ,kz_term:is_true(
-          kapps_account_config:get_with_strategy(<<"global_merge">>, AccountId, ?MOD_CAT, <<"should_prevent_reuse">>, 'false')
+          kapps_config:is_true(?MOD_CAT, <<"should_prevent_reuse">>, 'false')
          )
        ).
 
--define(STRENGTH_REGEXES(AccountId)
-       ,kapps_account_config:get_with_strategy(<<"global_merge">>, AccountId, ?MOD_CAT, <<"strength_regexes">>, ?DEFAULT_STRENGTH_REGEXES)
+-define(STRENGTH_REGEXES
+       ,kapps_config:get_json(?MOD_CAT, <<"strength_regexes">>, ?DEFAULT_STRENGTH_REGEXES)
        ).
 
 %%------------------------------------------------------------------------------
@@ -91,9 +91,9 @@
 -spec enforce(AccountId::kz_term:api_ne_binary(), User::kz_json:object(), Password::kz_term:ne_binary()) ->
           enforce_resp().
 enforce(AccountId, User, Password) ->
-    case maybe_prevent_reuse(User, Password, ?SHOULD_PREVENT_REUSE(AccountId)) of
+    case maybe_prevent_reuse(User, Password, ?SHOULD_PREVENT_REUSE) of
         {'valid', _} ->
-            maybe_enforce(AccountId, Password, ?SHOULD_ENFORCE_STRENGTH(AccountId));
+            maybe_enforce(AccountId, Password, ?SHOULD_ENFORCE_STRENGTH);
         {'invalid', _}=Invalid ->
             Invalid
     end.
@@ -118,8 +118,8 @@ validate_password(Password) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec validate_password(AccountId::kz_term:api_ne_binary(), Password::kz_term:ne_binary()) -> enforce_resp().
-validate_password(AccountId, Password) ->
-    Regexes = ?STRENGTH_REGEXES(AccountId),
+validate_password(_AccountId, Password) ->
+    Regexes = ?STRENGTH_REGEXES,
     case kz_json:foldl(fun do_validate_password/3, {Password, []}, Regexes) of
         {_Password, []} ->
             {'valid', Password};
