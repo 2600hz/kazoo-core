@@ -101,7 +101,9 @@ encode_p(Rest, Primary, Alternate) ->
 
 %% Encode 'S': 'SH' becomes 'X'
 encode_s([$E, $N | T], Primary, Alternate) ->
-    encode(T, Primary ++ [$O, $N], Alternate ++ [$O, $N]);
+    encode(T, Primary ++ [$S, $O, $N], Alternate ++ [$S, $E, $N]);
+encode_s([$O, $N | T], Primary, Alternate) ->
+    encode(T, Primary ++ [$S, $O, $N], Alternate ++ [$S, $E, $N]);
 encode_s([$H | T], Primary, Alternate) ->
     encode(T, Primary ++ [$X], Alternate ++ [$X]);
 encode_s(Rest, Primary, Alternate) ->
