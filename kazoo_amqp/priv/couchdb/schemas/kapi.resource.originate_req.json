@@ -137,7 +137,14 @@
             "type": "string"
         },
         "Fail-On-Single-Reject": {
-            "type": "string"
+            "items": {
+                "type": "string"
+            },
+            "minItems": 1,
+            "type": [
+                "boolean",
+                "array"
+            ]
         },
         "Fax-Identity-Name": {
             "type": "string"

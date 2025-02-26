@@ -540,6 +540,7 @@ bridge_definition() ->
                 ,{<<"Hold-Media-Options">>, fun kz_term:is_ne_binaries/1}
                 ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
                 ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
+                ,{<<"Fail-On-Single-Reject">>, fun kz_api_term:is_boolean_or_ne_binaries/1}
                 ]
                }
               ],
