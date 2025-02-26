@@ -161,9 +161,12 @@ ra_system(#{ra_system := RASystem}) -> RASystem.
 ra_system_start(#{ra_started := 'true'} = Context) -> Context;
 ra_system_start(Context) ->
     lager:info("checking ra system ~s is running", [ra_system(Context)]),
-    case ra:overview(ra_system(Context)) of
+    try ra:overview(ra_system(Context)) of
         'system_not_started' -> do_ra_system_start(Context);
         _ -> Context#{ra_started => 'true'}
+    catch
+        error:badarg ->
+            do_ra_system_start(Context)
     end.
 
 do_ra_system_start(Context) ->
