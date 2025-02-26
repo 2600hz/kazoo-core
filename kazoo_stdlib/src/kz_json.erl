@@ -40,6 +40,9 @@
         ,get_ne_json_value/2, get_ne_json_value/3
         ]).
 
+-export([get_value_type/3, get_value_type/4]).
+-export_type([value_type_fun/0]).
+
 -export([is_true/2, is_true/3, is_false/2, is_false/3]).
 -export([is_empty/1, is_not_empty/1]).
 -export([is_json_object/1, is_json_object/2
@@ -1494,6 +1497,20 @@ get_ne_binary_or_binaries(Key, JObj, Default) ->
             end;
         Value when is_binary(Value) -> Value;
         _Else -> Default
+    end.
+
+-type value_type_fun() :: fun((json_term()) -> boolean()).
+
+-spec get_value_type(get_key(), value_type_fun(), object() | objects()) -> json_term() | undefined.
+get_value_type(Key, ValueTypeFun, JObj) ->
+    get_value_type(Key, ValueTypeFun, JObj, undefined).
+
+-spec get_value_type(get_key(), value_type_fun(), object() | objects(), Default) -> json_term() | Default.
+get_value_type(Key, ValueTypeFun, JObj, Default) ->
+    Value = get_value(Key, JObj),
+    case ValueTypeFun(Value) of
+        'true' -> Default;
+        'false' -> Value
     end.
 
 %%------------------------------------------------------------------------------
