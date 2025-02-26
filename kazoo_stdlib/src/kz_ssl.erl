@@ -10,7 +10,9 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_ssl).
 
--export([ssl_opts/0, ssl_opts/1]).
+-export([ssl_opts/0, ssl_opts/1
+        ,https_opts/0
+        ]).
 
 -spec ssl_opts() -> [ssl:tls_option()].
 ssl_opts() ->
@@ -25,3 +27,18 @@ ssl_opts(Options) ->
       ]
      ,Options
      ).
+
+%% see https://www.erlang.org/docs/26/man/ssl.html#type-customize_hostname_check
+%% and https://www.erlang.org/docs/26/man/public_key#pkix_verify_hostname_match_fun-1
+%% specifically: "Currently supported https fun will allow wildcard
+%% certificate matching as specified by the HTTP standard."
+-spec https_opts() -> [ssl:tls_option()].
+https_opts() ->
+    https_opts([]).
+
+-spec https_opts([ssl:tls_option()]) -> [ssl:tls_option()].
+https_opts(Options) ->
+    props:insert_value('customize_hostname_check'
+                      ,[{'match_fun', public_key:pkix_verify_hostname_match_fun('https')}]
+                      ,ssl_opts(Options)
+                      ).

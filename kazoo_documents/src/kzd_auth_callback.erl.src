@@ -8,6 +8,7 @@
 -export([new/0]).
 -export([client_id/1, client_id/2, set_client_id/2]).
 -export([code/1, code/2, set_code/2]).
+-export([code_verifier/1, code_verifier/2, set_code_verifier/2]).
 -export([provider/1, provider/2, set_provider/2]).
 -export([redirect_uri/1, redirect_uri/2, set_redirect_uri/2]).
 -export([state/1, state/2, set_state/2]).
@@ -47,6 +48,18 @@ code(Doc, Default) ->
 -spec set_code(doc(), binary()) -> doc().
 set_code(Doc, Code) ->
     kz_json:set_value([<<"code">>], Code, Doc).
+
+-spec code_verifier(doc()) -> kz_term:api_binary().
+code_verifier(Doc) ->
+    code_verifier(Doc, 'undefined').
+
+-spec code_verifier(doc(), Default) -> binary() | Default.
+code_verifier(Doc, Default) ->
+    kz_json:get_binary_value([<<"code_verifier">>], Doc, Default).
+
+-spec set_code_verifier(doc(), binary()) -> doc().
+set_code_verifier(Doc, CodeVerifier) ->
+    kz_json:set_value([<<"code_verifier">>], CodeVerifier, Doc).
 
 -spec provider(doc()) -> kz_term:api_binary().
 provider(Doc) ->

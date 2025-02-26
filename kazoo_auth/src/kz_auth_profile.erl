@@ -69,17 +69,17 @@ token(Token) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec token_fold(map(), list()) -> map().
+-spec token_fold(map(), [fun()]) -> map().
 token_fold(Token, []) -> Token;
 token_fold(Token, [Fun | Routines]) ->
     try Fun(Token) of
         NewToken -> token_fold(NewToken, Routines)
     catch
-        ?STACKTRACE(_E, _R, ST)
-        lager:debug("exception executing ~p : ~p , ~p", [Fun, _E, _R]),
-        kz_log:log_stacktrace(ST),
-        token_fold(Token, Routines)
-        end.
+        _E:_R:ST ->
+            lager:debug("exception executing ~p : ~p , ~p", [Fun, _E, _R]),
+            kz_log:log_stacktrace(ST),
+            token_fold(Token, Routines)
+    end.
 
 -spec profile_access_verb(map()) -> 'get' | 'post'.
 profile_access_verb(Provider) ->
@@ -91,10 +91,12 @@ profile_access_verb(Provider) ->
 
 -spec maybe_load_profile(map()) -> map().
 maybe_load_profile(#{profile := _Profile} = Token) -> Token;
-maybe_load_profile(#{user_map := #{<<"profile">> := Profile}} = Token) -> Token#{profile => kz_json:from_map(Profile)};
+maybe_load_profile(#{user_map := #{<<"profile">> := Profile}} = Token) ->
+    Token#{profile => kz_json:from_map(Profile)};
 maybe_load_profile(#{auth_provider := #{profile_url := _ProfileURL} = Provider
                     ,access_token := AccessToken
-                    } = Token) ->
+                    } = Token
+                  ) ->
     Options = [{'headers_as_is', 'true'}
               ,{'ssl', kz_ssl:ssl_opts()}
               ],
@@ -102,9 +104,10 @@ maybe_load_profile(#{auth_provider := #{profile_url := _ProfileURL} = Provider
     Verb = profile_access_verb(Provider),
     #{host := Host} = uri_string:parse(URL),
     Headers = [{<<"host">>, Host}
+              ,{<<"content-type">>, <<"application/json">>}
               | profile_authorization_headers(Token, AccessToken)
               ],
-    lager:debug("getting profile (~s) from ~s", [Verb, URL]),
+    lager:info("getting profile (~s) from ~s", [Verb, URL]),
     case kz_http:req(Verb, URL, Headers, <<>>, Options) of
         {'ok', 200, _RespHeaders, RespXML} ->
             Token#{profile => kz_json:decode(RespXML)};
@@ -124,18 +127,24 @@ maybe_load_profile(#{auth_provider := #{profile_url := _ProfileURL} = Provider
     end;
 maybe_load_profile(#{auth_provider := #{profile_url := _ProfileURL}
                     ,original := Original
-                    }=Token) ->
+                    }=Token
+                  ) ->
     maybe_load_profile(Token#{access_token => Original});
 maybe_load_profile(#{auth_provider := #{profile_discovery_field := ProfileField} = AuthProvider
                     ,discovery := Discovery
-                    }=Token) ->
+                    }=Token
+                  ) ->
     maybe_load_profile(Token#{auth_provider => AuthProvider#{profile_url => kz_json:get_ne_binary_value(ProfileField, Discovery)}});
 maybe_load_profile(#{auth_provider := AuthProvider
                     ,discovery := Discovery
-                    }=Token) ->
+                    }=Token
+                  ) ->
+    lager:info("maybe load profile from userinfo_endpoint"),
     ProfileField = <<"userinfo_endpoint">>,
     maybe_load_profile(Token#{auth_provider => AuthProvider#{profile_url => kz_json:get_ne_binary_value(ProfileField, Discovery)}});
-maybe_load_profile(#{} = Token) -> Token#{profile => kz_json:new()}.
+maybe_load_profile(#{} = Token) ->
+    lager:info("no profile to load, using empty profile"),
+    Token#{profile => kz_json:new()}.
 
 -spec profile_authorization(map(), kz_term:ne_binary()) -> binary().
 profile_authorization(#{auth_provider := Provider} = Token, AccessToken) ->
@@ -144,7 +153,7 @@ profile_authorization(#{auth_provider := Provider} = Token, AccessToken) ->
             lager:debug("using profile access token authorization header"),
             DefaultTokenType = maps:get('profile_access_token_type', Provider, <<"Bearer">>),
             TokenType = maps:get('token_type', Token, DefaultTokenType),
-            <<TokenType/binary, " ",AccessToken/binary>>;
+            <<TokenType/binary, " ", AccessToken/binary>>;
         <<"api_key">> ->
             lager:debug("using profile api key authorization header"),
             list_to_binary(["API_KEY ", maps:get('profile_access_api_key', Provider, <<>>)]);
@@ -155,7 +164,7 @@ profile_authorization(#{auth_provider := Provider} = Token, AccessToken) ->
 profile_authorization_headers(Provider, AccessToken) ->
     case profile_authorization(Provider, AccessToken) of
         <<>> -> [];
-        Authorization -> [{"Authorization",kz_term:to_list(Authorization)}]
+        Authorization -> [{"Authorization", kz_term:to_list(Authorization)}]
     end.
 
 -spec profile_url(map()) -> binary().
@@ -195,7 +204,7 @@ maybe_add_user_identity(#{auth_provider := #{profile_identity_fields := Fields}
     Keys = lists:filter(fun(Field) -> kz_json:get_value(Field, Profile) =/= 'undefined' end, Fields),
     case length(Keys) =:= length(Fields) of
         'false' ->
-            lager:debug("user identity from fields '~p' not found into ~p", [Fields, Profile]),
+            lager:debug("user identity from fields '~p' not found in ~p", [Fields, Profile]),
             Token;
         'true' ->
             [First | Others] = Fields,
@@ -291,7 +300,8 @@ maybe_add_user(#{user_doc := DocObj} = Token) -> Token#{user_map => kz_json:to_m
 maybe_add_user(#{profile_error_code := _Error} = Token) -> Token;
 maybe_add_user(#{auth_app := #{pvt_user_prefix := Prefix}
                 ,user_identity := Identity
-                } = Token) ->
+                } = Token
+              ) ->
     DocId = <<Prefix/binary, "-",Identity/binary>>,
     lager:debug("loading profile data from ~s/~s", [?KZ_AUTH_DB, DocId]),
     case kz_datamgr:open_cache_doc(?KZ_AUTH_DB, DocId) of
@@ -300,7 +310,8 @@ maybe_add_user(#{auth_app := #{pvt_user_prefix := Prefix}
     end;
 maybe_add_user(#{auth_provider := #{name := Prefix}
                 ,user_identity := Identity
-                } = Token) ->
+                } = Token
+              ) ->
     DocId = <<Prefix/binary, "-",Identity/binary>>,
     lager:debug("loading profile data from ~s/~s", [?KZ_AUTH_DB, DocId]),
     case kz_datamgr:open_cache_doc(?KZ_AUTH_DB, DocId) of
@@ -365,11 +376,11 @@ maybe_cache_user(#{auth_provider := #{profile_cache_timer := Timer}
 maybe_cache_user(Token, _DocId) -> Token.
 
 -spec maybe_update_user(kz_term:ne_binary(), kz_json:object(), map()) -> map().
-maybe_update_user(DocId, JObj, Token) ->
+maybe_update_user(OAuthDocId, JObj, Token) ->
     Props = format_user_doc(Token),
     case updates_needed(JObj, Props) of
         [] -> maybe_required_properties_missing(Token, Props, JObj);
-        Updates -> update_user(DocId, Updates, Token)
+        Updates -> update_user(OAuthDocId, Updates, Token)
     end.
 
 -spec maybe_required_properties_missing(map(), kz_term:proplist(), kz_json:object()) -> map().

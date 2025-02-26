@@ -27,9 +27,12 @@ get_auth_app(AppId) ->
 get_auth_app(AppId, Option) ->
     case do_get_auth_app(AppId) of
         {'error', _} = Error -> Error;
-        #{}=App when Option =:= 'app_with_provider' -> merge_provider(App);
+        #{}=App when Option =:= 'app_with_provider' ->
+            lager:debug("loaded app ~s, merging provider", [AppId]),
+            merge_provider(App);
         #{pvt_auth_provider := Provider}=App
           when Option =:= 'app_and_provider' ->
+            lager:debug("loaded app ~s, merging provider ~s", [AppId, Provider]),
             case kz_auth_providers:get_auth_provider(Provider) of
                 {'error', _}  = Error -> Error;
                 #{} = MProvider -> #{auth_app => App
@@ -56,6 +59,7 @@ do_get_auth_app(AppId) ->
     end.
 
 merge_provider(#{pvt_auth_provider := ProviderId}=App) ->
+    lager:debug("merging provider ~s", [ProviderId]),
     Provider = kz_auth_providers:get_auth_provider(ProviderId),
     kz_maps:merge(Provider, App);
 merge_provider(App) -> App.
