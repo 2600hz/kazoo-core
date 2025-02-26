@@ -265,7 +265,7 @@ req_definition() ->
                 ,{?KEY_SIP_MULTIPARTS, fun kz_json:is_json_object/1}
                 ,{?KEY_TO_DID, fun kz_term:is_ne_binary/1}
                 ,{?KEY_CONTINUE_AFTER, fun kz_term:is_boolean/1}
-                ,{?KEY_FAIL_ON_SINGLE_REJECT, fun is_valid_fail_on_single_reject/1}
+                ,{?KEY_FAIL_ON_SINGLE_REJECT, fun kz_api_term:is_boolean_or_ne_binaries/1}
                 ]
                }
               ],
@@ -802,11 +802,6 @@ fail_on_single_reject(?REQ_TYPE(JObj), Default) ->
                 false -> Default
             end
     end.
-
--spec is_valid_fail_on_single_reject(term()) -> boolean().
-is_valid_fail_on_single_reject(Term) ->
-    is_boolean(Term)
-        orelse kz_term:is_ne_binaries(Term).
 
 -spec invite_contact_user(req()) -> kz_term:api_binary().
 invite_contact_user(Req) ->
