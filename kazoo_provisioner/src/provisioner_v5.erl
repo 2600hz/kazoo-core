@@ -55,7 +55,8 @@ maybe_set_line_defaults(LineJObj) ->
 -spec device_settings(kzd_devices:doc()) -> kz_json:object().
 device_settings(Device) ->
     kz_json:from_list(
-      [{<<"brand">>, get_brand(Device)}
+      [{<<"template_id">>, kzd_devices:provision_id(Device)} %% only compatible with provisioner_v6, ignored by v5
+      ,{<<"brand">>, get_brand(Device)}
       ,{<<"family">>, get_family(Device)}
       ,{<<"model">>, get_model(Device)}
       ,{<<"name">>, kzd_devices:name(Device)}
