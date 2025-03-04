@@ -78,8 +78,6 @@ fetch_access_code(#{auth_app := #{name := AuthAppName}=AuthApp
                  ,RedirectURI
                  ,CodeVerifier
                  ) ->
-    lager:info("map: ~p", [_Map]),
-
     Secret = maps:get('pvt_secret', AuthApp, 'undefined'),
     ClientId = maps:get('pvt_client_id', AuthApp, AuthAppName),
 
@@ -92,7 +90,6 @@ fetch_access_code(#{auth_app := #{name := AuthAppName}=AuthApp
                ,"&code=", AuthorizationCode
                ,maybe_code_verifier(CodeVerifier)
                ],
-    lager:info("post body: ~s", [FormBody]),
     case kz_http:post(kz_term:to_list(URL)
                      ,Headers
                      ,FormBody
