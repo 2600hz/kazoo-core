@@ -58,8 +58,7 @@ access_code(JObj) ->
 -spec authenticate(map() | kz_term:ne_binary() | kz_json:object()) ->
           {'ok', kz_term:proplist()} |
           {'error', any()}.
-authenticate(JWTToken)
-  when is_binary(JWTToken) ->
+authenticate(<<JWTToken/binary>>) ->
     case kz_auth_jwt:token(JWTToken) of
         #{verify_result := 'true'} = Token -> authenticate(Token);
         #{verify_result := 'false', verify_error := Error} -> {'error', Error};
@@ -101,7 +100,7 @@ authorize_token(JWToken) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec verify_claims(map()) -> {'ok', kz_term:proplist()} | {'error', any()}.
+-spec verify_claims(map()) -> {'ok', kz_term:proplist()}.
 verify_claims(#{claims := Claims}) ->
     {'ok', Claims}.
 
@@ -199,11 +198,11 @@ authenticate_fold(Token, [Fun | Routines]) ->
     try Fun(Token) of
         NewToken -> authenticate_fold(NewToken, Routines)
     catch
-        ?STACKTRACE(_E, _R, ST)
-        lager:debug("exception executing ~p : ~p , ~p", [Fun, _E, _R]),
-        kz_log:log_stacktrace(ST),
-        authenticate_fold(Token, Routines)
-        end.
+        _E:_R:ST ->
+            lager:debug("exception executing ~p : ~p , ~p", [Fun, _E, _R]),
+            kz_log:log_stacktrace(ST),
+            authenticate_fold(Token, Routines)
+    end.
 
 -spec link(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           'ok' | kz_datamgr:data_error().

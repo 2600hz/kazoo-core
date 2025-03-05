@@ -216,9 +216,9 @@ req(Method, Url, Headers, Body) ->
     req(Method, Url, Headers, Body, []).
 
 -spec req(method(), url(), headers(), http_body(), kz_term:proplist()) -> ret().
-req(Method, Url, Hdrs, Body, Opts) ->
+req(Method, URL, Hdrs, Body, Opts) ->
     {Headers, Options} = maybe_basic_auth(Hdrs, Opts),
-    Request = build_request(Method, Url, Headers, Body),
+    Request = build_request(Method, URL, Headers, Body),
     execute_request(Method, Request, Options).
 
 %%------------------------------------------------------------------------------

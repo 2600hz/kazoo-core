@@ -36,7 +36,7 @@ add_application(#{}=Token) -> Token.
 -spec add_provider(map()) -> map().
 add_provider(#{auth_app := #{pvt_auth_provider := Provider}}=Token) ->
     Token#{auth_provider => kz_auth_providers:get_auth_provider(Provider)};
-add_provider(#{claims := #{iss :=Issuer}}=Token) ->
+add_provider(#{claims := #{iss := Issuer}}=Token) ->
     Token#{auth_provider => kz_auth_providers:provider_by_issuer(Issuer)};
 add_provider(#{}=Token) -> Token.
 
@@ -61,11 +61,13 @@ add_discovery(#{}=Token) -> Token.
 -spec access_code(map()) -> map().
 access_code(#{code := Code
              ,original := JObj
-             } = Token) ->
+             } = Token
+           ) ->
     AppId = kz_json:get_first_defined(?APPID_KEYS, JObj),
     RedirectURI = kz_json:get_first_defined(?REDIRECT_URI_KEYS, JObj, <<"postmessage">>),
+    CodeVerifier = kz_json:get_ne_binary_value(<<"code_verifier">>, JObj),
     lager:debug("trying to get access_code ~p for ~p with redirect ~p", [Code, AppId, RedirectURI]),
-    case kz_auth_util:fetch_access_code(AppId, Code, RedirectURI) of
+    case kz_auth_util:fetch_access_code(AppId, Code, RedirectURI, CodeVerifier) of
         {'ok', CodeJObj} ->
             Map = kz_maps:keys_to_atoms(kz_json:to_map(CodeJObj)),
             Map1 = maps:merge(Token, Map),
@@ -114,7 +116,10 @@ verify(#{auth_provider := #{token_info_url := TokenInfoUrl}
 verify(#{}=Token) -> Token#{verified_token => kz_json:new()}.
 
 -spec create_claims(map()) -> map().
-create_claims(#{user_doc := Doc, profile := Profile}=Token) ->
+create_claims(#{user_doc := Doc
+               ,profile := Profile
+               }=Token
+             ) ->
     case build_claims(?JWT_CLAIMS, [Doc, Profile]) ++
         build_claims(?JWT_MAP_CLAIMS, Token)
     of
