@@ -209,3 +209,9 @@ make_request(Number, JObj) ->
 request(Number, JObj) ->
     Mod = ?CNAM_PROVIDER_MODULE,
     Mod:request(Number, JObj).
+
+maybe_normalize(Number) ->
+    case ?DISABLE_NORMALIZE of
+        'false' -> knm_converters:normalize(Number);
+        'true'  -> Number
+    end.
