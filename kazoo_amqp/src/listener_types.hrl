@@ -60,7 +60,7 @@
 -type responder_mfa() :: mfa() | {responder_callback_fun(), arity()}.
 %% `CallbackModule | {CallbackModule, Function} | CallbackFun'
 
--type responder() :: {responder_callback_mapping(), responder_mfa()}.
+-type responder() :: {responder_mfa(), responder_callback_mappings()}.
 %% `{{Event-Category, Event-Name}, CallbackModule | {CallbackModule, Function} | CallbackFun}'
 -type responders() :: [responder()].
 

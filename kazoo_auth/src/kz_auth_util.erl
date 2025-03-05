@@ -16,7 +16,7 @@
 %%==============================================================================
 
 -export([get_json_from_url/1, get_json_from_url/2]).
--export([fetch_access_code/2, fetch_access_code/3]).
+-export([fetch_access_code/2, fetch_access_code/3, fetch_access_code/4]).
 -export([run/2]).
 -export([compose_url/2]).
 
@@ -55,36 +55,45 @@ get_json_from_url(Url, ReqHeaders) ->
 fetch_access_code(AppId, AuthorizationCode) ->
     fetch_access_code(AppId, AuthorizationCode, <<"postmessage">>).
 
-
 -spec fetch_access_code(kz_term:ne_binary() | map(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
-fetch_access_code(AppId, AuthorizationCode, RedirectUri)
-  when is_binary(AppId) ->
-    lager:debug("getting auth-app ~p",[AppId]),
+fetch_access_code(AppId, AuthorizationCode, RedirectURI) ->
+    fetch_access_code(AppId, AuthorizationCode, RedirectURI, 'undefined').
+
+%% see https://www.oauth.com/oauth2-servers/pkce/authorization-code-exchange/
+-spec fetch_access_code(kz_term:ne_binary() | map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+fetch_access_code(<<AppId/binary>>, AuthorizationCode, RedirectURI, CodeVerifier) ->
+    lager:debug("getting auth-app ~p", [AppId]),
     case kz_auth_apps:get_auth_app(AppId, 'app_and_provider') of
-        #{} = Map -> fetch_access_code(Map, AuthorizationCode, RedirectUri);
+        #{} = Map -> fetch_access_code(Map, AuthorizationCode, RedirectURI, CodeVerifier);
         Error -> Error
     end;
-fetch_access_code(#{auth_app := #{name := ClientId
-                                 ,pvt_secret := Secret
-                                 }
+fetch_access_code(#{auth_app := #{name := AuthAppName}=AuthApp
                    ,auth_provider := #{access_code_url := URL}
-                   }
+                   }=_Map
                  ,AuthorizationCode
-                 ,RedirectURI) ->
+                 ,RedirectURI
+                 ,CodeVerifier
+                 ) ->
+    Secret = maps:get('pvt_secret', AuthApp, 'undefined'),
+    ClientId = maps:get('pvt_client_id', AuthApp, AuthAppName),
+
     Headers = [{"Content-Type", "application/x-www-form-urlencoded"}],
 
     FormBody = ["client_id=", ClientId
                ,"&redirect_uri=", RedirectURI
-               ,"&client_secret=", Secret
+               ,maybe_client_secret(Secret)
                ,"&grant_type=authorization_code"
                ,"&code=", AuthorizationCode
+               ,maybe_code_verifier(CodeVerifier)
                ],
     case kz_http:post(kz_term:to_list(URL)
                      ,Headers
                      ,FormBody
-                     ,[{'ssl', kz_ssl:ssl_opts()}]
+                     ,[{'ssl', kz_ssl:https_opts()}]
                      )
     of
         {'ok', 200, _RespHeaders, RespJSON} ->
@@ -96,6 +105,20 @@ fetch_access_code(#{auth_app := #{name := ClientId
         {'error', _Error}=Else ->
             lager:warning("failure contacting ~s: ~p", [URL, _Error]),
             {'error', Else}
+    end.
+
+maybe_client_secret(Secret) ->
+    case kz_term:is_empty(Secret) of
+        'true' -> [];
+        'false' ->
+            ["&secret=", Secret]
+    end.
+
+maybe_code_verifier(CodeVerifier) ->
+    case kz_term:is_empty(CodeVerifier) of
+        'true' -> [];
+        'false' ->
+            ["&code_verifier=", CodeVerifier]
     end.
 
 -spec run(map(), list()) -> {'ok' | 'error', map()}.
