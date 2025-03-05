@@ -54,7 +54,7 @@ provider_by_issuer(Issuer) ->
 get_auth_provider(<<"kazoo">>) ->
     kazoo_auth_provider();
 get_auth_provider(ProviderId) ->
-    case kz_datamgr:open_doc(?KZ_AUTH_DB, ProviderId) of
+    case kz_datamgr:open_cache_doc(?KZ_AUTH_DB, ProviderId) of
         {'ok', JObj} -> provider_from_json(JObj);
         {'error', _} -> {'error', <<"OAUTH - Provider ", ProviderId/binary, " not found">>}
     end.
@@ -62,8 +62,7 @@ get_auth_provider(ProviderId) ->
 -spec provider_from_json(kz_json:object()) -> map().
 provider_from_json(JObj) ->
     Provider = kz_maps:keys_to_atoms(kz_json:to_map(JObj)),
-    Routines = [fun maybe_set_provider_name/1
-               ],
+    Routines = [fun maybe_set_provider_name/1],
     lists:foldl(fun(F, A) -> F(A) end, Provider, Routines).
 
 -spec maybe_set_provider_name(map()) -> map().

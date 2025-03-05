@@ -83,11 +83,9 @@ lookup(<<_/binary>> = Number) ->
                              )
           );
 lookup(JObj) ->
-    Number = kz_json:get_value(<<"Caller-ID-Number">>, JObj,  kz_privacy:anonymous_caller_id_number()),
-    Num = case ?DISABLE_NORMALIZE of
-              'false' -> knm_converters:normalize(Number);
-              'true'  -> Number
-          end,
+    Number = kz_json:get_value(<<"Caller-ID-Number">>, JObj, kz_privacy:anonymous_caller_id_number()),
+    Num = maybe_normalize(Number),
+
     case kz_cache:fetch_local(?CACHE_NAME, cache_key(Num)) of
         {'ok', CNAM} ->
             update_request(JObj, CNAM, 'true');
@@ -211,3 +209,9 @@ make_request(Number, JObj) ->
 request(Number, JObj) ->
     Mod = ?CNAM_PROVIDER_MODULE,
     Mod:request(Number, JObj).
+
+maybe_normalize(Number) ->
+    case ?DISABLE_NORMALIZE of
+        'false' -> knm_converters:normalize(Number);
+        'true'  -> Number
+    end.
