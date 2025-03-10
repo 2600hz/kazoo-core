@@ -41,6 +41,7 @@
 -export([profile/1, profile/2, set_profile/2]).
 -export([profile_alone_sound/1, profile_alone_sound/2, set_profile_alone_sound/2]).
 -export([profile_announce_count/1, profile_announce_count/2, set_profile_announce_count/2]).
+-export([profile_auto_record/1, profile_auto_record/2, set_profile_auto_record/2]).
 -export([profile_caller_controls/1, profile_caller_controls/2, set_profile_caller_controls/2]).
 -export([profile_comfort_noise/1, profile_comfort_noise/2, set_profile_comfort_noise/2]).
 -export([profile_energy_level/1, profile_energy_level/2, set_profile_energy_level/2]).
@@ -491,6 +492,18 @@ profile_announce_count(Doc, Default) ->
 -spec set_profile_announce_count(doc(), integer()) -> doc().
 set_profile_announce_count(Doc, ProfileAnnounceCount) ->
     kz_json:set_value([<<"profile">>, <<"announce_count">>], ProfileAnnounceCount, Doc).
+
+-spec profile_auto_record(doc()) -> boolean().
+profile_auto_record(Doc) ->
+    profile_auto_record(Doc, 'false').
+
+-spec profile_auto_record(doc(), Default) -> boolean() | Default.
+profile_auto_record(Doc, Default) ->
+    kz_json:get_boolean_value([<<"profile">>, <<"auto_record">>], Doc, Default).
+
+-spec set_profile_auto_record(doc(), boolean()) -> doc().
+set_profile_auto_record(Doc, ProfileAutoRecord) ->
+    kz_json:set_value([<<"profile">>, <<"auto_record">>], ProfileAutoRecord, Doc).
 
 -spec profile_caller_controls(doc()) -> kz_term:api_binary().
 profile_caller_controls(Doc) ->
