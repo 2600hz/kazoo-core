@@ -18,8 +18,6 @@
 -export([controls/1, controls/2, set_controls/2]).
 -export([domain/1, domain/2, set_domain/2]).
 -export([endconf_grace_time/1, endconf_grace_time/2, set_endconf_grace_time/2]).
--export([auto_record/1, auto_record/2, set_auto_record/2]).
--export([recording_data/1, recording_data/2, set_recording_data/2]).
 -export([flags/1, flags/2, set_flags/2]).
 -export([focus/1, focus/2, set_focus/2]).
 -export([language/1, language/2, set_language/2]).
@@ -154,30 +152,6 @@ endconf_grace_time(Doc) ->
 -spec endconf_grace_time(doc(), Default) -> integer() | Default.
 endconf_grace_time(Doc, Default) ->
     kz_json:get_integer_value([<<"endconf_grace_time">>], Doc, Default).
-
--spec set_auto_record(doc(), boolean()) -> doc().
-set_auto_record(Doc, AutoRecord) ->
-    kz_json:set_value([<<"auto_record">>], AutoRecord, Doc).
-
--spec auto_record(doc()) -> boolean().
-auto_record(Doc) ->
-    auto_record(Doc, 'false').
-
--spec auto_record(doc(), Default) -> boolean() | Default.
-auto_record(Doc, Default) ->
-    kz_json:get_boolean_value([<<"auto_record">>], Doc, Default).
-
--spec set_recording_data(doc(), kz_json:api_object()) -> doc().
-set_recording_data(Doc, Data) ->
-    kz_json:set_value([<<"recording_data">>], Data, Doc).
-
--spec recording_data(doc()) -> kz_json:api_object().
-recording_data(Doc) ->
-    recording_data(Doc, 'undefined').
-
--spec recording_data(doc(), Default) -> kz_json:api_object() | Default.
-recording_data(Doc, Default) ->
-    kz_json:get_json_value([<<"recording_data">>], Doc, Default).
 
 -spec set_domain(doc(), binary()) -> doc().
 set_domain(Doc, Domain) ->

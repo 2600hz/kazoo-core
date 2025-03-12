@@ -400,7 +400,6 @@ timelimit_s(Props) ->
 -spec publish_conference_request(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 publish_conference_request(Call, Id, Name, ConfProps) ->
     IsModerator = props:is_true('startConferenceOnEnter', ConfProps, 'true'),
-    ProfileName = props:get_ne_binary_value('profileName', ConfProps),
 
     gen_listener:add_binding(kzt_util:get_amqp_listener(Call)
                             ,'conference'
@@ -414,7 +413,6 @@ publish_conference_request(Call, Id, Name, ConfProps) ->
           [{<<"Call">>, kapps_call:to_json(Call)}
           ,{<<"Conference-ID">>, Id}
           ,{<<"Conference-Name">>, Name}
-          ,{<<"Profile-Name">>, ProfileName}
            %% FIXME: we must not set these if profile name is default, video, or page
           ,{<<"Max-Participants">>, get_max_participants(ConfProps)}
           ,{<<"Play-Entry-Tone">>, conference_play_entry_tone(ConfProps)}
