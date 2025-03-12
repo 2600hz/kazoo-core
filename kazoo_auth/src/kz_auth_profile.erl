@@ -147,7 +147,7 @@ maybe_load_profile(#{} = Token) ->
     Token#{profile => kz_json:new()}.
 
 -spec profile_authorization(map(), kz_term:ne_binary()) -> binary().
-profile_authorization(#{auth_provider := Provider} = Token, AccessToken) ->
+profile_authorization(#{auth_provider := Provider} = Token, <<AccessToken/binary>>) ->
     case maps:get('profile_access_auth_type', Provider, <<"token">>) of
         <<"token">> ->
             lager:debug("using profile access token authorization header"),
@@ -221,7 +221,10 @@ maybe_add_user_identity(#{auth_provider := #{profile_identity_fields := Fields}
     end;
 maybe_add_user_identity(#{auth_provider := #{name := <<"kazoo">>}}=Token) ->
     Token;
+maybe_add_user_identity(#{auth_provider := #{profile_identity_field := <<"sub">>}} = Token) ->
+    Token;
 maybe_add_user_identity(#{auth_provider := Provider} = Token) ->
+    lager:info("adding identity field sub"),
     maybe_add_user_identity(Token#{auth_provider => Provider#{profile_identity_field => <<"sub">>}}).
 
 -spec maybe_add_display_name(map()) -> map().
@@ -239,6 +242,8 @@ maybe_add_display_name(#{auth_provider := #{profile_displayName_field := Field}
             Token#{display_name => DisplayName}
     end;
 maybe_add_display_name(#{auth_provider := #{name := <<"kazoo">>}}=Token) ->
+    Token;
+maybe_add_display_name(#{auth_provider := #{profile_displayName_field := <<"name">>}}=Token) ->
     Token;
 maybe_add_display_name(#{auth_provider := Provider} = Token) ->
     maybe_add_display_name(Token#{auth_provider => Provider#{profile_displayName_field => <<"name">>}}).
@@ -258,6 +263,8 @@ maybe_add_photo_url(#{auth_provider := #{profile_photo_url_field := Field}
             Token#{photo_url => PhotoUrl}
     end;
 maybe_add_photo_url(#{auth_provider := #{name := <<"kazoo">>}}=Token) ->
+    Token;
+maybe_add_photo_url(#{auth_provider := #{profile_photo_url_field := <<"picture">>}}=Token) ->
     Token;
 maybe_add_photo_url(#{auth_provider := Provider} = Token) ->
     maybe_add_photo_url(Token#{auth_provider => Provider#{profile_photo_url_field => <<"picture">>}}).
@@ -299,20 +306,20 @@ maybe_add_user(#{user_doc := _DocObj, user_map := _Map} = Token) -> Token;
 maybe_add_user(#{user_doc := DocObj} = Token) -> Token#{user_map => kz_json:to_map(DocObj)};
 maybe_add_user(#{profile_error_code := _Error} = Token) -> Token;
 maybe_add_user(#{auth_app := #{pvt_user_prefix := Prefix}
-                ,user_identity := Identity
+                ,user_identity := <<Identity/binary>>
                 } = Token
               ) ->
-    DocId = <<Prefix/binary, "-",Identity/binary>>,
+    DocId = <<Prefix/binary, "-", Identity/binary>>,
     lager:debug("loading profile data from ~s/~s", [?KZ_AUTH_DB, DocId]),
     case kz_datamgr:open_cache_doc(?KZ_AUTH_DB, DocId) of
         {'ok', OAuthDoc} -> maybe_update_user(DocId, OAuthDoc, Token);
         {'error', 'not_found'} -> update_user(DocId, format_user_doc(Token), Token)
     end;
 maybe_add_user(#{auth_provider := #{name := Prefix}
-                ,user_identity := Identity
+                ,user_identity := <<Identity/binary>>
                 } = Token
               ) ->
-    DocId = <<Prefix/binary, "-",Identity/binary>>,
+    DocId = <<Prefix/binary, "-", Identity/binary>>,
     lager:debug("loading profile data from ~s/~s", [?KZ_AUTH_DB, DocId]),
     case kz_datamgr:open_cache_doc(?KZ_AUTH_DB, DocId) of
         {'ok', OAuthDoc} -> maybe_update_user(DocId, OAuthDoc, Token);
@@ -421,7 +428,8 @@ updates_needed(JObj, Props) ->
 format_user_doc(#{auth_provider := #{name := ProviderId} = Provider
                  ,profile := Profile
                  ,user_identity := Identity
-                 }=Token) ->
+                 }=Token
+               ) ->
     Verified = maps:get('verified_token', Token, kz_json:new()),
     Original = maps:get('original', Token, kz_json:new()),
     Lookup = lists:filter(fun kz_json:is_json_object/1, [Profile, Verified, Original]),

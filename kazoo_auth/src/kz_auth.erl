@@ -101,8 +101,10 @@ authorize_token(JWToken) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec verify_claims(map()) -> {'ok', kz_term:proplist()}.
+verify_claims(#{claims := Claims}) when is_list(Claims) ->
+    {'ok', Claims};
 verify_claims(#{claims := Claims}) ->
-    {'ok', Claims}.
+    {'ok', kz_json:to_proplist(Claims)}.
 
 -spec validate_claims(map(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 validate_claims(#{user_map := #{<<"pvt_account_id">> := AccountId
@@ -191,7 +193,8 @@ ensure_issuer(Claims) ->
     Issuer = props:get_value(<<"iss">>, Claims, <<"kazoo">>),
     props:set_value(<<"iss">>, Issuer, Claims).
 
--spec authenticate_fold(map(), list()) -> map().
+-spec authenticate_fold(map() | {'error', 'authentication_failed'}, list()) -> map().
+authenticate_fold({'error', 'authentication_failed'}, _Routines) -> {'error', 'authentication_failed'};
 authenticate_fold(Token, []) -> Token;
 authenticate_fold(#{key := _Key}=Token, _) -> Token;
 authenticate_fold(Token, [Fun | Routines]) ->
