@@ -57,8 +57,7 @@ add_discovery(#{payload := #{<<"iss">> := <<"http", _/binary>> = Issuer}}=Token)
     end;
 add_discovery(#{}=Token) -> Token.
 
-
--spec access_code(map()) -> map().
+-spec access_code(map()) -> map() | {'error', 'authentication_failed'}.
 access_code(#{code := Code
              ,original := JObj
              } = Token
@@ -73,8 +72,11 @@ access_code(#{code := Code
             Map1 = maps:merge(Token, Map),
             Map2 = Map1#{original => kz_json:merge_jobjs(JObj, CodeJObj)},
             maybe_fix_token_type(Map2);
-        _Else ->
-            lager:error("not expected ~p", [_Else]),
+        {'error', FourXX} when is_integer(FourXX), FourXX >= 400, FourXX < 500 ->
+            lager:info("4xx error fetching access code: ~p", [FourXX]),
+            {'error', 'authentication_failed'};
+        {'error', _Error} ->
+            lager:error("error fetching access code: ~p", [_Error]),
             Token
     end;
 access_code(#{} = Token) -> Token.
@@ -101,9 +103,10 @@ access_token(#{} = Token) -> Token.
 
 -spec verify(map()) -> map().
 verify(#{verified_token := _}=Token) -> Token;
-verify(#{auth_provider := #{token_info_url := TokenInfoUrl}
-        ,access_token := AccessToken
-        }=Token) ->
+verify(#{auth_provider := #{token_info_url := <<TokenInfoUrl/binary>>}
+        ,access_token := <<AccessToken/binary>>
+        }=Token
+      ) ->
     URL = <<TokenInfoUrl/binary, AccessToken/binary>>,
     case kz_http:get(kz_term:to_list(URL)) of
         {'ok', 200, _RespHeaders, RespBody} ->
