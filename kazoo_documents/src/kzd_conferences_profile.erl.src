@@ -8,6 +8,7 @@
 -export([new/0]).
 -export([alone_sound/1, alone_sound/2, set_alone_sound/2]).
 -export([announce_count/1, announce_count/2, set_announce_count/2]).
+-export([auto_record/1, auto_record/2, set_auto_record/2]).
 -export([caller_controls/1, caller_controls/2, set_caller_controls/2]).
 -export([comfort_noise/1, comfort_noise/2, set_comfort_noise/2]).
 -export([energy_level/1, energy_level/2, set_energy_level/2]).
@@ -58,6 +59,18 @@ announce_count(Doc, Default) ->
 -spec set_announce_count(doc(), integer()) -> doc().
 set_announce_count(Doc, AnnounceCount) ->
     kz_json:set_value([<<"announce_count">>], AnnounceCount, Doc).
+
+-spec auto_record(doc()) -> boolean().
+auto_record(Doc) ->
+    auto_record(Doc, 'false').
+
+-spec auto_record(doc(), Default) -> boolean() | Default.
+auto_record(Doc, Default) ->
+    kz_json:get_boolean_value([<<"auto_record">>], Doc, Default).
+
+-spec set_auto_record(doc(), boolean()) -> doc().
+set_auto_record(Doc, AutoRecord) ->
+    kz_json:set_value([<<"auto_record">>], AutoRecord, Doc).
 
 -spec caller_controls(doc()) -> kz_term:api_binary().
 caller_controls(Doc) ->
