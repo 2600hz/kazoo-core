@@ -599,7 +599,7 @@ set_services(Request, Services) ->
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
-%%---------------------7---------------------------------------------------------
+%%------------------------------------------------------------------------------
 -spec set_timestamp(asr_req(), non_neg_integer()) -> asr_req().
 set_timestamp(Request, Timestamp) ->
     Request#asr_req{timestamp=Timestamp}.
