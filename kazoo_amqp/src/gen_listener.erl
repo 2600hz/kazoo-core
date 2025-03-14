@@ -1643,6 +1643,7 @@ create_federated_params(StartParams) ->
     ,{'queue_name', props:get_value('queue_name', StartParams, <<>>)}
     ,{'queue_options', QueueOptions}
     ,{'consume_options', props:get_value('consume_options', StartParams, [])}
+    ,{'calling_application', kz_process:get_application()}
     ].
 
 -spec handle_amqp_channel_available(state(), boolean()) -> state().
