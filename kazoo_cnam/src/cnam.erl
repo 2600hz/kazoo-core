@@ -89,6 +89,7 @@ lookup(<<_/binary>> = Number) ->
 lookup(JObj) ->
     Number = kz_json:get_value(<<"Caller-ID-Number">>, JObj, kz_privacy:anonymous_caller_id_number()),
     Num = maybe_normalize(Number),
+    lookup(JObj, Num, ?CNAM_CACHE_MODE).
 
     case fetch_cache(Num, ?CNAM_CACHE_MODE) of
         {'ok', CNAM} ->
