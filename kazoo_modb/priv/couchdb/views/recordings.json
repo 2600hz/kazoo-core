@@ -17,6 +17,18 @@
                 "}"
             ]
         },
+        "list_by_attachment": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'call_recording' || doc.pvt_deleted || !doc._attachments || doc.pvt_attachments) return;",
+                "  emit([doc._id], {",
+                "    'id': doc._id,",
+                "    'name': doc.name,",
+                "    'content_type': doc.content_type",
+                "  });",
+                "}"
+            ]
+        },
         "listing_by_user": {
             "map": [
                 "function(doc) {",
