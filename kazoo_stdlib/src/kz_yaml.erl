@@ -37,7 +37,8 @@
 -type yaml_nodes() :: [yaml_node()].
 
 -type case_styles() :: 'camelcase' | 'lowercase' | 'uppercase'.
--type string_style() :: 'best' | 'double_qoute' | 'fold' | 'literal' | 'plain' | 'single_quote'.
+-type string_style() :: 'best' | 'double_quote' | 'fold' | 'literal' | 'plain' | 'single_quote'.
+-type final_string_style() :: 'double_quote' | 'fold' | 'literal' | 'plain' | 'single_quote'.
 
 -type options() :: #{compact => boolean()
                      %% Whether to compact writing mapping or sequence or not. Default is `true'.
@@ -49,12 +50,16 @@
                      %% Default is 80 characters.
                     ,bool_style => case_styles()
                      %% Writing style for boolean scalar type. Default is lowercase.
-                    ,key_string_style => 'double_qoute' | 'plain' | 'single_quote'
+                    ,key_string_style => 'double_quote' | 'double_qoute' | 'plain' | 'single_quote'
                      %% Writing style for key string scalar if it is possible to write the string in that style.
                     ,null_style => 'canonical' | case_styles()
                      %% Writing style for `null' scalar type. Canonical is `~' character. Default is lowercase.
-                    ,string_style => string_style()
-                     %% Writing style for string scalar if it is possible to write the string in that style.
+                    ,string_style => string_style() | 'double_qoute'
+                     %% Use this style for string scalar if it is safe, if not safe chooses the best safe option. Defaults to best.
+                    ,preferred_string_style => 'double_quote' | 'single_quote'
+                     %% Write string using string_style (or key_string_style) value if possible or best quess, but if it is not possible
+                     %% to write the string in plain (for example if plain string is may interpereted as number or boolean or null), use this preferred style.
+                     %% Defaults to to best non plain guess or single_quote.
                     ,sort_keys => boolean()
                      %% Whether or not sort keys
                     ,undefined_type => 'null' | 'undefined'
@@ -72,8 +77,9 @@
                   ,line_width => integer()
                   ,bool_style => case_styles()
                   ,null_style => 'canonical' | case_styles()
-                  ,key_string_style => 'double_qoute' | 'plain' | 'single_quote'
+                  ,key_string_style => 'double_quote' | 'plain' | 'single_quote'
                   ,string_style => string_style()
+                  ,preferred_string_style => 'double_quote' | 'single_quote' | 'undefined'
                   ,sort_keys => boolean()
                   ,undefined_type => 'null' | 'undefined'
                   }.
@@ -401,12 +407,12 @@ encode_string(#{indent := UserIndent
 
     encode_string(State, String, Indent, LineWidth, choose_string_style(State, String, LineWidth)).
 
--spec encode_string(state(), binary(), non_neg_integer(), non_neg_integer(), string_style()) -> iodata().
+-spec encode_string(state(), binary(), non_neg_integer(), non_neg_integer(), final_string_style()) -> iodata().
 encode_string(_State, String, _Indent, _LineWidth, 'plain') ->
     [String];
 encode_string(_State, String, _Indent, _LineWidth, 'single_quote') ->
     [<<$'>>, binary:replace(String, <<"'">>, <<"''">>, ['global']), <<$'>>];
-encode_string(_State, String, _Indent, _LineWidth, 'double_qoute') ->
+encode_string(_State, String, _Indent, _LineWidth, 'double_quote') ->
     [<<$">>, escape_string(String, <<>>), <<$">>];
 encode_string(#{indent := StateIndent}, String, Indent, _LineWidth, 'literal') ->
     [<<$|>>, block_header(String, StateIndent), drop_ending_new_line(indent_string(String, Indent), 'literal')];
@@ -595,31 +601,84 @@ escape_sequences(16#2028) -> <<"\\L">>;
 escape_sequences(16#2029) -> <<"\\P">>;
 escape_sequences(Char) -> Char.
 
--spec choose_string_style(map(), binary(), non_neg_integer()) -> string_style().
+-define(IS_BOOLEAN_STRING(String)
+       ,String =:= <<"true">>
+            orelse String =:= <<"TRUE">>
+            orelse String =:= <<"True">>
+            orelse String =:= <<"false">>
+            orelse String =:= <<"FALSE">>
+            orelse String =:= <<"False">>
+       ).
+-define(IS_NULL_STRING(String)
+       ,String =:= <<"null">>
+            orelse String =:= <<"NULL">>
+            orelse String =:= <<"Null">>
+            orelse String =:= <<"~">>
+       ).
+
+-spec choose_string_style(map(), binary(), non_neg_integer()) -> final_string_style().
+choose_string_style(State, String, _) when ?IS_BOOLEAN_STRING(String) ->
+    choose_preferred_string_style(State);
+choose_string_style(State, String, _) when ?IS_NULL_STRING(String) ->
+    choose_preferred_string_style(State);
+choose_string_style(State, String, LineWidth) ->
+    choose_string_style(State, String, LineWidth, string_is_number(String)).
+
+choose_string_style(State, _String, _, 'true') ->
+    choose_preferred_string_style(State);
 choose_string_style(#{line_width := UserLineWidth
                      ,indent := _UserIndent
                      ,is_key := IsKey
                      ,key_string_style := KeyStyle
                      ,string_style := StringStyle
-                     }, String, LineWidth) ->
+                     ,preferred_string_style := PStyle
+                     }, String, LineWidth, 'false') ->
     ShouldTrackWidth = UserLineWidth =/= -1,
+    %% don't use kz_term:is_ne_binary/1 here, undefined is pretty safe plain string in yamel
     Plain = is_plain_safe_first(binary:first(String))
+        andalso byte_size(String) =/= 0
         andalso not is_whitespace(binary:last(String)),
-    AnalyzeState = analyze_state(ShouldTrackWidth, Plain, IsKey, LineWidth),
-    #{chosen_one := ChosenOne} = analyze_string(String, 0, AnalyzeState),
+    AnalyzeState = analyze_state(ShouldTrackWidth, Plain, IsKey, LineWidth, PStyle),
+    AnalyzeState1 = guess_best_string_style(String, 0, AnalyzeState),
 
     UserStyle = maybe_set_key_style(IsKey, KeyStyle, StringStyle),
 
-    choose_string_style(ChosenOne, UserStyle).
+    choose_string_style1(AnalyzeState1, UserStyle).
 
--spec maybe_set_key_style(boolean(), 'double_qoute' | 'plain' | 'single_quote', string_style()) -> string_style().
-maybe_set_key_style('true', 'double_qoute', _) -> 'double_qoute';
+%% string cannot be written as plain safely as decoding might convert it to number or null and not string.
+choose_preferred_string_style(#{is_key := true, key_string_style := 'plain'}=State) ->
+    preferred_string_style(State, 'single_quote');
+choose_preferred_string_style(#{is_key := true, key_string_style := Style}) ->
+    Style;
+choose_preferred_string_style(#{string_style := 'plain'}=State) ->
+    preferred_string_style(State, 'single_quote');
+choose_preferred_string_style(#{string_style := 'best'}=State) ->
+    preferred_string_style(State, 'single_quote');
+choose_preferred_string_style(#{string_style := Style}) ->
+    Style.
+
+preferred_string_style('undefined', Best) ->
+    Best;
+preferred_string_style(#{}=Map, Best) ->
+    preferred_string_style(maps:get('preferred_string_style', Map, 'undefined'), Best);
+preferred_string_style(PStyle, _) ->
+    PStyle.
+
+string_is_number(String) ->
+    try kz_term:to_number(String) of
+        _ -> 'true'
+    catch _:_ ->
+            'false'
+    end.
+
+-spec maybe_set_key_style(boolean(), 'double_quote' | 'plain' | 'single_quote', string_style()) -> string_style().
+maybe_set_key_style('true', 'double_quote', _) -> 'double_quote';
 maybe_set_key_style('true', 'plain', _) -> 'plain';
 maybe_set_key_style('true', 'single_quote', _) -> 'single_quote';
 maybe_set_key_style('false', _, StringStyle) -> StringStyle.
 
--spec analyze_state(boolean(), boolean(), boolean(), non_neg_integer()) -> map().
-analyze_state(ShouldTrackWidth, Plain, IsKey, LineWidth) ->
+-spec analyze_state(boolean(), boolean(), boolean(), non_neg_integer(), atom()) -> map().
+analyze_state(ShouldTrackWidth, Plain, IsKey, LineWidth, PStyle) ->
     #{should_track_width => ShouldTrackWidth
      ,plain_safe => Plain
      ,is_key => IsKey
@@ -628,64 +687,56 @@ analyze_state(ShouldTrackWidth, Plain, IsKey, LineWidth) ->
      ,has_break => 'false'
      ,previous_break => -1
      ,previous_break_space => -1
+     ,preferred_string_style => PStyle
      }.
 
--spec choose_string_style(string_style(), string_style()) -> string_style().
-choose_string_style('double_qoute', _) -> 'double_qoute';
-choose_string_style('literal', Style) when Style =:= 'literal'
-                                           orelse Style =:= 'fold' ->
-    Style;
-choose_string_style('literal', _) -> 'literal';
-choose_string_style('fold', Style) when Style =:= 'literal'
-                                        orelse Style =:= 'fold' ->
-    Style;
-choose_string_style('fold', _) -> 'fold';
-choose_string_style('single_quote', Style) when Style =:= 'plain'
-                                                orelse Style =:= 'single_quote'
-                                                orelse Style =:= 'double_qoute' ->
-    Style;
-choose_string_style('single_quote', _) -> 'single_quote';
-choose_string_style('plain', Style) when Style =:= 'plain'
-                                         orelse Style =:= 'single_quote'
-                                         orelse Style =:= 'double_qoute' ->
-    Style;
-choose_string_style('plain', _) -> 'plain'.
+-spec choose_string_style1(map(), string_style()) -> final_string_style().
+choose_string_style1(#{best := 'double_quote'}, _) ->
+    %% string had non printable chars, forcing double quote
+    'double_quote';
+choose_string_style1(#{best := Best, plain_safe := 'false'}=AnalyzeState, 'plain') ->
+    preferred_string_style(AnalyzeState, Best);
+choose_string_style1(#{best := Best}, 'best') ->
+    Best;
+choose_string_style1(#{best := _Best}, UserChosenStyle) ->
+    UserChosenStyle.
 
--spec analyze_string(binary(), non_neg_integer(), map()) -> map().
-analyze_string(<<>>, _, #{is_key := 'true', plain_safe := 'true'}=Analyze) ->
-    Analyze#{chosen_one => 'plain'};
-analyze_string(<<>>, _, #{is_key := 'true', plain_safe := 'false'}=Analyze) ->
-    Analyze#{chosen_one => 'single_quote'};
-analyze_string(<<Char/utf8, Rest/binary>>, Index, #{is_key := 'true', plain_safe := Plain}=Analyze) ->
-    case is_printable(Char) of
-        'false' -> Analyze#{chosen_one => 'double_qoute'};
-        'true' ->
-            analyze_string(Rest, Index + 1, Analyze#{plain_safe => Plain
-                                                     andalso is_plain_safe(Char)})
+-spec guess_best_string_style(binary(), non_neg_integer(), map()) -> map().
+guess_best_string_style(<<>>, _, #{is_key := 'true', plain_safe := 'true'}=Analyze) ->
+    Analyze#{best => 'plain'};
+guess_best_string_style(<<>>, _, #{is_key := 'true', plain_safe := 'false'}=Analyze) ->
+    Analyze#{best => 'single_quote'};
+guess_best_string_style(<<>>, Index, #{has_break := 'true'}=Analyze) ->
+    case has_foldable_line(Index, Analyze) of
+        'true' -> Analyze#{best => 'fold'};
+        'false' -> Analyze#{best => 'literal'}
     end;
-analyze_string(<<>>, Index, #{has_break := HasBreak, plain_safe := Plain}=Analyze) ->
-    HasFoldable = has_foldable_line(Index, Analyze),
-    case HasBreak of
-        'true'  when HasFoldable ->  Analyze#{chosen_one => 'fold'};
-        'true'                   ->  Analyze#{chosen_one => 'literal'};
-        'false' when HasFoldable ->  Analyze#{chosen_one => 'fold'};
-        'false' when Plain       ->  Analyze#{chosen_one => 'plain'};
-        'false'                  ->  Analyze#{chosen_one => 'single_quote'}
+guess_best_string_style(<<>>, Index, #{has_break := 'false', plain_safe := Plain}=Analyze) ->
+    case has_foldable_line(Index, Analyze) of
+        'true'             -> Analyze#{best => 'fold'};
+        'false' when Plain ->  Analyze#{best => 'plain'};
+        'false'            ->  Analyze#{best => 'single_quote'}
     end;
-analyze_string(<<$\n, Rest/binary>>, Index, Analyze) ->
-    analyze_string(Rest, Index + 1
-                  ,Analyze#{has_break => 'true'
-                           ,has_foldable_line => has_foldable_line(Index, Analyze)
-                           ,previous_break => Index
-                           ,previous_break_space => is_break_space(Rest)
-                           }
-                  );
-analyze_string(<<Char/utf8, Rest/binary>>, Index, #{plain_safe := Plain}=Analyze) ->
+guess_best_string_style(<<Char/utf8, Rest/binary>>, Index, #{is_key := 'true', plain_safe := Plain}=Analyze) ->
     case is_printable(Char) of
-        'false' -> Analyze#{chosen_one => 'double_qoute'};
+        'false' ->
+            Analyze#{best => 'double_quote'};
         'true' ->
-            analyze_string(Rest, Index + 1, Analyze#{plain_safe => Plain
-                                                     andalso is_plain_safe(Char)})
+            guess_best_string_style(Rest, Index + 1, Analyze#{plain_safe => is_plain_safe(Plain, Char)})
+    end;
+guess_best_string_style(<<$\n, Rest/binary>>, Index, Analyze) ->
+    guess_best_string_style(Rest, Index + 1
+                           ,Analyze#{has_break => 'true'
+                                    ,has_foldable_line => has_foldable_line(Index, Analyze)
+                                    ,previous_break => Index
+                                    ,previous_break_space => is_break_space(Rest)
+                                    }
+                           );
+guess_best_string_style(<<Char/utf8, Rest/binary>>, Index, #{plain_safe := Plain}=Analyze) ->
+    case is_printable(Char) of
+        'false' -> Analyze#{best => 'double_quote'};
+        'true' ->
+            guess_best_string_style(Rest, Index + 1, Analyze#{plain_safe => is_plain_safe(Plain, Char)})
     end.
 
 -spec has_foldable_line(non_neg_integer(), map()) -> boolean().
@@ -760,6 +811,11 @@ is_plain_safe_first(Char) ->
         andalso Char =/= ?CHAR_COMMERCIAL_AT
         andalso Char =/= ?CHAR_GRAVE_ACCENT.
 
+-spec is_plain_safe(boolean(), integer()) -> boolean().
+is_plain_safe(Plain, Char) ->
+    Plain
+        andalso is_plain_safe(Char).
+
 %% Check if character is allowed after the first character in plain style.
 %% This is a copy pasta from js-yaml :)
 -spec is_plain_safe(integer()) -> boolean().
@@ -825,8 +881,9 @@ start_state(#{}=Options) ->
         end,
     #{compact          => Compact
      ,indent           => Indent
-     ,string_style     => maps:get('string_style', Options, 'literal')
-     ,key_string_style => maps:get('key_string_style', Options, 'plain')
+     ,string_style     => opts_string_style(maps:get('string_style', Options, 'best'))
+     ,preferred_string_style     => maps:get('preferred_string_style', Options, 'undefined')
+     ,key_string_style => opts_key_string_style(maps:get('key_string_style', Options, 'plain'))
      ,sort_keys        => maps:get('sort_keys', Options, 'true')
      ,line_width       => maps:get('line_width', Options, 80)
      ,bool_style       => maps:get('bool_style', Options, 'lowercase')
@@ -838,6 +895,12 @@ start_state(#{}=Options) ->
      ,explicit => 'false'
      ,is_key => 'false'
      }.
+
+opts_string_style('double_qoute') -> 'double_quote';
+opts_string_style(S) -> S.
+
+opts_key_string_style('double_qoute') -> 'double_quote';
+opts_key_string_style(S) -> S.
 
 -spec new_state(state()) -> state().
 new_state(#{}=Map) ->
