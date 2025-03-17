@@ -20,17 +20,32 @@
         ,kazoo_auth_provider/0
         ]).
 
+-export_type([auth_provider/0]).
 
 -define(PROVIDER_ISSUER, <<"auth/issuer_domain">>).
 
--spec kazoo_auth_provider() -> map().
+-type auth_provider() :: #{'_id' => kz_term:ne_binary()
+                          ,name := kz_term:ne_binary()
+                          ,jwt_identity_signature_secret := kz_term:ne_binary()
+                          ,jwt_user_id_signature_hash := kz_term:ne_binary()
+                          ,discovery => kz_term:ne_binary() %% discovery URL
+                          ,token_info_url => kz_term:ne_binary()
+                          ,profile_url => kz_term:ne_binary()
+                          ,profile_identity_field => kz_json:key()
+                          ,profile_identity_fields => [kz_json:key()]
+                          ,profile_photo_url_field => kz_json:key()
+                          ,profile_displayName_field => kz_json:key()
+                          ,profile_cache_timer => timeout()
+                          }.
+
+-spec kazoo_auth_provider() -> auth_provider().
 kazoo_auth_provider() ->
     #{name => <<"kazoo">>
      ,jwt_identity_signature_secret => ?KAZOO_SIGNATURE_SECRET
      ,jwt_user_id_signature_hash => <<"sha256">>
      }.
 
--spec provider_by_issuer(kz_term:ne_binary()) -> map() | {'error', any()}.
+-spec provider_by_issuer(kz_term:ne_binary()) -> auth_provider() | {'error', any()}.
 provider_by_issuer(<<"kazoo">>) ->
     kazoo_auth_provider();
 provider_by_issuer(Issuer) ->
@@ -38,7 +53,7 @@ provider_by_issuer(Issuer) ->
               ,'include_docs'
               ],
     case kz_datamgr:get_single_result(?KZ_AUTH_DB, ?PROVIDER_ISSUER, Options) of
-        {'ok', JObj} -> provider_from_json(kz_json:get_value(<<"doc">>, JObj));
+        {'ok', JObj} -> provider_from_json(kz_json:get_json_value(<<"doc">>, JObj));
         _ -> {'error', 'not_found'}
     end.
 
@@ -50,7 +65,7 @@ provider_by_issuer(Issuer) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_auth_provider(kz_term:ne_binary()) -> map() | {'error', any()}.
+-spec get_auth_provider(kz_term:ne_binary()) -> auth_provider() | {'error', any()}.
 get_auth_provider(<<"kazoo">>) ->
     kazoo_auth_provider();
 get_auth_provider(ProviderId) ->
@@ -59,12 +74,12 @@ get_auth_provider(ProviderId) ->
         {'error', _} -> {'error', <<"OAUTH - Provider ", ProviderId/binary, " not found">>}
     end.
 
--spec provider_from_json(kz_json:object()) -> map().
+-spec provider_from_json(kz_json:object()) -> auth_provider().
 provider_from_json(JObj) ->
     Provider = kz_maps:keys_to_atoms(kz_json:to_map(JObj)),
     Routines = [fun maybe_set_provider_name/1],
     lists:foldl(fun(F, A) -> F(A) end, Provider, Routines).
 
--spec maybe_set_provider_name(map()) -> map().
+-spec maybe_set_provider_name(auth_provider()) -> auth_provider().
 maybe_set_provider_name(#{'_id' := Id}=Provider) -> Provider#{name => Id};
 maybe_set_provider_name(#{}=Provider) -> Provider.

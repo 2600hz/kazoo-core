@@ -55,7 +55,7 @@ access_code(JObj) ->
     RedirectURI = kz_json:get_first_defined(?REDIRECT_URI_KEYS, JObj, <<"postmessage">>),
     kz_auth_util:fetch_access_code(AppId, Code, RedirectURI).
 
--spec authenticate(map() | kz_term:ne_binary() | kz_json:object()) ->
+-spec authenticate(kz_auth_jwt:parsed_token() | kz_term:ne_binary() | kz_json:object()) ->
           {'ok', kz_term:proplist()} |
           {'error', any()}.
 authenticate(<<JWTToken/binary>>) ->
@@ -106,7 +106,7 @@ verify_claims(#{claims := Claims}) when is_list(Claims) ->
 verify_claims(#{claims := Claims}) ->
     {'ok', kz_json:to_proplist(Claims)}.
 
--spec validate_claims(map(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec validate_claims(kz_auth_jwt:parsed_token(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 validate_claims(#{user_map := #{<<"pvt_account_id">> := AccountId
                                ,<<"pvt_owner_id">> := OwnerId
                                }
@@ -126,24 +126,25 @@ validate_claims(#{user_map := #{<<"pvt_account_id">> := AccountId
         _OtherAccountId ->
             {'error', {401, <<"account_header_mismatch">>}}
     end;
-validate_claims(#{user_map := #{<<"pvt_accounts">> := Accounts}, payload := Payload}, Options) ->
-    Keys = maps:keys(Accounts),
-    case props:get_value(<<"account_id">>, Options) of
-        'undefined' when length(Keys) =:= 1 ->
-            [AccountId] = Keys,
+validate_claims(#{user_map := #{<<"pvt_accounts">> := Accounts}
+                 ,payload := Payload
+                 }
+               ,Options
+               ) ->
+    case {maps:keys(Accounts), props:get_value(<<"account_id">>, Options)} of
+        {[AccountId], 'undefined'} ->
             #{AccountId := #{<<"owner_id">> := OwnerId}} = Accounts,
             Props = [{<<"account_id">>, AccountId}
                     ,{<<"owner_id">>, OwnerId}
                     ],
             {'ok', kz_json:set_values(Props, kz_json:from_map(Payload))};
-        'undefined' when length(Keys) > 1 ->
-            [AccountId | _] = Keys,
+        {[AccountId|_], 'undefined'} ->
             #{AccountId := #{<<"owner_id">> := OwnerId}} = Accounts,
             Props = [{<<"account_id">>, AccountId}
                     ,{<<"owner_id">>, OwnerId}
                     ],
             {'ok', kz_json:set_values(Props, kz_json:from_map(Payload))};
-        AccountId when length(Keys) > 0 ->
+        {[_|_]=Keys, AccountId} ->
             case lists:member(AccountId, Keys) of
                 'true' ->
                     #{AccountId := #{<<"owner_id">> := OwnerId}} = Accounts,
@@ -151,9 +152,13 @@ validate_claims(#{user_map := #{<<"pvt_accounts">> := Accounts}, payload := Payl
                             ,{<<"owner_id">>, OwnerId}
                             ],
                     {'ok', kz_json:set_values(Props, kz_json:from_map(Payload))};
-                'false' -> {'error', {401, <<"account header mismatch">>}}
+                'false' ->
+                    lager:info("account ~s not found in user accounts", [AccountId]),
+                    {'error', {401, <<"account header mismatch">>}}
             end;
-        _OtherAccountId -> {'error', {403, <<"no associated account_id">>}}
+        {_ExpectedAccount, _OtherAccountId} ->
+            lager:info("expected account ~p not found in other ~p", [_ExpectedAccount, _OtherAccountId]),
+            {'error', {403, <<"no associated account_id">>}}
     end;
 validate_claims(#{payload := #{<<"account_id">> := AccountId} = Payload}, Options) ->
     case props:get_value(<<"account_id">>, Options, AccountId) of
@@ -161,12 +166,15 @@ validate_claims(#{payload := #{<<"account_id">> := AccountId} = Payload}, Option
             Claims = kz_json:from_map(Payload),
             {'ok', Claims};
         _OtherAccountId ->
+            lager:info("account ~s not found in options", [AccountId]),
             {'error', {401, <<"account header mismatch">>}}
     end;
 
-validate_claims(#{}, _Options) -> {'error', {403, <<"no associated account_id">>}}.
+validate_claims(#{}, _Options) ->
+    lager:info("no account id associated with token"),
+    {'error', {403, <<"no associated account_id">>}}.
 
--spec ensure_claims(map()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec ensure_claims(kz_auth_jwt:parsed_token()) -> {'ok', kz_json:object()}.
 ensure_claims(#{payload := Payload}) ->
     Claims = kz_json:from_map(Payload),
     {'ok', Claims}.

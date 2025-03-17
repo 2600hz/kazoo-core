@@ -25,7 +25,7 @@
 
 -include("kazoo_auth.hrl").
 
--spec add_application(map()) -> map().
+-spec add_application(kz_auth_jwt:parsed_token()) -> kz_auth_jwt:parsed_token().
 add_application(#{auth_app := _App}=Token) -> Token;
 add_application(#{clientId := ClientId}=Token) ->
     Token#{auth_app => kz_auth_apps:get_auth_app(ClientId)};
@@ -33,14 +33,14 @@ add_application(#{client_id := ClientId}=Token) ->
     Token#{auth_app => kz_auth_apps:get_auth_app(ClientId)};
 add_application(#{}=Token) -> Token.
 
--spec add_provider(map()) -> map().
+-spec add_provider(kz_auth_jwt:parsed_token()) -> kz_auth_jwt:parsed_token().
 add_provider(#{auth_app := #{pvt_auth_provider := Provider}}=Token) ->
     Token#{auth_provider => kz_auth_providers:get_auth_provider(Provider)};
 add_provider(#{claims := #{iss := Issuer}}=Token) ->
     Token#{auth_provider => kz_auth_providers:provider_by_issuer(Issuer)};
 add_provider(#{}=Token) -> Token.
 
--spec add_discovery(map()) -> map().
+-spec add_discovery(kz_auth_jwt:parsed_token()) -> kz_auth_jwt:parsed_token().
 add_discovery(#{auth_provider := #{discovery := DiscoveryUrl}}=Token) ->
     lager:debug("getting discovery document from ~s", [DiscoveryUrl]),
     case kz_auth_util:get_json_from_url(DiscoveryUrl) of
@@ -57,7 +57,9 @@ add_discovery(#{payload := #{<<"iss">> := <<"http", _/binary>> = Issuer}}=Token)
     end;
 add_discovery(#{}=Token) -> Token.
 
--spec access_code(map()) -> map() | {'error', 'authentication_failed'}.
+-spec access_code(kz_auth_jwt:parsed_token()) ->
+          kz_auth_jwt:parsed_token() |
+          {'error', 'authentication_failed'}.
 access_code(#{code := Code
              ,original := JObj
              } = Token
@@ -68,6 +70,7 @@ access_code(#{code := Code
     lager:debug("trying to get access_code ~p for ~p with redirect ~p", [Code, AppId, RedirectURI]),
     case kz_auth_util:fetch_access_code(AppId, Code, RedirectURI, CodeVerifier) of
         {'ok', CodeJObj} ->
+            %% access_token and id_token JWTs typically included
             Map = kz_maps:keys_to_atoms(kz_json:to_map(CodeJObj)),
             Map1 = maps:merge(Token, Map),
             Map2 = Map1#{original => kz_json:merge_jobjs(JObj, CodeJObj)},
@@ -86,37 +89,46 @@ maybe_fix_token_type(#{auth_provider := #{static_token_type := TokenType}} = Tok
     Token#{token_type => TokenType};
 maybe_fix_token_type(#{token_type := <<"bearer">>
                       ,auth_provider := #{fix_token_type_caps := 'true'}
-                      } = Token) ->
+                      } = Token
+                    ) ->
     Token#{token_type => <<"Bearer">>};
 maybe_fix_token_type(Token) -> Token.
 
 -spec access_token(map()) -> map().
-access_token(#{access_token := AccessToken
+access_token(#{access_token := <<AccessToken/binary>>
               ,token_type := TokenType
               ,auth_provider := #{static_tokens := 'true'}
-              } = Token) ->
+              } = Token
+            ) ->
     Token#{static_token => kz_json:from_list([{<<"token_type">>, TokenType}
                                              ,{<<"access_token">>, AccessToken}
                                              ])
           };
 access_token(#{} = Token) -> Token.
 
+%% send access token to the token_info_url for verification
 -spec verify(map()) -> map().
 verify(#{verified_token := _}=Token) -> Token;
 verify(#{auth_provider := #{token_info_url := <<TokenInfoUrl/binary>>}
         ,access_token := <<AccessToken/binary>>
         }=Token
       ) ->
-    URL = <<TokenInfoUrl/binary, AccessToken/binary>>,
-    case kz_http:get(kz_term:to_list(URL)) of
-        {'ok', 200, _RespHeaders, RespBody} ->
-            RespJObj = kz_json:decode(RespBody),
-            Token#{verified_token => RespJObj};
-        Else ->
-            lager:info("unable to verify oauth token: ~p", [Else]),
-            Token#{verified_token => kz_json:new()}
-    end;
+    RespJObj = verify(TokenInfoUrl, AccessToken),
+    Token#{verified_token => RespJObj};
 verify(#{}=Token) -> Token#{verified_token => kz_json:new()}.
+
+verify(TokenInfoUrl, AccessToken) ->
+    URL = <<TokenInfoUrl/binary, AccessToken/binary>>,
+    case kz_http:get(URL) of
+        {'ok', 200, _RespHeaders, RespBody} ->
+            kz_json:decode(RespBody);
+        {'ok', _RespCode, _RespHeaders, _RespBody} ->
+            lager:info("unable to verify oauth token: ~p: ~s", [_RespCode, _RespBody]),
+            kz_json:new();
+        {'error', _E} ->
+            lager:info("error contacting ~s: ~p", [URL, _E]),
+            kz_json:new()
+    end.
 
 -spec create_claims(map()) -> map().
 create_claims(#{user_doc := Doc
@@ -152,6 +164,7 @@ build_claims([{K1, K2} | KVs], JObjs, Claims)
         V -> build_claims(KVs, JObjs, [{K2, V} | Claims])
     end.
 
+%% decode the id_token for its claims
 -spec id_token(map()) -> map().
 id_token(#{claims := _Claims}=Token) -> Token;
 id_token(#{id_token := IdToken}=Token) ->
@@ -159,7 +172,7 @@ id_token(#{id_token := IdToken}=Token) ->
         {'ok', _Header, Claims} -> Token#{claims => Claims};
         _ -> Token
     end;
-id_token(#{}=Token) -> Token#{claims => kz_json:new()}.
+id_token(#{}=Token) -> Token#{claims => []}.
 
 %%==============================================================================
 %% Internal functions

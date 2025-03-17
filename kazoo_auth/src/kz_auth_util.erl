@@ -32,7 +32,7 @@ get_json_from_url(Url) ->
 get_json_from_url(Url, ReqHeaders) ->
     case kz_http:get(kz_term:to_list(Url)
                     ,ReqHeaders
-                    ,[{'ssl', kz_ssl:ssl_opts()}]
+                    ,[{'ssl', kz_ssl:https_opts()}]
                     )
     of
         {'ok', 200, _RespHeaders, Body} ->
@@ -62,20 +62,20 @@ fetch_access_code(AppId, AuthorizationCode, RedirectURI) ->
     fetch_access_code(AppId, AuthorizationCode, RedirectURI, 'undefined').
 
 %% see https://www.oauth.com/oauth2-servers/pkce/authorization-code-exchange/
--spec fetch_access_code(kz_term:ne_binary() | map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
+-spec fetch_access_code(kz_term:ne_binary() | kz_auth_apps:auth_app(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
-fetch_access_code(<<AppId/binary>>, AuthorizationCode, RedirectURI, CodeVerifier) ->
+fetch_access_code(<<AppId/binary>>, <<AuthorizationCode/binary>>, <<RedirectURI/binary>>, CodeVerifier) ->
     lager:debug("getting auth-app ~p", [AppId]),
     case kz_auth_apps:get_auth_app(AppId, 'app_and_provider') of
-        #{} = Map -> fetch_access_code(Map, AuthorizationCode, RedirectURI, CodeVerifier);
-        Error -> Error
+        {'error', _}=Error -> Error;
+        AuthApp -> fetch_access_code(AuthApp, AuthorizationCode, RedirectURI, CodeVerifier)
     end;
 fetch_access_code(#{auth_app := #{name := AuthAppName}=AuthApp
                    ,auth_provider := #{access_code_url := URL}
                    }=_Map
-                 ,AuthorizationCode
-                 ,RedirectURI
+                 ,<<AuthorizationCode/binary>>
+                 ,<<RedirectURI/binary>>
                  ,CodeVerifier
                  ) ->
     Secret = maps:get('pvt_secret', AuthApp, 'undefined'),
@@ -90,6 +90,7 @@ fetch_access_code(#{auth_app := #{name := AuthAppName}=AuthApp
                ,"&code=", AuthorizationCode
                ,maybe_code_verifier(CodeVerifier)
                ],
+
     case kz_http:post(kz_term:to_list(URL)
                      ,Headers
                      ,FormBody
@@ -97,6 +98,7 @@ fetch_access_code(#{auth_app := #{name := AuthAppName}=AuthApp
                      )
     of
         {'ok', 200, _RespHeaders, RespJSON} ->
+            lager:debug("success exchanging code via POST to ~s", [URL]),
             {'ok', kz_json:decode(RespJSON)};
         {'ok', Code, _RespHeaders, _RespBody} ->
             lager:warning("failure contacting ~s: ~p: ~p", [URL, Code, _RespHeaders]),
