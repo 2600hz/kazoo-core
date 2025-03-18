@@ -23,6 +23,7 @@
 
 -export([lookup/1
         ,flush/0
+        ,flush/1
         ]).
 
 -include("cnam.hrl").
@@ -33,6 +34,7 @@
 
 -define(DEFAULT_EXPIRES, 900).
 -define(DEFAULT_PROVIDER, <<"opencnam">>).
+-define(DEFAULT_CACHE_MODE, 'peek').
 
 -define(DISABLE_NORMALIZE
        ,kapps_config:get_is_true(?CNAM_CONFIG_CAT, <<"disable_normalize">>, 'false')
@@ -42,6 +44,9 @@
 
 -define(CNAM_EXPIRES
        ,kapps_config:get_integer(?CNAM_CONFIG_CAT, <<"cnam_expires">>, ?DEFAULT_EXPIRES)
+       ).
+-define(CNAM_CACHE_MODE
+       ,kapps_config:get_atom(?CNAM_CONFIG_CAT, <<"cache_mode">>, ?DEFAULT_CACHE_MODE)
        ).
 
 %%%=============================================================================
@@ -81,13 +86,18 @@ lookup(<<Number/binary>>) ->
 lookup(JObj) ->
     Number = kz_json:get_value(<<"Caller-ID-Number">>, JObj, kz_privacy:anonymous_caller_id_number()),
     Num = maybe_normalize(Number),
-    case kz_cache:fetch_local(?CACHE_NAME, cache_key(Num)) of
+    case get_cache(Num, ?CNAM_CACHE_MODE) of
         {'ok', CNAM} ->
             update_request(JObj, CNAM, 'true');
         {'error', 'not_found'} ->
             CNAM = fetch_cnam(Num, set_phone_number(Num, JObj)),
             update_request(JObj, CNAM, 'false')
     end.
+
+get_cache(Num, 'peek') ->
+    kz_cache:peek_local(?CACHE_NAME, cache_key(Num));
+get_cache(Num, _) ->
+    kz_cache:fetch_local(?CACHE_NAME, cache_key(Num)).
 
 -spec set_phone_number(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 set_phone_number(Num, JObj) ->
@@ -105,6 +115,11 @@ update_request(JObj, CNAM, FromCache) ->
 -spec flush() -> non_neg_integer().
 flush() ->
     kz_cache:filter_erase_local(?CACHE_NAME, fun flush_entries/2).
+
+-spec flush(kz_term:ne_binary()) -> 'ok'.
+flush(Number) ->
+    Num = maybe_normalize(Number),
+    kz_cache:erase_local(?CACHE_NAME, cache_key(Num)).
 
 -spec flush_entries(any(), any()) -> boolean().
 flush_entries(?CACHE_KEY(_), _) -> 'true';

@@ -12,6 +12,7 @@
 -module(kazoo_cnam_maintenance).
 
 -export([flush/0
+        ,flush/1
         ,info/0
         ,lookup/1
         ]).
@@ -27,6 +28,11 @@
 -spec flush() -> 'ok'.
 flush() ->
     io:format("flushed ~p entries from cnam cache~n", [cnam:flush()]).
+
+-spec flush(kz_term:ne_binary()) -> 'ok'.
+flush(Number) ->
+    cnam:flush(Number),
+    io:format("flushed ~s from cnam cache~n", [Number]).
 
 -spec info() -> 'ok'.
 info() ->
