@@ -37,6 +37,7 @@
 -export([bind_q/2
         ,unbind_q/2
         ,declare_exchanges/0
+        ,stream_event_routing_key/3
         ]).
 
 -define(STREAM_BINDING_STRING(Name), <<"pivot.stream.", (Name)/binary>>).
@@ -170,6 +171,7 @@ stream_start_definition() ->
               ,{fun kapi_definition:set_friendly_name/2, <<"Pivot Stream Start">>}
               ,{fun kapi_definition:set_description/2, <<"Pivot Stream Start">>}
               ,{fun kapi_definition:set_binding/2, ?STREAM_BINDING_STRING(<<"start">>)}
+              ,{fun kapi_definition:set_restrict_to/2, 'start'}
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun stream_start/1}
               ,{fun kapi_definition:set_validate_fun/2, fun stream_start_v/1}
@@ -195,6 +197,7 @@ stream_stop_definition() ->
               ,{fun kapi_definition:set_friendly_name/2, <<"Pivot Stream Stop">>}
               ,{fun kapi_definition:set_description/2, <<"Pivot Stream Stop">>}
               ,{fun kapi_definition:set_binding/2, ?STREAM_BINDING_STRING(<<"stop">>)}
+              ,{fun kapi_definition:set_restrict_to/2, 'stop'}
               ,{fun kapi_definition:set_category/2, Category}
               ,{fun kapi_definition:set_build_fun/2, fun stream_stop/1}
               ,{fun kapi_definition:set_validate_fun/2, fun stream_stop_v/1}
@@ -292,7 +295,7 @@ publish_stream_start(Req, ContentType) ->
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
-    kz_amqp_util:callmgr_publish(Payload, ContentType, stream_event_routing(<<"start">>, Req)).
+    kz_amqp_util:callmgr_publish(Payload, ContentType, stream_event_routing_key(<<"start">>, Req)).
 
 -spec stream_stop(kz_term:api_terms()) -> kz_api:api_formatter_return().
 stream_stop(Req) ->
@@ -313,7 +316,7 @@ publish_stream_stop(Req, ContentType) ->
                                                 ,kapi_definition:values(Definition)
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
-    kz_amqp_util:callmgr_publish(Payload, ContentType, stream_event_routing(<<"stop">>, Req)).
+    kz_amqp_util:callmgr_publish(Payload, ContentType, stream_event_routing_key(<<"stop">>, Req)).
 
 %% Bind and UnBind
 -spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
@@ -325,7 +328,7 @@ bind_q(Queue, Props, 'undefined') ->
     _ = kz_amqp_util:bind_q_to_callmgr(Queue, get_pivot_req_routing(Realm)),
     'ok';
 bind_q(Queue, Props, [{'stream', EventProps} | Restrict]) ->
-    Binding = stream_event_key(EventProps),
+    Binding = stream_event_routing_key(EventProps),
     'ok' = kz_amqp_util:bind_q_to_callmgr(Queue, Binding),
     bind_q(Queue, Props, Restrict);
 bind_q(_Queue, _Props, []) ->
@@ -340,26 +343,30 @@ unbind_q(Queue, Props, 'undefined') ->
     _ = kz_amqp_util:unbind_q_from_callmgr(Queue, get_pivot_req_routing(Realm)),
     'ok';
 unbind_q(Queue, Props, [{'stream', EventProps} | Restrict]) ->
-    Binding = stream_event_key(EventProps),
+    Binding = stream_event_routing_key(EventProps),
     'ok' = kz_amqp_util:unbind_q_from_callmgr(Queue, Binding),
     unbind_q(Queue, Props, Restrict);
 unbind_q(_Queue, _Props, []) ->
     'ok'.
 
--spec stream_event_key(kz_term:proplist()) -> kz_term:ne_binary().
-stream_event_key(Props) ->
-    Event = props:get_value('event', Props, <<"*">>),
-    AccountId = props:get_value('account_id', Props, <<"*">>),
-    CallId = props:get_value('call_id', Props, <<"*">>),
-    kz_binary:join([Event, AccountId, kz_amqp_util:encode(CallId)], <<".">>).
+-spec stream_event_routing_key(kz_term:proplist()) -> kz_term:ne_binary().
+stream_event_routing_key(Props) ->
+    Event = props:get_ne_binary_value('event', Props, <<"*">>),
+    AccountId = props:get_ne_binary_value('account_id', Props, <<"*">>),
+    CallId = props:get_ne_binary_value('call_id', Props, <<"*">>),
+    stream_event_routing_key(Event, AccountId, CallId).
 
--spec stream_event_routing(kz_term:ne_binary(), kz_term:api_terms()) -> kz_term:ne_binary().
-stream_event_routing(Event, Props) when is_list(Props) ->
-    stream_event_routing(Event, kz_json:from_list(Props));
-stream_event_routing(Event, JObj) ->
+-spec stream_event_routing_key(kz_term:ne_binary(), kz_term:api_terms()) -> kz_term:ne_binary().
+stream_event_routing_key(Event, Props) when is_list(Props) ->
+    stream_event_routing_key(Event, kz_json:from_list(Props));
+stream_event_routing_key(Event, JObj) ->
     AccountId = kz_json:get_ne_binary_value(<<"Account-ID">>, JObj),
     CallId = kz_json:get_ne_binary_value(<<"Call-ID">>, JObj),
-    kz_binary:join([Event, AccountId, kz_amqp_util:encode(CallId)], <<".">>).
+    stream_event_routing_key(Event, AccountId, CallId).
+
+-spec stream_event_routing_key(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+stream_event_routing_key(Event, AccountId, CallId) ->
+    kz_binary:join([?STREAM_BINDING_STRING(Event), AccountId, kz_amqp_util:encode(CallId)], <<".">>).
 
 %%------------------------------------------------------------------------------
 %% @doc Declare the exchanges used by this API.
