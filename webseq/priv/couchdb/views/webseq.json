@@ -1,6 +1,7 @@
 {
     "_id": "_design/webseq",
     "language": "javascript",
+    "autoupdate": false,
     "views": {
         "listing_by_name": {
             "map": [
