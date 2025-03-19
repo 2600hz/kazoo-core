@@ -1,5 +1,6 @@
 {
     "_id": "_design/port_requests",
+    "autoupdate": false,
     "kazoo": {
         "view_map": [
             {
@@ -8,7 +9,6 @@
         ]
     },
     "language": "javascript",
-    "autoupdate": false,
     "views": {
         "active_port_request": {
             "map": [

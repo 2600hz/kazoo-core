@@ -1,5 +1,6 @@
 {
     "_id": "_design/mailbox_messages",
+    "autoupdate": false,
     "kazoo": {
         "view_map": [
             {
@@ -8,7 +9,6 @@
         ]
     },
     "language": "javascript",
-    "autoupdate": false,
     "views": {
         "count_per_box_folder": {
             "map": [

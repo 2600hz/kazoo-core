@@ -1,5 +1,6 @@
 {
     "_id": "_design/cdrs",
+    "autoupdate": false,
     "kazoo": {
         "view_map": [
             {
@@ -8,7 +9,6 @@
         ]
     },
     "language": "javascript",
-    "autoupdate": false,
     "lists": {
         "format_summary": [
             "function() {",

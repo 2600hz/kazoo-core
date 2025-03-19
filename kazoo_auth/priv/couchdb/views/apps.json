@@ -1,5 +1,6 @@
 {
     "_id": "_design/apps",
+    "autoupdate": false,
     "kazoo": {
         "view_map": [
             {
@@ -8,7 +9,6 @@
         ]
     },
     "language": "javascript",
-    "autoupdate": false,
     "views": {
         "list_by_account": {
             "map": [

@@ -1,5 +1,6 @@
 {
     "_id": "_design/search",
+    "autoupdate": false,
     "kazoo": {
         "view_map": [
             {
@@ -8,7 +9,6 @@
         ]
     },
     "language": "javascript",
-    "autoupdate": false,
     "views": {
         "search_by_name": {
             "map": [
