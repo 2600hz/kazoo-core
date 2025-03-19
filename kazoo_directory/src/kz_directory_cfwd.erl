@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2024, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -92,6 +92,10 @@ call_forward_base_properties(_EndpointId, _AccountId, _Endpoint, CallForward, _I
     ,{<<"Call-Forward-From-Endpoint-ID">>, <<"${Caller-Endpoint-ID}">>}
     ].
 
+-spec call_forward_cid_type_name(boolean()) -> kz_term:ne_binary().
+call_forward_cid_type_name('true') -> <<"External">>;
+call_forward_cid_type_name('false') -> <<"Internal">>.
+
 -spec cfw_single_reject() -> kz_term:ne_binaries().
 cfw_single_reject() ->
     [<<"ALLOTTED_TIMEOUT">>
@@ -121,8 +125,15 @@ call_forward_confirm_properties(_EndpointId, _AccountId, Endpoint, CallForward, 
     end.
 
 -spec call_forward_maybe_retain_cid(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_json:object(), boolean()) -> kz_term:proplist().
-call_forward_maybe_retain_cid(_EndpointId, _AccountId, _Endpoint, CallForward, _IsReconcilable) ->
-    [{<<"Retain-CID">>, kzd_call_forward:keep_caller_id(CallForward)}].
+call_forward_maybe_retain_cid(_EndpointId, _AccountId, _Endpoint, CallForward, IsReconcilable) ->
+    CIDTypeName = call_forward_cid_type_name(IsReconcilable),
+    case kzd_call_forward:keep_caller_id(CallForward) of
+        'false' -> [];
+        'true' -> [{<<"Outbound-Caller-ID-Number">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Number|Caller-Caller-ID-Number)}">>}
+                  ,{<<"Outbound-Caller-ID-Name">>, <<"${first-of(Caller-", CIDTypeName/binary, "-Caller-ID-Name|Caller-Caller-ID-Name)}">>}
+                  ,{<<"Retain-CID">>, 'true'}
+                  ]
+    end.
 
 -spec get_realm(kz_json:object()) -> kz_term:ne_binary().
 get_realm(Endpoint) ->
