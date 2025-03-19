@@ -221,14 +221,16 @@ parse_query_string('key', <<$=, R/binary>>, KeyAcc, _ValAcc, RetAcc) ->
     parse_query_string('val', R, KeyAcc, <<>>, RetAcc);
 
 parse_query_string('key', <<$;, R/binary>>, KeyAcc, _ValAcc, RetAcc) ->
-    Key = urldecode(KeyAcc, 'legacy'),
-
-    parse_query_string('key', R, <<>>, <<>>, RetAcc ++ [{Key, <<>>}]);
+    case urldecode(KeyAcc, 'legacy') of
+        <<>> -> parse_query_string('key', R, <<>>, <<>>, RetAcc);
+        Key -> parse_query_string('key', R, <<>>, <<>>, RetAcc ++ [{Key, <<>>}])
+    end;
 
 parse_query_string('key', <<$&, R/binary>>, KeyAcc, _ValAcc, RetAcc) ->
-    Key = urldecode(KeyAcc, 'legacy'),
-
-    parse_query_string('key', R, <<>>, <<>>, RetAcc ++ [{Key, <<>>}]);
+    case urldecode(KeyAcc, 'legacy') of
+        <<>> -> parse_query_string('key', R, <<>>, <<>>, RetAcc);
+        Key -> parse_query_string('key', R, <<>>, <<>>, RetAcc ++ [{Key, <<>>}])
+    end;
 
 parse_query_string('val', <<$;, R/binary>>, KeyAcc, ValAcc, RetAcc) ->
     Key = urldecode(KeyAcc, 'legacy'),
@@ -303,6 +305,8 @@ parse_query_arrays(QsJObj, _Options) ->
 %% comma separated string to array.
 primarily_merge([], _) ->
     [];
+primarily_merge([{<<>>, _} | T], Options) -> 
+    primarily_merge(T, Options);
 primarily_merge([{K, V} | T], Options) ->
     NewV = explicit_array_item(K, V),
     case props:get_value(K, T) of
