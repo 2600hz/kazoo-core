@@ -158,9 +158,24 @@ json_to_querystring_test_() ->
             ,{<<"{\"Msg-ID\":\"123-abc\"}">>, <<"Msg-ID=123-abc">>}
             ,{<<"{\"url\":\"http://user:pass@host:port/\"}">>, <<"url=http%3A%2F%2Fuser%3Apass%40host%3Aport%2F">>}
             ,{<<"{\"topkey\":{\"subkey1\":\"v1\",\"subkey2\":\"v2\",\"subkey3\":[\"v31\",\"v32\"]}}">>
-             ,?ENC(<<"topkey[subkey1]=v1&topkey[subkey2]=v2&topkey[subkey3][]=v31&topkey[subkey3][]=v32">>)}
+             ,?ENC(<<"topkey[subkey1]=v1&topkey[subkey2]=v2&topkey[subkey3][]=v31&topkey[subkey3][]=v32">>)
+             }
             ,{<<"{\"topkey\":{\"subkey1\":\"v1\",\"subkey2\":{\"k3\":\"v3\"}}}">>
-             ,?ENC(<<"topkey[subkey1]=v1&topkey[subkey2][k3]=v3">>)}
+             ,?ENC(<<"topkey[subkey1]=v1&topkey[subkey2][k3]=v3">>)
+             }
+             %% Empty objects should not be included
+            ,{<<"{\"Poppy\": {}}">>, <<>>}
+            ,{<<"{\"Poppy\": { \"Hyacinth\": {} }}">>, <<>>}
+            ,{<<"{\"Poppy\": { \"Hyacinth\": {}, \"Tulip\": {} }}">>, <<>>}
+            ,{<<"{\"Poppy\": { \"Hyacinth\": {}, \"Tulip\": true }}">>, ?ENC(<<"Poppy[Tulip]=true">>)}
+             %% Empty lists should not be included
+            ,{<<"{\"Poppy\": []}">>, <<>>}
+            ,{<<"{\"Poppy\": { \"Hyacinth\": [] }}">>, <<>>}
+            ,{<<"{\"Poppy\": { \"Hyacinth\": [], \"Tulip\": [] }}">>, <<>>}
+            ,{<<"{\"Poppy\": { \"Hyacinth\": [], \"Tulip\": true }}">>, ?ENC(<<"Poppy[Tulip]=true">>)}
+             %% Empty binary should be empty value
+            ,{<<"{\"Poppy\": \"\"}">>, ?ENC(<<"Poppy=">>)}
+            ,{<<"{\"Poppy\": \"\", \"Hyacinth\": true}">>, ?ENC(<<"Poppy=&Hyacinth=true">>)}
             ],
     [?_assertEqual(QS, kz_term:to_binary(
                          kz_http_util:json_to_querystring(

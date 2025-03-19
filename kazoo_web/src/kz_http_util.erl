@@ -303,6 +303,8 @@ parse_query_arrays(QsJObj, _Options) ->
 %% comma separated string to array.
 primarily_merge([], _) ->
     [];
+primarily_merge([{<<>>, _} | T], Options) ->
+    primarily_merge(T, Options);
 primarily_merge([{K, V} | T], Options) ->
     NewV = explicit_array_item(K, V),
     case props:get_value(K, T) of
@@ -580,12 +582,26 @@ props_to_querystring(Props, Prefix) ->
 %% and reverse the list (putting the key/value at the end of the list)
 -spec fold_kvs(keys(), json_terms(), binary() | iolist(), iodata()) -> iodata().
 fold_kvs([], [], _, Acc) -> Acc;
-fold_kvs([K], [V], Prefix, Acc) -> lists:reverse([encode_kv(Prefix, K, V) | Acc]);
+fold_kvs([K], [V], Prefix, Acc) ->
+    case encode_kv(Prefix, K, V) of
+        ?DEFAULT_EMPTY ->
+            case Acc of
+                [<<"&">> | A] -> lists:reverse(A);
+                _ -> lists:reverse(Acc)
+            end;
+        Encoded -> lists:reverse([Encoded | Acc])
+    end;
 fold_kvs([K|Ks], [V|Vs], Prefix, Acc) ->
-    fold_kvs(Ks, Vs, Prefix, [<<"&">>, encode_kv(Prefix, K, V) | Acc]).
+    case encode_kv(Prefix, K, V) of
+        ?DEFAULT_EMPTY ->
+            fold_kvs(Ks, Vs, Prefix, Acc);
+        Encoded ->
+            fold_kvs(Ks, Vs, Prefix, [<<"&">>, Encoded | Acc])
+    end.
 
--spec encode_kv(iolist() | binary(), key(), json_term() | json_terms()) -> iodata().
 %% If a list of values, use the []= as a separator between the key and each value
+-spec encode_kv(iolist() | binary(), key(), json_term() | json_terms()) -> iodata() | ?DEFAULT_EMPTY.
+encode_kv(_, _, []) -> ?DEFAULT_EMPTY;
 encode_kv(Prefix, K, Vs) when is_list(Vs) ->
     EncodedKey = list_to_binary([kz_http_uri:encode(<<"[]">>), <<"=">>]),
     encode_kv(Prefix, kz_term:to_binary(K), Vs, EncodedKey, []);
@@ -600,6 +616,7 @@ encode_kv(Prefix, K, 'false') ->
 
 %% key:{k1:v1, k2:v2} => key[k1]=v1&key[k2]=v2
 %% if no prefix is present, use just key to prefix the key/value pairs in the jobj
+encode_kv(_, _, ?EMPTY_JSON_OBJECT) -> ?DEFAULT_EMPTY;
 encode_kv(<<>>, K, ?JSON_WRAPPER(_)=JObj) -> json_to_querystring(JObj, [K]);
 %% if a prefix is defined, nest the key in square brackets
 encode_kv(Prefix, K, ?JSON_WRAPPER(_)=JObj) ->
