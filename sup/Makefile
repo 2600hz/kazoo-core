@@ -24,6 +24,9 @@ kz_stdlib:
 
 app-build: compile
 
+escript-list-runtime-deps:
+	$(MAKE) -f $(ROOT)/erlang.mk escript-list-runtime-deps
+
 clean-escript:
 	@rm -f $(ESCRIPT)
 
