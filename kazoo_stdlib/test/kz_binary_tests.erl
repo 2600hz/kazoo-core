@@ -152,8 +152,13 @@ binary_hashes_test_() ->
     ].
 
 binary_reverse_test_() ->
-    [?_assertEqual(<<>>, kz_binary:reverse(<<>>))
-    ,?_assertEqual(<<"B a">>, kz_binary:reverse(<<"a B">>))
+    RandHex = kz_binary:rand_hex(16),
+    BigRand = kz_binary:rand_hex(281434), %% mimics the big payload causing issues
+
+    [{"empty reverse", ?_assertEqual(<<>>, kz_binary:reverse(<<>>))}
+    ,{"simple reverse", ?_assertEqual(<<"B a">>, kz_binary:reverse(<<"a B">>))}
+    ,{"rand reverse", ?_assertEqual(RandHex, kz_binary:reverse(kz_binary:reverse(RandHex)))}
+    ,{"big reverse", ?_assertEqual(BigRand, kz_binary:reverse(kz_binary:reverse(BigRand)))}
     ].
 
 truncate_binary_test_() ->
@@ -243,9 +248,9 @@ matches_test_() ->
                }
               ,{<<".+">> %% Everything that is not an empty string.
                ,[<<"He">>, <<"+1234@QwErTy -_$">>]
-               ,[<<>>]
-               }
-              ],
+              ,[<<>>]
+              }
+        ],
     [{"regex: " ++ kz_term:to_list(Regex)
      ,[{"Should match"
        ,[{kz_term:to_list(Subject), ?_assert(kz_binary:matches(Subject, Regex))} || Subject <- ShouldMatch]
