@@ -171,9 +171,11 @@ binary_hashes_test_() ->
 
 binary_reverse_test_() ->
     RandHex = kz_binary:rand_hex(16),
-    [?_assertEqual(<<>>, kz_binary:reverse(<<>>))
-    ,?_assertEqual(<<"B a">>, kz_binary:reverse(<<"a B">>))
-    ,?_assertEqual(RandHex, kz_binary:reverse(kz_binary:reverse(RandHex)))
+    BigRand = kz_binary:rand_hex(281434), %% mimics the big payload causing issues
+    [{"empty reverse", ?_assertEqual(<<>>, kz_binary:reverse(<<>>))}
+    ,{"simple reverse", ?_assertEqual(<<"B a">>, kz_binary:reverse(<<"a B">>))}
+    ,{"rand reverse", ?_assertEqual(RandHex, kz_binary:reverse(kz_binary:reverse(RandHex)))}
+    ,{"big reverse", ?_assertEqual(BigRand, kz_binary:reverse(kz_binary:reverse(BigRand)))}
     ].
 
 truncate_binary_test_() ->
