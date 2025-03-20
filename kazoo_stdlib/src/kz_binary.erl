@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc Conversion of types
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -305,11 +305,41 @@ closests(Chars, Bin) ->
             ],
     lists:keysort(2, Pairs).
 
+%% for large binaries, we need to chunk them up and reverse them
+%% REV_CHUNK was chosen because #reasons (through experiments)
+-define(REV_CHUNK, 8192).
+
 -spec reverse(binary()) -> binary().
+reverse(<<Front:?REV_CHUNK/integer-little, Rest/binary>>) ->
+    list_to_binary(reverse(Rest, [<<Front:?REV_CHUNK/integer-big>>]));
 reverse(Binary) ->
-    Size = erlang:byte_size(Binary)*8,
-    <<X:Size/integer-little>> = Binary,
-    <<X:Size/integer-big>>.
+    %% this fails for large binaries
+    Size = bit_size(Binary),
+    <<X:Size/little-integer>> = Binary,
+    <<X:Size/big-integer>>.
+
+%% side note: it was observed that creating a binary as the
+%% accumulator caused execution time to range 30-60ms while using the
+%% list as accumulator and converting to binary at the end caused
+%% execution time to range 1-6ms typically, hence the list of binaries here
+reverse(<<Front:?REV_CHUNK/integer-little, Rest/binary>>, Acc) ->
+    reverse(Rest, [<<Front:?REV_CHUNK/integer-big>> | Acc]);
+reverse(Rest, Acc) ->
+    [reverse(Rest) | Acc].
+
+%% execution for the above typically is less than 10ms on "large"
+%% (byte_size = 562868 B) payloads
+
+%% other implementations:
+%% this one took 9007807 (or 9 seconds) on the big input
+%% reverse(Binary) ->
+%%     reverse(Binary, <<>>).
+%% reverse(<<>>, Acc) -> Acc;
+%% reverse(<<H:1/binary, Rest/binary>>, Acc) ->
+%%     reverse(Rest, <<H/binary, Acc/binary>>).
+
+%% this took a range of 15..64 ms on the big input
+%%    list_to_binary(lists:reverse(binary_to_list(Binary))).
 
 -spec to_utf8(binary()) -> binary().
 to_utf8(<<Value/binary>>) ->

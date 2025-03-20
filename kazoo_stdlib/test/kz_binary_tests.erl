@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -152,8 +152,13 @@ binary_hashes_test_() ->
     ].
 
 binary_reverse_test_() ->
-    [?_assertEqual(<<>>, kz_binary:reverse(<<>>))
-    ,?_assertEqual(<<"B a">>, kz_binary:reverse(<<"a B">>))
+    RandHex = kz_binary:rand_hex(16),
+    BigRand = kz_binary:rand_hex(281434), %% mimics the big payload causing issues
+
+    [{"empty reverse", ?_assertEqual(<<>>, kz_binary:reverse(<<>>))}
+    ,{"simple reverse", ?_assertEqual(<<"B a">>, kz_binary:reverse(<<"a B">>))}
+    ,{"rand reverse", ?_assertEqual(RandHex, kz_binary:reverse(kz_binary:reverse(RandHex)))}
+    ,{"big reverse", ?_assertEqual(BigRand, kz_binary:reverse(kz_binary:reverse(BigRand)))}
     ].
 
 truncate_binary_test_() ->
