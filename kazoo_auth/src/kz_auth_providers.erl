@@ -25,17 +25,18 @@
 -define(PROVIDER_ISSUER, <<"auth/issuer_domain">>).
 
 -type auth_provider() :: #{'_id' => kz_term:ne_binary()
-                          ,name := kz_term:ne_binary()
+                          ,access_code_url => kz_term:ne_binary()
+                          ,discovery => kz_term:ne_binary() %% discovery URL
                           ,jwt_identity_signature_secret := kz_term:ne_binary()
                           ,jwt_user_id_signature_hash := kz_term:ne_binary()
-                          ,discovery => kz_term:ne_binary() %% discovery URL
-                          ,token_info_url => kz_term:ne_binary()
-                          ,profile_url => kz_term:ne_binary()
+                          ,name := kz_term:ne_binary()
+                          ,profile_cache_timer => timeout()
+                          ,profile_displayName_field => kz_json:key()
                           ,profile_identity_field => kz_json:key()
                           ,profile_identity_fields => [kz_json:key()]
                           ,profile_photo_url_field => kz_json:key()
-                          ,profile_displayName_field => kz_json:key()
-                          ,profile_cache_timer => timeout()
+                          ,profile_url => kz_term:ne_binary()
+                          ,token_info_url => kz_term:ne_binary()
                           }.
 
 -spec kazoo_auth_provider() -> auth_provider().
