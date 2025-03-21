@@ -2540,7 +2540,8 @@ stream_definition() ->
                                                             ,<<"Application-Name">>
                                                             ,<<"Call-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Audio-Mix">>
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Audio-Codec">>
+                                                            ,<<"Audio-Mix">>
                                                             ,<<"Audio-Tracks">>
                                                             ,<<"Connect-Payload">>
                                                             ,<<"Insert-At">>
@@ -2550,6 +2551,10 @@ stream_definition() ->
                                                             ]}
               ,{fun kapi_definition:set_values/2
                ,[{<<"Application-Name">>, <<"stream">>}
+                ,{<<"Audio-Codec">>, [<<"L16">>
+                                     ,<<"PCMU">>
+                                     ]
+                 }
                 ,{<<"Audio-Mix">>, [<<"mono">>
                                    ,<<"stereo">>
                                    ]
