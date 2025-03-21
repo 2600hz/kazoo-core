@@ -21,11 +21,8 @@
 
 -spec exec(kz_term:ne_binary(), kapps_call:call(), binary(), kz_term:api_binary() | list()) ->
           exec_return().
-exec(RequesterQ, Call, 'undefined', Cmds) ->
-    exec(RequesterQ, Call, <<"text/xml">>, Cmds);
-exec(RequesterQ, Call, CT, Cmds) when not is_binary(CT) ->
-    exec(RequesterQ, Call, kz_term:to_binary(CT), Cmds);
-exec(RequesterQ, Call, CT, Cmds) ->
+exec(RequesterQ, Call, CT0, Cmds) ->
+    CT = type_to_binary(CT0),
     case [{M, Cmd1} || M <- find_candidate_translators(just_the_type(CT)),
                        begin {IsRecognized, Cmd1} = is_recognized(M, Cmds), IsRecognized end
          ] of
@@ -35,6 +32,11 @@ exec(RequesterQ, Call, CT, Cmds) ->
             Translator:exec(Call, Cmds1)
     end.
 
+-spec type_to_binary(kz_term:api_binary() | list()) -> kz_term:api_binary().
+type_to_binary('undefined') -> 'undefined';
+type_to_binary(<<CT/binary>>) -> CT;
+type_to_binary(CT) -> kz_term:to_binary(CT).
+
 publish_processing(RequesterQ, Call) ->
     PubFun = fun(P) -> kapi_pivot:publish_processing(RequesterQ, P) end,
     kz_amqp_worker:cast([{<<"Call-ID">>, kapps_call:call_id(Call)}
@@ -43,7 +45,9 @@ publish_processing(RequesterQ, Call) ->
                        ,PubFun
                        ).
 
--spec just_the_type(kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec just_the_type(kz_term:api_binary()) -> kz_term:api_binary().
+just_the_type('undefined') ->
+    'undefined';
 just_the_type(ContentType) ->
     case binary:split(ContentType, <<";">>) of
         [ContentType] -> kz_binary:strip(ContentType);
@@ -63,7 +67,7 @@ set_user_vars(Prop, Call) ->
     UserVars = get_user_vars(Call),
     kapps_call:kvs_store(?KZT_USER_VARS, kz_json:set_values(Prop, UserVars), Call).
 
--spec find_candidate_translators(kz_term:ne_binary()) -> kz_term:atoms().
+-spec find_candidate_translators(kz_term:api_binary()) -> kz_term:atoms().
 find_candidate_translators(<<"text/xml">>) ->
     ['kzt_twiml'];
 find_candidate_translators(<<"application/xml">>) ->

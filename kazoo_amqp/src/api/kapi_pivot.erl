@@ -87,24 +87,33 @@ req_definition() ->
               ,{fun kapi_definition:set_publish_fun/2, fun publish_req/1}
               ,{fun kapi_definition:set_binding/2, <<"pivot.req">>}
               ,{fun kapi_definition:set_required_headers/2, [<<"Call">>
-                                                            ,<<"Voice-URI">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"CDR-URI">>
                                                             ,<<"Custom-Request-Headers">>
                                                             ,<<"Debug">>
+                                                            ,<<"Flow-Doc">>
+                                                            ,<<"Flow-Type">>
                                                             ,<<"HTTP-Method">>
                                                             ,<<"Request-Body-Format">>
                                                             ,<<"Request-Format">>
                                                             ,<<"Request-Timeout">>
+                                                            ,<<"Voice-URI">>
                                                             ]}
               ,{fun kapi_definition:set_values/2
-               ,kapi_definition:event_type_headers(Category, EventName)
+               ,[{<<"Flow-Type">>, [<<"application/json">>
+                                   ,<<"application/xml">>
+                                   ,<<"text/xml">>
+                                   ]
+                 }
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
                }
               ,{fun kapi_definition:set_types/2
                ,[{<<"Call">>, fun kz_json:is_json_object/1}
                 ,{<<"Custom-Request-Headers">>, fun kz_json:is_json_object/1}
                 ,{<<"Debug">>, fun kz_term:is_boolean/1}
                 ,{<<"Request-Format">>, fun erlang:is_binary/1}
+                ,{<<"Flow-Doc">>, fun kz_term:is_ne_binary/1}
                 ,{<<"Reqeust-Body-Format">>, fun erlang:is_binary/1}
                 ,{<<"Request-Timeout">>, fun erlang:is_integer/1}
                 ]

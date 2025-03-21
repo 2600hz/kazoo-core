@@ -27,6 +27,18 @@
             ],
             "type": "string"
         },
+        "Flow-Doc": {
+            "minLength": 1,
+            "type": "string"
+        },
+        "Flow-Type": {
+            "enum": [
+                "application/json",
+                "application/xml",
+                "text/xml"
+            ],
+            "type": "string"
+        },
         "HTTP-Method": {
             "type": "string"
         },
@@ -49,8 +61,7 @@
     "required": [
         "Call",
         "Event-Category",
-        "Event-Name",
-        "Voice-URI"
+        "Event-Name"
     ],
     "type": "object"
 }

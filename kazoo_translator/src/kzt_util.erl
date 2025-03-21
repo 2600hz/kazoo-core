@@ -60,6 +60,7 @@
         ,add_stream/3, get_streams/1
 
         ,iteration/1, increment_iteration/1
+        ,set_serverless/2, get_serverless/1
         ]).
 
 -include("kzt.hrl").
@@ -102,9 +103,19 @@ record_store_method(Props) ->
     end.
 
 
--spec resolve_uri(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec resolve_uri(kz_term:api_binary(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
+resolve_uri('undefined', NewPath) ->
+    resolve_action_uri(NewPath);
+resolve_uri(<<>>, NewPath) ->
+    resolve_action_uri(NewPath);
 resolve_uri(Path, NewPath) ->
     kz_http_util:resolve_uri(Path, NewPath).
+
+resolve_action_uri(<<"http", _/binary>>=Uri) ->
+    Uri;
+resolve_action_uri(_Other) ->
+    lager:debug("nobase voice_uri, and invalid action uri ~p", [_Other]),
+    'undefined'.
 
 %% See cf_resources.erl.
 %% Try to match cf_resources as much as possible.
@@ -477,3 +488,12 @@ iteration(Call) ->
 -spec increment_iteration(kapps_call:call()) -> kapps_call:call().
 increment_iteration(Call) ->
     kapps_call:kvs_update_counter('pivot_counter', 1, Call).
+
+-spec set_serverless(boolean(), kapps_call:call()) ->
+          kapps_call:call().
+set_serverless(IsServerless, Call) ->
+    kapps_call:kvs_store(<<"serverless">>, IsServerless, Call).
+
+-spec get_serverless(kapps_call:call()) -> boolean().
+get_serverless(Call) ->
+    kz_term:is_true(kapps_call:kvs_fetch(<<"serverless">>, Call)).
