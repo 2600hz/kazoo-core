@@ -124,7 +124,7 @@ validate_claims(#{user_map := #{<<"pvt_account_id">> := AccountId
                 _ -> {'error', {403, <<"mapped account does not exist">>}}
             end;
         _OtherAccountId ->
-            {'error', {401, <<"account_header_mismatch">>}}
+            {'error', {401, <<"account header mismatch">>}}
     end;
 validate_claims(#{user_map := #{<<"pvt_accounts">> := Accounts}
                  ,payload := Payload
