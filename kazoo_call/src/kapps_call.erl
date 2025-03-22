@@ -2164,8 +2164,12 @@ routing_context_direct_call_flag(Call) ->
 
 -spec routing_context_cfwd_from_endpoint_id(call(), kz_term:proplist()) -> kz_term:proplist().
 routing_context_cfwd_from_endpoint_id(Call, Props) ->
-    case custom_channel_var(<<"Call-Forward-Inbound-Endpoint-ID">>, Call) of
-        'undefined' -> Props;
+    CCVs = custom_channel_vars(Call),
+    case kz_json:is_true(<<"Retain-CID">>, CCVs)
+        andalso kz_json:get_ne_binary_value(<<"Call-Forward-Inbound-Endpoint-ID">>, CCVs)
+    of
+        false -> Props;
+        undefined -> Props;
         Cfwd -> [{<<"forward_inbound_endpoint_id">>, Cfwd} | Props]
     end.
 
