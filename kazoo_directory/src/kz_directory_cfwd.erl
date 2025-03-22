@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2024, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -90,6 +90,7 @@ call_forward_base_properties(_EndpointId, _AccountId, _Endpoint, CallForward, _I
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
     ,{<<"Call-Forward-Diversions">>, <<"${sip_diversions}">>}
     ,{<<"Call-Forward-From-Endpoint-ID">>, <<"${Caller-Endpoint-ID}">>}
+    ,{<<"Call-Forward-Inbound-Endpoint-ID">>, <<"${first-of(kz_ctx_forward_inbound_endpoint_id|Caller-Endpoint-ID)}">>}
     ].
 
 -spec cfw_single_reject() -> kz_term:ne_binaries().

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2023, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -2116,6 +2116,7 @@ routing_context(Call) ->
                ,fun routing_context_tags/2
                ,fun routing_context_dynamic_cfwd/2
                ,fun routing_context_request_uris/2
+               ,fun routing_context_cfwd_from_endpoint_id/2
                ],
     KVs = lists:foldl(fun(F, Acc) -> F(Call, Acc) end, Props, Routines),
     kz_json:set_values(KVs, kvs_fetch('call-context', kz_json:new(), Call)).
@@ -2159,6 +2160,13 @@ routing_context_direct_call_flag(Call) ->
     of
         'true' -> [<<"direct_call">>];
         'false' -> [<<"non_direct_call">>]
+    end.
+
+-spec routing_context_cfwd_from_endpoint_id(call(), kz_term:proplist()) -> kz_term:proplist().
+routing_context_cfwd_from_endpoint_id(Call, Props) ->
+    case custom_channel_var(<<"Call-Forward-Inbound-Endpoint-ID">>, Call) of
+        'undefined' -> Props;
+        Cfwd -> [{<<"forward_inbound_endpoint_id">>, Cfwd} | Props]
     end.
 
 -spec remote_bridge_auth_headers(call()) -> kz_term:proplist().
