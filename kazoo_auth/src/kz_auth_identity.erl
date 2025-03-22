@@ -72,7 +72,8 @@ identity_secret(#{auth_provider := #{name := <<"kazoo">>}
                  ,payload := #{<<"account_id">> := AccountId
                               ,<<"device_id">> := DeviceId
                               }
-                 }=Token) ->
+                 }=Token
+               ) ->
     AccountDb = kzs_util:format_account_db(AccountId),
     get_identity_secret(Token#{auth_db => AccountDb
                               ,auth_id => DeviceId
@@ -83,7 +84,8 @@ identity_secret(#{auth_provider := #{name := <<"kazoo">>}
                  ,payload := #{<<"account_id">> := AccountId
                               ,<<"owner_id">> := OwnerId
                               }
-                 }=Token) ->
+                 }=Token
+               ) ->
     AccountDb = kzs_util:format_account_db(AccountId),
     get_identity_secret(Token#{auth_db => AccountDb
                               ,auth_id => OwnerId
@@ -92,7 +94,8 @@ identity_secret(#{auth_provider := #{name := <<"kazoo">>}
 
 identity_secret(#{auth_provider := #{name := <<"kazoo">>}
                  ,payload := #{<<"account_id">> := AccountId}
-                 }=Token) ->
+                 }=Token
+               ) ->
     AccountDb = kzs_util:format_account_db(AccountId),
     get_identity_secret(Token#{auth_db => AccountDb
                               ,auth_id => AccountId
@@ -102,7 +105,8 @@ identity_secret(#{auth_provider := #{name := <<"kazoo">>}
 identity_secret(#{auth_app := #{pvt_user_prefix := Prefix}
                  ,auth_provider := #{jwt_user_id_claim := IdentityField}
                  ,payload := Claims
-                 }=Token) ->
+                 }=Token
+               ) ->
     case maps:get(IdentityField, Claims, 'undefined') of
         'undefined' ->
             lager:debug("unable to find ~s in claims", [IdentityField]),
@@ -119,7 +123,8 @@ identity_secret(#{auth_provider := #{jwt_user_id_claim := IdentityField
                                     ,name := Name
                                     }
                  ,payload := Claims
-                 }=Token) ->
+                 }=Token
+               ) ->
     case maps:get(IdentityField, Claims, 'undefined') of
         'undefined' ->
             lager:debug("unable to find ~s in claims", [IdentityField]),
@@ -132,7 +137,9 @@ identity_secret(#{auth_provider := #{jwt_user_id_claim := IdentityField
                                       })
     end;
 
-identity_secret(#{}) -> {'error', {500, 'invalid_identity_provider'}}.
+identity_secret(#{}=_Token) ->
+    lager:info("no identity secret to confirm in ~p", [_Token]),
+    {'error', {500, 'invalid_identity_provider'}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Fetch the identity from DB or profile (if it's an OAuth provider).
@@ -204,9 +211,13 @@ check_cache_expiration(#{}=Token, JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec check_secret(map()) -> map() | {'error', any()}.
+check_secret(#{auth_provider := #{jwt_user_id_no_signature := 'true'}} = Token) ->
+    lager:info("configured to skip check_secret"),
+    Token;
 check_secret(#{auth_provider := #{profile_signature_secret_field := Field}
               ,user_doc := JObj
-              } = Token) ->
+              } = Token
+            ) ->
     case kz_json:get_value([<<"profile">>, Field], JObj) of
         'undefined' ->
             lager:debug("identity profile secret field '~s' not found", [Field]),
@@ -308,6 +319,7 @@ token(#{auth_provider := #{name := <<"kazoo">>
        ,payload := #{<<"identity_sig">> := IdentitySig}
        }=Token
      ) ->
+    lager:info("checking kazoo identity"),
     case kz_term:is_not_empty(IdentitySig)
         andalso identity_secret(Token)
     of
@@ -328,7 +340,8 @@ token(#{payload := Payload
                           ,jwt_user_id_signature_secret := Secret
                           ,jwt_user_id_signature_claim := IdentitySigField
                           }
-       }=Token) ->
+       }=Token
+     ) ->
     IdentitySig = maps:get(IdentitySigField, Payload, 'undefined'),
     case kz_term:is_not_empty(IdentitySig)
         andalso identity_secret(Token)
@@ -344,6 +357,22 @@ token(#{payload := Payload
                   ,identity_error => Error
                   };
         Token1 -> verify_identity_signature(Token1, Secret, Hash, IdentitySig)
+    end;
+
+%% allow bypassing identity signature check
+%% the identity signature was to verify if there was a change to user
+%% and refresh the profile
+%% add "jwt_user_id_no_signature" : true to provider config
+token(#{auth_provider := #{jwt_user_id_no_signature := 'true'}} = Token) ->
+    lager:info("configured to bypass identity signature check"),
+    case identity_secret(Token) of
+        {'error', Error} ->
+            lager:info("unable to verify identity claims: ~p", [Error]),
+            Token#{identify_verified => 'false'
+                  ,identity_error => Error
+                  };
+        Token1 ->
+            Token1#{identify_verified => 'true'}
     end;
 token(#{auth_provider := #{jwt_service_account := 'true'}
        ,payload := #{<<"aud">> := [Aud]} = Payload

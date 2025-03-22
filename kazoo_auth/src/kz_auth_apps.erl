@@ -15,15 +15,28 @@
 %% API functions
 %%==============================================================================
 
--export([get_auth_app/1, get_auth_app/2
-        ]).
+-export([get_auth_app/1, get_auth_app/2]).
 
+-export_type([auth_app/0]).
 
--spec get_auth_app(kz_term:ne_binary()) -> map() | {'error', kz_term:ne_binary()}.
+-type auth_app() :: #{auth_app => #{name => kz_term:ne_binary()
+                                   ,pvt_auth_provider => kz_term:ne_binary()
+                                   ,pvt_user_prefix => kz_term:ne_binary()
+                                   ,pvt_server_key => kz_term:ne_binary()
+                                   ,auth_provider => kz_auth_providers:auth_provider()
+                                   }
+                     ,auth_provider => kz_auth_providers:auth_provider()
+                     }.
+
+-spec get_auth_app(kz_term:ne_binary()) ->
+          auth_app() |
+          {'error', kz_term:ne_binary()}.
 get_auth_app(AppId) ->
     get_auth_app(AppId, 'none').
 
--spec get_auth_app(kz_term:ne_binary(), atom()) -> map() | {'error', kz_term:ne_binary()}.
+-spec get_auth_app(kz_term:ne_binary(), atom()) ->
+          auth_app() |
+          {'error', kz_term:ne_binary()}.
 get_auth_app(AppId, Option) ->
     case do_get_auth_app(AppId) of
         {'error', _} = Error -> Error;
