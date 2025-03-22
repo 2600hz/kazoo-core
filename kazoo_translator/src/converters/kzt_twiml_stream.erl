@@ -121,9 +121,9 @@ get_audio_data(Props) ->
           {'ok', kz_term:proplist()} |
           {'error', kz_term:ne_binary()}.
 get_audio_data(Props, Track) ->
-    case kz_term:to_lower_binary(props:get_ne_binary_value('audioFormat', Props, <<"pcm">>)) of
+    case kz_term:to_lower_binary(props:get_ne_binary_value('audioCodec', Props, <<"pcm">>)) of
         <<"pcm">> ->
-            get_audio_data(Props, Track, <<"L16">>);
+            get_audio_data(Props, Track, <<"pcm">>);
         <<"pcm16">> ->
             get_audio_data(Props, Track, <<"pcm16">>);
         <<"g711_ulaw">> ->
@@ -137,7 +137,7 @@ get_audio_data(Props, Track) ->
 -spec get_audio_data(kz_term:proplist(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_term:proplist()} |
           {'error', kz_term:ne_binary()}.
-get_audio_data(Props, Track, <<"L16">>) ->
+get_audio_data(Props, Track, <<"pcm">>) ->
     Data0 = [{<<"format">>, <<"L16">>}
             ,{<<"track">>, Track}
             ],
@@ -153,7 +153,7 @@ get_audio_data(_Props, Track, <<"pcm16">>) ->
     ,[{<<"format">>, <<"L16">>}
      ,{<<"track">>, Track}
      ,{<<"mix">>, <<"mono">>}
-     ,{<<"sample_rate">>, <<"24k">>}
+     ,{<<"sample_rate">>, <<"24000">>}
      ]
     };
 get_audio_data(_Props, Track, <<"g711_ulaw">>) ->
@@ -161,7 +161,7 @@ get_audio_data(_Props, Track, <<"g711_ulaw">>) ->
     ,[{<<"format">>, <<"PCMU">>}
      ,{<<"track">>, Track}
      ,{<<"mix">>, <<"mono">>}
-     ,{<<"sample_rate">>, <<"8k">>}
+     ,{<<"sample_rate">>, <<"8000">>}
      ]
     }.
 
@@ -184,7 +184,7 @@ maybe_set_audio_mix({Props, Data}) ->
     Mix = props:get_ne_binary_value('audioMix', Props, <<"mono">>),
     case lists:member(Mix, Mixes) of
         'true' ->
-            {'ok', props:set_value(<<"mix">>, Mix, Data)};
+            {'ok', {Props, props:set_value(<<"mix">>, Mix, Data)}};
         'false' ->
             {'error', <<"invalid stream audio mix">>}
     end.
@@ -195,7 +195,7 @@ maybe_set_audio_mix({Props, Data}) ->
 maybe_set_audio_sample_rate({Props, Data}) ->
     case get_sample_rate(Props) of
         {'ok', Rate} ->
-            {'ok', props:set_value(<<"sample_rate">>, Rate, Data)};
+            {'ok', {Props, props:set_value(<<"sample_rate">>, Rate, Data)}};
         {'error', _}=Error ->
             Error
     end.
