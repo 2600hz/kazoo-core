@@ -85,6 +85,7 @@ call_failover_base_properties(_EndpointId, _AccountId, Endpoint, _IsReconcilable
     ,{<<"Call-Forward-For-UUID">>, <<"${kz_originate_aleg_uuid}">>}
     ,{<<"Call-Forward-Diversions">>, <<"${sip_diversions}">>}
     ,{<<"Call-Forward-From-Endpoint-ID">>, <<"${Caller-Endpoint-ID}">>}
+    ,{<<"Call-Forward-Inbound-Endpoint-ID">>, <<"${first-of(kz_ctx_forward_inbound_endpoint_id|Caller-Endpoint-ID)}">>}
     ,{<<"Failover-Reasons">>, cfw_failover_reasons()}
     ].
 
