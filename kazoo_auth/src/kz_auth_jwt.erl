@@ -35,11 +35,15 @@
 
 -define(DEFAULT_ALGORITHM, ?ALG_RS256).
 
--spec decode(kz_term:ne_binary()) -> {'ok', kz_term:proplist(), kz_term:proplist()} | {'error', any()}.
+-spec decode(kz_term:ne_binary()) ->
+          {'ok', kz_term:proplist(), kz_term:proplist()} |
+          {'error', any()}.
 decode(JWTToken) ->
     decode(JWTToken, 'true').
 
--spec decode(kz_term:ne_binary() | map(), boolean()) -> {'ok', kz_term:proplist(), kz_term:proplist()} | {'error', any()}.
+-spec decode(kz_term:ne_binary() | map(), boolean()) ->
+          {'ok', kz_term:proplist(), kz_term:proplist()} |
+          {'error', 'invalid_jwt' | 'verify_failed'}.
 decode(JWTToken, Verify) when is_binary(JWTToken) ->
     case parse(JWTToken) of
         {'ok', Token} -> decode(Token, Verify);
@@ -103,7 +107,8 @@ verify_signature(#{header := #{<<"alg">> := Alg}
                   ,payload64 := Payload
                   ,signature := Signature
                   ,jwt_public_key := Key
-                  }=Token) ->
+                  }=Token
+                ) ->
     Verify = <<Header/binary, ".", Payload/binary>>,
     DigestType = alg_2_digest_type(Alg),
     case public_key:verify(Verify, DigestType, Signature, Key) of
@@ -125,10 +130,10 @@ verify_signature(Token) ->
 
 -spec verify_expiration(map()) -> map().
 verify_expiration(#{payload := #{<<"exp">> := Expiration}}=Token) ->
-    case Expiration - epoch() > 0 of
-        'true' -> Token;
-        'false' ->
-            lager:info("jwt exp ~p has elapsed", [Expiration]),
+    case Expiration - epoch() of
+        Elapsed when Elapsed > 0 -> Token;
+        _Elapsed ->
+            lager:info("jwt exp ~p has elapsed ~ps ago", [Expiration, _Elapsed]),
             Token#{verify_result => 'false', verify_error => 'token_expired'}
     end;
 verify_expiration(Token) -> Token.
@@ -273,7 +278,7 @@ add_claims(#{claims := ClaimsMap
             ,jwt := JWT
             } = Map)
   when is_map(ClaimsMap) ->
-    ClaimsSet = lists:map(fun({K,V}) -> {kz_term:to_binary(K), V} end, maps:to_list(ClaimsMap)),
+    ClaimsSet = [{kz_term:to_binary(K), V} || {K, V} <- maps:to_list(ClaimsMap)],
     Map#{jwt => JWT#{claims => ClaimsSet}};
 add_claims(#{claims := Claims
             ,jwt := JWT
@@ -309,11 +314,14 @@ build_signature(Digest, Payload, Key) ->
 
 -spec set_provider(map()) -> map().
 set_provider(#{payload := #{<<"iss">> := Issuer}}=Token) ->
+    lager:info("token is issued by ~s", [Issuer]),
     Token#{auth_provider => kz_auth_providers:provider_by_issuer(Issuer)};
 set_provider(Token) -> Token.
 
--spec parse(kz_term:ne_binary()) -> {'ok', jwt()} | {'error', 'invalid_jwt'}.
-parse(JWTToken) when is_binary(JWTToken) ->
+-spec parse(kz_term:ne_binary()) ->
+          {'ok', jwt()} |
+          {'error', 'invalid_jwt'}.
+parse(<<JWTToken/binary>>) ->
     case binary:split(JWTToken, <<".">>, ['global']) of
         [Header, Payload, Signature] ->
             Map = #{header => kz_json:to_map(kz_json:decode(kz_base64url:decode(Header)))
@@ -330,12 +338,53 @@ parse(JWTToken) when is_binary(JWTToken) ->
             {'error', 'invalid_jwt'}
     end.
 
--spec token(kz_term:ne_binary() | map()) -> map().
+%% JWT = {Header}.{Payload}.{Signature}
+-type parsed_token() :: #{header := map() %% parsed Header
+                         ,payload := map() %% parsed Payload
+                         ,signature := binary() %% base64-decoded Signature
+                         ,header64 := binary() %% raw Header binary()
+                         ,payload64 := binary() %% raw Payload binary()
+                         ,signature64 := binary() %% raw Signature binary()
+                         ,original := binary() %% JWT
+                         ,options => map()
+
+                         ,claims => kz_term:proplist() | #{iss => kz_term:ne_binary()}
+
+                          %% set_provider/1
+                         ,auth_provider => {'error', 'not_found'} | kz_auth_providers:auth_provider()
+
+                          %% do_verify/1
+                         ,verify_result => boolean()
+                         ,verify_error => 'algorithm_not_supported' | 'token_expired' | 'invalid_jwt' | 'invalid_jwt_signature'
+
+                          %% kz_auth_token_util additions
+                         ,auth_app => kz_auth_apps:auth_app()
+                         ,discovery => kz_json:object() %% discovery URL results
+                         ,code => kz_term:ne_binary() %% OAuth2 identity-server-provided `code`
+                         ,access_token => kz_term:ne_binary()
+                         ,token_type => kz_term:ne_binary()
+                         ,static_token => kz_json:object()
+                         ,verified_token => kz_json:object() % response from OAuth Identity tokeninfo URL
+                         ,id_token => kz_term:ne_binary()
+
+                          %% kz_auth_profile additions
+                         ,profile => kz_json:object()
+                         ,profile_error_code => {pos_integer(), 'invalid_profile' | 'profile_not_found' | 'invalid_profile' | 'profile_unavailable'}
+                         ,user_map => map()
+                         ,user_identity => kz_term:ne_binary()
+                         ,user_email => kz_term:ne_binary()
+                         ,display_name => kz_term:ne_binary()
+                         ,user_doc => kzd_users:doc()
+                         ,user_map => map() %% to_map of user_doc
+
+                         }.
+
+-spec token(kz_term:ne_binary() | parsed_token()) -> parsed_token().
 token(JWTToken) ->
     token(JWTToken, []).
 
--spec token(kz_term:ne_binary() | map(), kz_term:proplist()) -> map().
-token(JWTToken, Options) when is_binary(JWTToken) ->
+-spec token(kz_term:ne_binary() | parsed_token(), kz_term:proplist()) -> parsed_token().
+token(<<JWTToken/binary>>, Options) ->
     case parse(JWTToken) of
         {'ok', Token} -> token(Token, Options);
         Error -> Error
