@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2024, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -98,12 +98,26 @@ caller_id(Attribute, Call) ->
         andalso kz_term:is_false(kapps_call:kvs_fetch('force_dynamic_cid', 'false', Call))
     of
         'true' ->
-            Number = kapps_call:caller_id_number(Call),
-            Name = kapps_call:caller_id_name(Call),
-            maybe_normalize_cid(Number, Name, 'false', Attribute, Call);
+            maybe_forward_from_endpoint(Attribute, Call);
         'false' ->
             maybe_get_dynamic_cid('true', Attribute, Call)
     end.
+
+maybe_forward_from_endpoint(Attribute, Call) ->
+    maybe_forward_from_endpoint(is_forward_from_endpoint_id(Call), Attribute, Call).
+
+maybe_forward_from_endpoint(true, Attribute, Call) ->
+    AuthorizingId = kapps_call:custom_channel_var(<<"Call-Forward-Inbound-Endpoint-ID">>, Call),
+    maybe_get_endpoint_cid(true, Attribute, kapps_call:set_authorizing_id(AuthorizingId, Call));
+maybe_forward_from_endpoint(false, Attribute, Call) ->
+    Number = kapps_call:caller_id_number(Call),
+    Name = kapps_call:caller_id_name(Call),
+    maybe_normalize_cid(Number, Name, 'false', Attribute, Call).
+
+is_forward_from_endpoint_id(Call) ->
+    CCVs = kapps_call:custom_channel_vars(Call),
+    kz_json:is_true(<<"Retain-CID">>, CCVs)
+        andalso kz_json:get_ne_binary_value(<<"Call-Forward-Inbound-Endpoint-ID">>, CCVs) =/= undefined.
 
 -spec maybe_get_dynamic_cid(boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
 maybe_get_dynamic_cid(Validate, Attribute, Call) ->
