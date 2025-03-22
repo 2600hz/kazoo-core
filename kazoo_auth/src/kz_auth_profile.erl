@@ -9,7 +9,9 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_auth_profile).
 
--export([token/1]).
+-export([token/1
+        ,load_profile/1
+        ]).
 
 -include("kazoo_auth.hrl").
 
@@ -93,37 +95,15 @@ profile_access_verb(Provider) ->
 maybe_load_profile(#{profile := _Profile} = Token) -> Token;
 maybe_load_profile(#{user_map := #{<<"profile">> := Profile}} = Token) ->
     Token#{profile => kz_json:from_map(Profile)};
-maybe_load_profile(#{auth_provider := #{profile_url := _ProfileURL} = Provider
-                    ,access_token := AccessToken
+maybe_load_profile(#{auth_provider := #{profile_url := _ProfileURL}
+                    ,access_token := <<_AccessToken/binary>>
                     } = Token
                   ) ->
-    Options = [{'headers_as_is', 'true'}
-              ,{'ssl', kz_ssl:ssl_opts()}
-              ],
-    URL = kz_term:to_list(profile_url(Token)),
-    Verb = profile_access_verb(Provider),
-    #{host := Host} = uri_string:parse(URL),
-    Headers = [{<<"host">>, Host}
-              ,{<<"content-type">>, <<"application/json">>}
-              | profile_authorization_headers(Token, AccessToken)
-              ],
-    lager:info("getting profile (~s) from ~s", [Verb, URL]),
-    case kz_http:req(Verb, URL, Headers, <<>>, Options) of
-        {'ok', 200, _RespHeaders, RespXML} ->
-            Token#{profile => kz_json:decode(RespXML)};
-        {'ok', 401, _RespHeaders, _RespXML} ->
-            lager:info("received code ~b while getting auth profile from ~s", [401, URL]),
-            Token#{profile_error_code => {401, 'invalid_profile'}, profile => kz_json:new()};
-        {'ok', 404, _RespHeaders, _RespXML} ->
-            lager:info("received faked code ~b while getting auth profile from ~s", [404, URL]),
-            Token#{profile_error_code => {403, 'profile_not_found'}, profile => kz_json:new()};
-        {'ok', Code, _RespHeaders, _RespXML} ->
-            lager:debug("received code ~b while getting auth profile from ~s : ~p", [Code, URL, _RespXML]),
-            props:to_log(_RespHeaders, <<"PROFILE ERROR">>),
-            Token#{profile_error_code => {Code, 'invalid_profile'}, profile => kz_json:new()};
-        {'error', _Error} ->
-            lager:debug("failed to get auth profile: ~p", [_Error]),
-            Token#{profile_error => {500, 'profile_unavailable'}, profile => kz_json:new()}
+    case load_profile(Token) of
+        {'ok', ProfileJObj} ->
+            Token#{profile => ProfileJObj};
+        Error ->
+            Token#{profile_error_code => Error, profile => kz_json:new()}
     end;
 maybe_load_profile(#{auth_provider := #{profile_url := _ProfileURL}
                     ,original := Original
@@ -145,6 +125,42 @@ maybe_load_profile(#{auth_provider := AuthProvider
 maybe_load_profile(#{} = Token) ->
     lager:info("no profile to load, using empty profile"),
     Token#{profile => kz_json:new()}.
+
+-spec load_profile(map()) ->
+          {'ok', kz_json:object()} |
+          {pos_integer(), atom()}.
+load_profile(#{auth_provider := #{profile_url := _ProfileURL} = Provider
+              ,access_token := <<AccessToken/binary>>
+              } = Token
+            ) ->
+    Options = [{'headers_as_is', 'true'}
+              ,{'ssl', kz_ssl:https_opts()}
+              ],
+    URL = kz_term:to_list(profile_url(Token)),
+    Verb = profile_access_verb(Provider),
+    #{host := Host} = uri_string:parse(URL),
+    Headers = [{<<"host">>, Host}
+              ,{<<"content-type">>, <<"application/json">>}
+              | profile_authorization_headers(Token, AccessToken)
+              ],
+    lager:info("getting profile (~s) from ~s", [Verb, URL]),
+    case kz_http:req(Verb, URL, Headers, <<>>, Options) of
+        {'ok', 200, _RespHeaders, RespJSON} ->
+            {'ok', kz_json:decode(RespJSON)};
+        {'ok', 401, _RespHeaders, _RespXML} ->
+            lager:info("received code ~b while getting auth profile from ~s", [401, URL]),
+            {401, 'invalid_profile'};
+        {'ok', 404, _RespHeaders, _RespXML} ->
+            lager:info("received faked code ~b while getting auth profile from ~s", [404, URL]),
+            {403, 'profile_not_found'};
+        {'ok', Code, _RespHeaders, _RespXML} ->
+            lager:debug("received code ~b while getting auth profile from ~s : ~p", [Code, URL, _RespXML]),
+            props:to_log(_RespHeaders, <<"PROFILE ERROR">>),
+            {Code, 'invalid_profile'};
+        {'error', _Error} ->
+            lager:debug("failed to get auth profile: ~p", [_Error]),
+            {500, 'profile_unavailable'}
+    end.
 
 -spec profile_authorization(map(), kz_term:ne_binary()) -> binary().
 profile_authorization(#{auth_provider := Provider} = Token, <<AccessToken/binary>>) ->
@@ -170,7 +186,8 @@ profile_authorization_headers(Provider, AccessToken) ->
 -spec profile_url(map()) -> binary().
 profile_url(#{auth_provider := #{profile_url := ProfileURL} = Provider
              ,access_token := AccessToken
-             }=Token) ->
+             }=Token
+           ) ->
     case maps:get('profile_access_auth_type', Provider, <<"token">>) of
         <<"token">> -> compose_profile_url(ProfileURL, Token);
         <<"api_key">> -> compose_profile_url(ProfileURL, Token);
@@ -187,7 +204,8 @@ maybe_add_user_identity(#{user_identity := _Identity} = Token) -> Token;
 maybe_add_user_identity(#{profile_error_code := _Error} = Token) -> Token;
 maybe_add_user_identity(#{auth_provider := #{profile_identity_field := Field}
                          ,profile := Profile
-                         } = Token) ->
+                         } = Token
+                       ) ->
     case kz_json:get_first_defined([Field], Profile) of
         'undefined' ->
             lager:debug("user identity from field '~s' not found in profile: ~s"
@@ -200,7 +218,8 @@ maybe_add_user_identity(#{auth_provider := #{profile_identity_field := Field}
     end;
 maybe_add_user_identity(#{auth_provider := #{profile_identity_fields := Fields}
                          ,profile := Profile
-                         } = Token) ->
+                         } = Token
+                       ) ->
     Keys = lists:filter(fun(Field) -> kz_json:get_value(Field, Profile) =/= 'undefined' end, Fields),
     case length(Keys) =:= length(Fields) of
         'false' ->
@@ -232,7 +251,8 @@ maybe_add_display_name(#{display_name := _DisplayName} = Token) -> Token;
 maybe_add_display_name(#{profile_error_code := _Error} = Token) -> Token;
 maybe_add_display_name(#{auth_provider := #{profile_displayName_field := Field}
                         ,profile := Profile
-                        } = Token) ->
+                        } = Token
+                      ) ->
     case kz_json:get_first_defined([Field], Profile) of
         'undefined' ->
             lager:debug("user displayName from field '~p' not found into ~p", [Field, Profile]),
@@ -374,7 +394,8 @@ do_update_user(DocId, Props, Token) ->
 maybe_cache_user(#{auth_provider := #{profile_cache_timer := Timer}
                   ,user_identity := Identity
                   } = Token
-                ,DocId) ->
+                ,DocId
+                ) ->
     Props = [{'origin', {'db', ?KZ_AUTH_DB, DocId}}
             ,{'expires', Timer}
             ],
