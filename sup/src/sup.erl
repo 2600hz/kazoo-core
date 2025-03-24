@@ -16,11 +16,18 @@
 -export([main/1]).
 -export([in_kazoo/4]).
 
+%% just for testing in the shell
+%% -export([nearest/2
+%%         ,print_invalid_module/1
+%%         ,print_invalid_function/3
+%%         ]).
+
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
--define(MAX_CHARS, round(math:pow(2012, 80))).
+-elvis([{elvis_style, no_debug_call, disable}]).
 
+-define(MAX_CHARS, round(math:pow(2012, 80))).
 
 %%% API
 
@@ -50,13 +57,13 @@ main(CommandLineArgs, Loops) ->
             Target = get_target(Options, IsVerbose),
             Module =
                 case props:get_value('module', Options) of
-                    'undefined' -> print_invalid_cli_args();
+                    'undefined' -> print_invalid_cli_args('undefined', 'undefined', 0);
                     M -> list_to_atom(M)
                 end,
             IsMaintenanceCommand = lists:suffix("_maintenance", props:get_value('module', Options)),
             Function =
                 case props:get_value('function', Options) of
-                    'undefined' -> print_invalid_cli_args();
+                    'undefined' -> print_invalid_cli_args(Module, 'undefined', 0);
                     F -> list_to_atom(F)
                 end,
 
@@ -71,7 +78,7 @@ main(CommandLineArgs, Loops) ->
 
             case rpc:call(Target, ?MODULE, 'in_kazoo', [SUPName, Module, Function, Arguments], Timeout) of
                 {'badrpc', {'EXIT',{'undef', _}}} ->
-                    print_invalid_cli_args();
+                    print_invalid_cli_args(Module, Function, length(Arguments));
                 {'badrpc', {'EXIT', {'timeout_value',[{Module,Function,_,_}|_]}}} ->
                     stderr("Command failed: timeout~n", []),
                     halt(4);
@@ -220,10 +227,70 @@ long_or_short_name(_) ->
         'false' -> 'shortnames'
     end.
 
--spec print_invalid_cli_args() -> no_return().
-print_invalid_cli_args() ->
-    stderr("Invalid command or wrong number of arguments, please try again", []),
+-spec print_invalid_cli_args(module() | 'undefined', function() | 'undefined', arity()) -> no_return().
+print_invalid_cli_args('undefined', _Function, _Arity) ->
+    stderr("No module supplied, invalid invocation of SUP", []),
+    halt(1);
+print_invalid_cli_args(Module, 'undefined', _Arity) ->
+    stderr("No function for module ~s supplied, invalid invocation of SUP", [Module]),
+    halt(1);
+print_invalid_cli_args(Module, Function, Arity) ->
+    case kz_module:ensure_loaded(Module) of
+        Module -> print_invalid_function(Module, Function, Arity);
+        'false' -> print_invalid_module(Module)
+    end,
     halt(1).
+
+-spec print_invalid_module(module()) -> 'ok'.
+print_invalid_module(Module) ->
+    Modules = [kz_term:to_binary(Mod) || {Mod, _} <- code:all_loaded()],
+    case nearest_module(kz_term:to_binary(Module), Modules) of
+        [] -> stderr("Invalid module ~s, no close candidates found", [Module]);
+        [Nearest | _] -> stderr("Invalid module ~s, maybe you meant ~s", [Module, Nearest])
+    end.
+
+nearest_module(Module, Ms) ->
+    nearest_module(Module, [{M, M} || M <- Ms], []).
+
+nearest_module(<<>>, _, Nearest) -> [M || {M, _} <- Nearest];
+nearest_module(<<C, Rest/binary>>, Ms, Nearest) ->
+    case [{M, MRest} || {M, <<MC, MRest/binary>>} <- Ms, MC =:= C] of
+        [] -> [M || {M, _} <- Nearest];
+        NearerStill ->
+            nearest_module(Rest, NearerStill, NearerStill)
+    end.
+
+-spec print_invalid_function(atom(), atom(), non_neg_integer()) -> 'ok'.
+print_invalid_function(Module, Function, Arity) ->
+    Exports = [{kz_term:to_binary(F), A} || {F, A} <- Module:module_info('exports')],
+
+    NearestFuns = nearest(kz_term:to_binary(Function), Exports),
+    {Nearest, FA} = case [{F, FA} || {F, FA} <- NearestFuns, FA =:= Arity] of
+                        [] -> hd(NearestFuns);
+                        [{N, A} | _] -> {N, A}
+                    end,
+    stderr("Invalid function ~s:~s/~p, maybe you meant ~s/~p"
+          ,[Module, Function, Arity, Nearest, FA]
+          ).
+
+%% lame matching to find "close"
+-spec nearest(kz_term:ne_binary(), [{kz_term:ne_binary(), arity()}]) -> [{kz_term:ne_binary(), arity()}].
+nearest(Function, Exports) ->
+    Exs = [{Fun, Fun, Arity} || {Fun, Arity} <- Exports],
+    nearest(Function, Exs, []).
+
+nearest(<<>>, _Exports, Nearest) ->
+    [{Fun, Arity} || {_G, Fun, Arity} <- Nearest];
+nearest(<<F:1/binary, Rest/binary>>, Exports, Nearest) ->
+    case [{GRest, Fun, Arity} || {<<G:1/binary, GRest/binary>>, Fun, Arity} <- Exports,
+                                 G =:= F
+         ]
+    of
+        [] ->
+            [{Fun, Arity} || {_G, Fun, Arity} <- Nearest];
+        NearerStill ->
+            nearest(Rest, NearerStill, NearerStill)
+    end.
 
 -spec parse_args(string()) -> {'ok', kz_term:proplist(), list()}.
 parse_args(CommandLineArgs) ->

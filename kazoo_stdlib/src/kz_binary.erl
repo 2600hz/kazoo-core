@@ -295,6 +295,10 @@ pos(Char, <<Char:8, _/binary>>, N) -> N;
 pos(Char, <<_:8, Bin/binary>>, N) ->
     pos(Char, Bin, N + 1).
 
+
+%% @doc returns list of [{char(), pos()}] of first instance of char()
+%% in the binary().
+%% [{$B,1}, {$i,6}] = kz_binary:closests([$B,$i], &lt;&lt;"ABAAABiA"&gt;&gt;)).
 -spec closests([char(),...], binary()) -> [{char(), non_neg_integer()}].
 closests(Chars, Bin) ->
     Pairs = [{Char, Pos}
