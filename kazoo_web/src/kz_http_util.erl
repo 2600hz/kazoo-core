@@ -305,7 +305,7 @@ parse_query_arrays(QsJObj, _Options) ->
 %% comma separated string to array.
 primarily_merge([], _) ->
     [];
-primarily_merge([{<<>>, _} | T], Options) -> 
+primarily_merge([{<<>>, _} | T], Options) ->
     primarily_merge(T, Options);
 primarily_merge([{K, V} | T], Options) ->
     NewV = explicit_array_item(K, V),
@@ -584,10 +584,10 @@ props_to_querystring(Props, Prefix) ->
 %% and reverse the list (putting the key/value at the end of the list)
 -spec fold_kvs(keys(), json_terms(), binary() | iolist(), iodata()) -> iodata().
 fold_kvs([], [], _, Acc) -> Acc;
-fold_kvs([K], [V], Prefix, Acc) -> 
+fold_kvs([K], [V], Prefix, Acc) ->
     case encode_kv(Prefix, K, V) of
-        ?DEFAULT_EMPTY -> 
-            case Acc of 
+        ?DEFAULT_EMPTY ->
+            case Acc of
                 [<<"&">> | A] -> lists:reverse(A);
                 _ -> lists:reverse(Acc)
             end;
@@ -597,13 +597,12 @@ fold_kvs([K|Ks], [V|Vs], Prefix, Acc) ->
     case encode_kv(Prefix, K, V) of
         ?DEFAULT_EMPTY -> 
             fold_kvs(Ks, Vs, Prefix, Acc);
-        Encoded -> 
+        Encoded ->
             fold_kvs(Ks, Vs, Prefix, [<<"&">>, Encoded | Acc])
     end.
 
--spec encode_kv(iolist() | binary(), key(), json_term() | json_terms()) -> iodata().
 %% If a list of values, use the []= as a separator between the key and each value
-
+-spec encode_kv(iolist() | binary(), key(), json_term() | json_terms()) -> iodata() | ?DEFAULT_EMPTY.
 encode_kv(_, _, []) -> ?DEFAULT_EMPTY;
 encode_kv(Prefix, K, Vs) when is_list(Vs) ->
     EncodedKey = list_to_binary([kz_http_uri:encode(<<"[]">>), <<"=">>]),
