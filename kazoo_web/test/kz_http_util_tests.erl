@@ -164,7 +164,7 @@ json_to_querystring_test_() ->
              ,?ENC(<<"topkey[subkey1]=v1&topkey[subkey2][k3]=v3">>)
              }
              %% Empty objects should not be included
-            ,{<<"{\"Poppy\": {}}">>, <<>>} 
+            ,{<<"{\"Poppy\": {}}">>, <<>>}
             ,{<<"{\"Poppy\": { \"Hyacinth\": {} }}">>, <<>>}
             ,{<<"{\"Poppy\": { \"Hyacinth\": {}, \"Tulip\": {} }}">>, <<>>}
             ,{<<"{\"Poppy\": { \"Hyacinth\": {}, \"Tulip\": true }}">>, ?ENC(<<"Poppy[Tulip]=true">>)}

@@ -595,7 +595,7 @@ fold_kvs([K], [V], Prefix, Acc) ->
     end;
 fold_kvs([K|Ks], [V|Vs], Prefix, Acc) ->
     case encode_kv(Prefix, K, V) of
-        ?DEFAULT_EMPTY -> 
+        ?DEFAULT_EMPTY ->
             fold_kvs(Ks, Vs, Prefix, Acc);
         Encoded ->
             fold_kvs(Ks, Vs, Prefix, [<<"&">>, Encoded | Acc])
