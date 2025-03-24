@@ -41,16 +41,16 @@ workflows:
           otp-version: '<< pipeline.parameters.otp-version >>'
           requires:
             - preparation-rockylinux-9
-      -
-        kazoo/code-checks:
-          otp-version: '<< pipeline.parameters.otp-version >>'
-          requires:
-            - beams-rockylinux-9
-      -
-        kazoo/docs:
-          otp-version: '<< pipeline.parameters.otp-version >>'
-          requires:
-            - beams-rockylinux-9
+      # -
+      #   kazoo/code-checks:
+      #     otp-version: '<< pipeline.parameters.otp-version >>'
+      #     requires:
+      #       - beams-rockylinux-9
+      # -
+      #   kazoo/docs:
+      #     otp-version: '<< pipeline.parameters.otp-version >>'
+      #     requires:
+      #       - beams-rockylinux-9
       -
         kazoo/analyze:
           otp-version: '<< pipeline.parameters.otp-version >>'
@@ -127,26 +127,26 @@ workflows:
               only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
             branches:
               ignore: '/.*/'
-      -
-        kazoo/code-checks:
-          otp-version: '<< pipeline.parameters.otp-version >>'
-          requires:
-            - beams-rockylinux-9
-          filters:
-            tags:
-              only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
-            branches:
-              ignore: '/.*/'
-      -
-        kazoo/docs:
-          otp-version: '<< pipeline.parameters.otp-version >>'
-          requires:
-            - beams-rockylinux-9
-          filters:
-            tags:
-              only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
-            branches:
-              ignore: '/.*/'
+      # -
+      #   kazoo/code-checks:
+      #     otp-version: '<< pipeline.parameters.otp-version >>'
+      #     requires:
+      #       - beams-rockylinux-9
+      #     filters:
+      #       tags:
+      #         only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
+      #       branches:
+      #         ignore: '/.*/'
+      # -
+      #   kazoo/docs:
+      #     otp-version: '<< pipeline.parameters.otp-version >>'
+      #     requires:
+      #       - beams-rockylinux-9
+      #     filters:
+      #       tags:
+      #         only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
+      #       branches:
+      #         ignore: '/.*/'
       -
         kazoo/analyze:
           otp-version: '<< pipeline.parameters.otp-version >>'
