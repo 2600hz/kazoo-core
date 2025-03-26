@@ -308,27 +308,31 @@ closests(Chars, Bin) ->
             ],
     lists:keysort(2, Pairs).
 
-%% for large binaries, we need to chunk them up and reverse them
-%% REV_CHUNK was chosen because #reasons (through experiments)
--define(REV_CHUNK, 8192).
-
 -spec reverse(binary()) -> binary().
-reverse(<<Front:?REV_CHUNK/integer-little, Rest/binary>>) ->
-    list_to_binary(reverse(Rest, [<<Front:?REV_CHUNK/integer-big>>]));
-reverse(Binary) ->
-    %% this fails for large binaries
-    Size = bit_size(Binary),
-    <<X:Size/little-integer>> = Binary,
-    <<X:Size/big-integer>>.
+%% decode_unsigned(<<>>) = 0, encode_unsigned(0) = <<0>> which is not <<>>
+reverse(<<>>) -> <<>>;
+reverse(Bin) ->
+    %% available since OTP 14! Similar 1-6ms on big input
+    binary:encode_unsigned(binary:decode_unsigned(Bin, 'big'), 'little').
 
-%% side note: it was observed that creating a binary as the
-%% accumulator caused execution time to range 30-60ms while using the
-%% list as accumulator and converting to binary at the end caused
-%% execution time to range 1-6ms typically, hence the list of binaries here
-reverse(<<Front:?REV_CHUNK/integer-little, Rest/binary>>, Acc) ->
-    reverse(Rest, [<<Front:?REV_CHUNK/integer-big>> | Acc]);
-reverse(Rest, Acc) ->
-    [reverse(Rest) | Acc].
+%% other implementations
+%% -define(REV_CHUNK, 8192). % 2^13
+%% reverse(<<Front:?REV_CHUNK/integer-little, Rest/binary>>) ->
+%%     list_to_binary(reverse(Rest, [<<Front:?REV_CHUNK/integer-big>>]));
+%% reverse(Binary) ->
+%%     %% this fails for large binaries
+%%     Size = bit_size(Binary),
+%%     <<X:Size/little-integer>> = Binary,
+%%     <<X:Size/big-integer>>.
+
+%% %% side note: it was observed that creating a binary as the
+%% %% accumulator caused execution time to range 30-60ms while using the
+%% %% list as accumulator and converting to binary at the end caused
+%% %% execution time to range 1-6ms typically, hence the list of binaries here
+%% reverse(<<Front:?REV_CHUNK/integer-little, Rest/binary>>, Acc) ->
+%%     reverse(Rest, [<<Front:?REV_CHUNK/integer-big>> | Acc]);
+%% reverse(Rest, Acc) ->
+%%     [reverse(Rest) | Acc].
 
 %% execution for the above typically is less than 10ms on "large"
 %% (byte_size = 562868 B) payloads
