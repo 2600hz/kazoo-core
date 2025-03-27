@@ -39,6 +39,7 @@ start_link(Name) ->
 
 %% @doc setup a monitor on a PID to remove Key if PID dies
 -spec monitor_processes(atom(), any(), [pid()]) -> 'ok'.
+monitor_processes(_Name, _Key, []) -> 'ok';
 monitor_processes(Name, Key, Pids) ->
     gen_server:cast(processes_name(Name), {'monitor', Key, Pids}).
 

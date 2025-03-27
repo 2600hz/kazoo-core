@@ -72,7 +72,8 @@
 
 -define(SERVER, ?MODULE).
 
--record(proc_info, {monitor_ref :: reference()
+-record(proc_info, {pid :: kz_term:api_pid()
+                   ,monitor_ref :: reference()
                    ,tstamp = kz_time:now_ms() :: pos_integer()
                    ,gc_time = 0 :: time_ms()
                    ,total_heap_size :: size_words()
@@ -142,7 +143,7 @@ track_pids(Pids) when is_list(Pids) ->
 track_pids(Pids, Thresholds) when is_list(Pids) ->
     track_pids([{Pid, Thresholds} || Pid <- Pids]).
 
--spec tracked_pids() -> kz_term:proplist_kv(pid(), proc_info()).
+-spec tracked_pids() -> [proc_info()].
 tracked_pids() ->
     gen_server:call(?SERVER, 'tracked_pids').
 
@@ -151,17 +152,23 @@ pp_tracked_pids() ->
     Tracked = tracked_pids(),
     pp_tracked_pids(Tracked).
 
-pp_tracked_pids([]) -> io:format("no processes being tracked~n");
+pp_tracked_pids([]) -> 'ok';
 pp_tracked_pids(Tracked) ->
-    io:format("~15s | ~15s | ~s~n", ["PID", "Time", "MsgQueue Length"]),
-    lists:foreach(fun pp_tracked_pid/1, Tracked).
+    Sorted = lists:keysort(#proc_info.message_queue_len, Tracked),
 
-pp_tracked_pid({Pid, #proc_info{tstamp=TStamp
-                               ,message_queue_len=MQLen
-                               }}) ->
-    io:format("~15s | ~15.3f | ~p~n"
-             ,[kz_term:to_binary(Pid), TStamp / 1000, MQLen]
-             ).
+    Header = [<<"PID">>, <<"MsgQueue Length">>, <<"Total Heap">>, <<"Snapshot At">>],
+    Rows = [[kz_term:to_binary(Pid)
+            ,MQLen
+            ,kz_term:pretty_print_bytes(Heap, 'truncated')
+            ,kz_time:pretty_print_datetime(TStamp div 1000)
+            ]
+            || #proc_info{pid=Pid
+                         ,tstamp=TStamp
+                         ,message_queue_len=MQLen
+                         ,total_heap_size=Heap
+                         } <- Sorted
+           ],
+    kz_log:print_table([Header | Rows], #{header_divider => $=}).
 
 -spec set_thresholds(proc_thresholds()) -> 'ok'.
 set_thresholds(Thresholds) ->
@@ -188,7 +195,7 @@ handle_call(_Call, _From, State) ->
     {'noreply', State}.
 
 tracked_pid_info(Pid, #proc_info{}=Info, Acc) when is_pid(Pid) ->
-    [{Pid, Info} | Acc];
+    [Info#proc_info{pid=Pid} | Acc];
 tracked_pid_info(_, _, Acc) -> Acc.
 
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
@@ -262,7 +269,8 @@ track_pid_if_alive({Pid, Thresholds}, State) ->
             maybe_warn_large_heap(Pid, TotalHeapSize, Thresholds, 'true'),
             maybe_log_long_message_queue(Pid, 'false', HasLongMQ, MQLen),
 
-            State#{Pid => #proc_info{monitor_ref=MonitorRef
+            State#{Pid => #proc_info{pid=Pid
+                                    ,monitor_ref=MonitorRef
                                     ,total_heap_size=TotalHeapSize
                                     ,has_long_message_queue=HasLongMQ
                                     ,message_queue_len=MQLen
@@ -292,7 +300,8 @@ update_tracked_pids(State) ->
 update_tracked_pid('timer_ref', TimerRef) -> TimerRef;
 update_tracked_pid(Pid, #proc_info{has_long_message_queue=HasLongMQ
                                   ,thresholds=Thresholds
-                                  }=Info) ->
+                                  }=Info
+                  ) ->
     case process_info(Pid, 'message_queue_len') of
         'undefined' ->
             %% Process `DOWN' coming soon!
