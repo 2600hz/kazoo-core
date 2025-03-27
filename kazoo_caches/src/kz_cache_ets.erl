@@ -84,21 +84,23 @@ store(Srv, K, V, Props)  ->
 
 -spec store_async(kz_types:server_ref(), any(), any(), kz_term:proplist()) -> 'ok'.
 store_async(Srv, K, V, Props) ->
-    gen_server:cast(Srv, {'store', cache_obj(K, V, Props)}).
+    handle_store(cache_obj(K, V, Props), Srv).
+%% gen_server:cast(Srv, {'store', cache_obj(K, V, Props)}).
 
--spec peek(atom(), any()) -> {'ok', any()} |
+-spec peek(atom(), any()) ->
+          {'ok', any()} |
           {?MITIGATION, pid()} |
           {'error', 'not_found'}.
 peek(Srv, Key) ->
-    try ets:lookup_element(Srv, Key, #cache_obj.value) of
+    %% since OTP 26, lookup_element/4 is available
+    case ets:lookup_element(Srv, Key, #cache_obj.value, 'undefined') of
+        'undefined' -> {'error', 'not_found'};
         {?MITIGATION, _Pid}=Mitigation -> Mitigation;
         Value -> {'ok', Value}
-    catch
-        'error':'badarg' ->
-            {'error', 'not_found'}
     end.
 
--spec peek_cache_obj(atom(), any()) -> {'ok', any()} |
+-spec peek_cache_obj(atom(), any()) ->
+          {'ok', cache_obj()} |
           {?MITIGATION, pid()} |
           {'error', 'not_found'}.
 peek_cache_obj(Srv, Key) ->
@@ -120,20 +122,28 @@ fetch(Srv, Key) ->
         {?MITIGATION, _Pid}=Stampede -> Stampede;
         {'ok', #cache_obj{expires_s='infinity', value=Value}} ->
             {'ok', Value};
-        {'ok', #cache_obj{expires_s=Expires, timestamp_ms=TS, value=Value}} ->
-            %% if the cache object is not half-way to expiration, don't bump the timestamp
-            %% for instance:
-            %%   cache_obj{expires_s=10, timestamp_ms=5000}
-            %%    - last updated timstamp at 5,000, expires 10s later (so 15,000)
-            %%   if fetch() is called anytime before 10,000, don't bump timestamp_ms
-            %% for a key being frequently accessed, this cuts down significantly on ETS actions
-            case kz_time:now_ms() - TS < (Expires * ?MILLISECONDS_IN_SECOND / 2)  of
-                'true' ->
-                    {'ok', Value};
-                'false' ->
-                    ets:update_element(Srv, Key, {#cache_obj.timestamp_ms, kz_time:now_ms()}),
-                    {'ok', Value}
-            end
+        {'ok', #cache_obj{value=Value}=CacheObj} ->
+            maybe_bump_timestamp(Srv, Key, CacheObj),
+            {'ok', Value}
+    end.
+
+maybe_bump_timestamp(Srv, Key, #cache_obj{expires_s=ExpiresS, timestamp_ms=TimestampMs}) ->
+    %% if the cache object is not half-way to expiration, don't bump the timestamp
+    %% for instance:
+    %%   cache_obj{expires_s=10, timestamp_ms=5000}
+    %%    - last updated timstamp at 5,000, expires 10s later (so 15,000)
+    %%   if fetch() is called anytime before 10,000, don't bump timestamp_ms
+    %% for a key being frequently accessed, this cuts down significantly on ETS actions
+    NowMs = kz_time:now_ms(),
+    ElapsedMs = NowMs - TimestampMs,
+
+    HalfExpiresMs = ExpiresS * ?MILLISECONDS_IN_SECOND / 2,
+
+    case ElapsedMs < HalfExpiresMs of
+        'true' -> 'ok';
+        'false' ->
+            _ = ets:update_element(Srv, Key, {#cache_obj.timestamp_ms, NowMs}),
+            'ok'
     end.
 
 -spec erase(atom(), any()) -> 'ok'.
@@ -277,11 +287,18 @@ init([Name, Options]) ->
     _Name = ets:new(Name
                    ,['set', 'public', 'named_table', {'keypos', #cache_obj.key} | ets_options()]
                    ),
+
     _PointerName = ets:new(pointer_tab(Name)
                           ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key} | ets_options()]
                           ),
+
+    %% the monitor table is only needed rarely, and is the only table
+    %% we call ets:info(Tab, size) on. Since we don't really need the
+    %% perf boost, don't set `decentralized_counters` to true for this
+    %% table. See https://www.erlang.org/docs/26/man/ets#info-2 note
+    %% about perf impact on ets:info(Tab, size).
     _MonitorName = ets:new(monitor_tab(Name)
-                          ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key} | ets_options()]
+                          ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key}]
                           ),
     store_options(Name, Options),
     {'ok', Name}.
@@ -356,11 +373,10 @@ store_cache_obj(#cache_obj{key=Key
     kz_cache_callbacks:maybe_log_unlock(Key, "store", peek(Name, Key)),
     'true' = ets:insert(Name, CacheObj#cache_obj{origin='undefined'}),
     kz_cache_listener:add_origin_pointers(Name, CacheObj, Origins),
-    kz_cache_callbacks:stored(Name, Key, Value),
-    _ = kz_cache_processes:monitor_processes(Name, Key, Pids),
+    kz_process:spawn('kz_cache_callbacks', 'stored', [Name, Key, Value]),
+    'ok' = kz_cache_processes:monitor_processes(Name, Key, Pids),
 
-    kz_cache_lru:update_expire_period(Name, Expires),
-    'ok'.
+    'ok' = kz_cache_lru:update_expire_period(Name, Expires).
 
 -spec handle_wait_for_key(atom(), atom(), any(), pos_integer()) ->
           {'ok', reference()} |
