@@ -154,10 +154,14 @@ pp_tracked_pids() ->
 
 pp_tracked_pids([]) -> 'ok';
 pp_tracked_pids(Tracked) ->
-    Sorted = lists:keysort(#proc_info.message_queue_len, Tracked),
+    %% #{mql => [#proc_info{}...]
+    Grouped = maps:groups_from_list(fun(#proc_info{message_queue_len=MQL}) -> MQL end
+                                   ,Tracked
+                                   ),
+    Sorted = maps:fold(fun sort_group_by_heap/3, [], Grouped),
 
     Header = [<<"PID">>, <<"MsgQueue Length">>, <<"Total Heap">>, <<"Snapshot At">>],
-    Rows = [[kz_term:to_binary(Pid)
+    Rows = [[pp_pid_name(Pid)
             ,MQLen
             ,kz_term:pretty_print_bytes(Heap, 'truncated')
             ,kz_time:pretty_print_datetime(TStamp div 1000)
@@ -168,7 +172,21 @@ pp_tracked_pids(Tracked) ->
                          ,total_heap_size=Heap
                          } <- Sorted
            ],
-    kz_log:print_table([Header | Rows], #{header_divider => $=}).
+    kz_log:print_table([Header | Rows]
+                      ,#{header_divider => $=
+                        ,row_spacing => ['left']
+                        }
+                      ).
+
+pp_pid_name(Pid) ->
+    case process_info(Pid, 'registered_name') of
+        'undefined' -> kz_term:to_binary(Pid);
+        [] -> kz_term:to_binary(Pid);
+        {'registered_name', Name} -> [kz_term:to_binary(Pid), " (n:", kz_term:to_binary(Name), ")"]
+    end.
+
+sort_group_by_heap(_MQL, ProcInfos, Acc) ->
+    lists:keysort(#proc_info.total_heap_size, ProcInfos) ++ Acc.
 
 -spec set_thresholds(proc_thresholds()) -> 'ok'.
 set_thresholds(Thresholds) ->
