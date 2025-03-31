@@ -13,7 +13,7 @@
 -export([get_all_number_dbs/0]).
 
 -export([pretty_print/1, pretty_print/2
-        ,fixture/1
+        ,fixture/1, fixture/2
         ,prefix_for_country/1
         ]).
 
@@ -117,15 +117,23 @@ maybe_use_us_default(_) ->
 get_classifier_regex(JObj) ->
     kz_json:get_value(<<"regex">>, JObj, <<"^$">>).
 
--spec fixture(file:filename()) -> string().
+-spec fixture(file:filename()) -> string() | binary() | kz_json:object().
 fixture(Filename) ->
+    fixture(Filename, 'list').
+
+-spec fixture(file:filename(), 'binary' | 'jobj' | 'list') -> string() | binary() | kz_json:object().
+fixture(Filename, RetType) ->
     Fixture = filename:join([code:priv_dir(?APP), "fixtures", Filename]),
     lager:debug("loading fixture ~s", [Fixture]),
-    read_fixture(file:read_file(Fixture), Fixture).
+    read_fixture(file:read_file(Fixture), Fixture, RetType).
 
-read_fixture({'ok', Contents}, _F) ->
+read_fixture({'ok', Contents}, _F, 'binary') ->
+    Contents;
+read_fixture({'ok', Contents}, _F, 'jobj') ->
+    kz_json:decode(Contents);
+read_fixture({'ok', Contents}, _F, 'list') ->
     kz_term:to_list(Contents);
-read_fixture({'error', 'enoent'}, F) ->
+read_fixture({'error', 'enoent'}, F, _RetType) ->
     throw({'error', 'missing_fixture', F}).
 
 %% TODO
