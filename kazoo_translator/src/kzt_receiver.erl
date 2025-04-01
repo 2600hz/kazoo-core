@@ -387,7 +387,7 @@ wait_for_offnet(Call, DialProps, DialType) ->
                 ]),
 
     Updates = [fun kzt_util:clear_digits_collected/1
-              ,{fun kzt_util:update_call_status/2, ?STATUS_RINGING}
+              ,{fun kzt_util:update_call_status/2, ?STATUS_IN_PROGRESS}
               ,{fun kzt_util:set_dial_call_status/2, ?STATUS_RINGING}
               ],
 
@@ -434,7 +434,7 @@ wait_for_conference(Call) ->
                 ,kzt_util:get_call_timeout(Call)
                 ]),
     Updates = [fun kzt_util:clear_digits_collected/1
-              ,{fun kzt_util:update_call_status/2, ?STATUS_RINGING}
+              ,{fun kzt_util:update_call_status/2, ?STATUS_IN_PROGRESS}
               ,{fun kzt_util:set_dial_call_status/2, ?STATUS_RINGING}
               ],
 

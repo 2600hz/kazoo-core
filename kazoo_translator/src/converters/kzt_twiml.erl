@@ -80,7 +80,7 @@ exec_elements(Call, [El|Els]) ->
     catch
         'throw':{'unknown_element', Name} ->
             lager:error("unknown element in response: ~s", [Name]),
-            {'error', kzt_util:add_error(Call, <<"unknown_element">>, Name)};
+            {'error', kzt_util:add_error(<<"unknown_element">>, Name, Call)};
         _T:_E:ST ->
             lager:error("exception ~p:~p when executing element ~p", [_T, _E, El]),
             kz_log:log_stacktrace(ST),
@@ -119,7 +119,7 @@ exec_element(Call, #xmlElement{name='Play'
         {'ok', _}=OK -> OK;
         {'error', _E, Call1} ->
             lager:debug("play stopped with error ~p", [_E]),
-            {'error', Call1}
+            {'error', kzt_util:update_call_status(?STATUS_FAILED, Call1)}
     end;
 exec_element(Call, #xmlElement{name='Say'
                               ,content=ToSay
@@ -129,7 +129,7 @@ exec_element(Call, #xmlElement{name='Say'
         {'ok', _}=OK -> OK;
         {'error', _E, Call1} ->
             lager:debug("say stopped with error ~p", [_E]),
-            {'error', Call1}
+            {'error', kzt_util:update_call_status(?STATUS_FAILED, Call1)}
     end;
 exec_element(Call, #xmlElement{name='Redirect'
                               ,content=Url
@@ -188,7 +188,7 @@ req_params(Call) ->
       ,{<<"FromRealm">>, kapps_call:from_realm(Call)}
       ,{<<"To">>, kapps_call:to_user(Call)}
       ,{<<"ToRealm">>, kapps_call:to_realm(Call)}
-      ,{<<"CallStatus">>, kzt_util:get_call_status(Call)}
+      ,{<<"CallStatus">>, kzt_util:get_call_status(Call, ?STATUS_RINGING)}
       ,{<<"ApiVersion">>, <<"2010-04-01">>}
       ,{<<"Direction">>, <<"inbound">>}
       ,{<<"CallerName">>, kapps_call:caller_id_name(Call)}
@@ -234,13 +234,14 @@ pause(Call, Attrs) ->
     PauseFor = kzt_twiml_util:pause_for(Props),
     lager:debug("pause for ~b ms", [PauseFor]),
     timer:sleep(PauseFor),
-    {'ok', Call}.
+    {'ok', kzt_util:update_call_status(?STATUS_IN_PROGRESS, Call)}.
 
 -spec set_variable(kapps_call:call(), kz_types:xml_attribs()) ->
           {'ok', kapps_call:call()}.
 set_variable(Call, Attrs) ->
     kapps_call_command:answer(Call),
     Props = kz_xml:attributes_to_proplist(Attrs),
+
     {'ok', kzt_translator:set_user_vars([{props:get_binary_value('key', Props)
                                          ,props:get_binary_value('value', Props)
                                          }
@@ -271,10 +272,11 @@ play(Call, XmlText, Attrs) ->
 
     Props = kz_xml:attributes_to_proplist(Attrs),
     Terminators = kzt_twiml_util:get_terminators(Props),
+    Call1 = kzt_util:update_call_status(?STATUS_IN_PROGRESS, Call),
 
     case kzt_twiml_util:loop_count(Props) of
-        0 -> kzt_receiver:play_loop(Call, PlayMe, Terminators, 'infinity');
-        N when N > 0 -> kzt_receiver:play_loop(Call, PlayMe, Terminators, N)
+        0 -> kzt_receiver:play_loop(Call1, PlayMe, Terminators, 'infinity');
+        N when N > 0 -> kzt_receiver:play_loop(Call1, PlayMe, Terminators, N)
     end.
 
 -spec redirect(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts(), kz_types:xml_attribs()) ->
@@ -298,7 +300,9 @@ redirect(Call, XmlText, Attrs) ->
 
     Setters = [{fun kzt_util:set_voice_uri_method/2, Method}
               ,{fun kzt_util:set_voice_uri/2, NewUri}
+              ,{fun kzt_util:update_call_status/2, ?STATUS_IN_PROGRESS}
               ],
+
     {'request', lists:foldl(fun({F, V}, C) -> F(V, C) end, Call1, Setters)}.
 
 -spec exec_gather_els(pid(), kapps_call:call(), kz_types:xml_els()) -> 'ok'.
@@ -337,11 +341,12 @@ gather(Call, Attrs) ->
     kapps_call_command:answer(Call),
 
     Props = kz_xml:attributes_to_proplist(Attrs),
-
     Timeout = kzt_twiml_util:timeout_s(Props, 5) * ?MILLISECONDS_IN_SECOND,
     FinishKey = kzt_twiml_util:finish_dtmf(Props),
 
-    gather(Call, FinishKey, Timeout, Props, kzt_twiml_util:num_digits(Props)).
+    Call1 = kzt_util:update_call_status(?STATUS_IN_PROGRESS, Call),
+
+    gather(Call1, FinishKey, Timeout, Props, kzt_twiml_util:num_digits(Props)).
 
 -spec gather(kapps_call:call(), kz_term:api_binary(), timeout(), kz_term:proplist(), pos_integer()) ->
           {'ok', kapps_call:call()} |
@@ -353,7 +358,8 @@ gather(Call, FinishKey, Timeout, Props, MaxDigits) ->
         {'ok', 'timeout', C} -> gather_finished(C, Props);
         {'ok', 'dtmf_finish', C} -> gather_finished(C, Props);
         {'ok', C} -> gather_finished(C, Props);
-        {'stop', _C}=STOP -> STOP
+        {'stop', Call1} ->
+            {'stop', kzt_util:update_call_status(?STATUS_CANCELED, Call1)}
     end.
 
 -spec on_first_dtmf(kapps_call:call()) -> 'ok' | 'true'.
@@ -386,6 +392,11 @@ gather_finished(Call, Props) ->
             {'request', kapps_call:exec(Setters, Call)}
     end.
 
+-spec record_call(kapps_call:call(), kz_types:xml_attribs()) ->
+          {'ok', kapps_call:call()} |
+          {'request', kapps_call:call()} |
+          {'error', kapps_call:call()} |
+          {'stop', kapps_call:call()}.
 record_call(Call0, Attrs) ->
     kapps_call_command:answer(Call0),
 
@@ -404,9 +415,7 @@ record_call(Call0, Attrs) ->
              ]
             ),
 
-    Updates = [{fun kzt_util:update_call_status/2, ?STATUS_IN_PROGRESS}
-              ],
-    Call = kapps_call:exec(Updates, Call0),
+    Call = kzt_util:update_call_status(?STATUS_IN_PROGRESS, Call0),
 
     lager:info("starting call recording for at most ~b", [MaxLength]),
 
@@ -423,10 +432,10 @@ record_call(Call0, Attrs) ->
     WaitMs = (MaxLength * ?MILLISECONDS_IN_SECOND) + (3 * ?MILLISECONDS_IN_SECOND),
     case kzt_receiver:wait_for_record(Call1, WaitMs, FinishOnKey) of
         {'error', 'timeout'} ->
-            lager:warning("timeout waiting for recrod stop"),
-            {'stop', Call};
+            lager:warning("timeout waiting for record stop"),
+            {'stop', kzt_util:update_call_status(?STATUS_CANCELED, Call1)};
         {'error', _JObj} ->
-            {'stop', Call};
+            {'error', kzt_util:update_call_status(?STATUS_FAILED, Call1)};
         {'ok', Call2} ->
             CurrentUri = kzt_util:get_voice_uri(Call2),
             NewUri = kzt_util:resolve_uri(CurrentUri, ActionUrl),

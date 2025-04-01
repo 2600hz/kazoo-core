@@ -26,12 +26,13 @@ exec(Call, XmlText, Attrs) ->
     Voice = kzt_twiml_util:get_voice(Props),
     Lang = kzt_twiml_util:get_lang(Call, Props),
     Engine = kzt_twiml_util:get_engine(Call, Props),
-
     Terminators = kzt_twiml_util:get_terminators(Props),
 
     lager:info("SAY: '~ts' using voice ~s, in lang ~s, and engine ~s", [SayMe, Voice, Lang, Engine]),
 
+    Call1 = kzt_util:update_call_status(?STATUS_IN_PROGRESS, Call),
+
     case kzt_twiml_util:loop_count(Props) of
-        0 -> kzt_receiver:say_loop(Call, SayMe, Voice, Lang, Terminators, Engine, 'infinity');
-        N when N > 0 -> kzt_receiver:say_loop(Call, SayMe, Voice, Lang, Terminators, Engine, N)
+        0 -> kzt_receiver:say_loop(Call1, SayMe, Voice, Lang, Terminators, Engine, 'infinity');
+        N when N > 0 -> kzt_receiver:say_loop(Call1, SayMe, Voice, Lang, Terminators, Engine, N)
     end.

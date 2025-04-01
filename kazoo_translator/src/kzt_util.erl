@@ -14,7 +14,7 @@
         ,record_store_method/1
         ,resolve_uri/2
         ,offnet_req/3
-        ,update_call_status/2, get_call_status/1
+        ,update_call_status/2, get_call_status/2
         ,get_request_vars/1
         ,add_error/3, get_errors/1
         ,set_hangup_dtmf/2, get_hangup_dtmf/1
@@ -206,9 +206,9 @@ maybe_presence_id(Call) ->
 update_call_status(Status, Call) ->
     kapps_call:kvs_store(<<"call_status">>, Status, Call).
 
--spec get_call_status(kapps_call:call()) -> kz_term:api_binary().
-get_call_status(Call) ->
-    kapps_call:kvs_fetch(<<"call_status">>, Call).
+-spec get_call_status(kapps_call:call(), kz_term:ne_binary()) -> kz_term:api_binary().
+get_call_status(Call, Default) ->
+    kapps_call:kvs_fetch(<<"call_status">>, Default, Call).
 
 -spec set_is_caller_hungup(boolean(), kapps_call:call()) -> kapps_call:call().
 set_is_caller_hungup(IsEnded, Call) -> kapps_call:kvs_store(<<"is_caller_hungup">>, IsEnded, Call).
@@ -216,8 +216,8 @@ set_is_caller_hungup(IsEnded, Call) -> kapps_call:kvs_store(<<"is_caller_hungup"
 -spec get_is_caller_hungup(kapps_call:call()) -> boolean().
 get_is_caller_hungup(Call) -> kz_term:is_true(kapps_call:kvs_fetch(<<"is_caller_hungup">>, Call)).
 
--spec add_error(kapps_call:call(), kz_term:ne_binary(), any()) -> kapps_call:call().
-add_error(Call, K, V) ->
+-spec add_error(kz_term:ne_binary(), any(), kapps_call:call()) -> kapps_call:call().
+add_error(K, V, Call) ->
     case kapps_call:kvs_fetch(<<"response_errors">>, Call) of
         'undefined' ->
             kapps_call:kvs_store(<<"response_errors">>, [{K, V}], Call);
@@ -478,7 +478,7 @@ get_request_vars(Call) ->
       ,{<<"DialCallSid">>, get_dial_call_sid(Call)}
       ,{<<"DialCallDuration">>, get_dial_call_duration(Call)}
       ,{<<"QueueSid">>, get_queue_sid(Call)}
-      ,{<<"CallStatus">>, get_call_status(Call)}
+      ,{<<"CallStatus">>, get_call_status(Call, ?STATUS_IN_PROGRESS)}
       ]).
 
 -spec iteration(kapps_call:call()) -> pos_integer().

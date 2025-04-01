@@ -21,33 +21,37 @@
 
 -spec start(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts(), stream_type()) ->
           {'ok', kapps_call:call()} |
+          {'error', kapps_call:call()} |
           {'stop', kapps_call:call()}.
 start(Call, [#xmlElement{name='Stream', content=Stream, attributes=Attrs}|_], Type) ->
     kapps_call_command:answer(Call),
     Props = kz_xml:attributes_to_proplist(Attrs),
     CustomParams = get_stream_custom_params(Stream),
-    setup_call_for_stream(Call, Type, CustomParams, Props);
+    Call1 = kzt_util:update_call_status(?STATUS_IN_PROGRESS, Call),
+    setup_call_for_stream(Call1, Type, CustomParams, Props);
 start(Call, _Rest, _Attrs) ->
     lager:debug("unhandled XML object: ~p", [_Rest]),
     {'ok', Call}.
 
 -spec stop(kapps_call:call(), kz_types:xml_els() | kz_types:xml_texts()) ->
           {'ok', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'error', kapps_call:call()}.
 stop(Call, [#xmlElement{name='Stream', content=_Stream, attributes=Attrs}|_]) ->
     Props = kz_xml:attributes_to_proplist(Attrs),
     Id = props:get_ne_binary_value('id', Props),
     Name = props:get_ne_binary_value('name', Props),
-
-    gen_listener:cast(kzt_util:get_amqp_listener(Call), {'stream_stop', Id, Name}),
-    {'ok', Call};
+    Call1 = kzt_util:update_call_status(?STATUS_IN_PROGRESS, Call),
+    gen_listener:cast(kzt_util:get_amqp_listener(Call1), {'stream_stop', Id, Name}),
+    {'ok', Call1};
 stop(Call, _Rest) ->
     lager:debug("unhandled XML object: ~p", [_Rest]),
     {'ok', Call}.
 
 -spec setup_call_for_stream(kapps_call:call(), stream_type(), kz_term:api_object(), kz_term:proplist()) ->
           {'ok', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'error', kapps_call:call()}.
 setup_call_for_stream(Call, Type, CustomParams, Props) ->
     case parse_ws_url(Call, Props) of
         {'error', _Reason, Call1} ->
@@ -65,15 +69,24 @@ parse_ws_url(Call, Props) ->
     Url = props:get_ne_binary_value('url', Props, CurrentUri),
     case uri_string:resolve(Url, CurrentUri, ['return_map']) of
         {'error', Reason, _} ->
-            {'error', Reason, kzt_util:add_error(Call, <<"stream">>, kz_binary:format(<<"invalid websocket url: ~s">>, [Reason]))};
+            Setters = [{fun kzt_util:add_error/3, <<"stream">>, kz_binary:format(<<"invalid websocket url: ~s">>, [Reason])}
+                      ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+                      ],
+            {'error', Reason, kapps_call:exec(Setters, Call)};
         #{scheme := <<"ws">>, host := Host}=Uri when Host =/= <<>> ->
             {'ok', uri_string:recompose(maps:without(['query', 'fragment'], Uri))};
         #{scheme := <<"wss">>, host := Host}=Uri when Host =/= <<>> ->
             {'ok', uri_string:recompose(maps:without(['query', 'fragment'], Uri))};
         #{scheme := Scheme, host := Host} when Host =/= <<>> ->
-            {'error', 'invalid_scheme', kzt_util:add_error(Call, <<"stream">>, kz_binary:format(<<"invalid websocket url scheme: ~s">>, [Scheme]))};
+            Setters = [{fun kzt_util:add_error/3, <<"stream">>, kz_binary:format(<<"invalid websocket url scheme: ~s">>, [Scheme])}
+                      ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+                      ],
+            {'error', 'invalid_scheme', kapps_call:exec(Setters, Call)};
         _ ->
-            {'error', 'invalid_wss_url', kzt_util:add_error(Call, <<"stream">>, <<"invalid websocket url">>)}
+            Setters = [{fun kzt_util:add_error/3, <<"stream">>, <<"invalid websocket url">>}
+                      ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+                      ],
+            {'error', 'invalid_wss_url', kapps_call:exec(Setters, Call)}
     end.
 
 -spec current_wss_uri(kz_term:api_binary()) -> binary().
@@ -83,7 +96,8 @@ current_wss_uri(_) -> <<>>.
 
 -spec start_call_stream(kapps_call:call(), kz_term:ne_binary(), stream_type(), kz_term:api_object(), kz_term:proplist()) ->
           {'ok', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'error', kapps_call:call()}.
 start_call_stream(Call, Url, Type, CustomParams, Props) ->
     Name = props:get_ne_binary_value('name', Props, kz_binary:rand_hex(6)),
     Data0 = [{<<"url">>, Url}
@@ -97,7 +111,10 @@ start_call_stream(Call, Url, Type, CustomParams, Props) ->
             gen_listener:cast(kzt_util:get_amqp_listener(Call), {'stream_start', self(), kz_json:from_list(Data)}),
             wait_for_stream_start(Type, Name, Call, ?START_WAIT_TIMEOUT_MS);
         {'error', Error} ->
-            {'stop', kzt_util:add_error(Call, <<"stream">>, Error)}
+            Setters = [{fun kzt_util:add_error/3, <<"stream">>, Error}
+                      ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+                      ],
+            {'error', kapps_call:exec(Setters, Call)}
     end.
 
 -spec stream_type(stream_type(), kz_term:proplist()) -> kz_term:ne_binary().
@@ -214,7 +231,9 @@ get_sample_rate(Props) ->
             safe_sample_rate(SampleRate, RateInt, 1)
     end.
 
--spec safe_sample_rate(kz_term:ne_binary(), kz_term:api_integer(), integer()) -> {'ok', kz_term:ne_binary()} | {'error', kz_term:ne_binary()}.
+-spec safe_sample_rate(kz_term:ne_binary(), kz_term:api_integer(), integer()) ->
+          {'ok', kz_term:ne_binary()} |
+          {'error', kz_term:ne_binary()}.
 safe_sample_rate(_Value, 'undefined', _) ->
     {'error', <<"invalid stream audio samplerate">>};
 safe_sample_rate(_Value, RateInt, Multiply1K) ->
@@ -228,7 +247,8 @@ safe_sample_rate(_Value, RateInt, Multiply1K) ->
 
 -spec wait_for_stream_start(stream_type(), kz_term:ne_binary(), kapps_call:call(), timeout()) ->
           {'ok', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'error', kapps_call:call()}.
 wait_for_stream_start(Type, Name, Call, Timeout) ->
     Start = kz_time:start_time(),
     case kapps_call_command:receive_event(Timeout) of
@@ -236,12 +256,16 @@ wait_for_stream_start(Type, Name, Call, Timeout) ->
             process_stream_start_event(Type, Name, Call, JObj, kz_time:decr_timeout(Timeout, Start));
         {'error', _Reason} ->
             lager:debug("failed to start stream: ~p", [_Reason]),
-            {'stop', kzt_util:add_error(Call, <<"stream">>, <<"unabled to start stream">>)}
+            Setters = [{fun kzt_util:add_error/3, <<"stream">>,  <<"unabled to start stream">>}
+                      ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+                      ],
+            {'error', kapps_call:exec(Setters, Call)}
     end.
 
 -spec process_stream_start_event(stream_type(), kz_term:ne_binary(), kapps_call:call(), kz_json:object(), timeout()) ->
           {'ok', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'error', kapps_call:call()}.
 process_stream_start_event(Type, Name, Call, JObj, Timeout) ->
     case kz_api:event_type(JObj) of
         {<<"pivot">>, <<"stream_start">>} ->
@@ -268,24 +292,31 @@ process_stream_start_event(Type, Name, Call, JObj, Timeout) ->
                     {'ok', Call};
                 {Name, 'undefined', _} ->
                     lager:debug("bidirectional stream is ended before receiving stream_start, ending the call"),
-                    {'stop', Call};
+                    {'stop', kzt_util:update_call_status(?STATUS_CANCELED, Call)};
                 {Name, Error, _} ->
                     lager:debug("stream failed is before receiving stream_start, ending the call: ~s", [Error]),
-                    {'stop', kzt_util:add_error(Call, <<"stream">>, Error)};
+                    Setters = [{fun kzt_util:add_error/3, <<"stream">>,  Error}
+                              ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+                              ],
+                    {'stop', kapps_call:exec(Setters, Call)};
                 {_OtherName, _Error, _Type} ->
                     wait_for_stream_start(Type, Name, Call, Timeout)
             end;
         {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
             HangupCause = kz_call_event:hangup_cause(JObj),
             lager:debug("channel was destroyed: ~s", [HangupCause]),
-            {'stop', kzt_util:set_is_caller_hungup('true', Call)};
+            Setters = [{fun kzt_util:set_is_caller_hungup/2, 'true'}
+                      ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+                      ],
+            {'stop', kapps_call:exec(Setters, Call)};
         {_Cat, _Event} ->
             wait_for_stream_start(Type, Name, Call, Timeout)
     end.
 
 -spec maybe_continue(kz_term:ne_binary(), stream_type(), kapps_call:call()) ->
           {'ok', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'error', kapps_call:call()}.
 maybe_continue(_Id, 'unidirectional', Call) ->
     {'ok', Call};
 maybe_continue(Id, 'bidirectional', Call) ->
@@ -293,7 +324,8 @@ maybe_continue(Id, 'bidirectional', Call) ->
 
 -spec wait_for_stream_end(kz_term:ne_binary(), kapps_call:call(), timeout()) ->
           {'ok', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'error', kapps_call:call()}.
 wait_for_stream_end(Id, Call, Timeout) ->
     Start = kz_time:start_time(),
     case kapps_call_command:receive_event(Timeout) of
@@ -301,18 +333,25 @@ wait_for_stream_end(Id, Call, Timeout) ->
             process_stream_stop_event(Id, Call, JObj, kz_time:decr_timeout(Timeout, Start));
         {'error', _Reason} ->
             lager:debug("failed to start stream: ~p", [_Reason]),
-            {'stop', kzt_util:add_error(Call, <<"stream">>, <<"unabled to start stream">>)}
+            Setters = [{fun kzt_util:add_error/3, <<"stream">>, <<"unabled to start stream">>}
+                      ,{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
+                      ],
+            {'error', kapps_call:exec(Setters, Call)}
     end.
 
 -spec process_stream_stop_event(kz_term:ne_binary(), kapps_call:call(), kz_json:object(), timeout()) ->
           {'ok', kapps_call:call()} |
-          {'stop', kapps_call:call()}.
+          {'stop', kapps_call:call()} |
+          {'error', kapps_call:call()}.
 process_stream_stop_event(Id, Call, JObj, Timeout) ->
     case kz_api:event_type(JObj) of
         {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
             HangupCause = kz_call_event:hangup_cause(JObj),
             lager:debug("channel was destroyed: ~s", [HangupCause]),
-            {'stop', kzt_util:set_is_caller_hungup('true', Call)};
+            Setters = [{fun kzt_util:set_is_caller_hungup/2, 'true'}
+                      ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+                      ],
+            {'stop', kapps_call:exec(Setters, Call)};
         {<<"pivot">>, <<"stream_stop">>} ->
             case {kz_json:get_ne_binary_value(<<"Stream-ID">>, JObj)
                  ,kz_json:get_ne_binary_value(<<"Error-Message">>, JObj)
@@ -320,10 +359,13 @@ process_stream_stop_event(Id, Call, JObj, Timeout) ->
             of
                 {Id, 'undefined'} ->
                     lager:debug("bidirectional stream is ended, ending the call"),
-                    {'stop', Call};
+                    {'stop', kzt_util:update_call_status(?STATUS_CANCELED, Call)};
                 {Id, Error} ->
                     lager:debug("bidirectional stream failed: ~s", [Error]),
-                    {'stop', kzt_util:add_error(Call, <<"stream">>, Error)};
+                    Setters = [{fun kzt_util:add_error/3, <<"stream">>, Error}
+                              ,{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
+                              ],
+                    {'error', kapps_call:exec(Setters, Call)};
                 _OtherId ->
                     lager:debug("ignoring stream_stop event for other stream '~s' on the call", [_OtherId]),
                     wait_for_stream_end(Id, Call, Timeout)
