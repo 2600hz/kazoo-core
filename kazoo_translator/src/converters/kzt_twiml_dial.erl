@@ -88,9 +88,12 @@ exec(Call, [#xmlElement{name='Queue'
     Call1 = setup_call_for_dial(kzt_util:set_queue_sid(QueueId, Call)
                                ,DialProps
                                ),
-
     lager:info("dialing into queue ~s, unsupported", [QueueId]),
-    {'stop', kzt_util:add_error(Call1, <<"not_implemented">>, <<"Queue is not implemented">>)};
+
+    Setters = [{fun kzt_util:add_error/3, <<"not_implemented">>, <<"Queue is not implemented">>}
+              ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+              ],
+    {'stop', kapps_call:exec(Setters, Call1)};
 
 exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
     lager:debug("collecting endpoints inside Dial"),
@@ -172,7 +175,7 @@ send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call) ->
               ,{<<"Timeout">>, Timeout}
               ,{<<"Ignore-Early-Media">>, IgnoreEarlyMedia}
               ,{<<"Dial-Endpoint-Method">>, Strategy}
-              ,{<<"Fail-On-Single-Reject">>, <<"false">>}
+              ,{<<"Fail-On-Single-Reject">>, 'false'}
               ,{<<"Dial-Endpoint-Method">>, <<"simultaneous">>}
               ,{<<"Ignore-Forward">>, <<"false">>}
               | kz_api:default_headers(kapps_call:controller_queue(Call), ?APP_NAME, ?APP_VERSION)
@@ -192,14 +195,15 @@ setup_call_for_dial(Call, Props) ->
           {'ok' | 'stop' | 'request', kapps_call:call()}.
 maybe_end_dial(Call, Props) ->
     IsHungup = kzt_util:get_is_caller_hungup(Call),
-    lager:debug("a-leg status after bridge: ~s is caller hungup: ~p", [kzt_util:get_call_status(Call), IsHungup]),
-    maybe_end_dial(Call, Props, kzt_twiml_util:action_url(Props), IsHungup).
+    Call1 = kzt_util:update_call_status(?STATUS_COMPLETED, Call),
+    lager:debug("a-leg status after bridge: ~s is caller hungup: ~p", [kzt_util:get_call_status(Call1, ?STATUS_COMPLETED), IsHungup]),
+    maybe_end_dial(Call1, Props, kzt_twiml_util:action_url(Props), IsHungup).
 
 -spec maybe_end_dial(kapps_call:call(), kz_term:proplist(), kz_term:api_ne_binary(), boolean()) ->
           {'ok' | 'stop' | 'request', kapps_call:call()}.
 maybe_end_dial(Call, _Props, _ActionUrl, 'true') ->
     lager:debug("caller leg is ended with ~s, not continuing twiml render"
-               ,[kzt_util:get_call_status(Call)]
+               ,[kzt_util:get_call_status(Call, ?STATUS_COMPLETED)]
                ),
     {'stop', Call};
 maybe_end_dial(Call, _Props, 'undefined', 'false') ->

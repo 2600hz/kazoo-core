@@ -74,7 +74,7 @@ req_params(Call) ->
       [{<<"Account-ID">>, kapps_call:account_id(Call)}
       ,{<<"Api-Version">>, <<"4.x">>}
       ,{<<"Call-ID">>, kapps_call:call_id(Call)}
-      ,{<<"Call-Status">>, kzt_util:get_call_status(Call)}
+      ,{<<"Call-Status">>, kzt_util:get_call_status(Call, ?STATUS_RINGING)}
       ,{<<"Caller-ID-Name">>, kapps_call:caller_id_name(Call)}
       ,{<<"Caller-ID-Number">>, kapps_call:caller_id_number(Call)}
       ,{<<"Custom-Application-Vars">>, kapps_call:custom_application_vars(Call)}
