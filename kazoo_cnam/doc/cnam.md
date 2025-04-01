@@ -16,6 +16,11 @@ The CNAM provider and settings are controlled in the `system_config/cnam` docume
 
 - `default.disable_normalize`: when set to `true`, the caller's number is used as provided by the upstream carrier. No attempt to normalize to E164 is made.
 - `default.cnam_expires`: How long, in seconds, should a CNAM result be cached by KAZOO.
+- `default.cache_mode`: What cache mode to use for CNAM lookups, `peek` (Dont touch Expiry) or `fetch` (rollover cache)
+
+## When to use different cache mode
+
+By default cache mode will be set as fetch or rolling cache which will bump the expiry whenever cache is read. In scenarios where cache expiry needs to be set high than 12 Hours or `43210` seconds, we need to use `peek` as long cache expiry results in cache never expiring, if there are regular calls coming to system from the same number. With cache mode set to `peek` companies can safely bump the cache expiry to 72 hours as agreed upron industry wide.
 
 ### Customizable HTTP request settings
 
@@ -97,4 +102,29 @@ CNAM settings in play:
 ```bash
 sup kazoo_cnam_maintenance lookup 4158867900
 CNAM lookup for 4158867900 has result 'CORTE MADERA CA'
+```
+
+## Flushing Cnam Cache
+
+#### Flush cnam cache
+
+```bash
+#to flush all cached cnam
+sup kazoo_cnam_maintenance flush
+flushed 1202 enteries from cnam cache
+
+#to flush individual cnam cache
+sup kazoo_cnam_maintenance flush $NUMBER
+flushed $NUMBER from cnam cache
+ok
+
+```
+
+#### Flush kazoo directory cache
+
+It is important to flush directory cache in freeswitch as well to get all cache from system removed
+
+```bash
+sup -n ecallmgr kazoo_directory_maintenance flush
+ok
 ```
