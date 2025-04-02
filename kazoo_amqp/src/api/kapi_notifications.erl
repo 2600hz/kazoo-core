@@ -49,6 +49,11 @@
         ,publish_new_account/1
         ,publish_new_account/2
         ]).
+-export([account_deleted/1
+        ,account_deleted_v/1
+        ,publish_account_deleted/1
+        ,publish_account_deleted/2
+        ]).
 -export([service_added/1
         ,service_added_v/1
         ,publish_service_added/1
@@ -478,6 +483,40 @@ new_account_definition() ->
               ,{fun kapi_definition:set_types/2, []}
               ],
     kapi_definition:setters(Setters).
+
+%%------------------------------------------------------------------------------
+%% @doc Get Account Deleted Notification API definition.
+%% @end
+%%------------------------------------------------------------------------------
+-spec account_deleted_definition() -> kapi_definition:api().
+account_deleted_definition() ->
+    EventName = <<"account_deleted">>,
+    Category = <<"account">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Account Deleted">>}
+              ,{fun kapi_definition:set_description/2
+               ,<<"This event is triggered when an end user deletes an account">>
+               }
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun account_deleted/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun account_deleted_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_account_deleted/1}
+              ,{fun kapi_definition:set_binding/2, ?BINDING_STRING(Category, <<"deleted">>)}
+              ,{fun kapi_definition:set_restrict_to/2, 'account_deleted'}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
+                                                % ,<<"Tree">>
+                                                            ]}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Account-API-Key">>
+                                                            ,<<"Account-Name">>
+                                                            ,<<"Account-Realm">>
+                                                            | ?DEFAULT_OPTIONAL_HEADERS
+                                                            ]}
+              ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
+              ,{fun kapi_definition:set_types/2, []}
+              ],
+    kapi_definition:setters(Setters).
+
+
 
 %%------------------------------------------------------------------------------
 %% @doc Get New Service Notification Addition (from service audit log) API definition.
@@ -1954,6 +1993,7 @@ api_definitions() ->
     ,low_balance_definition()
     ,missed_call_definition()
     ,new_account_definition()
+    ,account_deleted_definition()
     ,new_user_definition()
     ,notify_update_definition()
     ,number_feature_manual_action_definition()
@@ -2005,6 +2045,8 @@ api_definition(<<"low_balance">>) ->
     low_balance_definition();
 api_definition(<<"new_account">>) ->
     new_account_definition();
+api_definition(<<"account_deleted">>) ->
+    account_deleted_definition();
 api_definition(<<"service_added">>) ->
     service_added_definition();
 api_definition(<<"topup">>) ->
@@ -2462,6 +2504,32 @@ publish_new_account(API, ContentType) ->
                                                 ,kapi_definition:build_fun(Definition)
                                                 ),
     kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
+
+%%------------------------------------------------------------------------------
+%% @doc Takes proplist, creates JSON string and publish it on AMQP.
+%% @end
+%%------------------------------------------------------------------------------
+-spec account_deleted(kz_term:api_terms()) -> api_formatter_return().
+account_deleted(Prop) ->
+    kapi_definition:build_message(Prop, account_deleted_definition()).
+
+-spec account_deleted_v(kz_term:api_terms()) -> boolean().
+account_deleted_v(Prop) ->
+    kapi_definition:validate(Prop, account_deleted_definition()).
+
+-spec publish_account_deleted(kz_term:api_terms()) -> 'ok'.
+publish_account_deleted(JObj) ->
+    publish_account_deleted(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_account_deleted(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_account_deleted(API, ContentType) ->
+    Definition = account_deleted_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:notifications_publish(kapi_definition:binding(Definition), Payload, ContentType).
+
 
 %%------------------------------------------------------------------------------
 %% @doc Takes proplist, creates JSON string and publish it on AMQP.
