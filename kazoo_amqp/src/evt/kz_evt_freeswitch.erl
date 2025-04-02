@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2017-2023, 2600Hz
+%%% @copyright (C) 2017-2025, 2600Hz
 %%% @doc FreeSWITCH json
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -104,7 +104,7 @@ call_id(JObj) ->
 
 -spec other_leg_call_id(payload()) -> kz_term:api_binary().
 other_leg_call_id(JObj) ->
-    kz_json:get_ne_binary_value(<<"Other-Leg-Unique-ID">>, JObj).
+    kz_json:get_ne_binary_value(<<"Other-Leg-Call-ID">>, JObj).
 
 -spec original_call_direction(payload()) -> kz_term:api_binary().
 original_call_direction(JObj) ->
