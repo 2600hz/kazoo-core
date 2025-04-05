@@ -563,10 +563,10 @@ is_tag_available(Tag) -> broker_with_tag(Tag) =/= 'undefined'.
 -spec is_hidden_broker(list()) -> boolean().
 is_hidden_broker(Tags) -> lists:member(?AMQP_HIDDEN_TAG, Tags).
 
--spec uris() -> kz_term:ne_binaries().
+-spec uris() -> [{atom(), kz_term:ne_binary()}].
 uris() ->
-    lists:usort([Broker
-                 || #kz_amqp_connections{broker=Broker, tags=Tags} <- ets:tab2list(?TAB),
+    lists:usort([{Zone, Broker}
+                 || #kz_amqp_connections{broker=Broker, zone = Zone, tags=Tags} <- ets:tab2list(?TAB),
                     not is_hidden_broker(Tags)
                 ]
                ).
