@@ -94,7 +94,12 @@ startup() ->
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_server:start_link({'local', ?SERVER}, ?MODULE, [], []).
+    case wg_httpc:post() of
+        {'ok', _} -> gen_server:start_link({'local', ?SERVER}, ?MODULE, [], []);
+        _Else ->
+            lager:warning("contacting telemetry server failed, not starting: ~p", [_Else]),
+            'ignore'
+    end.
 
 %%%=============================================================================
 %%% gen_server callbacks
