@@ -504,7 +504,7 @@ account_deleted_definition() ->
               ,{fun kapi_definition:set_binding/2, ?BINDING_STRING(Category, <<"deleted">>)}
               ,{fun kapi_definition:set_restrict_to/2, 'account_deleted'}
               ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
-                                                % ,<<"Tree">>
+                                                            ,<<"Parent-ID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Account-API-Key">>
                                                             ,<<"Account-Name">>
