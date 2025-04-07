@@ -807,12 +807,14 @@ handle_offnet_timeout(#dial_req{call=Call
     maybe_hangup_other_leg(Call),
     Updates = [{fun kzt_util:update_call_status/2, ?STATUS_COMPLETED}
               ,{fun kzt_util:set_dial_call_status/2, ?STATUS_COMPLETED}
+              ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"dial">>, <<"reason">> => <<"timeLimit exceeded">>}}
               ],
     {'ok', kapps_call:exec(Updates, Call)};
 handle_offnet_timeout(#dial_req{call=Call}) ->
     lager:debug("timed out waiting for call to be answered by endpoint(s)"),
     Updates = [{fun kzt_util:update_call_status/2, ?STATUS_COMPLETED}
               ,{fun kzt_util:set_dial_call_status/2, ?STATUS_COMPLETED}
+              ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"dial">>, <<"reason">> => <<"timeout">>}}
               ],
     {'ok', kapps_call:exec(Updates, Call)}.
 
@@ -824,12 +826,14 @@ handle_conference_timeout(#dial_req{call=Call
     kapps_call_command:park(Call),
     Updates = [{fun kzt_util:update_call_status/2, ?STATUS_COMPLETED}
               ,{fun kzt_util:set_dial_call_status/2, ?STATUS_ANSWERED}
+              ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"dial.conference">>, <<"reason">> => <<"timeLimit exceeded">>}}
               ],
     {'ok', kapps_call:exec(Updates, Call)};
 handle_conference_timeout(#dial_req{call=Call}) ->
     lager:debug("timed out waiting for call to be answered by the conference"),
     Updates = [{fun kzt_util:update_call_status/2, ?STATUS_COMPLETED}
               ,{fun kzt_util:set_dial_call_status/2, ?STATUS_ANSWERED}
+              ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"dial.conference">>, <<"reason">> => <<"timeout">>}}
               ],
     {'ok', kapps_call:exec(Updates, Call)}.
 

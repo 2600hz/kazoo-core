@@ -76,8 +76,8 @@ find_candidate_translators(<<"application/xml">>) ->
     ['kzt_twiml'];
 find_candidate_translators(<<"application/json">>) ->
     ['kzt_kazoo'];
-find_candidate_translators(_) ->
-    ['kzt_twiml', 'kzt_kazoo'].
+find_candidate_translators(CT) ->
+    throw({'error', 'invalid_format', CT}).
 
 -spec is_recognized(atom(), binary()) -> {boolean(), any()}.
 is_recognized(M, Cmds) ->

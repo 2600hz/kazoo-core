@@ -27,6 +27,7 @@
         ,reject_code/1
         ,reject_status/1
         ,record_silence_vars/1
+        ,get_element_name/1
         ]).
 
 -include("kzt.hrl").
@@ -173,3 +174,6 @@ record_silence_vars(Props) ->
             ,{<<"silence_detection">>, 'true'}
             ]
     end.
+
+-spec get_element_name(kz_types:xml_el()) -> kz_term:ne_binary().
+get_element_name(#xmlElement{name=Name}) -> kz_term:to_binary(Name).

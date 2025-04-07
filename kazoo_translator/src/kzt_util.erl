@@ -17,6 +17,8 @@
         ,update_call_status/2, get_call_status/2
         ,get_request_vars/1
         ,add_error/3, get_errors/1
+        ,add_progress/3, get_progress/1, clear_progress/1
+        ,set_pivot_session/1, get_pivot_session/1
         ,set_hangup_dtmf/2, get_hangup_dtmf/1
         ,set_digit_pressed/2, get_digit_pressed/1
         ,set_is_caller_hungup/2, get_is_caller_hungup/1
@@ -218,15 +220,29 @@ get_is_caller_hungup(Call) -> kz_term:is_true(kapps_call:kvs_fetch(<<"is_caller_
 
 -spec add_error(kz_term:ne_binary(), any(), kapps_call:call()) -> kapps_call:call().
 add_error(K, V, Call) ->
-    case kapps_call:kvs_fetch(<<"response_errors">>, Call) of
-        'undefined' ->
-            kapps_call:kvs_store(<<"response_errors">>, [{K, V}], Call);
-        Vs ->
-            kapps_call:kvs_append_list(<<"response_errors">>, [{K, V}|Vs], Call)
-    end.
+    kapps_call:kvs_append_list(<<"response_errors">>, [{K, V}], Call).
 
--spec get_errors(kapps_call:call()) -> kz_term:proplist().
+-spec get_errors(kapps_call:call()) -> kz_term:api_proplist().
 get_errors(Call) -> kapps_call:kvs_fetch(<<"response_errors">>, Call).
+
+-spec clear_progress(kapps_call:call()) -> kapps_call:call().
+clear_progress(Call) ->
+    kapps_call:kvs_erase(<<"response_progress">>, Call).
+
+-spec add_progress(kz_term:ne_binary(), any(), kapps_call:call()) -> kapps_call:call().
+add_progress(K, V, Call) ->
+    kapps_call:kvs_append_list(<<"response_progress">>, [{K, V}], Call).
+
+-spec get_progress(kapps_call:call()) -> kz_term:api_proplist().
+get_progress(Call) -> kapps_call:kvs_fetch(<<"response_progress">>, Call).
+
+-spec set_pivot_session(kapps_call:call()) -> kapps_call:call().
+set_pivot_session(Call) ->
+    kapps_call:kvs_store(<<"pivot_session">>, kz_time:now_s(), Call).
+
+-spec get_pivot_session(kapps_call:call()) -> integer().
+get_pivot_session(Call) ->
+    kapps_call:kvs_fetch(<<"pivot_session">>, Call).
 
 -spec set_hangup_dtmf(kz_term:ne_binary(), kapps_call:call()) -> kapps_call:call().
 set_hangup_dtmf(DTMF, Call) -> kapps_call:kvs_store(<<"hangup_dtmf">>, DTMF, Call).

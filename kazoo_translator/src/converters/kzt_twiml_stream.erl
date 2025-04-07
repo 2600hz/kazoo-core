@@ -69,7 +69,7 @@ parse_ws_url(Call, Props) ->
     Url = props:get_ne_binary_value('url', Props, CurrentUri),
     case uri_string:resolve(Url, CurrentUri, ['return_map']) of
         {'error', Reason, _} ->
-            Setters = [{fun kzt_util:add_error/3, <<"stream">>, kz_binary:format(<<"invalid websocket url: ~s">>, [Reason])}
+            Setters = [{fun kzt_util:add_error/3,<<"twiml_error">>, #{<<"verb">> => <<"stream">>, <<"reason">> => kz_binary:format(<<"invalid websocket url: ~s">>, [Reason])}}
                       ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
                       ],
             {'error', Reason, kapps_call:exec(Setters, Call)};
@@ -78,12 +78,12 @@ parse_ws_url(Call, Props) ->
         #{scheme := <<"wss">>, host := Host}=Uri when Host =/= <<>> ->
             {'ok', uri_string:recompose(maps:without(['query', 'fragment'], Uri))};
         #{scheme := Scheme, host := Host} when Host =/= <<>> ->
-            Setters = [{fun kzt_util:add_error/3, <<"stream">>, kz_binary:format(<<"invalid websocket url scheme: ~s">>, [Scheme])}
+            Setters = [{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"stream">>, <<"reason">> => kz_binary:format(<<"invalid websocket url scheme: ~s">>, [Scheme])}}
                       ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
                       ],
             {'error', 'invalid_scheme', kapps_call:exec(Setters, Call)};
         _ ->
-            Setters = [{fun kzt_util:add_error/3, <<"stream">>, <<"invalid websocket url">>}
+            Setters = [{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"stream">>, <<"reason">> => <<"invalid websocket url">>}}
                       ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
                       ],
             {'error', 'invalid_wss_url', kapps_call:exec(Setters, Call)}
@@ -111,7 +111,7 @@ start_call_stream(Call, Url, Type, CustomParams, Props) ->
             gen_listener:cast(kzt_util:get_amqp_listener(Call), {'stream_start', self(), kz_json:from_list(Data)}),
             wait_for_stream_start(Type, Name, Call, ?START_WAIT_TIMEOUT_MS);
         {'error', Error} ->
-            Setters = [{fun kzt_util:add_error/3, <<"stream">>, Error}
+            Setters = [{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"stream">>, <<"reason">> => Error}}
                       ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
                       ],
             {'error', kapps_call:exec(Setters, Call)}
@@ -256,7 +256,7 @@ wait_for_stream_start(Type, Name, Call, Timeout) ->
             process_stream_start_event(Type, Name, Call, JObj, kz_time:decr_timeout(Timeout, Start));
         {'error', _Reason} ->
             lager:debug("failed to start stream: ~p", [_Reason]),
-            Setters = [{fun kzt_util:add_error/3, <<"stream">>,  <<"unabled to start stream">>}
+            Setters = [{fun kzt_util:add_error/3, <<"twiml_error">>,  #{<<"verb">> => <<"stream">>, <<"reason">> => <<"unabled to start stream">>}}
                       ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
                       ],
             {'error', kapps_call:exec(Setters, Call)}
@@ -295,7 +295,7 @@ process_stream_start_event(Type, Name, Call, JObj, Timeout) ->
                     {'stop', kzt_util:update_call_status(?STATUS_CANCELED, Call)};
                 {Name, Error, _} ->
                     lager:debug("stream failed is before receiving stream_start, ending the call: ~s", [Error]),
-                    Setters = [{fun kzt_util:add_error/3, <<"stream">>,  Error}
+                    Setters = [{fun kzt_util:add_error/3, <<"twiml_error">>,  #{<<"verb">> => <<"stream">>, <<"reason">> => Error}}
                               ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
                               ],
                     {'stop', kapps_call:exec(Setters, Call)};
@@ -333,7 +333,7 @@ wait_for_stream_end(Id, Call, Timeout) ->
             process_stream_stop_event(Id, Call, JObj, kz_time:decr_timeout(Timeout, Start));
         {'error', _Reason} ->
             lager:debug("failed to start stream: ~p", [_Reason]),
-            Setters = [{fun kzt_util:add_error/3, <<"stream">>, <<"unabled to start stream">>}
+            Setters = [{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"stream">>, <<"reason">> => <<"unabled to start stream">>}}
                       ,{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
                       ],
             {'error', kapps_call:exec(Setters, Call)}
@@ -362,7 +362,7 @@ process_stream_stop_event(Id, Call, JObj, Timeout) ->
                     {'stop', kzt_util:update_call_status(?STATUS_CANCELED, Call)};
                 {Id, Error} ->
                     lager:debug("bidirectional stream failed: ~s", [Error]),
-                    Setters = [{fun kzt_util:add_error/3, <<"stream">>, Error}
+                    Setters = [{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"stream">>, <<"reason">> => Error}}
                               ,{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
                               ],
                     {'error', kapps_call:exec(Setters, Call)};

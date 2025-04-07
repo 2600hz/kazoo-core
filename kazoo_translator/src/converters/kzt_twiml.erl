@@ -43,11 +43,17 @@ exec(Call, Resp) ->
             exec(Call, RespXML);
         _Other ->
             lager:debug("failed to scan XML: ~p", [_Other]),
-            {'error', Call}
+            Setters = [{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
+                      ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"reason">> => <<"xml scans failed">>}}
+                      ],
+            {'error', kapps_call:exec(Setters, Call)}
     catch
         _E:_R ->
             lager:error("xml extraction fail: ~s: ~p: ~p", [_E, _R, Resp]),
-            {'error', Call}
+            Setters = [{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
+                      ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"reason">> => <<"xml extraction failed">>}}
+                      ],
+            {'error', kapps_call:exec(Setters, Call)}
     end.
 
 -spec maybe_set_authorizing_id(kapps_call:call()) -> kapps_call:call().
@@ -68,23 +74,34 @@ maybe_set_authorizing_id(Call) ->
           {'error', kapps_call:call()} |
           {'request', kapps_call:call()} |
           {'stop', kapps_call:call()}.
-exec_elements(Call, []) -> {'ok', Call};
+exec_elements(Call, []) ->
+    {'ok', kzt_util:update_call_status(?STATUS_COMPLETED, Call)};
 exec_elements(Call, [#xmlText{}=_El|Els]) ->
     exec_elements(Call, Els);
 exec_elements(Call, [El|Els]) ->
-    try exec_element(Call, El) of
-        {'ok', Call1} -> exec_elements(Call1, Els);
+    Verb = kzt_twiml_util:get_element_name(El),
+    Call1 = kzt_util:add_progress(<<"exec">>, Verb, Call),
+    try exec_element(Call1, El) of
+        {'ok', Call2} -> exec_elements(Call2, Els);
         {'request', _Call}=REQ -> REQ;
-        {'error', _Call}=ERR -> ERR;
-        {'stop', _Call}=STOP -> STOP
+        {'error', Call2} ->
+            {'error', kzt_util:update_call_status(?STATUS_FAILED, Call2)};
+        {'stop', Call2} ->
+            {'stop', kzt_util:update_call_status(?STATUS_CANCELED, Call2)}
     catch
         'throw':{'unknown_element', Name} ->
             lager:error("unknown element in response: ~s", [Name]),
-            {'error', kzt_util:add_error(<<"unknown_element">>, Name, Call)};
+            Setters = [{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
+                      ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"reason">> => <<"unknown element">>, <<"verb">> => kz_term:to_binary(Name)}}
+                      ],
+            {'error', kapps_call:exec(Setters, Call1)};
         _T:_E:ST ->
             lager:error("exception ~p:~p when executing element ~p", [_T, _E, El]),
             kz_log:log_stacktrace(ST),
-            {'error', Call}
+            Setters = [{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
+                      ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"reason">> => <<"exception in execution">>, <<"verb">> => kzt_twiml_util:get_element_name(El)}}
+                      ],
+            {'error', kapps_call:exec(Setters, Call1)}
     end.
 
 -spec exec_element(kapps_call:call(), kz_types:xml_el()) ->
@@ -119,7 +136,11 @@ exec_element(Call, #xmlElement{name='Play'
         {'ok', _}=OK -> OK;
         {'error', _E, Call1} ->
             lager:debug("play stopped with error ~p", [_E]),
-            {'error', kzt_util:update_call_status(?STATUS_FAILED, Call1)}
+            Setters = [{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
+                      ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"reason">> => kz_term:to_binary(_E), <<"verb">> => <<"play">>}}
+                      ],
+            {'error', kapps_call:exec(Setters, Call1)
+            }
     end;
 exec_element(Call, #xmlElement{name='Say'
                               ,content=ToSay
@@ -129,7 +150,12 @@ exec_element(Call, #xmlElement{name='Say'
         {'ok', _}=OK -> OK;
         {'error', _E, Call1} ->
             lager:debug("say stopped with error ~p", [_E]),
-            {'error', kzt_util:update_call_status(?STATUS_FAILED, Call1)}
+            Setters = [{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
+                      ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"reason">> => kz_term:to_binary(_E), <<"verb">> => <<"say">>}}
+                      ],
+            {'error', kapps_call:exec(Setters, Call1)
+
+            }
     end;
 exec_element(Call, #xmlElement{name='Redirect'
                               ,content=Url
@@ -241,12 +267,13 @@ pause(Call, Attrs) ->
 set_variable(Call, Attrs) ->
     kapps_call_command:answer(Call),
     Props = kz_xml:attributes_to_proplist(Attrs),
+    Call1 = kzt_util:update_call_status(?STATUS_IN_PROGRESS, Call),
 
     {'ok', kzt_translator:set_user_vars([{props:get_binary_value('key', Props)
                                          ,props:get_binary_value('value', Props)
                                          }
                                         ]
-                                       ,Call
+                                       ,Call1
                                        )
     }.
 
@@ -355,7 +382,11 @@ gather(Call, Attrs) ->
           {'stop', kapps_call:call()}.
 gather(Call, FinishKey, Timeout, Props, MaxDigits) ->
     case kzt_receiver:collect_dtmfs(Call, FinishKey, Timeout, MaxDigits, fun on_first_dtmf/1) of
-        {'ok', 'timeout', C} -> gather_finished(C, Props);
+        {'ok', 'timeout', C} ->
+            gather_finished(kzt_util:add_error(<<"twiml_error">>
+                                              ,#{<<"reason">> => <<"timeout">>, <<"verb">> => <<"gather">>}
+                                              ,C)
+                           ,Props);
         {'ok', 'dtmf_finish', C} -> gather_finished(C, Props);
         {'ok', C} -> gather_finished(C, Props);
         {'stop', Call1} ->
@@ -433,9 +464,15 @@ record_call(Call0, Attrs) ->
     case kzt_receiver:wait_for_record(Call1, WaitMs, FinishOnKey) of
         {'error', 'timeout'} ->
             lager:warning("timeout waiting for record stop"),
-            {'stop', kzt_util:update_call_status(?STATUS_CANCELED, Call1)};
+            Setters = [{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+                      ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"reason">> => <<"timeout">>, <<"verb">> => <<"record">>}}],
+            {'stop', kapps_call:exec(Setters, Call1)};
+
         {'error', _JObj} ->
-            {'error', kzt_util:update_call_status(?STATUS_FAILED, Call1)};
+            Setters = [{fun kzt_util:update_call_status/2, ?STATUS_FAILED}
+                      ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"reason">> => _JObj, <<"verb">> => <<"record">>}}],
+            {'stop', kapps_call:exec(Setters, Call1)
+            };
         {'ok', Call2} ->
             CurrentUri = kzt_util:get_voice_uri(Call2),
             NewUri = kzt_util:resolve_uri(CurrentUri, ActionUrl),

@@ -37,7 +37,11 @@ exec(Call, [#xmlText{type='text'}|_]=DialMeTxts, Attrs) ->
     case cleanup_dial_me(kz_xml:texts_to_binary(DialMeTxts)) of
         <<>> ->
             lager:debug("no dial-able plain text, continuing to next verb..."),
-            {'ok', Call};
+            {'ok', kzt_util:add_error(<<"twiml_error">>
+                                     ,#{<<"verb">> => <<"dial">>, <<"reason">> => <<"empty">>}
+                                     ,Call
+                                     )
+            };
         DialMe ->
             Props = kz_xml:attributes_to_proplist(Attrs),
             simple_dial(Call, Props, normalize_number(DialMe, Call))
@@ -52,7 +56,11 @@ exec(Call
     case cleanup_dial_me(kz_xml:texts_to_binary(Number)) of
         <<>> ->
             lager:debug("no dial-able Number in tag, continuing to next verb"),
-            {'ok', Call};
+            {'ok', kzt_util:add_error(<<"twiml_error">>
+                                     ,#{<<"verb">> => <<"dial.number">>, <<"reason">> => <<"empty">>}
+                                     ,Call
+                                     )
+            };
         NumberText ->
             DialProps = kz_xml:attributes_to_proplist(DialAttrs),
             NumberProps = kz_xml:attributes_to_proplist(NumberAttrs),
@@ -67,7 +75,11 @@ exec(Call, [#xmlElement{name='Conference'
     case kz_xml:texts_to_binary(NameTxts) of
         <<>> ->
             lager:info("conference name is empty, not processing Conference"),
-            {'ok', Call};
+            {'ok', kzt_util:add_error(<<"twiml_error">>
+                                     ,#{<<"verb">> => <<"dial.conference">>, <<"reason">> => <<"empty">>}
+                                     ,Call
+                                     )
+            };
         Name ->
             conference_dial(Call, Name, ConfProps, DialProps)
     end;
@@ -84,7 +96,6 @@ exec(Call, [#xmlElement{name='Queue'
     %% Fetch TwiML to play to caller before connecting agent
     _Url = props:get_value('url', QueueProps),
     _Method = kzt_util:http_method(QueueProps),
-
     Call1 = setup_call_for_dial(kzt_util:set_queue_sid(QueueId, Call)
                                ,DialProps
                                ),
@@ -92,6 +103,7 @@ exec(Call, [#xmlElement{name='Queue'
 
     Setters = [{fun kzt_util:add_error/3, <<"not_implemented">>, <<"Queue is not implemented">>}
               ,{fun kzt_util:update_call_status/2, ?STATUS_CANCELED}
+              ,{fun kzt_util:add_error/3, <<"twiml_error">>, #{<<"verb">> => <<"dial.queue">>, <<"reason">> => <<"not implemented">>}}
               ],
     {'stop', kapps_call:exec(Setters, Call1)};
 
@@ -104,15 +116,18 @@ exec(Call, [#xmlElement{}|_]=Endpoints, Attrs) ->
     case collecting_endpoints(Call1, Endpoints) of
         [] ->
             lager:debug("no endpoints were found to dial, continuing"),
-            {'ok', Call};
+            {'ok', kzt_util:add_error(<<"twiml_error">>
+                                     ,#{<<"verb">> => <<"dial">>, <<"reason">> => <<"no endpoints">>}
+                                     ,Call1
+                                     )
+            };
         EPs ->
             lager:debug("~b endpoint(s) created, sending bridge command", [length(EPs)]),
+
             Timeout = dial_timeout(Props),
             IgnoreEarlyMedia = kz_endpoints:ignore_early_media(EPs),
             Strategy = dial_strategy(Props),
-
             send_bridge_command(EPs, Timeout, Strategy, IgnoreEarlyMedia, Call1),
-
             {'ok', Call2} = kzt_receiver:wait_for_offnet(Call1, Props, 'bridge'),
             maybe_end_dial(Call2, Props)
     end;
