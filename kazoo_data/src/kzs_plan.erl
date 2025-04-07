@@ -116,6 +116,7 @@ get_dataplan(DBName) ->
     Database = kzs_util:to_database(DBName),
     case kzs_util:db_classification(Database) of
         'modb' -> account_modb_dataplan(kzs_util:raw_account_modb(DBName));
+        'modb_ish' -> account_modb_dataplan(Database);
         'yodb' -> account_yodb_dataplan(kzs_util:raw_account_yodb(DBName));
         'account' -> account_dataplan(Database);
         'resource_selectors' -> account_dataplan(Database);
@@ -730,12 +731,12 @@ handle_deleted(JObj) ->
 flush() ->
     kz_cache:flush_local(?KAZOO_DATA_PLAN_CACHE).
 
--spec boot() -> ok | pid().
+-spec boot() -> 'ok' | pid().
 boot() ->
     _ = load_dataplan(?SYSTEM_DATAPLAN_ID, fun fetch_simple_dataplan/1),
-    case kazoo_data_config:get_is_true(<<"preload_accounts_dataplan">>, false) of
-        true -> kz_process:spawn(fun load_accounts/0);
-        false -> ok
+    case kazoo_data_config:get_is_true(<<"preload_accounts_dataplan">>, 'false') of
+        'true' -> kz_process:spawn(fun load_accounts/0);
+        'false' -> 'ok'
     end.
 
 -spec reload() -> 'ok'.
@@ -765,9 +766,9 @@ reload(AccountId, StorageId) ->
 -spec load_accounts() -> 'ok'.
 load_accounts() ->
     case kz_datamgr:get_result_ids(?KZ_DATA_DB, ?KZS_PLAN_INIT_VIEW, []) of
-        {'ok', []} -> ok;
+        {'ok', []} -> 'ok';
         {'ok', Accounts} -> load_accounts(Accounts);
-        {error, _Error} -> lager:error("error reading dataplan accounts => ~p", [_Error])
+        {'error', _Error} -> lager:error("error reading dataplan accounts => ~p", [_Error])
     end.
 
 -spec load_accounts(kz_term:ne_binaries()) -> 'ok'.

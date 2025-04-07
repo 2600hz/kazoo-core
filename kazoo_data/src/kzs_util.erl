@@ -328,6 +328,7 @@ format_account_id(DbName, Timestamp)
        andalso Timestamp > ?YEAR_INT_BOUNDARY ->
     {{Year, Month, _}, _} = calendar:gregorian_seconds_to_datetime(Timestamp),
     format_account_id(DbName, Year, Month);
+
 format_account_id(<<"accounts">>, _) -> <<"accounts">>;
 
 format_account_id(?MATCH_ACCOUNT_RAW(_)=AccountId, 'raw') ->
@@ -364,12 +365,25 @@ raw_account_id(?MATCH_ACCOUNT_UNENCODED(A, B, Rest)) ->
     ?MATCH_ACCOUNT_RAW(A, B, Rest);
 raw_account_id(?MATCH_ACCOUNT_ENCODED(A, B, Rest)) ->
     ?MATCH_ACCOUNT_RAW(A, B, Rest);
+
 raw_account_id(?MATCH_MODB_SUFFIX_RAW(AccountId, _, _)) ->
     AccountId;
-raw_account_id(?MATCH_MODB_SUFFIX_ENCODED(A, B, Rest, _, _)) ->
-    ?MATCH_ACCOUNT_RAW(A, B, Rest);
 raw_account_id(?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, _, _)) ->
     ?MATCH_ACCOUNT_RAW(A, B, Rest);
+raw_account_id(?MATCH_MODB_SUFFIX_ENCODED(A, B, Rest, _, _)) ->
+    ?MATCH_ACCOUNT_RAW(A, B, Rest);
+raw_account_id(?MATCH_MODB_SUFFIX_encoded(A, B, Rest, _, _)) ->
+    ?MATCH_ACCOUNT_RAW(A, B, Rest);
+
+raw_account_id(?MATCH_TYPE_MODB_SUFFIX_RAW(A, B, Rest, _, _, _)) ->
+    ?MATCH_ACCOUNT_RAW(A, B, Rest);
+raw_account_id(?MATCH_TYPE_MODB_SUFFIX_UNENCODED(A, B, Rest, _, _, _)) ->
+    ?MATCH_ACCOUNT_RAW(A, B, Rest);
+raw_account_id(?MATCH_TYPE_MODB_SUFFIX_ENCODED(A, B, Rest, _, _, _)) ->
+    ?MATCH_ACCOUNT_RAW(A, B, Rest);
+raw_account_id(?MATCH_TYPE_MODB_SUFFIX_encoded(A, B, Rest, _, _, _)) ->
+    ?MATCH_ACCOUNT_RAW(A, B, Rest);
+
 raw_account_id(?MATCH_YODB_SUFFIX_RAW(AccountId, _)) ->
     AccountId;
 raw_account_id(?MATCH_YODB_SUFFIX_ENCODED(A, B, Rest, _)) ->
@@ -411,6 +425,7 @@ raw_account_modb(?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month)) ->
     ?MATCH_MODB_SUFFIX_RAW(A, B, Rest, Year, Month);
 raw_account_modb(?MATCH_TYPE_MODB_SUFFIX_UNENCODED(A, B, Rest, Year, Month, Any)) ->
     ?MATCH_TYPE_MODB_SUFFIX_RAW(A, B, Rest, Year, Month, Any).
+
 %%------------------------------------------------------------------------------
 %% `(yodb()) -> yodb_id() when yodb() :: yodb_id() | yodb_db() | yodb_db_unencoded()'
 %% Crashes if given anything else.

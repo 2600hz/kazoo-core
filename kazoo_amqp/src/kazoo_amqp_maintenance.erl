@@ -390,7 +390,7 @@ broker_summary_prechannels(Broker) ->
 %%------------------------------------------------------------------------------
 -spec channel_summary() -> 'ok'.
 channel_summary() ->
-    HeaderFields = [<<"Broker">>, <<"Age">>, <<"Assigned">>, <<"Application">>, <<"Consumer">>, <<"Channel">>, <<"Connection">>, <<"Type">>, <<"Watchers">>],
+    HeaderFields = [<<"Broker">>, <<"Age (s)">>, <<"Assigned">>, <<"Application">>, <<"Consumer">>, <<"Channel">>, <<"Connection">>, <<"Type">>, <<"Watchers">>],
     Pattern = #kz_amqp_assignment{_='_'},
     Rows = channel_summary(ets:match_object(?ASSIGNMENTS, Pattern, 1), []),
     kz_log:print_table([HeaderFields | Rows]
@@ -404,7 +404,7 @@ channel_summary({[#kz_amqp_assignment{}=Assignment], Continuation}, Rows) ->
                      ,channel_summary_age(Assignment#kz_amqp_assignment.timestamp)
                      ,channel_summary_age(Assignment#kz_amqp_assignment.assigned)
                      ,Assignment#kz_amqp_assignment.application
-                     ,Assignment#kz_amqp_assignment.consumer
+                     ,maybe_named_consumer(Assignment#kz_amqp_assignment.consumer)
                      ,Assignment#kz_amqp_assignment.channel
                      ,Assignment#kz_amqp_assignment.connection
                      ,Assignment#kz_amqp_assignment.type
@@ -412,6 +412,13 @@ channel_summary({[#kz_amqp_assignment{}=Assignment], Continuation}, Rows) ->
                      ]
                     | Rows
                     ]).
+
+maybe_named_consumer(Pid) when is_pid(Pid) ->
+    case process_info(Pid, 'registered_name') of
+        {'registered_name', Name} ->
+            [kz_term:to_binary(Name), " (", kz_term:to_binary(Pid), ")"];
+        _ -> kz_term:to_binary(Pid)
+    end.
 
 -spec channel_summary_age('undefined' | kz_time:start_time()) -> non_neg_integer().
 channel_summary_age('undefined') -> 0;
