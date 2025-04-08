@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2023, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc Kazoo HTTP client
 %%% @author Hesaam Farhang
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -267,41 +267,47 @@ execute_request(Method, Request, Opts) ->
                          ,Method
                          ,element(?REQ_URL_INDEX, Request)
                          ,catch httpc:request(Method, Request, HTTPOptions, Options)
+                         ,props:is_true('log', Opts, 'true')
                          ).
 
 %%------------------------------------------------------------------------------
 %% @doc Response to caller in a proper manner.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_timed_response(kz_time:start_time(), method(), url(), httpc_ret()) -> ret().
-handle_timed_response(StartTime, _Method, _Url, Resp) ->
+-spec handle_timed_response(kz_time:start_time(), method(), url(), httpc_ret(), boolean()) -> ret().
+handle_timed_response(StartTime, _Method, _Url, Resp, 'true') ->
     ElapsedMs = kz_time:elapsed_ms(StartTime),
     lager:debug("~pms: ~s ~s", [ElapsedMs, _Method, _Url]),
-    handle_response(Resp).
+    handle_response(Resp, 'true');
+handle_timed_response(_StartTime, _Method, _Url, Resp, 'false') ->
+    handle_response(Resp, 'false').
 
--spec handle_response(httpc_ret()) -> ret().
-handle_response({'ok', 'saved_to_file'}=Ok) -> Ok;
-handle_response({'ok', ReqId})
+-spec handle_response(httpc_ret(), boolean()) -> ret().
+handle_response({'ok', 'saved_to_file'}=Ok, _ShouldLog) -> Ok;
+handle_response({'ok', ReqId}, _ShouldLog)
   when is_reference(ReqId) ->
     {'http_req_id', ReqId};
-handle_response({'ok', {{_, StatusCode, _}, Headers, Body}})
+handle_response({'ok', {{_, StatusCode, _}, Headers, Body}}, _ShouldLog)
   when is_integer(StatusCode) ->
     {'ok', StatusCode, Headers, Body};
-handle_response({'error', 'timeout'}=Err) ->
+
+handle_response(Error, 'false') -> Error;
+
+handle_response({'error', 'timeout'}=Err, 'true') ->
     lager:info("connection timeout"),
-    Err;
-handle_response({'EXIT', {Error,_Trace}}) ->
+    handle_response(Err, 'false');
+handle_response({'EXIT', {Error, _Trace}}, 'true') ->
     lager:info("caught EXIT ~p: ~p", [Error, _Trace]),
-    {'error', Error};
-handle_response({'error', {'failed_connect',[{_, _Address}, {_, _, Error}]}}) ->
+    handle_response({'error', Error}, 'false');
+handle_response({'error', {'failed_connect',[{_, _Address}, {_, _, Error}]}}, 'true') ->
     lager:info("connection error ~s to ~p", [Error, _Address]),
-    {'error', {'failed_connect', Error}};
-handle_response({'error', {'malformed_url', _, Url}}) ->
+    handle_response({'error', {'failed_connect', Error}}, 'false');
+handle_response({'error', {'malformed_url', _, Url}}, 'true') ->
     lager:info("failed to parse URL ~p", [Url]),
-    {'error', {'malformed_url', Url}};
-handle_response({'error', Error}=Err) ->
+    handle_response({'error', {'malformed_url', Url}}, 'false');
+handle_response({'error', Error}=Err, 'true') ->
     lager:info("request failed with ~p", [Error]),
-    Err.
+    handle_response(Err, 'false').
 
 %%------------------------------------------------------------------------------
 %% @doc Build Authorization header using basic_auth option.
