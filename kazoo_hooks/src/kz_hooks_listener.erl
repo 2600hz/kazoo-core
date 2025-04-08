@@ -224,7 +224,7 @@ binding_to_call_event({_Binding, _BindProps}, CallEvents) -> CallEvents.
 is_new_event('all') -> 'true';
 is_new_event(EventName) ->
     case erlang:get('process_name') == 'blackhole_listener'
-         andalso erlang:get('hook_events') of
+        andalso erlang:get('hook_events') of
         'false' -> 'true';
         'undefined' -> erlang:put('hook_events', []), 'true';
         Events -> not lists:member(EventName, Events)
@@ -236,7 +236,7 @@ add_binding(EventName) ->
     lager:debug("adding binding now ~p", [EventName]),
     maybe_add_binding(EventName, Events),
     case erlang:get('process_name') == 'blackhole_listener'
-         andalso erlang:get('hook_events') of
+        andalso erlang:get('hook_events') of
         'false' -> 'ok';
         'undefined' -> erlang:put('hook_events', [EventName]), 'ok';
         SavedEvents -> erlang:put('hook_events', SavedEvents ++ [EventName]), 'ok'
