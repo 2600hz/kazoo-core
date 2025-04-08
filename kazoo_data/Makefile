@@ -1,8 +1,8 @@
 CWD = $(shell pwd -P)
 ROOT ?= $(realpath $(CWD)/../..)
 PROJECT = kazoo_data
-
-SOURCES = src/kz_data.erl $(wildcard src/*.erl) $(wildcard src/*/*.erl)
+COMPILE_MOAR = ebin/kz_data.beam
+SOURCES = $(wildcard src/*.erl) $(wildcard src/*/*.erl)
 
 ERLC_OPTS += +'{lager_extra_sinks, [data]}'
 

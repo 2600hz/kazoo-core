@@ -2,7 +2,8 @@ CWD = $(shell pwd -P)
 ROOT ?= $(realpath $(CWD)/../..)
 PROJECT = kazoo_directory
 
-SOURCES = $(wildcard src/kz_directory_device_spec.erl) $(wildcard src/*.erl)
+COMPILE_MOAR = ebin/kz_directory_device_spec.beam
+SOURCES = $(wildcard src/*.erl)
 
 all: compile
 
