@@ -77,8 +77,10 @@ start_link() ->
 
 -spec maybe_add_binding('all' | kz_term:ne_binary()) -> 'ok'.
 maybe_add_binding(EventName) ->
-    Events = call_events(gen_listener:bindings(?MODULE)),
-    maybe_add_binding(EventName, Events).
+    case is_new_event(EventName) of
+        'true' -> add_binding(EventName);
+        _ -> 'ok'
+    end.
 
 -spec maybe_remove_binding('all' | kz_term:ne_binary()) -> 'ok'.
 maybe_remove_binding(EventName) ->
@@ -217,3 +219,25 @@ binding_to_call_event({<<"call">>, CallProps}, CallEvents) ->
         Events -> lists:usort(Events ++ CallEvents)
     end;
 binding_to_call_event({_Binding, _BindProps}, CallEvents) -> CallEvents.
+
+-spec is_new_event('all' | kz_term:ne_binary()) -> boolean().
+is_new_event('all') -> 'true';
+is_new_event(EventName) ->
+    case erlang:get('process_name') == 'blackhole_listener'
+         andalso erlang:get('hook_events') of
+        'false' -> 'true';
+        'undefined' -> erlang:put('hook_events', []), 'true';
+        Events -> not lists:member(EventName, Events)
+    end.
+
+-spec add_binding(kz_term:ne_binary()) -> 'ok'.
+add_binding(EventName) ->
+    Events = call_events(gen_listener:bindings(?MODULE)),
+    lager:debug("adding binding now ~p", [EventName]),
+    maybe_add_binding(EventName, Events),
+    case erlang:get('process_name') == 'blackhole_listener'
+         andalso erlang:get('hook_events') of
+        'false' -> 'ok';
+        'undefined' -> erlang:put('hook_events', [EventName]), 'ok';
+        SavedEvents -> erlang:put('hook_events', SavedEvents ++ [EventName]), 'ok'
+    end.
