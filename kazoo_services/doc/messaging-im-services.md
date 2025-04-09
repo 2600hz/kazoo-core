@@ -1,26 +1,28 @@
 # Instant Messaging Services
 
-Describes how to enable and configure Service plans. IM feature must also be activate per carrier module
-in Number Manager.
+This page describes how to cluster operator can enable and configure IM in Services. IM feature must also be activated
+per carrier module in [Number Manager](../../kazoo_numbers/doc/knm_im.md).
 
-Depending on how you want to and charge for SMS and MMS features, you may choose to either
-use define a Service Plan with IM and assign this Plan to accounts or accept the IM service without any plan.
+Depending on how you want to charge customers for SMS and MMS features, you may choose to either:
+
+- Define a Service Plan with IM section and assign this Plan to accounts
+- Let accounts/resellers use the IM service without any IM section in their plans
 
 ## Using Service Plan for IM
 
-Each Service Plan can have an `im` parameter defined with relevant data to activate and charges for
-IM activities.
+Each Service Plan can have an `im` field defined with relevant data to activate and charges for IM activities.
 
-Services and Number Manager will get and merge all plans assigned to the account to get the final
-answer for the amount to charge and enablement of IM services.
+Services will get and merge all plans assigned to the account to get the final answer for the amount to charge and
+enablement of IM services.
 
-The parameters are as followed:
+Reseller can define Service Plans and assign it to their customers (sub-accounts). Or cluster operator can define a top level
+Plan and assigned them to reseller/accounts.
 
-- `sms.enabled`: Indicates the SMS functionality is enabled by this plan.
-- `sms.rate.inbound`: The flat rate amount for charging when receiving a SMS. If not set, defaults to `0.007`.
-- `sms.rate.outbound`: The flat rate amount for charging when sending a SMS. If not set, defaults to `0.007`.
-- `mms.rate.inbound`: The flat rate amount for charging when receiving a MMS. If not set, defaults to `0.015`.
-- `mms.rate.outbound`: The flat rate amount for charging when sending a MMS. If not set, defaults to `0.015`.
+The parameters are configurable for both type of IM, `sms` and `mms`. The parameters are as followed:
+
+- `enabled`: Indicates this type of IM functionality is enabled by this plan.
+- `rate.inbound`: The flat rate amount for charging when receiving message. If not set, defaults to `0.007` for SMS and `0.015` for MMS.
+- `rate.outbound`: The flat rate amount for charging when sending a message. If not set, defaults to `0.007` for SMS and `0.015` for MMS.
 
 For example:
 
@@ -40,15 +42,15 @@ For example:
         "inbound": 0.015,
         "outbound": 0.015
       }
-    },
+    }
   }
 }
 ```
 
 ## Activate IM when account has no IM plan assigned
 
-If you want to allow any account that has no IM Service Plan assigned to them be able use IM service
-you may want to use this setting.
+If you want to allow any account that has no IM Service Plan assigned to them be able use IM service you may want to use
+this setting. Cluster operator can only enable this.
 
 If enabled this, the default flat rate mentioned above still applies:
 
