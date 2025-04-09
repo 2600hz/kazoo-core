@@ -3348,11 +3348,11 @@ wait_for_noop(Call, NoopId, Timeout) ->
 -spec wait_for_channel_unbridge() -> {'ok', kz_json:object()}.
 wait_for_channel_unbridge() ->
     case receive_event(?MILLISECONDS_IN_MINUTE) of
-        {'ok', JObj} ->
+        {'ok', JObj}=Ok ->
             case kz_api:event_type(JObj) of
-                {<<"call_event">>, <<"CHANNEL_UNBRIDGE">>} -> {'ok', JObj};
-                {<<"call_event">>, <<"CHANNEL_DESTROY">>} -> {'ok', JObj};
-                {<<"call_event">>, <<"CHANNEL_DISCONNECTED">>} -> {'ok', JObj};
+                {<<"call_event">>, <<"CHANNEL_UNBRIDGE">>} -> Ok;
+                {<<"call_event">>, <<"CHANNEL_DESTROY">>} -> Ok;
+                {<<"call_event">>, <<"CHANNEL_DISCONNECTED">>} -> Ok;
                 _ -> wait_for_channel_unbridge()
             end;
         {'error', 'timeout'} ->
@@ -3370,6 +3370,7 @@ wait_for_channel_bridge() ->
             case kz_api:event_type(JObj) of
                 {<<"call_event">>, <<"CHANNEL_BRIDGE">>} -> Ok;
                 {<<"call_event">>, <<"CHANNEL_DESTROY">>} -> Ok;
+                {<<"call_event">>, <<"CHANNEL_DISCONNECTED">>} -> Ok;
                 _ -> wait_for_channel_bridge()
             end;
         _ -> wait_for_channel_bridge()
@@ -3728,7 +3729,7 @@ wait_for_unparked_call(Call, Timeout) ->
     Start = kz_time:start_time(),
     case receive_event(Timeout) of
         {'error', 'timeout'}=E -> E;
-        {'ok', JObj}=Ok ->
+        {'ok', JObj} ->
             case get_event_type(JObj) of
                 {<<"call_event">>, <<"CHANNEL_DESTROY">>, _} ->
                     lager:debug("channel was destroyed while waiting for unparked call"),
@@ -3738,12 +3739,10 @@ wait_for_unparked_call(Call, Timeout) ->
                     {'error', 'channel_disconnected'};
                 {<<"call_event">>, <<"CHANNEL_INTERCEPTED">>, _} ->
                     lager:debug("channel was intercepted while waiting for unparked call"),
-                    Ok;
+                    {'ok', 'channel_intercepted', JObj};
                 {<<"error">>, _, <<"hold">>} ->
                     lager:debug("channel execution error while waiting for unparked call: ~s", [kz_json:encode(JObj)]),
                     {'error', JObj};
-                {<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>, <<"hold">>} ->
-                    Ok;
                 _ ->
                     wait_for_unparked_call(Call, kz_time:decr_timeout(Timeout, Start))
             end
