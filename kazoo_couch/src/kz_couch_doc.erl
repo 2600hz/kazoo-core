@@ -51,20 +51,32 @@ open_doc(Conn, DbName, DocId) ->
           doc_return().
 open_doc(#server{}=Conn, DbName, DocId, Options) ->
     Db = get_db(Conn, DbName),
-    do_fetch_doc(Db, DocId, Options).
+    do_fetch_doc(Db, DocId, maybe_read_option(Options)).
+
+maybe_read_option(Options) ->
+    case kz_config:get_integer(kz_dataconfig:get_config_section(), <<"read">>) of
+        [] -> Options;
+        [Value] -> [{'r', Value} | Options]
+    end.
 
 -spec save_doc(server(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
           doc_return().
 save_doc(#server{}=Conn, DbName, Doc, Options) ->
     Db = get_db(Conn, DbName),
-    do_save_doc(Db, Doc, Options).
+    do_save_doc(Db, Doc, maybe_write_option(Options)).
 
 -spec save_docs(server(), kz_term:ne_binary(), kz_json:objects(), kz_term:proplist()) ->
           {'ok', kz_json:objects()} |
           couchbeam_error().
 save_docs(#server{}=Conn, DbName, Docs, Options) ->
     Db = get_db(Conn, DbName),
-    do_save_docs(Db, Docs, Options).
+    do_save_docs(Db, Docs, maybe_write_option(Options)).
+
+maybe_write_option(Options) ->
+    case kz_config:get_integer(kz_dataconfig:get_config_section(), <<"write">>) of
+        [] -> Options;
+        [Value] -> [{'w', Value} | Options]
+    end.
 
 -spec lookup_doc_rev(server(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_term:ne_binary()} |
