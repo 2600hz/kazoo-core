@@ -15,15 +15,23 @@
 %% API functions
 %%==============================================================================
 
--export([connection/0, connection/1]).
+-export([connection/0
+        ,connection/1
+        ,get_config_section/0
+        ]).
 
 -spec connection() -> data_connection().
 connection() ->
-    [Section] = kz_config:get_binary(<<"data">>, <<"config">>, [<<"bigcouch">>]),
+    Section = get_config_section(),
     lager:debug("using section ~s for connection", [Section]),
     Config = kz_config:get(Section),
     Props = props:get_value(<<"generic">>, Config, []),
     connection(connection_options(Props)).
+
+-spec get_config_section() -> kz_term:ne_binary().
+get_config_section() ->
+    [Section] = kz_config:get_binary(<<"data">>, <<"config">>, [<<"bigcouch">>]),
+    Section.
 
 -spec connection_options(kz_term:proplist()) -> kz_term:proplist().
 connection_options(Props) ->
