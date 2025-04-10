@@ -15,20 +15,14 @@
 -export([update_all_accounts/1]).
 -export([replicate_from_accounts/2, replicate_from_account/3]).
 -export([revise_whapp_views_in_accounts/1]).
--export([get_all_accounts/0
-        ,get_all_accounts/1
-        ,get_all_accounts_and_mods/0
-        ,get_all_accounts_and_mods/1
-        ,get_all_account_mods/0
-        ,get_all_account_mods/1
-        ,get_all_account_yods/0
-        ,get_all_account_yods/1
-        ,get_account_mods/1
-        ,get_account_mods/2
-        ,get_all_account_type_mods/1
-        ,get_all_account_type_mods/2
-        ,get_account_yods/1
-        ,get_account_yods/2
+-export([get_all_accounts/0, get_all_accounts/1
+        ,get_all_accounts_and_mods/0, get_all_accounts_and_mods/1
+        ,get_all_account_mods/0, get_all_account_mods/1
+        ,get_all_account_yods/0, get_all_account_yods/1
+        ,get_account_mods/1, get_account_mods/2
+        ,get_all_account_type_mods/1, get_all_account_type_mods/2
+        ,get_account_yods/1, get_account_yods/2
+        ,get_account_dbs/1
         ]).
 -export([get_account_by_realm/1
         ,get_ccvs_by_ip/1
@@ -313,6 +307,21 @@ format_db(Db, Encoding, [{Predicate, Formatter}|Fs]) ->
         'true' -> Formatter(Db, Encoding);
         'false' -> format_db(Db, Encoding, Fs)
     end.
+
+-spec get_account_dbs(kz_term:ne_binary()) -> kz_term:ne_binaries().
+get_account_dbs(AccountId) ->
+    {'ok', Databases} = kz_datamgr:db_info(),
+    lists:filter(filter_account_dbs_fun(AccountId), Databases).
+
+filter_account_dbs_fun(AccountId) ->
+    AccountDB = kzs_util:format_account_id(AccountId, unencoded),
+    fun(Database) ->
+        filter_account_db(AccountDB, Database)
+    end.
+
+filter_account_db(AccountDB, AccountDB) -> false;
+filter_account_db(AccountDB, DB) ->
+    binary:longest_common_prefix([AccountDB, DB]) =:= byte_size(AccountDB).
 
 -spec get_all_account_mods() -> kz_term:ne_binaries().
 get_all_account_mods() ->
