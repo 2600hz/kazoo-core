@@ -28,13 +28,13 @@ get_read() -> get_config_val(<<"read">>).
 -spec get_write() -> 'ok'.
 get_write() -> get_config_val(<<"write">>).
 
-get_config_val(Config) ->
+get_config_val(Key) ->
     Section = ?SECTION_CONFIG,
-    case kz_config:get_integer(Section, Config) of
+    case kz_config:get_integer(Section, Key) of
         [] ->
-            io:format("~s value empty in section ~s ~n", [Config, Section]);
+            io:format("~s value empty in section ~s ~n", [Key, Section]);
         [Value] ->
-            io:format("~s value: ~p ~n", [Config, Value])
+            io:format("~s value: ~p ~n", [Key, Value])
     end.
 
 -spec set_read(kz_term:text() | integer()) -> 'ok'.
