@@ -1897,7 +1897,7 @@ maybe_add_view_options(View, Classification) ->
 -spec maybe_get_default_options(kz_json:object()) -> kz_json:object().
 maybe_get_default_options(View) ->
     ViewOptions = kapps_config:get_json(<<"views">>
-                                    ,<<"view_options">>
-                                    ,kz_json:from_list([{<<"autoupdate">>, 'false'}])
-                                    ),
+                                       ,<<"view_options">>
+                                       ,kz_json:from_list([{<<"autoupdate">>, 'false'}])
+                                       ),
     kz_json:merge(View, ViewOptions).
