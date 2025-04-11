@@ -54,6 +54,9 @@
         "Reply-To": {
             "type": "string"
         },
+        "Should-Notify": {
+            "type": "string"
+        },
         "Subject": {
             "type": "string"
         },
