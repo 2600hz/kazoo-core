@@ -476,7 +476,7 @@ new_account_definition() ->
               ,{fun kapi_definition:set_optional_headers/2, [<<"Account-API-Key">>
                                                             ,<<"Account-Name">>
                                                             ,<<"Account-Realm">>
-                                                            ,<<"No-Email">>
+                                                            ,<<"Should-Notify">>
                                                             | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
