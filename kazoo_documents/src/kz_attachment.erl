@@ -11,7 +11,7 @@
 -module(kz_attachment).
 
 -export([decode_base64/1]).
--export([encode_base64/2, encode_base64/3]).
+-export([to_data_base64/2, to_data_base64/3]).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -65,12 +65,12 @@ corrected_base64_decode(Base64) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec encode_base64(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-encode_base64(ContentType, Bin) ->
+-spec to_data_base64(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+to_data_base64(ContentType, Bin) ->
     EncodedBody = base64:encode(Bin),
     <<"data:", ContentType/binary, ";base64,", EncodedBody/binary>>.
 
--spec encode_base64(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-encode_base64(Type, SubType, Bin) ->
+-spec to_data_base64(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+to_data_base64(Type, SubType, Bin) ->
     CT = kz_binary:join([Type, SubType], <<"/">>),
-    encode_base64(CT, Bin).
+    to_data_base64(CT, Bin).

@@ -693,4 +693,4 @@ mime_to_base64_files([{Type, SubType, _Headers, _Parameters, Body} | Rest], Acc)
 base64_file(_, _, <<>>) ->
     {'error', 'empty'};
 base64_file(Type, SubType, Data) ->
-    {'ok', kz_attachment:encode_base64(Type, SubType, Data)}.
+    {'ok', kz_attachment:to_data_base64(Type, SubType, Data)}.
