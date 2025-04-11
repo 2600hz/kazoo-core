@@ -223,9 +223,7 @@ binding_to_call_event({_Binding, _BindProps}, CallEvents) -> CallEvents.
 -spec is_new_event('all' | kz_term:ne_binary()) -> boolean().
 is_new_event('all') -> 'true';
 is_new_event(EventName) ->
-    case erlang:get('process_name') == 'blackhole_listener'
-        andalso erlang:get('hook_events') of
-        'false' -> 'true';
+    case erlang:get('hook_events') of
         'undefined' -> erlang:put('hook_events', []), 'true';
         Events -> not lists:member(EventName, Events)
     end.
