@@ -1882,5 +1882,22 @@ view_definitions(<<DbName/binary>>, <<Classification/binary>>) ->
         {'error', _} -> [];
         {'ok', JObjs} ->
             ViewDefs = [kz_json:get_json_value(<<"view_definition">>, JObj) || JObj <- JObjs],
-            [{kz_doc:id(ViewDef), ViewDef} || ViewDef <- ViewDefs]
+            [{kz_doc:id(ViewDef), maybe_add_view_options(ViewDef, Classification)} || ViewDef <- ViewDefs]
     end.
+
+-spec maybe_add_view_options(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
+maybe_add_view_options(View, Classification) ->
+    case kapps_config:get_json(<<"views.", Classification/binary>>, <<"view_options">>, 'undefined') of
+        'undefined' ->
+            maybe_get_default_options(View);
+        ViewOptions ->
+            kz_json:merge(View, ViewOptions)
+    end.
+
+-spec maybe_get_default_options(kz_json:object()) -> kz_json:object().
+maybe_get_default_options(View) ->
+    ViewOptions = kapps_config:get_json(<<"views">>
+                                    ,<<"view_options">>
+                                    ,kz_json:from_list([{<<"autoupdate">>, 'false'}])
+                                    ),
+    kz_json:merge(View, ViewOptions).
