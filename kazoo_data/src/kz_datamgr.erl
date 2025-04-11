@@ -1892,8 +1892,7 @@ maybe_add_design_options(View, Classification) ->
     case kapps_config:get_json(<<"design_docs">>, [<<"views">>, Classification, Id, <<"options">>], 'undefined') of
         'undefined' ->
             maybe_add_classification_options(View, Classification);
-        ViewOptions ->
-            kz_json:merge(View, ViewOptions)
+            [{kz_doc:id(ViewDef), maybe_add_view_options(ViewDef, Classification)} || ViewDef <- ViewDefs]
     end.
 
 -spec maybe_add_classification_options(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
