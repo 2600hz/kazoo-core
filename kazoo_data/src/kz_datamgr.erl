@@ -1888,7 +1888,7 @@ view_definitions(<<DbName/binary>>, <<Classification/binary>>) ->
 -spec maybe_add_design_options(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
 maybe_add_design_options(View, Classification) ->
     <<"_design/", Id/binary>> = kz_doc:id(View),
-    case kapps_config:get_json(<<"design_docs">>, [<<"options">>, <<"views">>, Classification, Id, <<"options">>], 'undefined') of
+    case kapps_config:get_json(<<"design_docs">>, [<<"views">>, Classification, Id, <<"options">>], 'undefined') of
         'undefined' ->
             maybe_add_classification_options(View, Classification);
         ViewOptions ->
@@ -1897,7 +1897,7 @@ maybe_add_design_options(View, Classification) ->
 
 -spec maybe_add_classification_options(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
 maybe_add_classification_options(View, Classification) ->
-    case kapps_config:get_json(<<"design_docs">>, [<<"options">>, <<"classifications">>, Classification, <<"options">>], 'undefined') of
+    case kapps_config:get_json(<<"design_docs">>, [<<"classifications">>, Classification, <<"options">>], 'undefined') of
         'undefined' ->
             maybe_add_default_options(View);
         ViewOptions ->
@@ -1906,8 +1906,8 @@ maybe_add_classification_options(View, Classification) ->
 
 -spec maybe_add_default_options(kz_json:object()) -> kz_json:object().
 maybe_add_default_options(View) ->
-    ViewOptions = kapps_config:get_json(<<"design_docs">>, [<<"options">>, <<"default">>], default_options()),
+    ViewOptions = kapps_config:get_json(<<"design_docs">>, <<"options">>, default_options()),
     kz_json:merge(View, ViewOptions).
 
 default_options() ->
-    kz_json:from_list([{<<"default">>, kz_json:from_list([{<<"autoupdate">>, 'false'}])}]).
+    kz_json:from_list([{<<"autoupdate">>, 'false'}]).
