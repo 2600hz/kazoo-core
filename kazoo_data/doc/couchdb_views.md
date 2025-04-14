@@ -47,14 +47,15 @@ For example, the following will save the `_design/haha_you_fooled` to only `acco
 
 ```json
 {
-    "_id": "_design/haha_you_fooled",
-    "kazoo": {
-        "view_map": [
-            {
-                "database": "accounts"
-            }
-        ]
-    }
+  "_id": "_design/haha_you_fooled",
+  "kazoo": {
+    "view_map": [
+      {
+        "database": "accounts"
+      }
+    ]
+  }
+}
 ```
 
 Each JSON object of the `view_map` can have **only ONE** of the these keys:
@@ -203,37 +204,6 @@ why setting this value and how this improves it.
   "default": {
     "options": {
       "autoupdate": false
-    },
-    "classifications": {
-      "system": {
-        "options": {
-          "autoupdate": false
-        }
-      },
-      "account": {
-        "options": {
-          "autoupdate": false
-        }
-      },
-      "modb": {
-        "options": {
-          "autoupdate": false
-        }
-      }
-    },
-    "views": {
-      "system": {
-        "system_configs": {
-          "options": {
-            "autoupdate": false
-          }
-        },
-        "maintenance": {
-          "options": {
-            "autoupdate": false
-          }
-        }
-      }
     }
   }
 }
@@ -249,17 +219,16 @@ Here design name is without the `_design/` part e.g. `_design/accounts` will be 
 {
   "id": "design_docs",
   "default": {
-    "options": {}
-  },
-  "classifications": {
-    "{CLASSIFICATION}": {
-      "options": {}
-    }
-  },
-  "views": {
-    "{classification}": {
-      "{design_name}": {
+    "classifications": {
+      "{CLASSIFICATION}": {
         "options": {}
+      }
+    },
+    "views": {
+      "{classification}": {
+        "{design_name}": {
+          "options": {}
+        }
       }
     }
   }

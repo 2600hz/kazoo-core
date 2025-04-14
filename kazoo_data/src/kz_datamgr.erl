@@ -134,6 +134,7 @@
 -type database_name() :: kz_term:ne_binary().
 
 -define(UUID_SIZE, 16).
+-define(DEFAULT_DESIGN_OPTIONS, kz_json:from_list([{<<"autoupdate">>, 'false'}])).
 
 %%%=============================================================================
 %%% Couch Functions
@@ -1906,8 +1907,5 @@ maybe_add_classification_options(View, Classification) ->
 
 -spec maybe_add_default_options(kz_json:object()) -> kz_json:object().
 maybe_add_default_options(View) ->
-    ViewOptions = kapps_config:get_json(<<"design_docs">>, <<"options">>, default_options()),
+    ViewOptions = kapps_config:get_json(<<"design_docs">>, <<"options">>, ?DEFAULT_DESIGN_OPTIONS),
     kz_json:merge(View, ViewOptions).
-
-default_options() ->
-    kz_json:from_list([{<<"autoupdate">>, 'false'}]).
