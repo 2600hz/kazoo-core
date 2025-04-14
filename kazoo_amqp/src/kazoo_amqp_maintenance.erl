@@ -418,7 +418,8 @@ maybe_named_consumer(Pid) when is_pid(Pid) ->
         {'registered_name', Name} ->
             [kz_term:to_binary(Name), " (", kz_term:to_binary(Pid), ")"];
         _ -> kz_term:to_binary(Pid)
-    end.
+    end;
+maybe_named_consumer('undefined') -> <<"undefined">>.
 
 -spec channel_summary_age('undefined' | kz_time:start_time()) -> non_neg_integer().
 channel_summary_age('undefined') -> 0;
