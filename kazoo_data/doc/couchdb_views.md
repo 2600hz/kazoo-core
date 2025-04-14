@@ -198,45 +198,45 @@ why setting this value and how this improves it.
 ### System-wide default value for `design_docs`
 
 ```json
+{
   "id": "design_docs",
   "default": {
     "options": {
-      "default": {
-        "autoupdate": false
+      "autoupdate": false
+    },
+    "classifications": {
+      "system": {
+        "options": {
+          "autoupdate": false
+        }
       },
-      "classifications": {
-        "system": {
+      "account": {
+        "options": {
+          "autoupdate": false
+        }
+      },
+      "modb": {
+        "options": {
+          "autoupdate": false
+        }
+      }
+    },
+    "views": {
+      "system": {
+        "system_configs": {
           "options": {
             "autoupdate": false
           }
         },
-        "account": {
+        "maintenance": {
           "options": {
             "autoupdate": false
           }
-        }
-        "modb": {
-          "options": {
-            "autoupdate": false
-          }
-        }
-      },
-      "views": {
-        "system": {
-          "system_configs": {
-            "options": {
-              "autoupdate": false
-            }
-          },
-          "maintenance": {
-            "options": {
-              "autoupdate": false
-            }
-          },
         }
       }
     }
   }
+}
 ```
 
 ### Setting `design_docs` per view or database classification
