@@ -55,13 +55,17 @@ The json is nested with following values.
 {
   "id": "design_docs",
   "default": {
-    "options": {},
-    "classifications": {
-      "{CLASSIFICATION}": { "options": {}}}
-    },
-    "views": {
-      "{classification}": {
-        "{design_name}": { "options": {}}}
+    "options": {}
+  },
+  "classifications": {
+    "{CLASSIFICATION}": {
+      "options": {}
+    }
+  },
+  "views": {
+    "{classification}": {
+      "{design_name}": {
+        "options": {}
       }
     }
   }
