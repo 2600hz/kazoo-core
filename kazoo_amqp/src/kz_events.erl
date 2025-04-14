@@ -381,17 +381,17 @@ unreg_property(Binding) ->
 binding_key(EventType, Args) ->
     kz_binary:join([<<?MODULE_STRING>>, kz_term:to_binary(EventType) | Args], <<".">>).
 
--spec start_link_call_events() -> ignore.
+-spec start_link_call_events() -> 'ignore'.
 start_link_call_events() ->
     start_call_events(),
-    ignore.
+    'ignore'.
 
--spec start_link_presence_events() -> ignore.
+-spec start_link_presence_events() -> 'ignore'.
 start_link_presence_events() ->
     start_presence_events(),
-    ignore.
+    'ignore'.
 
--spec start_link_conf_events() -> ignore.
+-spec start_link_conf_events() -> 'ignore'.
 start_link_conf_events() ->
     start_conf_events(),
-    ignore.
+    'ignore'.
