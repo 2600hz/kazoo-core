@@ -1906,7 +1906,7 @@ maybe_add_classification_options(View, Classification) ->
 
 -spec maybe_add_default_options(kz_json:object()) -> kz_json:object().
 maybe_add_default_options(View) ->
-    ViewOptions = kapps_config:get_json(<<"design_docs">>, <<"options">>, default_options()),
+    ViewOptions = kapps_config:get_json(<<"design_docs">>, [<<"options">>, <<"default">>], default_options()),
     kz_json:merge(View, ViewOptions).
 
 default_options() ->
