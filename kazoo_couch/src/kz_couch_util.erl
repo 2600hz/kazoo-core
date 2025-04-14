@@ -205,7 +205,7 @@ server_info(#server{}=Conn) -> couchbeam:server_info(Conn).
 -spec membership(server()) -> kz_json:object().
 membership(#server{url=ServerUrl}) ->
     URL = hackney_url:make_url(ServerUrl, <<"_membership">>, []),
-    case kz_http:get(URL) of
+    case kz_http:get(URL, [], [{'log', 'false'}]) of
         {'ok', 200, _, Body} ->
             kz_json:decode(Body);
         {'error', _E} ->
