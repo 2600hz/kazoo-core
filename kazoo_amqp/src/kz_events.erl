@@ -9,13 +9,13 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_events).
 
--export([event_binding/2]).
-
 -export([start_call_events/0
         ,stop_call_events/0
         ,restart_call_events/0
         ,bind_call_id/1, unbind_call_id/1
-        ,call_event_binding/1
+        ,call_event_binding/2
+        ,add_async_call_event_handler/3
+        ,delete_async_call_event_handler/3
         ]).
 
 -export([start_presence_events/0
@@ -29,24 +29,28 @@
 
 -include("kazoo_events.hrl").
 
+-type bindings() :: [binding_call_id() | binding_presence_id()].
+
 -type call_id() :: kz_term:ne_binary() | '_'.
--type binding_call_id() :: {'call_events', call_id()}.
+-type binding_call_id() :: {'call_events', call_id(), kz_term:ne_binary()}.
+-type call_event_name() :: kz_term:ne_binary().
+-type call_event_names() :: [call_event_name()].
 
 -type presence_id() :: kz_term:ne_binary() | '_'.
 -type binding_presence_id() :: {'presence', presence_id()}.
 
--type event_binding() :: binding_call_id() |
-                         binding_presence_id().
+-type handler() :: {module(), kazoo_bindings:responder_fun(), kazoo_bindings:payload()} |
+                   kazoo_bindings:responder_fun().
 
--spec event_binding(event_type(), [call_id()]) -> event_binding().
-event_binding('call_events', [CallId]) ->
-    call_event_binding(CallId);
-event_binding('presence', [PresenceId]) ->
-    presence_event_binding(PresenceId).
+%%------------------------------------------------------------------------------
+%% @doc Get the representation of a call event binding. Both `CallId' and
+%% `EventName' can be `<<"*">>' to match any value.
+%% @end
+%%------------------------------------------------------------------------------
+-spec call_event_binding(call_id(), kz_term:ne_binary()) -> binding_call_id().
+call_event_binding(CallId, EventName) ->
+    {'call_events', CallId, EventName}.
 
--spec call_event_binding(call_id()) -> binding_call_id().
-call_event_binding(CallId) ->
-    {'call_events', CallId}.
 
 %% @doc starts pool of listeners for call events
 -spec start_call_events() -> 'ok'.
@@ -75,19 +79,86 @@ maybe_start_call_events() ->
 
 maybe_start_call_events('false') ->
     _ = kz_event_listeners_sup:start_pool('call_events'),
-    'ok';
-maybe_start_call_events('true') -> 'ok'.
+    lager:debug("call events started");
+maybe_start_call_events('true') ->
+    lager:debug("call events already started").
 
--spec bind_call_id(kz_term:ne_binary()) -> 'ok'.
+%% @equiv bind_call_id(CallId, [<<"*">>])
+-spec bind_call_id(call_id()) -> 'ok'.
 bind_call_id(CallId) ->
+    bind_call_id(CallId, [<<"*">>]).
+
+%%------------------------------------------------------------------------------
+%% @doc Bind for pooled call events.
+%% @end
+%%------------------------------------------------------------------------------
+-spec bind_call_id(call_id(), call_event_names()) -> 'ok'.
+bind_call_id(CallId, EventNames) ->
     maybe_start_call_events(),
-    _ = reg_property(call_event_binding(CallId), self()),
+    _ = [reg_property(call_event_binding(CallId, EventName), self())
+         || EventName <- EventNames
+        ],
     'ok'.
 
--spec unbind_call_id(kz_term:ne_binary()) -> 'ok'.
+%% @equiv unbind_call_id(CallId, [<<"*">>])
+-spec unbind_call_id(call_id()) -> 'ok'.
 unbind_call_id(CallId) ->
-    unreg_property(call_event_binding(CallId)),
+    unbind_call_id(CallId, [<<"*">>]).
+
+%%------------------------------------------------------------------------------
+%% @doc Unbind from pooled call events.
+%% @end
+%%------------------------------------------------------------------------------
+-spec unbind_call_id(call_id(), call_event_names()) -> 'ok'.
+unbind_call_id(CallId, EventNames) ->
+    _ = [unreg_property(call_event_binding(CallId, EventName))
+         || EventName <- EventNames
+        ],
     'ok'.
+
+%%------------------------------------------------------------------------------
+%% @doc Add a handler that is invoked asynchronously when a call event matching
+%% `AccountId' and `EventName' is received.
+%% @end
+%%------------------------------------------------------------------------------
+-spec add_async_call_event_handler(kz_term:ne_binary(), kz_term:ne_binary(), handler()) ->
+          kazoo_bindings:bind_result().
+add_async_call_event_handler(AccountId, EventName, Handler) ->
+    add_async_handler('call_events', [AccountId, EventName], Handler).
+
+%%------------------------------------------------------------------------------
+%% @doc Add a handler that is invoked asynchronously when an event matching the
+%% binding key (based on `EventType' and `Args') is received.
+%% @end
+%%------------------------------------------------------------------------------
+-spec add_async_handler(event_type(), list(), handler()) -> kazoo_bindings:bind_result().
+add_async_handler(EventType, Args, Handler) ->
+    BindingKey = binding_key(EventType, Args),
+    case Handler of
+        {M, F, A} -> kazoo_bindings:bind(BindingKey, M, F, A);
+        _ -> kazoo_bindings:bind(BindingKey, Handler)
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Delete a previously-added asynchronous call event handler.
+%% @end
+%%------------------------------------------------------------------------------
+-spec delete_async_call_event_handler(kz_term:ne_binary(), kz_term:ne_binary(), handler()) ->
+          kazoo_bindings:unbind_result().
+delete_async_call_event_handler(AccountId, EventName, Handler) ->
+    delete_async_handler('call_events', [AccountId, EventName], Handler).
+
+%%------------------------------------------------------------------------------
+%% @doc Delete a previously-added asynchronous event handler.
+%% @end
+%%------------------------------------------------------------------------------
+-spec delete_async_handler(event_type(), list(), handler()) -> kazoo_bindings:unbind_result().
+delete_async_handler(EventType, Args, Handler) ->
+    BindingKey = binding_key(EventType, Args),
+    case Handler of
+        {M, F, A} -> kazoo_bindings:unbind(BindingKey, M, F, A);
+        _ -> kazoo_bindings:unbind(BindingKey, Handler)
+    end.
 
 -spec presence_event_binding(presence_id()) -> binding_presence_id().
 presence_event_binding(PresenceId) ->
@@ -135,12 +206,43 @@ unbind_presence_id(PresenceId) ->
     'ok'.
 
 -spec publish_event(kz_json:object(), kz_term:proplist(), event_type()) -> 'ok'.
-publish_event(JObj, Props, 'call_events') ->
-    Binding = call_event_binding(kz_call_event:call_id(JObj)),
-    send_event(Binding, {'kapi', kapi:delivery_message(JObj, Props)});
+publish_event(JObj, Props, 'call_events'=EventType) ->
+    Bindings = [call_event_binding(CallId, EventName)
+                || CallId    <- [<<"*">>, kz_call_event:call_id(JObj)],
+                   EventName <- [<<"*">>, kz_api:event_name(JObj)]
+               ],
+    publish_event(JObj, Props, EventType, Bindings);
 publish_event(JObj, Props, 'presence') ->
     Binding = presence_event_binding(kz_json:get_ne_binary_value(<<"Presence-ID">>, JObj)),
     send_event(Binding, {'kapi', kapi:delivery_message(JObj, Props)}).
+
+%%------------------------------------------------------------------------------
+%% @doc Publish a pooled event. The event is first distributed asynchronously to
+%% matching async event handlers, then sent to bound procs (i.e. `gen_listener's
+%% with pooled bindings).
+%% @end
+%%------------------------------------------------------------------------------
+-spec publish_event(kz_json:object(), kz_term:proplist(), event_type(), bindings()) -> 'ok'.
+publish_event(JObj, Props, EventType, Bindings) ->
+    handle_async(EventType, JObj),
+    send_event(Bindings, {'kapi', kapi:delivery_message(JObj, Props)}).
+
+%%------------------------------------------------------------------------------
+%% @doc Asynchronously distribute an event to matching async event handlers.
+%% @end
+%%------------------------------------------------------------------------------
+-spec handle_async(event_type() | kz_term:ne_binary(), kz_json:object()) -> 'ok'.
+handle_async(BindingKey, JObj) when is_binary(BindingKey) ->
+    _ = kz_process:spawn(fun() -> kazoo_bindings:pmap(BindingKey, JObj) end),
+    'ok';
+handle_async('call_events'=EventType, JObj) ->
+    BindingKey = binding_key(EventType, [kz_call_event:account_id(JObj)
+                                        ,kz_api:event_name(JObj)
+                                        ]),
+    handle_async(BindingKey, JObj);
+handle_async('presence'=EventType, JObj) ->
+    BindingKey = binding_key(EventType, []),
+    handle_async(BindingKey, JObj).
 
 send_event(Binding, Payload) ->
     Pids = gproc:lookup_pids({'p', 'l', Binding}),
@@ -156,3 +258,13 @@ reg_property(Binding, Value) ->
 
 unreg_property(Binding) ->
     gproc:unreg({'p', 'l', Binding}).
+
+
+%%------------------------------------------------------------------------------
+%% @doc Get the handler binding key for the given event type and extra handler
+%% args.
+%% @end
+%%------------------------------------------------------------------------------
+-spec binding_key(event_type(), list()) -> kz_term:ne_binary().
+binding_key(EventType, Args) ->
+    kz_binary:join([<<?MODULE_STRING>>, kz_term:to_binary(EventType) | Args], <<".">>).
