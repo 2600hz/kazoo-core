@@ -1910,4 +1910,4 @@ maybe_add_default_options(View) ->
     kz_json:merge(View, ViewOptions).
 
 default_options() ->
-    kz_json:from_list([{<<"default">>, {[{<<"autoupdate">>, 'false'}]}}]).
+    kz_json:from_list([{<<"default">>, kz_json:from_list([{<<"autoupdate">>, 'false'}])}]).
