@@ -165,10 +165,12 @@ update(Nums, Routines, Options) ->
 
 do_update(T0, Routines) ->
     knm_pipe:pipe(T0
-                 ,[fun (T) -> knm_phone_number:setters(T, Routines) end
+                 ,[apply_pn_setters(Routines)
                   ,fun save_numbers/1
                   ]
                  ).
+apply_pn_setters(Routines) ->
+    fun (T) -> knm_phone_number:setters(T, Routines) end.
 
 %%------------------------------------------------------------------------------
 %% @doc

@@ -106,10 +106,10 @@ check_numbers(Module, Nums) ->
         {'ok', JObj} -> {kz_json:to_map(JObj), #{}};
         {'error', _} -> {#{}, maps:from_list([{Num, <<"error">>} || Num <- Nums])}
     catch
-        ?STACKTRACE(_, _, ST)
-        kz_log:log_stacktrace(ST),
-        {#{}, maps:from_list([{Num, <<"error">>} || Num <- Nums])}
-        end.
+        _:_:ST ->
+            kz_log:log_stacktrace(ST),
+            {#{}, maps:from_list([{Num, <<"error">>} || Num <- Nums])}
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Create a list of all carrier modules available to a subaccount.
@@ -153,7 +153,8 @@ default_carrier() ->
 %%------------------------------------------------------------------------------
 -spec all_modules() -> kz_term:ne_binaries().
 all_modules() ->
-    [<<"knm_bandwidth2">>
+    [<<"knm_trunkingio">>
+    ,<<"knm_bandwidth2">>
     ,<<"knm_bandwidth">>
     ,<<"knm_inum">>
     ,<<"knm_local">>
@@ -208,10 +209,10 @@ info_fold(Module, Info=#{?CARRIER_INFO_MAX_PREFIX := MaxPrefix}) ->
                  };
         _ -> Info
     catch
-        ?STACKTRACE(_E, _R, ST)
-        kz_log:log_stacktrace(ST),
-        Info
-        end.
+        _E:_R:ST ->
+            kz_log:log_stacktrace(ST),
+            Info
+    end.
 
 -spec usable_carriers() -> kz_term:ne_binaries().
 usable_carriers() ->
@@ -344,10 +345,10 @@ is_number_billable(PN) ->
 is_local(Carrier) ->
     try apply(Carrier, 'is_local', [])
     catch
-        ?STACKTRACE(_E, _R, ST)
-        kz_log:log_stacktrace(ST),
-        true
-        end.
+        _E:_R:ST ->
+            kz_log:log_stacktrace(ST),
+            true
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc

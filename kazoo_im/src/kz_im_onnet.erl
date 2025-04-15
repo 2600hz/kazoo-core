@@ -208,6 +208,7 @@ handle_outbound(_JObj, Props, 'false') ->
 handle_outbound(JObj, Props, 'true') ->
     handle_outbound_resp(Props, handle_outbound_route(JObj, Props)).
 
+-spec handle_outbound_resp(kz_term:proplist(), 'ack' | {'nack', boolean()}) ->  'ok'.
 handle_outbound_resp(Props, 'ack') -> ack(Props);
 handle_outbound_resp(Props, {'nack', Requeue}) -> nack(Props, Requeue).
 
@@ -228,7 +229,7 @@ log_nack(true) ->
 log_nack(false) ->
     lager:warning("outbound message failed, sending nack without requeing").
 
--spec handle_outbound_route(kz_json:object(), kz_term:proplist()) -> ack | {nack, boolean()}.
+-spec handle_outbound_route(kz_json:object(), kz_term:proplist()) -> 'ack' | {'nack', boolean()}.
 handle_outbound_route(JObj, Props) ->
     IM = kapps_im:from_payload(JObj),
     Map = #{payload => JObj
@@ -255,23 +256,39 @@ handle_outbound_route(JObj, Props) ->
         _Exception:_Reason:_Stack ->
             lager:warning("exception ~p / ~p handling outbound request", [_Exception, _Reason]),
             kz_log:log_stacktrace(_Stack),
-            {nack, false}
+            {'nack', 'false'}
     end.
 
 
--spec route_offnet(map()) -> ack | {nack, boolean()}.
-route_offnet(#{enabled := 'true'
-              ,payload := Payload
-              }) ->
-    case kz_im_offnet:route(Payload) of
-        'ok' -> ack;
-        {'error', 'no_connections'} ->
-            lager:warning("no connections for offnet, will retry later"),
-            {nack, true}
-    end;
+-spec route_offnet(map()) -> 'ack' | {'nack', boolean()}.
+route_offnet(#{enabled := 'true'}=Map) ->
+    maybe_route_by_provider(maps:get('module', Map, 'undefined'), Map);
 route_offnet(_Map) ->
     lager:debug_unsafe("not routing ~p", [_Map]),
     'nack'.
+
+maybe_route_by_provider(<<Provider/binary>>, #{payload := Payload}=Map) ->
+    case kz_module:is_exported(Provider, 'route_outbound_im', 1) of
+        'true' ->
+            Mod = kz_term:to_atom(Provider),
+            case Mod:route_outbound_im(Payload) of
+                'ok' -> 'ack';
+                {'error', _Error} ->
+                    lager:debug("unable to route ~p", [_Error]),
+                    {'nack', 'false'}
+            end;
+        'false' -> do_route_offnet(Map)
+    end;
+maybe_route_by_provider(_, Map) ->
+    do_route_offnet(Map).
+
+do_route_offnet(#{payload := Payload}) ->
+    case kz_im_offnet:route(Payload) of
+        'ok' -> 'ack';
+        {'error', 'no_connections'} ->
+            lager:warning("no connections for offnet, will retry later"),
+            {'nack', 'true'}
+    end.
 
 account(#{payload := JObj} = Map) ->
     case kz_im:account_id(JObj) of

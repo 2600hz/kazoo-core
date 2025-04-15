@@ -222,7 +222,11 @@ do(F, #{'todo' := [], 'succeeded' := NewToDos}=Collection) ->
     %% For calls not from pipe/2
     do(F, Collection#{'todo' => NewToDos, 'succeeded' => []});
 do(F, Collection) ->
-    lager:debug("applying ~p", [F]),
+    FunInfo = erlang:fun_info(F),
+    ModName = props:get_value('module', FunInfo),
+    FunName = props:get_value('name', FunInfo),
+    FunArity = props:get_value('arity', FunInfo),
+    lager:debug("applying ~p:~s/~b", [ModName, FunName, FunArity]),
     NewCollection = F(Collection),
     NewCollection#{'todo' => []}.
 
