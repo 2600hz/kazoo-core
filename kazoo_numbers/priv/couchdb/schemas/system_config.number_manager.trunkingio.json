@@ -1,0 +1,48 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "system_config.number_manager.trunkingio",
+    "description": "Schema for number_manager.trunkingio system_config",
+    "properties": {
+        "account_id": {
+            "description": "This is the account-id that is provided by Trunkingio for your account",
+            "type": "string"
+        },
+        "api_token": {
+            "description": "API token to use for authentication generated for you using Trunkingio admin portal. Preferred and required if `username` and `password` are not set.",
+            "type": "string"
+        },
+        "api_url": {
+            "default": "https://api.onsip.com/api",
+            "description": "Trunkingio API Url",
+            "type": "string"
+        },
+        "enable_provisioning": {
+            "default": true,
+            "description": "If this parameter is set to `true` then the ability to active numbers will be enabled. If set to `false` then the module will only perform number searches.",
+            "type": "boolean"
+        },
+        "messaging_api_url": {
+            "default": "https://messaging.trunking.io/api",
+            "description": "Ttrunkingio Messaging API Url",
+            "type": "string"
+        },
+        "password": {
+            "description": "Password to log into the api with, as alternative for using API token. If you don't have API token, **both** `username` and `password` is required.",
+            "type": "string"
+        },
+        "sandbox_provisioning": {
+            "default": false,
+            "description": "Intended to be used with `enable_provisioning`. If set to `true` then all number provisioning will pretend to be successful without actually activating.",
+            "type": "boolean"
+        },
+        "session_id": {
+            "description": "Session Id for authentication, as alternative to API token. Setting username and password are required.",
+            "type": "string"
+        },
+        "username": {
+            "description": "Username to log into the api with, as alternative for using API token. If you don't have API token, **both** `username` and `password` is required.",
+            "type": "string"
+        }
+    },
+    "type": "object"
+}
