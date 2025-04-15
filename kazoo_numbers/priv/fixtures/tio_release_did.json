@@ -1,0 +1,88 @@
+{
+    "Response": {
+        "Context": {
+            "Action": {
+                "IsCompleted": "true"
+            },
+            "Request": {
+                "DateTime": "2025-03-27T12:05:33+00:00",
+                "Duration": "444",
+                "IsValid": "true",
+                "Parameters": {
+                    "Parameter": [
+                        {
+                            "Name": "Output",
+                            "Value": "json"
+                        },
+                        {
+                            "Name": "Action",
+                            "Value": "DidBrowseUpstreamProviders"
+                        },
+                        {
+                            "Name": "IsTollFree",
+                            "Value": "false"
+                        },
+                        {
+                            "Array": {
+                                "Elements": {
+                                    "Element": {
+                                        "Key": "0",
+                                        "Value": "12345678901"
+                                    }
+                                }
+                            },
+                            "Name": "RequestedDids"
+                        }
+                    ]
+                }
+            },
+            "Session": {
+                "IsEstablished": "true"
+            }
+        },
+        "Result": {
+            "DidRequestPurchaseFromUpstreamProvider": {
+                "Dids": {
+                    "Did": {
+                        "AccountId": "1",
+                        "CallerIdNumberRequired": "false",
+                        "Created": "20000-03-28T18:50:02+00:00",
+                        "DidId": "1",
+                        "FailoverDidId": {},
+                        "FailoverEnabled": "false",
+                        "FailoverLocation": {},
+                        "FailoverProtocol": "pstn",
+                        "InboundCallRate": "0.00003",
+                        "Modified": "2000-03-28T18:50:02+00:00",
+                        "Name": {},
+                        "Note": {},
+                        "Number": "12345678901",
+                        "OrganizationId": {},
+                        "Protocol": "sip",
+                        "RateCenter": "KNOXBORO",
+                        "SimultaneousCallLimit": "25",
+                        "Timeout": "120",
+                        "UserId": "1",
+                        "UserNumberAlias": {
+                            "AddressDomain": "sip.cool.name",
+                            "AddressId": "1",
+                            "AddressName": {},
+                            "AddressType": "none",
+                            "AddressUsername": {},
+                            "AliasDomain": "sip.cool.name",
+                            "AliasUsername": "1",
+                            "AppAddressType": {},
+                            "DefaultAddressId": "0",
+                            "Number": "12345678901",
+                            "UserId": ""
+                        },
+                        "UserStatus": "unknown",
+                        "VoicemailboxId": {}
+                    }
+                },
+                "Filled": "1",
+                "Requested": "1"
+            }
+        }
+    }
+}
