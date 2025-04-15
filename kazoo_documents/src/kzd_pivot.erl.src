@@ -7,6 +7,7 @@
 
 -export([new/0]).
 -export([cdr_url/1, cdr_url/2, set_cdr_url/2]).
+-export([custom_request_header/2, custom_request_header/3, set_custom_request_header/3]).
 -export([custom_request_headers/1, custom_request_headers/2, set_custom_request_headers/2]).
 -export([debug/1, debug/2, set_debug/2]).
 -export([method/1, method/2, set_method/2]).
@@ -17,6 +18,7 @@
 -export([serverless/1, serverless/2, set_serverless/2]).
 -export([serverless_flow_doc/1, serverless_flow_doc/2, set_serverless_flow_doc/2]).
 -export([serverless_flow_type/1, serverless_flow_type/2, set_serverless_flow_type/2]).
+-export([skip_module/1, skip_module/2, set_skip_module/2]).
 -export([voice_url/1, voice_url/2, set_voice_url/2]).
 
 
@@ -43,6 +45,18 @@ cdr_url(Doc, Default) ->
 set_cdr_url(Doc, CdrUrl) ->
     kz_json:set_value([<<"cdr_url">>], CdrUrl, Doc).
 
+-spec custom_request_header(doc(), kz_json:key()) -> kz_term:api_binary().
+custom_request_header(Doc, CustomRequestHeader) ->
+    custom_request_header(Doc, CustomRequestHeader, 'undefined').
+
+-spec custom_request_header(doc(), kz_json:key(), Default) -> binary() | Default.
+custom_request_header(Doc, CustomRequestHeader, Default) ->
+    kz_json:get_binary_value([<<"custom_request_headers">>, CustomRequestHeader], Doc, Default).
+
+-spec set_custom_request_header(doc(), kz_json:key(), binary()) -> doc().
+set_custom_request_header(Doc, CustomRequestHeader, Value) ->
+    kz_json:set_value([<<"custom_request_headers">>, CustomRequestHeader], Value, Doc).
+
 -spec custom_request_headers(doc()) -> kz_term:api_object().
 custom_request_headers(Doc) ->
     custom_request_headers(Doc, 'undefined').
@@ -61,7 +75,7 @@ debug(Doc) ->
 
 -spec debug(doc(), Default) -> boolean() | Default.
 debug(Doc, Default) ->
-    kz_json:is_true([<<"debug">>], Doc, Default).
+    kz_json:get_boolean_value([<<"debug">>], Doc, Default).
 
 -spec set_debug(doc(), boolean()) -> doc().
 set_debug(Doc, Debug) ->
@@ -97,7 +111,7 @@ req_body_format(Doc) ->
 
 -spec req_body_format(doc(), Default) -> binary() | Default.
 req_body_format(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"req_body_format">>], Doc, Default).
+    kz_json:get_binary_value([<<"req_body_format">>], Doc, Default).
 
 -spec set_req_body_format(doc(), binary()) -> doc().
 set_req_body_format(Doc, ReqBodyFormat) ->
@@ -109,7 +123,7 @@ req_format(Doc) ->
 
 -spec req_format(doc(), Default) -> binary() | Default.
 req_format(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"req_format">>], Doc, Default).
+    kz_json:get_binary_value([<<"req_format">>], Doc, Default).
 
 -spec set_req_format(doc(), binary()) -> doc().
 set_req_format(Doc, ReqFormat) ->
@@ -157,11 +171,23 @@ serverless_flow_type(Doc) ->
 
 -spec serverless_flow_type(doc(), Default) -> binary() | Default.
 serverless_flow_type(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"serverless">>, <<"flow_type">>], Doc, Default).
+    kz_json:get_binary_value([<<"serverless">>, <<"flow_type">>], Doc, Default).
 
 -spec set_serverless_flow_type(doc(), binary()) -> doc().
 set_serverless_flow_type(Doc, ServerlessFlowType) ->
     kz_json:set_value([<<"serverless">>, <<"flow_type">>], ServerlessFlowType, Doc).
+
+-spec skip_module(doc()) -> kz_term:api_boolean().
+skip_module(Doc) ->
+    skip_module(Doc, 'undefined').
+
+-spec skip_module(doc(), Default) -> boolean() | Default.
+skip_module(Doc, Default) ->
+    kz_json:get_boolean_value([<<"skip_module">>], Doc, Default).
+
+-spec set_skip_module(doc(), boolean()) -> doc().
+set_skip_module(Doc, SkipModule) ->
+    kz_json:set_value([<<"skip_module">>], SkipModule, Doc).
 
 -spec voice_url(doc()) -> kz_term:api_ne_binary().
 voice_url(Doc) ->

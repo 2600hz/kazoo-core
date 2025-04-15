@@ -8,9 +8,11 @@
 -export([new/0]).
 -export([id/1]).
 -export([cdr_url/1, cdr_url/2, set_cdr_url/2]).
+-export([custom_request_header/2, custom_request_header/3, set_custom_request_header/3]).
 -export([custom_request_headers/1, custom_request_headers/2, set_custom_request_headers/2]).
 -export([debug/1, debug/2, set_debug/2]).
 -export([method/1, method/2, set_method/2]).
+-export([name/1, name/2, set_name/2]).
 -export([req_body_format/1, req_body_format/2, set_req_body_format/2]).
 -export([req_format/1, req_format/2, set_req_format/2]).
 -export([req_timeout_ms/1, req_timeout_ms/2, set_req_timeout_ms/2]).
@@ -19,16 +21,13 @@
 -export([serverless_flow_type/1, serverless_flow_type/2, set_serverless_flow_type/2]).
 -export([skip_module/1, skip_module/2, set_skip_module/2]).
 -export([voice_url/1, voice_url/2, set_voice_url/2]).
-
 -export([type/0]).
 
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().
 -type docs() :: [doc()].
--export_type([doc/0
-             ,docs/0
-             ]).
+-export_type([doc/0, docs/0]).
 
 -define(SCHEMA, <<"pivot">>).
 -define(PVT_TYPE, <<"pivot">>).
@@ -56,6 +55,18 @@ cdr_url(Doc, Default) ->
 set_cdr_url(Doc, CdrUrl) ->
     kz_json:set_value([<<"cdr_url">>], CdrUrl, Doc).
 
+-spec custom_request_header(doc(), kz_json:key()) -> kz_term:api_binary().
+custom_request_header(Doc, CustomRequestHeader) ->
+    custom_request_header(Doc, CustomRequestHeader, 'undefined').
+
+-spec custom_request_header(doc(), kz_json:key(), Default) -> binary() | Default.
+custom_request_header(Doc, CustomRequestHeader, Default) ->
+    kz_json:get_binary_value([<<"custom_request_headers">>, CustomRequestHeader], Doc, Default).
+
+-spec set_custom_request_header(doc(), kz_json:key(), binary()) -> doc().
+set_custom_request_header(Doc, CustomRequestHeader, Value) ->
+    kz_json:set_value([<<"custom_request_headers">>, CustomRequestHeader], Value, Doc).
+
 -spec custom_request_headers(doc()) -> kz_term:api_object().
 custom_request_headers(Doc) ->
     custom_request_headers(Doc, 'undefined').
@@ -74,7 +85,7 @@ debug(Doc) ->
 
 -spec debug(doc(), Default) -> boolean() | Default.
 debug(Doc, Default) ->
-    kz_json:is_true([<<"debug">>], Doc, Default).
+    kz_json:get_boolean_value([<<"debug">>], Doc, Default).
 
 -spec set_debug(doc(), boolean()) -> doc().
 set_debug(Doc, Debug) ->
@@ -92,13 +103,25 @@ method(Doc, Default) ->
 set_method(Doc, Method) ->
     kz_json:set_value([<<"method">>], Method, Doc).
 
+-spec name(doc()) -> kz_term:api_ne_binary().
+name(Doc) ->
+    name(Doc, 'undefined').
+
+-spec name(doc(), Default) -> kz_term:ne_binary() | Default.
+name(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"name">>], Doc, Default).
+
+-spec set_name(doc(), kz_term:ne_binary()) -> doc().
+set_name(Doc, Name) ->
+    kz_json:set_value([<<"name">>], Name, Doc).
+
 -spec req_body_format(doc()) -> binary().
 req_body_format(Doc) ->
     req_body_format(Doc, <<"form">>).
 
 -spec req_body_format(doc(), Default) -> binary() | Default.
 req_body_format(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"req_body_format">>], Doc, Default).
+    kz_json:get_binary_value([<<"req_body_format">>], Doc, Default).
 
 -spec set_req_body_format(doc(), binary()) -> doc().
 set_req_body_format(Doc, ReqBodyFormat) ->
@@ -110,7 +133,7 @@ req_format(Doc) ->
 
 -spec req_format(doc(), Default) -> binary() | Default.
 req_format(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"req_format">>], Doc, Default).
+    kz_json:get_binary_value([<<"req_format">>], Doc, Default).
 
 -spec set_req_format(doc(), binary()) -> doc().
 set_req_format(Doc, ReqFormat) ->
@@ -158,7 +181,7 @@ serverless_flow_type(Doc) ->
 
 -spec serverless_flow_type(doc(), Default) -> binary() | Default.
 serverless_flow_type(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"serverless">>, <<"flow_type">>], Doc, Default).
+    kz_json:get_binary_value([<<"serverless">>, <<"flow_type">>], Doc, Default).
 
 -spec set_serverless_flow_type(doc(), binary()) -> doc().
 set_serverless_flow_type(Doc, ServerlessFlowType) ->
