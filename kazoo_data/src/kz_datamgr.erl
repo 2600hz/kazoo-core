@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2024, 2600Hz
+%%% @copyright (C) 2010-2025, 2600Hz
 %%% @doc Manage data connections.
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -134,6 +134,7 @@
 -type database_name() :: kz_term:ne_binary().
 
 -define(UUID_SIZE, 16).
+-define(DEFAULT_DESIGN_OPTIONS, kz_json:from_list([{<<"autoupdate">>, 'false'}])).
 
 %%%=============================================================================
 %%% Couch Functions
@@ -1879,5 +1880,29 @@ view_definitions(<<DbName/binary>>, <<Classification/binary>>) ->
         {'error', _} -> [];
         {'ok', JObjs} ->
             ViewDefs = [kz_json:get_json_value(<<"view_definition">>, JObj) || JObj <- JObjs],
-            [{kz_doc:id(ViewDef), ViewDef} || ViewDef <- ViewDefs]
+            [{kz_doc:id(ViewDef), maybe_add_design_options(ViewDef, Classification)} || ViewDef <- ViewDefs]
     end.
+
+-spec maybe_add_design_options(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
+maybe_add_design_options(View, Classification) ->
+    <<"_design/", Id/binary>> = kz_doc:id(View),
+    case kapps_config:get_json(<<"design_docs">>, [<<"views">>, Classification, Id, <<"options">>], 'undefined') of
+        'undefined' ->
+            maybe_add_classification_options(View, Classification);
+        ViewOptions ->
+            kz_json:merge(View, ViewOptions)
+    end.
+
+-spec maybe_add_classification_options(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
+maybe_add_classification_options(View, Classification) ->
+    case kapps_config:get_json(<<"design_docs">>, [<<"classifications">>, Classification, <<"options">>], 'undefined') of
+        'undefined' ->
+            maybe_add_default_options(View);
+        ViewOptions ->
+            kz_json:merge(View, ViewOptions)
+    end.
+
+-spec maybe_add_default_options(kz_json:object()) -> kz_json:object().
+maybe_add_default_options(View) ->
+    ViewOptions = kapps_config:get_json(<<"design_docs">>, <<"options">>, ?DEFAULT_DESIGN_OPTIONS),
+    kz_json:merge(View, ViewOptions).
