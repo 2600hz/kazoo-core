@@ -162,7 +162,7 @@ delete_account_db(#{account_id := AccountId} = Context) ->
 
 -spec delete_account_dbs(delete_acc()) -> delete_acc().
 delete_account_dbs(#{account_id := AccountId} = Context) ->
-    DBs = kapps_util:get_all_account_type_mods(AccountId, 'encoded'),
+    DBs = kapps_util:get_account_dbs(AccountId),
     _ = [kz_datamgr:db_delete(DB) || DB <- DBs],
     Context.
 
