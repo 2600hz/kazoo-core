@@ -89,24 +89,6 @@
                 "}"
             ]
         },
-        "by_pivot_id": {
-            "map": [
-                "function(doc) {",
-                "  if (doc.pvt_type != 'pivot' || doc.pvt_deleted) return;",
-                "  /* pivot/list_by_id */",
-                "  emit([doc.pvt_type, doc._id], {",
-                "    'id': doc._id 'name': doc.name,",
-                "    'number': doc.number,",
-                "    'method': doc.method,",
-                "    'req_timeout': doc.req_timeout,",
-                "    'req_format': doc.req_format,",
-                "    'voice_url': doc.voice_url,",
-                "    'debug': doc.debug,",
-                "    'req_body_format': doc.req_body_format",
-                "  });",
-                "}"
-            ]
-        },
         "by_sip_credentials": {
             "map": [
                 "function(doc) {",
@@ -370,6 +352,17 @@
                 "    case 'provider':",
                 "      defaultValue.provider_name = doc.provider_name;",
                 "      defaultValue.provider_type = doc.pvt_provider_type;",
+                "      break;",
+                "    case 'pivot':",
+                "      defaultValue.id = doc._id;",
+                "      defaultValue.name = doc.name;",
+                "      defaultValue.number = doc.number;",
+                "      defaultValue.method = doc.method;",
+                "      defaultValue.req_timeout = doc.req_timeout;",
+                "      defaultValue.req_format = doc.req_format;",
+                "      defaultValue.voice_url = doc.voice_url;",
+                "      defaultValue.debug = doc.debug;",
+                "      defaultValue.req_body_format = doc.req_body_format;",
                 "      break;",
                 "    case 'rate_limits':",
                 "      break;",

@@ -151,10 +151,6 @@ metadata() ->
           #{'query_fields' => [<<"doc_type">>, <<"id">>]
            ,'doc_types' => []
            }
-     ,<<"by_pivot_id">> =>
-          #{'query_fields' => [<<"doc_type">>, <<"id">>]
-           ,'doc_types' => [<<"pivot">>]
-           }
      ,<<"by_type_name">> =>
           #{'query_fields' => [<<"doc_type">>, <<"name">>]
            ,'doc_types' => []

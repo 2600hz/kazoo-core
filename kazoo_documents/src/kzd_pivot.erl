@@ -6,7 +6,6 @@
 -module(kzd_pivot).
 
 -export([new/0]).
--export([id/1]).
 -export([cdr_url/1, cdr_url/2, set_cdr_url/2]).
 -export([custom_request_header/2, custom_request_header/3, set_custom_request_header/3]).
 -export([custom_request_headers/1, custom_request_headers/2, set_custom_request_headers/2]).
@@ -38,10 +37,6 @@ type() -> ?PVT_TYPE.
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
-
--spec id(doc()) -> kz_term:api_ne_binary().
-id(Doc) ->
-    kz_json:get_ne_binary_value(<<"id">>, Doc).
 
 -spec cdr_url(doc()) -> kz_term:api_ne_binary().
 cdr_url(Doc) ->
