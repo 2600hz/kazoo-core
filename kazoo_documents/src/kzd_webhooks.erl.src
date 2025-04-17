@@ -7,7 +7,7 @@
 
 -export([new/0]).
 -export([custom_data/1, custom_data/2, set_custom_data/2]).
--export([custom_http_headers/1, custom_http_headers/2, set_custom_http_headers/2]).
+-export([custom_request_headers/1, custom_request_headers/2, set_custom_request_headers/2]).
 -export([enabled/1, enabled/2, set_enabled/2]).
 -export([format/1, format/2, set_format/2]).
 -export([hook/1, hook/2, set_hook/2]).
@@ -45,17 +45,17 @@ custom_data(Doc, Default) ->
 set_custom_data(Doc, CustomData) ->
     kz_json:set_value([<<"custom_data">>], CustomData, Doc).
 
--spec custom_http_headers(doc()) -> kz_term:api_object().
-custom_http_headers(Doc) ->
-    custom_http_headers(Doc, 'undefined').
+-spec custom_request_headers(doc()) -> kz_term:api_object().
+custom_request_headers(Doc) ->
+    custom_request_headers(Doc, 'undefined').
 
--spec custom_http_headers(doc(), Default) -> kz_json:object() | Default.
-custom_http_headers(Doc, Default) ->
-    kz_json:get_json_value([<<"custom_http_headers">>], Doc, Default).
+-spec custom_request_headers(doc(), Default) -> kz_json:object() | Default.
+custom_request_headers(Doc, Default) ->
+    kz_json:get_json_value([<<"custom_request_headers">>], Doc, Default).
 
--spec set_custom_http_headers(doc(), kz_json:object()) -> doc().
-set_custom_http_headers(Doc, CustomHttpHeaders) ->
-    kz_json:set_value([<<"custom_http_headers">>], CustomHttpHeaders, Doc).
+-spec set_custom_request_headers(doc(), kz_json:object()) -> doc().
+set_custom_request_headers(Doc, CustomRequestHeaders) ->
+    kz_json:set_value([<<"custom_request_headers">>], CustomRequestHeaders, Doc).
 
 -spec enabled(doc()) -> boolean().
 enabled(Doc) ->
