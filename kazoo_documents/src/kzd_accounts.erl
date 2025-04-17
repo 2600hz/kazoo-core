@@ -93,6 +93,7 @@
 
         ,reseller_id/1, set_reseller_id/2, is_reseller/1, path_reseller_id/0
         ,is_trial_account/1
+        ,pvt_is_trial/1, pvt_is_trial/2, set_pvt_is_trial/2
         ,low_balance_enabled/1, low_balance_enabled_exists/1, set_low_balance_enabled/1, reset_low_balance_enabled/1
 
         ,low_balance_sent/1, reset_low_balance_sent/1, path_low_balance_sent/0
@@ -125,6 +126,14 @@
         ,set_cpaas_token/1, set_cpaas_token/2, maybe_set_cpaas_token/1
 
         ,is_unique_realm/2
+
+        ,pvt_signup/1, pvt_signup/2, set_pvt_signup/2
+        ,pvt_signup_method/1, pvt_signup_method/2, set_pvt_signup_method/2
+        ,pvt_signup_email/1, pvt_signup_email/2, set_pvt_signup_email/2
+        ,pvt_signup_email_is_verified/1, pvt_signup_email_is_verified/2, set_pvt_signup_email_is_verified/2
+        ,pvt_signup_email_verified_at/1, pvt_signup_email_verified_at/2, set_pvt_signup_email_verified_at/2
+        ,pvt_signup_user/1, pvt_signup_user/2, set_pvt_signup_user/2
+        ,pvt_signup_metadata/1, pvt_signup_metadata/2, set_pvt_signup_metadata/2
         ]).
 
 -elvis([{'elvis_style', 'god_modules', 'disable'}]).
@@ -1037,10 +1046,123 @@ is_expired(JObj) ->
         'true' -> {'true', trial_expiration(JObj)}
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc I think this is set as public field in a request to PUT /accounts API
+%% by UI, then kzdb_accounts will use it to set a default trial expiration
+%% and will detele it. Do not confuse it with pvt_is_trial.
+%% @end
+%%------------------------------------------------------------------------------
 -spec is_trial_account(doc()) -> boolean().
 is_trial_account(JObj) ->
-    kz_json:is_true([<<"is_trial_account">>], JObj, 'false').
+    kz_json:is_true([<<"is_trial_account">>], JObj, pvt_is_trial(JObj)).
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec pvt_is_trial(doc()) -> boolean().
+pvt_is_trial(JObj) ->
+    pvt_is_trial(JObj, 'false').
+
+-spec pvt_is_trial(doc(), Default) -> boolean() | Default.
+pvt_is_trial(JObj, IsTrial) ->
+    kz_json:is_true([<<"pvt_is_trial">>], JObj, IsTrial).
+
+-spec set_pvt_is_trial(doc(), boolean() | 'null') -> doc().
+set_pvt_is_trial(Doc, Value) ->
+    kz_json:set_value([<<"pvt_is_trial">>], Value, Doc).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec pvt_signup(doc()) -> kz_term:api_object().
+pvt_signup(Doc) -> pvt_signup(Doc, 'undefined').
+
+-spec pvt_signup(doc(), Default) -> kz_json:object() | Default.
+pvt_signup(Doc, Default) ->
+    kz_json:get_ne_json_value([<<"pvt_signup">>], Doc, Default).
+
+-spec set_pvt_signup(doc(), kz_json:object()) -> doc().
+set_pvt_signup(Doc, Value) ->
+    kz_json:set_value([<<"pvt_signup">>], Value, Doc).
+
+
+-spec pvt_signup_method(doc()) -> kz_term:api_ne_binary().
+pvt_signup_method(Doc) -> pvt_signup_method(Doc, 'undefined').
+
+-spec pvt_signup_method(doc(), Default) -> kz_term:ne_binary() | Default.
+pvt_signup_method(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"pvt_signup">>, <<"method">>], Doc, Default).
+
+-spec set_pvt_signup_method(doc(), kz_term:ne_binary()) -> doc().
+set_pvt_signup_method(Doc, Value) ->
+    kz_json:set_value([<<"pvt_signup">>, <<"method">>], Value, Doc).
+
+
+-spec pvt_signup_metadata(doc()) -> kz_term:api_object().
+pvt_signup_metadata(Doc) -> pvt_signup_metadata(Doc, 'undefined').
+
+-spec pvt_signup_metadata(doc(), Default) -> kz_json:object() | Default.
+pvt_signup_metadata(Doc, Default) ->
+    kz_json:get_ne_json_value([<<"pvt_signup">>, <<"metadata">>], Doc, Default).
+
+-spec set_pvt_signup_metadata(doc(), kz_term:ne_binary()) -> doc().
+set_pvt_signup_metadata(Doc, Value) ->
+    kz_json:set_value([<<"pvt_signup">>, <<"metadata">>], Value, Doc).
+
+
+-spec pvt_signup_email(doc()) -> kz_term:api_ne_binary().
+pvt_signup_email(Doc) -> pvt_signup_email(Doc, 'undefined').
+
+-spec pvt_signup_email(doc(), Default) -> kz_term:ne_binary() | Default.
+pvt_signup_email(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"pvt_signup">>, <<"email">>], Doc, Default).
+
+-spec set_pvt_signup_email(doc(), kz_term:ne_binary()) -> doc().
+set_pvt_signup_email(Doc, Value) ->
+    kz_json:set_value([<<"pvt_signup">>, <<"email">>], Value, Doc).
+
+
+-spec pvt_signup_email_is_verified(doc()) -> boolean().
+pvt_signup_email_is_verified(Doc) -> pvt_signup_email_is_verified(Doc, 'false').
+
+-spec pvt_signup_email_is_verified(doc(), Default) -> boolean() | Default.
+pvt_signup_email_is_verified(Doc, Default) ->
+    kz_json:is_true([<<"pvt_signup">>, <<"email_is_verified">>], Doc, Default).
+
+-spec set_pvt_signup_email_is_verified(doc(), boolean() | 'null') -> doc().
+set_pvt_signup_email_is_verified(Doc, Value) ->
+    kz_json:set_value([<<"pvt_signup">>, <<"email_is_verified">>], Value, Doc).
+
+-spec pvt_signup_email_verified_at(doc()) -> kz_time:api_seconds().
+pvt_signup_email_verified_at(Doc) -> pvt_signup_email_verified_at(Doc, 'undefined').
+
+-spec pvt_signup_email_verified_at(doc(), Default) -> kz_time:api_seconds() | Default.
+pvt_signup_email_verified_at(Doc, Default) ->
+    kz_json:get_integer_value([<<"pvt_signup">>, <<"email_verified_at">>], Doc, Default).
+
+-spec set_pvt_signup_email_verified_at(doc(), kz_time:gregorian_seconds()) -> doc().
+set_pvt_signup_email_verified_at(Doc, Value) ->
+    kz_json:set_value([<<"pvt_signup">>, <<"email_verified_at">>], Value, Doc).
+
+
+%% at least add user's id, first_name and last_name
+-spec pvt_signup_user(doc()) -> kz_term:api_object().
+pvt_signup_user(Doc) -> pvt_signup_user(Doc, 'undefined').
+
+-spec pvt_signup_user(doc(), Default) -> kz_json:object() | Default.
+pvt_signup_user(Doc, Default) ->
+    kz_json:get_ne_json_value([<<"pvt_signup">>, <<"user">>], Doc, Default).
+
+-spec set_pvt_signup_user(doc(), kz_term:ne_binary()) -> doc().
+set_pvt_signup_user(Doc, Value) ->
+    kz_json:set_value([<<"pvt_signup">>, <<"user">>], Value, Doc).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
 -spec is_reseller(kz_term:ne_binary() | doc()) -> boolean().
 is_reseller(<<AccountId/binary>>) ->
     fetch_value(AccountId, fun is_reseller/1);

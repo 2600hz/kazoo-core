@@ -316,7 +316,7 @@ maybe_set_trial_expires(JObj) ->
 set_trial_expires(JObj) ->
     TrialTime = kapps_config:get_integer(?ACCOUNTS_CONFIG_CAT, <<"trial_time">>, ?SECONDS_IN_DAY * 14),
     Expires = kz_time:now_s() + TrialTime,
-    kzd_accounts:set_trial_expiration(JObj, Expires).
+    kzd_accounts:set_trial_expiration(kzd_accounts:set_pvt_is_trial(JObj, 'true'), Expires).
 
 -spec add_apps_store_doc(kzd_accounts:doc()) -> kzd_accounts:doc().
 add_apps_store_doc(AccountJObj) ->
