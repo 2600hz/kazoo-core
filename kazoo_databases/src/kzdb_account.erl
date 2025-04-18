@@ -127,7 +127,6 @@ delete_remove_services(#{account_id := AccountId} = Context) ->
 -spec delete_free_numbers(delete_acc()) -> delete_acc().
 delete_free_numbers(#{account_id := AccountId} = Context) ->
     _Freed = knm_numbers:free(AccountId),
-    log_delete(Context, io_lib:format("freed ~B numbers from account ~s ", [length(_Freed), AccountId])),
     Context.
 
 -spec delete_remove_sip_aggregates(delete_acc()) -> delete_acc().
