@@ -45,9 +45,6 @@
         "HTML": {
             "type": "string"
         },
-        "No-Email": {
-            "type": "string"
-        },
         "Preview": {
             "type": "boolean"
         },
