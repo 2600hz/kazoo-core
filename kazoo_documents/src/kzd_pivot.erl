@@ -5,6 +5,7 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_pivot).
 
+-export([id/1, id/2]).
 -export([new/0]).
 -export([cdr_url/1, cdr_url/2, set_cdr_url/2]).
 -export([custom_request_header/2, custom_request_header/3, set_custom_request_header/3]).
@@ -18,9 +19,8 @@
 -export([serverless/1, serverless/2, set_serverless/2]).
 -export([serverless_flow_doc/1, serverless_flow_doc/2, set_serverless_flow_doc/2]).
 -export([serverless_flow_type/1, serverless_flow_type/2, set_serverless_flow_type/2]).
--export([skip_module/1, skip_module/2, set_skip_module/2]).
 -export([voice_url/1, voice_url/2, set_voice_url/2]).
--export([type/0]).
+-export([pvt_type/0]).
 
 -include("kz_documents.hrl").
 
@@ -31,12 +31,20 @@
 -define(SCHEMA, <<"pivot">>).
 -define(PVT_TYPE, <<"pivot">>).
 
--spec type() -> kz_term:ne_binary().
-type() -> ?PVT_TYPE.
+-spec pvt_type() -> kz_term:ne_binary().
+pvt_type() -> ?PVT_TYPE.
 
 -spec new() -> doc().
 new() ->
     kz_json_schema:default_object(?SCHEMA).
+
+-spec id(doc()) -> kz_term:api_ne_binary().
+id(Doc) ->
+    id(Doc, 'undefined').
+
+-spec id(doc(), Default) -> kz_term:ne_binary() | Default.
+id(Doc, Default) ->
+    kz_json:get_ne_binary_value([<<"id">>], Doc, Default).
 
 -spec cdr_url(doc()) -> kz_term:api_ne_binary().
 cdr_url(Doc) ->
@@ -181,18 +189,6 @@ serverless_flow_type(Doc, Default) ->
 -spec set_serverless_flow_type(doc(), binary()) -> doc().
 set_serverless_flow_type(Doc, ServerlessFlowType) ->
     kz_json:set_value([<<"serverless">>, <<"flow_type">>], ServerlessFlowType, Doc).
-
--spec skip_module(doc()) -> kz_term:api_boolean().
-skip_module(Doc) ->
-    skip_module(Doc, 'undefined').
-
--spec skip_module(doc(), Default) -> boolean() | Default.
-skip_module(Doc, Default) ->
-    kz_json:get_boolean_value([<<"skip_module">>], Doc, Default).
-
--spec set_skip_module(doc(), boolean()) -> doc().
-set_skip_module(Doc, SkipModule) ->
-    kz_json:set_value([<<"skip_module">>], SkipModule, Doc).
 
 -spec voice_url(doc()) -> kz_term:api_ne_binary().
 voice_url(Doc) ->
