@@ -119,6 +119,8 @@
 
 -export([migrate_port_requests/0]).
 
+-export([disable_cnam_features/0, disable_cnam_features/1]).
+
 -include("knm.hrl").
 
 -elvis([{elvis_style, no_debug_call, disable}]).
@@ -2112,3 +2114,54 @@ migrate_port_requests() ->
 migrate_classifiers() ->
     knm_converters:migrate_classifiers(),
     io:format("classifier migration complete~n").
+
+%%------------------------------------------------------------------------------
+%% @doc Sup command which queries all number docs and disables cnam features on
+%%      all Cluster wide.
+%% @end
+%%------------------------------------------------------------------------------
+-spec disable_cnam_features() -> 'ok'.
+disable_cnam_features() ->
+    ?SUP_LOG_DEBUG("::: disabling inbound_lookup and display_name cnam features", []),
+    _ = [disable_cnam_features(NumDb) || NumDb <- knm_util:get_all_number_dbs()],
+    ?SUP_LOG_DEBUG("::: finished disabling inbound_lookup and display_name cnam features", []).
+
+-spec disable_cnam_features(kz_term:ne_binary()) -> 'ok'.
+disable_cnam_features(<<?KNM_DB_PREFIX_ENCODED, _/binary>> = NumberDb) ->
+    ?SUP_LOG_DEBUG(" ==> start disabling ~s", [NumberDb]),
+    disable_cnam_features(NumberDb, 0),
+    ?SUP_LOG_DEBUG(" ==> done disabling ~s", [NumberDb]);
+disable_cnam_features(<<?KNM_DB_PREFIX_encoded, Suffix/binary>>) ->
+    disable_cnam_features(<<?KNM_DB_PREFIX_ENCODED, Suffix/binary>>);
+disable_cnam_features(<<?KNM_DB_PREFIX, Suffix/binary>>) ->
+    disable_cnam_features(<<?KNM_DB_PREFIX_ENCODED, Suffix/binary>>);
+disable_cnam_features(Number) ->
+    disable_cnam_features(knm_converters:to_db(Number)).
+
+-spec disable_cnam_features(kz_term:ne_binary(), integer()) -> 'ok'.
+disable_cnam_features(NumberDb, Offset) ->
+    ViewOptions = [{'limit', kz_datamgr:max_bulk_insert()}
+                  ,{'skip', Offset}
+                  ],
+    ?SUP_LOG_DEBUG("[~s] disabling cnam for numbers with offset ~b", [NumberDb, Offset]),
+    case kz_datamgr:all_docs(NumberDb, ViewOptions) of
+        {'ok', []} -> 'ok';
+        {'ok', JObjs} ->
+            Length = length(JObjs),
+            ?SUP_LOG_DEBUG("[~s] checking ~b docs", [NumberDb, Length]),
+            disable_cnam([kz_doc:id(JObj) || JObj <- JObjs]),
+            timer:sleep(?TIME_BETWEEN_ACCOUNTS_MS),
+            disable_cnam_features(NumberDb, Offset + Length);
+        {'error', _R} ->
+            ?SUP_LOG_DEBUG("failed to get DIDs from ~s: ~p", [NumberDb, _R])
+    end.
+
+-spec disable_cnam(kz_term:ne_binaries()) -> 'ok'.
+disable_cnam(DIDs) ->
+    Update = kz_json:set_values([{[<<"cnam">>,<<"display_name">>], <<"">>},
+                                 {[<<"cnam">>,<<"inbound_lookup">>], false}
+                                ]
+                               ,kz_json:new()
+                               ),
+    knm_numbers:update(DIDs, [{fun knm_phone_number:update_doc/2, Update}], []).
+
