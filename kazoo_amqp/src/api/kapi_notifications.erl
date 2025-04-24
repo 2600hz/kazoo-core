@@ -506,8 +506,7 @@ account_deleted_definition() ->
               ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
                                                             ,<<"Parent-ID">>
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [<<"Account-API-Key">>
-                                                            ,<<"Account-Name">>
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Account-Name">>
                                                             ,<<"Account-Realm">>
                                                             | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
