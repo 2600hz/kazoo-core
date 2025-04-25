@@ -480,7 +480,10 @@ new_account_definition() ->
                                                             | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Should-Notify">>, fun kz_term:is_boolean/1}
+                ]
+               }
               ],
     kapi_definition:setters(Setters).
 
@@ -505,13 +508,17 @@ account_deleted_definition() ->
               ,{fun kapi_definition:set_restrict_to/2, 'account_deleted'}
               ,{fun kapi_definition:set_required_headers/2, [<<"Account-ID">>
                                                             ,<<"Parent-ID">>
+                                                            ,<<"Doc">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Account-Name">>
                                                             ,<<"Account-Realm">>
                                                             | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
-              ,{fun kapi_definition:set_types/2, []}
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Doc">>, fun kz_json:is_json_object/1}
+                ]
+               }
               ],
     kapi_definition:setters(Setters).
 

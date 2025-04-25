@@ -27,6 +27,9 @@
         "Cc": {
             "type": "string"
         },
+        "Doc": {
+            "type": "object"
+        },
         "Event-Category": {
             "enum": [
                 "notification"
