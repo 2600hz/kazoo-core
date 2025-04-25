@@ -3,9 +3,6 @@
     "_id": "kapi.notifications.account_deleted",
     "description": "AMQP API for notifications.account_deleted",
     "properties": {
-        "Account-API-Key": {
-            "type": "string"
-        },
         "Account-DB": {
             "type": "string"
         },
@@ -67,7 +64,8 @@
     },
     "required": [
         "Account-ID",
-        "Parent-ID"
+        "Parent-ID",
+        "Doc"
     ],
     "type": "object"
 }
