@@ -101,18 +101,10 @@ extra_validation(<<"callflows.action.data">>, Value, State) ->
         Module ->
             validate_module_data(<<"callflows.", Module/binary>>, Value, State)
     end;
+extra_validation(<<"callflows.action.module">>, <<"webhook">> = Value, State) ->
+    callflow_action_validation(Value, kzd_webhooks:schema(), State);
 extra_validation(<<"callflows.action.module">>, Value, State) ->
-    SchemaId = <<"callflows.", Value/binary>>,
-
-    State1 = jesse_state:resolve_ref(State, SchemaId),
-
-    SchemaNameL = jesse_state:get_current_schema_id(State1),
-    State2 = case kz_term:to_binary(SchemaNameL) of
-                 SchemaId -> State1;
-                 _OtherSchemaId ->
-                     jesse_error:handle_data_invalid({'external_error', <<"unable to find callflow schema for module ", Value/binary>>}, Value, State)
-             end,
-    jesse_state:undo_resolve_ref(State2, State);
+    callflow_action_validation(Value, <<"callflows.", Value/binary>>, State);
 extra_validation(<<"webhooks.uri">>, URL, State) ->
     url_validation(URL, State);
 extra_validation(<<"callflows.webhook.uri">>, URL, State) ->
@@ -171,6 +163,17 @@ extra_validation(<<"storage.attachment.dropbox.oauth_doc_id">>, Value, State) ->
 extra_validation(_Key, _Value, State) ->
     lager:info("extra validation of ~s not handled for value ~p", [_Key, _Value]),
     State.
+
+callflow_action_validation(Value, SchemaId, State) ->
+    State1 = jesse_state:resolve_ref(State, SchemaId),
+
+    SchemaNameL = jesse_state:get_current_schema_id(State1),
+    State2 = case kz_term:to_binary(SchemaNameL) of
+                 SchemaId -> State1;
+                 _OtherSchemaId ->
+                     jesse_error:handle_data_invalid({'external_error', <<"unable to find callflow schema for module ", Value/binary>>}, Value, State)
+             end,
+    jesse_state:undo_resolve_ref(State2, State).
 
 announcement_validation(Value, State) ->
     case kz_html_xss:has_any_xss_items(Value) of
