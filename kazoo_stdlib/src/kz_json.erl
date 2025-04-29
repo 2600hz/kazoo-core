@@ -117,6 +117,8 @@
 -export([decode/1, decode/2]).
 -export([unsafe_decode/1, unsafe_decode/2]).
 
+-export([canonicalize/1]).
+
 -export([flatten/1, flatten/2
         ,expand/1, expand/2
         ,diff/2, diff/3
@@ -207,6 +209,7 @@ encode_jobj(JObj, Options) ->
     end.
 
 %% formats the JObj into RFC8785 canonical version (for HMAC hashing mostly) before encoding
+-spec canonicalize(json_term()) -> json_term().
 canonicalize(?JSON_WRAPPER(Props)) ->
     ?JSON_WRAPPER(lists:sort([canonicalize(Key, Value) || {Key, Value} <- Props]));
 canonicalize(Thing) -> Thing.
@@ -1501,9 +1504,9 @@ get_ne_binary_or_binaries(Key, JObj, Default) ->
 
 -type value_type_fun() :: fun((json_term()) -> boolean()).
 
--spec get_value_type(get_key(), value_type_fun(), object() | objects()) -> json_term() | undefined.
+-spec get_value_type(get_key(), value_type_fun(), object() | objects()) -> json_term() | 'undefined'.
 get_value_type(Key, ValueTypeFun, JObj) ->
-    get_value_type(Key, ValueTypeFun, JObj, undefined).
+    get_value_type(Key, ValueTypeFun, JObj, 'undefined').
 
 -spec get_value_type(get_key(), value_type_fun(), object() | objects(), Default) -> json_term() | Default.
 get_value_type(Key, ValueTypeFun, JObj, Default) ->
