@@ -21,6 +21,15 @@
             "description": "If this parameter is set to `true` then the ability to active numbers will be enabled. If set to `false` then the module will only perform number searches.",
             "type": "boolean"
         },
+        "generate_jwt_auth_token": {
+            "default": true,
+            "description": "If set to true, a new JWT Auth Token will be generated for calling Trunking.io API on behalf of reseller account, if no Trunking.io api token is configured on the account.",
+            "type": "boolean"
+        },
+        "inbound_hook_secret": {
+            "description": "Shared secret to authenticate system-level inbound hook from Trunking.io",
+            "type": "string"
+        },
         "messaging_api_url": {
             "default": "https://messaging.trunking.io/api",
             "description": "Ttrunkingio Messaging API Url",
@@ -38,6 +47,11 @@
         "session_id": {
             "description": "Session Id for authentication, as alternative to API token. Setting username and password are required.",
             "type": "string"
+        },
+        "use_system_tio_account": {
+            "default": false,
+            "description": "Should use system level Trunking.io account if the reseller account is not linked to Trunking.io",
+            "type": "boolean"
         },
         "username": {
             "description": "Username to log into the api with, as alternative for using API token. If you don't have API token, **both** `username` and `password` is required.",

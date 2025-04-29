@@ -34,6 +34,8 @@
         ,query_id/1
         ,account_id/1
         ,reseller_id/1
+        ,is_reseller/1
+        ,auth_token/1
         ]).
 
 -include("knm.hrl").
@@ -231,11 +233,14 @@ do_find(Options, 'false') ->
               ,{<<"Quantity">>, quantity(Options)}
               ,{<<"Offset">>, offset(Options)}
               ,{<<"Account-ID">>, account_id(Options)}
+              ,{<<"Auth-Token">>, auth_token(Options)}
+              ,{<<"Is-Reseller">>, is_reseller(Options)}
+              ,{<<"Reseller-ID">>, reseller_id(Options)}
               ,{<<"Msg-ID">>, kz_log:get_callid()}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
               ],
     StartTime = kz_time:start_time(),
-    case kz_amqp_worker:call(Payload
+    case kz_amqp_worker:call(props:filter_undefined(Payload)
                             ,fun kapi_discovery:publish_req/1
                             ,fun kapi_discovery:resp_v/1
                             )
@@ -289,10 +294,11 @@ search_carrier(Carrier, Options) ->
             lager:debug("search of ~s took ~pms", [Carrier, kz_time:elapsed_ms(StartTime)]),
             Results
     catch
-        _E:_R ->
+        _E:_R:ST ->
             lager:info("error finding numbers in ~s after ~pms: ~s: ~p"
                       ,[Carrier, kz_time:elapsed_ms(StartTime), _E, _R]
                       ),
+            kz_log:log_stacktrace(ST),
             {'error', 'not_available'}
     end.
 
@@ -442,11 +448,19 @@ offset(Options) ->
 
 -spec account_id(options()) -> kz_term:api_ne_binary().
 account_id(Options) ->
-    props:get_value('account_id', Options).
+    props:get_ne_binary_value('account_id', Options).
 
 -spec reseller_id(options()) -> kz_term:api_ne_binary().
 reseller_id(Options) ->
-    props:get_value('reseller_id', Options).
+    props:get_ne_binary_value('reseller_id', Options).
+
+-spec is_reseller(options()) -> kz_term:api_boolean().
+is_reseller(Options) ->
+    props:get_value('is_reseller', Options).
+
+-spec auth_token(options()) -> kz_term:api_ne_binary().
+auth_token(Options) ->
+    props:get_ne_binary_value('auth_token', Options).
 
 -spec is_local(kz_term:ne_binary()) -> boolean().
 is_local(QID) ->
