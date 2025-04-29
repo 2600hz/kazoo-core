@@ -484,8 +484,10 @@ auth_by_userpass(Username, Password) ->
         {'ok', JObj} ->
             case kz_json:get_ne_binary_value(session_path([<<"SessionId">>]), JObj) of
                 'undefined' ->
+                    lager:error("authenticating with username and pass failed: ~p", [Resp]),
                     {'error', 'noauth'};
                 SessionId ->
+                    lager:debug("got sessionId via authenticating with username and pass"),
                     _ = kapps_config:set_string(?MOD_CONFIG_CAT, <<"session_id">>, SessionId),
                     {'ok', {'login', SessionId}}
             end;
@@ -624,7 +626,7 @@ action_path(Path) ->
 req_path(Path) ->
     [<<"Response">>, <<"Context">>, <<"Request">> | Path].
 session_path(Path) ->
-    [<<"Response">>, <<"Sessions">> | Path].
+    [<<"Response">>, <<"Context">>, <<"Session">> | Path].
 result_path(Path) ->
     [<<"Response">>, <<"Result">> | Path].
 
