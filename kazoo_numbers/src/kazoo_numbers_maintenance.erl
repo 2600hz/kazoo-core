@@ -2135,7 +2135,8 @@ disable_cnam_features(<<?KNM_DB_PREFIX_encoded, Suffix/binary>>) ->
     disable_cnam_features(<<?KNM_DB_PREFIX_ENCODED, Suffix/binary>>);
 disable_cnam_features(<<?KNM_DB_PREFIX, Suffix/binary>>) ->
     disable_cnam_features(<<?KNM_DB_PREFIX_ENCODED, Suffix/binary>>);
-disable_cnam_features(Number) ->
+disable_cnam_features(N) ->
+    Number = knm_converters:normalize(N),
     disable_cnam_features(knm_converters:to_db(Number)).
 
 -spec disable_cnam_features(kz_term:ne_binary(), integer()) -> 'ok'.
