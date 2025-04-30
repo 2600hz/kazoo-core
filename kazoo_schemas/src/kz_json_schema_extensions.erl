@@ -14,6 +14,7 @@
         ]).
 
 -include_lib("kernel/include/inet.hrl").
+-include_lib("jesse/src/jesse_schema_validator.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -define(INVALID_STORAGE_ATTACHMENT_REFERENCE(R), <<"invalid reference '", R/binary, "' to attachments">>).
@@ -160,6 +161,17 @@ extra_validation(<<"storage.attachment.onedrive.oauth_doc_id">>, Value, State) -
     validate_attachment_oauth_doc_id(Value, State);
 extra_validation(<<"storage.attachment.dropbox.oauth_doc_id">>, Value, State) ->
     validate_attachment_oauth_doc_id(Value, State);
+extra_validation(<<"match_lists.rule.type">>, RuleType, State) ->
+    RuleSchemaName = <<"match_lists.rule.", RuleType/binary>>,
+    case kz_json_schema:load(RuleSchemaName) of
+        {'error', 'not_found'} ->
+            lager:info("failed to file match_list rule schema for type ~s", [RuleType]),
+            jesse_error:handle_data_invalid(?not_in_enum, RuleType, State);
+        {'ok', RuleSchema} ->
+
+
+            validate_match_list_rule_type(RuleSchema, State)
+    end;
 extra_validation(_Key, _Value, State) ->
     lager:info("extra validation of ~s not handled for value ~p", [_Key, _Value]),
     State.
@@ -518,3 +530,15 @@ is_valid_srv(SRV) ->
 is_valid_srv_record({_Priority, _Weight, _Port, Target}) ->
     lager:info("validating SRV target ~s", [Target]),
     validate_sip_hostname(kz_term:to_binary(Target)).
+
+validate_match_list_rule_type(RuleSchema, State) ->
+    %% _Type = <<"type">>, Path = [0, <<"rules">>] - array index in Rules
+    [Type | Path] = jesse_state:get_current_path(State),
+
+    State1 = jesse_state:resolve_ref(State, kz_doc:id(RuleSchema)), % sets schema to rule's schema
+    State2 = jesse_state:set_current_path(State1, Path), % sets current path being validating to the rule's position in the rules array
+    RuleJObj = jesse_state:get_current_path_value(State2), % the rule obj we're validating specifically
+
+    State3 = jesse_schema_validator:validate_with_state(RuleSchema, RuleJObj, State2), % validate the rule against the rule's schema
+    State4 = jesse_state:undo_resolve_ref(State3, State), % reset back to original state's place
+    jesse_state:set_current_path(State4, [Type | Path]). % reset path to start of this validation phase

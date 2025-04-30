@@ -23,7 +23,7 @@
 %% Id is the return value if the rule matches the time/date
 %% RulesDoc is the temporal rules doc from the database
 %% StartDate is the start time of the rule (or the current local time), timezone-adjusted
-%% EndData is the end time of the rule, if present, timezone-adjusted
+%% EndDate is the end time of the rule, if present, timezone-adjusted
 -spec new(any(), kzd_temporal_rules:doc(), kz_time:date(), end_date()) -> rule().
 new(Id, RulesDoc, StartDate, EndDate) ->
     #rule{cycle = kzd_temporal_rules:cycle(RulesDoc, ?RULE_DEFAULT_CYCLE)

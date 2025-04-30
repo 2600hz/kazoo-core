@@ -17,6 +17,7 @@
 -endif.
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include("ktr.hrl").
 
 %%------------------------------------------------------------------------------
@@ -39,7 +40,7 @@ process(LocalSeconds, Rules) ->
 process(LocalSeconds, LocalDate, #rule{}=Rule) ->
     process(LocalSeconds, LocalDate, [Rule]);
 process(_LocalSeconds, _LocalDate, []) ->
-    lager:info("no rules matched"),
+    ?LOG_INFO("no rules matched"),
     'undefined';
 process(LocalSeconds
        ,LocalDate
@@ -50,7 +51,7 @@ process(LocalSeconds
         | Rules
         ]
        ) ->
-    lager:info("time based rule ~p (~s) disabled", [Id, Name]),
+    ?LOG_INFO("time based rule ~p (~s) disabled", [Id, Name]),
     process(LocalSeconds, LocalDate, Rules);
 process(_LocalSeconds
        ,_LocalDate
@@ -61,7 +62,7 @@ process(_LocalSeconds
         | _Rules
         ]
        ) ->
-    lager:info("time based rule ~p (~s) is forced active", [Id, Name]),
+    ?LOG_INFO("time based rule ~p (~s) is forced active", [Id, Name]),
     Id;
 process(LocalSeconds
        ,LocalDate
@@ -80,8 +81,10 @@ process(LocalSeconds
        ) ->
     case process_rule(LocalSeconds, LocalDate, Rule) of
         'undefined' ->
+            ?LOG_DEBUG("rule wasn't processed, next"),
             process(LocalSeconds, LocalDate, Rules);
         Id ->
+            ?LOG_DEBUG("rule processed to id ~p", [Id]),
             Id
     end.
 
@@ -94,7 +97,7 @@ process_rule(LocalSeconds
                   ,wtime_stop=TStop
                   }=Rule
             ) ->
-    lager:info("processing temporal rule ~s (~s)", [Id, Name]),
+    ?LOG_INFO("processing temporal rule ~s (~s)", [Id, Name]),
 
     SearchDate = search_date(Cycle, LocalDate),
 
@@ -105,13 +108,13 @@ process_rule(LocalSeconds
 
     case {BaseTime + TStart, BaseTime + TStop} of
         {Start, _} when LocalSeconds < Start ->
-            lager:info("rule applies in the future ~w", [calendar:gregorian_seconds_to_datetime(Start)]),
+            ?LOG_INFO("rule applies in the future ~w", [calendar:gregorian_seconds_to_datetime(Start)]),
             'undefined';
         {_, End} when LocalSeconds > End ->
-            lager:info("rule was valid today but expired ~w", [calendar:gregorian_seconds_to_datetime(End)]),
+            ?LOG_INFO("rule was valid today but expired ~w", [calendar:gregorian_seconds_to_datetime(End)]),
             'undefined';
         {_, End} ->
-            lager:info("rule is within active time window until ~w", [calendar:gregorian_seconds_to_datetime(End)]),
+            ?LOG_INFO("rule is within active time window until ~w", [calendar:gregorian_seconds_to_datetime(End)]),
             Id
     end.
 
@@ -138,6 +141,7 @@ next_rule_date(#rule{cycle = <<"date">>
                     }
               ,_Date
               ) ->
+    ?LOG_DEBUG("using start_date ~p for next rule date", [Date0]),
     Date0;
 next_rule_date(#rule{cycle = <<"daily">>
                     ,interval=I0
@@ -164,9 +168,9 @@ next_rule_date(#rule{cycle = <<"weekly">>
     Weekday = calendar:day_of_the_week(StartDate),
 
     %%TODO: remove these log lines when we are happy that this just works
-    lager:debug("today is: ~p dow: ~p, startdate is: ~p, start dow is ~b, interval is: ~b, distance is: ~b, offset is: ~b, rule days found: ~p"
-               ,[Today, DOW0, StartDate, Weekday, Interval, Distance, Offset, find_active_days(Weekdays, DOW0)]
-               ),
+    ?LOG_DEBUG("today is: ~p dow: ~p, startdate is: ~p, start dow is ~b, interval is: ~b, distance is: ~b, offset is: ~b, rule days found: ~p"
+              ,[Today, DOW0, StartDate, Weekday, Interval, Distance, Offset, find_active_days(Weekdays, DOW0)]
+              ),
 
     case find_active_days(Weekdays, DOW0) of
         %% When the start date is in the future but within the week,
@@ -174,26 +178,26 @@ next_rule_date(#rule{cycle = <<"weekly">>
         %% self with Today as StartDate
         [_Day|_] when Today < StartDate
                       andalso Distance =:= Offset ->
-            lager:debug("rule starts in the future jumping to search from ~p", [StartDate]),
+            ?LOG_DEBUG("rule starts in the future jumping to search from ~p", [StartDate]),
             next_rule_date(Rule, StartDate);
 
         %% When today is the first rule day and also the start date return the start date
         [Day|_] when Today =:= StartDate
                      andalso Day =:= DOW0
                      andalso Distance =:= Offset ->
-            lager:debug("rule starts today ~b", [Day]),
+            ?LOG_DEBUG("rule starts today ~b", [Day]),
             StartDate;
 
         %% During an 'active' week that fails the previous guards, move to the next day this week
         [Day|_] when Distance =:= Offset ->
-            lager:debug("next day in rule is ~w and day is ~w", [Day, DOW0]),
+            ?LOG_DEBUG("next day in rule is ~w and day is ~w", [Day, DOW0]),
             kz_date:normalize({Y1, M1, D1 + Day - DOW0});
 
         %% Empty list:
         %% Non Empty List that failed the guard:
         %%   During an 'inactive' week
         _Val ->
-            lager:debug("no rule found for this week"),
+            ?LOG_DEBUG("no rule found for this week"),
             {WY0, W0} = calendar:iso_week_number({Y0, M0, D0}),
             {Y2, M2, D2} = kz_date:from_iso_week({WY0, W0 + Offset + Interval}),
             kz_date:normalize({Y2, M2, ( D2 - 1 ) + kz_date:wday_to_dow( hd( Weekdays ) )})

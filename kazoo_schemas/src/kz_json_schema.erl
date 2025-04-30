@@ -54,17 +54,17 @@
 -type setter_fun() :: fun((kz_json:path(), kz_json:json_term(), kz_json:object()) -> kz_json:object()).
 -type getter_fun() :: fun((kz_json:path(), kz_json:object(), jesse:json_term()) -> jesse:json_term()).
 
--type jesse_option() :: {'parser_fun', parser_fun()} |
-                        {'error_handler', error_handler_fun()} |
-                        {'allowed_errors', non_neg_integer() | 'infinity'} |
+-type jesse_option() :: {'allowed_errors', non_neg_integer() | 'infinity'} |
                         {'default_schema_ver', binary()} |
-                        {'schema_loader_fun', schema_loader_fun()} |
-                        {'external_validator', extra_validator()} |
+                        {'error_handler', error_handler_fun()} |
                         {'external_format_validator', jesse:external_format_validator()} |
-                        {'setter_fun', setter_fun()} |
+                        {'external_validator', extra_validator()} |
+                        {'extra_validator_options', extra_validator_options()} |
                         {'getter_fun', getter_fun()} |
-                        {'validator_options', validator_options()} |
-                        {'extra_validator_options', extra_validator_options()}.
+                        {'parser_fun', parser_fun()} |
+                        {'schema_loader_fun', schema_loader_fun()} |
+                        {'setter_fun', setter_fun()} |
+                        {'validator_options', validator_options()}.
 
 -type jesse_options() :: [jesse_option()].
 

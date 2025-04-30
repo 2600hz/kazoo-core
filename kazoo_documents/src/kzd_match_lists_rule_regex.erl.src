@@ -1,0 +1,46 @@
+%%%-----------------------------------------------------------------------------
+%%% @copyright (C) 2010-2025, 2600Hz
+%%% @doc Accessors for `match_lists_rule_regex' document.
+%%% @end
+%%%-----------------------------------------------------------------------------
+-module(kzd_match_lists_rule_regex).
+
+-export([new/0]).
+-export([regex/1, regex/2, set_regex/2]).
+-export([target/1, target/2, set_target/2]).
+
+
+-include("kz_documents.hrl").
+
+-type doc() :: kz_json:object().
+-export_type([doc/0]).
+
+-define(SCHEMA, <<"match_lists.rule.regex">>).
+
+-spec new() -> doc().
+new() ->
+    kz_json_schema:default_object(?SCHEMA).
+
+-spec regex(doc()) -> kz_term:api_binary().
+regex(Doc) ->
+    regex(Doc, 'undefined').
+
+-spec regex(doc(), Default) -> binary() | Default.
+regex(Doc, Default) ->
+    kz_json:get_binary_value([<<"regex">>], Doc, Default).
+
+-spec set_regex(doc(), binary()) -> doc().
+set_regex(Doc, Regex) ->
+    kz_json:set_value([<<"regex">>], Regex, Doc).
+
+-spec target(doc()) -> kz_term:api_binary().
+target(Doc) ->
+    target(Doc, 'undefined').
+
+-spec target(doc(), Default) -> binary() | Default.
+target(Doc, Default) ->
+    kz_json:get_binary_value([<<"target">>], Doc, Default).
+
+-spec set_target(doc(), binary()) -> doc().
+set_target(Doc, Target) ->
+    kz_json:set_value([<<"target">>], Target, Doc).
