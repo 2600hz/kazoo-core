@@ -55,6 +55,8 @@
 -define(LIST_BY_NUMBER, <<"callflows/listing_by_number">>).
 -define(LIST_BY_PATTERN, <<"callflows/listing_by_pattern">>).
 
+-define(CONFLICT_SAMPLE_SIZE, 50).
+
 -spec new() -> doc().
 new() ->
     kz_doc:update_pvt_parameters(kz_json_schema:default_object(?SCHEMA)
@@ -508,11 +510,9 @@ maybe_validate_attribute_list_is_unique_within_account_callflows(Key, AccountId,
                        {'ok', CurrentDoc} -> kz_json:get_list_value(Key, CurrentDoc, []);
                        {'error', _R} -> 'undefined'
                    end,
-    case kz_term:is_empty(NewValue)
-        orelse ( not (kz_term:is_empty(CurrentValue))
-                 andalso (length(NewValue) =:= length(CurrentValue))
-                 andalso ((NewValue -- CurrentValue) =:= [])
-               )
+    case not kz_term:is_empty(CurrentValue)
+        andalso (length(NewValue) =:= length(CurrentValue))
+        andalso ((NewValue -- CurrentValue) =:= [])
     of
         'true' when NewValue =:= 'undefined' ->
             lager:debug("~p is not set on callflow, skipping unique ~p checks", [Key, Key]),
@@ -575,10 +575,12 @@ get_view_by(?KEY_PATTERNS) -> ?LIST_BY_PATTERN.
 -spec validate_attribute_conflicts(kz_json:get_key(), kz_json:objects(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
           kazoo_documents:doc_validation_acc().
 validate_attribute_conflicts(Key, CallflowViews, 'undefined', ValidateAcc) ->
-    add_attribute_conflict_errors(Key, CallflowViews, ValidateAcc);
+    CallflowViewSample = conflicting_callflow_sample(CallflowViews),
+    add_attribute_conflict_errors(Key, CallflowViewSample, ValidateAcc);
 validate_attribute_conflicts(Key, CallflowViews, CallflowId, ValidateAcc) ->
-    ConflictingViewObj = filter_callflow_list(CallflowId, CallflowViews),
-    add_attribute_conflict_errors(Key, ConflictingViewObj, ValidateAcc).
+    ConflictingViewObjs = filter_callflow_list(CallflowId, CallflowViews),
+    CallflowViewSample = conflicting_callflow_sample(ConflictingViewObjs),
+    add_attribute_conflict_errors(Key, CallflowViewSample, ValidateAcc).
 
 %%------------------------------------------------------------------------------
 %% @doc Remove any callflows from a list of callflows where the callflow's id
@@ -593,7 +595,15 @@ filter_callflow_list(CallflowId, Callflows) ->
     ].
 
 %%------------------------------------------------------------------------------
-%% @doc Add all `numbers' or `patterns' conflict errors to the
+%% @doc Get sample of conflicting callflows to add conflict errors
+%% @end
+%%------------------------------------------------------------------------------
+-spec conflicting_callflow_sample(kz_json:objects()) -> kz_json:objects().
+conflicting_callflow_sample(CallflowViews) ->
+    lists:sublist(CallflowViews, ?CONFLICT_SAMPLE_SIZE).
+
+%%------------------------------------------------------------------------------
+%% @doc Add initial `numbers' or `patterns' conflict errors to the
 %% `doc_validation_acc()'.
 %% @end
 %%------------------------------------------------------------------------------
