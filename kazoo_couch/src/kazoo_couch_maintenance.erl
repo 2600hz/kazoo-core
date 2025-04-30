@@ -10,8 +10,6 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_couch_maintenance).
 
--include("kz_couch.hrl").
-
 -export([get_read/0
         ,get_write/0
         ,set_read/1
@@ -19,6 +17,10 @@
         ,unset_read/0
         ,unset_write/0
         ]).
+
+-include("kz_couch.hrl").
+
+-elvis([{elvis_style, no_debug_call, disable}]).
 
 -define(SECTION_CONFIG, kz_dataconfig:get_config_section()).
 

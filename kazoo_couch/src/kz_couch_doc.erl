@@ -54,7 +54,7 @@ open_doc(#server{}=Conn, DbName, DocId, Options) ->
     do_fetch_doc(Db, DocId, maybe_read_option(Conn, Options)).
 
 maybe_read_option(#server{options=ConnOpts}, Options) ->
-    case proplists:get_value('read', ConnOpts) of
+    case props:get_value('read', ConnOpts) of
         'undefined' -> Options;
         Value -> [{'r', Value} | Options]
     end.
@@ -73,7 +73,7 @@ save_docs(#server{}=Conn, DbName, Docs, Options) ->
     do_save_docs(Db, Docs, maybe_write_option(Conn, Options)).
 
 maybe_write_option(#server{options = ConnOpts}, Options) ->
-    case proplists:get_value('read', ConnOpts) of
+    case props:get_value('read', ConnOpts) of
         'undefined' -> Options;
         Value -> [{'w', Value} | Options]
     end.
