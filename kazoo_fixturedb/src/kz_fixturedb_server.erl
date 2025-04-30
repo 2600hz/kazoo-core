@@ -120,7 +120,7 @@ maybe_use_app_connection(#{options := Options}=Server, DbName) ->
 set_app_connection(#{options := Options}=Server, AppName) ->
     Path = case maps:get('test_db_subdir', Options, 'undefined') of
                'undefined' -> code:priv_dir(AppName);
-               P -> filename:join(code:lib_dir(AppName), kz_term:to_atom(P, 'true'))
+               SubDir -> filename:join(code:lib_dir(AppName), SubDir)
            end,
     case Path of
         {'error', 'bad_name'} ->
