@@ -33,6 +33,7 @@
 
 -define(DEFAULT_EXPIRES, 900).
 -define(DEFAULT_PROVIDER, <<"opencnam">>).
+-define(DEFAULT_CACHE_MODE, 'fetch').
 
 -define(DISABLE_NORMALIZE
        ,kapps_config:get_is_true(?CNAM_CONFIG_CAT, <<"disable_normalize">>, 'false')
