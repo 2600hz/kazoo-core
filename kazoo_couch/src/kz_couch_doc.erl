@@ -73,7 +73,7 @@ save_docs(#server{}=Conn, DbName, Docs, Options) ->
     do_save_docs(Db, Docs, maybe_write_option(Conn, Options)).
 
 maybe_write_option(#server{options = ConnOpts}, Options) ->
-    case props:get_value('read', ConnOpts) of
+    case props:get_value('write', ConnOpts) of
         'undefined' -> Options;
         Value -> [{'w', Value} | Options]
     end.
