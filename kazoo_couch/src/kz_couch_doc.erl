@@ -55,6 +55,7 @@ open_doc(#server{}=Conn, DbName, DocId, Options) ->
 
 maybe_read_option(#server{options=ConnOpts}, Options) ->
     case props:get_value('read', ConnOpts) of
+        'null' -> Options; %% allow kz_datamgr:open_doc/3 users to disable 'write' options
         'undefined' -> Options;
         Value -> [{'r', Value} | Options]
     end.
@@ -74,6 +75,7 @@ save_docs(#server{}=Conn, DbName, Docs, Options) ->
 
 maybe_write_option(#server{options = ConnOpts}, Options) ->
     case props:get_value('write', ConnOpts) of
+        'null' -> Options; %% allow kz_datamgr:open_doc/3 users to disable 'write' options
         'undefined' -> Options;
         Value -> [{'w', Value} | Options]
     end.
