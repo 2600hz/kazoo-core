@@ -84,6 +84,8 @@
         ,set_values/2
         ,continue_after/1, continue_after/2
         ,fail_on_single_reject/1, fail_on_single_reject/2
+        ,pickup_forbidden/1, pickup_forbidden/2
+        ,pickup_hangup_on_forbidden/1, pickup_hangup_on_forbidden/2
         ]).
 
 %% helpers for working with opaque object
@@ -204,6 +206,8 @@ req_definition() ->
                                                             ,?KEY_OUTBOUND_CALLER_ID_NAME
                                                             ,?KEY_OUTBOUND_CALLER_ID_NUMBER
                                                             ,?KEY_OUTBOUND_CALL_ID
+                                                            ,?KEY_PICKUP_FORBIDDEN
+                                                            ,?KEY_PICKUP_HANGUP_ON_FORBIDDEN
                                                             ,?KEY_PRESENCE_ID
                                                             ,?KEY_PRIVACY_HIDE_NAME
                                                             ,?KEY_PRIVACY_HIDE_NUMBER
@@ -266,6 +270,8 @@ req_definition() ->
                 ,{?KEY_TO_DID, fun kz_term:is_ne_binary/1}
                 ,{?KEY_CONTINUE_AFTER, fun kz_term:is_boolean/1}
                 ,{?KEY_FAIL_ON_SINGLE_REJECT, fun kz_api_term:is_boolean_or_ne_binaries/1}
+                ,{?KEY_PICKUP_FORBIDDEN, fun is_boolean/1}
+                ,{?KEY_PICKUP_HANGUP_ON_FORBIDDEN, fun kz_api_term:is_boolean_or_ne_binary/1}
                 ]
                }
               ],
@@ -810,3 +816,26 @@ invite_contact_user(Req) ->
 -spec invite_contact_user(req(), Default) -> kz_term:ne_binary() | Default.
 invite_contact_user(?REQ_TYPE(JObj), Default) ->
     kz_json:get_ne_value(?KEY_INVITE_CONTACT_USER, JObj, Default).
+
+-spec pickup_forbidden(req()) -> kz_term:api_boolean() | kz_term:ne_binaries().
+pickup_forbidden(Req) ->
+    pickup_forbidden(Req, 'undefined').
+
+-spec pickup_forbidden(req(), Default) -> boolean() | kz_term:ne_binaries() | Default.
+pickup_forbidden(?REQ_TYPE(JObj), Default) ->
+    kz_json:get_boolean_value(?KEY_PICKUP_FORBIDDEN, JObj, Default).
+
+-spec pickup_hangup_on_forbidden(req()) -> kz_term:api_boolean() | kz_term:ne_binary().
+pickup_hangup_on_forbidden(Req) ->
+    pickup_hangup_on_forbidden(Req, 'undefined').
+
+-spec pickup_hangup_on_forbidden(req(), Default) -> boolean() | kz_term:ne_binary() | Default.
+pickup_hangup_on_forbidden(?REQ_TYPE(JObj), Default) ->
+    case kz_json:get_value(?KEY_PICKUP_HANGUP_ON_FORBIDDEN, JObj) of
+        Bool when is_boolean(Bool) -> Bool;
+        Other ->
+            case kz_term:is_ne_binary(Other) of
+                true -> Other;
+                false -> Default
+            end
+    end.

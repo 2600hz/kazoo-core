@@ -52,6 +52,8 @@
 -define(KEY_OUTBOUND_CALL_ID, <<"Outbound-Call-ID">>).
 -define(KEY_ORIGINATION_CALL_ID, <<"Origination-Call-ID">>).
 -define(KEY_ORIGINATE_IMMEDIATE, <<"Originate-Immediate">>).
+-define(KEY_PICKUP_FORBIDDEN, <<"Pickup-Forbidden">>).
+-define(KEY_PICKUP_HANGUP_ON_FORBIDDEN, <<"Pickup-Hangup-On-Forbidden">>).
 -define(KEY_PRESENCE_ID, <<"Presence-ID">>).
 -define(KEY_PRIVACY_HIDE_NAME, <<"Privacy-Hide-Name">>).
 -define(KEY_PRIVACY_HIDE_NUMBER, <<"Privacy-Hide-Number">>).
