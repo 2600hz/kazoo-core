@@ -183,6 +183,8 @@ originate_req_definition() ->
                 ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
                 ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
                 ,{<<"Fail-On-Single-Reject">>, fun kz_api_term:is_boolean_or_ne_binaries/1}
+                ,{<<"Pickup-Forbidden">>, fun is_boolean/1}
+                ,{<<"Pickup-Hangup-On-Forbidden">>, fun kz_api_term:is_boolean_or_ne_binary/1}
                 ]
                }
               ],
