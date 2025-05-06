@@ -94,11 +94,12 @@ startup() ->
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    case wg_httpc:post() of
-        {'ok', _} -> gen_server:start_link({'local', ?SERVER}, ?MODULE, [], []);
-        _Else ->
-            lager:warning("contacting telemetry server failed, not starting: ~p", [_Else]),
-            'ignore'
+    case kz_app_config:get_boolean(telemetry, <<"auto_start">>, false) of
+        true ->
+            lager:debug("starting telemetry"),
+            gen_server:start_link({'local', ?SERVER}, ?MODULE, [], []);
+        false ->
+            ignore
     end.
 
 %%%=============================================================================
