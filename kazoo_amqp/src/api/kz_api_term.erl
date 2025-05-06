@@ -8,9 +8,17 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_api_term).
 
--export([is_boolean_or_ne_binaries/1]).
+-export([is_boolean_or_ne_binary/1
+        ,is_boolean_or_ne_binaries/1
+        ]).
 
 -export([validator_properties/1]).
+
+-spec is_boolean_or_ne_binary(term()) -> boolean().
+is_boolean_or_ne_binary(Term) ->
+    kz_term:is_not_empty(Term)
+        andalso (is_boolean(Term)
+                 orelse kz_term:is_ne_binary(Term)).
 
 -spec is_boolean_or_ne_binaries(term()) -> boolean().
 is_boolean_or_ne_binaries(Term) ->
@@ -23,4 +31,7 @@ validator_properties('is_boolean_or_ne_binaries') ->
     kz_json:from_list([{<<"type">>, [<<"boolean">>, <<"array">>]}
                       ,{<<"items">>, kz_json:from_list([{<<"type">>, <<"string">>}])}
                       ,{<<"minItems">>, 1}
+                      ]);
+validator_properties('is_boolean_or_ne_binary') ->
+    kz_json:from_list([{<<"type">>, [<<"boolean">>, <<"string">>]}
                       ]).

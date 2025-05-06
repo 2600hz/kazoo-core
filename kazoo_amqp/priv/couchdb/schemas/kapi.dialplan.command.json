@@ -538,6 +538,12 @@
         "Park-After-Pickup": {
             "type": "string"
         },
+        "Pickup-Forbidden": {
+            "type": "string"
+        },
+        "Pickup-Hangup-On-Forbidden": {
+            "type": "string"
+        },
         "Pitch": {
             "type": "string"
         },
