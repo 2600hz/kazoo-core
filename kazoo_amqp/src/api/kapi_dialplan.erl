@@ -502,6 +502,8 @@ bridge_definition() ->
                                                             ,<<"Outbound-Callee-ID-Number">>
                                                             ,<<"Outbound-Caller-ID-Name">>
                                                             ,<<"Outbound-Caller-ID-Number">>
+                                                            ,<<"Pickup-Forbidden">>
+                                                            ,<<"Pickup-Hangup-On-Forbidden">>
                                                             ,<<"Privacy-Hide-Name">>
                                                             ,<<"Privacy-Hide-Number">>
                                                             ,<<"Privacy-Method">>
@@ -541,6 +543,8 @@ bridge_definition() ->
                 ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
                 ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
                 ,{<<"Fail-On-Single-Reject">>, fun kz_api_term:is_boolean_or_ne_binaries/1}
+                ,{<<"Pickup-Forbidden">>, fun is_boolean/1}
+                ,{<<"Pickup-Hangup-On-Forbidden">>, fun kz_api_term:is_boolean_or_ne_binary/1}
                 ]
                }
               ],
@@ -597,6 +601,8 @@ bridge_endpoint_definition() ->
                                                             ,<<"Outbound-Caller-ID-Name">>
                                                             ,<<"Outbound-Caller-ID-Number">>
                                                             ,<<"Outbound-Call-ID">>
+                                                            ,<<"Pickup-Forbidden">>
+                                                            ,<<"Pickup-Hangup-On-Forbidden">>
                                                             ,<<"Presence-ID">>
                                                             ,<<"Privacy-Hide-Name">>
                                                             ,<<"Privacy-Hide-Number">>
@@ -640,6 +646,8 @@ bridge_endpoint_definition() ->
                 ,{<<"Hold-Media-Options">>, fun kz_term:is_ne_binaries/1}
                 ,{<<"SIP-Diversions">>, fun kz_term:is_ne_binaries/1}
                 ,{<<"SIP-Multiparts">>, fun kz_json:is_json_object/1}
+                ,{<<"Pickup-Forbidden">>, fun is_boolean/1}
+                ,{<<"Pickup-Hangup-On-Forbidden">>, fun kz_api_term:is_boolean_or_ne_binary/1}
                 ]
                }
               ],

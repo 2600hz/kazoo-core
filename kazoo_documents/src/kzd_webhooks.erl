@@ -26,13 +26,14 @@
 -export([version/1, version/2, set_version/2]).
 
 -export([disable/1, disable/2
-        ,disabled_message/1, disabled_message/2
         ,disable_updates/1
+        ,disabled_message/1, disabled_message/2
         ,enable/1
-        ,is_auto_disabled/1
-        ,type/0, type/1
         ,enable_subaccounts/1, disable_subaccounts/1
+        ,is_auto_disabled/1
         ,modifiers/1, set_modifiers/2
+        ,schema/0
+        ,type/0, type/1
         ]).
 
 -include("kz_documents.hrl").
@@ -51,6 +52,10 @@
 -spec new() -> doc().
 new() ->
     kz_doc:set_type(kz_json_schema:default_object(?SCHEMA), type()).
+
+-spec schema() -> kz_term:ne_binary().
+schema() ->
+    ?SCHEMA.
 
 -spec custom_data(doc()) -> kz_term:api_object().
 custom_data(Doc) ->

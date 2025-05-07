@@ -214,6 +214,12 @@
         "Outbound-Caller-ID-Number": {
             "type": "string"
         },
+        "Pickup-Forbidden": {
+            "type": "string"
+        },
+        "Pickup-Hangup-On-Forbidden": {
+            "type": "string"
+        },
         "Privacy-Hide-Name": {
             "type": "string"
         },

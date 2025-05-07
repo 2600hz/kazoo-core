@@ -2135,7 +2135,8 @@ disable_cnam_features(<<?KNM_DB_PREFIX_encoded, Suffix/binary>>) ->
     disable_cnam_features(<<?KNM_DB_PREFIX_ENCODED, Suffix/binary>>);
 disable_cnam_features(<<?KNM_DB_PREFIX, Suffix/binary>>) ->
     disable_cnam_features(<<?KNM_DB_PREFIX_ENCODED, Suffix/binary>>);
-disable_cnam_features(Number) ->
+disable_cnam_features(N) ->
+    Number = knm_converters:normalize(N),
     disable_cnam_features(knm_converters:to_db(Number)).
 
 -spec disable_cnam_features(kz_term:ne_binary(), integer()) -> 'ok'.
@@ -2149,19 +2150,18 @@ disable_cnam_features(NumberDb, Offset) ->
         {'ok', JObjs} ->
             Length = length(JObjs),
             ?SUP_LOG_DEBUG("[~s] checking ~b docs", [NumberDb, Length]),
-            disable_cnam([kz_doc:id(JObj) || JObj <- JObjs]),
+            _ = disable_cnam([kz_doc:id(JObj) || JObj <- JObjs]),
             timer:sleep(?TIME_BETWEEN_ACCOUNTS_MS),
             disable_cnam_features(NumberDb, Offset + Length);
         {'error', _R} ->
             ?SUP_LOG_DEBUG("failed to get DIDs from ~s: ~p", [NumberDb, _R])
     end.
 
--spec disable_cnam(kz_term:ne_binaries()) -> 'ok'.
+-spec disable_cnam(kz_term:ne_binaries()) -> knm_numbers:return().
 disable_cnam(DIDs) ->
-    Update = kz_json:set_values([{[<<"cnam">>,<<"display_name">>], <<"">>},
-                                 {[<<"cnam">>,<<"inbound_lookup">>], false}
+    Update = kz_json:set_values([{[<<"cnam">>,<<"display_name">>], <<>>},
+                                 {[<<"cnam">>,<<"inbound_lookup">>], 'false'}
                                 ]
                                ,kz_json:new()
                                ),
     knm_numbers:update(DIDs, [{fun knm_phone_number:update_doc/2, Update}], []).
-

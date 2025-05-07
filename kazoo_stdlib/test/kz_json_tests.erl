@@ -1669,8 +1669,8 @@ canonicalize_test_() ->
 
 
 canonicalize_rfc8785_test() ->
-    {'ok', <<JSON/binary>>} = file:read_file(filename:join([code:lib_dir('kazoo_stdlib', 'test'), "input.json"])),
-    {'ok', <<Canonical/binary>>} = file:read_file(filename:join([code:lib_dir('kazoo_stdlib', 'test'), "canonical.json"])),
+    {'ok', <<JSON/binary>>} = file:read_file(filename:join([code:lib_dir('kazoo_stdlib'), "test", "input.json"])),
+    {'ok', <<Canonical/binary>>} = file:read_file(filename:join([code:lib_dir('kazoo_stdlib'), "test", "canonical.json"])),
 
     Made = kz_json:encode(kz_json:decode(JSON), ['canonical']),
     MadeJObj = kz_json:decode(Made),

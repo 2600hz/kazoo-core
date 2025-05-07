@@ -94,7 +94,13 @@ startup() ->
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_server:start_link({'local', ?SERVER}, ?MODULE, [], []).
+    case kz_app_config:get_boolean(telemetry, <<"auto_start">>, false) of
+        true ->
+            lager:debug("starting telemetry"),
+            gen_server:start_link({'local', ?SERVER}, ?MODULE, [], []);
+        false ->
+            ignore
+    end.
 
 %%%=============================================================================
 %%% gen_server callbacks
