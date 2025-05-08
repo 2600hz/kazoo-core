@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2024, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc Behaviour for setting up an AMQP listener.
 %%% Add/remove responders for `Event-Cat'/`Event-Name' pairs. Each responder
 %%% corresponds to a module that has defined a `handle/1' function, receiving
@@ -1643,6 +1643,7 @@ create_federated_params(StartParams) ->
     ,{'queue_name', props:get_value('queue_name', StartParams, <<>>)}
     ,{'queue_options', QueueOptions}
     ,{'consume_options', props:get_value('consume_options', StartParams, [])}
+    ,{'calling_application', kz_process:get_application()}
     ].
 
 -spec handle_amqp_channel_available(state(), boolean()) -> state().
