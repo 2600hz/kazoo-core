@@ -41,7 +41,7 @@ create(Text, Voice, Format, Options) ->
         GoogleFormat ->
             ContentType = props:get_value(GoogleFormat, ?GOOGLE_TO_CONTENT_TYPE_MAPPINGS),
             EngineData = kz_json:from_list([{<<"content_type">>, ContentType}]),
-            MappedVoice = get_mapped_voice(Voice),
+            MappedVoice = get_mapped_voice(?GOOGLE_DEFAULT_MODEL(Voice)),
             make_request(Text, MappedVoice, GoogleFormat, Options, EngineData)
     end.
 
@@ -64,7 +64,7 @@ get_mapped_voice(Voice, _Match) ->
         [#voiceDesc{name=Name, languageCodes=[Code|_]} | _] -> {Name, Code}
     end.
 
--spec get_matched_voice(kz_term:ne_binary()) -> [#voiceDesc{}].
+-spec get_matched_voice(kz_term:ne_binary()) -> [voiceDesc()].
 get_matched_voice(Voice) ->
     [Gender, Language] = binary:split(kz_term:to_lower_binary(Voice), <<"/">>),
 
