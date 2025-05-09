@@ -1277,7 +1277,19 @@ callback_handle_event(JObj
              ]
             ,NewModuleState
             };
+        {'EXIT', {{Reason, Term}, ST}} ->
+            lager:error("CRASH in handle_event ~p: ~p", [Reason, Term]),
+            lager:error("module state: ~p", [_State]),
+            kz_log:log_stacktrace(ST),
+            [{'server', Self}
+            ,{'queue', Queue}
+            ,{'basic', Basic}
+            ,{'deliver', Deliver}
+            ,{'other_queues', props:get_keys(OtherQueues)}
+            ,{'state', ModuleState}
+            ];
         {'EXIT', Why} ->
+            %% left in case the error term changes
             lager:error("CRASH in handle_event ~p : ~p", [Why, _State]),
             [{'server', Self}
             ,{'queue', Queue}
