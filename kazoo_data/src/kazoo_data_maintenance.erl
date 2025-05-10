@@ -180,7 +180,7 @@ dataplan_reload(AccountId) ->
     _ = kzs_plan:reload(AccountId),
     io:format("dataplan for account ~s reloaded~n", [AccountId]).
 
-%% @doc resaves attachments found MODBs for the given year, typically
+%% @doc resaves attachments in MODBs for the given year, typically
 %% moving them to external storage after a storage plan is in place.
 -spec move_recordings_to_external_storage() -> 'ok' | data_error().
 move_recordings_to_external_storage() ->
