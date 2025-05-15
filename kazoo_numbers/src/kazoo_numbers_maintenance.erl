@@ -2159,9 +2159,7 @@ disable_cnam_features(NumberDb, Offset) ->
 
 -spec disable_cnam(kz_term:ne_binaries()) -> knm_numbers:return().
 disable_cnam(DIDs) ->
-    Update = kz_json:set_values([{[<<"cnam">>,<<"display_name">>], <<>>},
-                                 {[<<"cnam">>,<<"inbound_lookup">>], 'false'}
-                                ]
+    Update = kz_json:set_values([{[<<"cnam">>,<<"inbound_lookup">>], 'false'}]
                                ,kz_json:new()
                                ),
     knm_numbers:update(DIDs, [{fun knm_phone_number:update_doc/2, Update}], []).
