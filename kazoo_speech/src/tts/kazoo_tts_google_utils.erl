@@ -121,6 +121,7 @@ voice_selection_to_json(#voiceSelectionParams{languageCode=Code
 audio_config_to_json(_AudioConfig, {'error', _Message}=Error) -> Error;
 audio_config_to_json(#audioConfig{audioEncoding=Encoding
                                  ,speakingRate=SpeakingRate
+                                 ,effectsProfileId = EffectsProfileId
                                  ,pitch=Pitch
                                  ,volumeGainDb=Gain
                                  ,sampleRateHertz=SampleRate
@@ -128,6 +129,7 @@ audio_config_to_json(#audioConfig{audioEncoding=Encoding
                     ,'ok') ->
     kz_json:set_values([{<<"audioEncoding">>, Encoding}
                        ,{<<"speakingRate">>, SpeakingRate}
+                       ,{<<"effectsProfileId">>, EffectsProfileId}
                        ,{<<"pitch">>, Pitch}
                        ,{<<"volumeGainDb">>, Gain}
                        ,{<<"sampleRateHertz">>, SampleRate}

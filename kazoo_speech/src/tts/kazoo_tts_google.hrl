@@ -11,6 +11,7 @@
                            'NEUTRAL'.
 
 -type speakingRate() :: float() | 'undefined'.
+-type profileId() :: 'telephony-class-application'.
 -type pitch() :: float() | 'undefined'.
 -type volumeGainDb() :: float() | 'undefined'.
 -type sampleRateHertz() :: pos_integer() | 'undefined'.
@@ -26,6 +27,7 @@
 
 -record(audioConfig, {audioEncoding = 'LINEAR16' :: audioEncoding()
                      ,speakingRate :: speakingRate() | 'undefined'
+                     ,effectsProfileId = [ 'telephony-class-application' ] :: [ profileId() ]
                      ,pitch :: pitch() | 'undefined'
                      ,volumeGainDb :: volumeGainDb() | 'undefined'
                      ,sampleRateHertz :: sampleRateHertz() | 'undefined'
