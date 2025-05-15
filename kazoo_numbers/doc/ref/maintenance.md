@@ -32,6 +32,8 @@
 | `destructively_remove_from_number_dbs_if_not_in_accountdb/0` |  | |
 | `destructively_remove_from_single_account_db_if_not_in_numdb/1` | `(AccountDb)` | |
 | `destructively_remove_from_single_numdb_if_not_in_accountdb/1` | `(NumberDb)` | |
+| `disable_inbound_cnam/0` |  | |
+| `disable_inbound_cnam/1` | `(N) | (_)` | |
 | `ensure_adminonly_features_are_reachable/0` |  | |
 | `feature_permissions_on_number/1` | `(Num)` | |
 | `feature_permissions_on_reseller_of/1` | `(_)` | |
