@@ -188,15 +188,15 @@ tts_text(Doc, Default) ->
 set_tts_text(Doc, TtsText) ->
     kz_json:set_value([<<"tts">>, <<"text">>], TtsText, Doc).
 
--spec tts_voice(doc()) -> binary().
+-spec tts_voice(doc()) -> kz_term:ne_binary().
 tts_voice(Doc) ->
     tts_voice(Doc, <<"female/en-US">>).
 
--spec tts_voice(doc(), Default) -> binary() | Default.
+-spec tts_voice(doc(), Default) -> kz_term:ne_binary() | Default.
 tts_voice(Doc, Default) ->
-    kz_json:get_binary_value([<<"tts">>, <<"voice">>], Doc, Default).
+    kz_json:get_ne_binary_value([<<"tts">>, <<"voice">>], Doc, Default).
 
--spec set_tts_voice(doc(), binary()) -> doc().
+-spec set_tts_voice(doc(), kz_term:ne_binary()) -> doc().
 set_tts_voice(Doc, TtsVoice) ->
     kz_json:set_value([<<"tts">>, <<"voice">>], TtsVoice, Doc).
 
