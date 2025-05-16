@@ -353,6 +353,7 @@ calculate_updates(Services, JObj) ->
                        ,fun calculate_conference_updates/2
                        ,fun calculate_port_request_updates/2
                        ,fun calculate_chat_updates/2
+                       ,fun calculate_external_service_updates/2
                        ],
             Updates = exec_routines(Routines, JObj),
             case has_substitute_values(Updates) of
@@ -418,13 +419,27 @@ calculate_user_updates(JObj, Updates) ->
             [{Key, 1} | Updates]
     end.
 
+%% NOT use teammate device for billing
+%% because teammate service charge on user basis
 -spec calculate_device_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
 calculate_device_updates(JObj, Updates) ->
-    case kz_doc:type(JObj) =:= <<"device">> of
+    case kz_doc:type(JObj) =:= <<"device">>
+        andalso kz_json:get_value(<<"device_type">>, JObj) =/= <<"teammate">>
+    of
         'false' -> Updates;
         'true' ->
             Type = kzd_devices:device_type(JObj, <<"sip_device">>),
             Key = [<<"devices">>, Type],
+            [{Key, 1} | Updates]
+    end.
+
+-spec calculate_external_service_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
+calculate_external_service_updates(JObj, Updates) ->
+    case kz_doc:type(JObj) =:= <<"external_service">> of
+        'false' -> Updates;
+        'true' ->
+            Type = kz_json:get_binary_value(JObj, <<"external_service_type">>),
+            Key = [<<"external_service">>, Type],
             [{Key, 1} | Updates]
     end.
 
