@@ -1,0 +1,25 @@
+{
+    "_id": "_design/teammate",
+    "kazoo": {
+        "view_map": [
+            {
+                "classification": "account"
+            }
+        ]
+    },
+    "language": "javascript",
+    "views": {
+        "crossbar_listing": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.external_service_type != 'teammate' || doc.pvt_deleted) return;",
+                "  emit(doc._id, {",
+                "    'msteams_user_is': doc.teams_user_id,",
+                "    'pbx_user_id': doc.pbx_auth_user_id,",
+                "    'user_type': doc.user_type",
+                "  });",
+                "}"
+            ]
+        }
+    }
+}
