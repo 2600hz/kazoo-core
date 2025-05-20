@@ -1120,7 +1120,7 @@ format_state(#state{module = Module, module_state = ModuleState} = State) ->
              }
     end.
 
-format_status_map(state, State) -> format_state(State);
+format_status_map('state', State) -> format_state(State);
 format_status_map(_, Value) -> Value.
 
 -spec format_status(gen_server:format_status()) -> gen_server:format_status().
