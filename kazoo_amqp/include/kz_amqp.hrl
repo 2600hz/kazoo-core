@@ -186,6 +186,7 @@
                              #'basic.cancel_ok'{}.
 -type command_ret() :: 'ok' |
                        {'ok', kz_term:ne_binary() | kz_command_ret_ok()} |
+                       kz_command_ret_ok() |
                        {'error', any()}.
 
 -define(KZ_AMQP_ETS, 'kz_amqp_ets').
