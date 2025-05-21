@@ -397,7 +397,7 @@ exec_command(#kz_amqp_assignment{channel=Pid}, #'channel.flow_ok'{}=FlowCtl) ->
 exec_command(#kz_amqp_assignment{channel=Pid}, #'basic.ack'{}=BasicAck) ->
     amqp_channel:cast(Pid, BasicAck);
 exec_command(#kz_amqp_assignment{channel=Channel}=Assignment, #'confirm.select'{}=Command) ->
-    Result = amqp_channel:call(Channel, Command),
+    Result = amqp_channel_call(Channel, Command),
     handle_command_result(Result, Command, Assignment);
 exec_command(#kz_amqp_assignment{channel=Pid}, #'basic.nack'{}=BasicNack) ->
     amqp_channel:cast(Pid, BasicNack);
@@ -408,7 +408,7 @@ exec_command(#kz_amqp_assignment{consumer=Consumer
             ,#'basic.consume'{consumer_tag=_OldTag}=Command
             ) ->
     C = Command#'basic.consume'{consumer_tag = <<>>},
-    case amqp_channel:subscribe(Channel, C, Consumer) of
+    case amqp_channel_subscribe(Channel, C, Consumer) of
         #'basic.consume_ok'{consumer_tag=_NewTag} ->
             lager:debug("consumer ~p consuming on tag ~p", [Consumer, _NewTag]);
         _Else ->
@@ -421,13 +421,13 @@ exec_command(#kz_amqp_assignment{consumer=Consumer
                                 }=Assignment
             ,#'basic.consume'{queue=_Queue}=Command
             ) ->
-    Result = amqp_channel:subscribe(Channel, Command, Consumer),
+    Result = amqp_channel_subscribe(Channel, Command, Consumer),
     lager:debug("consuming for ~p on ~p returned ~p", [Consumer, Channel, Result]),
     handle_command_result(Result, Command, Assignment);
 exec_command(#kz_amqp_assignment{channel=Channel}=Assignment
             ,#'exchange.bind'{}=Command
             ) ->
-    Result = amqp_channel:call(Channel, Command),
+    Result = amqp_channel_call(Channel, Command),
     handle_command_result(Result, Command, Assignment);
 exec_command(#kz_amqp_assignment{channel=Channel
                                 ,consumer=Consumer
@@ -448,19 +448,38 @@ exec_command(#kz_amqp_assignment{channel=Channel}=Assignment
                             }=Command
             ) ->
     lager:debug("unbinding ~s from ~s(~s)", [QueueName, Exchange, RoutingKey]),
-    handle_command_result(amqp_channel:call(Channel, Command), Command, Assignment);
+    Result = amqp_channel_call(Channel, Command),
+    handle_command_result(Result, Command, Assignment);
 exec_command(#kz_amqp_assignment{channel=Channel}=Assignment, Command) ->
-    Result = try amqp_channel:call(Channel, Command)
-             catch
-                 E:R ->
-                     lager:debug("amqp command exception ~p : ~p", [E, R]),
-                     {'error', R}
-             end,
+    Result = amqp_channel_call(Channel, Command),
     handle_command_result(Result, Command, Assignment).
+
+-spec amqp_channel_call(pid(), kz_amqp_command()) -> command_ret().
+amqp_channel_call(Channel, Command) ->
+    try
+        amqp_channel:call(Channel, Command)
+    catch
+        E:R:ST ->
+            lager:debug("amqp command exception running ~p on channel ~p => ~p : ~p", [Command, Channel, E, R]),
+            kz_log:log_stacktrace(ST),
+            {'error', R}
+    end.
+
+-spec amqp_channel_subscribe(pid(), kz_amqp_command(), pid()) -> command_ret().
+amqp_channel_subscribe(Channel, Command, Consumer) ->
+    try
+        amqp_channel:subscribe(Channel, Command, Consumer)
+    catch
+        E:R:ST ->
+            lager:debug("amqp command exception running ~p on channel ~p => ~p : ~p", [Command, Channel, E, R]),
+            kz_log:log_stacktrace(ST),
+            {'error', R}
+    end.
 
 -spec handle_command_result(command_ret(), kz_amqp_command(), kz_amqp_assignment()) -> command_ret().
 handle_command_result(_, _, #kz_amqp_assignment{reconnect='true'}) -> 'ok';
 handle_command_result({'error', _}=Error, _, _) -> Error;
+handle_command_result('ok', _Command, _Assignment) -> 'ok';
 handle_command_result({'ok', Ok}, Command, Assignment) ->
     handle_command_result(Ok, Command, Assignment);
 handle_command_result(#'basic.qos_ok'{}
