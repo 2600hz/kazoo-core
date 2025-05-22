@@ -24,6 +24,8 @@
 -export([consumer_details/0
         ,consumer_details/1
         ,consumer_details/3
+
+        ,federators_check/0
         ]).
 
 -export([gc_pool/1]).
@@ -399,7 +401,7 @@ channel_summary({[#kz_amqp_assignment{}=Assignment], Continuation}) ->
               ,channel_summary_age(Assignment#kz_amqp_assignment.timestamp)
               ,channel_summary_age(Assignment#kz_amqp_assignment.assigned)
               ,Assignment#kz_amqp_assignment.application
-              ,Assignment#kz_amqp_assignment.consumer
+              ,maybe_named_consumer(Assignment#kz_amqp_assignment.consumer)
               ,Assignment#kz_amqp_assignment.channel
               ,Assignment#kz_amqp_assignment.connection
               ,Assignment#kz_amqp_assignment.type
@@ -407,6 +409,93 @@ channel_summary({[#kz_amqp_assignment{}=Assignment], Continuation}) ->
               ]),
     io:format("+--------------------------------------------------+----------+----------+----------------------+-----------------+-----------------+-----------------+----------+----------+~n"),
     channel_summary(ets:match_object(Continuation)).
+
+-spec federators_check() -> 'ok'.
+federators_check() ->
+    case [Broker || #kz_amqp_connections{available=Avail
+                                        ,broker=Broker
+                                        } <- kz_amqp_connections:connections(),
+                    not Avail
+         ]
+    of
+        [] -> federators_check(kz_amqp_connections:primary_broker());
+        DownBrokers ->
+            io:format("brokers are down, fix first:~n~s~n", [kz_binary:join(DownBrokers, $\n)])
+    end.
+
+federators_check(LocalBroker) ->
+    MatchSpec = [{#kz_amqp_assignment{broker=LocalBroker
+                                     ,consumer='$2'
+                                     ,_='_'
+                                     }
+                 ,[{'=/=', '$2', 'undefined'}]
+                 ,['$2']
+                 }
+                ],
+
+    Consumers = ets:select(?ASSIGNMENTS, MatchSpec),
+    case lists:foldl(fun federator_check/2, [], Consumers) of
+        [] -> io:format("all federators appear connected~n");
+        Missing ->
+            [io:format("~s | ~s~n", [C, UR])
+             || [C, UR] <- [[<<"Consumer">>, <<"Unconnected Remotes">>] | Missing]
+            ],
+            io:format("~n")
+    end.
+
+federator_check(Consumer, Rows) ->
+    case is_process_alive(Consumer) of
+        'false' -> Rows;
+        'true' ->
+            Bindings = catch gen_listener:bindings(Consumer),
+            case is_list(Bindings)
+                andalso lists:any(fun({_Mod, Params}) -> lists:member('federate', Params) end
+                                 ,Bindings
+                                 )
+            of
+                'false' -> Rows; % not federated
+                'true' -> % gen_listener should have federators
+                    federator_check(Consumer, Rows, gen_listener:waiting_federators(Consumer))
+            end
+    end.
+
+federator_check(Consumer, Rows, []) ->
+    federator_check_deep(Consumer, Rows);
+federator_check(Consumer, Rows, RemoteBrokers) ->
+    Name = maybe_named_consumer(Consumer),
+    [[Name
+     ,kz_binary:join(RemoteBrokers)
+     ] | Rows
+    ].
+
+federator_check_deep(Consumer, Rows) ->
+    Federators = gen_listener:federators(Consumer),
+    FedBrokers = kz_amqp_connections:federated_brokers(),
+    case length(Federators) =:= length(FedBrokers) of
+        'true' -> Rows;
+        'false' ->
+            Missing = lists:foldl(fun(Federator, FedBs) ->
+                                          lists:delete(listener_federator:broker(Federator)
+                                                      ,FedBs
+                                                      )
+                                  end
+                                 ,FedBrokers
+                                 ,Federators
+                                 ),
+            [[maybe_named_consumer(Consumer)
+             ,kz_binary:join(Missing)
+             ]
+            | Rows
+            ]
+    end.
+
+maybe_named_consumer(Pid) when is_pid(Pid) ->
+    case process_info(Pid, 'registered_name') of
+        {'registered_name', Name} ->
+            [kz_term:to_binary(Name), " (", kz_term:to_binary(Pid), ")"];
+        _ -> kz_term:to_binary(Pid)
+    end;
+maybe_named_consumer('undefined') -> <<"undefined">>.
 
 -spec channel_summary_age('undefined' | kz_time:start_time()) -> non_neg_integer().
 channel_summary_age('undefined') -> 0;

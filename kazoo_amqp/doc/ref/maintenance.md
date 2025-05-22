@@ -13,6 +13,7 @@
 | `consumer_details/1` | `(ProcessUpper)` | |
 | `consumer_details/3` | `(NodeNumber,ProcessUpper,ProcessLower)` | |
 | `event_pools/0` |  | |
+| `federators_check/0` |  | |
 | `gc_pool/1` | `(Pool) | (PoolBin)` | |
 | `primary_broker/0` |  | |
 | `remove_broker/1` | `(Broker)` | |
