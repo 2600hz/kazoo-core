@@ -137,7 +137,7 @@ add(Broker, Zone, Tags) ->
             {'error', 'invalid_uri'};
         {'ok', #amqp_params_network{}=Params} ->
             add(#kz_amqp_connection{broker=Broker
-                                   ,params=Params#amqp_params_network{connection_timeout=500}
+                                   ,params=Params#amqp_params_network{connection_timeout=500, channel_max = 0}
                                    ,tags=Tags
                                    ,hidden=is_hidden_broker(Tags)
                                    ,prechannels=prechannels_from_zone_config(zone_config_name(Zone))
