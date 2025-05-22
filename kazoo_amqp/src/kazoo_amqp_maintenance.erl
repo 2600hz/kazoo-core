@@ -24,6 +24,8 @@
 -export([consumer_details/0
         ,consumer_details/1
         ,consumer_details/3
+
+        ,federators_check/0
         ]).
 
 -export([gc_pool/1]).
@@ -396,6 +398,84 @@ channel_summary() ->
     kz_log:print_table([HeaderFields | Rows]
                       ,#{header_divider => $=}
                       ).
+
+-spec federators_check() -> 'ok'.
+federators_check() ->
+    case [Broker || #kz_amqp_connections{available=Avail
+                                        ,broker=Broker
+                                        } <- kz_amqp_connections:connections(),
+                    not Avail
+         ]
+    of
+        [] -> federators_check(kz_amqp_connections:primary_broker());
+        DownBrokers ->
+            io:format("brokers are down, fix first:~n~s~n", [kz_binary:join(DownBrokers, $\n)])
+    end.
+
+federators_check(LocalBroker) ->
+    MatchSpec = [{#kz_amqp_assignment{broker=LocalBroker
+                                     ,consumer='$2'
+                                     ,_='_'
+                                     }
+                 ,[{'=/=', '$2', 'undefined'}]
+                 ,['$2']
+                 }
+                ],
+
+    Consumers = ets:select(?ASSIGNMENTS, MatchSpec),
+    case lists:foldl(fun federator_check/2, [], Consumers) of
+        [] -> io:format("all federators appear connected~n");
+        Missing ->
+            kz_log:print_table([[<<"Consumer">>, <<"Unconnected Remotes">>] | Missing]
+                              ,#{header_divider => $=}
+                              )
+    end.
+
+federator_check(Consumer, Rows) ->
+    case is_process_alive(Consumer) of
+        'false' -> Rows;
+        'true' ->
+            Bindings = catch gen_listener:bindings(Consumer),
+            case is_list(Bindings)
+                andalso lists:any(fun({_Mod, Params}) -> lists:member('federate', Params) end
+                                 ,Bindings
+                                 )
+            of
+                'false' -> Rows; % not federated
+                'true' -> % gen_listener should have federators
+                    federator_check(Consumer, Rows, gen_listener:waiting_federators(Consumer))
+            end
+    end.
+
+federator_check(Consumer, Rows, []) ->
+    federator_check_deep(Consumer, Rows);
+federator_check(Consumer, Rows, RemoteBrokers) ->
+    Name = maybe_named_consumer(Consumer),
+    [[Name
+     ,kz_binary:join(RemoteBrokers)
+     ] | Rows
+    ].
+
+federator_check_deep(Consumer, Rows) ->
+    Federators = gen_listener:federators(Consumer),
+    FedBrokers = kz_amqp_connections:federated_brokers(),
+    case length(Federators) =:= length(FedBrokers) of
+        'true' -> Rows;
+        'false' ->
+            Missing = lists:foldl(fun(Federator, FedBs) ->
+                                          lists:delete(listener_federator:broker(Federator)
+                                                      ,FedBs
+                                                      )
+                                  end
+                                 ,FedBrokers
+                                 ,Federators
+                                 ),
+            [[maybe_named_consumer(Consumer)
+             ,kz_binary:join(Missing)
+             ]
+            | Rows
+            ]
+    end.
 
 channel_summary('$end_of_table', Rows) -> lists:reverse(Rows);
 channel_summary({[#kz_amqp_assignment{}=Assignment], Continuation}, Rows) ->

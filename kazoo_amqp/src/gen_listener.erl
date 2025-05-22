@@ -61,7 +61,7 @@
 -export([queue_name/1
         ,bindings/1
         ,responders/1
-        ,federators/1
+        ,federators/1, waiting_federators/1
         ,is_consuming/1, wait_until_consuming/2
         ,routing_key_used/1
         ]).
@@ -298,6 +298,11 @@ bindings(Srv) -> gen_server:call(Srv, 'bindings').
 
 -spec federators(kz_types:server_ref()) -> kz_term:pids().
 federators(Srv) -> gen_server:call(Srv, 'federators').
+
+%% @doc returns the remote AMQP brokers who don't have a federator yet
+%% for this listener
+-spec waiting_federators(kz_types:server_ref()) -> kz_term:ne_binaries().
+waiting_federators(Srv) -> gen_server:call(Srv, 'waiting_federators').
 
 -spec routing_key_used(basic_deliver()) -> kz_term:ne_binary().
 routing_key_used(#'basic.deliver'{routing_key=RoutingKey}) ->
@@ -599,6 +604,8 @@ handle_call('bindings', _From, #state{bindings=Bs}=State) ->
     {'reply', Bs, State};
 handle_call('federators', _From, #state{federators=Fs}=State) ->
     {'reply', [Pid || {_QueueN, {Pid, _Ref}} <- Fs], State};
+handle_call('waiting_federators', _From, #state{waiting_federators=WaitingFederators}=State) ->
+    {'reply', WaitingFederators, State};
 handle_call('is_consuming', _From, #state{is_consuming=IsC}=State) ->
     {'reply', IsC, State};
 handle_call({'$client_call', Request}, From, State) ->
@@ -756,7 +763,9 @@ handle_cast({'federator_is_consuming', ListenerFederatorPid, Broker, 'true'}
                       ,[ListenerFederatorPid, Broker]
                       ),
 
-            handle_module_cast({?MODULE, {'federators_consuming', 'true'}}, State);
+            handle_module_cast({?MODULE, {'federators_consuming', 'true'}}
+                              ,State#state{waiting_federators=[]}
+                              );
         Remaining ->
             lager:info("federator ~p for ~s is consuming, still waiting for federators: ~p"
                       ,[ListenerFederatorPid, Broker, Remaining]
@@ -1111,7 +1120,7 @@ format_state(#state{module = Module, module_state = ModuleState} = State) ->
              }
     end.
 
-format_status_map(state, State) -> format_state(State);
+format_status_map('state', State) -> format_state(State);
 format_status_map(_, Value) -> Value.
 
 -spec format_status(gen_server:format_status()) -> gen_server:format_status().
