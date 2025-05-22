@@ -696,51 +696,10 @@ handle_cast({'resume_consumers'}
 
     resume_consumers([{Q, {[], Params}} | OtherQueues], AutoAck),
     {'noreply', State};
-
-handle_cast({'federator_is_consuming', ListenerFederatorPid, Broker, 'true'}
-           ,#state{waiting_federators=WaitingFederators}=State
-           ) ->
-    Waiting = lists:filter(fun has_available_connections/1, WaitingFederators),
-
-    case lists:subtract(Waiting, [Broker]) of
-        [] ->
-            lager:info("federator ~p for ~s is consuming, all waiting federators are available!"
-                      ,[ListenerFederatorPid, Broker]
-                      ),
-
-            handle_module_cast({?MODULE, {'federators_consuming', 'true'}}, State);
-        Remaining ->
-            lager:info("federator ~p for ~s is consuming, still waiting for federators: ~p"
-                      ,[ListenerFederatorPid, Broker, Remaining]
-                      ),
-            {'noreply', State#state{waiting_federators = Remaining}}
-    end;
-handle_cast({'federator_is_consuming', _ListenerFederatorPid, _Broker, 'false'}
-           ,#state{}=State
-           ) ->
-    lager:info("federator ~p on broker ~s is no longer consuming", [_ListenerFederatorPid, _Broker]),
-    handle_module_cast({?MODULE, {'federators_consuming', 'false'}}, State);
-handle_cast({'federator_listener', {Broker, Pid}}
-           ,#state{federators=Fs
-                  ,bindings=Bindings
-                  }=State
-           ) ->
-    case [P || {B, {P, _}} <- Fs, B=:=Broker, P=:=Pid] of
-        [] ->
-            Ref = monitor('process', Pid),
-            lager:info("federator ~p(~p) on broker ~s started", [Pid, Ref, Broker]),
-
-            %% take current parent bindings and apply to existing federated listeners
-            _ = [update_existing_listener_bindings({Broker, {Pid, Ref}}, Binding, props:delete('federate', Props))
-                 || {Binding, Props} <- Bindings,
-                    is_federated_binding(Props)
-                ],
-
-            {'noreply', State#state{federators=[{Broker, {Pid, Ref}} | Fs]}};
-        _ ->
-            lager:info("federator for ~s(~p) already known in ~p", [Broker, Pid, Fs]),
-            {'noreply', State}
-    end;
+handle_cast({'federator_is_consuming', FederatorPid, Broker, IsConsuming}, State) ->
+    handle_federator_is_consuming(FederatorPid, Broker, IsConsuming, State);
+handle_cast({'federator_listener', {Broker, FederatorPid}}, State) ->
+    handle_federator_started(FederatorPid, Broker, State);
 handle_cast('crash', _State) ->
     exit('crash');
 handle_cast(Message, State) ->
@@ -1320,10 +1279,7 @@ remove_binding(Binding, Props, Q) ->
 create_binding(Binding, Props, QueueName) when not is_binary(Binding) ->
     create_binding(kz_term:to_binary(Binding), Props, QueueName);
 create_binding(Binding, Props, QueueName) ->
-    %% TODO
-    %% HANDLE POTENTIAL CRASH
-    %%
-    APIModule = kz_term:to_atom(list_to_binary([<<"kapi_">>, kz_term:to_binary(Binding)]), 'true'),
+    APIModule = kz_term:to_atom(<<"kapi_", Binding/binary>>, 'true'),
     declare_binding_exchanges(APIModule),
     'true' = kz_module:is_exported(APIModule, 'bind_q', 2),
     APIModule:bind_q(QueueName, Props).
@@ -1533,7 +1489,9 @@ maybe_update_federated_bindings(#state{bindings=[{_Binding, Props}|_]}=State) ->
         'true' -> update_federated_bindings(State)
     end.
 
--spec is_federated_binding(kz_term:proplist()) -> boolean().
+-spec is_federated_binding(binding() | binding_properties()) -> boolean().
+is_federated_binding({_BindingModule, Props}) ->
+    props:get_value('federate', Props) =:= 'true';
 is_federated_binding(Props) ->
     props:get_value('federate', Props) =:= 'true'.
 
@@ -1628,6 +1586,48 @@ create_federated_params(StartParams) ->
     ,{'consume_options', props:get_value('consume_options', StartParams, [])}
     ,{'calling_application', kz_process:get_application()}
     ].
+
+
+handle_federator_is_consuming(FederatorPid, Broker, true, #state{waiting_federators = []} = State) ->
+    lager:warning("received federator is consuming but we're not waiting for any => ~p / ~s", [FederatorPid, Broker]),
+    handle_module_cast({?MODULE, {'federators_consuming', 'true'}}, State);
+handle_federator_is_consuming(FederatorPid, Broker, true, #state{waiting_federators = Waiting} = State) ->
+    case lists:subtract(Waiting, [Broker]) of
+        [] ->
+            lager:info("federator ~p for ~s is consuming, all waiting federators are available!", [FederatorPid, Broker]),
+            handle_module_cast({?MODULE, {'federators_consuming', 'true'}}, State#state{waiting_federators=[]});
+        Remaining ->
+            lager:info("federator ~p for ~s is consuming, still waiting for federators: ~p", [FederatorPid, Broker, Remaining]),
+            {'noreply', State#state{waiting_federators = Remaining}}
+    end;
+handle_federator_is_consuming(_FederatorPid, Broker, false, #state{waiting_federators=Waiting}=State) ->
+    lager:info("federator ~p on broker ~s is no longer consuming", [_FederatorPid, Broker]),
+    handle_module_cast({?MODULE, {'federators_consuming', 'false'}}, State#state{waiting_federators = lists:uniq([Broker | Waiting])}).
+
+is_known_federator(Pid, Broker, Federators) ->
+    [P || {B, {P, _}} <- Federators, B=:=Broker, P=:=Pid] =/= [].
+
+update_federated_listener_binding_fun(FederatedListenerRef) ->
+    fun({Binding, Props}) ->
+            update_existing_listener_bindings(FederatedListenerRef, Binding, props:delete('federate', Props))
+    end.
+
+update_federated_listener_bindings(FederatedListenerRef, #state{bindings = Bindings}) ->
+    FederatedBindings = lists:filter(fun is_federated_binding/1, Bindings),
+    lists:foreach(update_federated_listener_binding_fun(FederatedListenerRef), FederatedBindings).
+
+handle_federator_started(Pid, Broker, #state{federators=Federators, waiting_federators = WaitingFederators} = State) ->
+    case is_known_federator(Pid, Broker, Federators) of
+        true ->
+            {noreply, State};
+        false ->
+            Ref = monitor('process', Pid),
+            lager:info("federator ~p(~p) on broker ~s started", [Pid, Ref, Broker]),
+            update_federated_listener_bindings({Broker, {Pid, Ref}}, State),
+            NewFederators = [{Broker, {Pid, Ref}} | Federators],
+            NewWaitingFederators = lists:uniq([Broker | WaitingFederators]),
+            {'noreply', State#state{federators = NewFederators, waiting_federators = NewWaitingFederators}}
+    end.
 
 -spec handle_amqp_channel_available(state(), boolean()) -> state().
 handle_amqp_channel_available(#state{params=Params}=State, Reconnected) ->
@@ -1802,10 +1802,6 @@ cast_mfa(ExecMsg, Federators) ->
 -spec maybe_autoack(boolean(), basic_deliver()) -> 'ok'.
 maybe_autoack('true', BD) -> catch kz_amqp_util:basic_ack(BD), 'ok';
 maybe_autoack('false', _BD) -> 'ok'.
-
--spec has_available_connections(kz_term:ne_binary()) -> boolean().
-has_available_connections(Broker) ->
-    kz_amqp_connections:broker_available_connections(Broker) > 0.
 
 -spec handle_consuming_requests([{kz_term:pid_ref(), reference()}]) -> 'ok'.
 handle_consuming_requests(Requests) ->
