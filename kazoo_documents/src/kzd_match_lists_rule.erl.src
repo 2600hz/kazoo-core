@@ -60,15 +60,15 @@ target(Doc, Default) ->
 set_target(Doc, Target) ->
     kz_json:set_value([<<"target">>], Target, Doc).
 
--spec temporal_route_id(doc()) -> kz_term:api_binary().
+-spec temporal_route_id(doc()) -> kz_term:ne_binary().
 temporal_route_id(Doc) ->
     temporal_route_id(Doc, 'undefined').
 
--spec temporal_route_id(doc(), Default) -> binary() | Default.
+-spec temporal_route_id(doc(), Default) -> kz_term:ne_binary() | Default.
 temporal_route_id(Doc, Default) ->
     kz_json:get_binary_value([<<"temporal_route_id">>], Doc, Default).
 
--spec set_temporal_route_id(doc(), binary()) -> doc().
+-spec set_temporal_route_id(doc(), kz_term:ne_binary()) -> doc().
 set_temporal_route_id(Doc, TemporalRouteId) ->
     kz_json:set_value([<<"temporal_route_id">>], TemporalRouteId, Doc).
 
