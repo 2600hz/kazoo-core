@@ -76,11 +76,13 @@ create_prompts(DirPath, Language, Model) ->
             generate_prompts(Prompts, DirPath, Model)
     end.
 
+-spec generate_prompts(kz_term:api_list(), file:filename_all(), kz_term:text()) -> 'ok'.
 generate_prompts([], _, _) -> ok;
 generate_prompts([Prompt | Prompts], Path, Model) ->
     generate_prompt(string:split(Prompt, ": "), Path, Model),
     generate_prompts(Prompts, Path, Model).
 
+-spec generate_prompt(kz_term:api_list(), file:filename_all(), kz_term:text()) -> 'ok'.
 generate_prompt([Name, Prompt], Path, Model) ->
     io:format("trying to save Prompt ~s to ~s\n", [Name, Path]),
     {'ok', _, Wav} = kazoo_tts:create(kz_term:to_binary(Prompt), Model),
