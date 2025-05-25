@@ -3,6 +3,8 @@
 -define(KZ_CONFIG_DB, <<"system_config">>).
 -define(KZ_SCHEMA_DB, <<"system_schemas">>).
 -define(KZ_MEDIA_DB, <<"system_media">>).
+-define(KZ_REPLICATOR_DB, <<"system_replicator">>).
+-define(KZ_REPLICATOR_DB_MATCH, "system_replicator/").
 -define(KZ_SIP_DB, <<"sip_auth">>).
 -define(KZ_ACCOUNTS_DB, <<"accounts">>).
 -define(KZ_ALERTS_DB, <<"alerts">>).
@@ -40,6 +42,7 @@
                        ,?KZ_SCHEMA_DB
                        ,?KZ_AUTH_DB
                        ,?KZ_MEDIA_DB
+                       ,?KZ_REPLICATOR_DB
                        ,?KZ_SIP_DB
                        ,?KZ_ACCOUNTS_DB
                        ,?KZ_RATES_DB
