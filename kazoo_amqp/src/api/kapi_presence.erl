@@ -11,7 +11,7 @@
 -module(kapi_presence).
 
 -export([api_definitions/0, api_definition/1
-        ,pooled_apis/0
+        ,pooled_definitions/0
         ]).
 
 -export([search_req/1
@@ -1060,7 +1060,18 @@ reset_routing_key(<<Realm/binary>>, <<Username/binary>>) ->
                    ,kz_amqp_util:encode(Username)
                    ]).
 
-%% @doc list of APIs that are pool-eligible
+%%------------------------------------------------------------------------------
+%% @doc Definitions of APIs that are pool-eligible.
+%% @end
+%%------------------------------------------------------------------------------
+-spec pooled_definitions() -> kapi_definition:apis().
+pooled_definitions() ->
+    [update_definition(), dialog_definition()].
+
+%%------------------------------------------------------------------------------
+%% @doc List of APIs that are pool-eligible.
+%% @end
+%%------------------------------------------------------------------------------
 -spec pooled_apis() -> ['update' | 'dialog'].
 pooled_apis() ->
     ['update', 'dialog'].

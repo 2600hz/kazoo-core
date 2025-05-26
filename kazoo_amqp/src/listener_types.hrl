@@ -4,14 +4,18 @@
 
 -type binding_module() :: atom() | kz_term:ne_binary().
 
--type binding_property() :: {'restrict_to', list()} |
-                            {'callid', kz_term:ne_binary()} |
-                            'federate' | % binds a queue in all zones
-                            'pooled' | % uses event pool if possible
-                            atom().
+-type binding_property() :: binding_property(atom() | {atom(), any()}).
+-type binding_property(Extra) :: {'restrict_to', list()} |
+                                 {'callid', kz_term:ne_binary()} |
+                                 'federate' | % binds a queue in all zones
+                                 'pooled' | % uses event pool if possible
+                                 Extra.
 -type binding_properties() :: [binding_property()].
+-type binding_properties(Extra) :: [binding_property(Extra)].
 
 -type binding() :: {binding_module(), binding_properties()}.
+-type binding(ExtraProps) :: {binding_module(), binding_properties(ExtraProps)}.
+-type binding(Module, ExtraProps) :: {Module, binding_properties(ExtraProps)}.
 %% `{kapi_module, options}'
 -type bindings() :: [binding()].
 
@@ -24,6 +28,7 @@
                          {'basic_qos', non_neg_integer()} |
                          {'bindings', bindings()} |
                          {'broker' | 'broker_tag', kz_term:ne_binary()} |
+                         {'calling_application', atom()} |
                          {'channel_flow', boolean()} |
                          {'consume_options', consume_options()} |
                          {'declare_exchanges', declare_exchanges()} |

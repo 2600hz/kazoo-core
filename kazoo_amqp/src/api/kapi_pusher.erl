@@ -278,7 +278,7 @@ is_maybe_fcm_android_payload(Term) ->
 is_ttl(Term) ->
     is_integer(Term)
         andalso Term >= 0
-        andalso Term =< 2419200.
+        andalso Term =< ?SECONDS_IN_WEEK * 4.
 
 %%------------------------------------------------------------------------------
 %% @doc Validate that `Term' is a valid list of results from push notification

@@ -3612,6 +3612,7 @@ is_callable(Function) when is_function(Function, 1) ->
 is_callable(_) ->
     'false'.
 
+-spec binding_kapi_publisher(kz_term:ne_binary()) -> kz_term:ne_binary().
 binding_kapi_publisher(TemplateId) ->
     <<"kapi.publisher.", TemplateId/binary>>.
 

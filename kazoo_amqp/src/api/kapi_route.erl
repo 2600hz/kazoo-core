@@ -220,6 +220,7 @@ resp_definition() ->
                                                             ,<<"From-Realm">>
                                                             ,<<"From-URI">>
                                                             ,<<"From-User">>
+                                                            ,<<"Ignore-Progress">>
                                                             ,<<"Plan-Data">>
                                                             ,<<"Pre-Park">>
                                                             ,<<"Ringback-Media">>
@@ -247,6 +248,7 @@ resp_definition() ->
                 ,{<<"Routes">>, fun erlang:is_list/1}
                 ,{<<"Custom-Application-Vars">>, fun kz_json:is_json_object/1}
                 ,{<<"Custom-Channel-Vars">>, fun kz_json:is_json_object/1}
+                ,{<<"Ignore-Progress">>, fun is_boolean/1}
                 ]
                }
               ],

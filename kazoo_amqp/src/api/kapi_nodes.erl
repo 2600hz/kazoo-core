@@ -64,6 +64,7 @@ advertise_definition() ->
                                                             ,<<"Used-Memory">>
                                                             ,<<"Version">>
                                                             ,<<"WhApps">>
+                                                            ,<<"Kapps-Loaded">>
                                                             ,<<"Zone">>
                                                             ,<<"md5">>
                                                             ]}

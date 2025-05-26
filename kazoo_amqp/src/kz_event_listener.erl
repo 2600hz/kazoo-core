@@ -145,6 +145,25 @@ bindings('call_events') ->
               ]
      }
     ];
+bindings('conf') ->
+    [{'bind', [{'exchange', [{'name', ?KZ_CONF_EVENTS_EXCHANGE}
+                            ,{'type', <<"x-consistent-hash">>}
+                            ,{'options', [{'auto_delete', 'true'}
+                                         ,{'arguments', [{<<"hash-header">>, 'longstr', <<"hash-key">>}]}
+                                         ]
+                             }
+                            ,{'bindings', [{'conf', [{'source', ?EXCHANGE_CONFIGURATION}
+                                                    ,{'routing', <<"#">>}
+                                                    ]
+                                           }
+                                          ]
+                             }
+                            ]
+               }
+              ,{'routing', <<"20">>}
+              ]
+     }
+    ];
 bindings('presence') ->
     [{'bind', [{'exchange', [{'name', ?KZ_PRESENCE_EVENTS_EXCHANGE}
                             ,{'type', <<"x-consistent-hash">>}
@@ -161,15 +180,8 @@ bindings('presence') ->
     ].
 
 presence_bindings() ->
-    lists:foldl(fun presence_binding/2, [], kapi_presence:pooled_apis()).
+    [presence_binding(API) || API <- kapi_presence:pooled_definitions()].
 
-presence_binding(API, Acc) ->
-    RKFun = kz_term:to_atom(list_to_binary([kz_term:to_binary(API), "_routing_key"])),
-    RK = kapi_presence:RKFun(<<"*">>, <<"*">>),
-
-    [{'presence', [{'source', ?EXCHANGE_PRESENCE}
-                  ,{'routing', RK}
-                  ]
-     }
-    | Acc
-    ].
+presence_binding(API) ->
+    BindingFun = kapi_definition:binding(API),
+    {'presence', [{'routing', BindingFun(<<"*">>, <<"*">>)}]}.

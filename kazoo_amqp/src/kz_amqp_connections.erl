@@ -168,7 +168,8 @@ prechannels_from_zone_config(Zone) ->
     lists:foldl(fun(Item, Acc) -> prechannels_from_zone_config(Item, Acc, Zone) end, DefaultPrechannels, Brokers).
 
 prechannels_from_zone_config({_, Props}, Acc, Zone) ->
-    case props:get_value(<<"zone">>, Props, 'local') of
+    case props:get_first_defined([<<"name">>, <<"zone">>], Props) of
+        'undefined' -> Acc;
         Zone -> props:get_integer_value(<<"prechannels">>, Props, Acc);
         _OtherZone -> Acc
     end.
@@ -563,10 +564,10 @@ is_tag_available(Tag) -> broker_with_tag(Tag) =/= 'undefined'.
 -spec is_hidden_broker(list()) -> boolean().
 is_hidden_broker(Tags) -> lists:member(?AMQP_HIDDEN_TAG, Tags).
 
--spec uris() -> kz_term:ne_binaries().
+-spec uris() -> [{atom(), kz_term:ne_binary()}].
 uris() ->
-    lists:usort([Broker
-                 || #kz_amqp_connections{broker=Broker, tags=Tags} <- ets:tab2list(?TAB),
+    lists:usort([{Zone, Broker}
+                 || #kz_amqp_connections{broker=Broker, zone = Zone, tags=Tags} <- ets:tab2list(?TAB),
                     not is_hidden_broker(Tags)
                 ]
                ).

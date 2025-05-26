@@ -214,34 +214,38 @@ log_invalid_assignment(#kz_amqp_assignment{}=Assignment) ->
 %%------------------------------------------------------------------------------
 -spec connection_summary() -> 'ok'.
 connection_summary() ->
-    io:format("+--------------------------------------------------+------------------+----------+-----------+------------+---------+~n"),
-    io:format("| Broker                                           |    Connection    | Channels | Available | Zone       | Primary |~n"),
-    io:format("+==================================================+==================+==========+===========+============+=========+~n"),
+    Header = ["Broker", "Connection", "Channels", "Available", "Zone", "Primary"],
     PrimaryBroker = kz_amqp_connections:primary_broker(),
     Pattern = #kz_amqp_connections{_='_'},
-    connection_summary(ets:match_object(?CONNECTIONS, Pattern, 1), PrimaryBroker).
+    Rows = connection_summary(ets:match_object(?CONNECTIONS, Pattern, 1), PrimaryBroker, []),
+    kz_log:print_table([Header | Rows], #{header_divider => $=
+                                         ,row_spacing => [#{justification => 'left'}, #{justification => 'left'}]
+                                         }).
 
-connection_summary('$end_of_table', _) -> 'ok';
+connection_summary('$end_of_table', _, Rows) -> Rows;
 connection_summary({[#kz_amqp_connections{connection=Connection
                                          ,broker=Broker
                                          ,available=Available
                                          ,zone=Zone
                                          }=Conn
-                    ], Continuation
+                    ]
+                   ,Continuation
                    }
                   ,PrimaryBroker
+                  ,Rows
                   ) ->
 
-    io:format("| ~-48s | ~-16w | ~-8B | ~-9s | ~-10s | ~-7s |~n"
-             ,[Broker
-              ,Connection
-              ,kz_amqp_assignments:channel_count(Conn)
-              ,Available
-              ,Zone
-              ,Broker =:= PrimaryBroker
-              ]),
-    io:format("+--------------------------------------------------+------------------+----------+-----------+------------+---------+~n"),
-    connection_summary(ets:match_object(Continuation), PrimaryBroker).
+    connection_summary(ets:match_object(Continuation)
+                      ,PrimaryBroker
+                      ,[[Broker
+                        ,Connection
+                        ,kz_amqp_assignments:channel_count(Conn)
+                        ,Available
+                        ,Zone
+                        ,Broker =:= PrimaryBroker
+                        ]
+                       | Rows]
+                      ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -388,27 +392,12 @@ broker_summary_prechannels(Broker) ->
 %%------------------------------------------------------------------------------
 -spec channel_summary() -> 'ok'.
 channel_summary() ->
-    io:format("+--------------------------------------------------+----------+----------+----------------------+-----------------+-----------------+-----------------+----------+----------+~n"),
-    io:format("| Broker                                           |   Age    | Assigned |      Application     |     Consumer    |     Channel     |   Connection    |   Type   | Watchers |~n"),
-    io:format("+==================================================+==========+==========+======================+=================+=================+=================+==========+==========+~n"),
+    HeaderFields = [<<"Broker">>, <<"Age (s)">>, <<"Assigned">>, <<"Application">>, <<"Consumer">>, <<"Channel">>, <<"Connection">>, <<"Type">>, <<"Watchers">>],
     Pattern = #kz_amqp_assignment{_='_'},
-    channel_summary(ets:match_object(?ASSIGNMENTS, Pattern, 1)).
-
-channel_summary('$end_of_table') -> 'ok';
-channel_summary({[#kz_amqp_assignment{}=Assignment], Continuation}) ->
-    io:format("| ~-48s | ~-8B | ~-8B | ~-20w | ~-15w | ~-15w | ~-15w | ~-8s | ~-8B |~n"
-             ,[Assignment#kz_amqp_assignment.broker
-              ,channel_summary_age(Assignment#kz_amqp_assignment.timestamp)
-              ,channel_summary_age(Assignment#kz_amqp_assignment.assigned)
-              ,Assignment#kz_amqp_assignment.application
-              ,maybe_named_consumer(Assignment#kz_amqp_assignment.consumer)
-              ,Assignment#kz_amqp_assignment.channel
-              ,Assignment#kz_amqp_assignment.connection
-              ,Assignment#kz_amqp_assignment.type
-              ,sets:size(Assignment#kz_amqp_assignment.watchers)
-              ]),
-    io:format("+--------------------------------------------------+----------+----------+----------------------+-----------------+-----------------+-----------------+----------+----------+~n"),
-    channel_summary(ets:match_object(Continuation)).
+    Rows = channel_summary(ets:match_object(?ASSIGNMENTS, Pattern, 1), []),
+    kz_log:print_table([HeaderFields | Rows]
+                      ,#{header_divider => $=}
+                      ).
 
 -spec federators_check() -> 'ok'.
 federators_check() ->
@@ -437,10 +426,9 @@ federators_check(LocalBroker) ->
     case lists:foldl(fun federator_check/2, [], Consumers) of
         [] -> io:format("all federators appear connected~n");
         Missing ->
-            [io:format("~s | ~s~n", [C, UR])
-             || [C, UR] <- [[<<"Consumer">>, <<"Unconnected Remotes">>] | Missing]
-            ],
-            io:format("~n")
+            kz_log:print_table([[<<"Consumer">>, <<"Unconnected Remotes">>] | Missing]
+                              ,#{header_divider => $=}
+                              )
     end.
 
 federator_check(Consumer, Rows) ->
@@ -488,6 +476,22 @@ federator_check_deep(Consumer, Rows) ->
             | Rows
             ]
     end.
+
+channel_summary('$end_of_table', Rows) -> lists:reverse(Rows);
+channel_summary({[#kz_amqp_assignment{}=Assignment], Continuation}, Rows) ->
+    channel_summary(ets:match_object(Continuation)
+                   ,[[Assignment#kz_amqp_assignment.broker
+                     ,channel_summary_age(Assignment#kz_amqp_assignment.timestamp)
+                     ,channel_summary_age(Assignment#kz_amqp_assignment.assigned)
+                     ,Assignment#kz_amqp_assignment.application
+                     ,maybe_named_consumer(Assignment#kz_amqp_assignment.consumer)
+                     ,Assignment#kz_amqp_assignment.channel
+                     ,Assignment#kz_amqp_assignment.connection
+                     ,Assignment#kz_amqp_assignment.type
+                     ,sets:size(Assignment#kz_amqp_assignment.watchers)
+                     ]
+                    | Rows
+                    ]).
 
 maybe_named_consumer(Pid) when is_pid(Pid) ->
     case process_info(Pid, 'registered_name') of
@@ -618,13 +622,14 @@ gc_worker(P) ->
     [{_, S2}] = process_info(P, ['total_heap_size']),
     {P, abs(S2-S1), S1, S2}.
 
--define(GC_RESULT_FORMAT, "  ~-16s | ~-8s | ~-8s | ~-8s~n").
-
 print_gc_results(Pool, Results) ->
     io:format("gc'd ~p:~n", [Pool]),
     print_gc_summary(Results),
-    io:format(?GC_RESULT_FORMAT, ["Worker", "Delta", "Before", "After"]),
-    lists:foreach(fun print_gc_result/1, Results).
+
+    Rows = [["Worker", "Delta", "Before", "After"]
+           | [format_gc_result(Result) || Result <- Results]
+           ],
+    kz_log:print_table(Rows, #{header_divider => $=}).
 
 -spec print_gc_summary([{pid(), integer(), integer(), integer()}]) -> 'ok'.
 print_gc_summary(Results) ->
@@ -662,28 +667,25 @@ gc_summary_fold({_W, Diff, _B, _A}
     ,Count + 1
     }.
 
--spec print_gc_result({pid(), integer(), integer(), integer()}) -> 'ok'.
-print_gc_result({W, Diff, Before, After}) ->
-    io:format(?GC_RESULT_FORMAT
-             ,[kz_term:to_list(W)
-              ,kz_term:pretty_print_bytes(kz_term:words_to_bytes(Diff), 'truncated')
-              ,kz_term:pretty_print_bytes(kz_term:words_to_bytes(Before), 'truncated')
-              ,kz_term:pretty_print_bytes(kz_term:words_to_bytes(After), 'truncated')
-              ]
-             ).
-
--define(FMT_LISTENER, "~-15s | ~-12s | ~s~n").
+-spec format_gc_result({pid(), integer(), integer(), integer()}) -> list().
+format_gc_result({W, Diff, Before, After}) ->
+    [kz_term:to_list(W)
+    ,kz_term:pretty_print_bytes(kz_term:words_to_bytes(Diff), 'truncated')
+    ,kz_term:pretty_print_bytes(kz_term:words_to_bytes(Before), 'truncated')
+    ,kz_term:pretty_print_bytes(kz_term:words_to_bytes(After), 'truncated')
+    ].
 
 -spec event_pools() -> 'ok'.
 event_pools() ->
-    Listeners = kz_event_listeners_sup:running_listeners(),
-    io:format(?FMT_LISTENER, ["Event Type","Supervisor", "Worker PIDs"]),
-    lists:foreach(fun print_listener/1, Listeners).
+    Rows = [["Event Type","Supervisor", "Worker PIDs"]
+           | [[EventType, kz_term:to_binary(Pid), workers_to_binary(Pid)]
+              || {Pid, EventType} <- kz_event_listeners_sup:running_listeners()
+             ]
+           ],
+    kz_log:print_table(Rows, #{header_divider => $=
+                              ,row_spacing => [#{}, #{}, #{justification => 'left'}]
+                              }).
 
--spec print_listener({pid(), event_type()}) -> 'ok'.
-print_listener({Pid, EventType}) ->
+workers_to_binary(Pid) ->
     Workers = kz_event_listener_sup:workers(Pid),
-    WorkersBin = kz_binary:join(Workers),
-    io:format(?FMT_LISTENER
-             ,[EventType, kz_term:to_binary(Pid), WorkersBin]
-             ).
+    kz_binary:join(Workers).

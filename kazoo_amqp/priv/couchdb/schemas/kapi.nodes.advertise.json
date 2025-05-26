@@ -27,6 +27,9 @@
         "Globals": {
             "type": "string"
         },
+        "Kapps-Loaded": {
+            "type": "string"
+        },
         "Media-Servers": {
             "type": "string"
         },

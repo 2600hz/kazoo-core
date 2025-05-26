@@ -103,6 +103,16 @@
         ,publish_count_resp/2
         ,publish_count_resp/3
         ]).
+-export([channels_req/1
+        ,channels_req_v/1
+        ,publish_channels_req/1
+        ,publish_channels_req/2
+        ]).
+-export([channels_resp/1
+        ,channels_resp_v/1
+        ,publish_channels_resp/2
+        ,publish_channels_resp/3
+        ]).
 
 -export([bind_q/2, unbind_q/2]).
 -export([declare_exchanges/0]).
@@ -121,6 +131,8 @@
         ,update_name_and_values/2
         ]).
 -endif.
+
+-define(CHANNELS_REQ_BINDING_KEY, <<"channels.query">>).
 
 -spec optional_call_event_headers() -> kz_term:ne_binaries().
 optional_call_event_headers() ->
@@ -163,6 +175,10 @@ api_definition(<<"count_req">>) ->
     count_req_definition();
 api_definition(<<"count_resp">>) ->
     count_resp_definition();
+api_definition(<<"channels_req">>) ->
+    channels_req_definition();
+api_definition(<<"channels_resp">>) ->
+    channels_resp_definition();
 api_definition(<<"channel_status_req">>) ->
     channel_status_req_definition();
 api_definition(<<"channel_status_resp">>) ->
@@ -366,7 +382,7 @@ channel_status_resp_definition() ->
                                                             ,<<"Switch-Nodename">>
                                                             ,<<"Switch-URL">>
                                                             ,<<"Username">>
-                                                            ,<<"Channel-Record">>
+                                                            ,<<"Channel-Record">> %% this is the json object of the channel from ecallmgr_fs_channels
                                                             | channel_status_extended_headers()
                                                             ]}
               ,{fun kapi_definition:set_values/2
@@ -651,6 +667,67 @@ query_endpoint_channels_resp_definition() ->
                ,[{<<"Channels">>, fun kz_term:is_ne_binaries/1}
                 ,{<<"Count">>, fun is_integer/1}
                 ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec channels_req_definition() -> kapi_definition:api().
+channels_req_definition() ->
+    EventName = <<"channels_req">>,
+    Category = <<"channel">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Channels Req">>}
+              ,{fun kapi_definition:set_description/2, <<"Channels by account/device/user/endpoint">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun channels_req/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun channels_req_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_channels_req/1}
+              ,{fun kapi_definition:set_binding/2, ?CHANNELS_REQ_BINDING_KEY}
+              ,{fun kapi_definition:set_required_headers/2, []}
+              ,{fun kapi_definition:set_optional_headers/2, [<<"Account-ID">>
+                                                            ,<<"Device-ID">>
+                                                            ,<<"Endpoint-ID">>
+                                                            ,<<"Owner-ID">>
+                                                            ,<<"User-ID">>
+                                                            ,<<"Direction">>
+                                                            ,<<"Fields">>
+                                                            ]}
+              ,{fun kapi_definition:set_values/2
+               ,[{<<"Direction">>, [<<"inbound">>, <<"outbound">>]}
+                | kapi_definition:event_type_headers(Category, EventName)
+                ]
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Account-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Device-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Endpoint-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Owner-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"User-ID">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Direction">>, fun kz_term:is_ne_binary/1}
+                ,{<<"Fields">>, fun kz_term:is_ne_binaries/1}
+                ]
+               }
+              ],
+    kapi_definition:setters(Setters).
+
+-spec channels_resp_definition() -> kapi_definition:api().
+channels_resp_definition() ->
+    EventName = <<"channels_resp">>,
+    Category = <<"channel">>,
+    Setters = [{fun kapi_definition:set_name/2, EventName}
+              ,{fun kapi_definition:set_friendly_name/2, <<"Channels Resp">>}
+              ,{fun kapi_definition:set_description/2, <<"Channels by account/device/user/endpoint">>}
+              ,{fun kapi_definition:set_category/2, Category}
+              ,{fun kapi_definition:set_build_fun/2, fun channels_resp/1}
+              ,{fun kapi_definition:set_validate_fun/2, fun channels_resp_v/1}
+              ,{fun kapi_definition:set_publish_fun/2, fun publish_channels_resp/2}
+              ,{fun kapi_definition:set_required_headers/2, [<<"Channels">>]}
+              ,{fun kapi_definition:set_optional_headers/2, []}
+              ,{fun kapi_definition:set_values/2
+               ,kapi_definition:event_type_headers(Category, EventName)
+               }
+              ,{fun kapi_definition:set_types/2
+               ,[{<<"Channels">>, fun kz_json:is_json_object/1}]
                }
               ],
     kapi_definition:setters(Setters).
@@ -1180,6 +1257,7 @@ publish_usurp_control(CallId, JObj, ContentType) ->
     kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('usurp_control', CallId)
                                 ,Payload
                                 ,ContentType
+                                ,[{'headers', [{<<"call-id">>, 'binary', CallId}]}]
                                 ).
 
 %%------------------------------------------------------------------------------
@@ -1209,6 +1287,7 @@ publish_usurp_publisher(CallId, JObj, ContentType) ->
     kz_amqp_util:callevt_publish((kapi_definition:binding(Definition))('usurp_publisher', CallId)
                                 ,Payload
                                 ,ContentType
+                                ,[{'headers', [{<<"call-id">>, 'binary', CallId}]}]
                                 ).
 
 %%------------------------------------------------------------------------------
@@ -1266,23 +1345,88 @@ publish_count_resp(RespQ, Resp, ContentType) ->
                                                 ),
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
+%%------------------------------------------------------------------------------
+%% @doc channels by account/device/owner/endpoint.
+%% Takes {@link kz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec channels_req(kz_term:api_terms()) -> kz_api:api_formatter_return().
+channels_req(Req) ->
+    kapi_definition:build_message(Req, channels_req_definition()).
+
+-spec channels_req_v(kz_term:api_terms()) -> boolean().
+channels_req_v(Req) ->
+    kapi_definition:validate(Req, channels_req_definition()).
+
+-spec publish_channels_req(kz_term:api_terms()) -> 'ok'.
+publish_channels_req(API) ->
+    publish_channels_req(API, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_channels_req(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_channels_req(Req, ContentType) ->
+    Definition = channels_req_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Req
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:channels_publish(kapi_definition:binding(Definition)
+                                 ,Payload
+                                 ,ContentType
+                                 ).
+
+%%------------------------------------------------------------------------------
+%% @doc Respond to channels_req.
+%% Takes {@link lz_term:proplist()}, creates JSON string or error.
+%% @end
+%%------------------------------------------------------------------------------
+-spec channels_resp(kz_term:api_terms()) -> kz_api:api_formatter_return().
+channels_resp(Req) ->
+    kapi_definition:build_message(Req, channels_resp_definition()).
+
+-spec channels_resp_v(kz_term:api_terms()) -> boolean().
+channels_resp_v(Req) ->
+    kapi_definition:validate(Req, channels_resp_definition()).
+
+-spec publish_channels_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
+publish_channels_resp(RespQ, JObj) ->
+    publish_channels_resp(RespQ, JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_channels_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_channels_resp(RespQ, Resp, ContentType) ->
+    Definition = channels_resp_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(Resp
+                                                ,kapi_definition:values(Definition)
+                                                ,kapi_definition:build_fun(Definition)
+                                                ),
+    kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
+
+
 -spec bind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, Props) ->
     CallId = props:get_value('callid', Props, <<"*">>),
-    Events = props:get_value('restrict_to', Props, [<<"*">>]),
-    maybe_bind_q(Queue, Events, CallId, props:is_true('pooled', Props, 'false')).
+    RestrictTo = props:get_value('restrict_to', Props, [<<"*">>]),
+    bind_q(Queue, RestrictTo, CallId, props:is_true('pooled', Props, 'false')).
 
-maybe_bind_q(Queue, Events, CallId, 'false') ->
-    bind_q(Queue, Events, CallId);
-maybe_bind_q(_Queue, [<<"*">>], CallId, 'true') ->
-    lager:info("using pooled events for call ~s", [CallId]),
-    kz_events:bind_call_id(CallId);
-maybe_bind_q(_Queue, _Events, _CallId, 'true') ->
-    lager:error("using the pooled flag with an events filter is not allowed"),
-    throw({'error', 'badarg'}).
+bind_q(Queue, RestrictTo, CallId, 'false') ->
+    bind_q(Queue, RestrictTo, CallId);
+bind_q(_Queue, RestrictTo, CallId, 'true') ->
+    case lists:all(fun is_channel_event_filter/1, RestrictTo) of
+        'true' ->
+            lager:info("using pooled events for call ~s", [CallId]),
+            EventNames = [kz_term:to_binary(E) || E <- RestrictTo],
+            kz_events:bind_call_id(CallId, EventNames);
+        'false' ->
+            lager:error("using the pooled flag with a mix of pooled and "
+                        "non-pooled event filters is not allowed"
+                       ),
+            throw({'error', 'badarg'})
+    end.
 
 bind_q(Q, ['status_req' = Event|T], CallId) ->
     'ok' = kz_amqp_util:bind_q_to_channels(Q, query_routing_key(Event, CallId)),
+    bind_q(Q, T, CallId);
+bind_q(Q, ['channels_req'|T], CallId) ->
+    'ok' = kz_amqp_util:bind_q_to_channels(Q, ?CHANNELS_REQ_BINDING_KEY),
     bind_q(Q, T, CallId);
 bind_q(Q, [Event|T], CallId) ->
     'ok' = kz_amqp_util:bind_q_to_callevt(Q, call_routing_key(Event, CallId)),
@@ -1292,17 +1436,21 @@ bind_q(_Q, [], _CallId) -> 'ok'.
 -spec unbind_q(kz_term:api_ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, Props) ->
     CallId = props:get_value('callid', Props, <<"*">>),
-    Events = props:get_value('restrict_to', Props, [<<"*">>]),
-    maybe_unbind_q(Queue, Events, CallId, props:is_true('pooled', Props, 'false')).
+    RestrictTo = props:get_value('restrict_to', Props, [<<"*">>]),
+    unbind_q(Queue, RestrictTo, CallId, props:is_true('pooled', Props, 'false')).
 
-maybe_unbind_q(Queue, Events, CallId, 'false') ->
-    unbind_q(Queue, Events, CallId);
-maybe_unbind_q(_Queue, <<"*">>, CallId, 'true') ->
+unbind_q(Queue, RestrictTo, CallId, 'false') ->
+    unbind_q(Queue, RestrictTo, CallId);
+unbind_q(_Queue, RestrictTo, CallId, 'true') ->
     lager:info("removing from pooled events for ~s", [CallId]),
-    kz_events:unbind_call_id(CallId).
+    EventNames = [kz_term:to_binary(E) || E <- RestrictTo, is_channel_event_filter(E)],
+    kz_events:unbind_call_id(CallId, EventNames).
 
 unbind_q(Q, ['status_req' = Event|T], CallId) ->
     _ = kz_amqp_util:unbind_q_from_channels(Q, query_routing_key(Event, CallId)),
+    unbind_q(Q, T, CallId);
+unbind_q(Q, ['channels_req'|T], CallId) ->
+    'ok' = kz_amqp_util:unbind_q_from_channels(Q, ?CHANNELS_REQ_BINDING_KEY),
     unbind_q(Q, T, CallId);
 unbind_q(Q, [Event|T], CallId) ->
     _ = kz_amqp_util:unbind_q_from_callevt(Q, call_routing_key(Event, CallId)),
@@ -1372,6 +1520,15 @@ call_routing_key(Event, <<CallId/binary>>) ->
 -spec query_routing_key(kz_term:ne_binary() | atom(), kz_term:ne_binary()) -> kz_term:ne_binary().
 query_routing_key(_Event, _CallId) ->
     <<"query.status">>.
+
+%%------------------------------------------------------------------------------
+%% @doc Check if an event is a channel event filter and not a request.
+%% @end
+%%------------------------------------------------------------------------------
+-spec is_channel_event_filter(kz_term:ne_binary() | atom()) -> boolean().
+is_channel_event_filter('channels_req') -> 'false';
+is_channel_event_filter('status_req') -> 'false';
+is_channel_event_filter(_Event) -> 'true'.
 
 %% Helpers
 -spec update_name_and_values(kapi_definition:api(), kz_term:api_terms()) -> kapi_definition:api().

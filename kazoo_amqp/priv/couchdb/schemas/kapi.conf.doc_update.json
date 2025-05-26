@@ -29,7 +29,6 @@
                 "db_created",
                 "db_deleted",
                 "db_edited",
-                "db_views_updated",
                 "doc_created",
                 "doc_deleted",
                 "doc_edited"

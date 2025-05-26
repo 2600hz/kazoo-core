@@ -27,7 +27,14 @@
         ,decode_pid/1, decode_queue/1
         ]).
 
+-export_type([delivery_message/1]).
+
 -include_lib("kz_amqp_util.hrl").
+
+-type delivery_message(JObj) :: {{kz_term:ne_binary(), kz_term:ne_binary(), {amqp_basic(), basic_deliver()}}
+                                ,{atom(), atom()}
+                                ,JObj
+                                }.
 
 -spec event_category(kz_json:object()) -> atom().
 event_category(JObj) ->
@@ -37,12 +44,7 @@ event_category(JObj) ->
 event_name(JObj) ->
     kz_term:to_atom(kz_api:event_name(JObj), 'true').
 
--spec delivery_message(JObj, kz_term:proplist()) ->
-          {{kz_term:ne_binary(), kz_term:ne_binary(), {amqp_basic(), basic_deliver()}}
-          ,{atom(), atom()}
-          ,JObj
-          }
-              when JObj :: kz_json:object().
+-spec delivery_message(JObj, kz_term:proplist()) -> delivery_message(JObj) when JObj :: kz_json:object().
 delivery_message(JObj, Props) ->
     Basic = props:get_value('basic', Props),
     Deliver = #'basic.deliver'{exchange=Exchange, routing_key=RK} = props:get_value('deliver', Props),

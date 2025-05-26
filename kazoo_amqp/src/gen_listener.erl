@@ -79,7 +79,7 @@
         ,handle_info/2
         ,terminate/2
         ,code_change/3
-        ,format_status/2
+        ,format_status/1
         ]).
 
 %% gen_server API
@@ -103,8 +103,9 @@
         ,b_rm_binding/2, b_rm_binding/3
         ]).
 
--export([ack/2
-        ,nack/2
+-export([ack/2, ack/3
+        ,nack/2, nack/3, nack/4
+        ,reject/2, reject/3
         ]).
 
 -export([execute/4
@@ -170,8 +171,10 @@
                          [callback_datum()].
 
 -export_type([handle_event_return/0
-             ,binding/0
+             ,binding/0, binding/1, binding/2
              ,bindings/0
+             ,binding_property/0, binding_property/1
+             ,binding_properties/0, binding_properties/1
              ,basic_deliver/0
              ,callback_data/0
              ,declare_exchanges/0
@@ -305,11 +308,26 @@ waiting_federators(Srv) -> gen_server:call(Srv, 'waiting_federators').
 routing_key_used(#'basic.deliver'{routing_key=RoutingKey}) ->
     kz_term:to_binary(RoutingKey).
 
--spec ack(kz_types:server_ref(), basic_deliver()) -> 'ok'.
+-spec ack(kz_types:server_ref(), integer() | basic_deliver() | basic_ack()) -> 'ok'.
 ack(Srv, Delivery) -> gen_server:cast(Srv, {'ack', Delivery}).
 
--spec nack(kz_types:server_ref(), basic_deliver()) -> 'ok'.
+-spec ack(kz_types:server_ref(), integer() | basic_deliver(), boolean()) -> 'ok'.
+ack(Srv, Delivery, Multiple) -> gen_server:cast(Srv, {'ack', Delivery, Multiple}).
+
+-spec nack(kz_types:server_ref(), integer() | basic_deliver() | basic_nack()) -> 'ok'.
 nack(Srv, Delivery) -> gen_server:cast(Srv, {'nack', Delivery}).
+
+-spec nack(kz_types:server_ref(), integer() | basic_deliver(), boolean()) -> 'ok'.
+nack(Srv, Delivery, Requeue) -> gen_server:cast(Srv, {'nack', Delivery, Requeue}).
+
+-spec nack(kz_types:server_ref(), integer() | basic_deliver(), boolean(), boolean()) -> 'ok'.
+nack(Srv, Delivery, Requeue, Multiple) -> gen_server:cast(Srv, {'nack', Delivery, Requeue, Multiple}).
+
+-spec reject(kz_types:server_ref(), integer() | basic_deliver()) -> 'ok'.
+reject(Srv, Delivery) -> gen_server:cast(Srv, {'reject', Delivery}).
+
+-spec reject(kz_types:server_ref(), integer() | basic_deliver(), boolean()) -> 'ok'.
+reject(Srv, Delivery, Requeue) -> gen_server:cast(Srv, {'reject', Delivery, Requeue}).
 
 %%------------------------------------------------------------------------------
 %% @doc API functions that mirror `gen_server:call,cast,reply'.
@@ -372,7 +390,7 @@ rm_responder(Srv, Responder, {_,_}=Key) ->
 rm_responder(Srv, Responder, Keys) ->
     gen_server:cast(Srv, {'rm_responder', Responder, Keys}).
 
--spec add_binding(kz_types:server_ref(), binding() | kz_term:ne_binary() | atom()) -> 'ok'.
+-spec add_binding(kz_types:server_ref(), binding() | binding_module()) -> 'ok'.
 add_binding(Srv, {Binding, Props}) when is_list(Props)
                                         andalso (is_atom(Binding)
                                                  orelse is_binary(Binding)
@@ -382,12 +400,12 @@ add_binding(Srv, Binding) when is_binary(Binding)
                                orelse is_atom(Binding) ->
     gen_server:cast(Srv, {'add_binding', kz_term:to_binary(Binding), []}).
 
--spec add_binding(kz_types:server_ref(), kz_term:ne_binary() | atom(), kz_term:proplist()) -> 'ok'.
+-spec add_binding(kz_types:server_ref(), binding_module(), binding_properties()) -> 'ok'.
 add_binding(Srv, Binding, Props) when is_binary(Binding)
                                       orelse is_atom(Binding) ->
     gen_server:cast(Srv, {'add_binding', kz_term:to_binary(Binding), Props}).
 
--spec b_add_binding(kz_types:server_ref(), binding() | kz_term:ne_binary() | atom()) -> 'ok'.
+-spec b_add_binding(kz_types:server_ref(), binding() | binding_module()) -> 'ok'.
 b_add_binding(Srv, {Binding, Props}) when is_list(Props)
                                           ,(is_atom(Binding)
                                             orelse is_binary(Binding)
@@ -397,7 +415,7 @@ b_add_binding(Srv, Binding) when is_binary(Binding)
                                  orelse is_atom(Binding) ->
     gen_server:call(Srv, {'add_binding', kz_term:to_binary(Binding), []}).
 
--spec b_add_binding(kz_types:server_ref(), kz_term:ne_binary() | atom(), kz_term:proplist()) -> 'ok'.
+-spec b_add_binding(kz_types:server_ref(), binding_module(), binding_properties()) -> 'ok'.
 b_add_binding(Srv, Binding, Props) when is_binary(Binding)
                                         orelse is_atom(Binding) ->
     gen_server:call(Srv, {'add_binding', kz_term:to_binary(Binding), Props}).
@@ -427,11 +445,12 @@ other_queues(Srv) -> gen_server:call(Srv, 'other_queues').
 rm_binding(Srv, {Binding, Props}) ->
     rm_binding(Srv, Binding, Props).
 
--spec rm_binding(kz_types:server_ref(), kz_term:ne_binary() | atom(), kz_term:proplist()) -> 'ok'.
-rm_binding(Srv, Binding, Props) ->
+-spec rm_binding(kz_types:server_ref(), binding_module(), binding_properties()) -> 'ok'.
+rm_binding(Srv, Binding, Props) when is_binary(Binding)
+                                     orelse is_atom(Binding) ->
     gen_server:cast(Srv, {'rm_binding', kz_term:to_binary(Binding), Props}).
 
--spec b_rm_binding(kz_types:server_ref(), binding() | kz_term:ne_binary() | atom()) -> 'ok'.
+-spec b_rm_binding(kz_types:server_ref(), binding() | binding_module()) -> 'ok'.
 b_rm_binding(Srv, {Binding, Props}) when is_list(Props)
                                          ,(is_atom(Binding)
                                            orelse is_binary(Binding)
@@ -441,7 +460,7 @@ b_rm_binding(Srv, Binding) when is_binary(Binding)
                                 orelse is_atom(Binding) ->
     gen_server:call(Srv, {'rm_binding', kz_term:to_binary(Binding), []}).
 
--spec b_rm_binding(kz_types:server_ref(), kz_term:ne_binary() | atom(), kz_term:proplist()) -> 'ok'.
+-spec b_rm_binding(kz_types:server_ref(), binding_module(), binding_properties()) -> 'ok'.
 b_rm_binding(Srv, Binding, Props) when is_binary(Binding)
                                        orelse is_atom(Binding) ->
     gen_server:call(Srv, {'rm_binding', kz_term:to_binary(Binding), Props}).
@@ -496,10 +515,9 @@ init_state(Module, Params, ModuleState) ->
     process_flag('trap_exit', 'true'),
     kz_log:put_callid(Module),
 
-    Application = kz_process:get_application(),
-    kz_process:put_application(Application),
+    CallingApplication = put_application(Params),
 
-    lager:debug("continuing as a gen_listener proc : ~s ~s", [Application, Module]),
+    lager:debug("continuing as a gen_listener proc : ~s ~s", [CallingApplication, Module]),
     init(Module, Params, ModuleState, 'undefined').
 
 -spec do_init(init_args()) -> {'ok', state()} | {'stop', any()} | 'ignore'.
@@ -507,11 +525,10 @@ do_init({Module, Params, InitArgs}) ->
     process_flag('trap_exit', 'true'),
     kz_log:put_callid(Module),
 
-    Application = kz_process:get_application(),
-    kz_process:put_application(Application),
+    CallingApplication = put_application(Params),
 
     lager:debug("starting new gen_listener proc : ~s ~s"
-               ,[Application, Module]
+               ,[CallingApplication, Module]
                ),
 
     'true' = erlang:function_exported(Module, 'init', 1),
@@ -522,6 +539,14 @@ do_init({Module, Params, InitArgs}) ->
         {'stop', _R} = STOP -> STOP;
         'ignore' -> 'ignore'
     end.
+
+put_application(Params) ->
+    Application = case props:get_value('calling_application', Params) of
+                      'undefined' -> kz_process:get_application();
+                      App -> App
+                  end,
+    kz_process:put_application(Application),
+    Application.
 
 -spec init(module(), start_params(), module_state(), kz_term:api_reference()) -> {'ok', state()}.
 init(Module, Params, ModuleState, TimeoutRef) ->
@@ -626,15 +651,31 @@ handle_continue(Args, 'null') ->
 handle_cast({'ack', Delivery}, State) ->
     _A = (catch kz_amqp_util:basic_ack(Delivery)),
     {'noreply', State};
+handle_cast({'ack', Delivery, Multiple}, State) ->
+    _A = (catch kz_amqp_util:basic_ack(Delivery, Multiple)),
+    {'noreply', State};
 handle_cast({'nack', Delivery}, State) ->
     _N = (catch kz_amqp_util:basic_nack(Delivery)),
+    {'noreply', State};
+handle_cast({'nack', Delivery, Requeue}, State) ->
+    _N = (catch kz_amqp_util:basic_nack(Delivery, Requeue)),
+    {'noreply', State};
+handle_cast({'nack', Delivery, Requeue, Multiple}, State) ->
+    _N = (catch kz_amqp_util:basic_nack(Delivery, Requeue, Multiple)),
+    {'noreply', State};
+handle_cast({'reject', Delivery}, State) ->
+    _A = (catch kz_amqp_util:basic_reject(Delivery)),
+    {'noreply', State};
+handle_cast({'reject', Delivery, Requeue}, State) ->
+    _A = (catch kz_amqp_util:basic_reject(Delivery, Requeue)),
     {'noreply', State};
 handle_cast({'add_queue', QueueName, QueueProps, Bindings}, State) ->
     {_, S} = add_other_queue(QueueName, QueueProps, Bindings, State),
     {'noreply', S};
 handle_cast({'rm_queue', QueueName}, #state{other_queues=OtherQueues}=State) ->
+    {Bindings, _QueueProps} = props:get_value(QueueName, OtherQueues, {[], []}),
     _ = [remove_binding(Binding, Props, QueueName)
-         || {Binding, Props} <- props:get_value(QueueName, OtherQueues, [])
+         || {Binding, Props} <- Bindings
         ],
     {'noreply', State#state{other_queues=props:delete(QueueName, OtherQueues)}};
 handle_cast({'add_responder', Responder, Keys}, #state{responders=Responders}=State) ->
@@ -711,58 +752,16 @@ handle_cast({'resume_consumers'}
     resume_consumers([{Q, {[], Params}} | OtherQueues], AutoAck),
     {'noreply', State};
 
-handle_cast({'federator_is_consuming', ListenerFederatorPid, Broker, 'true'}
-           ,#state{waiting_federators=WaitingFederators}=State
-           ) ->
-    Waiting = lists:filter(fun has_available_connections/1, WaitingFederators),
-
-    case lists:subtract(Waiting, [Broker]) of
-        [] ->
-            lager:info("federator ~p for ~s is consuming, all waiting federators are available!"
-                      ,[ListenerFederatorPid, Broker]
-                      ),
-
-            handle_module_cast({?MODULE, {'federators_consuming', 'true'}}
-                              ,State#state{waiting_federators=[]}
-                              );
-        Remaining ->
-            lager:info("federator ~p for ~s is consuming, still waiting for federators: ~p"
-                      ,[ListenerFederatorPid, Broker, Remaining]
-                      ),
-            {'noreply', State#state{waiting_federators = Remaining}}
-    end;
-handle_cast({'federator_is_consuming', _ListenerFederatorPid, _Broker, 'false'}
-           ,#state{}=State
-           ) ->
-    lager:info("federator ~p on broker ~s is no longer consuming", [_ListenerFederatorPid, _Broker]),
-    handle_module_cast({?MODULE, {'federators_consuming', 'false'}}, State);
-handle_cast({'federator_listener', {Broker, Pid}}
-           ,#state{federators=Fs
-                  ,bindings=Bindings
-                  }=State
-           ) ->
-    case [P || {B, {P, _}} <- Fs, B=:=Broker, P=:=Pid] of
-        [] ->
-            Ref = monitor('process', Pid),
-            lager:info("federator ~p(~p) on broker ~s started", [Pid, Ref, Broker]),
-
-            %% take current parent bindings and apply to existing federated listeners
-            _ = [update_existing_listener_bindings({Broker, {Pid, Ref}}, Binding, props:delete('federate', Props))
-                 || {Binding, Props} <- Bindings,
-                    is_federated_binding(Props)
-                ],
-
-            {'noreply', State#state{federators=[{Broker, {Pid, Ref}} | Fs]}};
-        _ ->
-            lager:info("federator for ~s(~p) already known in ~p", [Broker, Pid, Fs]),
-            {'noreply', State}
-    end;
+handle_cast({'federator_is_consuming', FederatorPid, Broker, IsConsuming}, State) ->
+    handle_federator_is_consuming(FederatorPid, Broker, IsConsuming, State);
+handle_cast({'federator_listener', {Broker, FederatorPid}}, State) ->
+    handle_federator_started(FederatorPid, Broker, State);
 handle_cast('crash', _State) ->
     exit('crash');
 handle_cast(Message, State) ->
     handle_module_cast(Message, State).
 
--spec maybe_remove_binding(binding(), binding_module(), kz_term:proplist(), kz_term:ne_binary()) -> boolean().
+-spec maybe_remove_binding(binding(), binding_module(), binding_properties(), kz_term:ne_binary()) -> boolean().
 maybe_remove_binding({B, P}, B, P, Q) ->
     lager:debug("removing ~s: ~p", [B, P]),
     remove_binding(B, P, Q),
@@ -899,7 +898,10 @@ handle_info({'kapi'
             }
            ,State
            ) ->
-    handle_event(Payload, {CT, CE}, {Deliver, Basic}, State);
+    CallId = kz_log:get_callid(),
+    Reply = handle_event(Payload, {CT, CE}, {Deliver, Basic}, State),
+    kz_log:put_callid(CallId),
+    Reply;
 handle_info(Message, State) ->
     handle_callback_info(Message, State).
 
@@ -1065,22 +1067,23 @@ handle_callback_info(Message
         {'stop', R, State}
         end.
 
--spec format_status('normal' | 'terminate', [kz_term:proplist() | state()]) -> any().
-format_status(_Opt
-             ,[_PDict
-              ,#state{module=Module
-                     ,module_state=ModuleState
-                     }=State
-              ]) ->
-    case erlang:function_exported(Module, 'format_status', 2) of
-        'true' -> Module:format_status(_Opt, [_PDict, ModuleState]);
+format_state(#state{module = Module, module_state = ModuleState} = State) ->
+    case erlang:function_exported(Module, 'format_status', 1) of
+        'true' ->
+            Module:format_status(#{state => ModuleState});
         'false' ->
-            [{'data', [{"Module State", ModuleState}
-                      ,{"Module", Module}
-                      ,{"Listener State", State}
-                      ]
-             }]
+            #{module => Module
+             ,module_state => ModuleState
+             ,listener_state => State
+             }
     end.
+
+format_status_map('state', State) -> format_state(State);
+format_status_map(_, Value) -> Value.
+
+-spec format_status(gen_server:format_status()) -> gen_server:format_status().
+format_status(Status) ->
+    maps:map(fun format_status_map/2, Status).
 
 -spec deliver_event(kz_json:object(), deliver(), state()) ->  kz_types:handle_info_ret().
 deliver_event(JObj, {_ , #'P_basic'{headers='undefined'}}=BasicDeliver, State) ->
@@ -1241,7 +1244,19 @@ callback_handle_event(JObj
              ]
             ,NewModuleState
             };
+        {'EXIT', {{Reason, Term}, ST}} ->
+            lager:error("CRASH in handle_event ~p: ~p", [Reason, Term]),
+            lager:error("module state: ~p", [_State]),
+            kz_log:log_stacktrace(ST),
+            [{'server', Self}
+            ,{'queue', Queue}
+            ,{'basic', Basic}
+            ,{'deliver', Deliver}
+            ,{'other_queues', props:get_keys(OtherQueues)}
+            ,{'state', ModuleState}
+            ];
         {'EXIT', Why} ->
+            %% left in case the error term changes
             lager:error("CRASH in handle_event ~p : ~p", [Why, _State]),
             [{'server', Self}
             ,{'queue', Queue}
@@ -1332,7 +1347,7 @@ resume_consumers(Queues, AutoAck) ->
 resume_consumer(Queue, ConsumeOptions, AutoAck) ->
     start_consumer(Queue, maybe_configure_auto_ack(ConsumeOptions, AutoAck)).
 
--spec remove_binding(binding_module(), kz_term:proplist(), kz_term:api_binary()) -> 'ok'.
+-spec remove_binding(binding_module(), binding_properties(), kz_term:ne_binary()) -> 'ok'.
 remove_binding(Binding, Props, Q) ->
     Wapi = list_to_binary([<<"kapi_">>, kz_term:to_binary(Binding)]),
     lager:debug("trying to remove bindings with ~s:unbind_q(~s, ~p)", [Wapi, Q, Props]),
@@ -1342,17 +1357,30 @@ remove_binding(Binding, Props, Q) ->
             erlang:error({'api_module_undefined', Wapi})
     end.
 
--spec create_binding(kz_term:ne_binary(), kz_term:proplist(), kz_term:api_ne_binary()) -> any().
+-spec create_binding(binding_module(), binding_properties(), kz_term:api_ne_binary()) -> any().
 create_binding(Binding, Props, QueueName) when not is_binary(Binding) ->
     create_binding(kz_term:to_binary(Binding), Props, QueueName);
 create_binding(Binding, Props, QueueName) ->
-    %% TODO
-    %% HANDLE POTENTIAL CRASH
-    %%
-    APIModule = kz_term:to_atom(list_to_binary([<<"kapi_">>, kz_term:to_binary(Binding)]), 'true'),
+    APIModule = kz_term:to_atom(<<"kapi_", Binding/binary>>, 'true'),
     declare_binding_exchanges(APIModule),
     'true' = kz_module:is_exported(APIModule, 'bind_q', 2),
-    APIModule:bind_q(QueueName, Props).
+    Ret = APIModule:bind_q(QueueName, Props),
+    maybe_pooled_binding_created(Binding, Props),
+    Ret.
+
+%%------------------------------------------------------------------------------
+%% @doc For pooled bindings, tell the handling module that the binding is ready.
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_pooled_binding_created(binding_module(), binding_properties()) -> 'ok'.
+maybe_pooled_binding_created(Binding, Props) ->
+    case props:is_true('pooled', Props, 'false') of
+        'true' ->
+            lager:info("created pooled binding in ~p: ~p", [Binding, Props]),
+            gen_server:cast(self(), {?MODULE, {'pooled_binding', kz_term:to_atom(Binding)}});
+        'false' ->
+            'ok'
+    end.
 
 -spec declare_binding_exchanges(module()) -> 'ok'.
 declare_binding_exchanges(APIModule) ->
@@ -1374,7 +1402,7 @@ start_timer(Timeout) when is_integer(Timeout)
     erlang:send_after(Timeout, self(), ?CALLBACK_TIMEOUT_MSG);
 start_timer(_) -> 'undefined'.
 
--spec add_other_queue(binary(), kz_term:proplist(), kz_term:proplist(), state()) -> {kz_term:ne_binary(), state()}.
+-spec add_other_queue(binary(), kz_term:proplist(), bindings(), state()) -> {kz_term:ne_binary(), state()}.
 add_other_queue(<<>>, QueueProps, Bindings, #state{other_queues=OtherQueues, auto_ack=AutoAck}=State) ->
     {'ok', Q} = start_amqp(QueueProps, AutoAck),
     gen_server:cast(self(), {?MODULE, {'created_queue', Q}}),
@@ -1469,7 +1497,7 @@ handle_module_cast(Msg, #state{module=Module
         {'stop', R, State}
         end.
 
--spec handle_rm_binding(binding(), kz_term:proplist(), state()) -> state().
+-spec handle_rm_binding(binding_module(), binding_properties(), state()) -> state().
 handle_rm_binding(Binding, Props, #state{queue=Q
                                         ,bindings=Bs
                                         }=State) ->
@@ -1482,38 +1510,44 @@ handle_rm_binding(Binding, Props, #state{queue=Q
     maybe_remove_federated_binding(Binding, Props, State),
     State#state{bindings=KeepBs}.
 
--spec handle_add_binding(binding_module(), kz_term:proplist(), state()) ->
-          state().
+-spec handle_add_binding(binding_module(), binding_properties(), state()) -> state().
 handle_add_binding(Binding, Props, #state{is_consuming='false'}=State) ->
     lager:info("not consuming yet, checking binding for pooled flag"),
     handle_add_binding_not_consuming(Binding, Props, State, kz_amqp_channel:has_channel());
 handle_add_binding(Binding, Props, #state{queue=QueueName
                                          ,bindings=Bindings
                                          }=State) ->
-    case lists:keyfind(Binding, 1, Bindings) of
-        'false' ->
+    case [BPs || {B, BPs} <- Bindings, B =:= Binding] of
+        [] ->
             lager:debug("creating new binding: '~s'", [Binding]),
             create_binding(Binding, Props, QueueName),
             maybe_update_federated_bindings(State#state{bindings=[{Binding, Props}|Bindings]});
-        {Binding, ExistingProps} ->
+        ExistingProps ->
             handle_existing_binding(Binding, Props, State, QueueName, ExistingProps, Bindings)
     end.
 
 handle_add_binding_not_consuming(Binding, Props, State, 'false') ->
-    handle_add_binding_pooled(Binding, Props, State, props:is_true('pooled', Props, 'false'));
+    maybe_create_pooled_binding_early(
+      Binding, Props, State, props:is_true('pooled', Props, 'false')
+     );
 handle_add_binding_not_consuming(Binding, Props, State, 'true') ->
     lager:info("have channel, not consuming yet, delaying binding ~p", [Binding]),
     delayed_add_binding(Binding, Props, State).
 
-handle_add_binding_pooled(Binding, Props, #state{params=Params}=State, 'false') ->
-    lager:info("binding ~p is not pooled: ~p", [Binding, Props]),
+%%------------------------------------------------------------------------------
+%% @doc If the binding is pooled, create it before the listener is consuming.
+%% Otherwise, requisition a channel and delay the binding creation until the
+%% listener is consuming.
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_create_pooled_binding_early(binding_module(), binding_properties(), state(), boolean()) -> state().
+maybe_create_pooled_binding_early(Binding, Props, #state{params=Params}=State, 'false') ->
     _ = channel_requisition(Params),
     delayed_add_binding(Binding, Props, State);
-handle_add_binding_pooled(Binding, Props, State, 'true') ->
-    lager:info("creating pooled binding in ~p: ~p", [Binding, Props]),
+maybe_create_pooled_binding_early(Binding, Props, #state{bindings=Bindings}=State, 'true') ->
+    lager:info("binding ~p is pooled: ~p", [Binding, Props]),
     create_binding(Binding, Props, 'undefined'),
-    gen_server:cast(self(), {?MODULE, {'pooled_binding', kz_term:to_atom(Binding)}}),
-    State.
+    State#state{bindings=[{Binding, Props} | Bindings]}.
 
 delayed_add_binding(Binding, Props, #state{delayed_bindings=DelayedBindings}=State) ->
     lager:debug("not consuming yet, delaying binding ~p", [Binding]),
@@ -1524,10 +1558,17 @@ handle_delayed_bindings(DelayedBindings) ->
     _ = [add_binding(self(), Binding, Props) || {Binding, Props} <- DelayedBindings],
     'ok'.
 
--spec handle_existing_binding(binding_module(), kz_term:proplist(), state(), kz_term:ne_binary(), kz_term:proplist(), bindings()) ->
-          state().
+-spec handle_existing_binding(binding_module()
+                             ,binding_properties()
+                             ,state()
+                             ,kz_term:ne_binary()
+                             ,[binding_properties()]
+                             ,bindings()
+                             ) -> state().
 handle_existing_binding(Binding, Props, State, Q, ExistingProps, Bs) ->
-    case binding_props_match(Props, ExistingProps) of
+    %% There can be more than one existing binding to the same KAPI module, so
+    %% each of them needs to be tested for a match.
+    case lists:any(fun(BPs) -> binding_props_match(Props, BPs) end, ExistingProps) of
         'true' ->
             lager:debug("binding ~s with the same properties exists", [Binding]),
             State#state{bindings=Bs};
@@ -1537,7 +1578,7 @@ handle_existing_binding(Binding, Props, State, Q, ExistingProps, Bs) ->
             maybe_update_federated_bindings(State#state{bindings=[{Binding, Props}|Bs]})
     end.
 
--spec binding_props_match(kz_term:proplist(), kz_term:proplist()) -> boolean().
+-spec binding_props_match(binding_properties(), binding_properties()) -> boolean().
 binding_props_match([], []) -> 'true';
 binding_props_match([_|_], []) -> 'false';
 binding_props_match([], [_|_]) -> 'false';
@@ -1559,7 +1600,9 @@ maybe_update_federated_bindings(#state{bindings=[{_Binding, Props}|_]}=State) ->
         'true' -> update_federated_bindings(State)
     end.
 
--spec is_federated_binding(kz_term:proplist()) -> boolean().
+-spec is_federated_binding(binding() | binding_properties()) -> boolean().
+is_federated_binding({_BindingModule, Props}) ->
+    props:get_value('federate', Props) =:= 'true';
 is_federated_binding(Props) ->
     props:get_value('federate', Props) =:= 'true'.
 
@@ -1588,11 +1631,11 @@ update_federated_bindings(#state{bindings=[{Binding, Props}|_]
                ,waiting_federators=lists:usort(NewBrokers ++ WaitingFederators)
                }.
 
--spec maybe_remove_federated_binding(binding(), kz_term:proplist(), state()) -> 'ok'.
+-spec maybe_remove_federated_binding(binding_module(), binding_properties(), state()) -> 'ok'.
 maybe_remove_federated_binding(Binding, Props, State) ->
     maybe_remove_federated_binding(is_federated_binding(Props), Binding, Props, State).
 
--spec maybe_remove_federated_binding(boolean(), binding(), kz_term:proplist(), state()) -> 'ok'.
+-spec maybe_remove_federated_binding(boolean(), binding_module(), binding_properties(), state()) -> 'ok'.
 maybe_remove_federated_binding(_Flag, _Binding, _Props, #state{federators=[]}) -> 'ok';
 maybe_remove_federated_binding('true', Binding, Props, #state{federators=Fs}) ->
     NonFederatedProps = props:delete('federate', Props),
@@ -1623,21 +1666,21 @@ start_new_listener(Broker, #state{params=StartParams}) ->
     lager:debug("started federated listener on broker ~s: ~p(~p)", [Broker, Pid, Ref]),
     {Broker, {Pid, Ref}}.
 
--spec remove_federated_binding(federator_listeners(), binding_module(), kz_term:proplist()) -> 'ok'.
+-spec remove_federated_binding(federator_listeners(), binding_module(), binding_properties()) -> 'ok'.
 remove_federated_binding(Listeners, Binding, Props) ->
     _ = [?MODULE:rm_binding(Pid, Binding, Props)
          || {_Broker, {Pid, _Ref}} <- Listeners
         ],
     'ok'.
 
--spec update_existing_listeners_bindings(federator_listeners(), binding_module(), kz_term:proplist()) -> 'ok'.
+-spec update_existing_listeners_bindings(federator_listeners(), binding_module(), binding_properties()) -> 'ok'.
 update_existing_listeners_bindings(Listeners, Binding, Props) ->
     _ = [update_existing_listener_bindings(Listener, Binding, Props)
          || Listener <- Listeners
         ],
     'ok'.
 
--spec update_existing_listener_bindings(federator_listener(), binding_module(), kz_term:proplist()) -> 'ok'.
+-spec update_existing_listener_bindings(federator_listener(), binding_module(), binding_properties()) -> 'ok'.
 update_existing_listener_bindings({_Broker, {Pid, _Ref}}, Binding, Props) ->
     lager:debug("updating listener ~p with ~s", [Pid, Binding]),
     ?MODULE:add_binding(Pid, Binding, Props).
@@ -1654,6 +1697,48 @@ create_federated_params(StartParams) ->
     ,{'consume_options', props:get_value('consume_options', StartParams, [])}
     ,{'calling_application', kz_process:get_application()}
     ].
+
+
+handle_federator_is_consuming(FederatorPid, Broker, true, #state{waiting_federators = []} = State) ->
+    lager:warning("received federator is consuming but we're not waiting for any => ~p / ~s", [FederatorPid, Broker]),
+    handle_module_cast({?MODULE, {'federators_consuming', 'true'}}, State);
+handle_federator_is_consuming(FederatorPid, Broker, true, #state{waiting_federators = Waiting} = State) ->
+    case lists:subtract(Waiting, [Broker]) of
+        [] ->
+            lager:info("federator ~p for ~s is consuming, all waiting federators are available!", [FederatorPid, Broker]),
+            handle_module_cast({?MODULE, {'federators_consuming', 'true'}}, State#state{waiting_federators=[]});
+        Remaining ->
+            lager:info("federator ~p for ~s is consuming, still waiting for federators: ~p", [FederatorPid, Broker, Remaining]),
+            {'noreply', State#state{waiting_federators = Remaining}}
+    end;
+handle_federator_is_consuming(_FederatorPid, Broker, false, #state{waiting_federators=Waiting}=State) ->
+    lager:info("federator ~p on broker ~s is no longer consuming", [_FederatorPid, Broker]),
+    handle_module_cast({?MODULE, {'federators_consuming', 'false'}}, State#state{waiting_federators = lists:uniq([Broker | Waiting])}).
+
+is_known_federator(Pid, Broker, Federators) ->
+    [P || {B, {P, _}} <- Federators, B=:=Broker, P=:=Pid] =/= [].
+
+update_federated_listener_binding_fun(FederatedListenerRef) ->
+    fun({Binding, Props}) ->
+            update_existing_listener_bindings(FederatedListenerRef, Binding, props:delete('federate', Props))
+    end.
+
+update_federated_listener_bindings(FederatedListenerRef, #state{bindings = Bindings}) ->
+    FederatedBindings = lists:filter(fun is_federated_binding/1, Bindings),
+    lists:foreach(update_federated_listener_binding_fun(FederatedListenerRef), FederatedBindings).
+
+handle_federator_started(Pid, Broker, #state{federators=Federators, waiting_federators = WaitingFederators} = State) ->
+    case is_known_federator(Pid, Broker, Federators) of
+        true ->
+            {noreply, State};
+        false ->
+            Ref = monitor('process', Pid),
+            lager:info("federator ~p(~p) on broker ~s started", [Pid, Ref, Broker]),
+            update_federated_listener_bindings({Broker, {Pid, Ref}}, State),
+            NewFederators = [{Broker, {Pid, Ref}} | Federators],
+            NewWaitingFederators = lists:uniq([Broker | WaitingFederators]),
+            {'noreply', State#state{federators = NewFederators, waiting_federators = NewWaitingFederators}}
+    end.
 
 -spec handle_amqp_channel_available(state(), boolean()) -> state().
 handle_amqp_channel_available(#state{params=Params}=State, Reconnected) ->
@@ -1829,10 +1914,6 @@ cast_mfa(ExecMsg, Federators) ->
 maybe_autoack('true', BD) -> catch kz_amqp_util:basic_ack(BD), 'ok';
 maybe_autoack('false', _BD) -> 'ok'.
 
--spec has_available_connections(kz_term:ne_binary()) -> boolean().
-has_available_connections(Broker) ->
-    kz_amqp_connections:broker_available_connections(Broker) > 0.
-
 -spec handle_consuming_requests([{kz_term:pid_ref(), reference()}]) -> 'ok'.
 handle_consuming_requests(Requests) ->
     _ = [reply_to_request(Request) || Request <- Requests],
@@ -1842,3 +1923,55 @@ handle_consuming_requests(Requests) ->
 reply_to_request({From, TRef}) ->
     _ = reply(From, 'ok'),
     'ok' = erlang:cancel_timer(TRef, [{'async', 'true'}, {'info', 'false'}]).
+
+%%%=============================================================================
+%%% Eunit Tests
+%%%=============================================================================
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+%% Test detecting adding duplicate bindings.
+detect_adding_duplicate_bindings_test_() ->
+    {'setup'
+    ,fun eunit_setup/0
+    ,fun eunit_cleanup/1
+    ,[fun() ->
+              S = #state{is_consuming = 'true'},
+              {'noreply', S1} = ?MODULE:handle_cast({'add_binding', 'test', []}, S),
+              {'noreply', #state{bindings=B2}=S2} = ?MODULE:handle_cast({'add_binding', 'test', ['a']}, S1),
+              {'noreply', #state{bindings=B3}} = ?MODULE:handle_cast({'add_binding', 'test', []}, S2),
+              ?assertEqual(B2, B3)
+      end
+     ]
+    }.
+
+%% Ensure pooled bindings are added to the listener's bindings list.
+add_pooled_bindings_to_bindings_list_test_() ->
+    {'setup'
+    ,fun eunit_setup/0
+    ,fun eunit_cleanup/1
+    ,[fun() ->
+              S = #state{},
+              {'noreply', S1} = ?MODULE:handle_cast({'add_binding', 'test', ['pooled']}, S),
+              S2 = S1#state{is_consuming='true'},
+              {'noreply', #state{bindings=B2}} = ?MODULE:handle_cast({'add_binding', 'test', ['a', 'pooled']}, S2),
+              ?assertEqual(lists:sort([{'test', ['pooled']}
+                                      ,{'test', ['a', 'pooled']}
+                                      ])
+                          ,lists:sort(B2))
+      end
+     ]
+    }.
+
+%% Shared test setup.
+eunit_setup() ->
+    meck:new('kapi_test', ['non_strict']),
+    meck:expect('kapi_test', 'bind_q', fun(_, _) -> 'ok' end).
+
+%% Shared test cleanup.
+eunit_cleanup(_) ->
+    meck:unload().
+
+-endif.
