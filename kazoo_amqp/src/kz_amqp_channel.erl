@@ -489,7 +489,6 @@ amqp_channel_subscribe(Channel, Command, Consumer) ->
 -spec handle_command_result(command_ret(), kz_amqp_command(), kz_amqp_assignment()) -> command_ret().
 handle_command_result(_, _, #kz_amqp_assignment{reconnect='true'}) -> 'ok';
 handle_command_result({'error', _}=Error, _, _) -> Error;
-handle_command_result('ok', _Command, _Assignment) -> 'ok';
 handle_command_result({'ok', Ok}, Command, Assignment) ->
     handle_command_result(Ok, Command, Assignment);
 handle_command_result(#'basic.qos_ok'{}
