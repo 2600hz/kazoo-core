@@ -40,8 +40,8 @@ assets: $(PROMPT_DE-DE) \
         $(PROMPT_FR-FR) \
         $(PROMPT_NL-BE) \
         $(PROMPT_RU-RU) \
-	    $(FS_PROM_DE-DE) \
-	    $(FS_PROM_EN-US) \
+        $(FS_PROM_DE-DE) \
+        $(FS_PROM_EN-US) \
         $(FS_PROM_EN-GB) \
         $(FS_PROM_ES-ES) \
         $(FS_PROM_ES-US) \
