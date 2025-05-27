@@ -115,9 +115,9 @@ amqp_status_connection(Connection, JObj) ->
     [{channel_max, ChannelMax}, _] = kz_amqp_connection:info(Connection),
 
     ConnStatus = kz_json:from_list([{<<"channel_count">>, Count}
+                                   ,{<<"channel_max">>, ChannelMax}
+                                   ,{<<"channel_remaining">>, ChannelMax - Count}
                                    ,{<<"zone">>, BrokerZone}
-                                   ,{<<"max_channels">>, ChannelMax}
-                                   ,{<<"remaining_channels">>, ChannelMax - Count}
                                    ]),
 
     Status = kz_json:get_list_value(Broker, JObj, []),
