@@ -48,10 +48,11 @@ db_create(Server, DbName) ->
 db_create(#{}=Map, DbName, Options) ->
     %%TODO storage policy
     case do_db_create(Map, DbName, Options) of
+        'false' -> 'false';
         'exists' -> db_create_others(Map, DbName, Options);
-        'true' -> kzs_publish:publish_db(DbName, 'created'),
-                  db_create_others(Map, DbName, Options);
-        'false' -> 'false'
+        'true' ->
+            kzs_publish:publish_db(DbName, 'created'),
+            db_create_others(Map, DbName, Options)
     end.
 
 -spec db_create_others(map(), kz_term:ne_binary(), db_create_options()) -> boolean().
@@ -64,17 +65,42 @@ db_create_others(#{}=Map, DbName, Options) ->
 
 -spec do_db_create_others(map(), kz_term:ne_binary(), db_create_options()) -> boolean().
 do_db_create_others(Map, DbName, Options) ->
-    Others = maps:get('others', Map, []),
+    maybe_run_secondary([DbName, Options]
+                       ,fun do_db_create/3
+                       ,maps:get('secondary', Map, [])
+                       ),
+
     lists:all(fun({_Tag, M1}) ->
                       do_db_create(M1, DbName, Options) =/= 'false'
-              end, Others).
+              end
+             ,maps:get('others', Map, [])
+             ).
+
+maybe_run_secondary(_RestArgs, _Fun, []) -> 'ok';
+maybe_run_secondary([DbName | _]=RestArgs, Fun, [{_Tag, #{server := {App, Conn}}=Map} | Rest]) ->
+    lager:debug("applying fun ~p on ~s on conn ~s", [Fun, DbName, _Tag]),
+
+    %% we have to erase our conn's db entry or else kzs_db:db_exists
+    %% returns true while kazoo_couch:db_exists returns false
+    kz_cache:erase_local(?KAZOO_DATA_PLAN_CACHE, {'database', {App, Conn}, DbName}),
+
+    _Result = apply(Fun, [Map | RestArgs]),
+    maybe_run_secondary(RestArgs, Fun, Rest).
+
+maybe_spawn_secondary(_RestArgs, _Fun, []) -> 'ok';
+maybe_spawn_secondary([DbName | _]=RestArgs, Fun, [{_Tag, #{server := {_App, _Conn}}=Map} | Rest]) ->
+    _Pid = kz_process:spawn(Fun, [Map | RestArgs]),
+    lager:debug("applying spawned fun ~p on ~s on conn ~s in ~p", [Fun, DbName, _Tag, _Pid]),
+    maybe_spawn_secondary(RestArgs, Fun, Rest).
 
 -spec do_db_create(map(), kz_term:ne_binary(), db_create_options()) -> boolean() | 'exists'.
 do_db_create(#{server := {App, Conn}}, DbName, Options) ->
-    case App:db_exists(Conn, DbName) of
-        'false' -> App:db_create(Conn, DbName, Options);
-        'true' -> 'exists'
-    end.
+    Result = case App:db_exists(Conn, DbName) of
+                 'false' -> App:db_create(Conn, DbName, Options);
+                 'true' -> 'exists'
+             end,
+    lager:info("do_db_create for ~s: ~p", [DbName, Result]),
+    Result.
 
 -spec db_delete(map(), kz_term:ne_binary(), db_delete_options()) -> boolean().
 db_delete(#{}=Map, DbName, Options) ->
@@ -92,20 +118,23 @@ db_delete_others(#{}=Map, DbName, Options) ->
 
 -spec do_db_delete_others(map(), kz_term:ne_binary()) -> boolean().
 do_db_delete_others(Map, DbName) ->
-    Others = maps:get('others', Map, []),
-    lists:all(fun({_Tag, M1}) ->
-                      do_db_delete(M1, DbName)
-              end, Others).
+    maybe_run_secondary([DbName], fun do_db_delete/2, maps:get('secondary', Map, [])),
+
+    lists:all(fun({_Tag, M1}) -> do_db_delete(M1, DbName) end
+             ,maps:get('others', Map, [])
+             ).
 
 -spec do_db_delete(map(), kz_term:ne_binary()) -> boolean().
 do_db_delete(#{server := {App, Conn}}, DbName) ->
-    case kapps_util:get_master_account_db() of
-        {'ok', DbName} ->
-            lager:error("deleting master account id forbidden"),
-            'false';
-        {'ok', _MasterDb} ->
-            App:db_delete(Conn, DbName)
-    end.
+    Result = case kapps_util:get_master_account_db() of
+                 {'ok', DbName} ->
+                     lager:error("deleting master account id forbidden"),
+                     'false';
+                 {'ok', _MasterDb} ->
+                     App:db_delete(Conn, DbName)
+             end,
+    lager:info("do_db_delete of ~s: ~p", [DbName, Result]),
+    Result.
 
 -spec db_replicate(map(), kz_json:object() | kz_term:proplist()) ->
           {'ok', kz_json:object()} |
@@ -115,11 +144,17 @@ db_replicate(#{server := {App, Conn}}, Prop) ->
 
 -spec db_view_cleanup(map(), kz_term:ne_binary()) -> boolean().
 db_view_cleanup(#{}=Map, DbName) ->
-    Others = maps:get('others', Map, []),
+    maybe_spawn_secondary([DbName]
+                         ,fun do_db_view_cleanup/2
+                         ,maps:get('secondary', Map, [])
+                         ),
+
     do_db_view_cleanup(Map, DbName)
         andalso lists:all(fun({_Tag, M1}) ->
                                   do_db_view_cleanup(M1, DbName)
-                          end, Others).
+                          end
+                         ,maps:get('others', Map, [])
+                         ).
 
 -spec do_db_view_cleanup(map(), kz_term:ne_binary()) -> boolean().
 do_db_view_cleanup(#{server := {App, Conn}}, DbName) ->
@@ -136,8 +171,13 @@ db_info_all({'ok', DBs}, Others) ->
 
 -spec db_info_all_fold({atom(), map()}, kz_term:ne_binaries()) -> {'ok', kz_term:ne_binaries()} |data_error().
 db_info_all_fold({_Tag, Server}, DBs) ->
-    {_, DBList} = db_info(Server),
-    {'ok', lists:usort(DBs ++ DBList)}.
+    case db_info(Server) of
+        {'ok', DBList} ->
+            {'ok', lists:usort(DBs ++ DBList)};
+        {'error', _E} ->
+            lager:info("error for db_info on conn ~s: ~p", [_Tag, _E]),
+            DBs
+    end.
 
 -spec db_info(map(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | data_error().
 db_info(#{server := {App, Conn}}, DbName) -> App:db_info(Conn, DbName).
@@ -177,8 +217,9 @@ maybe_cache_db_exists('true', #{server := {App, Conn}}, DbName) ->
 db_exists_all(Map, DbName) ->
     case kz_cache:fetch_local(?KAZOO_DATA_PLAN_CACHE, {'database', DbName}) of
         {'ok', Exists} -> Exists;
-        _ -> db_exists(Map, DbName)
-                 andalso db_exists_others(DbName, maps:get('others', Map, []))
+        _ ->
+            db_exists(Map, DbName)
+                andalso db_exists_others(DbName, maps:get('others', Map, []))
     end.
 
 -spec db_exists_others(kz_term:ne_binary(), list()) -> boolean().
@@ -198,7 +239,6 @@ db_import(#{server := {App, Conn}}=Server, DbName, Filename) ->
     case db_exists(Server, DbName) of
         'true' -> App:db_import(Conn, DbName, Filename);
         'false' ->
-            io:format("db ~s doesn't exist, creating~n", [DbName]),
             'true' = db_create(Server, DbName),
             App:db_import(Conn, DbName, Filename)
     end.
@@ -220,13 +260,16 @@ db_list_all_fold({_Tag, Server}, {Options, DBs}) ->
           boolean() |
           {'error', 'db_not_found'}.
 db_view_update(#{}=Map, DbName, Views, Remove) ->
-    Others = maps:get('others', Map, []),
     case do_db_view_update(Map, DbName, Views, Remove) of
         'true' ->
+            maybe_spawn_secondary([DbName, Views, Remove]
+                                 ,fun do_db_view_update/4
+                                 ,maps:get('secondary', Map, [])
+                                 ),
             lists:all(fun({_Tag, M1}) ->
                               do_db_view_update(M1, DbName, Views, Remove) =:= 'true'
                       end
-                     ,Others
+                     ,maps:get('others', Map, [])
                      );
         FalseError ->
             FalseError
@@ -260,31 +303,48 @@ add_update_remove_views(Server, Db, CurrentViews, NewViews, ShouldRemoveDangling
     Add = sets:to_list(sets:subtract(New, Current)),
     Update = sets:to_list(sets:intersection(Current, New)),
     Delete = sets:to_list(sets:subtract(Current, New)),
+
+    Added = length(Add),
+
     _ = case ShouldRemoveDangling of
-            'true'-> lager:debug("view updates found ~p new, ~p possible updates and ~p potential removals for db ~s"
-                                ,[length(Add), length(Update), length(Delete), Db]
-                                );
-            'false' -> lager:debug("view updates found ~p new, ~p possible updates for db ~s"
-                                  ,[length(Add), length(Update), Db])
+            'true'->
+                lager:debug("view updates found ~p new, ~p possible updates and ~p potential removals for db ~s"
+                           ,[Added, length(Update), length(Delete), Db]
+                           );
+            'false' ->
+                lager:debug("view updates found ~p new, ~p possible updates for db ~s"
+                           ,[Added, length(Update), Db]
+                           )
         end,
+
     Conflicts = add_views(Server, Db, Add, NewViews),
+
     lager:debug("view additions resulted in ~p conflicts", [length(Conflicts)]),
     {Changed, Errors} = update_views(Server, Db, Update ++ Conflicts, CurrentViews, NewViews),
     lager:debug("view updates resulted in ~p conflicts", [length(Errors)]),
     Corrected = correct_view_errors(Server, Db, Errors, NewViews),
+
     _ = ShouldRemoveDangling
         andalso delete_views(Server, Db, Delete, CurrentViews),
+
     Corrected > 0
         orelse Changed > 0
-        orelse (length(Add) > 0
-                andalso length(Conflicts) < length(Add)).
+        orelse (Added > 0
+                andalso length(Conflicts) < Added
+               ).
 
 -spec add_views(map(), kz_term:ne_binary(), kz_term:ne_binaries(), views_listing()) -> kz_term:api_ne_binaries().
 add_views(Server, Db, Add, NewViews) ->
     Views = [props:get_value(Id, NewViews) || Id <- Add],
+
     _ = [lager:debug("saving view ~s / ~s", [Db, Id]) || Id <- Add],
+
     {'ok', JObjs} = kzs_doc:save_docs(Server, Db, Views, []),
-    [Id || JObj <- JObjs, {Id, <<"conflict">>} <- [log_save_view_error(JObj)] ].
+
+    [Id || JObj <- JObjs,
+           {Id, Error} <- [log_save_view_error(JObj)],
+           <<"conflict">> =:= Error
+    ].
 
 -spec update_views(map(), kz_term:ne_binary(), kz_term:ne_binaries(), views_listing(), views_listing()) -> {integer(), kz_term:api_ne_binaries()}.
 update_views(Server, Db, Update, CurrentViews, NewViews) ->
@@ -296,7 +356,10 @@ update_views(Server, Db, Update, CurrentViews, NewViews) ->
                   should_update(Id, Db, NewView, CurrentView)
               ]),
     {'ok', JObjs} = kzs_doc:save_docs(Server, Db, Views, []),
-    Errors = [Id || JObj <- JObjs, {Id, <<"conflict">>} <- [log_save_view_error(JObj)] ],
+    Errors = [Id || JObj <- JObjs,
+                    {Id, Error} <- [log_save_view_error(JObj)],
+                    <<"conflict">> =:= Error
+             ],
     {length(Views), Errors}.
 
 -spec log_save_view_error(kz_json:object()) -> {kz_term:ne_binary(), kz_term:api_ne_binary()}.

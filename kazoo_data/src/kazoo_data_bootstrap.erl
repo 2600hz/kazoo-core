@@ -20,6 +20,7 @@
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
     kz_log:put_callid(?DEFAULT_LOG_SYSTEM_ID),
+
     #data_connection{tag=Tag} = Connection = kz_dataconfig:connection(),
     kz_dataconnections:add(Connection),
 
