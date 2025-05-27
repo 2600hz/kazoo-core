@@ -37,7 +37,7 @@ new() ->
 
 -spec driver(doc()) -> any().
 driver(Doc) ->
-    driver(Doc, 'undefined').
+    driver(Doc, kazoo_couch).
 
 -spec driver(doc(), Default) -> any() | Default.
 driver(Doc, Default) ->
@@ -119,15 +119,15 @@ settings_credentials(Doc, Default) ->
 set_settings_credentials(Doc, SettingsCredentials) ->
     kz_json:set_value([<<"settings">>, <<"credentials">>], SettingsCredentials, Doc).
 
--spec settings_credentials_password(doc()) -> kz_term:api_integer().
+-spec settings_credentials_password(doc()) -> kz_term:api_binary().
 settings_credentials_password(Doc) ->
     settings_credentials_password(Doc, 'undefined').
 
--spec settings_credentials_password(doc(), Default) -> integer() | Default.
+-spec settings_credentials_password(doc(), Default) -> binary() | Default.
 settings_credentials_password(Doc, Default) ->
-    kz_json:get_integer_value([<<"settings">>, <<"credentials">>, <<"password">>], Doc, Default).
+    kz_json:get_binary_value([<<"settings">>, <<"credentials">>, <<"password">>], Doc, Default).
 
--spec set_settings_credentials_password(doc(), integer()) -> doc().
+-spec set_settings_credentials_password(doc(), binary()) -> doc().
 set_settings_credentials_password(Doc, SettingsCredentialsPassword) ->
     kz_json:set_value([<<"settings">>, <<"credentials">>, <<"password">>], SettingsCredentialsPassword, Doc).
 

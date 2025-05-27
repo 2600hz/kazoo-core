@@ -10,6 +10,7 @@
 -export([connection/1, connection/2, set_connection/2]).
 -export([range/1, range/2, set_range/2]).
 -export([regex/1, regex/2, set_regex/2]).
+-export([secondary_connections/1, secondary_connections/2, set_secondary_connections/2]).
 
 
 -include("kz_documents.hrl").
@@ -70,3 +71,15 @@ regex(Doc, Default) ->
 -spec set_regex(doc(), any()) -> doc().
 set_regex(Doc, Regex) ->
     kz_json:set_value([<<"regex">>], Regex, Doc).
+
+-spec secondary_connections(doc()) -> kz_term:api_ne_binaries().
+secondary_connections(Doc) ->
+    secondary_connections(Doc, 'undefined').
+
+-spec secondary_connections(doc(), Default) -> kz_term:ne_binaries() | Default.
+secondary_connections(Doc, Default) ->
+    kz_json:get_list_value([<<"secondary_connections">>], Doc, Default).
+
+-spec set_secondary_connections(doc(), kz_term:ne_binaries()) -> doc().
+set_secondary_connections(Doc, SecondaryConnections) ->
+    kz_json:set_value([<<"secondary_connections">>], SecondaryConnections, Doc).

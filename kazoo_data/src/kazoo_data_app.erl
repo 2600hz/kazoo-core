@@ -17,7 +17,9 @@
 -export([start/2, stop/1]).
 
 %% kz_nodes info binding
--export([request/0]).
+-export([request/0
+        ,db_classify/1
+        ]).
 
 %%==============================================================================
 %% Application callbacks
@@ -30,6 +32,9 @@
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_StartType, _StartArgs) ->
     _ = kz_nodes_bindings:bind_info('kazoo_data_app', 'request'),
+
+    _ = kzs_util:bind_db_classify(?KZ_STORAGE_RETRY, ?MODULE, 'db_classify'),
+
     kazoo_data_sup:start_link().
 
 %%------------------------------------------------------------------------------
@@ -45,3 +50,7 @@ request() ->
     Membership = kz_datamgr:membership(),
     JObj = kz_json:from_list([{kz_term:to_binary(K), V} || {K, V} <- Membership]),
     {<<"couch">>, JObj}.
+
+-spec db_classify(kz_term:ne_binary()) -> kz_term:api_ne_binary().
+db_classify(?KZ_STORAGE_RETRY) -> <<"system">>;
+db_classify(_) -> 'undefined'.
