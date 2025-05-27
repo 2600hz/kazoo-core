@@ -13,6 +13,7 @@
 -export([database_names/1, database_names/2, set_database_names/2]).
 -export([range/1, range/2, set_range/2]).
 -export([regex/1, regex/2, set_regex/2]).
+-export([secondary_connections/1, secondary_connections/2, set_secondary_connections/2]).
 -export([type/2, type/3, set_type/3]).
 -export([types/1, types/2, set_types/2]).
 
@@ -111,6 +112,18 @@ regex(Doc, Default) ->
 -spec set_regex(doc(), any()) -> doc().
 set_regex(Doc, Regex) ->
     kz_json:set_value([<<"regex">>], Regex, Doc).
+
+-spec secondary_connections(doc()) -> kz_term:api_ne_binaries().
+secondary_connections(Doc) ->
+    secondary_connections(Doc, 'undefined').
+
+-spec secondary_connections(doc(), Default) -> kz_term:ne_binaries() | Default.
+secondary_connections(Doc, Default) ->
+    kz_json:get_list_value([<<"secondary_connections">>], Doc, Default).
+
+-spec set_secondary_connections(doc(), kz_term:ne_binaries()) -> doc().
+set_secondary_connections(Doc, SecondaryConnections) ->
+    kz_json:set_value([<<"secondary_connections">>], SecondaryConnections, Doc).
 
 -spec type(doc(), kz_json:key()) -> kz_term:api_object().
 type(Doc, Type) ->

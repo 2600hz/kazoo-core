@@ -11,11 +11,12 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([add/1]).
+-export([add/1, remove/1]).
 -export([update/1]).
 -export([wait_for_connection/0, wait_for_connection/1, wait_for_connection/2]).
 -export([get_server/0, get_server/1
         ,test_conn/0, test_conn/1
+        ,available_connections/0
         ]).
 
 -export([init/1
@@ -56,6 +57,9 @@ add(#data_connection{tag='undefined'}=Connection) ->
 add(#data_connection{}=Connection) ->
     gen_server:cast(?SERVER, {'add_connection', Connection}).
 
+-spec remove(kz_term:ne_binary()) -> 'ok'.
+remove(<<Tag/binary>>) ->
+    gen_server:cast(?SERVER, {'remove_connection', Tag}).
 
 -spec wait_for_connection() -> 'ok' | 'no_connection'.
 wait_for_connection() ->
@@ -80,7 +84,6 @@ wait_for_connection(Tag, Timeout) ->
             timer:sleep(rand:uniform(?MILLISECONDS_IN_SECOND) + 100),
             wait_for_connection(Tag, kz_time:decr_timeout(Timeout, Start))
     end.
-
 
 -spec get_server() -> server().
 get_server() ->
@@ -107,6 +110,15 @@ get_server(Tag) ->
                 _ -> lager:error("error querying data connections ETS: ~s: ~p", [_E, _R])
             end
     end.
+
+-spec available_connections() -> [{kz_term:ne_binary(), boolean()}].
+available_connections() ->
+    MatchSpec = [{#data_connection{tag='$1', ready='$2', _='_'}
+                 ,[]
+                 ,[{{'$1', '$2'}}]
+                 }
+                ],
+    lists:usort(ets:select(?MODULE, MatchSpec)).
 
 -spec test_conn() -> {'ok', kz_json:object()} |
           {'error', any()}.
@@ -152,12 +164,30 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'add_connection', #data_connection{}=Connection}, State) ->
-    lager:info("adding connection"),
-    maybe_start_new_connection(Connection),
+handle_cast({'add_connection', #data_connection{tag=_Tag}=Connection}, State) ->
+    _Res = maybe_start_new_connection(Connection),
+    lager:info("starting connection for tag ~s: ~p", [_Tag, _Res]),
     {'noreply', State};
 handle_cast({'update_connection', #data_connection{}=Connection}, State) ->
     'true' = ets:insert(?MODULE, Connection),
+    {'noreply', State};
+handle_cast({'remove_connection', Tag}, State) ->
+    MatchSpec = [{#data_connection{tag = Tag
+                                  ,id = '$1'
+                                  ,pid = '$2'
+                                  ,_ = '_'
+                                  }
+                 ,[]
+                 ,[{{'$1', '$2'}}]
+                 }],
+    case ets:select(?MODULE, MatchSpec) of
+        [] -> 'ok';
+        [{Id, 'undefined'}] ->
+            ets:delete(?MODULE, Id);
+        [{Id, Pid}] when is_pid(Pid) ->
+            kz_dataconnection:stop(Pid),
+            ets:delete(?MODULE, Id)
+    end,
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:info("unhandled connection"),
@@ -200,7 +230,14 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_start_new_connection(data_connection()) -> any().
+-spec maybe_start_new_connection(data_connection()) -> boolean().
 maybe_start_new_connection(Connection) ->
-    _ = kz_dataconnection_sup:add(Connection),
-    _ = ets:insert(?MODULE, Connection).
+    case kz_dataconnection_sup:add(Connection) of
+        {'ok', Pid} -> ets:insert(?MODULE, Connection#data_connection{pid=Pid});
+        {'ok', Pid, _} -> ets:insert(?MODULE, Connection#data_connection{pid=Pid});
+        {'error', {'already_started', Pid}} ->
+            ets:insert(?MODULE, Connection#data_connection{pid=Pid});
+        {'error', _E} ->
+            lager:warning("failed to start dataconnection for ~p: ~p", [Connection, _E]),
+            'false'
+    end.

@@ -22,6 +22,15 @@
         ,move_doc/4
         ]).
 
+%% internal exports
+-export([do_save_doc/4
+        ,do_save_docs/4
+        ,do_delete_doc/4
+        ,do_delete_docs/4
+
+        ,add_conn_rev/3
+        ]).
+
 -include("kz_data.hrl").
 
 -type copy_function() :: fun((map(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
@@ -33,8 +42,12 @@
 %% Document related functions --------------------------------------------------
 
 -spec open_doc(map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> data_return().
-open_doc(#{server := {App, Conn}}, DbName, DocId, Options) ->
-    handle_opened_doc(App:open_doc(Conn, DbName, DocId, Options), Options).
+open_doc(#{server := {_App, _Conn}}=Map, DbName, DocId, Options) ->
+    OpenResult = do_open_doc(Map, DbName, DocId, Options),
+    handle_opened_doc(OpenResult, Options).
+
+do_open_doc(#{server := {App, Conn}}, DbName, DocId, Options) ->
+    App:open_doc(Conn, DbName, DocId, Options).
 
 -spec handle_opened_doc({'ok', kz_json:object()}|data_error(), kz_term:proplist()) ->
           data_return().
@@ -53,12 +66,16 @@ handle_opened_doc(Doc, 'true', 'false') ->
 
 -spec save_doc(map(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
           data_return().
-save_doc(#{server := {App, Conn}}, DbName, Doc, Options) ->
+save_doc(#{server := {_App, _Conn}}=Map, DbName, Doc, Options) ->
     {PreparedDoc, PublishDoc} = prepare_doc_for_save(DbName, Doc),
-    try App:save_doc(Conn, DbName, PreparedDoc, Options) of
+    try do_save_doc(Map, DbName, PreparedDoc, Options) of
         {'ok', JObj}=Ok ->
             update_cache(DbName, kz_doc:id(JObj), JObj, kz_doc:is_deleted(JObj)),
             kzs_publish:maybe_publish_doc(DbName, PublishDoc, JObj),
+            maybe_spawn_secondary({DbName, remove_rev(JObj), Options}
+                                 ,'do_save_doc'
+                                 ,maps:get('secondary', Map, [])
+                                 ),
             Ok;
         {'error', 'conflict'}=Error ->
             kzs_cache:flush_cache_doc(DbName, kz_doc:id(PreparedDoc)),
@@ -69,6 +86,11 @@ save_doc(#{server := {App, Conn}}, DbName, Doc, Options) ->
             ?LOG_DEBUG("exception ~p : ~p", [Ex, Er]),
             {'error', 'failed'}
     end.
+
+-spec do_save_doc(map(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
+          data_return().
+do_save_doc(#{server := {App, Conn}}, DbName, Doc, Options) ->
+    App:save_doc(Conn, DbName, Doc, Options).
 
 update_cache(DbName, DocId, _JObj, 'true') ->
     kzs_cache:flush_cache_doc(DbName, DocId);
@@ -84,17 +106,26 @@ update_cache(DbName, DocId, JObj, 'false') ->
 -spec save_docs(map(), kz_term:ne_binary(), kz_json:objects(), kz_term:proplist()) ->
           {'ok', kz_json:objects()} |
           data_error().
-save_docs(#{server := {App, Conn}}, DbName, Docs, Options) ->
+save_docs(#{server := {_App, _Conn}}=Map, DbName, Docs, Options) ->
     {PreparedDocs, PublishDocs} = lists:unzip([prepare_doc_for_save(DbName, D) || D <- Docs]),
-    try App:save_docs(Conn, DbName, PreparedDocs, Options) of
+    try do_save_docs(Map, DbName, PreparedDocs, Options) of
         {'ok', JObjs}=Ok ->
             kzs_publish:maybe_publish_docs(DbName, PublishDocs, JObjs),
+            maybe_spawn_secondary({DbName, remove_rev(JObjs), Options}
+                                 ,'do_save_docs'
+                                 ,maps:get('secondary', Map, [])
+                                 ),
             _ = [update_cache(DbName, kz_doc:id(JObj), JObj, 'true') || JObj <- JObjs],
             Ok;
         Else -> Else
     catch
         _Ex:Er -> {'error', {_Ex, Er}}
     end.
+
+-spec do_save_docs(map(), kz_term:ne_binary(), kz_json:objects(), kz_term:proplist()) ->
+          {'ok', kz_json:objects()} | data_error().
+do_save_docs(#{server := {App, Conn}}, DbName, Docs, Options) ->
+    App:save_docs(Conn, DbName, Docs, Options).
 
 -spec lookup_doc_rev(map(), kz_term:ne_binary(), kz_term:ne_binary()) ->
           {'ok', kz_term:ne_binary()} |
@@ -138,14 +169,14 @@ del_doc(Server, DbName, ?NE_BINARY=DocId, Options) ->
         {'error', _}=Err -> Err;
         {'ok', JObj} -> del_doc(Server, DbName, JObj, Options)
     end;
-del_doc(#{server := {App, Conn}}=Server, DbName, Doc, Options) ->
-    DelDoc = prepare_doc_for_del(Server, DbName, Doc),
+del_doc(#{server := {_App, _Conn}}=Map, DbName, Doc, Options) ->
+    DelDoc = prepare_doc_for_del(Map, DbName, Doc),
     {PreparedDoc, PublishDoc} = prepare_doc_for_save(DbName, DelDoc),
-    try App:del_doc(Conn, DbName, PreparedDoc, Options) of
-        {'ok', [JObj|_]} ->
-            kzs_publish:maybe_publish_doc(DbName, PublishDoc, JObj),
-            kzs_cache:flush_cache_doc(DbName, kz_doc:id(PreparedDoc)),
-            {'ok', JObj};
+    try do_delete_doc(Map, DbName, PreparedDoc, Options) of
+        {'ok', [JObj]} ->
+            handle_del_doc_result(Map, DbName, PublishDoc, JObj, Options);
+        {'ok', JObj} ->
+            handle_del_doc_result(Map, DbName, PublishDoc, JObj, Options);
         Else -> Else
     catch
         Ex:Er ->
@@ -153,24 +184,48 @@ del_doc(#{server := {App, Conn}}=Server, DbName, Doc, Options) ->
             'failed'
     end.
 
+handle_del_doc_result(Map, DbName, PublishDoc, JObj, Options) ->
+    kzs_publish:maybe_publish_doc(DbName, PublishDoc, JObj),
+    maybe_spawn_secondary({DbName, remove_rev(JObj), Options}
+                         ,'do_delete_doc'
+                         ,maps:get('secondary', Map, [])
+                         ),
+    kzs_cache:flush_cache_doc(DbName, kz_doc:id(JObj)),
+    {'ok', JObj}.
+
+-spec do_delete_doc(map(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
+          data_return() | {'ok', kz_json:objects()}.
+do_delete_doc(#{server := {App, Conn}}, DbName, Doc, Options) ->
+    App:del_doc(Conn, DbName, Doc, Options).
+
 -spec del_docs(map(), kz_term:ne_binary(), kz_json:objects() | kz_term:ne_binaries(), kz_term:proplist()) ->
           {'ok', kz_json:objects()} |
           data_error().
 del_docs(Server, DbName, Docs, Options) ->
-    do_delete_docs(Server, DbName, prepare_docs_for_deletion(Server, DbName, Docs), Options).
+    delete_docs(Server, DbName, prepare_docs_for_deletion(Server, DbName, Docs), Options).
 
-do_delete_docs(_Server, _DbName, [], _Options) -> {'ok', []};
-do_delete_docs(#{server := {App, Conn}}, DbName, DelDocs, Options) ->
+delete_docs(_Server, _DbName, [], _Options) -> {'ok', []};
+delete_docs(#{server := {_App, _Conn}}=Map, DbName, DelDocs, Options) ->
     {PreparedDocs, PublishDocs} = lists:unzip([prepare_doc_for_save(DbName, D) || D <- DelDocs]),
-    try App:del_docs(Conn, DbName, PreparedDocs, Options) of
+    try do_delete_docs(Map, DbName, PreparedDocs, Options) of
         {'ok', JObjs}=Ok ->
             kzs_publish:maybe_publish_docs(DbName, PublishDocs, JObjs),
+            maybe_spawn_secondary({DbName, remove_rev(JObjs), Options}
+                                 ,'do_delete_docs'
+                                 ,maps:get('secondary', Map, [])
+                                 ),
             _ = [kzs_cache:flush_cache_doc(DbName, kz_doc:id(JObj)) || JObj <- JObjs],
             Ok;
         Else -> Else
     catch
         _Ex:Er -> {'error', {_Ex, Er}}
     end.
+
+-spec do_delete_docs(map(), kz_term:ne_binary(), kz_json:objects(), kz_term:proplist()) ->
+          {'ok', kz_json:objects()} |
+          data_error().
+do_delete_docs(#{server := {App, Conn}}, DbName, DelDocs, Options) ->
+    App:del_docs(Conn, DbName, DelDocs, Options).
 
 -spec prepare_docs_for_deletion(map(), kz_term:ne_binary(), [kz_json:object() | kz_term:ne_binary()]) ->
           kz_json:objects().
@@ -392,3 +447,100 @@ move_doc(Src, Dst, CopySpec, Options) ->
             {'ok', JObj};
         Error -> Error
     end.
+
+maybe_spawn_secondary(_RestArgs, _Fun, []) -> 'ok';
+maybe_spawn_secondary({DbName, Doc, Options}=Args, Fun, [{Tag, Conn} | Rest]) ->
+    _Pid = kz_process:spawn(fun handle_remote/4
+                           ,[self(), Tag, Fun, {Conn, DbName, Doc, Options}]
+                           ),
+    maybe_spawn_secondary(Args, Fun, Rest).
+
+handle_remote(Parent
+             ,RemoteTag
+             ,Fun
+             ,{Conn, DbName, Doc, Options}=Opts
+             ) ->
+    RemoteDoc = add_conn_rev(Conn, DbName, Doc), %
+    lager:debug("applying fun ~s/4 for ~p to conn ~s", [Fun, Parent, RemoteTag]),
+    case apply(?MODULE, Fun, [Conn, DbName, RemoteDoc, Options]) of
+        {'error', E} ->
+            lager:info("error ~p", [E]),
+            handle_remote_error(RemoteTag, Fun, Opts, E);
+        _OK -> 'ok'
+    end.
+
+%% if we're trying to save a doc and it fails with not_found, let's
+%% try creating the db and saving again
+handle_remote_error(RemoteTag, 'do_save_docs', {Conn, DbName, [_|_]=Docs, Options}, 'not_found') ->
+    case kzs_db:db_create(Conn, DbName) of
+        'false' ->
+            lager:debug("failed to create db ~s on conn ~s for docs, adding to retries", [DbName, RemoteTag]),
+            [add_to_secondary_retry(RemoteTag, 'do_save_doc', DbName, kz_doc:id(Doc)) || Doc <- Docs];
+        'true' ->
+            lager:debug("created db ~s on remote ~s, retrying do_save_docs", [DbName, RemoteTag]),
+            apply(?MODULE, 'do_save_docs', [Conn, DbName, Docs, Options])
+    end;
+handle_remote_error(RemoteTag, 'do_save_doc', {Conn, DbName, Doc, Options}, 'not_found') ->
+    case kzs_db:db_create(Conn, DbName) of
+        'false' ->
+            lager:debug("failed to create db ~s on conn ~s for doc, adding to retries", [DbName, RemoteTag]),
+            add_to_secondary_retry(RemoteTag, 'do_save_doc', DbName, kz_doc:id(Doc));
+        'true' ->
+            lager:debug("created db ~s on remote ~s, retrying do_save_doc", [DbName, RemoteTag]),
+            apply(?MODULE, 'do_save_doc', [Conn, DbName, Doc, Options])
+    end;
+%% if we tried to delete a doc and it failed with not_found, well, no
+%% harm no foul, problem took care of itself
+handle_remote_error(_RemoteTag, DeleteFun, {_Conn, _DbName, _Doc, _Options}, 'not_found')
+  when DeleteFun =:= 'do_delete_doc'
+       orelse DeleteFun =:= 'do_delete_docs'
+       ->
+    'ok';
+%% otherwise, let's queue the operation up for a retry at some future time
+handle_remote_error(RemoteTag, 'do_delete_docs', {_Conn, DbName, [_|_]=Docs, _Options}, _Error) ->
+    lager:debug("error on conn ~s running fun do_delete_docs with ~s docs: ~p"
+               ,[RemoteTag, DbName, _Error]
+               ),
+    [add_to_secondary_retry(RemoteTag, 'do_delete_doc', DbName, kz_doc:id(Doc)) || Doc <- Docs];
+handle_remote_error(RemoteTag, 'do_delete_doc', {_Conn, DbName, Doc, _Options}, _Error) ->
+    lager:debug("error on conn ~s running fun do_delete_doc with ~s / ~s: ~p"
+               ,[RemoteTag, DbName, kz_doc:id(Doc), _Error]
+               ),
+    add_to_secondary_retry(RemoteTag, 'do_delete_doc', DbName, kz_doc:id(Doc));
+handle_remote_error(RemoteTag, Fun, {_Conn, DbName, Doc, _Options}, _Error) ->
+    lager:debug("error on conn ~s running fun ~s with ~s / ~s: ~p"
+               ,[RemoteTag, Fun, DbName, kz_doc:id(Doc), _Error]
+               ),
+    add_to_secondary_retry(RemoteTag, Fun, DbName, kz_doc:id(Doc)).
+
+%% if no ID was set (relying on Couch to set one), we can't retry it anyway
+add_to_secondary_retry(_RemoteTag, _Fun, _DbName, 'undefined') -> 'ok';
+add_to_secondary_retry(RemoteTag, Fun, DbName, DocId) ->
+    kz_datamgr:save_doc(?KZ_STORAGE_RETRY
+                       ,kz_doc:update_pvt_parameters(
+                          kz_json:from_list([{<<"remote_tag">>, RemoteTag}
+                                            ,{<<"fun">>, kz_term:to_binary(Fun)}
+                                            ,{<<"db_name">>, DbName}
+                                            ,{<<"doc_id">>, DocId}
+                                            ])
+                         ,?KZ_STORAGE_RETRY
+                         ,[{'type', <<"storage_retry">>}]
+                         )
+                       ).
+
+-spec add_conn_rev(map(), kz_term:ne_binary(), kz_json:object() | kz_json:objects()) ->
+          kz_json:object() | kz_json:objects().
+add_conn_rev(Conn, DbName, [_|_]=Docs) ->
+    [add_conn_rev(Conn, DbName, Doc) || Doc <- Docs];
+add_conn_rev(Conn, DbName, Doc) ->
+    case lookup_doc_rev(Conn, DbName, kz_doc:id(Doc)) of
+        {'ok', RemoteRev} ->
+            lager:debug("adding remote rev ~s to ~s/~s", [RemoteRev, DbName, kz_doc:id(Doc)]),
+            kz_doc:set_revision(Doc, RemoteRev);
+        _Else -> Doc
+    end.
+
+remove_rev([_|_]=JObjs) ->
+    [kz_doc:delete_revision(JObj) || JObj <- JObjs];
+remove_rev(JObj) ->
+    kz_doc:delete_revision(JObj).
