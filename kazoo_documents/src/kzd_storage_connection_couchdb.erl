@@ -37,7 +37,7 @@ new() ->
 
 -spec driver(doc()) -> any().
 driver(Doc) ->
-    driver(Doc, 'undefined').
+    driver(Doc, 'kazoo_couch').
 
 -spec driver(doc(), Default) -> any() | Default.
 driver(Doc, Default) ->

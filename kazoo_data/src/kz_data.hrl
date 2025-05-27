@@ -12,13 +12,16 @@
 -define(APP_VERSION, <<"4.0.0">>).
 -define(CONFIG_CAT, ?APP_NAME).
 
--record(data_connection, {id = {kz_time:now_s(), kz_binary:rand_hex(4)}
+-define(KZ_STORAGE_RETRY, <<"storage_retry">>).
+
+-record(data_connection, {id = {kz_time:now_s(), kz_binary:rand_hex(4)} :: {integer(), kz_term:ne_binary()} | '$1' | '_'
                          ,app :: atom() | '$1'
                          ,props = #{} :: map() | '_'
                          ,server :: any() | '$2'
                          ,connected = 'false' :: boolean() | '_'
-                         ,ready = 'false' :: boolean()
-                         ,tag = 'undefined' :: kz_term:api_ne_binary()
+                         ,ready = 'false' :: boolean() | '$2' | '_'
+                         ,tag = 'undefined' :: kz_term:api_ne_binary() | '$1' | '_'
+                         ,pid = 'undefined' :: kz_term:api_pid() | '$2' | '_' % kz_dataconnection process maintaining conn
                          }).
 
 -record(db, {app :: atom()

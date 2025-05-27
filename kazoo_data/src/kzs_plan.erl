@@ -36,6 +36,7 @@
 -define(NEW_CONNECTION_TIMEOUT, ?MILLISECONDS_IN_SECOND * 5).
 
 -define(SYSTEM_DATAPLAN_ID, <<"system">>).
+-define(TAG_LOCAL, <<"local">>).
 -define(DATAPLAN_FILE_LOCATION, "defaults").
 
 -define(CACHED_SYSTEM_DATAPLAN, fetch_cached_dataplan(?SYSTEM_DATAPLAN_ID, fun fetch_simple_dataplan/1)).
@@ -46,9 +47,13 @@
 -define(KZS_PLAN_INIT_VIEW, <<"storage/accounts">>).
 -define(KZS_PLAN_ACCOUNT_VIEW, <<"storage/storage_by_account">>).
 
+%% friendly name of the connection (default is "local")
+-type connection_tag() :: kz_term:ne_binary().
+
 -type dataplan() :: #{tag := kz_term:ne_binary()
                      ,server := server() | map() | {atom(), kz_data:connection()}
-                     ,others => [{kz_term:ne_binary(), server() | map()}]
+                     ,others => [{connection_tag(), server() | map()}]
+                     ,secondary => [{connection_tag(), server() | map()}]
                      ,classification => atom()
                      ,account_id => kz_term:ne_binary()
                      ,att_handler => {atom(), map()}
@@ -79,12 +84,13 @@ plan(DBName) ->
     get_dataplan(DBName).
 
 -spec plan(kz_term:ne_binary(), atom() | kz_term:ne_binary() | view_options() | kz_json:object()) -> map().
-plan(DBName, DocType) when is_binary(DocType) ->
+plan(DBName, <<DocType/binary>>) ->
     plan(DBName, DocType, 'undefined');
 plan(DBName, Props) when is_list(Props) ->
     Type = props:get_value('doc_type', Props),
-    Owner = props:get_first_defined(['storage_id', 'doc_owner'], Props),
-    Plan = plan(DBName, Type, Owner),
+    OwnerId = props:get_first_defined(['storage_id', 'doc_owner'], Props),
+    lager:info("plan from props db:~s type:~s owner:~s", [DBName, Type, OwnerId]),
+    Plan = plan(DBName, Type, OwnerId),
     maybe_override_plan(Plan, props:get_value('plan_override', Props));
 plan(DBName, Doc) when ?IS_JSON_GUARD(Doc) ->
     plan(DBName, kz_doc:type(Doc));
@@ -149,17 +155,18 @@ get_dataplan(DBName, DocType, DocOwner) ->
 -spec system_dataplan() -> dataplan().
 system_dataplan() ->
     #{<<"connections_map">> := Connections} = ?CACHED_SYSTEM_DATAPLAN,
-    SysTag = <<"local">>,
+    lager:info("loaded system dataplan: ~p", [Connections]),
+    SysTag = ?TAG_LOCAL,
     #{tag => SysTag
      ,server => maps:get(SysTag, Connections, #{})
-     ,others => [{T, #{server => S}} || {T, S} <- maps:to_list(Connections), T =/= SysTag]
+     ,others => [{Tag, #{server => S}} || {Tag, S} <- maps:to_list(Connections), Tag =/= SysTag]
      }.
 
 system_dataplan(DBName, _Classification)
   when DBName == ?KZ_CONFIG_DB;
        DBName == ?KZ_DATA_DB;
        DBName == ?KZ_SERVICES_DB ->
-    SysTag = <<"local">>,
+    SysTag = ?TAG_LOCAL,
     #{tag => SysTag, server => kz_dataconnections:get_server(SysTag)};
 system_dataplan(_DBName, 'numbers') ->
     Plan = ?CACHED_SYSTEM_DATAPLAN,
@@ -171,6 +178,7 @@ system_dataplan(DBName, _Classification) ->
 account_dataplan(AccountDb) ->
     AccountId = kzs_util:format_account_id(AccountDb),
     Plan = ?CACHED_ACCOUNT_DATAPLAN(AccountId),
+    lager:info("account plan: ~p", [Plan]),
     dataplan_match(<<"account">>, Plan, AccountId).
 
 account_dataplan(AccountDb, 'undefined') ->
@@ -254,21 +262,28 @@ dataplan_connections(Connections) ->
 -spec dataplan_match(kz_term:ne_binary(), map(), kz_term:api_binary()) ->
           map() | {'error', 'no_plan'}.
 dataplan_match(Classification, #{<<"plan">> := Plans}=Plan, AccountId) ->
+    lager:info("matching classification ~s to account ~s", [Classification, AccountId]),
     dataplan_match_by_classification(Classification, Plan, AccountId, maps:get(Classification, Plans, 'undefined')).
 
 -spec dataplan_match_by_classification(kz_term:ne_binary(), map(), kz_term:api_binary(), 'undefined' | map()) ->
           map() | {'error', 'no_plan'}.
 dataplan_match_by_classification(_Classification, _Plan, _AccountId, 'undefined') ->
+    lager:info("no plan matched"),
     {'error', 'no_plan'};
+
+%% check for specific database names in the plan
 dataplan_match_by_classification(Classification, Plan, DBName, #{<<"database">> := #{<<"names">> := [_|_]=DBNames}=DBProperties}=ClassificationPlan) ->
     case lists:member(DBName, DBNames) of
         'false' ->
+            lager:info("no dbs in classification plan ~s matched ~s", [Classification, DBName]),
             {'error', 'no_plan'};
         'true' ->
             dataplan_match_by_classification(Classification, Plan, DBName
                                             ,ClassificationPlan#{<<"database">> => maps:remove(<<"names">>, DBProperties)}
                                             )
     end;
+
+%% check if dbname matches a regex
 dataplan_match_by_classification(Classification, Plan, DBName, #{<<"regex">> := RegExes}=ClassificationPlan) ->
     case dataplan_regex(Classification, DBName, RegExes) of
         'undefined' ->
@@ -278,6 +293,8 @@ dataplan_match_by_classification(Classification, Plan, DBName, #{<<"regex">> := 
             Merged = maps:without([<<"regex">>], kz_maps:merge(ToMerge, Map)),
             dataplan_match_by_classification(Classification, Plan, DBName, Merged)
     end;
+
+%% check if dbname is within a date range
 dataplan_match_by_classification(Classification, Plan, DBName, #{<<"range">> := Ranges}=ClassificationPlan) ->
     case dataplan_range(Classification, db_range_index(DBName), Ranges) of
         'undefined' ->
@@ -287,6 +304,8 @@ dataplan_match_by_classification(Classification, Plan, DBName, #{<<"range">> := 
             Merged = maps:without([<<"range">>], kz_maps:merge(ToMerge, Map)),
             dataplan_match_by_classification(Classification, Plan, DBName, Merged)
     end;
+
+%% check if classification
 dataplan_match_by_classification(Classification
                                 ,#{<<"connections">> := Connections
                                   ,<<"connections_map">> := ConnectionsMap
@@ -299,22 +318,39 @@ dataplan_match_by_classification(Classification
     ClassificationTag = plan_connection(ClassificationPlan),
     ClassificationAttachments = plan_attachments(ClassificationPlan),
 
+    %% list of connection UUIDs configured for this db classification
+    ClassificationConns = plan_secondary_conns(ClassificationPlan),
+
+    lager:info("conn map: ~p", [ConnectionsMap]),
+
+    %% [{ConnectionUUID, #{server => {Driver, #server{}}}}]
+    SecondaryConnections = [{UUID, #{server => {Driver, Srv}}}
+                            || UUID <- ClassificationConns,
+
+                               %% ConnectionsMap = #{{UUID => {kazoo_couch, #server{}}}}
+                               {Driver, Srv} <- [maps:get(UUID, ConnectionsMap, 'undefined')]
+                           ],
+    lager:info("secondary conns for classification ~s: ~p", [Classification, SecondaryConnections]),
+
     Server = maps:get(ClassificationTag, ConnectionsMap, #{}),
 
     BasePlan = #{tag => ClassificationTag
                 ,server => Server
                 ,classification => Classification
                 ,account_id => AccountId
+                ,secondary => SecondaryConnections
                 },
 
     Plan = case plan_types(ClassificationPlan) of
                'undefined' -> BasePlan;
-               DocTypes -> BasePlan#{others => [{ConnectionId, #{server => maps:get(ConnectionId, ConnectionsMap, #{})}}
-                                                || {_DocType, #{<<"connection">> := ConnectionId}} <- lists:usort(maps:to_list(DocTypes)),
-                                                   ConnectionId =/= ClassificationTag,
-                                                   'undefined' =/= maps:get(ConnectionId, Connections, 'undefined')
-                                               ]
-                                    }
+               DocTypes ->
+                   Others = [{ConnectionId, #{server => maps:get(ConnectionId, ConnectionsMap, #{})}}
+                             || {_DocType, #{<<"connection">> := ConnectionId}} <- lists:usort(maps:to_list(DocTypes)),
+                                ConnectionId =/= ClassificationTag,
+                                'undefined' =/= maps:get(ConnectionId, Connections, 'undefined')
+                            ],
+                   lager:info("adding other conns: ~p", [Others]),
+                   BasePlan#{others => Others}
            end,
 
     case attachment_handler(ClassificationAttachments) of
@@ -359,7 +395,7 @@ plan_doctype_map(_Type, _Types) -> #{}.
 
 -spec plan_connection(map()) -> kz_term:ne_binary().
 plan_connection(Plan) ->
-    plan_connection(Plan, <<"local">>).
+    plan_connection(Plan, ?TAG_LOCAL).
 
 -spec plan_connection(map(), Default) -> kz_term:ne_binary() | Default.
 plan_connection(#{<<"connection">> := <<Conn/binary>>}, _Default) -> Conn;
@@ -370,10 +406,14 @@ plan_attachments(Map) -> plan_attachments(Map, 'undefined').
 plan_attachments(#{<<"attachments">> := Att}, _Default) -> Att;
 plan_attachments(_Plan, Default) -> Default.
 
+plan_secondary_conns(#{<<"secondary_connections">> := Conns}) -> Conns;
+plan_secondary_conns(_Plan) -> [].
+
 -spec dataplan_type_match_by_classification(kz_term:ne_binary(), kz_term:ne_binary(), map(), kz_term:api_binary(), map() | 'undefined') ->
           map() | {'error', 'no_plan'}.
 dataplan_type_match_by_classification(_Classification, _DocType, _Plan, _AccountId, 'undefined') ->
     {'error', 'no_plan'};
+
 dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<<"database">> := #{<<"names">> := [_|_]=DBNames}=DBProperties}=ClassificationPlan) ->
     case lists:member(DBName, DBNames) of
         'false' ->
@@ -383,6 +423,7 @@ dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<
                                                  ,ClassificationPlan#{<<"database">> => maps:remove(<<"names">>, DBProperties)}
                                                  )
     end;
+
 dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<<"regex">> := RegExes}=ClassificationPlan) ->
     case dataplan_regex(Classification, DBName, RegExes) of
         'undefined' ->
@@ -392,6 +433,7 @@ dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<
             Merged = maps:without([<<"regex">>], kz_maps:merge(ToMerge, Map)),
             dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, Merged)
     end;
+
 dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<<"range">> := Ranges}=ClassificationPlan) ->
     case dataplan_range(Classification, db_range_index(DBName), Ranges) of
         'undefined' ->
@@ -401,6 +443,7 @@ dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, #{<
             Merged = maps:without([<<"range">>], kz_maps:merge(ToMerge, Map)),
             dataplan_type_match_by_classification(Classification, DocType, Plan, DBName, Merged)
     end;
+
 dataplan_type_match_by_classification(Classification
                                      ,DocType
                                      ,#{<<"connections_map">> := ConnectionsMap
@@ -410,11 +453,33 @@ dataplan_type_match_by_classification(Classification
                                      ,ClassificationPlan
                                      ) ->
     AccountId = kzs_util:format_account_id(DBName),
+
     DocTypes = plan_types(ClassificationPlan),
+    lager:info("plan types for ~s: ~p", [DocType, DocTypes]),
+
     ClassificationConnection = plan_connection(ClassificationPlan),
     ClassificationAttachments = plan_attachments(ClassificationPlan, #{}),
 
+    %% list of connection UUIDs configured for this db classification
+    ClassificationConns = plan_secondary_conns(ClassificationPlan),
+
+    lager:info("conn map by type:~s(db:~s): ~p", [DocType, DBName, ConnectionsMap]),
+
+    lager:info("UUIDs: ~p", [ClassificationConns]),
+
+    %% [{ConnectionUUID, #{server => {Driver, #server{}}}}]
+    SecondaryConnections = [{UUID, #{server => {Driver, Srv}}}
+                            || UUID <- ClassificationConns,
+
+                               %% ConnectionsMap = #{{UUID => {kazoo_couch, #server{}}}}
+                               {Driver, Srv} <- [maps:get(UUID, ConnectionsMap, 'undefined')]
+                           ],
+    lager:info("secondary conns for classification ~s type ~s: ~p"
+              ,[Classification, DocType, SecondaryConnections]
+              ),
+
     TypeMap = plan_doctype_map(DocType, DocTypes),
+    lager:info("type map for ~s: ~p", [DocType, TypeMap]),
 
     ClassificationTag = plan_connection(TypeMap, ClassificationConnection),
     Server = maps:get(ClassificationTag, ConnectionsMap, #{}),
@@ -428,6 +493,7 @@ dataplan_type_match_by_classification(Classification
              ,classification => Classification
              ,doc_type => DocType
              ,account_id => AccountId
+             ,secondary => SecondaryConnections
              };
         AttachmentConnection ->
             #{AttachmentConnection := #{<<"handler">> := AttachmentHandlerBin
@@ -445,6 +511,7 @@ dataplan_type_match_by_classification(Classification
              ,classification => Classification
              ,doc_type => DocType
              ,account_id => AccountId
+             ,secondary => SecondaryConnections
              }
     end.
 

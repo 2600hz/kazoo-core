@@ -18,8 +18,7 @@
 -export([add/1]).
 -export([init/1]).
 
--define(CHILDREN, [?WORKER('kz_dataconnection')
-                  ]).
+-define(CHILDREN, [?WORKER('kz_dataconnection')]).
 
 %%==============================================================================
 %% API functions
