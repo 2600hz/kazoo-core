@@ -21,6 +21,7 @@
 
         ,node_to_json/1
         ,status_to_json/0
+        ,status_to_encoded_json/0
         ,status/0
 
         ,with_role/1, with_role/2
@@ -71,6 +72,10 @@ node_to_json(Node) ->
 -spec status_to_json() -> kz_json:object().
 status_to_json() ->
     kz_nodes_ets:status_to_json().
+
+-spec status_to_encoded_json() -> 'ok'.
+status_to_encoded_json() ->
+    io:format("~s\n", [kz_json:encode(status_to_json())]).
 
 -spec status() -> 'ok'.
 status() ->
