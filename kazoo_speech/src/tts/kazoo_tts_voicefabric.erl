@@ -180,7 +180,14 @@ voicefabric_filter_rate(_)                     -> 'false'.
 -spec create_default_response({'ok', 200, kz_term:proplist(), binary()}) ->
           {'ok', kz_term:ne_binary(), binary()}.
 create_default_response({'ok', 200, Headers, Content}) ->
-    ContentType = props:get_value("content-type", Headers),
-    ContentLength = props:get_value("content-length", Headers),
+    check_response(props:get_value("content-type", Headers)
+                  ,kz_term:to_integer(props:get_value("content-length", Headers))
+                  ,Content
+                  ).
+
+check_response(_ContentType, 0, _Content) ->
+    lager:info("zero-length TTS response, considering an error"),
+    {'error', 'tts_provider_failure', <<"no content returned">>};
+check_response(ContentType, ContentLength, Content) ->
     lager:debug("created speech file ~s of length ~s", [ContentType, ContentLength]),
     {'ok', kz_term:to_binary(ContentType), Content}.

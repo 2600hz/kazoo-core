@@ -119,11 +119,18 @@ create_response({'http_req_id', ReqID}) ->
     lager:debug("speech file streaming as ~p", [ReqID]),
     {'async', ReqID, 'undefined'};
 create_response({'ok', 200, Headers, Content}) ->
-    ContentType = props:get_value("content-type", Headers),
-    ContentLength = props:get_value("content-length", Headers),
-    lager:debug("created speech file ~s of length ~s", [ContentType, ContentLength]),
-    {'ok', kz_term:to_binary(ContentType), Content};
+    check_response(props:get_value("content-type", Headers)
+                  ,kz_term:to_integer(props:get_value("content-length", Headers))
+                  ,Content
+                  );
 create_response({'ok', _Code, RespHeaders, Content}) ->
     lager:warning("creating speech file failed with code ~p: ~p", [_Code, Content]),
     _ = [lager:debug("hdr: ~p", [H]) || H <- RespHeaders],
     {'error', 'tts_provider_failure', kz_json:get_value(<<"message">>, kz_json:decode(Content))}.
+
+check_response(_ContentType, 0, _Content) ->
+    lager:info("zero-length TTS response, considering an error"),
+    {'error', 'tts_provider_failure', <<"no content returned">>};
+check_response(ContentType, ContentLength, Content) ->
+    lager:debug("created speech file ~s of length ~s", [ContentType, ContentLength]),
+    {'ok', kz_term:to_binary(ContentType), Content}.
