@@ -84,10 +84,10 @@ generate_prompts([Prompt | Prompts], Path, Model) ->
 
 -spec generate_prompt(kz_term:api_list(), file:filename_all(), kz_term:text()) -> 'ok'.
 generate_prompt([Name, Prompt], Path, Model) ->
-    io:format("trying to save Prompt ~s to ~s\n", [Name, Path]),
+    io:format("trying to save prompt ~s to ~s\n", [Name, Path]),
     {'ok', _, Wav} = kazoo_tts:create(kz_term:to_binary(Prompt), Model),
     FilePath = filename:join([Path, Name ++ ".wav"]),
-    _ = file:write_file(FilePath, Wav).
+    'ok' = file:write_file(FilePath, Wav).
 
 load_prompts_from_file(Language) ->
     KazooPrompts = filename:join([code:priv_dir('kazoo_media')
