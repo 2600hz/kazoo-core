@@ -12,6 +12,8 @@
 -export([remove_empty_media_docs/0
         ,remove_empty_media_docs/1
         ,migrate/0, migrate_prompts/0
+        ,create_prompts/1, create_prompts/2, create_prompts/3
+        ,validate_generated_prompts/1, validate_generated_prompts/2
         ,import_prompts/1, import_prompts/2
         ,import_prompt/1, import_prompt/2
         ,set_account_language/2
@@ -54,6 +56,75 @@ set_account_language(Account, Language) ->
                      )
     catch
         _E:_R -> 'ok'
+    end.
+
+-spec create_prompts(file:filename_all()) -> 'ok'.
+create_prompts(DirPath) ->
+    create_prompts(DirPath, kz_media_util:default_prompt_language()).
+
+-spec create_prompts(file:filename_all(), kz_term:text()) -> 'ok'.
+create_prompts(DirPath, Language) ->
+    create_prompts(DirPath, Language, <<"female/", Language/binary>>).
+
+-spec create_prompts(file:filename_all(), kz_term:text(), kz_term:text()) -> 'ok'.
+create_prompts(DirPath, Language, Model) ->
+    case filelib:is_dir(DirPath) of
+        'false' ->
+            io:format("not a directory, or is inaccessible: '~s'\n", [DirPath]);
+        'true' ->
+            Prompts = load_prompts_from_file(Language),
+            generate_prompts(Prompts, DirPath, Model)
+    end.
+
+-spec generate_prompts(kz_term:api_list(), file:filename_all(), kz_term:text()) -> 'ok'.
+generate_prompts([], _, _) -> ok;
+generate_prompts([Prompt | Prompts], Path, Model) ->
+    generate_prompt(string:split(Prompt, ": "), Path, Model),
+    generate_prompts(Prompts, Path, Model).
+
+-spec generate_prompt(kz_term:api_list(), file:filename_all(), kz_term:text()) -> 'ok'.
+generate_prompt([Name, Prompt], Path, Model) ->
+    io:format("trying to save prompt ~s to ~s\n", [Name, Path]),
+    {'ok', _, Wav} = kazoo_tts:create(kz_term:to_binary(Prompt), Model),
+    FilePath = filename:join([Path, Name ++ ".wav"]),
+    'ok' = file:write_file(FilePath, Wav).
+
+load_prompts_from_file(Language) ->
+    KazooPrompts = filename:join([code:priv_dir('kazoo_media')
+                                 ,"prompts"
+                                 ,"kazoo"
+                                 ,kz_term:to_lower_string(Language) ++ ".txt"
+                                 ]),
+    {'ok', FileContents} = file:read_file(KazooPrompts),
+    string:tokens(erlang:binary_to_list(FileContents), "\n").
+
+-spec validate_generated_prompts(file:filename_all()) -> 'ok'.
+validate_generated_prompts(DirPath) ->
+    validate_generated_prompts(DirPath, kz_media_util:default_prompt_language()).
+
+-spec validate_generated_prompts(file:filename_all(), kz_term:text()) -> 'ok'.
+validate_generated_prompts(DirPath, Language) ->
+    io:format("validating if all prompts for lang ~s exist at ~s\n", [Language, DirPath]),
+    case filelib:is_dir(DirPath) of
+        'false' ->
+            io:format("not a directory, or is inaccessible: '~s'\n", [DirPath]);
+        'true' ->
+            Prompts = load_prompts_from_file(Language),
+            validate_prompts(Prompts, DirPath)
+    end.
+
+validate_prompts([], _) ->
+    io:format("validation complete \n");
+validate_prompts([Prompt | Prompts], Path) ->
+    validate_prompt(string:split(Prompt, ": "), Path),
+    validate_prompts(Prompts, Path).
+
+validate_prompt([Name, _], Path) ->
+    case filelib:is_file(filename:join([Path, Name ++ ".wav"])) of
+        'false' ->
+            io:format("prompt ~s missing at ~s\n", [Name, Path]);
+        'true' ->
+            'ok'
     end.
 
 -spec import_prompts(file:filename_all()) -> 'ok'.

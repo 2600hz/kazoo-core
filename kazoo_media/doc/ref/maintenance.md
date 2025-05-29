@@ -2,6 +2,9 @@
 
 | Function | Arguments | Description |
 | -------- | --------- | ----------- |
+| `create_prompts/1` | `(DirPath)` | |
+| `create_prompts/2` | `(DirPath,Language)` | |
+| `create_prompts/3` | `(DirPath,Language,Model)` | |
 | `fix_media_names/0` |  | |
 | `import_prompt/1` | `(Path)` | |
 | `import_prompt/2` | `(Path,Lang)` | |
@@ -14,3 +17,5 @@
 | `remove_empty_media_docs/0` |  | |
 | `remove_empty_media_docs/1` | `(AccountId)` | |
 | `set_account_language/2` | `(Account,Language)` | |
+| `validate_generated_prompts/1` | `(DirPath)` | |
+| `validate_generated_prompts/2` | `(DirPath,Language)` | |
