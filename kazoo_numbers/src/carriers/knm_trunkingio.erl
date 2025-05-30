@@ -28,6 +28,7 @@
 
 %% new inbound callback apis
 -export([authenticate_req/2, authenticate_req/3]).
+-export([validate_im/1]).
 
 %% Shared TIO account related functions
 -export([read_settings/1
@@ -53,6 +54,8 @@
 -define(ACCOUNT_ID, kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"account_id">>)).
 
 -define(MESSAGE_API_URL, kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"messaging_api_url">>, <<"https://messaging.trunking.io/api">>)).
+
+-define(RETRIES, kapps_config:get_non_neg_integer(?MOD_CONFIG_CAT, <<"mms_retries">>, 1)).
 
 -type api_errors() :: {'error', 'invalid_response' | 'empty_response' | 'no_account_id' | 'noauth' | 'unauthenticated' | atom() | kz_term:ne_binary()}.
 -type api_resp() :: {'ok', kz_json:object()} | api_errors().
@@ -228,11 +231,18 @@ authenticate_req(Payload, Headers) ->
 
 -spec authenticate_req(kz_json:object(), cowboy:http_headers(), kz_term:api_ne_binary()) -> boolean().
 authenticate_req(Payload, Headers, AccountId) ->
+    AllowSystem = kapps_config:is_true(?MOD_CONFIG_CAT, <<"use_system_tio_account">>, 'false'),
     case find_account_settings(AccountId, 'false') of
         {'ok', Settings} ->
             lager:info("found trunking.io settings from account ~s", [kz_doc:account_id(Settings)]),
             Secret = kzd_trunkingio_settings:pvt_im_webhook_secret(Settings),
             check_req_hmac(Payload, Headers, Secret);
+        {'error', 'not_found'=_Reason} when AllowSystem ->
+            lager:debug("failed to find trunking.io settings for the account ~s: ~p, checking for system account", [AccountId, _Reason]),
+            authenticate_req(Payload, Headers);
+        {'error', 'invalid_db_name'=_Reason} when AllowSystem ->
+            lager:debug("failed to find trunking.io settings for the account ~s: ~p, checking for system account", [AccountId, _Reason]),
+            authenticate_req(Payload, Headers);
         {'error', _Reason} ->
             lager:debug("failed to find trunking.io settings for the account ~s: ~p", [AccountId, _Reason]),
             'false'
@@ -250,7 +260,6 @@ check_req_hmac(_Payload, 'undefined', _Secret) ->
 check_req_hmac(Payload, Signature, Secret) ->
     Canonical = kz_json:encode(Payload, ['canonical']),
     Hmac = binary:encode_hex(crypto:mac('hmac', 'sha256', Secret, Canonical), 'lowercase'),
-
     kz_term:to_lower_binary(Signature) =:= Hmac.
 
 %%------------------------------------------------------------------------------
@@ -461,31 +470,36 @@ maybe_return({'ok', _JObj}, PN) ->
 -ifndef(TEST).
 make_request(Action, Options, Props) ->
     case get_auth(Options) of
-        {'ok', {'reseller_auth', 'undefined', AuthToken, _Settings}} ->
-            do_request(Action, [{"X-Auth-Token", kz_term:to_list(AuthToken)}], Props);
-        {'ok', {'reseller_auth', ApiToken, 'undefined', _Settings}} ->
-            do_request(Action, [{<<"ApiToken">>, ApiToken} | Props]);
+        {'ok', {'reseller_auth', 'undefined', AuthToken, Settings}} ->
+            AccountId = kzd_trunkingio_settings:pvt_tio_account_id(Settings),
+            NewProps = add_account_id(AccountId, Props),
+            do_request(Action, [{"X-Auth-Token", kz_term:to_list(AuthToken)}], NewProps);
+        {'ok', {'reseller_auth', ApiToken, 'undefined', Settings}} ->
+            AccountId = kzd_trunkingio_settings:pvt_tio_account_id(Settings),
+            NewProps = add_account_id(AccountId, [{<<"ApiToken">>, ApiToken} | Props]),
+            do_request(Action, NewProps);
         {'ok', {'reseller_auth', ApiToken, AuthToken, Settings}} ->
-            Resp = do_request(Action, [{<<"ApiToken">>, ApiToken} | Props]),
+            AccountId = kzd_trunkingio_settings:pvt_tio_account_id(Settings),
+            NewProps = add_account_id(AccountId, [{<<"ApiToken">>, ApiToken} | Props]),
+            Resp = do_request(Action, NewProps),
             %% TODO: needs re-work when we know how to renew TIO api token
-            maybe_try_reseller_auth_token(Action, AuthToken, Settings, Props, Resp);
+            maybe_try_reseller_auth_token(Action, AuthToken, Settings, NewProps, Resp);
         {'ok', {'system_auth', Type, Token, SystemAccountId}} ->
-            try_system(Action, Props, Type, Token, SystemAccountId);
+            NewProps = add_account_id(SystemAccountId, Props),
+            try_system(Action, NewProps, Type, Token);
         {'error', _}=Error ->
             Error
     end.
 
-try_system(<<"DidRelease">> = Action, Props, Type, Token, AccountId) ->
-    try_system(Action, Props, Type, Token, AccountId);
-try_system(Action, Props, Type, Token, AccountId) ->
-    try_system1(Action, [{<<"AccountId">>, AccountId} | Props], Type, Token).
+add_account_id(AccountId, Props) ->
+    [{<<"AccountId">>, AccountId} | Props].
 
-try_system1(Action, Props, 'api_token', Token) ->
+try_system(Action, Props, 'api_token', Token) ->
     do_request(Action, [{<<"ApiToken">>, Token} | Props]);
-try_system1(Action, Props, 'session_id', Token) ->
+try_system(Action, Props, 'session_id', Token) ->
     Resp = do_request(Action, [{<<"SessionId">>, Token} | Props]),
     maybe_try_carrier_by_login(Action, Props, Resp);
-try_system1(Action, Props, 'login', Token) ->
+try_system(Action, Props, 'login', Token) ->
     do_request(Action, [{<<"SessionId">>, Token} | Props]).
 
 -spec do_request(kz_term:ne_binary(), kz_term:proplist()) -> api_resp().
@@ -891,19 +905,18 @@ verify_carrier_resp(Response) ->
     end.
 
 verify_carrier_resp(JObj, 'false', 'true') ->
-    ErrorCode = kz_json:get_ne_binary_value(action_path([<<"Errors">>, <<"Error">>, <<"Code">>]), JObj, <<"unknown error code">>),
-    ErrorMsg = kz_json:get_ne_binary_value(action_path([<<"Errors">>, <<"Error">>, <<"Message">>]), JObj, <<"unknown error">>),
-    lager:debug("request failed with error code '~ts' and message '~ts'", [ErrorCode, ErrorMsg]),
+    lager:debug("request failed with: ~p", [JObj]),
+    ErrorMsg = kz_json:get_ne_binary_value(req_path([<<"Errors">>, <<"Error">>, <<"Message">>]), JObj, <<"unknown error">>),
     {'error', ErrorMsg};
 verify_carrier_resp(JObj, 'false', 'false') ->
     ErrorCode = kz_json:get_ne_binary_value(req_path([<<"Errors">>, <<"Error">>, <<"Code">>]), JObj, <<"unknown error code">>),
     ErrorMsg = kz_json:get_ne_binary_value(req_path([<<"Errors">>, <<"Error">>, <<"Message">>]), JObj, <<"unknown error">>),
     case kz_term:to_lower_binary(ErrorCode) of
         <<"session.authentication">> ->
-            lager:error("request failed with error code '~ts' and message '~ts'", [ErrorCode, ErrorMsg]),
+            lager:error("request failed with error code '~ts' and message '~ts' ~p", [ErrorCode, ErrorMsg, JObj]),
             {'error', 'unauthenticated'};
         _ ->
-            lager:debug("request failed with error code '~ts' and message '~ts'", [ErrorCode, ErrorMsg]),
+            lager:debug("request failed with error code '~ts' and message '~ts' ~p", [ErrorCode, ErrorMsg, JObj]),
             {'error', ErrorMsg}
     end;
 verify_carrier_resp(JObj, _, _) ->
@@ -1000,3 +1013,119 @@ base64_file(_, _, <<>>) ->
     {'error', 'empty'};
 base64_file(Type, SubType, Data) ->
     {'ok', kz_attachment:to_data_base64(Type, SubType, Data)}.
+
+-spec validate_im(kzd_trunkingio_im:doc()) ->
+          {'ok', kz_json:object()} | {'error', any()}.
+validate_im(Payload) ->
+    ImType = im_type(Payload),
+    CCVs = [{<<"Authorizing-Type">>, <<ImType/binary, "-provider">>}
+           ,{<<"Authorizing-ID">>, <<"tio">>}
+           ],
+    KVs = [{<<"From">>, kzd_trunkingio_im:from(Payload)}
+          ,{<<"To">>, kzd_trunkingio_im:to(Payload, [])}
+          ,{<<"Route-Type">>, <<"offnet">>}
+          ,{<<"Msg-ID">>, kzd_trunkingio_im:reference_id(Payload)}
+          ,{<<"Custom-Vars">>, kz_json:from_list(CCVs)}
+          ,{<<"Event-Category">>, ImType}
+          ],
+    case im_body(Payload) of
+        {'ok', Body} ->
+            {'ok', kz_json:from_list([{<<"Body">>, Body} | KVs])};
+        {'error', _}=Error ->
+            Error
+    end.
+
+-spec im_type(kz_json:object()) -> kz_term:ne_binary().
+im_type(Payload) ->
+    case kzd_trunkingio_im:text(Payload) of
+        'undefined' -> <<"mms">>;
+        _ -> <<"sms">>
+    end.
+
+-spec im_body(kzd_trunkingio_im:doc()) -> {'ok', kz_term:ne_binary()} | {'error', any()}.
+im_body(Payload) ->
+    case kzd_trunkingio_im:text(Payload) of
+        'undefined' -> mms_body(Payload);
+        <<>> -> {'error', <<"empty text body">>};
+        Body -> {'ok', Body}
+    end.
+
+-spec mms_body(kzd_trunkingio_im:doc()) -> {'ok', kz_term:ne_binary()} | {'error', any()}.
+mms_body(Payload) ->
+    MediaUrls = kzd_trunkingio_im:media_urls(Payload),
+    case fetch_mms(MediaUrls) of
+        {'ok', []} ->
+            {'error', <<"empty media_urls">>};
+        {'ok', Parts} ->
+            Encoded = mimemail:encode_part({<<"multipart">>, <<"related">>, [], #{}, Parts}),
+            {'ok', kz_binary:join(Encoded, <<"\r\n">>)};
+        {'error', _}=Error ->
+            Error
+    end.
+
+-spec fetch_mms(kz_term:ne_binaries()) -> {'ok', [mimemail:mimetuple()]} | {'error', any()}.
+fetch_mms(Urls) ->
+    fetch_mms(Urls, []).
+
+-spec fetch_mms(kz_term:ne_binaries(), [mimemail:mimetuple()]) -> {'ok', [mimemail:mimetuple()]} | {'error', any()}.
+fetch_mms([], Acc) -> {'ok', Acc};
+fetch_mms([Url|T], Acc) ->
+    case do_fetch(Url) of
+        {'ok', _, Headers, Body} ->
+            fetch_mms(T, [mimepart_from_ret(Url, Headers, Body) | Acc]);
+        {'error', _}=Error ->
+            Error
+    end.
+
+-spec do_fetch(kz_term:ne_binary()) -> kz_http:ret().
+do_fetch(Url) ->
+    do_fetch(Url, 0, ?RETRIES).
+
+-spec do_fetch(kz_term:ne_binary(), integer(), integer()) -> kz_http:ret().
+do_fetch(Url, Tries, Retries) when Tries >= Retries ->
+    case kz_http:get(Url) of
+        {'ok', 200, _Headers, <<>>} ->
+            lager:debug("fetched im media from ~s has no body, skipping"),
+            {'error', <<"empty attachment">>};
+        {'ok', 200, _Headers, _Body} = Ret ->
+            Ret;
+        {'ok', _StatusCode, _Headers, _Body} = Ret ->
+            lager:debug("fetching im media from ~s got error ~p, response body: ~p. retries exhausted, skipping", [Url, _StatusCode, _Body]),
+            Ret;
+        {'error', Error} = Ret ->
+            lager:debug("could not fetch im media from ~s with error ~s. retries exhausted, skipping", [Url, Error]),
+            Ret
+    end;
+do_fetch(Url, Tries, Retries) ->
+    case kz_http:get(Url) of
+        {'ok', 200, _Headers, <<>>} ->
+            lager:debug("fetched im media from ~s has no body, skipping"),
+            {'error', <<"empty attachment">>};
+        {'ok', 200, _Headers, _Body} = Ret ->
+            Ret;
+        {'ok', _StatusCode, _Headers, _Body} ->
+            lager:debug("fetching im media from ~s got error ~p, response body: ~p, retrying...", [Url, _StatusCode, _Body]),
+            do_fetch(Url, Tries + 1, Retries);
+        {'error', Error} ->
+            lager:debug("could not fetch im media from ~s with error ~s,retrying...", [Url, Error]),
+            do_fetch(Url, Tries + 1, Retries)
+    end.
+
+-spec mimepart_from_ret(kz_term:ne_binary(), kz_http:headers(),  kz_term:text()) -> mimemail:mimetuple().
+mimepart_from_ret(Url, Headers, Body) ->
+    Filename = filename(Url),
+    ContentType = kz_json:get_value(<<"Content-Type">>
+                                   ,Headers
+                                   ,kz_mime:from_filename(Filename)
+                                   ),
+    MimeHeaders = [{<<"Content-Type">>, <<ContentType/binary, "; name=\"", Filename/binary, "\"">>}
+                  ,{<<"Content-Disposition">>, <<"attachment; filename=\"", Filename/binary, "\"">>}
+                  ,{<<"Content-Transfer-Encoding">>, <<"base64">>}
+                  ],
+    [Type, Subtype] = binary:split(ContentType, <<"/">>),
+    {Type, Subtype, MimeHeaders, #{}, Body}.
+
+-spec filename(kz_term:ne_binary()) -> binary().
+filename(Url) ->
+    [Base | _] = binary:split(Url, <<"?">>),
+    lists:last(binary:split(Base, <<"/">>, ['global'])).
