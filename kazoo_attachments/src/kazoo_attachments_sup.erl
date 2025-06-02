@@ -19,7 +19,7 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?SUPER('kz_att_azure_sup')]).
+-define(CHILDREN, []).
 
 %%==============================================================================
 %% API functions
