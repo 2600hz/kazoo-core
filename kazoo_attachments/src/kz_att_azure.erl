@@ -39,7 +39,7 @@ put_attachment(Settings, DbName, DocId, AName, Contents, Options) ->
     CT = kz_mime:from_filename(AName),
 
     {Container, Name} = resolve_path(Settings, {DbName, DocId, AName}),
-    Pid = azure_pid(Settings),
+    AzState = azure_state(Settings),
     AzureOptions = [{'content_type', kz_term:to_list(CT)}
                    ,'return_headers'
                    ],
@@ -48,7 +48,7 @@ put_attachment(Settings, DbName, DocId, AName, Contents, Options) ->
                | kz_att_error:put_routines(Settings, DbName, DocId, AName, Contents, Options)
                ],
     try
-        case erlazure:put_block_blob(Pid, Container, Name, Contents, AzureOptions, ?MILLISECONDS_IN_MINUTE+1000) of
+        case erlazure:put_block_blob(AzState, Container, Name, Contents, AzureOptions) of
             {201, Headers, _Body} ->
                 props:to_log(Headers, <<"AZURE HEADERS">>),
                 Data = base64:encode(term_to_binary({Settings#{file => Name}, Name})),
@@ -82,9 +82,9 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
         AzureData ->
             {Settings, _ContentId} = binary_to_term(base64:decode(AzureData)),
             {Container, Name} = resolve_path(Settings, {DbName, DocId, AName}),
-            Pid = azure_pid(Settings),
-            case erlazure:get_blob(Pid, Container, Name) of
-                {'ok', _RespBody} = Resp -> Resp;
+            AzState = azure_state(Settings),
+            case erlazure:get_blob(AzState, Container, Name) of
+                {'ok', _RespBody}=OK -> OK;
                 Resp ->
                     Url = lists:concat([Container, '/', Name]),
                     NewRoutines = [{fun kz_att_error:set_req_url/2, Url} | Routines],
@@ -117,18 +117,9 @@ azure_default_fields() ->
 azure_format_url(Map, AttInfo) ->
     kz_att_util:format_url(Map, AttInfo, azure_default_fields()).
 
-azure_pid(#{account := Account, key := Key}) ->
-    azure_pid(Account, Key).
-
-azure_pid(Account, Key) ->
-    case kz_att_azure_sup:worker(Account) of
-        'undefined' ->
-            case kz_att_azure_sup:start_azure(Account, Key) of
-                {'ok', Pid} -> Pid;
-                {'error',{'already_started',Pid}} -> Pid
-            end;
-        Pid -> Pid
-    end.
+azure_state(#{account := Account, key := Key}) ->
+    {'ok', AzState} = erlazure:new(kz_term:to_list(Account), kz_term:to_list(Key)),
+    AzState.
 
 -spec handle_erlazure_error_response({'error', string() | binary() | atom()},
                                      kz_att_error:update_routines()) -> kz_att_error:error().
