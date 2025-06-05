@@ -81,7 +81,7 @@ info_keys() ->
 info_keys(#kz_amqp_connections{connection = Pid}) ->
     info_keys(Pid);
 info_keys(ConnectionPID) ->
-    gen_server:call(ConnectionPID, info_keys).
+    gen_server:call(ConnectionPID, 'info_keys').
 
 -spec declare_exchange(pid(), kz_amqp_exchange()) -> 'ok' | {'error', any()}.
 declare_exchange(Srv, Exchange) ->
@@ -137,9 +137,9 @@ init([#kz_amqp_connection{}=Connection]) ->
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
 handle_call('get_connection', _, Connection) ->
     {'reply', Connection, Connection};
-handle_call({info, Items}, _From, #kz_amqp_connection{connection = AMQPConnectionPID} = Connection) ->
+handle_call({'info', Items}, _From, #kz_amqp_connection{connection = AMQPConnectionPID} = Connection) ->
     {'reply', amqp_connection:info(AMQPConnectionPID, Items), Connection};
-handle_call(info_keys, _From, #kz_amqp_connection{connection = AMQPConnectionPID} = Connection) ->
+handle_call('info_keys', _From, #kz_amqp_connection{connection = AMQPConnectionPID} = Connection) ->
     {'reply', amqp_connection:info_keys(AMQPConnectionPID), Connection};
 handle_call('stop', _From, Connection) ->
     lager:info("stopping from ~p", [_From]),

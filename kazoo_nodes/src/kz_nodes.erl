@@ -75,9 +75,9 @@ node_to_json(Node) ->
 status_to_json() ->
     kz_nodes_ets:status_to_json().
 
--spec status_to_encoded_json() -> 'ok'.
+-spec status_to_encoded_json() -> kz_term:text().
 status_to_encoded_json() ->
-    io:format("~s\n", [kz_json:encode(status_to_json())]).
+    kz_json:encode(status_to_json()).
 
 -spec status() -> 'ok'.
 status() ->
