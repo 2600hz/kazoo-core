@@ -238,7 +238,7 @@ send(RawPayload) ->
 %%%   lager:debug("trying to convert to json ~n~p",[RawPayload]),
     Payload = kz_json:encode(recursive_from_proplist(RawPayload)),
 %%%   lager:debug("sending to stats_master ~p",[Payload]),
-    'ok' = kz_amqp_worker:cast(fun() -> kz_amqp_util:targeted_publish(<<"statistics">>, Payload) end).
+    _ = kz_amqp_worker:cast(fun() -> kz_amqp_util:targeted_publish(<<"statistics">>, Payload) end).
 
 %% Prepares nested proplists to convert to JSON
 -spec recursive_from_proplist(any()) -> kz_json:object().
