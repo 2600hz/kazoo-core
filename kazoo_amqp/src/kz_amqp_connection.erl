@@ -65,13 +65,13 @@ get_connection(Srv) ->
 info(#kz_amqp_connections{connection = Pid}) ->
     info(Pid);
 info(ConnectionPID) ->
-    info(ConnectionPID, [channel_max, num_channels]).
+    info(ConnectionPID, ['channel_max', 'num_channels']).
 
--spec info(pid() | kz_amqp_connection(), list()) -> list().
+-spec info(pid() | kz_amqp_connections(), kz_term:atoms()) -> list().
 info(#kz_amqp_connections{connection = Pid}, InfoList) ->
     info(Pid, InfoList);
 info(ConnectionPID, InfoList) ->
-    gen_server:call(ConnectionPID, {info, InfoList}).
+    gen_server:call(ConnectionPID, {'info', InfoList}).
 
 -spec info_keys() -> [atom()].
 info_keys() ->

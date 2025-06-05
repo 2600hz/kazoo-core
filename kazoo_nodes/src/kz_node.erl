@@ -112,7 +112,7 @@ amqp_status_connection(Connection, JObj) ->
     Count = kz_amqp_assignments:channel_count(Connection),
     Broker = kz_amqp_connection:broker(Connection),
     BrokerZone = kz_amqp_connection:zone(Connection),
-    ChannelMax = props:get_value(channel_max, kz_amqp_connection:info(Connection, [channel_max])),
+    ChannelMax = props:get_value('channel_max', kz_amqp_connection:info(Connection, ['channel_max'])),
 
     ConnStatus = kz_json:from_list([{<<"channel_count">>, Count}
                                    ,{<<"channel_max">>, ChannelMax}
