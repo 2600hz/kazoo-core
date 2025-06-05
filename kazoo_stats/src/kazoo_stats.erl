@@ -187,14 +187,14 @@ store_value(Operation, Realm, Key, Value ,State=#state{sip=SipList}) when is_int
 %%% process. All node (VMs) send memory usage
 send_stats(VarList, SipList) when is_list(VarList), is_list(SipList) ->
     Vals = [{'nodename', node()},
-            {'memory-total', erlang:memory(total)},
-            {'memory-processes', erlang:memory(processes)},
-            {'memory-system', erlang:memory(system)},
-            {'memory-atom', erlang:memory(atom)},
-            {'memory-binary', erlang:memory(binary)},
-            {'memory-code', erlang:memory(code)},
-            {'erlang-version', erlang:system_info(system_version)--"\n"},
-            {'memory-ets', erlang:memory(ets)}
+            {'memory-total', erlang:memory('total')},
+            {'memory-processes', erlang:memory('processes')},
+            {'memory-system', erlang:memory('system')},
+            {'memory-atom', erlang:memory('atom')},
+            {'memory-binary', erlang:memory('binary')},
+            {'memory-code', erlang:memory('code')},
+            {'erlang-version', erlang:system_info('system_version')--"\n"},
+            {'memory-ets', erlang:memory('ets')}
            ]
         ++ VarList
         ++ get_ecallmgr_values(VarList)
