@@ -61,7 +61,7 @@ make_request(Text, Voice, Format, Options) ->
               ],
     Body = kz_json:encode(kz_json:from_list(Props)),
 
-    lager:debug("sending TTS request to ~s with body ~p", [BaseUrl, Body]),
+    lager:debug("sending TTS request to ~s", [BaseUrl]),
 
     HTTPOptions = props:delete('receiver', Options),
     case props:get_value('receiver', Options) of
