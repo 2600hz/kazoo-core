@@ -26,7 +26,7 @@
        ).
 
 -define(GROQ_CONFIG_CAT, <<(?MOD_CONFIG_CAT)/binary, ".groq">>).
--define(GROQ_TTS_URL, kapps_config:get_string(?GROQ_CONFIG_CAT, <<"tts_url_groq">>, <<"https://api.groq.com/openai/v1/audio/speech">>)).
+-define(GROQ_TTS_URL, kapps_config:get_string(?GROQ_CONFIG_CAT, <<"tts_url">>, <<"https://api.groq.com/openai/v1/audio/speech">>)).
 -define(GROQ_TTS_API_KEY, kapps_config:get_string(?GROQ_CONFIG_CAT, <<"tts_api_key">>)).
 -define(GROQ_TTS_MODEL, kapps_config:get_ne_binary(?GROQ_CONFIG_CAT, <<"tts_model">>, <<"playai-tts">>)).
 

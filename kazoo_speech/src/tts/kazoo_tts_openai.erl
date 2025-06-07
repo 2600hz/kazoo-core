@@ -26,7 +26,7 @@
        ).
 
 -define(OPENAI_CONFIG_CAT, <<(?MOD_CONFIG_CAT)/binary, ".openai">>).
--define(OPENAI_TTS_URL, kapps_config:get_string(?OPENAI_CONFIG_CAT, <<"tts_url_openai">>, <<"https://api.openai.com/v1/audio/speech">>)).
+-define(OPENAI_TTS_URL, kapps_config:get_string(?OPENAI_CONFIG_CAT, <<"tts_url">>, <<"https://api.openai.com/v1/audio/speech">>)).
 -define(OPENAI_TTS_API_KEY, kapps_config:get_string(?OPENAI_CONFIG_CAT, <<"tts_api_key">>)).
 -define(OPENAI_TTS_MODEL, kapps_config:get_ne_binary(?OPENAI_CONFIG_CAT, <<"tts_model">>, <<"tts-1-hd">>)).
 -define(OPENAI_TTS_SPEED, kapps_config:get_ne_binary(?OPENAI_CONFIG_CAT, <<"tts_speed">>, <<"1.0">>)).
