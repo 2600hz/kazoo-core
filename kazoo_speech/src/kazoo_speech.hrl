@@ -14,6 +14,7 @@
                                  ,<<"voicefabric">>
                                  ,<<"openai">>
                                  ,<<"groq">>
+                                 ,<<"deepgram">>
                                  ]).
 
 -record(voice_desc, {voice_name :: kz_term:ne_binary()
