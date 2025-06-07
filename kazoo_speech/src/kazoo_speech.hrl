@@ -12,6 +12,7 @@
                                  ,<<"google">>
                                  ,<<"ispeech">>
                                  ,<<"voicefabric">>
+                                 ,<<"openai">>
                                  ]).
 
 -record(voice_desc, {voice_name :: kz_term:ne_binary()
