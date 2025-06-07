@@ -60,7 +60,7 @@ get_format(Text, Voice, Format, Options) ->
 
 -spec make_request(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> create_resp().
 make_request(Text, Voice, Format, Options) ->
-    BaseUrl = kz_term:to_binary(?DEEPGRAM_TTS_URL, "?model=", Voice, "&encoding=", Format),
+    BaseUrl = kz_term:to_binary([?DEEPGRAM_TTS_URL, "?model=", Voice, "&encoding=", Format]),
 
     Headers = [{"Content-Type", "application/json"}
               ,{"Authorization", "Token " ++ ?DEEPGRAM_TTS_API_KEY}
