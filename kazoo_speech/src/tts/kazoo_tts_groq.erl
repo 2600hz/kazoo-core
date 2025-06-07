@@ -28,8 +28,7 @@
 -define(GROQ_CONFIG_CAT, <<(?MOD_CONFIG_CAT)/binary, ".groq">>).
 -define(GROQ_TTS_URL, kapps_config:get_string(?GROQ_CONFIG_CAT, <<"tts_url_groq">>, <<"https://api.groq.com/openai/v1/audio/speech">>)).
 -define(GROQ_TTS_API_KEY, kapps_config:get_string(?GROQ_CONFIG_CAT, <<"tts_api_key">>)).
--define(GROQ_TTS_MODEL, kapps_config:get_ne_binary(?GROQ_CONFIG_CAT, <<"tts_model">>, <<"tts-1-hd">>)).
--define(GROQ_TTS_SPEED, kapps_config:get_ne_binary(?GROQ_CONFIG_CAT, <<"tts_speed">>, <<"1.0">>)).
+-define(GROQ_TTS_MODEL, kapps_config:get_ne_binary(?GROQ_CONFIG_CAT, <<"tts_model">>, <<"playai-tts">>)).
 
 -spec set_api_key(kz_term:ne_binary()) -> 'ok'.
 set_api_key(Key) ->
@@ -54,7 +53,6 @@ make_request(Text, Voice, Format, Options) ->
             ,{<<"model">>, ?GROQ_TTS_MODEL}
             ,{<<"voice">>, Voice}
             ,{<<"response_format">>, Format}
-            ,{<<"speed">>, ?GROQ_TTS_SPEED}
             ],
     Headers = [{"Content-Type", "application/json"}
               ,{"Authorization", "Bearer " ++ ?GROQ_TTS_API_KEY}
