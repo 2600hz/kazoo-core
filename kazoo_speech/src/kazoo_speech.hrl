@@ -13,6 +13,7 @@
                                  ,<<"ispeech">>
                                  ,<<"voicefabric">>
                                  ,<<"openai">>
+                                 ,<<"groq">>
                                  ]).
 
 -record(voice_desc, {voice_name :: kz_term:ne_binary()
