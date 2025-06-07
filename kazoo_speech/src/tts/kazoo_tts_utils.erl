@@ -40,5 +40,5 @@ check_response(_ContentType, 0, _Content) ->
     lager:info("zero-length TTS response, considering an error"),
     {'error', 'tts_provider_failure', <<"no content returned">>};
 check_response(ContentType, ContentLength, Content) ->
-    lager:debug("created speech file ~s of length ~s", [ContentType, ContentLength]),
+    lager:debug("created speech file ~s of length ~p", [ContentType, ContentLength]),
     {'ok', ContentType, Content}.
