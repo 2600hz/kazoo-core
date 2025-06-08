@@ -6,7 +6,13 @@ This core library governs integrations with [Text-to-Speech (TTS) providers](htt
 
 Kazoo, by default, will use the internal [mod_flite](https://freeswitch.org/confluence/display/FREESWITCH/mod_flite) to play the text from a [TTS callflow action](../../../applications/callflow/doc/tts.md).
 
-There are also modules for [iSpeech](http://www.ispeech.org/api/#text-to-speech) and [VoiceFabric](https://voicefabric.ru/user_documentation).
+There are also modules for 
+[iSpeech](http://www.ispeech.org/api/#text-to-speech)  
+[VoiceFabric](https://voicefabric.ru/user_documentation)  
+[Google](https://cloud.google.com/text-to-speech)  
+[OpenAI](https://platform.openai.com/docs/guides/text-to-speech)  
+[Groq](https://console.groq.com/docs/text-to-speech)  
+[Deepgram](https://deepgram.com/product/text-to-speech)  
 
 ## ASR
 
