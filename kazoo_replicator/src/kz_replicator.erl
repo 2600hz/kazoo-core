@@ -7,9 +7,9 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(replicator).
+-module(kz_replicator).
 
--include("kazoo_replicator.hrl").
+-include("kz_replicator.hrl").
 
 -export([create/0
         ,create/1
@@ -48,7 +48,7 @@ create(Id, Name) ->
                             ,kz_json:new()
                             ),
     {'ok', _} = kz_datamgr:save_doc(?KZ_REPLICATOR_DB, Doc),
-    io:format("created job ~s with name ~s\n",[Id, Name]).
+    lager:info("created job ~s with name ~s",[Id, Name]).
 
 -spec set(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 set(JobId, Key, Value) ->
@@ -56,12 +56,12 @@ set(JobId, Key, Value) ->
         {'ok', JObj} ->
             case kz_datamgr:save_doc(?KZ_REPLICATOR_DB, kz_json:set_value(Key, Value, JObj)) of
                 {'ok', _} ->
-                    io:format("saved ~s value ~s for job ~s\n",[Key, Value, JobId]);
+                    lager:debug("saved ~s value ~s for job ~s",[Key, Value, JobId]);
                 {'error', _} ->
-                    io:format("unable to save ~s value ~s for job ~s\n",[Key, Value, JobId])
+                    lager:error("unable to save ~s value ~s for job ~s",[Key, Value, JobId])
             end;
         {'error', _} ->
-            io:format("unable to update value check if job exists\n")
+            lager:debug("unable to update value check if job exists")
     end.
 
 -spec add(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
@@ -72,12 +72,12 @@ add(JobId, AccountId) ->
             JObj1 = kz_json:set_value(<<"accounts">>, Accounts, JObj),
             case kz_datamgr:save_doc(?KZ_REPLICATOR_DB, JObj1) of
                 {'ok', _} ->
-                    io:format("saved ~s for job ~s\n",[AccountId, JobId]);
+                    lager:debug("saved ~s for job ~s",[AccountId, JobId]);
                 {'error', _} ->
-                    io:format("unable to save ~s for job ~s\n",[AccountId, JobId])
+                    lager:debug("unable to save ~s for job ~s",[AccountId, JobId])
             end;
         {'error', _} ->
-            io:format("unable to update value check if job exists\n")
+            lager:debug("unable to update value check if job exists")
     end.
 
 -spec status() -> 'ok'.
@@ -94,36 +94,36 @@ print_status([Doc | Docs]) ->
     JObj = kz_json:get_value(<<"doc">>, Doc),
     Name = kz_json:get_value(<<"name">>, JObj),
     Status = kz_json:get_value(<<"status">>, JObj),
-    io:format("status of ~s(~s) is ~s\n", [Name, Id, Status]),
+    lager:debug("status of ~s(~s) is ~s", [Name, Id, Status]),
     print_status(Docs).
 
 -spec status(kz_term:ne_binary()) -> 'ok'.
 status(Id) ->
     case kz_datamgr:open_doc(?KZ_REPLICATOR_DB, Id) of
         {'ok', JObj} ->
-            io:format("status of ~s is ~s\n",[Id, kz_json:get_value(<<"status">>, JObj)]);
+            lager:debug("status of ~s is ~s",[Id, kz_json:get_value(<<"status">>, JObj)]);
         {'error', _} ->
-            io:format("unable to check status, check if job ~s exists\n",[Id])
+            lager:debug("unable to check status, check if job ~s exists",[Id])
     end.
 
 -spec start(kz_term:ne_binary()) -> 'ok'.
 start(Id) ->
     case kz_datamgr:open_doc(?KZ_REPLICATOR_DB, Id) of
         {'ok', JObj} ->
-            io:format("trying to start job ~s \n", [Id]),
+            lager:debug("trying to start replication job ~s", [Id]),
             maybe_start(JObj);
         {'error', _} ->
-            io:format("unable to start, check if job ~s exists\n",[Id])
+            lager:debug("unable to start replication, check if job ~s exists",[Id])
     end.
 
 maybe_start(JObj) ->
     case kz_json:get_atom_value(<<"status">>, JObj) of
         'replicating' ->
-            io:format("already replicating not starting ...\n");
+            lager:debug("already replicating not starting");
         'new' ->
-            replicator_util:start_job(JObj);
+            kz_replicator_util:start_job(JObj);
         'stopped' ->
-            replicator_util:start_job(JObj)
+            kz_replicator_util:start_job(JObj)
     end.
 
 -spec stop(kz_term:ne_binary()) -> 'ok'.
@@ -132,16 +132,16 @@ stop(Id) ->
         {'ok', JObj} ->
             maybe_stop(Id, JObj);
         {'error', _} ->
-            io:format("unable to stop, check if job ~s exists\n",[Id])
+            lager:debug("unable to stop replication, check if job ~s exists",[Id])
     end.
 
 maybe_stop(Id, JObj) ->
     case kz_json:get_atom_value(<<"status">>, JObj) of
         'replicating' ->
-            io:format("stoping job ~s \n", [Id]),
-            replicator_util:stop_replication(JObj);
+            lager:debug("stoping replication job ~s ", [Id]),
+            kz_replicator_util:stop_replication(JObj);
         _ ->
-            io:format("already stopped not stopping ...\n")
+            lager:debug("replication already stopped not stopping")
     end.
 
 -spec update(kz_term:ne_binary()) -> 'ok'.
@@ -151,7 +151,7 @@ update(Id) ->
 
 -spec stop_all() -> 'ok'.
 stop_all() ->
-    io:format("stopping all jobs"),
+    lager:debug("stopping all jobs"),
     Docs = get_all_docs(),
     stop_all(Docs).
 
@@ -166,17 +166,17 @@ delete(Id) ->
     stop(Id),
     {'ok', Doc} = kz_datamgr:open_doc(?KZ_REPLICATOR_DB, Id),
     _ = kz_datamgr:del_doc(?KZ_REPLICATOR_DB, Doc),
-    io:format("deleting job ~s\n", [Id]).
+    lager:debug("deleting job ~s", [Id]).
 
 -spec delete_all() -> 'ok'.
 delete_all() ->
     Docs = get_all_docs(),
     delete_all(Docs),
-    io:format("deleted all jobs\n").
+    lager:debug("deleted all jobs").
 
 delete_all([]) ->
     _ = kz_datamgr:db_delete(?KZ_REPLICATOR_DB),
-    io:format("deleted replication db\n");
+    lager:debug("deleted replication db");
 delete_all([Doc|Docs]) ->
     Id = kz_doc:id(Doc),
     delete(Id),

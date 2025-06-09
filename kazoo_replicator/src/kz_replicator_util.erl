@@ -7,9 +7,9 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(replicator_util).
+-module(kz_replicator_util).
 
--include("kazoo_replicator.hrl").
+-include("kz_replicator.hrl").
 
 -export([start_job/1
         ,stop_replication/1
