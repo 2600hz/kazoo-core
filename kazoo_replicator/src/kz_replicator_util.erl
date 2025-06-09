@@ -93,12 +93,13 @@ url_section({Url, Username, Password}) ->
                       ,{<<"auth">>, Auth}
                       ]).
 
--spec stop_replication(kz_json:object()) -> 'ok'.
+-spec stop_replication(kz_json:object()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 stop_replication(JObj) ->
     Worker = kz_json:get_atom_value(<<"worker_node">>, JObj, 'to'),
     _ = stop_replication(JObj, Worker),
-    _ = change_status(JObj, <<"stopped">>),
-    io:format("stopped replication....\n").
+    change_status(JObj, <<"stopped">>).
 
 stop_replication(JObj, 'to') ->
     {Host, Opts} = get_to_opts(JObj),
@@ -117,17 +118,18 @@ stop_replication(Host, Opts, JObj) ->
                             ]),
     {'ok', _, _, _} = kz_http:delete(Url, [], [], Opts).
 
--spec start_job(kz_json:object()) -> 'ok'.
+-spec start_job(kz_json:object()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 start_job(JObj) ->
     {Url, Opts} = create_replication_db(JObj),
     Dbs = get_all_dbs(JObj),
     process_dbs(Url, Dbs, Opts, JObj),
-    _ = change_status(JObj, <<"replicating">>),
-    io:format("replication has begin....\n").
+    change_status(JObj, <<"replicating">>).
 
 change_status(JObj, Status) ->
     Doc = kz_json:set_value(<<"status">>, Status, JObj),
-    {'ok', _} = kz_datamgr:save_doc(?KZ_REPLICATOR_DB, Doc).
+    kz_datamgr:save_doc(?KZ_REPLICATOR_DB, Doc).
 
 -spec create_replication_db(kz_json:object()) ->
           {kz_http:url(), kz_term:proplist()}.

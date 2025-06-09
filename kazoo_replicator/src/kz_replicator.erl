@@ -9,34 +9,41 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_replicator).
 
--include("kz_replicator.hrl").
-
--export([create/0
-        ,create/1
-        ,create/2
-        ,set/3
-        ,add/2
-        ,status/0
-        ,status/1
-        ,start/1
-        ,stop/1
-        ,update/1
-        ,stop_all/0
+-export([add/2
+        ,create/0, create/1, create/2
         ,delete/1
         ,delete_all/0
+        ,restart/1
+        ,set/3
+        ,start/1
+        ,stop/1
+        ,stop_all/0
         ]).
 
--spec create() -> 'ok'.
+-include("kazoo_replicator.hrl").
+
+-type job_id() :: kz_term:ne_binary().
+-type stop_result() :: {'ok', kz_json:object()} |
+                       {'error', job_id(), any()} |
+                       {'job_error', job_id(), any()}.
+
+-spec create() ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 create() ->
     Id = kz_datamgr:get_uuid(),
     create(Id, Id).
 
--spec create(kz_term:ne_binary()) -> 'ok'.
+-spec create(kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 create(Name) ->
     Id = kz_datamgr:get_uuid(),
     create(Id, Name).
 
--spec create(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec create(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
 create(Id, Name) ->
     _ = kz_datamgr:db_create(?KZ_REPLICATOR_DB),
     timer:sleep(260),
@@ -47,137 +54,100 @@ create(Id, Name) ->
                              ]
                             ,kz_json:new()
                             ),
-    {'ok', _} = kz_datamgr:save_doc(?KZ_REPLICATOR_DB, Doc),
-    lager:info("created job ~s with name ~s",[Id, Name]).
+    kz_datamgr:save_doc(?KZ_REPLICATOR_DB, Doc).
 
--spec set(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec set(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()} |
+          {'job_error', any()}.
 set(JobId, Key, Value) ->
-    case kz_datamgr:open_doc(?KZ_REPLICATOR_DB, JobId) of
+    case kz_datamgr:open_cache_doc(?KZ_REPLICATOR_DB, JobId) of
         {'ok', JObj} ->
-            case kz_datamgr:save_doc(?KZ_REPLICATOR_DB, kz_json:set_value(Key, Value, JObj)) of
-                {'ok', _} ->
-                    lager:debug("saved ~s value ~s for job ~s",[Key, Value, JobId]);
-                {'error', _} ->
-                    lager:error("unable to save ~s value ~s for job ~s",[Key, Value, JobId])
-            end;
-        {'error', _} ->
-            lager:debug("unable to update value check if job exists")
+            kz_datamgr:save_doc(?KZ_REPLICATOR_DB, kz_json:set_value(Key, Value, JObj));
+        {'error', Error} ->
+            {'job_error', Error}
     end.
 
--spec add(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec add(kz_term:ne_binary(), kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()} |
+          {'job_error', any()}.
 add(JobId, AccountId) ->
-    case kz_datamgr:open_doc(?KZ_REPLICATOR_DB, JobId) of
+    case kz_datamgr:open_cache_doc(?KZ_REPLICATOR_DB, JobId) of
         {'ok', JObj} ->
             Accounts = lists:merge(kz_json:get_value(<<"accounts">>, JObj, []), [AccountId]),
             JObj1 = kz_json:set_value(<<"accounts">>, Accounts, JObj),
-            case kz_datamgr:save_doc(?KZ_REPLICATOR_DB, JObj1) of
-                {'ok', _} ->
-                    lager:debug("saved ~s for job ~s",[AccountId, JobId]);
-                {'error', _} ->
-                    lager:debug("unable to save ~s for job ~s",[AccountId, JobId])
-            end;
-        {'error', _} ->
-            lager:debug("unable to update value check if job exists")
+            kz_datamgr:save_doc(?KZ_REPLICATOR_DB, JObj1);
+        {'error', JobError} ->
+            {'job_error', JobError}
     end.
 
--spec status() -> 'ok'.
-status() ->
-    print_status(get_all_docs()).
-
-get_all_docs() ->
-    {'ok', Docs} = kz_datamgr:all_docs(?KZ_REPLICATOR_DB, ['include_docs']),
-    Docs.
-
-print_status([]) -> 'ok';
-print_status([Doc | Docs]) ->
-    Id = kz_doc:id(Doc),
-    JObj = kz_json:get_json_value(<<"doc">>, Doc),
-    Name = kz_json:get_value(<<"name">>, JObj),
-    Status = kz_json:get_value(<<"status">>, JObj),
-    lager:debug("status of ~s(~s) is ~s", [Name, Id, Status]),
-    print_status(Docs).
-
--spec status(kz_term:ne_binary()) -> 'ok'.
-status(Id) ->
-    case kz_datamgr:open_doc(?KZ_REPLICATOR_DB, Id) of
-        {'ok', JObj} ->
-            lager:debug("status of ~s is ~s",[Id, kz_json:get_value(<<"status">>, JObj)]);
-        {'error', _} ->
-            lager:debug("unable to check status, check if job ~s exists",[Id])
-    end.
-
--spec start(kz_term:ne_binary()) -> 'ok'.
+-spec start(kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()} |
+          {'job_error', any()}.
 start(Id) ->
-    case kz_datamgr:open_doc(?KZ_REPLICATOR_DB, Id) of
+    case kz_datamgr:open_cache_doc(?KZ_REPLICATOR_DB, Id) of
         {'ok', JObj} ->
-            lager:debug("trying to start replication job ~s", [Id]),
             maybe_start(JObj);
-        {'error', _} ->
-            lager:debug("unable to start replication, check if job ~s exists",[Id])
+        {'error', E} ->
+            {'job_error', E}
     end.
 
 maybe_start(JObj) ->
     case kz_json:get_atom_value(<<"status">>, JObj) of
         'replicating' ->
-            lager:debug("already replicating not starting");
+            {'error', 'already_started'};
         'new' ->
             kz_replicator_util:start_job(JObj);
         'stopped' ->
             kz_replicator_util:start_job(JObj)
     end.
 
--spec stop(kz_term:ne_binary()) -> 'ok'.
+-spec stop(kz_term:ne_binary()) -> stop_result().
 stop(Id) ->
-    case kz_datamgr:open_doc(?KZ_REPLICATOR_DB, Id) of
+    case kz_datamgr:open_cache_doc(?KZ_REPLICATOR_DB, Id) of
         {'ok', JObj} ->
             maybe_stop(Id, JObj);
-        {'error', _} ->
-            lager:debug("unable to stop replication, check if job ~s exists",[Id])
+        {'error', _JE} ->
+            {'job_error', Id, _JE}
     end.
 
 maybe_stop(Id, JObj) ->
     case kz_json:get_atom_value(<<"status">>, JObj) of
         'replicating' ->
-            lager:debug("stoping replication job ~s ", [Id]),
-            kz_replicator_util:stop_replication(JObj);
-        _ ->
-            lager:debug("replication already stopped not stopping")
+            case kz_replicator_util:stop_replication(JObj) of
+                {'ok', _}=OK -> OK;
+                {'error', E} -> {'error', Id, E}
+            end;
+        _Status ->
+            {'error', Id, 'already_stopped'}
     end.
 
--spec update(kz_term:ne_binary()) -> 'ok'.
-update(Id) ->
-    stop(Id),
+-spec restart(kz_term:ne_binary()) ->
+          {'ok', kz_json:object()} |
+          {'error', any()}.
+restart(Id) ->
+    _ = stop(Id),
     start(Id).
 
--spec stop_all() -> 'ok'.
+-spec stop_all() -> [stop_result()].
 stop_all() ->
-    lager:debug("stopping all jobs"),
-    Docs = get_all_docs(),
-    stop_all(Docs).
+    [stop(kz_doc:id(Doc)) || Doc <- get_all_docs()].
 
-stop_all([]) -> 'ok';
-stop_all([Doc|Docs]) ->
-    Id = kz_doc:id(Doc),
-    stop(Id),
-    stop_all(Docs).
-
--spec delete(kz_term:ne_binary()) -> 'ok'.
+-spec delete(kz_term:ne_binary()) ->
+          stop_result().
 delete(Id) ->
-    stop(Id),
-    {'ok', Doc} = kz_datamgr:open_doc(?KZ_REPLICATOR_DB, Id),
-    _ = kz_datamgr:del_doc(?KZ_REPLICATOR_DB, Doc),
-    lager:debug("deleting job ~s", [Id]).
+    case stop(Id) of
+        {'ok', Stopped} ->
+            kz_datamgr:del_doc(?KZ_REPLICATOR_DB, Stopped);
+        Error -> Error
+    end.
 
--spec delete_all() -> 'ok'.
+-spec delete_all() -> [stop_result()].
 delete_all() ->
-    Docs = get_all_docs(),
-    delete_all(Docs),
-    lager:debug("deleted all jobs").
+    [delete(kz_doc:id(Doc)) || Doc <- get_all_docs()].
 
-delete_all([]) ->
-    _ = kz_datamgr:db_delete(?KZ_REPLICATOR_DB),
-    lager:debug("deleted replication db");
-delete_all([Doc|Docs]) ->
-    Id = kz_doc:id(Doc),
-    delete(Id),
-    delete_all(Docs).
+get_all_docs() ->
+    {'ok', Docs} = kz_datamgr:all_docs(?KZ_REPLICATOR_DB, ['include_docs']),
+    Docs.

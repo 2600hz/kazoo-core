@@ -944,7 +944,7 @@ del_doc(DbName, Doc) ->
 -spec del_doc(database_name(), kz_json:object() | kz_json:objects() | kz_term:ne_binary(), kz_term:proplist()) ->
           {'ok', kz_json:object() | kz_json:objects()} |
           data_error().
-del_doc(DbName, Doc, Options) when is_list(Doc) ->
+del_doc(DbName, Docs, Options) when is_list(Docs) ->
     del_docs(DbName, Doc, Options);
 del_doc(DbName, Doc, Options) ->
     Database = kzs_util:to_database(DbName),

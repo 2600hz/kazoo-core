@@ -1,7 +1,7 @@
 {application,kazoo_replicator,
-             [{applications,[kazoo_stdlib,kernel,lager,stdlib]},
+             [{applications,[kazoo_data,kazoo_documents,kazoo_stdlib,
+                             kazoo_web,kernel,lager,stdlib]},
               {description,"Kazoo Replicator - An application for managing couchdb replication"},
               {vsn,"4.0.0"},
               {modules,[]},
-              {registered,[]}
-             ]}.
+              {registered,[]}]}.
