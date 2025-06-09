@@ -91,7 +91,7 @@ get_all_docs() ->
 print_status([]) -> 'ok';
 print_status([Doc | Docs]) ->
     Id = kz_doc:id(Doc),
-    JObj = kz_json:get_value(<<"doc">>, Doc),
+    JObj = kz_json:get_json_value(<<"doc">>, Doc),
     Name = kz_json:get_value(<<"name">>, JObj),
     Status = kz_json:get_value(<<"status">>, JObj),
     lager:debug("status of ~s(~s) is ~s", [Name, Id, Status]),
