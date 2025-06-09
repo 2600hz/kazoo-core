@@ -44,6 +44,9 @@
 -export([notifications_low_balance_last_notification/1, notifications_low_balance_last_notification/2, set_notifications_low_balance_last_notification/2]).
 -export([notifications_low_balance_sent_low_balance/1, notifications_low_balance_sent_low_balance/2, set_notifications_low_balance_sent_low_balance/2, path_notifications_low_balance_sent_low_balance/0]).
 -export([notifications_low_balance_threshold/1, notifications_low_balance_threshold/2, set_notifications_low_balance_threshold/2]).
+-export([notifications_media_proxy/1, notifications_media_proxy/2, set_notifications_media_proxy/2, path_notifications_media_proxy/0]).
+-export([notifications_media_proxy_fail_alert_enabled/1, notifications_media_proxy_fail_alert_enabled/2, set_notifications_media_proxy_fail_alert_enabled/2]).
+-export([notifications_media_proxy_fail_alert_last_notification/1, notifications_media_proxy_fail_alert_last_notification/2, set_notifications_media_proxy_fail_alert_last_notification/2]).
 -export([org/1, org/2, set_org/2]).
 -export([preflow/1, preflow/2, set_preflow/2]).
 -export([preflow_always/1, preflow_always/2, set_preflow_always/2]).
@@ -564,6 +567,46 @@ notifications_low_balance_threshold(Doc, Default) ->
 -spec set_notifications_low_balance_threshold(doc(), number()) -> doc().
 set_notifications_low_balance_threshold(Doc, NotificationsLowBalanceThreshold) ->
     kz_json:set_value([<<"notifications">>, <<"low_balance">>, <<"threshold">>], NotificationsLowBalanceThreshold, Doc).
+
+-spec notifications_media_proxy(doc()) -> kz_term:api_object().
+notifications_media_proxy(Doc) ->
+    notifications_media_proxy(Doc, 'undefined').
+
+-spec notifications_media_proxy(doc(), Default) -> kz_json:object() | Default.
+notifications_media_proxy(Doc, Default) ->
+    kz_json:get_json_value([<<"notifications">>, <<"media_proxy">>], Doc, Default).
+
+-spec path_notifications_media_proxy() -> kz_json:path().
+path_notifications_media_proxy() ->
+    [<<"notifications">>, <<"media_proxy">>].
+
+-spec set_notifications_media_proxy(doc(), kz_json:object()) -> doc().
+set_notifications_media_proxy(Doc, NotificationsMediaProxy) ->
+    kz_json:set_value([<<"notifications">>, <<"media_proxy">>], NotificationsMediaProxy, Doc).
+
+-spec notifications_media_proxy_fail_alert_enabled(doc()) -> boolean().
+notifications_media_proxy_fail_alert_enabled(Doc) ->
+    notifications_media_proxy_fail_alert_enabled(Doc, 'undefined').
+
+-spec notifications_media_proxy_fail_alert_enabled(doc(), Default) -> boolean() | Default.
+notifications_media_proxy_fail_alert_enabled(Doc, Default) ->
+    kz_json:get_boolean_value([<<"notifications">>, <<"media_proxy">>, <<"fail_alert_enabled">>], Doc, Default).
+
+-spec set_notifications_media_proxy_fail_alert_enabled(doc(), boolean()) -> doc().
+set_notifications_media_proxy_fail_alert_enabled(Doc, NotificationsFailAlertEnabled) ->
+    kz_json:set_value([<<"notifications">>, <<"media_proxy">>, <<"fail_alert_enabled">>], NotificationsFailAlertEnabled, Doc).
+
+-spec notifications_media_proxy_fail_alert_last_notification(doc()) -> kz_term:api_integer().
+notifications_media_proxy_fail_alert_last_notification(Doc) ->
+    notifications_media_proxy_fail_alert_last_notification(Doc, 'undefined').
+
+-spec notifications_media_proxy_fail_alert_last_notification(doc(), Default) -> integer() | Default.
+notifications_media_proxy_fail_alert_last_notification(Doc, Default) ->
+    kz_json:get_integer_value([<<"notifications">>, <<"media_proxy">>, <<"last_notification">>], Doc, Default).
+
+-spec set_notifications_media_proxy_fail_alert_last_notification(doc(), integer()) -> doc().
+set_notifications_media_proxy_fail_alert_last_notification(Doc, NotificationsMediaProxyLastNotification) ->
+    kz_json:set_value([<<"notifications">>, <<"media_proxy">>, <<"last_notification">>], NotificationsMediaProxyLastNotification, Doc).
 
 -spec org(doc()) -> kz_term:api_binary().
 org(Doc) ->
