@@ -82,7 +82,6 @@ exec_freeform(Content, ContentType, _Locale, Options) ->
     lager:debug("sending request to ~s", [URL]),
     handle_response(make_request(URL, Headers, Body, Options)).
 
-%kz_term:to_binary([ContentType, ";base64"]
 create_multipart_body(Content, ContentType, Boundary) ->
     Extension = props:get_value(ContentType, ?OPENAI_EXTENSION_MAPPINGS),
     Parts = [{Content
