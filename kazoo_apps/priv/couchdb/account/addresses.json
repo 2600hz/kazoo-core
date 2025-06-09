@@ -1,0 +1,38 @@
+{
+    "_id": "_design/addresses",
+    "kazoo": {
+        "view_map": [
+            {
+                "classification": "account"
+            }
+        ]
+    },
+    "language": "javascript",
+    "views": {
+        "crossbar_listing": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'addresses' || doc.pvt_deleted || !doc.emergency) return;",
+                "  emit(doc._id, {",
+                "    'id': doc._id,",
+                "    'name': doc.emergency.name,",
+                "    'street': doc.emergency.street,",
+                "    'locality': doc.emergency.locality,",
+                "    'postal_code': doc.emergency.postal_code,",
+                "    'region': doc.emergency.region,",
+                "    'longitude': doc.emergency.longitude,",
+                "    'latitude': doc.emergency.latitude",
+                "  });",
+                "}"
+            ]
+        },
+        "used_by_numbers": {
+            "map": [
+                "function(doc) {",
+                "  if (doc.pvt_type != 'number' || doc.pvt_deleted || !doc.e911 || !doc.e911.address_id) return;",
+                "  emit(doc.e911.address_id, null);",
+                "}"
+            ]
+        }
+    }
+}

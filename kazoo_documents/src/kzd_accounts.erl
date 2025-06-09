@@ -36,6 +36,8 @@
 -export([id/1]).
 -export([name/1, name/2, set_name/2]).
 -export([notifications/1, notifications/2, set_notifications/2]).
+-export([notifications_emergency/1, notifications_emergency/2, set_notifications_emergency/2]).
+-export([notifications_emergency_enabled/1, notifications_emergency_enabled/2, set_notifications_emergency_enabled/2]).
 -export([notifications_first_occurrence/1, notifications_first_occurrence/2, set_notifications_first_occurrence/2]).
 -export([notifications_first_occurrence_sent_initial_call/1, notifications_first_occurrence_sent_initial_call/2, set_notifications_first_occurrence_sent_initial_call/2]).
 -export([notifications_first_occurrence_sent_initial_registration/1, notifications_first_occurrence_sent_initial_registration/2, set_notifications_first_occurrence_sent_initial_registration/2]).
@@ -473,6 +475,30 @@ notifications(Doc, Default) ->
 -spec set_notifications(doc(), kz_json:object()) -> doc().
 set_notifications(Doc, Notifications) ->
     kz_json:set_value([<<"notifications">>], Notifications, Doc).
+
+-spec notifications_emergency(doc()) -> kz_term:api_object().
+notifications_emergency(Doc) ->
+    notifications_emergency(Doc, 'undefined').
+
+-spec notifications_emergency(doc(), Default) -> kz_json:object() | Default.
+notifications_emergency(Doc, Default) ->
+    kz_json:get_json_value([<<"notifications">>, <<"emergency">>], Doc, Default).
+
+-spec set_notifications_emergency(doc(), kz_json:object()) -> doc().
+set_notifications_emergency(Doc, NotificationsEmergency) ->
+    kz_json:set_value([<<"notifications">>, <<"emergency">>], NotificationsEmergency, Doc).
+
+-spec notifications_emergency_enabled(doc()) -> boolean().
+notifications_emergency_enabled(Doc) ->
+    notifications_emergency_enabled(Doc, 'true').
+
+-spec notifications_emergency_enabled(doc(), Default) -> boolean() | Default.
+notifications_emergency_enabled(Doc, Default) ->
+    kz_json:get_boolean_value([<<"notifications">>, <<"emergency">>, <<"enabled">>], Doc, Default).
+
+-spec set_notifications_emergency_enabled(doc(), boolean()) -> doc().
+set_notifications_emergency_enabled(Doc, NotificationsEmergencyEnabled) ->
+    kz_json:set_value([<<"notifications">>, <<"emergency">>, <<"enabled">>], NotificationsEmergencyEnabled, Doc).
 
 -spec notifications_first_occurrence(doc()) -> kz_term:api_object().
 notifications_first_occurrence(Doc) ->
