@@ -18,7 +18,7 @@
 
 -include("kazoo_speech.hrl").
 
--define(OPENAI_CONFIG_CAT, <<(?MOD_CONFIG_CAT)/binary, ".ibm">>).
+-define(OPENAI_CONFIG_CAT, <<(?MOD_CONFIG_CAT)/binary, ".openai">>).
 -define(OPENAI_ASR_URL, kapps_config:get_binary(?OPENAI_CONFIG_CAT, <<"asr_url">>, <<"https://api.openai.com/v1/audio/transcriptions">>)).
 -define(OPENAI_ASR_KEY, kapps_config:get_string(?OPENAI_CONFIG_CAT, <<"asr_api_key">>, <<>>)).
 -define(OPENAI_ASR_MODEL, kapps_config:get_binary(?OPENAI_CONFIG_CAT, <<"asr_model">>, <<"gpt-4o-transcribe">>)).
@@ -76,7 +76,7 @@ exec_freeform(Content, _ContentType, _Locale, Options) ->
     Headers =  [{"Content-Type", "multipart/form-data"}
                ,{"Authorization", "Bearer " ++ ?OPENAI_ASR_KEY}
                ],
-    Props = [{<<"apikey">>, ?OPENAI_ASR_MODEL}
+    Props = [{<<"model">>, ?OPENAI_ASR_MODEL}
             ,{<<"file">>, base64:encode(Content)}
             ],
     Body = kz_http_util:props_to_querystring(Props),
