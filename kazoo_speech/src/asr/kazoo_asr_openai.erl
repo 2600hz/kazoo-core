@@ -24,6 +24,7 @@
 -define(OPENAI_ASR_MODEL, kapps_config:get_binary(?OPENAI_CONFIG_CAT, <<"asr_model">>, <<"gpt-4o-transcribe">>)).
 -define(OPENAI_ASR_PREFERRED_CONTENT_TYPE, <<"audio/mpeg">>).
 -define(OPENAI_ASR_ACCEPTED_CONTENT_TYPES, [<<"audio/mpeg">>, <<"audio/wav">>]).
+-define(OPENAI_EXTENSION_MAPPINGS, [{<<"audio/wav">>, <<"wav">>}, {<<"audio/mpeg">>, <<"mp3">>}]).
 
 %%%------------------------------------------------------------------------------
 %%% @doc Return true if IBM ASR is configured / available otherwise false.
@@ -71,17 +72,31 @@ freeform(Content, ContentType, Locale, Options) ->
 
 -spec exec_freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
           asr_resp().
-exec_freeform(Content, _ContentType, _Locale, Options) ->
+exec_freeform(Content, ContentType, _Locale, Options) ->
     URL = ?OPENAI_ASR_URL,
-    Headers =  [{"Content-Type", "multipart/form-data"}
+    Boundary = kz_http_util:create_boundary(),
+    Body = create_multipart_body(Content, ContentType, Boundary),
+    Headers =  [{"Content-Type", "multipart/form-data; boundary=" ++ kz_term:to_list(Boundary)}
                ,{"Authorization", "Bearer " ++ ?OPENAI_ASR_KEY}
                ],
-    Props = [{<<"model">>, ?OPENAI_ASR_MODEL}
-            ,{<<"file">>, base64:encode(Content)}
-            ],
-    Body = kz_http_util:props_to_querystring(Props),
     lager:debug("sending request to ~s", [URL]),
     handle_response(make_request(URL, Headers, Body, Options)).
+
+%kz_term:to_binary([ContentType, ";base64"]
+create_multipart_body(Content, ContentType, Boundary) ->
+    Extension = props:get_value(ContentType, ?OPENAI_EXTENSION_MAPPINGS),
+    Parts = [{Content
+             ,[{<<"content-disposition">>, <<"form-data; name=file; filename=asr.", Extension/binary>>}
+              ,{<<"content-type">>, <<"text/plain">>}
+              ]
+             }
+            ,{?OPENAI_ASR_MODEL
+             ,[{<<"content-disposition">>, <<"form-data; name=model">>}
+              ,{<<"content-type">>, <<"text/plain">>}
+              ]
+             }
+            ],
+    kz_http_util:encode_multipart(Parts, Boundary).
 
 %%%-----------------------------------------------------------------------------
 %%% @doc Execute API request to ASR Provider and handle transcription response.
