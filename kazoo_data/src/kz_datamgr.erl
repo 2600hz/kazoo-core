@@ -945,7 +945,7 @@ del_doc(DbName, Doc) ->
           {'ok', kz_json:object() | kz_json:objects()} |
           data_error().
 del_doc(DbName, Docs, Options) when is_list(Docs) ->
-    del_docs(DbName, Doc, Options);
+    del_docs(DbName, Docs, Options);
 del_doc(DbName, Doc, Options) ->
     Database = kzs_util:to_database(DbName),
     kzs_doc:del_doc(kzs_plan:plan(Database, Doc), Database, Doc, Options).
