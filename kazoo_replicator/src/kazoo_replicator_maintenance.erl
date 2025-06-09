@@ -21,7 +21,7 @@
         ,delete_all/0
         ]).
 
--include("kazoo_replicator.hrl").
+-include("kz_replicator.hrl").
 
 -elvis([{elvis_style, no_debug_call, disable}]).
 

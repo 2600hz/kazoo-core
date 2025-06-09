@@ -20,7 +20,7 @@
         ,stop_all/0
         ]).
 
--include("kazoo_replicator.hrl").
+-include("kz_replicator.hrl").
 
 -type job_id() :: kz_term:ne_binary().
 -type stop_result() :: {'ok', kz_json:object()} |
@@ -126,6 +126,7 @@ maybe_stop(Id, JObj) ->
 
 -spec restart(kz_term:ne_binary()) ->
           {'ok', kz_json:object()} |
+          {'job_error', any()} |
           {'error', any()}.
 restart(Id) ->
     _ = stop(Id),
