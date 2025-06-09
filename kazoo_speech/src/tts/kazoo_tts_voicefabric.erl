@@ -181,6 +181,6 @@ voicefabric_filter_rate(_)                     -> 'false'.
           {'ok', kz_term:ne_binary(), binary()}.
 create_default_response({'ok', 200, Headers, Content}) ->
     kazoo_tts_utils:check_response(kz_term:to_binary(props:get_value("content-type", Headers))
-                  ,kz_term:to_integer(props:get_value("content-length", Headers))
-                  ,Content
-                  ).
+                                  ,kz_term:to_integer(props:get_value("content-length", Headers))
+                                  ,Content
+                                  ).
