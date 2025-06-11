@@ -61,13 +61,13 @@ start_link(#kz_amqp_connection{}=Connection) ->
 get_connection(Srv) ->
     gen_server:call(Srv, 'get_connection').
 
--spec info(pid() | kz_amqp_connection()) -> list().
+-spec info(pid() | kz_amqp_connections()) -> list() | {error, connection_not_available}.
 info(#kz_amqp_connections{connection = Pid}) ->
     info(Pid);
 info(ConnectionPID) ->
     info(ConnectionPID, [channel_max, num_channels]).
 
--spec info(pid() | kz_amqp_connection(), list()) -> list().
+-spec info(pid() | kz_amqp_connections(), list()) -> list() | {error, connection_not_available}.
 info(#kz_amqp_connections{connection = Pid}, InfoList) ->
     info(Pid, InfoList);
 info(ConnectionPID, InfoList) ->
@@ -77,7 +77,7 @@ info(ConnectionPID, InfoList) ->
 info_keys() ->
     amqp_connection:info_keys().
 
--spec info_keys(pid() | kz_amqp_connection()) -> [atom()].
+-spec info_keys(pid() | kz_amqp_connections()) -> [atom()] | {error, connection_not_available}.
 info_keys(#kz_amqp_connections{connection = Pid}) ->
     info_keys(Pid);
 info_keys(ConnectionPID) ->
@@ -137,8 +137,12 @@ init([#kz_amqp_connection{}=Connection]) ->
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
 handle_call('get_connection', _, Connection) ->
     {'reply', Connection, Connection};
+handle_call({info, _Items}, _From, #kz_amqp_connection{available=false} = Connection) ->
+    {reply, {error, connection_not_available}, Connection};
 handle_call({info, Items}, _From, #kz_amqp_connection{connection = AMQPConnectionPID} = Connection) ->
     {'reply', amqp_connection:info(AMQPConnectionPID, Items), Connection};
+handle_call(info_keys, _From, #kz_amqp_connection{available=false} = Connection) ->
+    {reply, {error, connection_not_available}, Connection};
 handle_call(info_keys, _From, #kz_amqp_connection{connection = AMQPConnectionPID} = Connection) ->
     {'reply', amqp_connection:info_keys(AMQPConnectionPID), Connection};
 handle_call('stop', _From, Connection) ->
