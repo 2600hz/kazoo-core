@@ -107,7 +107,7 @@ amqp_status_connection(Connection, JObj) ->
     Count = kz_amqp_assignments:channel_count(Connection),
     Broker = kz_amqp_connection:broker(Connection),
     BrokerZone = kz_amqp_connection:zone(Connection),
-    ChannelMax = props:get_value(channel_max, kz_amqp_connection:info(Connection, [channel_max])),
+    ChannelMax = amqp_channel_max(Connection),
 
     ConnStatus = kz_json:from_list([{<<"channel_count">>, Count}
                                    ,{<<"channel_max">>, ChannelMax}
@@ -117,6 +117,13 @@ amqp_status_connection(Connection, JObj) ->
     Status = kz_json:get_list_value(Broker, JObj, []),
 
     kz_json:set_value(Broker, [ConnStatus | Status], JObj).
+
+-spec amqp_channel_max(kz_amqp_connections:kz_amqp_connections()) -> kz_term:api_integer().
+amqp_channel_max(Connection) ->
+    case kz_amqp_connection:info(Connection, [channel_max]) of
+        {error, connection_not_available} -> undefined;
+        Info -> props:get_value(channel_max, Info)
+    end.
 
 -spec pool_states() -> kz_term:proplist().
 pool_states() ->
