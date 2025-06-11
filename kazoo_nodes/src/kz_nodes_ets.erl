@@ -272,10 +272,11 @@ check_node_versions([#kz_node{version=Vsn
                     ]
                    ,{Name, Node, Version}=Current
                    ) ->
+    ComparedVersions = kz_semver:compare(Vsn, Version),
     CheckAgainst =
         case binary:split(kz_term:to_binary(N), <<"@">>) of
-            [Name, _Host] when Vsn =:= Version -> Current;
-            [Name, _Host] when Vsn > Version ->
+            [Name, _Host] when 'eq' =:= ComparedVersions -> Current;
+            [Name, _Host] when 'gt' =:= ComparedVersions ->
                 lager:warning("node ~s is running a newer version (~s) than ~s (~s)"
                              ,[N, Vsn, Node, Version]
                              ),
@@ -596,6 +597,6 @@ expire_nodes(ThisNode) ->
     _ = [ets:delete(?TAB_NAME, Node) || #kz_node{node=Node} <- ExpiredNodes],
     ExpiredNodes.
 
--spec flush() -> true.
+-spec flush() -> 'true'.
 flush() ->
     ets:delete_all_objects(?TAB_NAME).
