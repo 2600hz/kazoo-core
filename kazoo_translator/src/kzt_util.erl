@@ -233,8 +233,12 @@ clear_progress(Call) ->
 add_progress(K, V, Call) ->
     kapps_call:kvs_append_list(<<"response_progress">>, [{K, V}], Call).
 
--spec get_progress(kapps_call:call()) -> kz_term:api_proplist().
-get_progress(Call) -> kapps_call:kvs_fetch(<<"response_progress">>, Call).
+-spec get_progress(kapps_call:call()) -> kz_term:api_objects().
+get_progress(Call) ->
+    case kapps_call:kvs_fetch(<<"response_progress">>, Call) of
+        'undefined' -> 'undefined';
+        Progress -> kz_json:from_list(Progress)
+    end.
 
 -spec set_pivot_session(kapps_call:call()) -> kapps_call:call().
 set_pivot_session(Call) ->

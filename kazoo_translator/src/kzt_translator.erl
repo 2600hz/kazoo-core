@@ -77,6 +77,7 @@ find_candidate_translators(<<"application/xml">>) ->
 find_candidate_translators(<<"application/json">>) ->
     ['kzt_kazoo'];
 find_candidate_translators(CT) ->
+    lager:debug("invalid response translator format ~p", [CT]),
     throw({'error', 'invalid_format', CT}).
 
 -spec is_recognized(atom(), binary()) -> {boolean(), any()}.

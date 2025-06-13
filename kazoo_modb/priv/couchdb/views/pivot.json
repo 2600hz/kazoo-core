@@ -25,6 +25,7 @@
                 "    'iteration': doc.iteration || 1,",
                 "    'cf_flow_id': doc.cf_flow_id,",
                 "    'cf_flow_name': doc.cf_flow_name,",
+                "    'debug_type': doc.debug_type,",
                 "    'has_error': Boolean(doc.has_error),",
                 "    'error_types': Array.isArray(doc.error_types) ? doc.error_types : []",
                 "  });",
