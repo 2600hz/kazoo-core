@@ -69,7 +69,9 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -define(LOOKUP_TIMEOUT, 500).
--define(LOOKUP_OPTIONS, [{'timeout', ?LOOKUP_TIMEOUT}, {'usevc', 'true'}]).
+-define(LOOKUP_OPTIONS, [{'timeout', ?LOOKUP_TIMEOUT}
+                        ,{'usevc', 'true'}
+                        ]).
 
 -define(BIND_ALL_INTERFACE_4, <<"0.0.0.0">>).
 -define(BIND_ALL_INTERFACE_6, <<"::">>).
@@ -506,13 +508,15 @@ maybe_resolve_fold(Domain, IPs, Options) ->
     end.
 
 -spec resolve_a_record(string(), kz_term:ne_binaries(), options()) -> kz_term:ne_binaries().
-resolve_a_record(Domain, IPs, Options) ->
-    case inet_res:lookup(Domain, 'in', 'a', Options) of
-        [] ->
-            lager:info("unable to resolve ~s", [Domain]),
-            IPs;
-        Addresses ->
-            lists:foldr(fun resolve_a_record_fold/2, IPs, Addresses)
+resolve_a_record(Domain, IPs, _Options) ->
+    %% inet_res:lookup/4 did not cache DNS results
+    %% gethostbyname will be cached in 'inet_cache' ETS table
+    case inet_res:gethostbyname(Domain, 'inet') of
+        {'ok', #hostent{h_addr_list=[_|_]=AddrList}} ->
+            lists:foldr(fun resolve_a_record_fold/2, IPs, AddrList);
+        {'error', _Reason} ->
+            lager:info("unable to resolve '~s': ~p", [Domain, _Reason]),
+            IPs
     end.
 
 -spec resolve_a_record_fold(inet:ip4_address(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
