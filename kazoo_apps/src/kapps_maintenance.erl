@@ -127,6 +127,8 @@
 
 -export([start_app/1, stop_app/1, running_apps/0]).
 
+-export([flush_dns_cache/0]).
+
 -elvis([{elvis_style, no_debug_call, disable}]).
 
 -include("kazoo_apps.hrl").
@@ -2408,3 +2410,9 @@ print_header() ->
     io:format("       - https://www.mozilla.org/en-US/privacy/firefox/~n"),
     io:format("       - https://derflounder.wordpress.com/2019/07/23/suppressing-microsoft-autoupdates-required-data-notice-screen/~n"),
     'no_return'.
+
+-spec flush_dns_cache() -> 'ok'.
+flush_dns_cache() ->
+    Size = ets:info('inet_cache', 'size'),
+    inet_db:clear_cache(),
+    io:format("cleared ~p entries from DNS cache~n", [Size]).
