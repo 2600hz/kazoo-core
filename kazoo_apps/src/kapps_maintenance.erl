@@ -131,6 +131,8 @@
 
 -export([start_app/1, stop_app/1, running_apps/0]).
 
+-export([flush_dns_cache/0]).
+
 -elvis([{elvis_style, no_debug_call, disable}]).
 
 -include("kazoo_apps.hrl").
@@ -2452,3 +2454,9 @@ show_kapps_versions() ->
     List = kapps_versions:list(),
     kapps_versions:report_node_app_versions(List),
     'no_return'.
+
+-spec flush_dns_cache() -> 'ok'.
+flush_dns_cache() ->
+    Size = ets:info('inet_cache', 'size'),
+    inet_db:clear_cache(),
+    io:format("cleared ~p entries from DNS cache~n", [Size]).

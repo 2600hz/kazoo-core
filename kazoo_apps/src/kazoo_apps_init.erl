@@ -30,7 +30,15 @@ init() ->
     set_cookie(),
     set_config(),
     start_distribution(),
-    set_loglevel().
+    set_loglevel(),
+    set_dns_cache_options().
+
+%% DNS caching, used by inet_res:gethostbyname and others
+set_dns_cache_options() ->
+    %% default is 100 entries
+    %% see KECA-45: local resources creating 1000s of gateways with wildcard hostnames
+    %% increase cache size allowed to 10,000
+    inet_db:set_cache_size(kapps_config:get_integer(?APP_NAME, <<"dns_cache_size">>, 10_000)).
 
 -spec set_cookie() -> 'true'.
 set_cookie() ->
