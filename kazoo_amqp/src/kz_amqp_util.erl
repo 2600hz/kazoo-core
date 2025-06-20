@@ -159,7 +159,14 @@
 -export([confirm_select/0]).
 -export([flow_control/0, flow_control/1, flow_control_reply/1]).
 
--export([access_request/0, access_request/1, basic_ack/1, basic_nack/1, basic_qos/1]).
+-export([access_request/0, access_request/1]).
+
+-export([basic_qos/1]).
+
+-export([basic_ack/1, basic_ack/2
+        ,basic_nack/1, basic_nack/2, basic_nack/3
+        ,basic_reject/1, basic_reject/2
+        ]).
 
 -export([is_json/1, is_host_available/0]).
 -export([encode/1]).
@@ -1443,9 +1450,13 @@ is_json(#'P_basic'{content_type=CT}) -> CT =:= ?DEFAULT_CONTENT_TYPE.
 %% delivered via the Deliver or `Get-Ok' methods.
 %% @end
 %%------------------------------------------------------------------------------
--spec basic_ack(integer() | basic_deliver()) -> 'ok'.
-basic_ack(#'basic.deliver'{delivery_tag=DTag}) -> basic_ack(DTag);
-basic_ack(DTag) -> kz_amqp_channel:command(#'basic.ack'{delivery_tag=DTag}).
+-spec basic_ack(integer() | basic_deliver() | basic_ack()) -> 'ok'.
+basic_ack(#'basic.ack'{} = Cmd) -> kz_amqp_channel:command(Cmd);
+basic_ack(DTag) -> basic_ack(DTag, false).
+
+-spec basic_ack(integer() | basic_deliver(), boolean()) -> 'ok'.
+basic_ack(#'basic.deliver'{delivery_tag=DTag}, Multiple) -> basic_ack(DTag, Multiple);
+basic_ack(DTag, Multiple) -> kz_amqp_channel:command(#'basic.ack'{delivery_tag=DTag, multiple = Multiple}).
 
 %%------------------------------------------------------------------------------
 %% @doc  Reject one or more incoming messages.
@@ -1453,9 +1464,35 @@ basic_ack(DTag) -> kz_amqp_channel:command(#'basic.ack'{delivery_tag=DTag}).
 %% <div class="notice">This method is a RabbitMQ-specific extension of AMQP.</div>
 %% @end
 %%------------------------------------------------------------------------------
--spec basic_nack(integer() | basic_deliver()) -> 'ok'.
-basic_nack(#'basic.deliver'{delivery_tag=DTag}) -> basic_nack(DTag);
-basic_nack(DTag) -> kz_amqp_channel:command(#'basic.nack'{delivery_tag=DTag}).
+-spec basic_nack(integer() | basic_deliver() | basic_nack()) -> 'ok'.
+basic_nack(#'basic.nack'{} = Cmd) ->
+    kz_amqp_channel:command(Cmd);
+basic_nack(#'basic.deliver'{delivery_tag=DTag}) ->
+    kz_amqp_channel:command(#'basic.ack'{delivery_tag=DTag}).
+
+-spec basic_nack(integer() | basic_deliver(), boolean()) -> 'ok'.
+basic_nack(#'basic.deliver'{delivery_tag=DTag}, Requeue) ->
+    basic_nack(DTag, Requeue);
+basic_nack(DTag, Requeue) ->
+    kz_amqp_channel:command(#'basic.nack'{delivery_tag=DTag, requeue = Requeue}).
+
+-spec basic_nack(integer() | basic_deliver(), boolean(), boolean()) -> 'ok'.
+basic_nack(#'basic.deliver'{delivery_tag=DTag}, Requeue, Multiple) ->
+    basic_nack(DTag, Requeue, Multiple);
+basic_nack(DTag, Requeue, Multiple) ->
+    kz_amqp_channel:command(#'basic.nack'{delivery_tag=DTag, requeue = Requeue, multiple = Multiple}).
+
+-spec basic_reject(integer() | basic_deliver()) -> 'ok'.
+basic_reject(#'basic.deliver'{delivery_tag=DTag}) ->
+    basic_reject(DTag);
+basic_reject(DTag) ->
+    kz_amqp_channel:command(#'basic.reject'{delivery_tag=DTag}).
+
+-spec basic_reject(integer() | basic_deliver(), boolean()) -> 'ok'.
+basic_reject(#'basic.deliver'{delivery_tag=DTag}, Requeue) ->
+    basic_reject(DTag, Requeue);
+basic_reject(DTag, Requeue) ->
+    kz_amqp_channel:command(#'basic.reject'{delivery_tag=DTag, requeue = Requeue}).
 
 %%------------------------------------------------------------------------------
 %% @doc Determine if the AMQP host is currently reachable.
