@@ -63,13 +63,21 @@
 -define(DISCOVERY_REQ_HEADERS, [?KEY_QUERY_ID, ?KEY_PREFIX
                                ,?KEY_OFFSET, ?KEY_QUANTITY
                                ]).
--define(DISCOVERY_REQ_OPTIONAL_HEADERS, []).
+-define(DISCOVERY_REQ_OPTIONAL_HEADERS, [<<"Account-ID">>
+                                        ,<<"Auth-Token">>
+                                        ,<<"Is-Reseller">>
+                                        ,<<"Reseller-ID">>
+                                        ]).
 -define(DISCOVERY_REQ_VALUES, [{<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY}
                               ,{<<"Event-Name">>, ?DISCOVERY_REQ_EVENT_NAME}
                               ]).
 -define(DISCOVERY_REQ_TYPES, [{?KEY_QUERY_ID, fun is_binary/1}
                              ,{?KEY_OFFSET, fun is_integer/1}
                              ,{?KEY_QUANTITY, fun is_integer/1}
+                             ,{<<"Account-ID">>, fun is_binary/1}
+                             ,{<<"Auth-Token">>, fun is_binary/1}
+                             ,{<<"Is-Reseller">>, fun is_boolean/1}
+                             ,{<<"Reseller-ID">>, fun is_binary/1}
                              ]).
 
 %% Number Request
