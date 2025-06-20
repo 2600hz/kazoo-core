@@ -228,31 +228,40 @@ usable_carriers() ->
 -spec acquire(knm_phone_number:pn_record()) -> knm_phone_number:pn_record();
              (knm_pipe:collection()) -> knm_pipe:collection().
 %% FIXME: opaque
-acquire(T0=#{'todo' := PNs}) ->
+acquire(T0=#{'todo' := PNs, options := Options}) ->
     F = fun (PN, T) ->
-                case knm_pipe:attempt(fun acquire/1, [PN]) of
+                case knm_pipe:attempt(fun(P) -> acquire(P, Options) end, [PN]) of
                     {'ok', NewPN} -> knm_pipe:set_succeeded(T, NewPN);
                     {'error', R} -> knm_pipe:set_failed(T, PN, R)
                 end
         end,
     lists:foldl(F, T0, PNs);
 acquire(PN) ->
+    acquire(PN, []).
+
+-spec acquire(knm_phone_number:pn_record(), knm_options:options()) -> knm_phone_number:pn_record().
+acquire(PN, Options) ->
     Module = knm_phone_number:module_name(PN),
     DryRun = knm_phone_number:dry_run(PN),
-    acquire(PN, Module, DryRun).
+    acquire(PN, Options, Module, DryRun).
 
--spec acquire(knm_phone_number:pn_record(), kz_term:api_ne_binary(), boolean()) ->
+-spec acquire(knm_phone_number:pn_record(), knm_options:options(), kz_term:api_ne_binary(), boolean()) ->
           knm_phone_number:pn_record().
-acquire(PN, 'undefined', _DryRun) ->
+acquire(PN, _Options, 'undefined', _DryRun) ->
     knm_errors:carrier_not_specified(PN);
-acquire(PN, _Mod, 'true') ->
+acquire(PN, _Options, _Mod, 'true') ->
     PN;
-acquire(PN, ?NE_BINARY=Mod, 'false') ->
-    case 'false' =:= kz_module:ensure_loaded(Mod) of
-        'false' -> apply(Mod, 'acquire_number', [PN]);
-        'true' ->
-            lager:info("carrier '~s' does not exist, skipping", [Mod]),
-            PN
+acquire(PN, Options, ?NE_BINARY=Mod, 'false') ->
+    case kz_module:is_exported(Mod, 'acquire_number', 2) of
+        'true' -> apply(Mod, 'acquire_number', [PN, Options]);
+        'false' ->
+            case 'false' =:= kz_module:ensure_loaded(Mod) of
+                'false' ->
+                    apply(Mod, 'acquire_number', [PN]);
+                'true' ->
+                    lager:info("carrier '~s' does not exist, skipping", [Mod]),
+                    PN
+            end
     end.
 
 %%------------------------------------------------------------------------------
@@ -262,9 +271,9 @@ acquire(PN, ?NE_BINARY=Mod, 'false') ->
 -spec disconnect(knm_phone_number:pn_record()) -> knm_phone_number:pn_record();
                 (knm_pipe:collection()) -> knm_pipe:collection().
 %% FIXME: opaque
-disconnect(T0=#{'todo' := PNs}) ->
+disconnect(T0=#{'todo' := PNs, 'options' := Options}) ->
     F = fun (PN, T) ->
-                case knm_pipe:attempt(fun disconnect/1, [PN]) of
+                case knm_pipe:attempt(fun(P) -> disconnect(P, Options) end, [PN]) of
                     {'ok', NewPN} -> knm_pipe:set_succeeded(T, NewPN);
                     {'error', R} ->
                         Num = knm_phone_number:number(PN),
@@ -273,7 +282,22 @@ disconnect(T0=#{'todo' := PNs}) ->
         end,
     lists:foldl(F, T0, PNs);
 disconnect(PN) ->
+    disconnect(PN, []).
+
+-spec disconnect(knm_phone_number:pn_record(), knm_options:options()) -> knm_phone_number:pn_record().
+disconnect(PN, Options) ->
     Module = knm_phone_number:module_name(PN),
+    disconnect(PN, Options, Module, kz_module:is_exported(Module, 'disconnect', 2)).
+
+disconnect(PN, Options, Module, 'true') ->
+    try apply(Module, 'disconnect_number', [PN, Options]) of
+        Result -> Result
+    catch
+        'error':_ ->
+            lager:debug("nonexistent carrier module ~p, allowing disconnect", [Module]),
+            PN
+    end;
+disconnect(PN, _Options, Module, 'false') ->
     try apply(Module, 'disconnect_number', [PN]) of
         Result -> Result
     catch
@@ -347,7 +371,7 @@ is_local(Carrier) ->
     catch
         _E:_R:ST ->
             kz_log:log_stacktrace(ST),
-            true
+            'true'
     end.
 
 %%------------------------------------------------------------------------------

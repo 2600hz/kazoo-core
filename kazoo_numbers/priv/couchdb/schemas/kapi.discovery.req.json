@@ -3,6 +3,12 @@
     "_id": "kapi.discovery.req",
     "description": "AMQP API for discovery.req",
     "properties": {
+        "Account-ID": {
+            "type": "string"
+        },
+        "Auth-Token": {
+            "type": "string"
+        },
         "Event-Category": {
             "enum": [
                 "discovery"
@@ -12,6 +18,9 @@
             "enum": [
                 "request"
             ]
+        },
+        "Is-Reseller": {
+            "type": "string"
         },
         "Offset": {
             "type": "integer"
@@ -23,6 +32,9 @@
             "type": "integer"
         },
         "Query-ID": {
+            "type": "string"
+        },
+        "Reseller-ID": {
             "type": "string"
         }
     },

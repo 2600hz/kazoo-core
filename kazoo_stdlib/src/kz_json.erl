@@ -113,6 +113,8 @@
 -export([decode/1, decode/2]).
 -export([unsafe_decode/1, unsafe_decode/2]).
 
+-export([canonicalize/1]).
+
 -export([flatten/1, flatten/2
         ,expand/1, expand/2
         ,diff/2, diff/3
@@ -203,6 +205,7 @@ encode_jobj(JObj, Options) ->
     end.
 
 %% formats the JObj into RFC8785 canonical version (for HMAC hashing mostly) before encoding
+-spec canonicalize(json_term()) -> json_term().
 canonicalize(?JSON_WRAPPER(Props)) ->
     ?JSON_WRAPPER(lists:sort([canonicalize(Key, Value) || {Key, Value} <- Props]));
 canonicalize(Thing) -> Thing.
@@ -1650,8 +1653,8 @@ get_values(JObj) ->
 get_values(Key, JObj) ->
     get_values(get_value(Key, JObj, new())).
 
--type set_value_options() :: #{'keep_null' := boolean()
-                              ,'deep' := boolean()
+-type set_value_options() :: #{'keep_null' => boolean()
+                              ,'deep' => boolean()
                               }.
 -spec set_value_options() -> set_value_options().
 set_value_options() ->
