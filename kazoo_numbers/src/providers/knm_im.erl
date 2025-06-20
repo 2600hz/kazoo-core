@@ -18,6 +18,8 @@
 
 -export([enabled/2]).
 
+-export([carrier_inbound_url/3]).
+
 -type im_type() :: kapps_im:im_type().
 
 -export_type([im_type/0
@@ -63,6 +65,19 @@ enabled(PN, Type) ->
         'true' -> 'false';
         'false' -> kz_json:is_true(?FEATURE_ENABLED, Feature)
     end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec carrier_inbound_url(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+          kz_term:ne_binary().
+carrier_inbound_url(BaseUrl, AccountId, Carrier) ->
+    ExplodedUrl = uri_string:parse(BaseUrl),
+    HookPath = kz_binary:join([<<"v2">>, <<"accounts">>, AccountId, <<"inbound_messaging">>, Carrier]
+                             ,<<"/">>
+                             ),
+    uri_string:recompose(ExplodedUrl#{path => HookPath}).
 
 %%%=============================================================================
 %%% Internal functions
