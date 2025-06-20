@@ -37,7 +37,11 @@
 
 -callback configuration() -> kz_json:object().
 
--optional_callbacks([configuration/0]).
+-callback route_outbound_im(kz_json:object()) -> 'ok' | {'error', any()}.
+
+-optional_callbacks([configuration/0
+                    ,route_outbound_im/1
+                    ]).
 
 -type carrier() :: kz_term:api_ne_binary() | knm_phone_number:pn_record().
 
