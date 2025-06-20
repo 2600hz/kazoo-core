@@ -35,12 +35,28 @@
     {'ok', kz_json:object()} |
     {'error', any()}.
 
+%% These are same as above, but with new signature passing knm_options
+%% in case any carrier module needs them.
+
+-callback acquire_number(knm_phone_number:pn_record(), knm_options:options()) -> knm_phone_number:pn_record() | no_return().
+-callback disconnect_number(knm_phone_number:pn_record(), knm_options:options()) -> knm_phone_number:pn_record() | no_return().
+%% TODO: add these later if needed?
+%% -callback is_number_billable(knm_phone_number:pn_record(), knm_options:options()) -> boolean().
+%% -callback check_numbers(kz_term:ne_binaries(), knm_options:options()) -> {'ok', kz_json:object()} | {'error', any()}.
+
+%% extra callbacks
+
 -callback configuration() -> kz_json:object().
 
 -callback route_outbound_im(kz_json:object()) -> 'ok' | {'error', any()}.
 
+%% make optional callbacks, optional
+
 -optional_callbacks([configuration/0
                     ,route_outbound_im/1
+
+                    ,acquire_number/2
+                    ,disconnect_number/2
                     ]).
 
 -type carrier() :: kz_term:api_ne_binary() | knm_phone_number:pn_record().
