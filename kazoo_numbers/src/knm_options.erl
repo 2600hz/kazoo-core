@@ -46,8 +46,10 @@
 
 -include("knm.hrl").
 
--type crossbar_option() :: {'services', kz_services:services()} |
-                           {'account_id', kz_term:api_ne_binary()} |
+-type crossbar_option() :: {'account_id', kz_term:api_ne_binary()} |
+                           {'auth_token', kz_term:api_ne_binary()} |
+                           {'is_reseller', kz_term:api_boolean()} |
+                           {'services', kz_services:services()} |
                            {'reseller_id', kz_term:api_ne_binary()}.
 -type crossbar_options() :: [crossbar_option()].
 
