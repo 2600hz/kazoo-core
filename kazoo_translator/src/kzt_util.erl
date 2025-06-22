@@ -16,7 +16,7 @@
         ,offnet_req/3
         ,update_call_status/2, get_call_status/2
         ,get_request_vars/1
-        ,add_error/3, get_errors/1
+        ,add_error/3, get_error/1
         ,add_progress/3, get_progress/1, clear_progress/1
         ,set_pivot_session/1, get_pivot_session/1
         ,set_hangup_dtmf/2, get_hangup_dtmf/1
@@ -220,10 +220,10 @@ get_is_caller_hungup(Call) -> kz_term:is_true(kapps_call:kvs_fetch(<<"is_caller_
 
 -spec add_error(kz_term:ne_binary(), any(), kapps_call:call()) -> kapps_call:call().
 add_error(K, V, Call) ->
-    kapps_call:kvs_append_list(<<"response_errors">>, [{K, V}], Call).
+    kapps_call:kvs_store(<<"response_error">>, {K, V}, Call).
 
--spec get_errors(kapps_call:call()) -> kz_term:api_proplist().
-get_errors(Call) -> kapps_call:kvs_fetch(<<"response_errors">>, Call).
+-spec get_error(kapps_call:call()) -> 'undefined' | tuple().
+get_error(Call) -> kapps_call:kvs_fetch(<<"response_error">>, Call).
 
 -spec clear_progress(kapps_call:call()) -> kapps_call:call().
 clear_progress(Call) ->

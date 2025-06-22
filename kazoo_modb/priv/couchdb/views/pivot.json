@@ -27,7 +27,7 @@
                 "    'cf_flow_name': doc.cf_flow_name,",
                 "    'debug_type': doc.debug_type,",
                 "    'has_error': Boolean(doc.has_error),",
-                "    'error_types': Array.isArray(doc.error_types) ? doc.error_types : []",
+                "    'error_type': doc.error_type || null",
                 "  });",
                 "}"
             ]
@@ -53,7 +53,7 @@
                 "    'resp_body': doc.resp_body,",
                 "    'resp_progress': doc.resp_progress,",
                 "    'has_error': Boolean(doc.has_error),",
-                "    'error_types': Array.isArray(doc.error_types) ? doc.error_types : []",
+                "    'error_type': doc.error_type || null",
                 "  });",
                 "}"
             ],
@@ -73,10 +73,7 @@
                 "    acc.resp_body = acc.resp_body || val.resp_body;",
                 "    acc.resp_progress = acc.resp_progress || val.resp_progress;",
                 "    acc.has_error = acc.has_error || val.has_error;",
-                "    acc.error_types = acc.error_types || [];",
-                "    if (val.error_types && val.error_types.length) {",
-                "      acc.error_types = acc.error_types.concat(val.error_types);",
-                "    }",
+                "    acc.error_type = acc.error_type || val.error_type;",
                 "    return acc;",
                 "  });",
                 "}"
