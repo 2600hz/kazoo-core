@@ -39,6 +39,9 @@
         "Password": {
             "type": "string"
         },
+        "Password-Reset-Link": {
+            "type": "string"
+        },
         "Preview": {
             "type": "boolean"
         },

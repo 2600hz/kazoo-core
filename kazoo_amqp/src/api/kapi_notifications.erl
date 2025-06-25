@@ -1583,6 +1583,7 @@ new_user_definition() ->
                                                             ,<<"User-ID">>
                                                             ]}
               ,{fun kapi_definition:set_optional_headers/2, [<<"Password">>
+                                                            ,<<"Password-Reset-Link">>
                                                             | ?DEFAULT_OPTIONAL_HEADERS
                                                             ]}
               ,{fun kapi_definition:set_values/2, ?NOTIFY_VALUES(EventName)}
