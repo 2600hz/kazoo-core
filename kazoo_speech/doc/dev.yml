@@ -2,4 +2,7 @@
     - 'core/kazoo_speech/doc/README.md'
     - 'core/kazoo_speech/doc/google.md'
     - 'core/kazoo_speech/doc/ispeech.md'
+    - 'core/kazoo_speech/doc/openai.md'
+    - 'core/kazoo_speech/doc/groq.md'
+    - 'core/kazoo_speech/doc/deepgram.md'
     - 'core/kazoo_speech/doc/maintenance.md'
