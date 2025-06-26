@@ -33,9 +33,7 @@
                                        ,{<<"console">>, <<"notice">>}
                                        ,{<<"file">>, <<"error">>}
                                        ]}
-                          ,{<<"kazoo_apps">>, [{<<"cookie">>, <<"change_me">>}
-                                              ,{<<"default">>, 'true'} %% when defaults are loaded instead of config.ini
-                                              ]}
+                          ,{<<"kazoo_apps">>, [{<<"cookie">>, <<"change_me">>}]}
                           ]).
 
 -type section() :: kz_term:ne_binary() | atom().
