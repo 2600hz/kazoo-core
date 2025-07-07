@@ -24,7 +24,7 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN(Name), [?WORKER_ARGS_TYPE('kz_event_listener', [Name], 'temporary')]).
+-define(CHILDREN(Name), [?WORKER_ARGS_TYPE('kz_event_listener', [Name], 'permanent')]).
 
 %% ===================================================================
 %% API functions
