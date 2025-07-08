@@ -397,23 +397,30 @@ setup_im_webhook(Doc, Id, Secret) ->
 -spec did_browse_params(kz_term:ne_binary(), pos_integer()) -> kz_term:proplist().
 did_browse_params(<<NPA:3/binary, _/binary>>, Quantity) when ?IS_US_TOLLFREE(NPA) ->
     [{<<"TnMask">>, NPA}
-    ,{<<"Sequential">>, <<"true">>}
-    ,{<<"Quantity">>, kz_term:to_binary(Quantity)}
+    ,{<<"Quantity">>, kz_term:to_binary(adjust_max_quantity(Quantity))}
     ];
 did_browse_params(<<NPA:3/binary, _/binary>>, Quantity) when ?IS_US_TOLLFREE_WILDCARD(NPA) ->
     [{<<"TnWildCard">>, NPA}
-    ,{<<"Sequential">>, <<"true">>}
-    ,{<<"Quantity">>, kz_term:to_binary(Quantity)}
+    ,{<<"Quantity">>, kz_term:to_binary(adjust_max_quantity(Quantity))}
     ];
 did_browse_params(<<NPA:3/binary>>, Quantity) ->
     [{<<"Npa">>, NPA}
-    ,{<<"Quantity">>, kz_term:to_binary(Quantity)}
+    ,{<<"Quantity">>, kz_term:to_binary(adjust_max_quantity(Quantity))}
     ];
 did_browse_params(<<NPA:3/binary, NXX:3/binary, _/binary>>, Quantity) ->
     [{<<"Npa">>, NPA}
     ,{<<"Nxx">>, NXX}
-    ,{<<"Quantity">>, kz_term:to_binary(Quantity)}
+    ,{<<"Quantity">>, kz_term:to_binary(adjust_max_quantity(Quantity))}
     ].
+
+adjust_max_quantity(Quantity) ->
+    adjust_max_quantity(Quantity, kapps_config:get_integer(?MOD_CONFIG_CAT, <<"max_search_quantity">>, 100)).
+
+adjust_max_quantity(Quantity, MaxAllowed) ->
+    case Quantity =< MaxAllowed of
+        'true' -> Quantity;
+        'false' -> MaxAllowed
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
