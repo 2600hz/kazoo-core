@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2025, 2600Hz
+%%% @copyright (C) 2011-2023, 2600Hz
 %%% @doc Util functions used by kazoo_couch.
 %%% @author James Aimonetti
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -205,7 +205,7 @@ server_info(#server{}=Conn) -> couchbeam:server_info(Conn).
 -spec membership(server()) -> kz_json:object().
 membership(#server{url=ServerUrl}) ->
     URL = hackney_url:make_url(ServerUrl, <<"_membership">>, []),
-    case kz_http:get(URL, [], [{'log', 'false'}]) of
+    case kz_http:get(URL) of
         {'ok', 200, _, Body} ->
             kz_json:decode(Body);
         {'error', _E} ->
