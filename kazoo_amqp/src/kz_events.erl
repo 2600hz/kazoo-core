@@ -214,10 +214,9 @@ publish_event(JObj, Props, 'call_events'=EventType) ->
                    EventName <- [<<"*">>, kz_api:event_name(JObj)]
                ],
     publish_event(JObj, Props, EventType, Bindings);
-publish_event(JObj, Props, 'presence'=EventType) ->
-    PresenceId = kz_json:get_ne_binary_value(<<"Presence-ID">>, JObj),
-    Bindings = [presence_event_binding(PresenceId)],
-    publish_event(JObj, Props, EventType, Bindings).
+publish_event(JObj, Props, 'presence') ->
+    Binding = presence_event_binding(kz_json:get_ne_binary_value(<<"Presence-ID">>, JObj)),
+    send_event(Binding, {'kapi', kapi:delivery_message(JObj, Props)}).
 
 %%------------------------------------------------------------------------------
 %% @doc Publish a pooled event. The event is first distributed asynchronously to
