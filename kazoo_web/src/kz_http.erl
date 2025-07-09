@@ -267,47 +267,41 @@ execute_request(Method, Request, Opts) ->
                          ,Method
                          ,element(?REQ_URL_INDEX, Request)
                          ,catch httpc:request(Method, Request, HTTPOptions, Options)
-                         ,props:is_true('log', Opts, 'true')
                          ).
 
 %%------------------------------------------------------------------------------
 %% @doc Response to caller in a proper manner.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_timed_response(kz_time:start_time(), method(), url(), httpc_ret(), boolean()) -> ret().
-handle_timed_response(StartTime, _Method, _Url, Resp, 'true') ->
+-spec handle_timed_response(kz_time:start_time(), method(), url(), httpc_ret()) -> ret().
+handle_timed_response(StartTime, _Method, _Url, Resp) ->
     ElapsedMs = kz_time:elapsed_ms(StartTime),
     lager:debug("~pms: ~s ~s", [ElapsedMs, _Method, _Url]),
-    handle_response(Resp, 'true');
-handle_timed_response(_StartTime, _Method, _Url, Resp, 'false') ->
-    handle_response(Resp, 'false').
+    handle_response(Resp).
 
--spec handle_response(httpc_ret(), boolean()) -> ret().
-handle_response({'ok', 'saved_to_file'}=Ok, _ShouldLog) -> Ok;
-handle_response({'ok', ReqId}, _ShouldLog)
+-spec handle_response(httpc_ret()) -> ret().
+handle_response({'ok', 'saved_to_file'}=Ok) -> Ok;
+handle_response({'ok', ReqId})
   when is_reference(ReqId) ->
     {'http_req_id', ReqId};
-handle_response({'ok', {{_, StatusCode, _}, Headers, Body}}, _ShouldLog)
+handle_response({'ok', {{_, StatusCode, _}, Headers, Body}})
   when is_integer(StatusCode) ->
     {'ok', StatusCode, Headers, Body};
-
-handle_response(Error, 'false') -> Error;
-
-handle_response({'error', 'timeout'}=Err, 'true') ->
+handle_response({'error', 'timeout'}=Err) ->
     lager:info("connection timeout"),
-    handle_response(Err, 'false');
-handle_response({'EXIT', {Error, _Trace}}, 'true') ->
+    Err;
+handle_response({'EXIT', {Error,_Trace}}) ->
     lager:info("caught EXIT ~p: ~p", [Error, _Trace]),
-    handle_response({'error', Error}, 'false');
-handle_response({'error', {'failed_connect',[{_, _Address}, {_, _, Error}]}}, 'true') ->
+    {'error', Error};
+handle_response({'error', {'failed_connect',[{_, _Address}, {_, _, Error}]}}) ->
     lager:info("connection error ~s to ~p", [Error, _Address]),
-    handle_response({'error', {'failed_connect', Error}}, 'false');
-handle_response({'error', {'malformed_url', _, Url}}, 'true') ->
+    {'error', {'failed_connect', Error}};
+handle_response({'error', {'malformed_url', _, Url}}) ->
     lager:info("failed to parse URL ~p", [Url]),
-    handle_response({'error', {'malformed_url', Url}}, 'false');
-handle_response({'error', Error}=Err, 'true') ->
+    {'error', {'malformed_url', Url}};
+handle_response({'error', Error}=Err) ->
     lager:info("request failed with ~p", [Error]),
-    handle_response(Err, 'false').
+    Err.
 
 %%------------------------------------------------------------------------------
 %% @doc Build Authorization header using basic_auth option.

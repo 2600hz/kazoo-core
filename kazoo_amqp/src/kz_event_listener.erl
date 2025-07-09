@@ -141,7 +141,6 @@ bindings('call_events') ->
                             ]
                }
               ,{'routing', <<"20">>}
-              ,'federate' %% reach out to all remote brokers as well
               ]
      }
     ];
