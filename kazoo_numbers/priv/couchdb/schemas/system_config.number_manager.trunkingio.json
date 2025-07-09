@@ -30,6 +30,11 @@
             "description": "Shared secret to authenticate system-level inbound hook from Trunking.io",
             "type": "string"
         },
+        "max_search_quantity": {
+            "default": 100,
+            "description": "Maximum search quantity allowed by Trunking.io",
+            "type": "integer"
+        },
         "messaging_api_url": {
             "default": "https://messaging.trunking.io/api",
             "description": "Ttrunkingio Messaging API Url",
