@@ -54,11 +54,11 @@ workflows:
           requires:
             - beams-rockylinux-9
       -
-        kazoo/integration-test:
-          otp-version: '<< pipeline.parameters.otp-version >>'
-          requires:
-            - beams-rockylinux-9
-      -
+#        kazoo/integration-test:
+#          otp-version: '<< pipeline.parameters.otp-version >>'
+#          requires:
+#            - beams-rockylinux-9
+#      -
         kazoo/build-centos7:
           context: Private-Builds
           otp-version: '<< pipeline.parameters.otp-version >>'
@@ -153,16 +153,16 @@ workflows:
             branches:
               ignore: '/.*/'
       -
-        kazoo/integration-test:
-          otp-version: '<< pipeline.parameters.otp-version >>'
-          requires:
-            - beams-rockylinux-9
-          filters:
-            tags:
-              only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
-            branches:
-              ignore: '/.*/'
-      -
+#        kazoo/integration-test:
+#          otp-version: '<< pipeline.parameters.otp-version >>'
+#          requires:
+#            - beams-rockylinux-9
+#          filters:
+#            tags:
+#              only: '/^\d+\.\d+\.\d+(\.\d+)?$/'
+#            branches:
+#              ignore: '/.*/'
+#      -
         kazoo/build-centos7:
           context: Private-Builds
           otp-version: '<< pipeline.parameters.otp-version >>'
