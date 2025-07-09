@@ -42,8 +42,6 @@
 -type handler() :: {module(), kazoo_bindings:responder_fun(), kazoo_bindings:payload()} |
                    kazoo_bindings:responder_fun().
 
--type payload() :: {'kapi', kapi:delivery_message(kz_json:object())}.
-
 %%------------------------------------------------------------------------------
 %% @doc Get the representation of a call event binding. Both `CallId' and
 %% `EventName' can be `<<"*">>' to match any value.
@@ -246,11 +244,8 @@ handle_async('presence'=EventType, JObj) ->
     BindingKey = binding_key(EventType, []),
     handle_async(BindingKey, JObj).
 
--spec send_event(bindings(), payload()) -> 'ok'.
-send_event(Bindings, Payload) ->
-    Pids = lists:usort([Pid || Binding <- Bindings,
-                               Pid <- gproc:lookup_pids({'p', 'l', Binding})
-                       ]),
+send_event(Binding, Payload) ->
+    Pids = gproc:lookup_pids({'p', 'l', Binding}),
     log(Pids, Payload),
     lists:foreach(fun(Pid) -> Pid ! Payload end, Pids).
 
