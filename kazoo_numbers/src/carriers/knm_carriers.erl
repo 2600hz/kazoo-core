@@ -29,6 +29,7 @@
         ,blocks/1
         ,account_id/1
         ,reseller_id/1
+        ,direct_reseller_id/1
 
         ,is_number_billable/1
         ,is_local/1
@@ -129,12 +130,9 @@ available_carriers(Options) ->
 
 -spec get_available_carriers(options()) -> kz_term:atoms().
 get_available_carriers(Options) ->
-    case account_id(Options) =:= 'undefined'
-        orelse reseller_id(Options) =:= 'undefined'
-    of
-        'true' -> keep_only_reachable(?CARRIER_MODULES);
-        'false' ->
-            ResellerId = reseller_id(Options),
+    case direct_reseller_id(Options) of
+        'undefined' -> keep_only_reachable(?CARRIER_MODULES);
+        ResellerId ->
             First = [?CARRIER_RESERVED, ?CARRIER_RESERVED_RESELLER, ?CARRIER_LOCAL],
             keep_only_reachable(First ++ (?CARRIER_MODULES(ResellerId) -- First))
     end.
@@ -342,6 +340,14 @@ account_id(Options) ->
 -spec reseller_id(options()) -> kz_term:api_ne_binary().
 reseller_id(Options) ->
     props:get_value('reseller_id', Options).
+
+-spec direct_reseller_id(options()) -> kz_term:api_ne_binary().
+direct_reseller_id(Options) ->
+    AccountId = account_id(Options),
+    case kz_services_reseller:is_reseller(AccountId) of
+        'true' -> AccountId;
+        'false' -> reseller_id(Options)
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Returns whether carrier handles numbers local to the system.

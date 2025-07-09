@@ -34,8 +34,6 @@
         ,query_id/1
         ,account_id/1
         ,reseller_id/1
-        ,is_reseller/1
-        ,auth_token/1
         ]).
 
 -include("knm.hrl").
@@ -233,8 +231,6 @@ do_find(Options, 'false') ->
               ,{<<"Quantity">>, quantity(Options)}
               ,{<<"Offset">>, offset(Options)}
               ,{<<"Account-ID">>, account_id(Options)}
-              ,{<<"Auth-Token">>, auth_token(Options)}
-              ,{<<"Is-Reseller">>, is_reseller(Options)}
               ,{<<"Reseller-ID">>, reseller_id(Options)}
               ,{<<"Msg-ID">>, kz_log:get_callid()}
               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
@@ -454,14 +450,6 @@ account_id(Options) ->
 reseller_id(Options) ->
     props:get_ne_binary_value('reseller_id', Options).
 
--spec is_reseller(options()) -> kz_term:api_boolean().
-is_reseller(Options) ->
-    props:get_value('is_reseller', Options).
-
--spec auth_token(options()) -> kz_term:api_ne_binary().
-auth_token(Options) ->
-    props:get_ne_binary_value('auth_token', Options).
-
 -spec is_local(kz_term:ne_binary()) -> boolean().
 is_local(QID) ->
     ets:match_object(?ETS_DISCOVERY_CACHE, {QID, '_'}) =/= [].
@@ -550,6 +538,7 @@ handle_search(JObj, 'true') ->
               ,{'prefix', Prefix}
               ,{'offset', Offset}
               ,{'account_id', AccountId}
+              ,{'reseller_id', kapi_discovery:reseller_id(JObj)}
               ,{'query_id', QID}
               ],
     Results = find(Options),
