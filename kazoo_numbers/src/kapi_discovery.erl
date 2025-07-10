@@ -30,6 +30,7 @@
         ,results/1
         ,prefix/1
         ,number/1
+        ,reseller_id/1
         ]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -40,6 +41,7 @@
 -define(KEY_RESULTS, <<"Results">>).
 -define(KEY_PREFIX, <<"Prefix">>).
 -define(KEY_NUMBER, <<"Number">>).
+-define(KEY_RESELLER_ID, <<"Reseller-ID">>).
 
 -define(DISCOVERY_EXCHANGE, <<"discovery">>).
 -define(DISCOVERY_EXCHANGE_TYPE, <<"topic">>).
@@ -64,9 +66,7 @@
                                ,?KEY_OFFSET, ?KEY_QUANTITY
                                ]).
 -define(DISCOVERY_REQ_OPTIONAL_HEADERS, [<<"Account-ID">>
-                                        ,<<"Auth-Token">>
-                                        ,<<"Is-Reseller">>
-                                        ,<<"Reseller-ID">>
+                                        ,?KEY_RESELLER_ID
                                         ]).
 -define(DISCOVERY_REQ_VALUES, [{<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY}
                               ,{<<"Event-Name">>, ?DISCOVERY_REQ_EVENT_NAME}
@@ -75,9 +75,7 @@
                              ,{?KEY_OFFSET, fun is_integer/1}
                              ,{?KEY_QUANTITY, fun is_integer/1}
                              ,{<<"Account-ID">>, fun is_binary/1}
-                             ,{<<"Auth-Token">>, fun is_binary/1}
-                             ,{<<"Is-Reseller">>, fun is_boolean/1}
-                             ,{<<"Reseller-ID">>, fun is_binary/1}
+                             ,{?KEY_RESELLER_ID, fun is_binary/1}
                              ]).
 
 %% Number Request
@@ -251,6 +249,10 @@ quantity(JObj) ->
 -spec offset(kz_json:object()) -> integer().
 offset(JObj) ->
     kz_json:get_integer_value(?KEY_OFFSET, JObj).
+
+-spec reseller_id(kz_json:object()) -> kz_term:api_ne_binary().
+reseller_id(JObj) ->
+    kz_json:get_ne_binary_value(?KEY_RESELLER_ID, JObj).
 
 -spec results(kz_json:object()) -> kz_term:api_objects() | kz_json:object().
 results(JObj) ->
