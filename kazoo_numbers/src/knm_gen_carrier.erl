@@ -50,6 +50,10 @@
 
 -callback route_outbound_im(kz_json:object()) -> 'ok' | {'error', any()}.
 
+%% Inbound API requests/webhooks from carrier callbacks
+-callback authenticate_req(Payload::kz_json:object(), Headers::cowboy:http_headers(), AccountId::kz_term:api_ne_binary()) -> boolean().
+-callback validate_im(Payload::kz_json:object()) -> {'ok', kz_json:object()} | {'error', any()}.
+
 %% make optional callbacks, optional
 
 -optional_callbacks([configuration/0
@@ -57,6 +61,9 @@
 
                     ,acquire_number/2
                     ,disconnect_number/2
+
+                    ,authenticate_req/3
+                    ,validate_im/1
                     ]).
 
 -type carrier() :: kz_term:api_ne_binary() | knm_phone_number:pn_record().
