@@ -630,7 +630,7 @@ set_list_string(Category, Key, Values) ->
 -spec set_list_string_append(config_category(), config_key(), kz_term:text()) -> set_return().
 set_list_string_append(Category, Key, Value) ->
     Existing = get(Category, Key, []),
-    set(Category, Key, Existing ++ [kz_term:to_binary(Value)]).
+    set(Category, Key, lists:uniq(Existing ++ [kz_term:to_binary(Value)])).
 
 -spec set_list_string_remove(config_category(), config_key(), kz_term:text()) -> set_return().
 set_list_string_remove(Category, Key, Value) ->
