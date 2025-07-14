@@ -3,6 +3,41 @@
     "_id": "system_config.number_manager",
     "description": "Schema for number_manager system_config",
     "properties": {
+        "all_available_carrier_modules": {
+            "default": [
+                "knm_bandwidth",
+                "knm_bandwidth2",
+                "knm_didww",
+                "knm_flowroute",
+                "knm_inteliquent",
+                "knm_inum",
+                "knm_inventory",
+                "knm_it_vocal",
+                "knm_level3",
+                "knm_local",
+                "knm_managed",
+                "knm_mdn",
+                "knm_o1",
+                "knm_other",
+                "knm_peerless",
+                "knm_reserved",
+                "knm_reserved_reseller",
+                "knm_simwood",
+                "knm_telnyx",
+                "knm_thinq",
+                "knm_verizon",
+                "knm_vitelity",
+                "knm_voip_innovations",
+                "knm_voxbone",
+                "knm_windstream",
+                "knm_ziron"
+            ],
+            "description": "All available carrier modules on the system, for sysadmin to choose when adding/importing add-hoc numbers",
+            "items": {
+                "type": "string"
+            },
+            "type": "array"
+        },
         "allow_port_transition_from_submitted_to_scheduled": {
             "default": false,
             "description": "should number ports be allowed to transition from submitted to scheduled?",
