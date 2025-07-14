@@ -338,18 +338,27 @@ blocks(Options) ->
 
 -spec account_id(options()) -> kz_term:api_ne_binary().
 account_id(Options) ->
-    props:get_value('account_id', Options).
+    props:get_ne_binary_value('account_id', Options).
 
 -spec reseller_id(options()) -> kz_term:api_ne_binary().
 reseller_id(Options) ->
-    props:get_value('reseller_id', Options).
+    props:get_ne_binary_value('reseller_id', Options).
 
 -spec direct_reseller_id(options()) -> kz_term:api_ne_binary().
 direct_reseller_id(Options) ->
-    AccountId = account_id(Options),
-    case kz_services_reseller:is_reseller(AccountId) of
-        'true' -> AccountId;
-        'false' -> reseller_id(Options)
+    case {account_id(Options), reseller_id(Options)} of
+        {'undefined', 'undefined'} -> 'undefined';
+        {'undefined', ResellerId} -> ResellerId;
+        {AccountId, 'undefined'} ->
+            case kz_services_reseller:is_reseller(AccountId) of
+                'true' -> AccountId;
+                'false' -> kz_services_reseller:get_id(AccountId)
+            end;
+        {AccountId, ResellerId} ->
+            case kz_services_reseller:is_reseller(AccountId) of
+                'true' -> AccountId;
+                'false' -> ResellerId
+            end
     end.
 
 %%------------------------------------------------------------------------------
