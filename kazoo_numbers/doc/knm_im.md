@@ -59,4 +59,4 @@ For example:
 
 ## See also
 
-- IM feature in [Trunking.io Carrier](./knm_trunkingio.md)
+- IM feature in [Trunking.io Carrier](https://docs.2600hz.com/git/2600hz/kazoo-core/kazoo_numbers/doc/knm_trunkingio.md)
