@@ -40,9 +40,7 @@ put_attachment(Settings, DbName, DocId, AName, Contents, Options) ->
 
     {Container, Name} = resolve_path(Settings, {DbName, DocId, AName}),
     AzState = azure_state(Settings),
-    AzureOptions = [{'content_type', kz_term:to_list(CT)}
-                   ,'return_headers'
-                   ],
+    AzureOptions = [{'content_type', kz_term:to_list(CT)}],
     Url = lists:concat([Container, "/", Name]),
     Routines = [{fun kz_att_error:set_req_url/2, Url}
                | kz_att_error:put_routines(Settings, DbName, DocId, AName, Contents, Options)
