@@ -2196,7 +2196,7 @@ api_definition(TemplateId) ->
 find_other_api_definition(TemplateId) ->
     Definition  = kapi_definition:api_definition(<<"notifications">>, TemplateId),
     Found = Definition =/= 'undefined',
-    lager:debug("asked around for api definition of template ~s, found: ", [Found]),
+    lager:debug("asked around for api definition of template ~s, found: ~s", [TemplateId, Found]),
     Definition.
 
 -spec find_other_api_definitions() -> kapi_definition:apis() | [].
@@ -3671,14 +3671,20 @@ publish_email_verification(API, ContentType) ->
 
 -spec find_publisher(kz_term:ne_binary()) -> [kapi_definition:publish_fun()] | kapi_definition:publish_fun() | 'undefined'.
 find_publisher(TemplateId) ->
-    case api_definition(TemplateId) of
-        'undefined' ->
-            [PubFun
-             || PubFun <- kazoo_bindings:map(binding_kapi_publisher(TemplateId), [TemplateId]),
-                is_callable(PubFun)
-            ];
+    try api_definition(TemplateId) of
+        [] ->
+            case [PubFun
+                  || PubFun <- kazoo_bindings:map(binding_kapi_publisher(TemplateId), [TemplateId]),
+                     is_callable(PubFun)
+                 ]
+            of
+                [] -> 'undefined';
+                [Fun|_] -> Fun
+            end;
         Api ->
             kapi_definition:publish_fun(Api)
+    catch
+        _T:_E:_ST -> 'undefined'
     end.
 
 -spec is_callable({module(), atom()} | fun((kz_term:api_terms()) -> 'ok') | any()) -> boolean().
