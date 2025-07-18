@@ -190,9 +190,10 @@ to_json('assign_failure', _, Cause) ->
 to_json(Reason='invalid', _, Cause) ->
     Message = <<"invalid">>,
     build_error(400, Reason, Message, Cause);
-to_json('by_carrier', Num, {_Carrier,_Cause}) ->
-    lager:error("carrier ~s fault: ~p", [_Carrier, _Cause]),
-    build_error(500, 'unspecified_fault', <<"fault by carrier">>, Num);
+to_json('by_carrier', Num, {_Carrier, Cause}) ->
+    lager:error("carrier ~s fault: ~p", [_Carrier, Cause]),
+    Error = kz_term:safe_cast(Cause, <<"unknown">>, fun kz_term:to_binary/1),
+    build_error(500, 'unspecified_fault', <<"fault by carrier: ", Error/binary>>, Num);
 to_json('not_enough_credit', AccountId, Reason) ->
     Message = io_lib:format("account ~s does not have enough credit to perform the operation"
                            ,[AccountId]

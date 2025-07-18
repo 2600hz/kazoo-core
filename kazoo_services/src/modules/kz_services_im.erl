@@ -51,11 +51,42 @@ fetch(?NE_BINARY=AccountId) ->
             Plan
     end;
 fetch(Services) ->
+    {AccountIM, AccountCaches} = merge_plans(Services),
+    MergeFromReseller = kapps_config:is_true(?IM_CONFIG_CAT, <<"merge_plan_from_reseller">>, 'false'),
+    case kz_services_reseller:is_reseller(Services)
+        andalso MergeFromReseller
+    of
+        'true' ->
+            cache(kz_services:account_id(Services), AccountCaches, AccountIM);
+        'false' ->
+            ResellerIM = reseller_fetch(kz_services_reseller:get_id(Services)),
+            MergeIM = kz_json:merge(ResellerIM, AccountIM),
+            cache(kz_services:account_id(Services), AccountCaches, MergeIM)
+    end.
+
+-spec reseller_fetch(kz_services:services() | kz_term:api_ne_binary()) -> kz_json:object().
+reseller_fetch('undefined') ->
+    kz_json:new();
+reseller_fetch(?NE_BINARY=AccountId) ->
+    case cache(AccountId) of
+        'not_found' ->
+            FetchOptions = ['hydrate_plans'],
+            Services = kz_services:fetch(AccountId, FetchOptions),
+            reseller_fetch(Services);
+        Plan ->
+            Plan
+    end;
+reseller_fetch(Services) ->
+    {AccountIM, AccountCaches} = merge_plans(Services),
+    cache(kz_services:account_id(Services), AccountCaches, AccountIM).
+
+-spec merge_plans(kz_services:services()) -> {kz_json:object(), list()}.
+merge_plans(Services) ->
     {IMDict, Caches} = kz_services_plans:foldl(fun fetch_foldl/3
                                               ,{dict:new(), []}
                                               ,kz_services:plans(Services)
                                               ),
-    cache(kz_services:account_id(Services), Caches, kz_json:from_list(dict:to_list(IMDict))).
+    {kz_json:from_list(dict:to_list(IMDict)), Caches}.
 
 %%------------------------------------------------------------------------------
 %% @doc

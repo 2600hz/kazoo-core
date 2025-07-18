@@ -25,7 +25,7 @@
 -callback should_lookup_cnam() ->
     boolean().
 
--callback is_number_billable(knm_phone_number:pn_record()) ->
+-callback is_number_billable(knm_phone_number:pn_record() | kz_term:ne_binary()) ->
     boolean().
 
 -callback is_local() ->

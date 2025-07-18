@@ -72,6 +72,7 @@
                         {'force_outbound', boolean()} |
                         {'inbound_cnam', boolean()} |
                         {'local', boolean()} |
+                        {'module_name', kz_term:ne_binary()} |
                         {'number', kz_term:ne_binary()} | %%api
                         {'pending_port', boolean()} |
                         {'prepend', kz_term:api_binary()} | %%|false

@@ -353,6 +353,7 @@ check_account(PN) ->
         'true' ->
             Props = [{'pending_port', knm_phone_number:state(PN) =:= ?NUMBER_STATE_PORT_IN}
                     ,{'local', knm_phone_number:module_name(PN) =:= ?CARRIER_LOCAL}
+                    ,{'module_name', knm_phone_number:module_name(PN)}
                     ,{'number', knm_phone_number:number(PN)}
                     ,{'account_id', AssignedTo}
                     ,{'prepend', knm_lib:feature_prepend(PN)}

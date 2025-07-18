@@ -128,7 +128,7 @@ check_numbers(Numbers) ->
 %% in a rate center
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record() | kz_term:ne_binary()) -> boolean().
 is_number_billable(_PN) -> 'true'.
 
 %%------------------------------------------------------------------------------

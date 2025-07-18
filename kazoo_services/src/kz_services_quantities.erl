@@ -559,9 +559,19 @@ calculate_phone_numbers_updates(JObj, Updates) ->
     Number = kz_doc:id(JObj),
     Classification = knm_converters:classify(Number),
     Key = [<<"phone_numbers">>, Classification],
-    case kz_json:get_value([<<"pvt_features">>, <<"local">>], JObj) =:= 'undefined' of
+    case phone_number_is_unbillable(JObj) of
         'false' -> Updates;
         'true' -> [{Key, 1} | Updates]
+    end.
+
+-spec phone_number_is_unbillable(kz_json:object()) -> boolean().
+phone_number_is_unbillable(JObj) ->
+    Number = kz_doc:id(JObj),
+    case kz_json:get_ne_binary_value(<<"pvt_module_name">>, JObj) of
+        'undefined' ->
+            not kz_json:is_defined([kzd_phone_numbers:pvt_features_path(), <<"local">>], JObj);
+        Carrier ->
+            knm_carriers:is_number_billable(Number, Carrier)
     end.
 
 -spec calculate_number_carriers_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
