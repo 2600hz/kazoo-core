@@ -183,7 +183,8 @@
                              #'queue.bind_ok'{} | #'queue.unbind_ok'{} |
                              #'basic.consume_ok'{} |
                              #'confirm.select_ok'{} |
-                             #'basic.cancel_ok'{}.
+                             #'basic.cancel_ok'{} |
+                             #'channel.flow_ok'{}.
 -type command_ret() :: 'ok' |
                        {'ok', kz_term:ne_binary() | kz_command_ret_ok()} |
                        kz_command_ret_ok() |
