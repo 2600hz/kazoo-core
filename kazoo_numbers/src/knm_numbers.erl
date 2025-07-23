@@ -241,11 +241,17 @@ account_listing(<<Account/binary>>) ->
 %% its carrier module.
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(kz_term:ne_binary()) -> boolean().
-is_number_billable(Number) ->
+-spec is_number_billable(kz_term:ne_binary() | kz_json:object()) -> boolean().
+is_number_billable(<<Number/binary>>) ->
     case knm_phone_number:fetch(Number) of
         {'ok', PN} -> knm_carriers:is_number_billable(PN);
         {'error', _Reason} -> 'true'
+    end;
+is_number_billable(JObj) ->
+    case kz_json:is_json_object(JObj) of
+        'true' ->
+            knm_carriers:is_number_billable(knm_phone_number:from_json_with_options(JObj, []));
+        'false' -> 'true'
     end.
 
 %%------------------------------------------------------------------------------
