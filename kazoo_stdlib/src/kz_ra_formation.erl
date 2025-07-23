@@ -39,7 +39,27 @@
 -spec start_link(start_link_options()) -> kz_types:startlink_ret().
 start_link(Options)
   when is_map(Options) ->
+    true = ensure_ra(),
     gen_server:start_link({'local', server_name(Options)}, ?MODULE, Options, []).
+
+ensure_ra() ->
+    case application:ensure_all_started([ra]) of
+        {ok, _Apps} -> ensure_ra_default_system();
+        _ -> false
+    end.
+
+ensure_ra_default_system() ->
+    case ra:overview() of
+        system_not_started ->
+            StartResult = catch(ra_system:start_default()),
+            handle_ra_default_start_result(StartResult);
+        _Other -> true
+    end.
+
+handle_ra_default_start_result({ok, Pid}) -> is_pid(Pid);
+handle_ra_default_start_result({ok, Pid, _}) -> is_pid(Pid);
+handle_ra_default_start_result({error, {already_started, _Pid}}) -> true;
+handle_ra_default_start_result(_) -> false.
 
 -spec init(start_link_options()) -> {'ok', state()}.
 init(Options) ->
@@ -176,12 +196,25 @@ do_ra_system_start(Context) ->
     Context#{ra_started => 'true'}.
 
 ra_system_config(Context) ->
-    ra_config(Context, ra_system:default_config()).
+    Routines = [fun ra_config_set_name/2
+               ,fun ra_config_set_names/2
+               ,fun ra_config_set_datadir/2
+               ],
+    lists:foldl(fun(Fun, Acc) -> Fun(Context, Acc) end, ra_system:default_config(), Routines).
 
-ra_config(Context, Config) ->
-    Config#{name => ra_system(Context)
-           ,names => ra_system:derive_names(ra_system(Context))
-           }.
+ra_config_set_name(Context, Config) ->
+    maps:put(name, ra_system(Context), Config).
+
+ra_config_set_names(Context, Config) ->
+    maps:put(names, ra_system:derive_names(ra_system(Context)), Config).
+
+ra_config_set_datadir(#{ra_derive_datadir := true} = Context, #{data_dir := DataDir, wal_data_dir := WalDataDir} = Config) ->
+    Folder = ra_lib:to_list(ra_system(Context)),
+    Config#{data_dir => filename:join(DataDir, Folder)
+           ,wal_data_dir => filename:join(WalDataDir, Folder)
+           };
+ra_config_set_datadir(_Context, Config) ->
+    Config.
 
 pg_join(#{joined := 'true'} = Context) -> Context;
 pg_join(Context) ->
@@ -429,7 +462,8 @@ tick_timeout(_) -> ?TICK_INTERVAL.
 ra_machine(#{ra_machine := Machine} = Context) ->
     {'module', Machine, ra_machine_config(Context)}.
 
-ra_machine_config(Context) -> #{store_id => ra_name(Context)}.
+ra_machine_config(Context) ->
+    maps:get(ra_machine_args, Context, maps:new()).
 
 server(Name) ->
     erlang:whereis(server_name(Name)).
