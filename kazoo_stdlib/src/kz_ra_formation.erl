@@ -192,8 +192,17 @@ ra_system_start(Context) ->
 do_ra_system_start(Context) ->
     lager:info("starting ra system ~s", [ra_system(Context)]),
     RASystemConfig = ra_system_config(Context),
-    {'ok', _RaSystemPid} = ra_system:start(RASystemConfig),
-    Context#{ra_started => 'true'}.
+    handle_ra_system_start(Context, catch(ra_system:start(RASystemConfig))).
+
+handle_ra_system_start(Context, {ok, _RaSystemPid}) ->
+    Context#{ra_started => 'true'};
+handle_ra_system_start(Context, {ok, _RaSystemPid, _}) ->
+    Context#{ra_started => 'true'};
+handle_ra_system_start(Context, {error, {'already_started', _RaSystemPid}}) ->
+    Context#{ra_started => 'true'};
+handle_ra_system_start(Context, _Other) ->
+    lager:warning("unpectted return trying to start ra ~s system => ~p", [ra_system(Context), _Other]),
+    Context.
 
 ra_system_config(Context) ->
     Routines = [fun ra_config_set_name/2
