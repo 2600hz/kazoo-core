@@ -91,6 +91,8 @@
                               {'reduce', boolean()} |
                               {'skip', integer()} |
                               {'stale', stale()} |
+                              {'stable', boolean()} |
+                              {'update', boolean()} |
                               {'start_docid', binary()} |
                               {'startkey', key_range()}.
 
