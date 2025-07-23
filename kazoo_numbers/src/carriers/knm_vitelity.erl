@@ -109,7 +109,7 @@ should_lookup_cnam() ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:pn_record() | kz_term:ne_binary()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(_) -> 'true'.
 
 %%%=============================================================================

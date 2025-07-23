@@ -32,6 +32,7 @@
         ,free/1
         ,validate_ownership/2
         ,cache_key/1
+        ,is_number_billable/1
         ]).
 
 -include("knm.hrl").
@@ -233,6 +234,18 @@ account_listing(<<Account/binary>>) ->
             lager:error("error listing numbers for ~s: ~p", [AccountDb, R]),
             %% FIXME: why throw?
             throw(R)
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Given a Number, finds out if it is a billable number or not by calling
+%% its carrier module.
+%% @end
+%%------------------------------------------------------------------------------
+-spec is_number_billable(kz_term:ne_binary()) -> boolean().
+is_number_billable(Number) ->
+    case knm_phone_number:fetch(Number) of
+        {'ok', PN} -> knm_carriers:is_number_billable(PN);
+        {'error', _Reason} -> 'true'
     end.
 
 %%------------------------------------------------------------------------------

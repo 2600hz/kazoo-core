@@ -31,7 +31,7 @@
         ,reseller_id/1
         ,direct_reseller_id/1
 
-        ,is_number_billable/1, is_number_billable/2
+        ,is_number_billable/1
         ,is_local/1
         ]).
 
@@ -365,17 +365,10 @@ direct_reseller_id(Options) ->
 %% @doc Returns whether carrier handles numbers local to the system.
 %% @end
 %%------------------------------------------------------------------------------
--spec is_number_billable(knm_phone_number:pn_record() | kz_term:ne_binary()) -> boolean().
+-spec is_number_billable(knm_phone_number:pn_record()) -> boolean().
 is_number_billable(PN) ->
     Carrier = knm_phone_number:module_name(PN),
     try apply(Carrier, 'is_number_billable', [PN])
-    catch
-        'error':_R -> 'true'
-    end.
-
--spec is_number_billable(kz_term:ne_binary(), kz_term:ne_binary() | module()) -> boolean().
-is_number_billable(Number, Carrier) ->
-    try apply(kz_term:to_atom(Carrier), 'is_number_billable', [Number])
     catch
         'error':_R -> 'true'
     end.
