@@ -566,10 +566,7 @@ calculate_phone_numbers_updates(JObj, Updates) ->
 
 -spec phone_number_is_billable(kz_json:object()) -> boolean().
 phone_number_is_billable(JObj) ->
-    case kz_json:is_defined([kzd_phone_numbers:pvt_features_path(), <<"local">>], JObj) of
-        'true' -> 'false';
-        'false' -> knm_numbers:is_number_billable(JObj)
-    end.
+    knm_numbers:is_number_billable(JObj).
 
 -spec calculate_number_carriers_updates(kz_json:object(), kz_term:proplist()) -> kz_term:proplist().
 calculate_number_carriers_updates(JObj, Updates) ->
