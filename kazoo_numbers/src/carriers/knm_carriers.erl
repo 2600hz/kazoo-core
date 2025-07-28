@@ -51,6 +51,36 @@
 
 -define(DEFAULT_CARRIER_MODULES, [?DEFAULT_CARRIER_MODULE]).
 
+-define(AVAILABLE_CARRIER_MODULES
+       ,[<<"knm_bandwidth">>
+        ,<<"knm_bandwidth2">>
+        ,<<"knm_didww">>
+        ,<<"knm_flowroute">>
+        ,<<"knm_inteliquent">>
+        ,<<"knm_inum">>
+        ,<<"knm_inventory">>
+        ,<<"knm_it_vocal">>
+        ,<<"knm_level3">>
+        ,<<"knm_local">>
+        ,<<"knm_managed">>
+        ,<<"knm_mdn">>
+        ,<<"knm_o1">>
+        ,<<"knm_other">>
+        ,<<"knm_peerless">>
+        ,<<"knm_reserved">>
+        ,<<"knm_reserved_reseller">>
+        ,<<"knm_simwood">>
+        ,<<"knm_telnyx">>
+        ,<<"knm_thinq">>
+        ,<<"knm_verizon">>
+        ,<<"knm_vitelity">>
+        ,<<"knm_voip_innovations">>
+        ,<<"knm_voxbone">>
+        ,<<"knm_windstream">>
+        ,<<"knm_ziron">>
+        ]
+       ).
+
 -ifdef(TEST).
 %% TODO: write testable code so we don't depend on passing these
 %% for testing
@@ -151,34 +181,7 @@ default_carrier() ->
 %%------------------------------------------------------------------------------
 -spec all_modules() -> kz_term:ne_binaries().
 all_modules() ->
-    [<<"knm_trunkingio">>
-    ,<<"knm_bandwidth2">>
-    ,<<"knm_bandwidth">>
-    ,<<"knm_inum">>
-    ,<<"knm_local">>
-    ,<<"knm_inventory">>
-    ,<<"knm_managed">>
-    ,<<"knm_mdn">>
-    ,<<"knm_other">>
-    ,<<"knm_reserved">>
-    ,<<"knm_reserved_reseller">>
-    ,<<"knm_simwood">>
-    ,<<"knm_telnyx">>
-    ,<<"knm_vitelity">>
-    ,<<"knm_voip_innovations">>
-    ,<<"knm_voxbone">>
-    ,<<"knm_didww">>
-    ,<<"knm_flowroute">>
-    ,<<"knm_inteliquent">>
-    ,<<"knm_it_vocal">>
-    ,<<"knm_level3">>
-    ,<<"knm_o1">>
-    ,<<"knm_peerless">>
-    ,<<"knm_thinq">>
-    ,<<"knm_verizon">>
-    ,<<"knm_windstream">>
-    ,<<"knm_ziron">>
-    ].
+    kapps_config:get_ne_binaries(?KNM_CONFIG_CAT, <<"all_available_carrier_modules">>, ?AVAILABLE_CARRIER_MODULES).
 
 %%------------------------------------------------------------------------------
 %% @doc Get information on the available carriers
@@ -335,18 +338,27 @@ blocks(Options) ->
 
 -spec account_id(options()) -> kz_term:api_ne_binary().
 account_id(Options) ->
-    props:get_value('account_id', Options).
+    props:get_ne_binary_value('account_id', Options).
 
 -spec reseller_id(options()) -> kz_term:api_ne_binary().
 reseller_id(Options) ->
-    props:get_value('reseller_id', Options).
+    props:get_ne_binary_value('reseller_id', Options).
 
 -spec direct_reseller_id(options()) -> kz_term:api_ne_binary().
 direct_reseller_id(Options) ->
-    AccountId = account_id(Options),
-    case kz_services_reseller:is_reseller(AccountId) of
-        'true' -> AccountId;
-        'false' -> reseller_id(Options)
+    case {account_id(Options), reseller_id(Options)} of
+        {'undefined', 'undefined'} -> 'undefined';
+        {'undefined', ResellerId} -> ResellerId;
+        {AccountId, 'undefined'} ->
+            case kz_services_reseller:is_reseller(AccountId) of
+                'true' -> AccountId;
+                'false' -> kz_services_reseller:get_id(AccountId)
+            end;
+        {AccountId, ResellerId} ->
+            case kz_services_reseller:is_reseller(AccountId) of
+                'true' -> AccountId;
+                'false' -> ResellerId
+            end
     end.
 
 %%------------------------------------------------------------------------------
