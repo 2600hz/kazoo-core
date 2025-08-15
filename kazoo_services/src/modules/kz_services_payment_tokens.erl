@@ -146,7 +146,6 @@ ensure_payment_defaults(?NE_BINARY = Bookkeeper, Token) ->
     Defaults = [{<<"bookkeeper">>, Bookkeeper}
                ,{<<"created">>, kz_time:now_s()}
                ,{<<"default">>, 'false'}
-               ,{<<"expiration">>, kz_time:now_s()}
                ,{<<"id">>, kz_binary:rand_hex(5)}
                ,{<<"modified">>, kz_time:now_s()}
                ],
