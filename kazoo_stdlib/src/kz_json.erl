@@ -1511,8 +1511,8 @@ get_value_type(Key, ValueTypeFun, JObj) ->
 get_value_type(Key, ValueTypeFun, JObj, Default) ->
     Value = get_value(Key, JObj),
     case ValueTypeFun(Value) of
-        'true' -> Default;
-        'false' -> Value
+        'true' -> Value;
+        'false' -> Default
     end.
 
 %%------------------------------------------------------------------------------
