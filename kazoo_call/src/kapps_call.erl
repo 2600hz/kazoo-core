@@ -543,7 +543,21 @@ find_account_info(OldId, OldDb, _AccountId) ->
 -spec merge(kz_json:object(), kz_term:api_object()) -> kz_json:object().
 merge(OldJObj, 'undefined') -> OldJObj;
 merge(OldJObj, JObj) ->
-    kz_json:merge(OldJObj, JObj).
+    kz_json:merge(OldJObj, fix_ccvs(JObj)).
+
+fix_ccvs(JObj) ->
+    kz_json:map(fun fix_ccv/2, JObj).
+
+fix_ccv(<<"Require-Fail-On-Single-Reject">>, Value)
+  when is_binary(Value) ->
+    {<<"Require-Fail-On-Single-Reject">>, fix_ccv_value_require_fail_on_single_reject(Value)};
+fix_ccv(K, V) -> {K, V}.
+
+fix_ccv_value_require_fail_on_single_reject(Value) ->
+    case kz_term:is_boolean(Value) of
+        true -> kz_term:to_boolean(Value);
+        false -> binary:split(Value, <<"^">>, [global])
+    end.
 
 -spec from_originate_uuid(kz_json:object()) -> call().
 from_originate_uuid(JObj) ->
