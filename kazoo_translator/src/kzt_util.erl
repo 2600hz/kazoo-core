@@ -121,7 +121,7 @@ resolve_action_uri(_Other) ->
 %% Try to match cf_resources as much as possible.
 %% Preserve code style for quick eyeballing.
 -spec offnet_req(kz_term:proplist(), kz_term:proplist(), kapps_call:call()) -> 'ok'.
-offnet_req(_Data, OffnetProps, Call) ->
+offnet_req(Data, OffnetProps, Call) ->
     {ECIDNum, ECIDName} = kz_attributes:caller_id(<<"emergency">>, Call),
 
     %% {AssertedNumber, AssertedName, AssertedRealm} =
@@ -147,13 +147,12 @@ offnet_req(_Data, OffnetProps, Call) ->
              %% ,{?KEY_REQUESTOR_CSHS, kapps_call:custom_sip_headers(Call)}
             ,{?KEY_E_CALLER_ID_NAME, ECIDName}
             ,{?KEY_E_CALLER_ID_NUMBER, ECIDNum}
-             %% ,{?KEY_FLAGS, get_flags(Data, Call)}
-            ,{?KEY_FLAGS, kz_attributes:get_flags(?APP_NAME, Call)}
+            ,{?KEY_FLAGS, get_flags(Data, Call)}
             ,{?KEY_FORMAT_FROM_URI, 'false'}
              %% ,{?KEY_FORMAT_FROM_URI, kz_json:is_true(<<"format_from_uri">>, Data)}
              %% ,{?KEY_FROM_URI_REALM, get_from_uri_realm(Data, Call)}
             ,{?KEY_FROM_URI_REALM, maybe_get_call_from_realm(Call)}
-             %% ,{?KEY_HUNT_ACCOUNT_ID, get_hunt_account_id(Data, Call)}
+            ,{?KEY_HUNT_ACCOUNT_ID, get_hunt_account_id(Data, Call)}
              %% ,{?KEY_IGNORE_EARLY_MEDIA, get_ignore_early_media(Data)}
             ,{?KEY_IGNORE_EARLY_MEDIA, 'false'}
             ,{?KEY_INCEPTION, get_inception(Call)}
@@ -182,6 +181,33 @@ offnet_req(_Data, OffnetProps, Call) ->
             ] ++ OffnetProps),
 
     kz_amqp_worker:cast(Req, fun kapi_offnet_resource:publish_req/1).
+
+-spec get_flags(kz_term:proplist(), kapps_call:call()) -> kz_term:api_binaries().
+get_flags(Data, Call) ->
+    DefaultFlags = kz_attributes:get_flags(?APP_NAME, Call),
+    case props:get_value('outboundFlags', Data, []) of
+        [] -> DefaultFlags;
+        Flags when is_list(Flags) ->
+            lists:uniq(DefaultFlags ++ [Flag || Flag <- Flags, kz_term:is_ne_binary(Flag)]);
+        _ ->
+            DefaultFlags
+    end.
+
+-spec get_hunt_account_id(kz_term:proplist(), kapps_call:call()) -> kz_term:api_binary().
+get_hunt_account_id(Data, Call) ->
+    case props:is_true('useLocalResources', Data, kapps_call:should_use_local_resources(Call)) of
+        'false' -> 'undefined';
+        'true' ->
+            AccountId = default_hunt_account_id(Call),
+            props:get_ne_binary_value('huntAccountId', Data, AccountId)
+    end.
+
+-spec default_hunt_account_id(kapps_call:call()) -> kz_term:api_binary().
+default_hunt_account_id(Call) ->
+    case kapps_call:hunt_account_id(Call) of
+        'undefined' -> kapps_call:account_id(Call);
+        AccountId -> AccountId
+    end.
 
 -spec maybe_get_call_from_realm(kapps_call:call()) -> kz_term:api_ne_binary().
 maybe_get_call_from_realm(Call) ->

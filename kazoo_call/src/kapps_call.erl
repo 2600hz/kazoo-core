@@ -178,6 +178,8 @@
         ,set_presence_alias/2, set_presence_aliases/2
         ]).
 
+-export([hunt_account_id/1, should_use_local_resources/1]).
+
 -ifdef(TEST).
 -export([eq/2]).
 -export([updateable_ccvs/2]).
@@ -555,8 +557,8 @@ fix_ccv(K, V) -> {K, V}.
 
 fix_ccv_value_require_fail_on_single_reject(Value) ->
     case kz_term:is_boolean(Value) of
-        true -> kz_term:to_boolean(Value);
-        false -> binary:split(Value, <<"^">>, [global])
+        'true' -> kz_term:to_boolean(Value);
+        'false' -> binary:split(Value, <<"^">>, ['global'])
     end.
 
 -spec from_originate_uuid(kz_json:object()) -> call().
@@ -2224,8 +2226,8 @@ routing_context_cfwd_from_endpoint_id(Call, Props) ->
     case kz_json:is_true(<<"Retain-CID">>, CCVs)
         andalso kz_json:get_ne_binary_value(<<"Call-Forward-Inbound-Endpoint-ID">>, CCVs)
     of
-        false -> Props;
-        undefined -> Props;
+        'false' -> Props;
+        'undefined' -> Props;
         Cfwd -> [{<<"forward_inbound_endpoint_id">>, Cfwd} | Props]
     end.
 
@@ -2333,3 +2335,17 @@ should_add_diversion_header(Call) ->
     is_call_forward(Call)
         andalso kz_term:is_not_empty(diversion_number(Call))
         andalso kz_app_config:is_true({<<"kazoo_endpoint">>, account_id(Call)}, <<"should_add_diversion_header">>).
+
+-spec hunt_account_id(kz_term:api_ne_binary() | call()) -> kz_term:api_ne_binary().
+hunt_account_id('undefined') -> 'undefined';
+hunt_account_id(<<AccountId/binary>>) ->
+    kapps_account_config:get_global(AccountId, ?CALL_CMD_CAT, <<"offnet_hunt_account_id">>);
+hunt_account_id(Call) ->
+    hunt_account_id(account_id(Call)).
+
+-spec should_use_local_resources(kz_term:api_ne_binary() | call()) -> boolean().
+should_use_local_resources('undefined') -> 'false';
+should_use_local_resources(<<AccountId/binary>>) ->
+    kz_term:is_true(kapps_account_config:get_global(AccountId, ?CALL_CMD_CAT, <<"should_use_local_resources">>, 'false'));
+should_use_local_resources(Call) ->
+    should_use_local_resources(account_id(Call)).
