@@ -256,7 +256,7 @@ acquire(PN, Options, ?NE_BINARY=Mod, 'false') ->
     case kz_module:is_exported(Mod, 'acquire_number', 2) of
         'true' -> apply(Mod, 'acquire_number', [PN, Options]);
         'false' ->
-            case 'false' =:= kz_module:ensure_loaded(Mod) of
+            case kz_module:is_exported(Mod, 'acquire_number', 1) of
                 'false' ->
                     apply(Mod, 'acquire_number', [PN]);
                 'true' ->
@@ -288,23 +288,17 @@ disconnect(PN) ->
 -spec disconnect(knm_phone_number:pn_record(), knm_options:options()) -> knm_phone_number:pn_record().
 disconnect(PN, Options) ->
     Module = knm_phone_number:module_name(PN),
-    disconnect(PN, Options, Module, kz_module:is_exported(Module, 'disconnect', 2)).
-
-disconnect(PN, Options, Module, 'true') ->
-    try apply(Module, 'disconnect_number', [PN, Options]) of
-        Result -> Result
-    catch
-        'error':_ ->
-            lager:debug("nonexistent carrier module ~p, allowing disconnect", [Module]),
-            PN
-    end;
-disconnect(PN, _Options, Module, 'false') ->
-    try apply(Module, 'disconnect_number', [PN]) of
-        Result -> Result
-    catch
-        'error':_ ->
-            lager:debug("nonexistent carrier module ~p, allowing disconnect", [Module]),
-            PN
+    case kz_module:is_exported(Module, 'disconnect_number', 2) of
+        'true' ->
+            apply(Module, 'disconnect_number', [PN, Options]);
+        'false' ->
+            case kz_module:is_exported(Module, 'disconnect_number', 1) of
+                'true' ->
+                    apply(Module, 'disconnect_number', [PN]);
+                'false' ->
+                    lager:debug("nonexistent carrier module ~p, allowing disconnect", [Module]),
+                    PN
+            end
     end.
 
 -spec prefix(options()) -> kz_term:ne_binary().
