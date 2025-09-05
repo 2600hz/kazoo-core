@@ -274,7 +274,7 @@ acquire(PN, Options, ?NE_BINARY=Mod, 'false') ->
 %% FIXME: opaque
 disconnect(T0=#{'todo' := PNs, 'options' := Options}) ->
     F = fun (PN, T) ->
-                case knm_pipe:attempt(fun(P) -> disconnect(P, Options) end, [PN]) of
+                case knm_pipe:attempt(fun(P) -> try_disconnect(P, Options) end, [PN]) of
                     {'ok', NewPN} -> knm_pipe:set_succeeded(T, NewPN);
                     {'error', R} ->
                         Num = knm_phone_number:number(PN),
@@ -283,7 +283,19 @@ disconnect(T0=#{'todo' := PNs, 'options' := Options}) ->
         end,
     lists:foldl(F, T0, PNs);
 disconnect(PN) ->
-    disconnect(PN, []).
+    try_disconnect(PN, []).
+
+-spec try_disconnect(knm_phone_number:pn_record(), knm_options:options()) -> knm_phone_number:pn_record().
+try_disconnect(PN, Options) ->
+    try disconnect(PN, Options)
+    catch
+        _T:_E:_ ->
+            %% knm doesn't expect release to crash, also release may dry_run so we already released the number
+            %% from carrier.
+            Module = knm_phone_number:module_name(PN),
+            lager:debug("carrier module ~p failed, ~p:~p, we cannot fail here, allowing disconnect btw", [Module, _T, _E]),
+            PN
+    end.
 
 -spec disconnect(knm_phone_number:pn_record(), knm_options:options()) -> knm_phone_number:pn_record().
 disconnect(PN, Options) ->
