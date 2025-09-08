@@ -148,7 +148,14 @@ is_system_clock_on_utc() ->
 
 -spec start_distribution() -> 'ok'.
 start_distribution() ->
+    maybe_add_heartbeat_labels(),
     amqp_dist:add_brokers(kz_amqp_connections:uris()).
+
+maybe_add_heartbeat_labels() ->
+    case kz_app_config:get_boolean(amqp_dist, should_filter_local_label, true) of
+        true -> amqp_dist:set_heartbeat_labels([kz_config:zone()]);
+        _Other -> ok
+    end.
 
 -spec set_config() -> 'ok'.
 set_config() ->
