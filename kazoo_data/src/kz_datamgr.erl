@@ -110,7 +110,8 @@
                          {'create', kz_json:flat_proplist()} |
                          {'should_create', boolean()} |
                          {'extra_update', kz_json:flat_proplist()} |
-                         {'ensure_saved', boolean()}.
+                         {'ensure_saved', boolean()} |
+                         {'no_change_return', term()}.
 -type update_options() :: [update_option()].
 
 -export_type([data_error/0, data_errors/0
@@ -884,8 +885,12 @@ apply_updates_and_save(Database, Id, Options, CurrentDoc, UpdateProps) ->
 
     case kz_json:are_equal(CurrentDoc, UpdatedDoc) of
         'true' ->
-            lager:debug("updates to ~s result in the same doc", [Id]),
-            {'ok', CurrentDoc};
+            case props:get_value(no_change_return, Options) of
+                undefined ->
+                    lager:debug("updates to ~s result in the same doc", [Id]),
+                    {'ok', CurrentDoc};
+                Value -> Value
+            end;
         'false' ->
             lager:debug("attempting to update to ~s: ~s", [Database, kz_json:encode(UpdatedDoc)]),
             save_update(Database, Id, Options, UpdatedDoc)
