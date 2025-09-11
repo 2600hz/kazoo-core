@@ -257,9 +257,9 @@ acquire(PN, Options, ?NE_BINARY=Mod, 'false') ->
         'true' -> apply(Mod, 'acquire_number', [PN, Options]);
         'false' ->
             case kz_module:is_exported(Mod, 'acquire_number', 1) of
-                'false' ->
-                    apply(Mod, 'acquire_number', [PN]);
                 'true' ->
+                    apply(Mod, 'acquire_number', [PN]);
+                'false' ->
                     lager:info("carrier '~s' does not exist, skipping", [Mod]),
                     PN
             end
