@@ -48,6 +48,11 @@
             "description": "default carrier module name to use when creating a number",
             "type": "string"
         },
+        "batch_suppress_change_notice": {
+            "default": false,
+            "description": "number_manager batch_suppress_change_notice",
+            "type": "boolean"
+        },
         "carrier_modules": {
             "default": [
                 "knm_local"
@@ -163,6 +168,17 @@
             "description": "number manager number search timeout in milliseconds",
             "minimum": 1,
             "type": "integer"
+        },
+        "parallel_batch_size": {
+            "default": 100,
+            "description": "If should parallelize operations, split numbers into this size for each parallel process",
+            "minimum": 1,
+            "type": "integer"
+        },
+        "parallelize_operations": {
+            "default": false,
+            "description": "Should parallelize get, create, release, free, delete, update, move, asign_to_app and reserve operations on a list of numbers into multiple processes, if it is possible",
+            "type": "boolean"
         },
         "port_in_module_name": {
             "default": "knm_local",

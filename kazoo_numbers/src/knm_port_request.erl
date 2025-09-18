@@ -16,7 +16,7 @@
         ,read_only_public_fields/1
         ,get/1
         ,are_porting/1
-        ,get_portin_number/2
+        ,get_portin_number/2, get_portin_numbers/2
         ,new/2
         ,account_active_ports/1
         ,account_ports_by_state/2
@@ -27,7 +27,7 @@
         ,transition_to_complete/2
         ,attempt_transition/3, attempt_transition/4
         ,compatibility_transition/2
-        ,assign_to_app/3
+        ,assign_to_app/3, assign_to_app_bulk/1
         ,send_submitted_requests/0
         ,migrate/0
         ]).
@@ -181,6 +181,21 @@ get_portin_number(AccountId, DID=?NE_BINARY) ->
             {'ok', [kz_json:get_value(<<"doc">>, JObj) || JObj <- JObjs]};
         {'error', _E}=Error ->
             lager:debug("failed to find portin number '~s': ~p", [DID, _E]),
+            Error
+    end.
+
+-spec get_portin_numbers(kz_term:ne_binary(), kz_term:ne_binaries()) ->
+          {'ok', kz_json:objects()} |
+          kz_datamgr:data_error().
+get_portin_numbers(AccountId, DIDs) ->
+    ViewOptions = [{'keys', [[AccountId, DID] || DID <- DIDs]}
+                  ,'include_docs'
+                  ],
+    case kz_datamgr:get_results(?KZ_PORT_REQUESTS_DB, ?PORT_NUM_LISTING, ViewOptions) of
+        {'ok', JObjs} ->
+            {'ok', [kz_json:get_value(<<"doc">>, JObj) || JObj <- JObjs]};
+        {'error', _E}=Error ->
+            lager:debug("failed to find portin numbers: ~p", [_E]),
             Error
     end.
 
@@ -548,27 +563,65 @@ get_user_name(AuthAccountId, UserId) ->
           {'ok', kz_json:object()} |
           {'error', any()}.
 assign_to_app(Number, NewApp, JObj) ->
-    Numbers = kzd_port_requests:numbers(JObj),
-    lager:debug("assigning number ~s in port request ~s from ~p to ~s"
-               ,[Number, kz_doc:id(JObj), Numbers, NewApp]
-               ),
-    assign_to_app(Number, NewApp, Numbers, JObj).
+    case prepare_for_app(NewApp, Number, JObj) of
+        {'ok', NewJObj} -> save_doc(NewJObj);
+        {'same', NewJObj} -> NewJObj;
+        {'error', _, Reason} -> {'error', Reason}
+    end.
 
--spec assign_to_app(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_json:object()|'undefined', kz_json:object()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
-assign_to_app(_Number, _NewApp, 'undefined', _JObj) ->
-    {'error', 'not_found'};
-assign_to_app(Number, NewApp, Numbers, JObj) ->
+-spec assign_to_app_bulk([{kz_term:ne_binary(), kz_term:api_ne_binary(), kz_json:object()}]) ->
+          {'ok', [{kz_term:ne_binary(), kz_json:object()}], [{kz_term:ne_binary(), kz_json:object()}]}.
+assign_to_app_bulk(Updates) ->
+    {Same, ToSave, Failed} =
+        lists:foldl(fun({Num, NewApp, JObj}, {Good, Bad, Ugly}) ->
+                            case prepare_for_app(NewApp, Num, JObj) of
+                                {'same', J} -> {[{Num, J}|Good], Bad, Ugly};
+                                {'ok', J} -> {Good, Bad#{Num => J}, Ugly};
+                                {'error', Num, Reason} -> [{Num, Reason}|Ugly]
+                            end
+                    end
+                   ,{[], #{}, []}
+                   ,Updates
+                   ),
+    case kz_datamgr:save_docs(?KZ_PORT_REQUESTS_DB, maps:values(ToSave)) of
+        {'ok', JObjs} ->
+            handle_bulk_change(JObjs, Same, Failed);
+        {'error', Reason} ->
+            {'ok', Same, Failed ++ [{N, Reason} || N <- maps:keys(ToSave)]}
+    end.
+
+handle_bulk_change([], Success, Failed) ->
+    {'ok', Success, Failed};
+handle_bulk_change([JObj|JObjs], Success, Failed) ->
+    Num = kz_json:get_ne_value(<<"id">>, JObj),
+    Revision = kz_doc:revision(JObj),
+    case kz_json:get_ne_value(<<"ok">>, JObj) =:= 'true'
+        orelse Revision =/= 'undefined'
+    of
+        'true' ->
+            handle_bulk_change(JObjs, [{Num, JObj}|Success], Failed);
+        'false' ->
+            R = kz_json:get_ne_value(<<"error">>, JObj),
+            handle_bulk_change(JObjs, Success, [{Num, R} | Failed])
+    end.
+
+prepare_for_app(NewApp, Number, JObj) ->
+    lager:debug("assigning number ~s in port request ~s to ~s"
+               ,[Number, kz_doc:id(JObj), NewApp]
+               ),
+    Numbers = kzd_port_requests:numbers(JObj, kz_json:new()),
     case kz_json:get_value([Number, ?USED_BY_KEY], Numbers) of
-        NewApp -> {'ok', JObj};
+        'undefined' ->
+            {'error', Number, 'not_found'};
+        NewApp ->
+            {'same', JObj};
         _OldApp ->
             NewNumJObj = kz_json:set_value([Number, ?USED_BY_KEY]
                                           ,NewApp
                                           ,kz_json:delete_key([Number, ?USED_BY_KEY], Numbers)
                                           ),
             lager:debug("set new number app ~p", [NewNumJObj]),
-            save_doc(kzd_port_requests:set_numbers(JObj, NewNumJObj))
+            {'ok', kzd_port_requests:set_numbers(JObj, NewNumJObj)}
     end.
 
 %%------------------------------------------------------------------------------

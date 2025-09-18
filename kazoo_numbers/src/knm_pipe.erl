@@ -15,6 +15,7 @@
         ,quotes/1, set_quotes/2
         ,succeeded/1, set_succeeded/2
         ,todo/1, set_todo/2
+        ,operation/1, set_operation/2
 
         ,id/1
         ,add_success/2
@@ -56,6 +57,7 @@
                                        ,'quotes' => quotes() %% defined in knm_phone_number.hrl
                                        ,'succeeded' => Succeeded
                                        ,'todo' => kz_term:ne_binary() | TODOs
+                                       ,'operation' => atom() | 'undefined' %% current operation
                                        }.
 
 -type applier() :: fun((collection()) -> collection()).
@@ -110,6 +112,17 @@ options(#{'options' := Options}) -> Options.
 
 -spec set_options(collection(), knm_options:options()) -> collection().
 set_options(Collection, Options) -> Collection#{'options' => Options}.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec operation(collection()) -> atom() | 'undefined'.
+operation(#{'operation' := Operation}) -> Operation;
+operation(_) -> 'undefined'.
+
+-spec set_operation(collection(), atom()) -> collection().
+set_operation(Collection, Operation) -> Collection#{'operation' => Operation}.
 
 %%------------------------------------------------------------------------------
 %% @doc

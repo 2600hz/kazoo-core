@@ -61,6 +61,10 @@
         ,rand_number/2
         ]).
 
+-export([break_list/2
+        ,break_list/3
+        ]).
+
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -type text() :: string() | atom() | binary() | iolist().
@@ -678,3 +682,18 @@ rand_integer(Min, Max) ->
 -spec rand_number(number(), number()) -> number().
 rand_number(Min, Max) ->
     rand:uniform_real() * (Max - Min + 1) + Min.
+
+-spec break_list(list(), non_neg_integer()) -> [list()].
+break_list(List, Breakpoint) ->
+    break_list(List, Breakpoint, []).
+
+-spec break_list(list(), non_neg_integer(), list()) -> [list()].
+break_list([], _, Lists) -> lists:reverse(Lists);
+break_list(List, Breakpoint, Lists) ->
+    try lists:split(Breakpoint, List) of
+        {BrokenList, Rest} ->
+            break_list(Rest, Breakpoint, [BrokenList | Lists])
+    catch
+        'error':'badarg' ->
+            lists:reverse([List | Lists])
+    end.

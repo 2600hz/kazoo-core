@@ -18,6 +18,10 @@
         ,should_force_port_in_outbound/0
         ,should_force_port_out_outbound/0
         ,should_fetch_account_from_ports/0
+        ,batch_suppress_change_notice/0
+
+        ,should_parallelize_operations/0
+        ,parallel_batch_size/0
         ]).
 
 -include("knm.hrl").
@@ -27,6 +31,18 @@
 -define(DEFAULT_LOCALITY_URL
        ,kapps_config:get_ne_binary(<<"number_manager.other">>, <<"phonebook_url">>)
        ).
+
+-spec should_parallelize_operations() -> boolean().
+should_parallelize_operations() ->
+    kapps_config:is_true(?KNM_CONFIG_CAT, <<"parallelize_operations">>, 'false').
+
+-spec parallel_batch_size() -> pos_integer().
+parallel_batch_size() ->
+    kapps_config:get_pos_integer(?KNM_CONFIG_CAT, <<"parallel_batch_size">>, 100).
+
+-spec batch_suppress_change_notice() -> boolean().
+batch_suppress_change_notice() ->
+    kapps_config:get_is_true(?KNM_CONFIG_CAT, <<"batch_suppress_change_notice">>, 'false').
 
 -spec should_age() -> boolean().
 should_age() ->

@@ -21,6 +21,7 @@
         ,public_fields/1
         ,state/1, state/2
         ,crossbar/1, crossbar/2
+        ,no_parallel/1, no_parallel/2
 
         ,default/0
         ,mdn_options/0
@@ -77,7 +78,8 @@
                         {'prepend', kz_term:api_binary()} | %%|false
                         {'ringback_media', kz_term:api_binary()} |
                         {'caller_display_name', kz_term:api_ne_binary()} |
-                        {'transfer_media', kz_term:api_binary()}.
+                        {'transfer_media', kz_term:api_binary()} |
+                        {'no_parallel', boolean()}.
 
 -type extra_options() :: [extra_option()].
 
@@ -220,6 +222,14 @@ module_name(Options) ->
         'undefined' -> knm_carriers:default_carrier();
         ModuleName -> ModuleName
     end.
+
+-spec no_parallel(options()) -> boolean().
+no_parallel(Options) ->
+    no_parallel(Options, 'false').
+
+-spec no_parallel(options(), Default) -> boolean() | Default.
+no_parallel(Options, Default) ->
+    props:is_true('no_parallel', Options, Default).
 
 %%------------------------------------------------------------------------------
 %% Public get/set extra_options()

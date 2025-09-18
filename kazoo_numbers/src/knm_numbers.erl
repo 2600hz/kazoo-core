@@ -73,7 +73,7 @@
 create(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:create([Num], Options));
 create(Nums, Options) when is_list(Nums) ->
-    handle_result(knm_ops:create(Nums, Options)).
+    maybe_parallelize_ops(fun knm_ops:create/2, [Nums, Options], Options).
 
 %%------------------------------------------------------------------------------
 %% @doc Remove number(s) from the system without doing any state checking.
@@ -85,7 +85,7 @@ create(Nums, Options) when is_list(Nums) ->
 delete(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:delete([Num], Options));
 delete(Nums, Options) when is_list(Nums) ->
-    handle_result(knm_ops:delete(Nums, Options)).
+    maybe_parallelize_ops(fun knm_ops:delete/2, [Nums, Options], Options).
 
 %%------------------------------------------------------------------------------
 %% @doc Attempts to get a single or a list of numbers from DB.
@@ -98,7 +98,7 @@ get(Num) -> get(Num, knm_options:default()).
 get(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:get([Num], Options));
 get(Nums, Options) when is_list(Nums) ->
-    handle_result(knm_ops:get(Nums, Options)).
+    maybe_parallelize_ops(fun knm_ops:get/2, [Nums, Options], Options).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -111,7 +111,7 @@ release(Num) -> release(Num, knm_options:default()).
 release(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:release([Num], Options));
 release(Nums, Options) when is_list(Nums) ->
-    handle_result(knm_ops:release(Nums, Options)).
+    maybe_parallelize_ops(fun knm_ops:release/2, [Nums, Options], Options).
 
 %%------------------------------------------------------------------------------
 %% @doc Attempts to update some phone_number fields.
@@ -127,7 +127,7 @@ update(Num, Routines) ->
 update(Num, Routines, Options) when is_binary(Num) ->
     handle_result(knm_ops:update([Num], Routines, Options));
 update(Nums, Routines, Options) when is_list(Nums) ->
-    handle_result(knm_ops:update(Nums, Routines, Options)).
+    maybe_parallelize_ops(fun knm_ops:update/3, [Nums, Routines, Options], Options).
 
 %%%=============================================================================
 %%% Special CRUD operation functions
@@ -145,7 +145,7 @@ assign_to_app(Num, App) ->
 assign_to_app(Num, App, Options) when is_binary(Num) ->
     handle_result(knm_ops:assign_to_app([Num], App, Options));
 assign_to_app(Nums, App, Options) when is_list(Nums) ->
-    handle_result(knm_ops:assign_to_app(Nums, App, Options)).
+    maybe_parallelize_ops(fun knm_ops:assign_to_app/3, [Nums, App, Options], Options).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -195,7 +195,7 @@ move(Num, MoveTo) ->
 move(Num, MoveTo, Options) when is_binary(Num) ->
     handle_result(knm_ops:move([Num], MoveTo, Options));
 move(Nums, MoveTo, Options) when is_list(Nums) ->
-    handle_result(knm_ops:move(Nums, MoveTo, Options)).
+    maybe_parallelize_ops(fun knm_ops:move/3, [Nums, MoveTo, Options], Options).
 
 %%------------------------------------------------------------------------------
 %% @doc Fetches then transitions existing number(s) to the reserved state.
@@ -205,7 +205,7 @@ move(Nums, MoveTo, Options) when is_list(Nums) ->
 reserve(Num, Options) when is_binary(Num) ->
     handle_result(knm_ops:reserve([Num], Options));
 reserve(Nums, Options) when is_list(Nums) ->
-    handle_result(knm_ops:reserve(Nums, Options)).
+    maybe_parallelize_ops(fun knm_ops:reserve/2, [Nums, Options], Options).
 
 %%%=============================================================================
 %%% Other functions
@@ -273,15 +273,20 @@ emergency_enabled(<<Account/binary>>) ->
 free(<<Account/binary>>) ->
     AccountDb = kzs_util:format_account_db(Account),
     {Numbers, _NumbersData} = lists:unzip(account_listing(AccountDb)),
-    Collection = knm_ops:release(Numbers),
-    Ns = knm_pipe:succeeded(Collection),
-    Failed = knm_pipe:failed(Collection),
-    lager:debug("successfully released ~p from ~s", [[knm_phone_number:number(N) || N <- Ns], Account]),
-    lists:foreach(fun ({Num, R}) ->
-                          lager:error("error when releasing ~s from ~s: ~p", [Num, Account, R])
-                  end
-                 ,maps:to_list(Failed)
-                 ).
+    case release(Numbers) of
+        {'dry_run', _} ->
+            %% should not happen, but dialyzer...
+            'ok';
+        {'ok', Success} ->
+            lager:debug("successfully released ~p numbers from ~s", [length(Success), Account]);
+        {'ok', Success, Failed} ->
+            lager:debug("successfully released ~p from ~s", [length(Success), Account]),
+            lists:foreach(fun ({Num, R}) ->
+                                  lager:error("error when releasing ~s from ~s: ~p", [Num, Account, R])
+                          end
+                         ,props:get_keys(Failed)
+                         )
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Return true if the numbers are all owned by the account, else return the
@@ -295,18 +300,27 @@ validate_ownership(AccountId, Number) when is_binary(Number) ->
 validate_ownership(_AccountId, []) -> 'true';
 validate_ownership(AccountId, Numbers) when is_list(Numbers) ->
     Options = [{'auth_by', AccountId}],
-    Failed = knm_pipe:failed(knm_ops:get(Numbers, Options)),
-    case maps:fold(fun validate_ownership_fold/3, [], Failed) of
-        [] -> 'true';
-        Unauthorized -> {'false', Unauthorized}
+    case ?MODULE:get(Numbers, Options) of
+        {'dry_run', _} ->
+            %% should not happen, but dialyzer...
+            'true';
+        {'ok', _Success} ->
+            'true';
+        {'ok', _Success, Failed} ->
+            case lists:foldl(fun validate_ownership_fold/2, [], Failed) of
+                [] -> 'true';
+                Unauthorized -> {'false', Unauthorized}
+            end
     end.
 
--spec validate_ownership_fold(number_thing(), knm_errors:reason(), number_things()) -> number_things().
-validate_ownership_fold(_, Reason, UnauthorizedAcc) when is_atom(Reason) ->
+-spec validate_ownership_fold({number_thing(), atom() | kz_json:object() | any()}, number_things()) -> number_things().
+validate_ownership_fold({_, Reason}, UnauthorizedAcc) when is_atom(Reason) ->
     %% Ignoring atom reasons, i.e. 'not_found' or 'not_reconcilable'
     UnauthorizedAcc;
-validate_ownership_fold(Number, ReasonJObj, UnauthorizedAcc) ->
-    case knm_errors:error(ReasonJObj) of
+validate_ownership_fold({Number, ReasonJObj}, UnauthorizedAcc) ->
+    case kz_json:is_json_object(ReasonJObj)
+        andalso kz_json:get_value(<<"error">>, ReasonJObj)
+    of
         <<"forbidden">> -> [Number|UnauthorizedAcc];
         _ -> UnauthorizedAcc
     end.
@@ -314,6 +328,42 @@ validate_ownership_fold(Number, ReasonJObj, UnauthorizedAcc) ->
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec maybe_parallelize_ops(fun(), [any()], knm_options:options()) -> return().
+maybe_parallelize_ops(Fun, [Nums | RestArgs]=Args, Options) ->
+    FunInfo = erlang:fun_info(Fun),
+    FunName = props:get_value('name', FunInfo),
+    case knm_options:no_parallel(Options, knm_config:should_parallelize_operations()) of
+        'false' ->
+            handle_result(erlang:apply(Fun, Args));
+        'true' ->
+            case kz_term:break_list(lists:uniq(Nums), knm_config:parallel_batch_size()) of
+                [] ->
+                    merge_results([], Options);
+                [_Group] ->
+                    %% doesn't worth the effort, run immediatly
+                    handle_result(erlang:apply(Fun, Args));
+                [_|_]=Grouped ->
+                    PidRefs = [kz_process:spawn_monitor(fun perform_parallel_ops/4
+                                                       ,[self(), Fun, Group, RestArgs]
+                                                       )
+                               || Group <- Grouped
+                              ],
+                    lager:debug("spawned ~p operation into ~b processes: ~p", [FunName, length(Grouped), PidRefs]),
+                    merge_results(wait_for_pid_refs(PidRefs), Options)
+            end
+    end.
+
+-spec perform_parallel_ops(pid(), fun(), any(), knm_options:options()) -> 'ok'.
+perform_parallel_ops(Collector, Fun, Nums, Args) ->
+    lager:md([{'log_prefix', kz_term:to_binary(self())}] ++ lager:md()),
+    Result = erlang:apply(Fun, [Nums | Args]),
+    Collector ! {'number_result', Result},
+    'ok'.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -335,6 +385,91 @@ handle_result(Collection) ->
         {_, 'false'} ->
             {'ok', Successes, knm_errors:failed_to_proplist(knm_pipe:failed(Collection))}
     end.
+
+-spec merge_results([knm_pipe:collection()], knm_options:options()) -> return().
+merge_results([], _Options) ->
+    {'ok', []};
+merge_results(Collections, Options) ->
+    Successes = merge_succeeded(Collections),
+    Failed = merge_failed(Collections),
+    Quotes = merge_quotes(Collections),
+    case {knm_options:dry_run(Options)
+         ,kz_term:is_empty(Failed)
+         }
+    of
+        {'true', 'true'} ->
+            {'dry_run', Quotes};
+        {'false', 'true'} ->
+            {'ok', Successes};
+        {_, 'false'} ->
+            {'ok', Successes, Failed}
+    end.
+
+merge_succeeded(Collections) ->
+    [knm_phone_number:to_public_json(PN)
+     || Collection <- Collections,
+        PN <- knm_pipe:succeeded(Collection)
+    ].
+
+merge_failed(Collections) ->
+    knm_errors:failed_to_proplist(
+      lists:foldl(fun(Collection, AccMap) -> maps:merge(AccMap, knm_pipe:failed(Collection)) end
+                 ,#{}
+                 ,Collections
+                 )
+     ).
+
+%% FIXME: this is broken
+merge_quotes(Collections) ->
+    lager:warning("merging spawned quotes is not supported, you are on your own"),
+    %% in reality you must group invoices from all collections by their bookkeeper
+    %% then for each bookkeepr go deep and merge all items (rates and billable, changes, etc...), activations, total and etc..
+    %% good luck with that! i am signing off...
+    [Invoice
+     || Collection <- Collections,
+        Invoice <- get_quotes(Collection)
+    ].
+
+get_quotes(Collection) ->
+    case knm_pipe:quotes(Collection) of
+        'undefined' -> [];
+        Invoices -> Invoices
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec wait_for_pid_refs(kz_term:pid_refs()) -> [knm_pipe:collection()].
+wait_for_pid_refs([]) ->
+    lager:info("no workers started"),
+    [];
+wait_for_pid_refs(PidRefs) ->
+    wait_for_pid_refs(PidRefs, [], 0).
+
+-spec wait_for_pid_refs(kz_term:pid_refs(), [knm_pipe:collection()], non_neg_integer()) -> [knm_pipe:collection()].
+wait_for_pid_refs([], Results, Total) ->
+    lager:info("processed ~p workers",[Total]),
+    Results;
+wait_for_pid_refs(PidRefs, Results, Total) ->
+    receive
+        {'number_result', Result} ->
+            wait_for_pid_refs(PidRefs, [Result|Results], Total);
+        {'DOWN', Ref, 'process', Pid, Reason} ->
+            handle_down_pid_ref(Pid, Ref, PidRefs, Results, Total, Reason)
+    end.
+
+handle_down_pid_ref(Pid, Ref, PidRefs, Results, Total, Reason) ->
+    case lists:keytake(Pid, 1, PidRefs) of
+        'false' ->
+            wait_for_pid_refs(PidRefs, Results, Total);
+        {'value', {Pid, Ref}, NewPidRefs} ->
+            maybe_log_down_reason(Pid, Reason),
+            wait_for_pid_refs(NewPidRefs, Results, Total+1)
+    end.
+
+maybe_log_down_reason(_Pid, 'normal') -> 'ok';
+maybe_log_down_reason(Pid, Reason) -> lager:info("worker pid ~p died: ~p", [Pid, Reason]).
 
 %%------------------------------------------------------------------------------
 %% @doc

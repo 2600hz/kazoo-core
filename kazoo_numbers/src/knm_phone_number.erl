@@ -293,9 +293,16 @@ handle_bulk_fetch(JObj, Collection) ->
     Num = kz_json:get_ne_value(<<"key">>, JObj),
     case kz_json:get_ne_value(<<"doc">>, JObj) of
         'undefined' ->
-            R = kz_json:get_ne_value(<<"error">>, JObj),
-            lager:warning("failed reading ~s: ~p", [Num, R]),
-            knm_pipe:set_failed(Collection, Num, kz_term:to_atom(R, 'true'));
+            case kz_json:is_true([<<"value">>, <<"deleted">>], JObj) of
+                'true' ->
+                    R = 'not_found',
+                    lager:warning("failed reading ~s: ~p", [Num, R]),
+                    knm_pipe:set_failed(Collection, Num, kz_term:to_atom(R, 'true'));
+                'false' ->
+                    R = kz_json:get_ne_value(<<"error">>, JObj, <<"unkown_error">>),
+                    lager:warning("failed reading ~s: ~p", [Num, R]),
+                    knm_pipe:set_failed(Collection, Num, kz_term:to_atom(R, 'true'))
+            end;
         Doc ->
             handle_single_pipe_fetch(Collection, Doc)
     end.
@@ -1627,23 +1634,48 @@ delete_from_fold(_Db, [], T, _IgnoreDbNotFound) ->
 delete_from_fold(Db, PNs, T, IgnoreDbNotFound) ->
     Nums = [number(PN) || PN <- PNs],
     ?LOG_DEBUG("deleting numbers from ~s: ~p", [Db, Nums]),
-    case delete_docs(Db, Nums) of
+    OldChangeNotice = maybe_suppress_change_notice(T),
+    %% Note: deleting nonexistent docs returns ok.
+    case kz_datamgr:del_docs(Db, Nums) of
         {'ok', []} ->
+            maybe_revert_publish(OldChangeNotice),
             ?LOG_DEBUG("no docs were deleted"),
             knm_pipe:add_succeeded(T, PNs);
         {'ok', JObjs} ->
+            maybe_revert_publish(OldChangeNotice),
             ?LOG_DEBUG("deleted docs: ~p", [JObjs]),
             RetryF = fun(Db1, PNs1, Num, T1) ->
                              retry_delete(Db1, PNs1, fun database_error/3, Num, T1)
                      end,
             handle_bulk_change(Db, JObjs, PNs, T, fun database_error/3, RetryF);
         {'error', 'not_found'} when IgnoreDbNotFound ->
+            maybe_revert_publish(OldChangeNotice),
             ?LOG_DEBUG("db ~s does not exist, ignoring", [Db]),
             knm_pipe:add_succeeded(T, PNs);
         {'error', E} ->
+            maybe_revert_publish(OldChangeNotice),
             ?LOG_ERROR("failed to delete from ~s (~p): ~p", [Db, E, Nums]),
             database_error(Nums, E, T)
     end.
+
+-spec maybe_suppress_change_notice(knm_pipe:collection()) -> boolean().
+maybe_suppress_change_notice(T) ->
+    Old = kz_datamgr:change_notice(),
+    case knm_options:batch_run(knm_pipe:options(T)) of
+        'true' ->
+            case knm_config:batch_suppress_change_notice() of
+                'true' -> kz_datamgr:suppress_change_notice();
+                'false' -> 'false'
+            end;
+        'false' -> 'false'
+    end,
+    Old.
+
+-spec maybe_revert_publish(boolean()) -> boolean().
+maybe_revert_publish('true') ->
+    kz_datamgr:enable_change_notice();
+maybe_revert_publish('false') ->
+    kz_datamgr:suppress_change_notice().
 
 -spec existing_db_key(kz_term:ne_binary()) -> kz_term:api_ne_binary().
 existing_db_key(Db) ->
@@ -1664,25 +1696,68 @@ save_to_fun('undefined', PNs, {ErrorF, T}) ->
     ?LOG_DEBUG("no db for ~p", [[number(PN) || PN <- PNs]]),
     {ErrorF, knm_pipe:add_succeeded(T, PNs)};
 save_to_fun(Db, PNs, {ErrorF, T}) ->
-    ?LOG_DEBUG("saving to ~s", [Db]),
-    Docs = [to_json(PN) || PN <- PNs],
     IsNumberDb = 'numbers' =:= kz_datamgr:db_classification(Db),
-    case save_docs(Db, Docs) of
-        {'ok', JObjs} ->
-            RetryF = fun(Db1, PNs1, Num, T1) ->
-                             retry_save(Db1, PNs1, ErrorF, Num, T1)
-                     end,
-            {ErrorF, handle_bulk_change(Db, JObjs, PNs, T, ErrorF, RetryF)};
+    case prepare_for_save(T, Db, PNs, IsNumberDb) of
+        {'ok', Docs} -> save_docs(Db, PNs, {ErrorF, T}, Docs);
         {'error', 'not_found'} when IsNumberDb ->
-            Nums = [kz_doc:id(Doc) || Doc <- Docs],
-            ?LOG_DEBUG("creating new number db '~s' for numbers ~p", [Db, Nums]),
+            ?LOG_DEBUG("creating new number db '~s'", [Db]),
             'true' = kz_datamgr:db_create(Db),
             _ = kapps_maintenance:refresh(Db),
             save_to_fun(Db, PNs, {ErrorF, T});
         {'error', E} ->
+            Nums = [number(PN) || PN <- PNs],
+            {ErrorF, database_error(Nums, E, T)}
+    end.
+
+save_docs(Db, PNs, {ErrorF, T}, Docs) ->
+    ?LOG_DEBUG("saving to ~s", [Db]),
+    OldChangeNotice = maybe_suppress_change_notice(T),
+    case kz_datamgr:save_docs(Db, Docs) of
+        {'ok', JObjs} ->
+            maybe_revert_publish(OldChangeNotice),
+            RetryF = fun(Db1, PNs1, Num, T1) ->
+                             retry_save(Db1, PNs1, ErrorF, Num, T1)
+                     end,
+            {ErrorF, handle_bulk_change(Db, JObjs, PNs, T, ErrorF, RetryF)};
+        {'error', E} ->
+            maybe_revert_publish(OldChangeNotice),
             Nums = [kz_doc:id(Doc) || Doc <- Docs],
             ?LOG_ERROR("failed to assign numbers to ~s (~p): ~p", [Db, E, Nums]),
             {ErrorF, database_error(Nums, E, T)}
+    end.
+
+
+%% knm_phone_number doc is read from number db (usually if you used knm_phone_number:get)
+%% but it can be saved in both number db and possibly account db.
+%% So we need to lookup the revision for the correct db.
+%%
+%% TODO: we read from number_db right? then we skip lookup?
+%% so if has revision and number db maybe skip
+prepare_for_save(_T, Db, PNs, _IsNumberDb) ->
+    ViewOptions = [{'keys', [number(PN) || PN <- PNs]}],
+    ?LOG_DEBUG("preparing docs for save, looking up revisions"),
+    case kz_datamgr:all_docs(Db, ViewOptions) of
+        {'ok', JObjs} ->
+            List = [{Id, Rev}
+                    || JObj <- JObjs,
+                       {Id, Rev} <- [{kz_json:get_ne_binary_value(<<"id">>, JObj), kz_json:get_ne_binary_value([<<"value">>, <<"rev">>], JObj)}],
+                       kz_term:is_not_empty(Id)
+                           andalso kz_term:is_not_empty(Rev)
+                       %% do not set _rev if (hard) deleted, otherwise couchdb returns conflict
+                           andalso not kz_json:is_true([<<"value">>, <<"deleted">>], JObj)
+                   ],
+            Map = maps:from_list(List),
+            %% shooting for the best, if revision found we set it
+            %% if not found then we use existing revision if any,
+            %% if no existing revision or if it is stale, then retry mechanism on save!
+            {'ok'
+            ,[kz_doc:set_revision(to_json(PN), maps:get(number(PN), Map, 'undefined'))
+              || PN <- PNs
+             ]
+            };
+        {'error', _Reason}=Error ->
+            ?LOG_ERROR("failed to lookup_revs for saving numbers to ~s: ~p", [Db, _Reason]),
+            Error
     end.
 
 %%------------------------------------------------------------------------------
@@ -1768,32 +1843,6 @@ database_error(NumOrNums, E, T) ->
     {'error', A, B, C} = (catch knm_errors:database_error(E, 'undefined')),
     Reason = knm_errors:to_json(A, B, C),
     knm_pipe:set_failed(T, NumOrNums, Reason).
-
--spec delete_docs(kz_term:ne_binary(), kz_term:ne_binaries()) ->
-          {'ok', kz_json:objects()} |
-          kz_datamgr:data_error().
-delete_docs(Db, Ids) ->
-    %% Note: deleting nonexistent docs returns ok.
-    kz_datamgr:del_docs(Db, Ids).
-
--spec save_docs(kz_term:ne_binary(), kz_json:objects()) ->
-          {'ok', kz_json:objects()} |
-          kz_datamgr:data_error().
-save_docs(Db, Docs) ->
-    PreparedDocs = prepare_docs(Db, Docs, []),
-    kz_datamgr:save_docs(Db, PreparedDocs).
-
--spec prepare_docs(kz_term:ne_binary(), kz_json:objects(), kz_json:objects()) ->
-          kz_json:objects().
-prepare_docs(_Db, [], Updated) ->
-    Updated;
-prepare_docs(Db, [Doc|Docs], Updated) ->
-    case kz_datamgr:lookup_doc_rev(Db, kz_doc:id(Doc)) of
-        {'ok', Rev} ->
-            prepare_docs(Db, Docs, [kz_doc:set_revision(Doc, Rev)|Updated]);
-        {'error', _} ->
-            prepare_docs(Db, Docs, [kz_doc:delete_revision(Doc)|Updated])
-    end.
 
 %%%=============================================================================
 %%% Group things functions

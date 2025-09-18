@@ -89,7 +89,7 @@ from_jobjs(JObjs) ->
 create(Nums, Opts0) ->
     lager:debug("try creating ~b numbers", [length(Nums)]),
     kz_either:cata(knm_lib:ensure_can_create(Opts0)
-                  ,fun(Reason) -> knm_pipe:new(Opts0, [], Nums, Reason) end
+                  ,fun(Reason) -> knm_pipe:set_operation(knm_pipe:new(Opts0, [], Nums, Reason), 'create') end
                   ,fun(Options) -> do_create(Nums, Options) end
                   ).
 
@@ -182,9 +182,9 @@ release(Nums) ->
 
 -spec release(kz_term:ne_binaries(), knm_options:options()) -> knm_pipe:collection().
 release(Nums, Options) ->
-    ?LOG_DEV("releasing numbers ~p", [Nums]),
+    ?LOG_DEV("releasing numbers ~p", [length(Nums)]),
     StartTime = kz_time:start_time(),
-    Result = knm_pipe:pipe(do_get(Nums, Options)
+    Result = knm_pipe:pipe(knm_pipe:set_operation(do_get(Nums, Options), 'release')
                           ,[fun try_release/1
                            ,fun knm_providers:delete/1
                            ,fun reset_features/1
@@ -201,6 +201,7 @@ release(Nums, Options) ->
 %%------------------------------------------------------------------------------
 -spec delete(kz_term:ne_binaries(), knm_options:options()) -> knm_pipe:collection().
 delete(Nums, Options) ->
+    ?LOG_DEV("hard deleting numbers ~b", [length(Nums)]),
     case knm_phone_number:is_admin(knm_options:auth_by(Options)) of
         'false' ->
             knm_pipe:new(Options, [], Nums, knm_errors:to_json('unauthorized'));
