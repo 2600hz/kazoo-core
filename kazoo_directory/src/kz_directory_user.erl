@@ -44,8 +44,11 @@ fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
 
 -spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
 build_and_cache(EndpointId, AccountId, Endpoint, Options) ->
-    {'ok', Profile} = build(EndpointId, AccountId, Endpoint, Options),
-    cache(EndpointId, AccountId, Profile, Options).
+    {'ok', #{profile := Profile} = Context} = build(EndpointId, AccountId, Endpoint, Options),
+    case maps:get(no_cache, Context, false) of
+        true -> {ok, Profile};
+        false -> cache(EndpointId, AccountId, Profile, Options)
+    end.
 
 -spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
 cache(EndpointId, AccountId, Profile, Options) ->
@@ -115,9 +118,20 @@ build(EndpointId, AccountId, Endpoint, Options) ->
 build(Context) ->
     Routines = [fun build_profile/1
                ,fun dial_string/1
+               ,fun no_cache_check/1
                ],
-    #{profile := Profile} = kz_maps:exec(Routines, Context),
-    {'ok', Profile}.
+    {'ok', kz_maps:exec(Routines, Context)}.
+
+no_cache_check(#{endpoint_id := OwnerId, account_id := AccountId, profile := Profile} = Context) ->
+    case kz_json:get_ne_binary_value(<<"Endpoint-Dial-String">>, Profile) =:= ?NO_ENDPOINTS
+        andalso kz_json:get_ne_json_value(<<"CallForward">>, Profile) =:= undefined
+        andalso kz_json:get_ne_json_value(<<"Failover">>, Profile) =:= undefined
+    of
+        false -> Context;
+        true ->
+            lager:warning("user ~s from account ~s has no devices, no callfwd or failover and no metadial enabled", [OwnerId, AccountId]),
+            Context#{no_cache => true}
+    end.
 
 dial_string(#{profile := Profile} = Context) ->
     DialString = dial_string(Context, dial_members(Context), is_meta_dial_enabled(Context)),
@@ -161,7 +175,7 @@ build_profile(Context) ->
     SIPHeaders = generate_sip_headers(EndpointId, AccountId, Endpoint, Options),
     CAVs = kz_json:get_json_value(<<"default_cavs">>, Endpoint),
     CPVs = build_profile_vars(AccountId, EndpointId, Endpoint, CCVs),
-    Endpoints = owned_by_query(EndpointId, AccountId),
+    {ok, Endpoints} = owned_by_query(EndpointId, AccountId),
 
     Profile = [{<<"Endpoint-Type">>, <<"user">>}
               ,{<<"Domain-Name">>, AccountId}
@@ -314,10 +328,7 @@ add_sip_headers(Endpoint, Headers) ->
 -spec owned_by_query(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:api_binaries().
 owned_by_query(OwnerId, AccountId) ->
     ViewOptions = [{'key', [OwnerId, <<"device">>]}],
-    case kz_datamgr:get_result_ids(AccountId, <<"attributes/owned">>, ViewOptions) of
-        {'ok', Ids} -> Ids;
-        {'error', _R} -> []
-    end.
+    kz_datamgr:get_result_ids(AccountId, <<"attributes/owned">>, ViewOptions).
 
 -spec dnd(kz_json:object()) -> boolean().
 dnd(Endpoint) ->
