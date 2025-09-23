@@ -121,7 +121,7 @@ handle_info(_Msg, State) ->
 -spec terminate(any(), state()) -> 'ok'.
 terminate(_Reason, Context) ->
     lager:debug("stopping pg monitoring: ~s / ~p", [ra_name(Context), _Reason]),
-    _ = do_terminate(Context),
+    _ = catch(do_terminate(Context)),
     'ok'.
 
 do_terminate(Context) ->
@@ -194,6 +194,9 @@ ra_system_start(Context) ->
         error:noproc ->
             do_ra_system_start(Context);
         error:badarg ->
+            do_ra_system_start(Context);
+        Class:Exception ->
+            lager:warning("~s system check exception not handled ~p => ~p", [ra_system(Context), Class, Exception]),
             do_ra_system_start(Context)
     end.
 
