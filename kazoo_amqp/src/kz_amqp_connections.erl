@@ -565,7 +565,7 @@ is_hidden_broker(Tags) -> lists:member(?AMQP_HIDDEN_TAG, Tags).
 
 -spec uris() -> [{atom(), kz_term:ne_binary()}].
 uris() ->
-    lists:usort([{Zone, Broker}
+    lists:usort([{zone_config_name(Zone), Broker}
                  || #kz_amqp_connections{broker=Broker, zone = Zone, tags=Tags} <- ets:tab2list(?TAB),
                     not is_hidden_broker(Tags)
                 ]
