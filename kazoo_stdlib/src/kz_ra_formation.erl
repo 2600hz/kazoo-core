@@ -20,6 +20,7 @@
         ,handle_call/3
         ,handle_cast/2
         ,handle_info/2
+        ,handle_continue/2
         ,terminate/2
         ,code_change/3
         ]).
@@ -42,34 +43,47 @@
 -spec start_link(start_link_options()) -> kz_types:startlink_ret().
 start_link(Options)
   when is_map(Options) ->
-    true = ensure_ra(),
     gen_server:start_link({'local', server_name(Options)}, ?MODULE, Options, []).
+
+verify_ra(Pid) ->
+    try
+        true = ensure_ra(),
+        gen_server:cast(Pid, start)
+    catch
+        Class:Exception:ST ->
+            lager:warning("failed to verify ra is up and running => ~p/~p", [Class, Exception]),
+            kz_log:log_stacktrace(ST),
+            erlang:exit(Pid, Exception)
+    end.
 
 ensure_ra() ->
     case application:ensure_all_started([ra]) of
-        {ok, _Apps} -> ensure_ra_default_system();
+        {ok, _Apps} -> ensure_ra_default_system(3);
         _ -> false
     end.
 
-ensure_ra_default_system() ->
-    case ra:overview() of
-        system_not_started ->
-            StartResult = catch(ra_system:start_default()),
-            handle_ra_default_start_result(StartResult);
-        _Other -> true
-    end.
+ensure_ra_default_system(Try) ->
+    StartResult = catch(ra_system:start_default()),
+    handle_ra_default_start_result(StartResult, Try).
 
-handle_ra_default_start_result({ok, Pid}) -> is_pid(Pid);
-handle_ra_default_start_result({ok, Pid, _}) -> is_pid(Pid);
-handle_ra_default_start_result({error, {already_started, _Pid}}) -> true;
-handle_ra_default_start_result(_) -> false.
+handle_ra_default_start_result({ok, Pid}, _Try) -> is_pid(Pid);
+handle_ra_default_start_result({ok, Pid, _}, _Try) -> is_pid(Pid);
+handle_ra_default_start_result({error, {already_started, _Pid}}, _Try) -> true;
+handle_ra_default_start_result(_, 0) -> false;
+handle_ra_default_start_result(_, Try) ->
+    timer:sleep(?MILLISECONDS_IN_SECOND * rand:uniform(5)),
+    ensure_ra_default_system(Try - 1).
 
--spec init(start_link_options()) -> {'ok', state()}.
+-spec init(start_link_options()) -> {ok, null, {continue, start_link_options()}}.
 init(Options) ->
-    process_flag('trap_exit', 'true'),
+    {ok, null, {continue, Options}}.
+
+-spec handle_continue(start_link_options(), null) -> {noreply, state()}.
+handle_continue(Options, null) ->
+    process_flag(trap_exit, true),
     kz_log:put_callid(ra_name(Options)),
-    gen_server:cast(self(), 'start'),
-    {'ok', init_state(Options)}.
+    kz_process:spawn(fun verify_ra/1, [self()]),
+    {noreply, init_state(Options)}.
 
 init_state(Options) ->
     maps:merge(init_state_defaults(Options), Options).
