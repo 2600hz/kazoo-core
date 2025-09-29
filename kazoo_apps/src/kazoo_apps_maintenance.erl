@@ -84,7 +84,7 @@ ready() ->
 check() ->
     Configured = kapps_controller:start_which_kapps(),
     Running = [kz_term:to_binary(Application)
-               || Application <- kapps_controller:running_apps()
+               || Application <- kapps_controller:list_apps()
               ],
     Props = [{'unexpected', lists:subtract(Running, Configured)}
             ,{'missing', lists:subtract(Configured, Running)}
