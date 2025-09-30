@@ -19,14 +19,17 @@
 
 -export_type([auth_app/0]).
 
--type auth_app() :: #{auth_app => #{name => kz_term:ne_binary()
-                                   ,pvt_auth_provider => kz_term:ne_binary()
-                                   ,pvt_user_prefix => kz_term:ne_binary()
-                                   ,pvt_server_key => kz_term:ne_binary()
-                                   ,auth_provider => kz_auth_providers:auth_provider()
-                                   }
+-type auth_app_map() :: #{name => kz_term:ne_binary()
+                         ,pvt_auth_provider => kz_term:ne_binary()
+                         ,pvt_user_prefix => kz_term:ne_binary()
+                         ,pvt_server_key => kz_term:ne_binary()
+                         ,auth_provider => kz_auth_providers:auth_provider()
+                         }.
+
+-type auth_app() :: #{auth_app => auth_app_map()
                      ,auth_provider => kz_auth_providers:auth_provider()
-                     }.
+                     } |
+                    auth_app_map().
 
 -spec get_auth_app(kz_term:ne_binary()) ->
           auth_app() |

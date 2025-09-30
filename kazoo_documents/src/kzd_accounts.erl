@@ -50,6 +50,7 @@
 -export([org/1, org/2, set_org/2]).
 -export([preflow/1, preflow/2, set_preflow/2]).
 -export([preflow_always/1, preflow_always/2, set_preflow_always/2]).
+-export([allowed_proxy_ips/1, allowed_proxy_ips/2, set_allowed_proxy_ips/2]).
 -export([realm/1, realm/2, set_realm/2]).
 -export([ringtones/1, ringtones/2, set_ringtones/2]).
 -export([ringtones_external/1, ringtones_external/2, set_ringtones_external/2]).
@@ -644,6 +645,37 @@ preflow_always(Doc, Default) ->
 set_preflow_always(Doc, PreflowAlways) ->
     kz_json:set_value([<<"preflow">>, <<"always">>], PreflowAlways, Doc).
 
+-spec allowed_proxy_ips(kz_term:api_ne_binary() | doc()) -> kz_term:ne_binaries().
+allowed_proxy_ips('undefined') -> [];
+allowed_proxy_ips(AccountId) when is_binary(AccountId) ->
+    case fetch(AccountId) of
+        {'ok', JObj} -> allowed_proxy_ips(JObj);
+        {'error', _R} ->
+            lager:debug("failed to open account ~s definition, returning empty proxy list", [AccountId]),
+            []
+    end;
+allowed_proxy_ips(JObj) ->
+    allowed_proxy_ips(JObj, []).
+
+-spec allowed_proxy_ips(kz_term:api_ne_binary() | doc(), Default) -> kz_term:ne_binaries() | Default.
+allowed_proxy_ips('undefined', 'undefined') ->
+    [];
+allowed_proxy_ips('undefined', Default) ->
+    Default;
+allowed_proxy_ips(AccountId, Default) when is_binary(AccountId) ->
+    case fetch(AccountId) of
+        {'ok', JObj} -> allowed_proxy_ips(JObj, Default);
+        {'error', _R} ->
+            lager:debug("failed to open account ~s definition, returning empty proxy list"),
+            []
+    end;
+allowed_proxy_ips(JObj, Default) ->
+    kz_json:get_ne_binaries(<<"allowed_proxy_ips">>, JObj, Default).
+
+-spec set_allowed_proxy_ips(doc(), list()) -> doc().
+set_allowed_proxy_ips(Doc, ProxyList) ->
+    kz_json:set_value(<<"allowed_proxy_ips">>, ProxyList, Doc).
+
 -spec realm(doc()) -> kz_term:api_ne_binary().
 realm(Doc) ->
     realm(Doc, 'undefined').
@@ -698,7 +730,9 @@ timezone(AccountId) when is_binary(AccountId) ->
     case fetch(AccountId) of
         {'ok', JObj} -> timezone(JObj);
         {'error', _R} ->
-            lager:debug("failed to open account ~s definition, returning system's default timezone"),
+            lager:debug("failed to open account ~s definition: ~p, returning system's default timezone"
+                       ,[AccountId, _R]
+                       ),
             default_timezone()
     end;
 timezone(JObj) ->
@@ -711,12 +745,14 @@ timezone('undefined', <<"inherit">>) -> %% UI-1808
     default_timezone();
 timezone('undefined', Default) ->
     Default;
-timezone(AccountId, Default) when is_binary(AccountId) ->
+timezone(<<AccountId/binary>>, Default) ->
     case fetch(AccountId) of
         {'ok', JObj} -> timezone(JObj, Default);
         {'error', _R} when Default =:= 'undefined';
                            Default =:= <<"inherit">> -> %% UI-1808
-            lager:debug("failed to open account ~s definition, returning system's default timezone"),
+            lager:debug("failed to open account ~s definition: ~p, returning system's default timezone"
+                       ,[AccountId, _R]
+                       ),
             default_timezone();
         {'error', _} ->
             Default

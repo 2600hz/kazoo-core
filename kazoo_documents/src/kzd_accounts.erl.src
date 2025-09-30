@@ -7,6 +7,7 @@
 
 -export([new/0]).
 -export([addresses/1, addresses/2, set_addresses/2]).
+-export([allowed_proxy_ips/1, allowed_proxy_ips/2, set_allowed_proxy_ips/2]).
 -export([announcement/1, announcement/2, set_announcement/2]).
 -export([blacklists/1, blacklists/2, set_blacklists/2]).
 -export([call_failover/1, call_failover/2, set_call_failover/2]).
@@ -82,6 +83,18 @@ addresses(Doc, Default) ->
 -spec set_addresses(doc(), kz_json:object()) -> doc().
 set_addresses(Doc, Addresses) ->
     kz_json:set_value([<<"addresses">>], Addresses, Doc).
+
+-spec allowed_proxy_ips(doc()) -> kz_term:api_ne_binaries().
+allowed_proxy_ips(Doc) ->
+    allowed_proxy_ips(Doc, 'undefined').
+
+-spec allowed_proxy_ips(doc(), Default) -> kz_term:ne_binaries() | Default.
+allowed_proxy_ips(Doc, Default) ->
+    kz_json:get_list_value([<<"allowed_proxy_ips">>], Doc, Default).
+
+-spec set_allowed_proxy_ips(doc(), kz_term:ne_binaries()) -> doc().
+set_allowed_proxy_ips(Doc, AllowedProxyIps) ->
+    kz_json:set_value([<<"allowed_proxy_ips">>], AllowedProxyIps, Doc).
 
 -spec announcement(doc()) -> kz_term:api_binary().
 announcement(Doc) ->

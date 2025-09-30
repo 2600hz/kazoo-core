@@ -71,6 +71,7 @@
 -export([profile/1, profile/2, set_profile/2]).
 -export([pronounced_name/1, pronounced_name/2, set_pronounced_name/2]).
 -export([pronounced_name_media_id/1, pronounced_name_media_id/2, set_pronounced_name_media_id/2]).
+-export([allowed_proxy_ips/1, allowed_proxy_ips/2, set_allowed_proxy_ips/2]).
 -export([require_password_update/1, require_password_update/2, set_require_password_update/2]).
 -export([ringtones/1, ringtones/2, set_ringtones/2]).
 -export([ringtones_external/1, ringtones_external/2, set_ringtones_external/2]).
@@ -867,6 +868,26 @@ pronounced_name_media_id(Doc, Default) ->
 -spec set_pronounced_name_media_id(doc(), binary()) -> doc().
 set_pronounced_name_media_id(Doc, PronouncedNameMediaId) ->
     kz_json:set_value([<<"pronounced_name">>, <<"media_id">>], PronouncedNameMediaId, Doc).
+
+-spec allowed_proxy_ips(doc()) -> kz_term:ne_binaries().
+allowed_proxy_ips('undefined') -> [];
+allowed_proxy_ips(JObj) ->
+    kz_json:get_ne_binaries(<<"allowed_proxy_ips">>, JObj, []).
+
+-spec allowed_proxy_ips(kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> kz_term:ne_binaries().
+allowed_proxy_ips('undefined', _) -> [];
+allowed_proxy_ips(_, 'undefined') -> [];
+allowed_proxy_ips(AccountId, UserId) ->
+    case fetch(AccountId, UserId) of
+        {'ok', JObj} -> allowed_proxy_ips(JObj);
+        {'error', _R} ->
+            lager:debug("failed to open account's ~s user ~s definition, returning empty proxy list", [AccountId, UserId]),
+            []
+    end.
+
+-spec set_allowed_proxy_ips(doc(), kz_term:ne_binaries()) -> doc().
+set_allowed_proxy_ips(Doc, ProxyList) ->
+    kz_json:set_value(<<"allowed_proxy_ips">>, ProxyList, Doc).
 
 -spec require_password_update(doc()) -> boolean().
 require_password_update(Doc) ->

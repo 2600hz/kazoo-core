@@ -65,6 +65,8 @@
         ,break_list/3
         ]).
 
+-export([list_contains/2]).
+
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -type text() :: string() | atom() | binary() | iolist().
@@ -696,4 +698,12 @@ break_list(List, Breakpoint, Lists) ->
     catch
         'error':'badarg' ->
             lists:reverse([List | Lists])
+    end.
+
+-spec list_contains(list(), list()) -> boolean().
+list_contains([], _) -> 'false';
+list_contains([H| T], L) ->
+    case lists:member(H, L) of
+        'true' -> 'true';
+        'false' -> list_contains(T, L)
     end.
