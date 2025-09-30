@@ -58,7 +58,14 @@ start_link() -> start_link(?SEND_INTERVAL).
 
 -spec start_link(pos_integer()) -> kz_types:startlink_ret().
 start_link(SendStats) ->
-    gen_server:start_link({'local', ?SERVER}, ?MODULE, [SendStats], []).
+    case kz_app_config:get_boolean('stats', <<"auto_start">>, 'false') of
+        'true' ->
+            lager:debug("starting stats app"),
+            gen_server:start_link({'local', ?SERVER}, ?MODULE, [SendStats], []);
+        'false' ->
+            lager:debug("stats app disabled"),
+            'ignore'
+    end.
 
 -spec stop() -> 'ok'.
 stop() ->
