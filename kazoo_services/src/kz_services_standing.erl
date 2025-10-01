@@ -11,6 +11,8 @@
 
 -export([acceptable/1
         ,acceptable/2
+        ,call_good_standing/1
+        ,call_good_standing/2
         ]).
 
 -include("services.hrl").
@@ -70,6 +72,29 @@ acceptable(Services, Options) ->
     lager:debug("checking if account ~s is in good standing: ~p"
                ,[kz_services:account_id(Services), Options]
                ),
+    GoodFuns = [fun should_enforce_good_standing/2
+               ,fun no_plan_is_good/2
+               ,fun check_bookkeeper/2
+               ],
+    is_acceptable(Services, Options, GoodFuns).
+
+-spec call_good_standing(kz_term:ne_binary() | kz_services:services()) -> acceptable_return().
+call_good_standing(Thing) ->
+    call_good_standing(Thing, #{}).
+
+-spec call_good_standing(kz_term:ne_binary() | kz_services:services(), acceptable_options()) -> acceptable_return().
+call_good_standing(?NE_BINARY=Account, Options) ->
+    FetchOptions = ['hydrate_plans'],
+    call_good_standing(kz_services:fetch(Account, FetchOptions), Options);
+call_good_standing(Services, Options) ->
+    lager:debug("checking if account ~s is in good standing without checking enforce good standing and plans: ~p"
+               ,[kz_services:account_id(Services), Options]
+               ),
+    GoodFuns = [fun check_bookkeeper/2],
+    is_acceptable(Services, Options, GoodFuns).
+
+-spec is_acceptable(kz_services:services(), acceptable_options(), list()) -> acceptable_return().
+is_acceptable(Services, Options, GoodFuns) ->
     NewOptions = #{amount =>
                        kz_term:to_integer(maps:get('amount', Options, 0))
                   ,allow_postpay =>
@@ -83,10 +108,6 @@ acceptable(Services, Options) ->
                   ,cache_expiration =>
                        kz_term:to_integer(maps:get('cache_expiration', Options, ?DEFAULT_EXPIRATION_S))
                   },
-    GoodFuns = [fun should_enforce_good_standing/2
-               ,fun no_plan_is_good/2
-               ,fun check_bookkeeper/2
-               ],
     maybe_use_cache(Services, NewOptions, GoodFuns).
 
 -spec maybe_use_cache(kz_services:services(), acceptable_options(), acceptable_funs()) -> acceptable_return().
