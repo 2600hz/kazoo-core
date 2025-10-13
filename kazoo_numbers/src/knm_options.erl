@@ -79,6 +79,7 @@
                         {'ringback_media', kz_term:api_binary()} |
                         {'caller_display_name', kz_term:api_ne_binary()} |
                         {'transfer_media', kz_term:api_binary()} |
+                        {'module_name', kz_term:ne_binary()} |
                         {'no_parallel', boolean()}.
 
 -type extra_options() :: [extra_option()].

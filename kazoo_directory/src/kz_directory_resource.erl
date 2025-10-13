@@ -119,7 +119,7 @@ set_resource_id(#{resource := {'ok', Resource}, ccvs := CCVs, profile := Profile
     Map#{ccvs => [{<<"Resource-ID">>, kz_doc:id(Resource)}
                  ,{<<"Global-Resource">>, IsGlobal}
                  ,{<<"Authorizing-Type">>, <<"resource">>}
-                 | CCVs
+                 | maybe_authz_number_module(Resource, CCVs)
                  ]
         ,profile => [{<<"Resource-ID">>, kz_doc:id(Resource)}
                     ,{<<"Resource-Formatters">>, kzd_resources:formatters(Resource)}
@@ -144,6 +144,13 @@ set_resource_id(#{resource := {'error', _}
                     ]
         };
 set_resource_id(Map) -> Map.
+
+-spec maybe_authz_number_module(kzd_resources:doc(), kz_term:proplist()) -> kz_term:proplist().
+maybe_authz_number_module(JObj, CCVs) ->
+    case kz_json:get_ne_binary_value(<<"pvt_number_module">>, JObj) of
+        'undefined' ->  props:delete(<<"Authz-Number-Module">>, CCVs);
+        AuthzMod -> props:set_value(<<"Authz-Number-Module">>, AuthzMod, CCVs)
+    end.
 
 -spec maybe_add_t38_settings(resource_context()) -> resource_context().
 maybe_add_t38_settings(#{resource := {'ok', Resource}, ccvs := CCVs} = Map) ->

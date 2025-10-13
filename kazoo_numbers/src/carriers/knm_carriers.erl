@@ -33,6 +33,9 @@
 
         ,is_number_billable/1
         ,is_local/1
+
+        ,maybe_account_limited/2
+        ,maybe_reseller_limited/2
         ]).
 
 %% FIXME:`?' CHILD_ACCOUNT_ID is not a reseller but that's okay:
@@ -379,6 +382,32 @@ is_number_billable(PN) ->
         'error':_R -> 'true'
     end.
 
+-spec maybe_account_limited(knm_options:extra_options(), kz_json:object()) -> boolean().
+maybe_account_limited(Options, JObj) ->
+    %% don't use knm_options:module_name/1, we want 'undefined' as default
+    Carrier = props:get_ne_binary_value('module_name', Options),
+    case is_exported(Carrier, 'maybe_account_limited', 1) of
+        'false' -> 'true';
+        'true'->
+            try apply(Carrier, 'maybe_account_limited', [JObj])
+            catch
+                'error':_R -> 'true'
+            end
+    end.
+
+-spec maybe_reseller_limited(knm_options:extra_options(), kz_json:object()) -> boolean().
+maybe_reseller_limited(Options, JObj) ->
+    %% don't use knm_options:module_name/1, we want 'undefined' as default
+    Carrier = props:get_ne_binary_value('module_name', Options),
+    case is_exported(Carrier, 'maybe_reseller_limited', 1) of
+        'false' -> 'true';
+        'true'->
+            try apply(Carrier, 'maybe_reseller_limited', [JObj])
+            catch
+                'error':_R -> 'true'
+            end
+    end.
+
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
@@ -402,6 +431,10 @@ is_local(Carrier) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
+-spec is_exported(module() | kz_term:api_ne_binary(), atom(), pos_integer()) -> boolean().
+is_exported('undefined', _Fun, _Arity) -> 'false';
+is_exported(Carrier, Function, Arity) -> kz_module:is_exported(Carrier, Function, Arity).
+
 -spec apply(module() | kz_term:ne_binary() | knm_phone_number:pn_record(), atom(), list()) -> any().
 apply(Module, FName, Args) when is_atom(Module), Module =/= 'undefined' ->
     lager:debug("contacting carrier ~s for ~s", [Module, FName]),

@@ -14,6 +14,7 @@
 -export([application_integrations/1]).
 -export([hotload/1]).
 -export([behaviours/1, has_behaviour/2]).
+-export([maybe_apply/3]).
 
 -type integration() :: {kz_term:ne_binary() | module(), module(), atom()} |
                        {kz_term:ne_binary() | module(), module(), atom(), boolean()} |
@@ -43,6 +44,16 @@ is_exported(Module, Function, Arity) ->
     catch
         'error':'badarg' -> 'false';
         'error':'system_limit' -> 'false'
+    end.
+
+-spec maybe_apply(module() | kz_term:text(), kz_term:text(), [any()]) -> any() | 'not_exported'.
+maybe_apply(Module, Function, Args) ->
+    case is_exported(Module, Function, length(Args)) of
+        'true' ->
+            Mod = kz_term:to_atom(Module),
+            erlang:apply(Mod, Function, Args);
+        'false' ->
+            'not_exported'
     end.
 
 %%------------------------------------------------------------------------------

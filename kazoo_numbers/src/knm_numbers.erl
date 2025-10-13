@@ -33,6 +33,9 @@
         ,validate_ownership/2
         ,cache_key/1
         ,is_number_billable/1
+
+        ,maybe_account_limited/2
+        ,maybe_reseller_limited/2
         ]).
 
 -include("knm.hrl").
@@ -252,6 +255,36 @@ is_number_billable(JObj) ->
         'true' ->
             knm_carriers:is_number_billable(knm_phone_number:from_json_with_options(JObj, []));
         'false' -> 'true'
+    end.
+
+-spec maybe_account_limited(kz_term:api_ne_binary() | knm_options:extra_options(), kz_json:object()) -> boolean() | 'not_exported'.
+maybe_account_limited(Options, JObj) when is_list(Options) ->
+    knm_carriers:maybe_account_limited(Options, JObj);
+maybe_account_limited(Number, JObj) ->
+    case lookup_account(Number) of
+        {'ok', _AccountId, Props} ->
+            lager:debug("number ~s belongs to ~s", [Number, _AccountId]),
+            maybe_account_limited(Props, JObj);
+        {'error', _R} ->
+            lager:warning("error confirming number ~s: ~p"
+                         ,[Number, _R]
+                         ),
+            'true'
+    end.
+
+-spec maybe_reseller_limited(kz_term:ne_binary() | knm_options:extra_options(), kz_json:object()) -> boolean() | 'not_exported'.
+maybe_reseller_limited(Options, JObj) when is_list(Options) ->
+    knm_carriers:maybe_reseller_limited(Options, JObj);
+maybe_reseller_limited(Number, JObj) ->
+    case lookup_account(Number) of
+        {'ok', _AccountId, Props} ->
+            lager:debug("number ~s belongs to ~s", [Number, _AccountId]),
+            maybe_reseller_limited(Props, JObj);
+        {'error', _R} ->
+            lager:warning("error confirming number ~s: ~p"
+                         ,[Number, _R]
+                         ),
+            'true'
     end.
 
 %%------------------------------------------------------------------------------
@@ -507,6 +540,7 @@ check_account(PN) ->
         'true' ->
             Props = [{'pending_port', knm_phone_number:state(PN) =:= ?NUMBER_STATE_PORT_IN}
                     ,{'local', knm_phone_number:module_name(PN) =:= ?CARRIER_LOCAL}
+                    ,{'module_name', knm_phone_number:module_name(PN)}
                     ,{'number', knm_phone_number:number(PN)}
                     ,{'account_id', AssignedTo}
                     ,{'prepend', knm_lib:feature_prepend(PN)}

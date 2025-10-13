@@ -24,6 +24,10 @@
 -export([should_lookup_cnam/0]).
 -export([check_numbers/1]).
 
+-export([maybe_account_limited/1
+        ,maybe_reseller_limited/1
+        ]).
+
 -include("knm.hrl").
 
 %%------------------------------------------------------------------------------
@@ -34,6 +38,23 @@
 info() ->
     #{?CARRIER_INFO_MAX_PREFIX => 10
      }.
+
+-spec maybe_account_limited(kz_json:object()) -> boolean().
+maybe_account_limited(_JObj) ->
+    legacy_should_authz_local()
+        orelse kapps_config:is_true(<<"number_manager.local">>, <<"account_limited">>, 'false').
+
+-spec maybe_reseller_limited(kz_json:object()) -> boolean().
+maybe_reseller_limited(_JObj) ->
+    legacy_should_authz_local()
+        orelse kapps_config:is_true(<<"number_manager.local">>, <<"reseller_limited">>, 'false').
+
+-spec legacy_should_authz_local() -> boolean().
+legacy_should_authz_local() ->
+    %% fool ast to not generate ecallmgr system_config scehma
+    Cat = <<"ecallmgr">>,
+    Key = <<"authz_local_resources">>,
+    kapps_config:is_true(Cat, Key, 'false').
 
 %%------------------------------------------------------------------------------
 %% @doc Is this carrier handling numbers local to the system?

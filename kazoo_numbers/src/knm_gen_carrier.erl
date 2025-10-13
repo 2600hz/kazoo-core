@@ -50,6 +50,10 @@
 
 -callback route_outbound_im(kz_json:object()) -> 'ok' | {'error', any()}.
 
+%% called during channel authz
+-callback maybe_account_limited(kz_json:object()) -> boolean().
+-callback maybe_reseller_limited(kz_json:object()) -> boolean().
+
 %% Inbound API requests/webhooks from carrier callbacks
 -callback authenticate_req(Payload::kz_json:object(), Headers::cowboy:http_headers(), AccountId::kz_term:api_ne_binary()) -> boolean().
 -callback validate_im(Payload::kz_json:object()) -> {'ok', kz_json:object()} | {'error', any()}.
@@ -64,6 +68,8 @@
 
                     ,authenticate_req/3
                     ,validate_im/1
+                    ,maybe_account_limited/1
+                    ,maybe_reseller_limited/1
                     ]).
 
 -type carrier() :: kz_term:api_ne_binary() | knm_phone_number:pn_record().

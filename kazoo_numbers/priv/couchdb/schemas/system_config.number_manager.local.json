@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "system_config.number_manager.local",
+    "description": "Schema for number_manager.local system_config",
+    "properties": {
+        "account_limited": {
+            "default": false,
+            "description": "Indicates if channel should be limited for the account if it using a local number",
+            "type": "boolean"
+        },
+        "reseller_limited": {
+            "default": false,
+            "description": "Indicates if channel should be limited for the reseller if it using a local number",
+            "type": "boolean"
+        }
+    },
+    "type": "object"
+}
