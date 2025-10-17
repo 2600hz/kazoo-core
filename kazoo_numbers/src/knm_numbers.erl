@@ -317,7 +317,7 @@ free(<<Account/binary>>) ->
             lists:foreach(fun ({Num, R}) ->
                                   lager:error("error when releasing ~s from ~s: ~p", [Num, Account, R])
                           end
-                         ,props:get_keys(Failed)
+                         ,Failed
                          )
     end.
 
