@@ -13,6 +13,7 @@
 -export([query/1]).
 
 -export([query_method/0, set_query_method/1]).
+-export([query_timeout/0, set_query_timeout/1]).
 
 -type count_args() :: #{account := kz_term:ne_binary()
                        ,device => kz_term:api_ne_binary()
@@ -42,6 +43,10 @@
 
 -type method() :: 'amqp' | 'genserver'.
 
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
+
+-define(RECEIVE_TIMEOUT, 2 * ?MILLISECONDS_IN_SECOND).
+
 -spec query_method() -> method().
 query_method() ->
     persistent_term:get('kz_channels_query_method', 'genserver').
@@ -49,6 +54,14 @@ query_method() ->
 -spec set_query_method('amqp' | 'genserver') -> 'ok'.
 set_query_method(Method) ->
     persistent_term:put('kz_channels_query_method', Method).
+
+-spec query_timeout() -> timeout().
+query_timeout() ->
+    persistent_term:get('kz_channels_query_timeout', ?RECEIVE_TIMEOUT).
+
+-spec set_query_timeout(timeout()) -> 'ok'.
+set_query_timeout(Timeout) ->
+    persistent_term:put('kz_channels_query_timeout', Timeout).
 
 -spec count(kapps_call:call() | count_args()) -> map().
 count(M) when is_map(M)  ->
@@ -103,16 +116,19 @@ amqp_count_result(JObjs) ->
     end.
 
 amqp_count_result(JObj, Acc) ->
-    Zone = kz_api:zone(JObj),
+    Zone = kz_term:to_atom(kz_api:zone(JObj)),
     Value = kz_maps:keys_to_atoms(kz_json:to_map(kz_json:get_json_value(<<"Count">>, JObj))),
     case maps:get(Zone, Acc, 'undefined') of
-        'undefined' -> maps:put(Zone, Value, Acc);
-        Existing -> maps:put(Zone, lists:foldl(fun maps_higher_fold_fun/2, #{}, [Existing, Value]), Acc)
+        'undefined' ->
+            Acc#{Zone => Value#{by_zone => #{Zone => Value}}};
+        Existing ->
+            Merged = lists:foldl(fun maps_higher_fold_fun/2, #{}, [maps:without([by_zone], Existing), Value]),
+            Acc#{Zone => Merged#{by_zone => #{Zone => Merged}}}
     end.
 
 genserver_count(Args) ->
-    case [genserver_responses(Zone, ReqIds, fun maps_higher_fold_fun/2)
-          || {Zone, ReqIds} <- genserver_requests(count, rpc_members(), Args)
+    case [genserver_count_responses(Zone, ReqIds, fun maps_higher_fold_fun/2)
+          || {Zone, ReqIds} <- genserver_requests('count', rpc_members(), Args)
          ]
     of
         [] -> #{};
@@ -125,49 +141,32 @@ genserver_responses(ReqIds) ->
                 ,[genserver_response(ReqId) || ReqId <- ReqIds]
                 ).
 
--if(?OTP_RELEASE >= 24).
 genserver_response(ReqId) ->
-    case gen_server:receive_response(ReqId, 'infinity') of
+    case gen_server:receive_response(ReqId, ?RECEIVE_TIMEOUT) of
         {'reply', Value} -> Value;
-        _ -> 'undefined'
+        _Other -> undefined
     end.
--else.
-genserver_response(ReqId) ->
-    case gen_server:wait_response(ReqId, 'infinity') of
-        {'reply', Value} -> Value;
-        _ -> 'undefined'
-    end.
--endif.
 
 maps_higher_fold_fun(M1, M2) ->
-    maps:fold(fun map_merge_higher/3, M2, M1).
+    maps:merge_with(fun map_merge_higher/3, M1, M2).
 
-map_merge_higher(K, V, Acc) ->
-    case maps:get(K, Acc, 'undefined') of
-        'undefined' ->  maps:put(K, V, Acc);
-        Value when Value < V -> maps:put(K, V, Acc);
-        _Value -> Acc
-    end.
+map_merge_higher(_K, V1, V2) when V1 > V2 -> V1;
+map_merge_higher(_K, _V1, V2) -> V2.
 
 maps_sum_fold_fun(M1, M2) ->
-    maps:fold(fun map_merge_sum/3, M2, M1).
+    maps:merge_with(fun map_merge_sum/3, M1, M2).
 
-map_merge_sum(K, V, Acc) ->
-    case maps:get(K, Acc, 'undefined') of
-        'undefined' ->  maps:put(K, V, Acc);
-        Value -> maps:put(K, Value + V, Acc)
-    end.
+map_merge_sum(_K, V1, V2) when is_map(V1), is_map(V2) ->  maps:merge_with(fun map_merge_sum/3, V1, V2);
+map_merge_sum(_K, V1, V2) -> V1 + V2.
 
 -spec rpc_members() -> [{atom(), [pid()]}].
 rpc_members() ->
-    [{Zone, pg:get_members(Z)}
-     || Z = {Zone, 'channel_cache'} <- pg:which_groups()
-    ].
+    [{Zone, pg:get_members(Z)} || Z = {Zone, 'channel_cache'} <- pg:which_groups()].
 
 
 genserver_query(Args) ->
-    case [genserver_responses(Zone, ReqIds, fun kz_maps:merge/2)
-          || {Zone, ReqIds} <- genserver_requests(channels, rpc_members(), Args)
+    case [genserver_query_responses(Zone, ReqIds, fun kz_maps:merge/2)
+          || {Zone, ReqIds} <- genserver_requests('channels', rpc_members(), Args)
          ]
     of
         [] -> #{};
@@ -175,8 +174,14 @@ genserver_query(Args) ->
         [_ | _] = M -> lists:foldl(fun kz_maps:merge/2, #{}, M)
     end.
 
-genserver_responses(Zone, ReqIds, ResponseFun) ->
-    set_zone_on_query_result(lists:foldl(ResponseFun, #{}, genserver_responses(ReqIds)), kz_term:to_binary(Zone)).
+genserver_query_responses(Zone, ReqIds, ResponseFun) ->
+    Responses = [set_zone_on_query_result(M, Zone) || M <- genserver_responses(ReqIds)],
+    Response = lists:foldl(ResponseFun, #{}, Responses),
+    maps:put(by_zone, #{Zone => Response}, Response).
+
+genserver_count_responses(Zone, ReqIds, ResponseFun) ->
+    Response = lists:foldl(ResponseFun, #{}, genserver_responses(ReqIds)),
+    maps:put(by_zone, #{Zone => Response}, Response).
 
 genserver_requests(Method, Members, Args) ->
     [genserver_requests(Method, Zone, Pids, Args) || {Zone, Pids} <- Members].
@@ -208,9 +213,9 @@ amqp_query_result(JObjs) ->
     lists:foldl(fun amqp_query_result/2, maps:new(), JObjs).
 
 amqp_query_result(JObj, Acc) ->
-    Zone = kz_api:zone(JObj),
-    Value = amqp_query_result_channels(JObj),
-    kz_maps:merge(Acc, set_zone_on_query_result(Value, Zone)).
+    Zone = kz_term:to_atom(kz_api:zone(JObj)),
+    Value = set_zone_on_query_result(amqp_query_result_channels(JObj), Zone),
+    kz_maps:merge(Acc, Value#{by_zone => #{Zone => Value}}).
 
 amqp_query_result_channels(JObj) ->
     Channels = kz_maps:keys_to_atoms(kz_json:to_map(kz_json:get_json_value(<<"Channels">>, JObj, kz_json:new())), false),
