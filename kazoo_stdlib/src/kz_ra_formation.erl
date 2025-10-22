@@ -80,7 +80,6 @@ init(Options) ->
 
 -spec handle_continue(start_link_options(), null) -> {noreply, state()}.
 handle_continue(Options, null) ->
-    process_flag(trap_exit, true),
     kz_log:put_callid(ra_name(Options)),
     kz_process:spawn(fun verify_ra/1, [self()]),
     {noreply, init_state(Options)}.
@@ -143,7 +142,7 @@ do_terminate(Context) ->
                ,fun ra_stop/1
                ,fun ra_leave/1
                ],
-    kz_maps:exec(Routines, Context).
+    exec(Routines, Context).
 
 pg_leave(#{joined := 'true', pg_scope := Scope, monitor := Ref} = Context) ->
     lager:debug("leaving pg ~s / ~s", [pg_scope(Context), ra_name(Context)]),
@@ -184,7 +183,7 @@ start(Context) ->
                ,fun ra_retry/1
                ,fun schedule_check/1
                ],
-    kz_maps:exec(Routines, Context).
+    exec(Context, Routines).
 
 ra_election(#{sleeping := 'true'} = Context) -> Context;
 ra_election(#{trigger_election := 'true'} = Context) ->
@@ -601,3 +600,15 @@ server_name(Context)
     server_name(ra_name(Context));
 server_name(Name) ->
     kz_term:to_atom(list_to_binary(["kz_ra_formation_", kz_term:to_binary(Name)]), 'true').
+
+exec(Context, []) -> Context;
+exec(Context, [Routine | Routines]) ->
+    try Routine(Context) of
+        Ctx when is_map(Ctx) -> exec(Ctx, Routines);
+        _Other -> Context
+    catch
+        Class:Exception:ST ->
+            lager:error("catch ~p/~p when executing ~p", [Class, Exception, Routine]),
+            kz_log:log_stacktrace(ST),
+            Context
+    end.
