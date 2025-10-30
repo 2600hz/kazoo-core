@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2025, 2600Hz
+%%% @copyright (C) 2011-2026, 2600Hz
 %%% @doc proplists-like interface to json objects
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -155,7 +155,7 @@
              ,json_string/0
              ,json_term/0, api_json_term/0, json_terms/0
              ,key/0, keys/0
-             ,object/0, objects/0
+             ,object/0, objects/0, object/2
              ,ne_object/0, ne_objects/0
              ,ne_map/0
              ,path/0, paths/0
@@ -1503,9 +1503,9 @@ get_ne_binary_or_binaries(Key, JObj, Default) ->
 
 -type value_type_fun() :: fun((json_term()) -> boolean()).
 
--spec get_value_type(get_key(), value_type_fun(), object() | objects()) -> json_term() | undefined.
+-spec get_value_type(get_key(), value_type_fun(), object() | objects()) -> json_term() | 'undefined'.
 get_value_type(Key, ValueTypeFun, JObj) ->
-    get_value_type(Key, ValueTypeFun, JObj, undefined).
+    get_value_type(Key, ValueTypeFun, JObj, 'undefined').
 
 -spec get_value_type(get_key(), value_type_fun(), object() | objects(), Default) -> json_term() | Default.
 get_value_type(Key, ValueTypeFun, JObj, Default) ->

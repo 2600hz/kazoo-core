@@ -85,6 +85,7 @@
 -ifdef(PROPER).
 -type object() :: ?JSON_WRAPPER(json_proplist()) | empty_object().
 -else.
+-type object(Key, Value) :: ?JSON_WRAPPER([{Key, Value}]) | empty_object().
 -type object() :: ?JSON_WRAPPER(json_proplist()) | empty_object() | map().
 %% Denotes JSON object Erlang representation, {@link json_proplist} wrapped in `{}'.
 -endif.

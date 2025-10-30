@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2025, 2600Hz
+%%% @copyright (C) 2012-2026, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,6 +22,7 @@
 -export([cascade_reseller_id/2]).
 -export([set_reseller_id/2]).
 -export([has_reseller_descendants/1]).
+-export([reseller_tree/1]).
 
 -include("services.hrl").
 
@@ -230,3 +231,8 @@ check_descendants([JObj|JObjs]) ->
         'false' -> check_descendants(JObjs);
         'true' -> 'true'
     end.
+
+%% @doc returns the list of reseller ancestors of AccountId, up to master account
+-spec reseller_tree(kz_term:ne_binary()) -> kz_term:ne_binaries().
+reseller_tree(AccountId) ->
+    lists:filter(fun is_reseller/1, kzd_accounts:tree(AccountId, [])).
