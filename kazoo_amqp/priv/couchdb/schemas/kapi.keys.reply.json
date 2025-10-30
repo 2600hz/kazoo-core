@@ -15,6 +15,9 @@
             ],
             "type": "string"
         },
+        "Identity": {
+            "type": "object"
+        },
         "Issuer": {
             "type": "object"
         },

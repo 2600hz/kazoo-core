@@ -365,6 +365,7 @@ parse(<<JWTToken/binary>>) ->
                          ,token_type => kz_term:ne_binary()
                          ,static_token => kz_json:object()
                          ,verified_token => kz_json:object() % response from OAuth Identity tokeninfo URL
+                         ,verified => boolean() % did we verify ?
                          ,id_token => kz_term:ne_binary()
 
                           %% kz_auth_profile additions

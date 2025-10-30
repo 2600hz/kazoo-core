@@ -33,14 +33,18 @@
         ,declare_exchanges/0
         ]).
 
--export([request_issuer/1]).
+-export([request_issuer/1
+        ,request_identity/1
+        ]).
 
 -define(EXCHANGE_JWT_KEYS, <<"jwt.keys">>).
 -define(TYPE_JWT_KEYS, <<"topic">>).
 
+-define(REQUEST_IDENTITY_KEY, <<"Request-Identity">>).
 -define(REQUEST_ISSUER_KEY, <<"Request-Issuer">>).
 -define(ISSUER_KEY, <<"Issuer">>).
 -define(KEYS_KEY, <<"Keys">>).
+-define(IDENTITY_KEY, <<"Identity">>).
 
 %%------------------------------------------------------------------------------
 %% @doc Get all API definitions of this module.
@@ -80,13 +84,14 @@ query_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun query_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_query/1}
               ,{fun kapi_definition:set_binding/2, <<"jwt.keys.query">>}
-              ,{fun kapi_definition:set_required_headers/2, [<<"Server-ID">>
+              ,{fun kapi_definition:set_required_headers/2, [<<"Server-ID">>]}
+              ,{fun kapi_definition:set_optional_headers/2, [?REQUEST_ISSUER_KEY
+                                                            ,?REQUEST_IDENTITY_KEY
                                                             ]}
-              ,{fun kapi_definition:set_optional_headers/2, [?REQUEST_ISSUER_KEY]}
-              ,{fun kapi_definition:set_values/2
-               ,kapi_definition:event_type_headers(Category, EventName)
-               }
-              ,{fun kapi_definition:set_types/2, [{?REQUEST_ISSUER_KEY, fun is_boolean/1}]}
+              ,{fun kapi_definition:set_values/2, kapi_definition:event_type_headers(Category, EventName)}
+              ,{fun kapi_definition:set_types/2, [{?REQUEST_ISSUER_KEY, fun is_boolean/1}
+                                                 ,{?REQUEST_IDENTITY_KEY, fun is_boolean/1}
+                                                 ]}
               ],
     kapi_definition:setters(Setters).
 
@@ -102,12 +107,13 @@ reply_definition() ->
               ,{fun kapi_definition:set_validate_fun/2, fun reply_v/1}
               ,{fun kapi_definition:set_publish_fun/2, fun publish_reply/2}
               ,{fun kapi_definition:set_required_headers/2, [?KEYS_KEY]}
-              ,{fun kapi_definition:set_optional_headers/2, [?ISSUER_KEY]}
-              ,{fun kapi_definition:set_values/2
-               ,kapi_definition:event_type_headers(Category, EventName)
-               }
+              ,{fun kapi_definition:set_optional_headers/2, [?ISSUER_KEY
+                                                            ,?IDENTITY_KEY
+                                                            ]}
+              ,{fun kapi_definition:set_values/2, kapi_definition:event_type_headers(Category, EventName)}
               ,{fun kapi_definition:set_types/2, [{<<"Keys">>, fun kz_json:is_json_object/1}
                                                  ,{<<"Issuer">>, fun kz_json:is_json_object/1}
+                                                 ,{<<"Identity">>, fun kz_json:is_json_object/1}
                                                  ]}
               ],
     kapi_definition:setters(Setters).
@@ -184,7 +190,7 @@ reload_v(Req) ->
 
 -spec publish_reload() -> 'ok'.
 publish_reload() ->
-    publish_reload(kz_json:new()).
+    publish_reload(kz_api:default_headers()).
 
 -spec publish_reload(kz_term:api_terms()) -> 'ok'.
 publish_reload(Req) ->
@@ -238,3 +244,10 @@ request_issuer(Props)
     props:is_true(?REQUEST_ISSUER_KEY, Props);
 request_issuer(JObj) ->
     kz_json:is_true(?REQUEST_ISSUER_KEY, JObj).
+
+-spec request_identity(kz_term:api_terms()) -> boolean().
+request_identity(Props)
+  when is_list(Props) ->
+    props:is_true(?REQUEST_IDENTITY_KEY, Props);
+request_identity(JObj) ->
+    kz_json:is_true(?REQUEST_IDENTITY_KEY, JObj).

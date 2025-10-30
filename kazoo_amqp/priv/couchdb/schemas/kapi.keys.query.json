@@ -15,6 +15,9 @@
             ],
             "type": "string"
         },
+        "Request-Identity": {
+            "type": "string"
+        },
         "Request-Issuer": {
             "type": "string"
         },

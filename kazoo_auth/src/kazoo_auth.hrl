@@ -5,7 +5,6 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 -include_lib("public_key/include/public_key.hrl").
--include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 
 -define(CONFIG_CAT, <<"auth">>).
 
@@ -72,6 +71,9 @@
                       {'error', non_neg_integer(), kz_json:object()}.
 
 -define(TEST_DUO_SIGN_EXPIRE, 1234).
+
+-define(IDENTITY_USAGE_TYPE, <<"stir-shaken">>).
+-define(IDENTITY_SUPPORTED_ALG, [<<"RS256">>, <<"ES256">>]).
 
 -define(KAZOO_AUTH_HRL, 'true').
 -endif.

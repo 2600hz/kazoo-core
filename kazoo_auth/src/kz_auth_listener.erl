@@ -25,6 +25,8 @@
         ,code_change/3
         ]).
 
+-export([identity_keys/0]).
+
 -include("kazoo_auth.hrl").
 
 -type state() :: #{}.
@@ -68,11 +70,10 @@ start_link() ->
 -spec handle_query(kz_json:object(), kz_term:proplist()) -> 'ok'.
 handle_query(JObj, _Props) ->
     'true' = kapi_keys:query_v(JObj),
-    Node = kz_api:node(JObj),
-    IssuerRequested = kapi_keys:request_issuer(JObj),
-    lager:info("received jwt.keys query from ~s : ~s", [Node, IssuerRequested]),
+    lager:info("received jwt.keys query from ~s : ~s", [kz_api:node(JObj), kz_json:encode(JObj)]),
     Reply = [{<<"Keys">>, kz_json:from_list(fetch_keys())}
-            ,{<<"Issuer">>, fetch_node_key(Node, IssuerRequested)}
+            ,{<<"Issuer">>, node_issuer(JObj)}
+            ,{<<"Identity">>, identity_keys(JObj)}
             ,{<<"Msg-ID">>, kz_api:msg_reply_id(JObj)}
             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
             ],
@@ -157,6 +158,11 @@ fetch_keys() ->
     PublicKey = kz_auth_keys:public_key(KeyId),
     [{KeyId, kz_auth_keys:to_pem(PublicKey, 'export')}].
 
+node_issuer(JObj) ->
+    Node = kz_api:node(JObj),
+    IssuerRequested = kapi_keys:request_issuer(JObj),
+    fetch_node_key(Node, IssuerRequested).
+
 fetch_node_key(_Node, 'false') -> 'undefined';
 fetch_node_key(Node, 'true') ->
     Query = list_to_binary(["metadata.node eq \"", Node, "\""]),
@@ -193,3 +199,35 @@ node_key(Node, KeyId, PrivateKey) ->
           ,{<<"scope">>, <<"sip:call">>}
           ],
     kz_json:from_list(PEM).
+
+identity_keys(JObj) ->
+    case kapi_keys:request_identity(JObj) of
+        false -> undefined;
+        true -> identity_keys()
+    end.
+
+-spec identity_keys() -> kz_term:api_object().
+identity_keys() ->
+    Query = list_to_binary(["metadata.usage eq \"", ?IDENTITY_USAGE_TYPE, "\""]),
+    case kz_auth_keys:search(Query, fun identity_payload/1) of
+        {ok, []} -> undefined;
+        {ok, Keys} -> kz_json:from_list(Keys);
+        {error, _Error} ->
+            lager:warning("error querying ~s keys => ~p", [?IDENTITY_USAGE_TYPE, _Error]),
+            undefined
+    end.
+
+-spec identity_payload(kz_json:object()) -> kz_auth_keys:search_result_row().
+identity_payload(JObj) ->    lager:error("got here => ~p", [JObj]),
+                             KeyId = kz_doc:id(JObj),
+                             {'ok', PrivateKey} = kz_auth_keys:private_key(KeyId),
+                             Metadata = kz_json:get_json_value(<<"metadata">>, JObj),
+
+                             Payload = [{<<"key">>, kz_auth_keys:to_pem(PrivateKey, 'export')}
+                                       ,{<<"alg">>, kz_json:get_value_type(<<"alg">>, fun is_valid_alg/1, Metadata)}
+                                       ],
+
+                             {KeyId, kz_json:from_list(Payload)}.
+
+is_valid_alg(Value) ->
+    lists:member(Value, ?IDENTITY_SUPPORTED_ALG).

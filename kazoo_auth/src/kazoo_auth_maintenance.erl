@@ -32,6 +32,9 @@
 
 -export([ensure_secret/0]).
 
+-export([publish_reload_keys/0]).
+
+-export([register_stirshaken_key/1, identity_keys/0]).
 
 %%==============================================================================
 %% Internal functions
@@ -59,7 +62,7 @@ register_auth_app(AccountId, OAuthId, Secret, Provider) ->
           {'ok', kz_json:object()} |
           kz_datamgr:data_error().
 register_auth_app_key(AppId, PemFile) ->
-    Pem = kz_auth_keys:get_private_key_from_file(PemFile),
+    {ok, Pem} = kz_auth_keys:get_private_key_from_file(PemFile),
     KeyId = kz_binary:rand_hex(16),
     {'ok', _Key} = kz_auth_keys:new_private_key(KeyId, Pem),
     Updates = [{[<<"pvt_server_key">>], KeyId}],
@@ -118,3 +121,32 @@ ensure_secret() ->
             _ -> 'ok'
         end,
     'ok'.
+
+-spec publish_reload_keys() -> 'no_return'.
+publish_reload_keys() ->
+    _ = kz_amqp_worker:cast(kz_api:default_headers(?APP_NAME, ?APP_VERSION), fun kapi_keys:publish_reload/1),
+    'no_return'.
+
+-spec register_stirshaken_key(kz_term:ne_binary()) -> 'no_return'.
+register_stirshaken_key(PemFile) ->
+    register_stirshaken_key(PemFile, undefined).
+
+-spec register_stirshaken_key(kz_term:ne_binary(), kz_term:api_ne_binary()) -> 'no_return'.
+register_stirshaken_key(PemFile, Password) ->
+    {ok, PrivateKey} = kz_auth_keys:get_private_key_from_file(PemFile, Password),
+    Alg = kz_term:to_upper_binary(kz_auth_keys:jwt_alg_for_key(PrivateKey)),
+    true = lists:member(Alg, ?IDENTITY_SUPPORTED_ALG),
+    KeyId = kz_binary:rand_hex(8),
+    KeyData = [{<<"usage">>, ?IDENTITY_USAGE_TYPE}
+              ,{<<"alg">>, Alg}
+              ],
+    Metadata = [{<<"metadata">>, kz_json:from_list(KeyData)}],
+    {ok, PrivateKey} = kz_auth_keys:new_private_key(KeyId, PrivateKey, Metadata),
+    publish_reload_keys(),
+    io:format("registered stir-shaken key ~s with alg ~s~n", [KeyId, Alg]),
+    'no_return'.
+
+-spec identity_keys() -> 'no_return'.
+identity_keys() ->
+    io:format("~s~n", [kz_json:encode(kz_auth_listener:identity_keys())]),
+    'no_return'.

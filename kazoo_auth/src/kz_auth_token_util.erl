@@ -108,26 +108,34 @@ access_token(#{} = Token) -> Token.
 
 %% send access token to the token_info_url for verification
 -spec verify(map()) -> map().
-verify(#{verified_token := _}=Token) -> Token;
+verify(#{verified := _}=Token) -> Token;
 verify(#{auth_provider := #{token_info_url := <<TokenInfoUrl/binary>>}
         ,access_token := <<AccessToken/binary>>
         }=Token
       ) ->
-    RespJObj = verify(TokenInfoUrl, AccessToken),
-    Token#{verified_token => RespJObj};
-verify(#{}=Token) -> Token#{verified_token => kz_json:new()}.
+    case verify(TokenInfoUrl, AccessToken) of
+        undefined -> Token#{verified => true};
+        RespJObj -> Token#{verified => true, verified_token => RespJObj}
+    end;
+verify(#{}=Token) -> Token#{verified => true}.
 
 verify(TokenInfoUrl, AccessToken) ->
     URL = <<TokenInfoUrl/binary, AccessToken/binary>>,
     case kz_http:get(URL) of
         {'ok', 200, _RespHeaders, RespBody} ->
-            kz_json:decode(RespBody);
+            verify_result(kz_json:decode(RespBody));
         {'ok', _RespCode, _RespHeaders, _RespBody} ->
             lager:info("unable to verify oauth token: ~p: ~s", [_RespCode, _RespBody]),
-            kz_json:new();
+            undefined;
         {'error', _E} ->
             lager:info("error contacting ~s: ~p", [URL, _E]),
-            kz_json:new()
+            undefined
+    end.
+
+verify_result(JObj) ->
+    case kz_json:is_empty(JObj) of
+        true -> undefined;
+        false -> JObj
     end.
 
 -spec create_claims(map()) -> map().

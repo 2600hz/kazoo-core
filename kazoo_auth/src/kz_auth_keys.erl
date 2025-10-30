@@ -13,7 +13,7 @@
 -export([get_public_key_from_private_key/1]).
 -export([gen_private_key/0, gen_private_key/1]).
 -export([get_public_key/2]).
--export([get_private_key_from_file/1]).
+-export([get_private_key_from_file/1, get_private_key_from_file/2]).
 -export([from_pem/1, to_pem/1, to_pem/2]).
 -export([lookup/1, store/2, clear/0, clear/1]).
 -export([from_token/1]).
@@ -24,15 +24,30 @@
 
 -export([reset_kazoo_private_key/0, reset_private_key/1]).
 
--export([search/1]).
+-export([search/1, search/2]).
+
+-export([jwt_alg_for_key/1]).
 
 -include("kazoo_auth.hrl").
 
--type rsa_key() :: public_key:private_key() | public_key:public_key().
+
+-type key() :: public_key:private_key() | public_key:public_key().
 -type to_pem_option() :: 'none' | 'export'.
 -type keyid() :: kz_term:ne_binary().
--type search_result_row() :: {keyid(), rsa_key()}.
+-type search_result_row() :: {keyid(), key() | kz_json:object()}.
 -type search_result() :: {'ok', [search_result_row()]} | {'error', any()}.
+-type search_result_data_fun() :: fun((kz_json:object()) -> search_result_row()).
+
+-type jwt_alg() :: rs256 | es256 | es384 | es512 | unknown.
+
+-export_type([key/0
+             ,to_pem_option/0
+             ,keyid/0
+             ,search_result_row/0
+             ,search_result/0
+             ,search_result_data_fun/0
+             ,jwt_alg/0
+             ]).
 
 %%==============================================================================
 %% API functions
@@ -54,17 +69,56 @@ get_public_key_from_cert(PathToCert) ->
 
 -spec get_public_key_from_private_key(public_key:private_key()) -> public_key:public_key().
 get_public_key_from_private_key(#'RSAPrivateKey'{modulus=Mod, publicExponent=Exp}) ->
-    #'RSAPublicKey'{modulus=Mod, publicExponent = Exp}.
+    #'RSAPublicKey'{modulus=Mod, publicExponent = Exp};
+get_public_key_from_private_key(#'ECPrivateKey'{publicKey=PubKeyDer, parameters=Params}) ->
+    #'SubjectPublicKeyInfo'{
+       algorithm = #'AlgorithmIdentifier'{
+                      algorithm = {1,2,840,10045,2,1},  % id-ecPublicKey
+                      parameters = Params                % namedCurve
+                     },
+       subjectPublicKey = PubKeyDer
+      }.
 
 -spec get_public_key(any(), any()) -> public_key:public_key().
 get_public_key(Mod, Exp) ->
     #'RSAPublicKey'{modulus=Mod, publicExponent = Exp}.
 
--spec get_private_key_from_file(file:filename_all()) -> public_key:private_key().
+-spec get_private_key_from_file(file:filename_all()) -> {ok, public_key:private_key()} | {error, term()}.
 get_private_key_from_file(Path) ->
+    get_private_key_from_file(Path, undefined).
+
+-spec get_private_key_from_file(file:filename_all(), kz_term:api_ne_binary()) -> {ok, public_key:private_key()} | {error, term()}.
+get_private_key_from_file(Path, Pw) ->
     {'ok', PemBin} = file:read_file(Path),
-    [PemEntry | _] = public_key:pem_decode(PemBin),
-    public_key:pem_entry_decode(PemEntry).
+    first_private_key(public_key:pem_decode(PemBin), Pw).
+
+%% Iterate PEM entries and return first decodable private key
+first_private_key([], _Pw) ->
+    {error, no_private_key_found};
+first_private_key([E | Es], Pw) ->
+    case try_decode_priv(E, Pw) of
+        {ok, Key} -> {ok, Key};
+        _Other    -> first_private_key(Es, Pw)
+    end.
+
+try_decode_priv(Entry, Pw) ->
+    case catch(public_key:pem_entry_decode(Entry, Pw)) of
+        #'RSAPrivateKey'{} = Rsa -> {ok, Rsa};
+        #'ECPrivateKey'{}  = Ec  -> {ok, Ec};
+        #'PrivateKeyInfo'{} = P8 -> pkcs8_to_native(P8);
+        _Other                   -> skip
+    end.
+
+pkcs8_to_native(#'PrivateKeyInfo'{privateKeyAlgorithm = #'PublicKeyAlgorithm'{algorithm = AlgOID}, privateKey = PrivDer}) ->
+    RSAEncOID        = {1,2,840,113549,1,1,1},
+    IDEcPublicKeyOID = {1,2,840,10045,2,1},
+    case AlgOID of
+        RSAEncOID        -> {ok, public_key:der_decode('RSAPrivateKey', PrivDer)};
+        IDEcPublicKeyOID -> {ok, public_key:der_decode('ECPrivateKey',  PrivDer)};
+        _                -> {error, {unsupported_pkcs8_alg, AlgOID}}
+    end;
+pkcs8_to_native(Else) ->
+    {error, {unexpected_pkcs8_term, Else}}.
 
 -spec from_pem(binary()) -> any().
 from_pem(PemContents) ->
@@ -109,7 +163,7 @@ cache_options({'private', KeyId}) ->
 cache_options(KeyId) ->
     [{'origin', {'db', ?KZ_AUTH_DB, KeyId}}].
 
--spec from_token(map()) -> {'ok', rsa_key()} | {'error', 'not_found'}.
+-spec from_token(map()) -> {'ok', key()} | {'error', 'not_found'}.
 from_token(#{}=Token) ->
     Routines = [fun maybe_get_key/1
                ,fun maybe_cached/1
@@ -451,10 +505,32 @@ data_output(JObj) ->
 
 -spec search(kz_term:ne_binary()) -> search_result().
 search(Query) ->
+    search(Query, fun data_output/1).
+
+-spec search(kz_term:ne_binary(), search_result_data_fun()) -> search_result().
+search(Query, DataOutFun) ->
     Q = #{query => Query
          ,collector => #{'fun' => fun kz_datamgr:get_result_docs/3
                         ,params => [?KZ_AUTH_DB, ?QUERY_VIEW, [<<"system_key">>]]
                         }
-         ,output => #{'fun' => fun data_output/1}
+         ,output => #{'fun' => DataOutFun}
          },
     kz_json_query:query(Q).
+
+%% Map private key -> JWT alg
+-spec jwt_alg_for_key(public_key:private_key()) -> jwt_alg().
+jwt_alg_for_key(#'RSAPrivateKey'{}) -> rs256;  %% common & interoperable choice
+jwt_alg_for_key(#'ECPrivateKey'{parameters = Params}) ->
+    case ec_curve_oid_from_params(Params) of
+        {1,2,840,10045,3,1,7} -> es256;  %% prime256v1 / secp256r1
+        {1,3,132,0,34}        -> es384;  %% secp384r1
+        {1,3,132,0,35}        -> es512;  %% secp521r1
+        _                     -> unknown
+    end;
+jwt_alg_for_key(_) -> unknown.
+
+%% Extract curve OID from ECPrivateKey parameters
+ec_curve_oid_from_params('NULL') -> undefined;
+ec_curve_oid_from_params({'namedCurve', {'OID', OID}}) -> OID;
+ec_curve_oid_from_params({'OID', OID}) -> OID;  %% OTP sometimes normalizes
+ec_curve_oid_from_params(Other) -> Other.

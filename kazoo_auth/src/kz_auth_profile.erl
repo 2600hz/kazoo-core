@@ -291,8 +291,7 @@ maybe_add_photo_url(#{auth_provider := Provider} = Token) ->
 
 -spec maybe_add_user_email(map()) -> map().
 maybe_add_user_email(#{user_email := _UserEmail} = Token) -> Token;
-maybe_add_user_email(#{verified_token := VerifiedToken} = Token)
-  when VerifiedToken =/= ?EMPTY_JSON_OBJECT ->
+maybe_add_user_email(#{verified_token := VerifiedToken} = Token) ->
     Token#{user_email => kz_json:get_first_defined(?PROFILE_EMAIL_FIELDS, VerifiedToken)};
 maybe_add_user_email(#{profile_error_code := _Error} = Token) -> Token;
 maybe_add_user_email(#{auth_provider := #{profile_email_field := Field}
