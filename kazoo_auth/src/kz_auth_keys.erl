@@ -29,6 +29,7 @@
 -export([jwt_alg_for_key/1]).
 
 -include("kazoo_auth.hrl").
+-include_lib("public_key/include/OTP-PUB-KEY.hrl").
 
 
 -type key() :: public_key:private_key() | public_key:public_key().
@@ -90,7 +91,7 @@ get_private_key_from_file(Path) ->
 -spec get_private_key_from_file(file:filename_all(), kz_term:api_ne_binary()) -> {ok, public_key:private_key()} | {error, term()}.
 get_private_key_from_file(Path, Pw) ->
     {'ok', PemBin} = file:read_file(Path),
-    first_private_key(public_key:pem_decode(PemBin), Pw).
+    first_private_key(public_key:pem_decode(PemBin), kz_term:to_list(Pw)).
 
 %% Iterate PEM entries and return first decodable private key
 first_private_key([], _Pw) ->
@@ -106,17 +107,15 @@ try_decode_priv(Entry, Pw) ->
         #'RSAPrivateKey'{} = Rsa -> {ok, Rsa};
         #'ECPrivateKey'{}  = Ec  -> {ok, Ec};
         #'PrivateKeyInfo'{} = P8 -> pkcs8_to_native(P8);
-        _Other                   -> skip
+        Other                    -> {skip, Other}
     end.
 
-pkcs8_to_native(#'PrivateKeyInfo'{privateKeyAlgorithm = #'PublicKeyAlgorithm'{algorithm = AlgOID}, privateKey = PrivDer}) ->
-    RSAEncOID        = {1,2,840,113549,1,1,1},
-    IDEcPublicKeyOID = {1,2,840,10045,2,1},
-    case AlgOID of
-        RSAEncOID        -> {ok, public_key:der_decode('RSAPrivateKey', PrivDer)};
-        IDEcPublicKeyOID -> {ok, public_key:der_decode('ECPrivateKey',  PrivDer)};
-        _                -> {error, {unsupported_pkcs8_alg, AlgOID}}
-    end;
+pkcs8_to_native(#'PrivateKeyInfo'{privateKeyAlgorithm = #'PublicKeyAlgorithm'{algorithm = ?rsaEncryption}, privateKey = PrivDer}) ->
+    {ok, public_key:der_decode('RSAPrivateKey', PrivDer)};
+pkcs8_to_native(#'PrivateKeyInfo'{privateKeyAlgorithm = #'PublicKeyAlgorithm'{algorithm = ?'id-ecPublicKey'}, privateKey = PrivDer}) ->
+    {ok, public_key:der_decode('ECPrivateKey',  PrivDer)};
+pkcs8_to_native(#'PrivateKeyInfo'{privateKeyAlgorithm = #'PublicKeyAlgorithm'{algorithm = AlgOID}}) ->
+    {error, {unsupported_pkcs8_alg, AlgOID}};
 pkcs8_to_native(Else) ->
     {error, {unexpected_pkcs8_term, Else}}.
 
@@ -522,15 +521,18 @@ search(Query, DataOutFun) ->
 jwt_alg_for_key(#'RSAPrivateKey'{}) -> rs256;  %% common & interoperable choice
 jwt_alg_for_key(#'ECPrivateKey'{parameters = Params}) ->
     case ec_curve_oid_from_params(Params) of
-        {1,2,840,10045,3,1,7} -> es256;  %% prime256v1 / secp256r1
-        {1,3,132,0,34}        -> es384;  %% secp384r1
-        {1,3,132,0,35}        -> es512;  %% secp521r1
-        _                     -> unknown
+        ?secp256r1 -> es256;  %% prime256v1 / secp256r1
+        ?secp384r1 -> es384;
+        ?secp521r1 -> es512;  %% secp521r1
+        _Other     ->
+            lager:warning("unhandled ec_curve => ~p", [_Other]),
+            unknown
     end;
 jwt_alg_for_key(_) -> unknown.
 
 %% Extract curve OID from ECPrivateKey parameters
 ec_curve_oid_from_params('NULL') -> undefined;
 ec_curve_oid_from_params({'namedCurve', {'OID', OID}}) -> OID;
+ec_curve_oid_from_params({'namedCurve', OID}) when is_tuple(OID) -> OID;
 ec_curve_oid_from_params({'OID', OID}) -> OID;  %% OTP sometimes normalizes
 ec_curve_oid_from_params(Other) -> Other.

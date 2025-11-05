@@ -15,4 +15,5 @@
 | `register_common_providers/0` |  | |
 | `register_common_scopes/0` |  | |
 | `register_stirshaken_key/1` | `(PemFile)` | |
+| `register_stirshaken_key/2` | `(PemFile,Password)` | |
 | `register_views/0` |  | |

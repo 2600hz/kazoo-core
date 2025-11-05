@@ -34,7 +34,8 @@
 
 -export([publish_reload_keys/0]).
 
--export([register_stirshaken_key/1, identity_keys/0]).
+-export([register_stirshaken_key/1, register_stirshaken_key/2]).
+-export([identity_keys/0]).
 
 %%==============================================================================
 %% Internal functions
