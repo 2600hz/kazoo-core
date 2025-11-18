@@ -222,9 +222,9 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'DOWN', Ref, 'process', Pid, Reason}, State) ->
+handle_info({{'DOWN', Type, Timestamp}, Ref, 'process', Pid, Reason}, State) ->
     erlang:demonitor(Ref, ['flush']),
-    handle_down_msg(find_reference(Ref), Pid, Reason),
+    handle_down_msg(lookup_assignment(Type, Timestamp), Pid, Reason),
     {'noreply', State, 'hibernate'};
 handle_info(_Info, State) ->
     lager:debug("unhandled message: ~p", [_Info]),
@@ -432,27 +432,37 @@ assign_consumer(#kz_amqp_assignment{}=ChannelAssignment, Consumer, Application, 
 %% @end
 %%------------------------------------------------------------------------------
 -spec move_channel_to_consumer(kz_amqp_assignment(), kz_amqp_assignment()) -> kz_amqp_assignment().
-move_channel_to_consumer(#kz_amqp_assignment{timestamp=Timestamp
+move_channel_to_consumer(#kz_amqp_assignment{timestamp=ChannelTimestamp
                                             ,channel=Channel
-                                            ,channel_ref=ChannelRef
+                                            ,channel_ref=OldChannelRef
                                             ,broker=Broker
                                             ,connection=Connection
-                                            }
-                        ,#kz_amqp_assignment{consumer=Consumer}=ConsumerAssignment
+                                            }=_PrechannelAssignment
+                        ,#kz_amqp_assignment{timestamp=ConsumerTimestamp
+                                            ,consumer=Consumer
+                                            }=ConsumerAssignment
                         ) ->
+    %% Redo the Channel monitor because the Channel's timestamp is changing
+    %% to the old consumer's timestamp
+    NewChannelRef = monitor_channel(Channel, ConsumerTimestamp),
+
     Assignment =
         ConsumerAssignment#kz_amqp_assignment{channel=Channel
-                                             ,channel_ref=ChannelRef
+                                             ,channel_ref=NewChannelRef
                                              ,broker=Broker
                                              ,connection=Connection
                                              ,assigned=kz_time:start_time()
                                              },
+
     %% Update the consumer assignment with all the channel information
     ets:insert(?TAB, Assignment#kz_amqp_assignment{reconnect='false'
                                                   ,watchers=sets:new()
                                                   }),
+
     %% Remove the channel assignment so it will not be given away twice
-    ets:delete(?TAB, Timestamp),
+    ets:delete(?TAB, ChannelTimestamp),
+    erlang:demonitor(OldChannelRef, ['flush']),
+
     lager:debug("assigned existing consumer ~p an available channel ~p on ~s(~p)"
                ,[Consumer, Channel, Broker, Connection]
                ),
@@ -466,7 +476,8 @@ move_channel_to_consumer(#kz_amqp_assignment{timestamp=Timestamp
 %% @end
 %%------------------------------------------------------------------------------
 -spec add_consumer_to_channel(kz_amqp_assignment(), pid(), atom(), kz_amqp_type()) -> kz_amqp_assignment().
-add_consumer_to_channel(#kz_amqp_assignment{channel=Channel
+add_consumer_to_channel(#kz_amqp_assignment{timestamp=Timestamp
+                                           ,channel=Channel
                                            ,broker=_Broker
                                            ,connection=Connection
                                            }=ChannelAssignment
@@ -474,7 +485,7 @@ add_consumer_to_channel(#kz_amqp_assignment{channel=Channel
                        ,Application
                        ,Type
                        ) ->
-    ConsumerRef = erlang:monitor('process', Consumer),
+    ConsumerRef = monitor_consumer(Consumer, Timestamp),
     Assignment =
         ChannelAssignment#kz_amqp_assignment{consumer=Consumer
                                             ,consumer_ref=ConsumerRef
@@ -604,7 +615,7 @@ assign_channel(#kz_amqp_assignment{timestamp=Timestamp
               ,Connection
               ,Channel
               ) ->
-    ChannelRef = erlang:monitor('process', Channel),
+    ChannelRef = monitor_channel(Channel, Timestamp),
 
     Assigment
         = ConsumerAssignment#kz_amqp_assignment{channel=Channel
@@ -626,15 +637,15 @@ assign_channel(#kz_amqp_assignment{timestamp=Timestamp
 
 -spec cache(kz_term:ne_binary(), pid(), pid()) -> 'true'.
 cache(Broker, Connection, Channel) ->
-    ChannelRef = erlang:monitor('process', Channel),
+    Assignment = #kz_amqp_assignment{channel=Channel
+                                    ,broker=Broker
+                                    ,connection=Connection
+                                    },
+    ChannelRef = monitor_channel(Channel, Assignment#kz_amqp_assignment.timestamp),
     lager:debug("added new channel ~p on ~s(~p) to available pool"
                ,[Channel, Broker, Connection]
                ),
-    ets:insert(?TAB, #kz_amqp_assignment{channel=Channel
-                                        ,channel_ref=ChannelRef
-                                        ,broker=Broker
-                                        ,connection=Connection
-                                        }).
+    ets:insert(?TAB, Assignment#kz_amqp_assignment{channel_ref=ChannelRef}).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -701,28 +712,28 @@ maybe_reserve(Consumer, Broker, Application, Type) ->
 
 -spec reserve(kz_term:api_pid(), kz_term:api_binary(), atom(), kz_amqp_type()) -> kz_amqp_assignment().
 reserve(Consumer, Broker, Application, 'sticky') when Broker =/= 'undefined' ->
-    Ref = erlang:monitor('process', Consumer),
-    Assignment = #kz_amqp_assignment{consumer=Consumer
-                                    ,consumer_ref=Ref
-                                    ,application=Application
-                                    ,broker=Broker
-                                    ,type='sticky'
-                                    },
-    ets:insert(?TAB, Assignment),
+    Assignment0 = #kz_amqp_assignment{consumer=Consumer
+                                     ,application=Application
+                                     ,broker=Broker
+                                     ,type='sticky'
+                                     },
+    Ref = monitor_consumer(Consumer, Assignment0#kz_amqp_assignment.timestamp),
+    Assignment1 = Assignment0#kz_amqp_assignment{consumer_ref=Ref},
+    ets:insert(?TAB, Assignment1),
     lager:debug("consumer ~p waiting on sticky AMQP channel from ~s"
                ,[Consumer, Broker]
                ),
-    Assignment;
+    Assignment1;
 reserve(Consumer, _, Application, 'float') ->
-    Ref = erlang:monitor('process', Consumer),
-    Assignment = #kz_amqp_assignment{consumer=Consumer
-                                    ,consumer_ref=Ref
-                                    ,application=Application
-                                    ,type='float'
-                                    },
-    ets:insert(?TAB, Assignment),
+    Assignment0 = #kz_amqp_assignment{consumer=Consumer
+                                     ,application=Application
+                                     ,type='float'
+                                     },
+    Ref = monitor_consumer(Consumer, Assignment0#kz_amqp_assignment.timestamp),
+    Assignment1 = Assignment0#kz_amqp_assignment{consumer_ref=Ref},
+    ets:insert(?TAB, Assignment1),
     lager:debug("consumer ~p waiting on AMQP channel from current broker", [Consumer]),
-    Assignment.
+    Assignment1.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -887,21 +898,25 @@ request_and_wait(Consumer, Broker, Timeout) when is_pid(Consumer) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec find_reference(reference()) -> down_matches().
-find_reference(Ref) ->
-    MatchSpec = [{#kz_amqp_assignment{channel_ref=Ref
-                                     ,_='_'
-                                     }
-                 ,[]
-                 ,[{{'channel', '$_'}}]
-                 }
-                ,{#kz_amqp_assignment{consumer_ref=Ref
-                                     ,_='_'
-                                     }
-                 ,[]
-                 ,[{{'consumer', '$_'}}]
-                 }],
-    ets:select(?TAB, MatchSpec).
+-spec monitor_consumer(pid(), kz_time:start_time()) -> reference().
+monitor_consumer(Pid, Timestamp) ->
+    erlang:monitor('process', Pid, [{'tag', {'DOWN', 'consumer', Timestamp}}]).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec monitor_channel(pid(), kz_time:start_time()) -> reference().
+monitor_channel(Pid, Timestamp) ->
+    erlang:monitor('process', Pid, [{'tag', {'DOWN', 'channel', Timestamp}}]).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec lookup_assignment('consumer' | 'channel', kz_time:start_time()) -> down_matches().
+lookup_assignment(Type, Timestamp) ->
+    [{Type, Assignment} || Assignment <- ets:lookup(?TAB, Timestamp)].
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -979,3 +994,102 @@ release_consumer(Consumer, Channel, Tags) ->
     amqp_channel:unregister_flow_handler(Channel),
     _ = [amqp_channel:cast( Channel, #'basic.cancel'{consumer_tag=Tag}) || Tag <- Tags],
     gen_server:cast(?SERVER, {'release_assignments', Consumer}).
+
+%%%=============================================================================
+%%% Eunit Tests
+%%%=============================================================================
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+%% check monitor_consumer sets expected monitor tag
+monitor_conumser_test() ->
+    Consumer = make_pid(),
+    Timestamp = kz_time:start_time(),
+    MonRef = monitor_consumer(Consumer, Timestamp),
+    {Tag, Pid} = receive_down(MonRef),
+    ?assertEqual(Consumer, Pid),
+    ?assertEqual({'DOWN', 'consumer', Timestamp}, Tag).
+
+%% check monitor_channel sets expected monitor tag
+monitor_channel_test() ->
+    Channel = make_pid(),
+    Timestamp = kz_time:start_time(),
+    MonRef = monitor_channel(Channel, Timestamp),
+    {Tag, Pid} = receive_down(MonRef),
+    ?assertEqual(Channel, Pid),
+    ?assertEqual({'DOWN', 'channel', Timestamp}, Tag).
+
+%% check handle_info handles expected monitor tag
+handle_info_down_consumer_test() ->
+    {'ok', State} = init([]),
+
+    %% insert fake assignment
+    Assignment = assignment(),
+    Consumer = Assignment#kz_amqp_assignment.consumer,
+    Timestamp = Assignment#kz_amqp_assignment.timestamp,
+    'true' = ets:insert(?TAB, Assignment),
+    ?assertEqual([Assignment], ets:lookup(?TAB, Timestamp)),
+
+    MonRef = Assignment#kz_amqp_assignment.consumer_ref,
+    {'noreply', State, 'hibernate'} = handle_info({{'DOWN', 'consumer', Timestamp}, MonRef, 'process', Consumer, 'some_exit_status'}, State),
+
+    %% fake assignment deleted
+    ?assertEqual([], ets:lookup(?TAB, Timestamp)),
+
+    ets:delete(?TAB).
+
+handle_info_down_channel_test() ->
+    {'ok', State} = init([]),
+
+    %% insert fake assignment
+    Prechannel = prechannel(),
+    Channel = Prechannel#kz_amqp_assignment.channel,
+    Timestamp = Prechannel#kz_amqp_assignment.timestamp,
+    ?debugHere,
+    'true' = ets:insert(?TAB, Prechannel),
+    ?assertEqual([Prechannel], ets:lookup(?TAB, Timestamp)),
+
+    MonRef = Prechannel#kz_amqp_assignment.channel_ref,
+    {'noreply', State, 'hibernate'} = handle_info({{'DOWN', 'channel', Timestamp}, MonRef, 'process', Channel, 'some_exit_status'}, State),
+
+    %% fake assignment deleted
+    ?assertEqual([], ets:lookup(?TAB, Timestamp)),
+
+    ets:delete(?TAB).
+
+make_pid() ->
+    spawn(fun() -> 'ok' end).
+
+receive_down(MonRef) ->
+    receive
+        {Tag, MonRef, 'process', Pid, _Reason} ->
+            {Tag, Pid}
+    after 100 ->
+            ?assert('false')
+    end.
+
+assignment() ->
+    #kz_amqp_assignment{
+       timestamp = kz_time:start_time()
+      ,consumer = make_pid()
+      ,consumer_ref = erlang:make_ref()
+      ,application = 'some_app'
+      ,channel = make_pid()
+      ,channel_ref = erlang:make_ref()
+      ,connection = make_pid()
+      ,broker = <<"some_broker">>
+           ,assigned = kz_time:start_time()
+      }.
+
+prechannel() ->
+    #kz_amqp_assignment{
+       timestamp = kz_time:start_time()
+      ,application = 'some_app'
+      ,channel = make_pid()
+      ,channel_ref = erlang:make_ref()
+      ,connection = make_pid()
+      ,broker = <<"some_broker">>
+      }.
+-endif.
