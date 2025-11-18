@@ -90,7 +90,6 @@ fetch_access_code(#{auth_app := #{name := AuthAppName}=AuthApp
                ,"&code=", AuthorizationCode
                ,maybe_code_verifier(CodeVerifier)
                ],
-
     case kz_http:post(kz_term:to_list(URL)
                      ,Headers
                      ,FormBody
@@ -113,7 +112,7 @@ maybe_client_secret(Secret) ->
     case kz_term:is_empty(Secret) of
         'true' -> [];
         'false' ->
-            ["&secret=", Secret]
+            ["&client_secret=", Secret]
     end.
 
 maybe_code_verifier(CodeVerifier) ->
