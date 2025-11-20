@@ -59,6 +59,7 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_amqp/include/kz_api.hrl").
 -include_lib("kazoo_amqp/include/kz_amqp.hrl").
+-include("kazoo_apps.hrl").
 
 -define(SERVER, ?MODULE).
 
@@ -149,17 +150,27 @@
 
 -spec start_link(worker_args()) -> kz_types:startlink_ret().
 start_link(Args) ->
-    gen_listener:start_link(?SERVER
-                           ,[{'bindings', maybe_bindings(Args)}
-                            ,{'queue_name', maybe_queuename(Args)}
-                            ,{'queue_options', ?QUEUE_OPTIONS}
-                            ,{'consume_options', ?CONSUME_OPTIONS}
-                            | maybe_broker(Args)
-                             ++ maybe_exchanges(Args)
-                             ++ maybe_server_confirms(Args)
-                            ]
-                           ,[Args]
-                           ).
+    {'ok', Listener} = gen_listener:start_link(?SERVER
+                                              ,[{'bindings', maybe_bindings(Args)}
+                                               ,{'queue_name', maybe_queuename(Args)}
+                                               ,{'queue_options', ?QUEUE_OPTIONS}
+                                               ,{'consume_options', ?CONSUME_OPTIONS}
+                                               ,{'calling_application', ?APP}
+                                               | maybe_broker(Args)
+                                                ++ maybe_exchanges(Args)
+                                                ++ maybe_server_confirms(Args)
+                                               ]
+                                              ,[Args]
+                                              ),
+    lager:debug("waiting for ~p to get assignment", [Listener]),
+    case kz_amqp_assignments:get_channel(Listener, ?MILLISECONDS_IN_HOUR) of
+        {'error', 'timeout'}=Error ->
+            lager:debug("timed out waiting for assignment for ~p", [Listener]),
+            Error;
+        _Assignment ->
+            lager:debug("got assignment for ~p", [Listener]),
+            {'ok', Listener}
+    end.
 
 -spec maybe_broker(kz_term:proplist()) -> kz_term:proplist().
 maybe_broker(Args) ->
