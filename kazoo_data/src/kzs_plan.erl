@@ -321,8 +321,6 @@ dataplan_match_by_classification(Classification
     %% list of connection UUIDs configured for this db classification
     ClassificationConns = plan_secondary_conns(ClassificationPlan),
 
-    lager:info("conn map: ~p", [ConnectionsMap]),
-
     %% [{ConnectionUUID, #{server => {Driver, #server{}}}}]
     SecondaryConnections = [{UUID, #{server => {Driver, Srv}}}
                             || UUID <- ClassificationConns,
@@ -330,7 +328,6 @@ dataplan_match_by_classification(Classification
                                %% ConnectionsMap = #{{UUID => {kazoo_couch, #server{}}}}
                                {Driver, Srv} <- [maps:get(UUID, ConnectionsMap, 'undefined')]
                            ],
-    lager:info("secondary conns for classification ~s: ~p", [Classification, SecondaryConnections]),
 
     Server = maps:get(ClassificationTag, ConnectionsMap, #{}),
 
@@ -349,7 +346,6 @@ dataplan_match_by_classification(Classification
                                 ConnectionId =/= ClassificationTag,
                                 'undefined' =/= maps:get(ConnectionId, Connections, 'undefined')
                             ],
-                   lager:info("adding other conns: ~p", [Others]),
                    BasePlan#{others => Others}
            end,
 
@@ -463,10 +459,6 @@ dataplan_type_match_by_classification(Classification
     %% list of connection UUIDs configured for this db classification
     ClassificationConns = plan_secondary_conns(ClassificationPlan),
 
-    lager:info("conn map by type:~s(db:~s): ~p", [DocType, DBName, ConnectionsMap]),
-
-    lager:info("UUIDs: ~p", [ClassificationConns]),
-
     %% [{ConnectionUUID, #{server => {Driver, #server{}}}}]
     SecondaryConnections = [{UUID, #{server => {Driver, Srv}}}
                             || UUID <- ClassificationConns,
@@ -474,12 +466,8 @@ dataplan_type_match_by_classification(Classification
                                %% ConnectionsMap = #{{UUID => {kazoo_couch, #server{}}}}
                                {Driver, Srv} <- [maps:get(UUID, ConnectionsMap, 'undefined')]
                            ],
-    lager:info("secondary conns for classification ~s type ~s: ~p"
-              ,[Classification, DocType, SecondaryConnections]
-              ),
 
     TypeMap = plan_doctype_map(DocType, DocTypes),
-    lager:info("type map for ~s: ~p", [DocType, TypeMap]),
 
     ClassificationTag = plan_connection(TypeMap, ClassificationConnection),
     Server = maps:get(ClassificationTag, ConnectionsMap, #{}),
