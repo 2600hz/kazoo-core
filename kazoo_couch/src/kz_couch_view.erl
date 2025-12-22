@@ -98,6 +98,8 @@
              ,params/0
              ]).
 
+-define(ASYNC_QUERY, kapps_config:get_boolean(?APP, <<"async_query">>, 'false')).
+
 %%% View-related functions -----------------------------------------------------
 -spec design_compact(server(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
 design_compact(#server{}=Conn, DbName, Design) ->
@@ -188,7 +190,7 @@ do_fetch_results(Db, {_DesignName, _ViewName}=DesignDoc, Options) ->
           couchbeam_error().
 fetch_results(Db, DesignDoc, Options) ->
     ?RETRY_504(
-       case couchbeam_view:fetch(Db, DesignDoc, Options) of
+       case couchbeam_view:fetch(Db, DesignDoc, get_fetch_opts(Options)) of
            {'ok', JObjs} -> {'ok', JObjs};
            {'error', Error, []} -> {'error', Error};
            {'error', Error, Rows} ->
@@ -197,6 +199,14 @@ fetch_results(Db, DesignDoc, Options) ->
            {'error', _}=Error -> Error
        end
       ).
+
+get_fetch_opts(Options) ->
+    case ?ASYNC_QUERY of
+        'true' ->
+            props:insert_value('async_query', Options);
+        'false' ->
+            Options
+    end.
 
 -spec map_options(view_options()) -> view_options().
 map_options(Options) ->
