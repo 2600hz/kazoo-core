@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2016-2025, 2600Hz
+%%% @copyright (C) 2016-2026, 2600Hz
 %%% @doc
 %%% @author Pierre Fenoll
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -2147,9 +2147,26 @@ disable_inbound_cnam(NumberDb, Offset) ->
             ?SUP_LOG_DEBUG("failed to get DIDs from ~s: ~p", [NumberDb, _R])
     end.
 
--spec disable_cnam(kz_term:ne_binaries()) -> knm_numbers:return().
-disable_cnam(DIDs) ->
+-spec disable_cnam(kz_term:api_binaries()) -> 'ok'.
+disable_cnam(DocIds) ->
+    DIDs = lists:filter(fun filter_number/1, DocIds),
     Update = kz_json:set_values([{[<<"cnam">>,<<"inbound_lookup">>], 'false'}]
                                ,kz_json:new()
                                ),
-    knm_numbers:update(DIDs, [{fun knm_phone_number:update_doc/2, Update}], []).
+    Setters = [{fun knm_phone_number:update_doc/2, Update}],
+    Options = [{'auth_by', ?KNM_DEFAULT_AUTH_BY}
+               %% No caching + bulk doc writes
+              ,{'batch_run', 'true'}
+              ],
+    case knm_numbers:update(DIDs, Setters, Options) of
+        {'ok', _} -> 'ok';
+        {'ok', _, Failed} ->
+            ?SUP_LOG_DEBUG("failed disabling cnam for ~b numbers ~p", [length(Failed), Failed]);
+        {'dry_run', _} ->
+            ?SUP_LOG_DEBUG("hit dry_run when disabling cnam for ~b numbers ~p", [length(DIDs), DIDs])
+    end.
+
+-spec filter_number(kz_term:api_binary()) -> boolean().
+filter_number('undefined') -> 'false';
+filter_number(<<"_design/", _/binary>>) -> 'false';
+filter_number(_) -> 'true'.

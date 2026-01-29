@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2025, 2600Hz
+%%% @copyright (C) 2012-2026, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -318,13 +318,20 @@ calculate_updates(Services, CurrentJObjs, [ProposedJObj|RemainingProposedJObjs],
 
 -spec split_jobjs(kz_json:objects(), kz_term:ne_binary()) -> {kz_term:api_object(), kz_json:objects()}.
 split_jobjs(JObjs, Id) ->
+    %% remove empty objects entirely
+    NonEmptyJObjs = [JObj || JObj <- JObjs, not kz_json:is_empty(JObj)],
+
     case lists:splitwith(fun(JObj) ->
                                  kz_doc:id(JObj) =:= Id
-                         end, JObjs)
+                         end, NonEmptyJObjs)
     of
         {[], RemainingJObjs} ->
             {'undefined', RemainingJObjs};
         {[CurrentJObj], RemainingJObjs} ->
+            {CurrentJObj, RemainingJObjs};
+        {[CurrentJObj | _] = _Multiple, RemainingJObjs} ->
+            %% multiple documents with same ID - keep first, log warning
+            lager:warning("multiple documents with same id ~p found, keeping first", [Id]),
             {CurrentJObj, RemainingJObjs}
     end.
 
