@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2025, 2600Hz
+%%% @copyright (C) 2011-2026, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
@@ -16,6 +16,17 @@
 -export([profile/2, profile/3]).
 
 -include("kazoo_directory.hrl").
+
+-type user_context() ::
+        #{endpoint_id   := kz_term:ne_binary(),
+          account_id    := kz_term:ne_binary(),
+          endpoint      := kz_json:object(),
+          options       := kz_term:proplist(),
+          endpoint_uri  := kz_term:ne_binary(),
+          %% populated by the build pipeline
+          profile       => kz_json:object(),
+          no_cache      => boolean()
+         }.
 
 -spec profile(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
 profile(EndpointId, AccountId) ->
@@ -44,14 +55,13 @@ fetch_profile(EndpointId, AccountId, Endpoint, Options) ->
 
 -spec build_and_cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
 build_and_cache(EndpointId, AccountId, Endpoint, Options) ->
-    {'ok', #{profile := Profile} = Context} = build(EndpointId, AccountId, Endpoint, Options),
-    case maps:get(no_cache, Context, false) of
-        true -> {ok, Profile};
-        false -> cache(EndpointId, AccountId, Profile, Options)
-    end.
+    {'ok', #{} = Context} = build(EndpointId, AccountId, Endpoint, Options),
+    cache(EndpointId, AccountId, Context, Options).
 
--spec cache(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
-cache(EndpointId, AccountId, Profile, Options) ->
+-spec cache(kz_term:ne_binary(), kz_term:ne_binary(), user_context(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+cache(_EndpointId, _AccountId, #{profile := Profile, no_cache := true}, _Options) ->
+    {ok, Profile};
+cache(EndpointId, AccountId, #{profile := Profile}, Options) ->
     Origins = cache_origin(EndpointId, AccountId, Profile),
     CacheProps = [{'origin', Origins}
                  ,{'callback', fun cache_callback/3}
@@ -65,16 +75,20 @@ cache_callback({EndpointId, AccountId}, {CachedValue, Options}, 'erase') ->
     lager:debug("directory cache erased key (~s / ~s)", [EndpointId, AccountId]),
     case kz_endpoint:get(EndpointId, AccountId, props:set_value('no_cache', Options)) of
         {'ok', Endpoint} ->
-            {'ok', NewProfile} = build(EndpointId, AccountId, Endpoint, Options),
-            maybe_notify(EndpointId, AccountId, kz_json:are_equal(NewProfile, CachedValue)),
-            cache(EndpointId, AccountId, NewProfile, Options);
-        _Error -> notify(EndpointId, AccountId)
+            {'ok', #{} = Context} = build(EndpointId, AccountId, Endpoint, Options),
+            _ = maybe_notify(EndpointId, AccountId, Context, CachedValue),
+            _ = cache(EndpointId, AccountId, Context, Options),
+            ok;
+        _Error ->
+            notify(EndpointId, AccountId)
     end;
 cache_callback(_, _, _) -> 'ok'.
 
-maybe_notify(EndpointId, AccountId, 'true') ->
-    lager:debug("directory cache erased key hasn't changed (~s / ~s)", [EndpointId, AccountId]);
-maybe_notify(EndpointId, AccountId, 'false') -> notify(EndpointId, AccountId).
+maybe_notify(EndpointId, AccountId, #{profile := Profile}, CachedValue) ->
+    case kz_json:are_equal(Profile, CachedValue) of
+        true -> lager:debug("directory cache erased key hasn't changed (~s / ~s)", [EndpointId, AccountId]);
+        false -> notify(EndpointId, AccountId)
+    end.
 
 notify(EndpointId, AccountId) ->
     kz_directory_cache:clear(<<EndpointId/binary, "@", AccountId/binary>>),
@@ -104,7 +118,7 @@ call_waiting(Endpoint) ->
         CW -> kzd_call_waiting:enabled(CW)
     end.
 
--spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', kz_json:object()}.
+-spec build(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> {'ok', user_context()}.
 build(EndpointId, AccountId, Endpoint, Options) ->
     Context = #{endpoint_id => EndpointId
                ,account_id => AccountId
@@ -114,7 +128,7 @@ build(EndpointId, AccountId, Endpoint, Options) ->
                },
     build(Context).
 
--spec build(map()) -> {'ok', kz_json:object()}.
+-spec build(map()) -> {'ok', user_context()}.
 build(Context) ->
     Routines = [fun build_profile/1
                ,fun dial_string/1
@@ -325,7 +339,7 @@ add_sip_headers(Endpoint, Headers) ->
         CustomHeaders -> kz_json:merge_jobjs(CustomHeaders, Headers)
     end.
 
--spec owned_by_query(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:api_binaries().
+-spec owned_by_query(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_term:ne_binaries()} | kz_datamgr:data_error().
 owned_by_query(OwnerId, AccountId) ->
     ViewOptions = [{'key', [OwnerId, <<"device">>]}],
     kz_datamgr:get_result_ids(AccountId, <<"attributes/owned">>, ViewOptions).
