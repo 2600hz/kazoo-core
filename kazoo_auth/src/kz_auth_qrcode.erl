@@ -10,24 +10,30 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_auth_qrcode).
 
--export([create/2]).
+-export([create/2, create/3]).
 
 -include("kazoo_auth.hrl").
 -include_lib("qrcode/src/qrcode.hrl").
 
 -define(ATT_QRCODE(TYPE), <<TYPE/binary, "_qrcode">>).
+-define(EXPORT_TYPE_URL, <<"url">>).
+-define(EXPORT_TYPE_IMAGE, <<"image">>).
 
 %% @doc create a QR code, add as attachment to user doc, and return PNG binary data
 -spec create(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', binary()}.
 create(<<AccountId/binary>>, <<UserId/binary>>) ->
-    create(AccountId, UserId, kapps_config:get_atom(?CONFIG_CAT, <<"qrcode_key_type">>, 'totp')).
+    create(AccountId, UserId, kapps_config:get_atom(?CONFIG_CAT, <<"qrcode_key_type">>, 'totp'), ?EXPORT_TYPE_IMAGE).
 
-create(AccountId, UserId, 'totp') ->
-    create_totp(AccountId, UserId, kz_auth_otp:totp_period());
-create(AccountId, UserId, 'hotp') ->
-    create_hotp(AccountId, UserId, kz_auth_otp:hotp_initial_counter()).
+-spec create(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', binary()}.
+create(<<AccountId/binary>>, <<UserId/binary>>, ExportType) ->
+    create(AccountId, UserId, kapps_config:get_atom(?CONFIG_CAT, <<"qrcode_key_type">>, 'totp'), ExportType).
 
-create_totp(AccountId, UserId, PeriodS) ->
+create(AccountId, UserId, 'totp', ExportType) ->
+    create_totp(AccountId, UserId, kz_auth_otp:totp_period(), ExportType);
+create(AccountId, UserId, 'hotp', ExportType) ->
+    create_hotp(AccountId, UserId, kz_auth_otp:hotp_initial_counter(), ExportType).
+
+create_totp(AccountId, UserId, PeriodS, ExportType) ->
     UserEmail = kz_auth_otp:user_email(AccountId, UserId),
 
     UserPasscode = kz_auth_otp:user_passcode(AccountId, UserId),
@@ -41,14 +47,9 @@ create_totp(AccountId, UserId, PeriodS) ->
              ,"&issuer=", Issuer/binary
              ,"&period=", PeriodBin/binary
             >>,
+    format_export_response(AccountId, UserId, ?ATT_QRCODE(<<"totp">>), Token, ExportType).
 
-    QRCode = qrcode:encode(Token),
-    PNG = simple_png_encode(QRCode),
-
-    {'ok', _} = kz_datamgr:put_attachment(AccountId, UserId, ?ATT_QRCODE(<<"totp">>), PNG),
-    {'ok', PNG}.
-
-create_hotp(AccountId, UserId, InitialCounter) ->
+create_hotp(AccountId, UserId, InitialCounter, ExportType) ->
     PeriodS = kz_auth_otp:totp_period(),
     UserEmail = kz_auth_otp:user_email(AccountId, UserId),
 
@@ -65,11 +66,16 @@ create_hotp(AccountId, UserId, InitialCounter) ->
              ,"&period=", PeriodBin/binary
              ,"&counter=", InitialCounterBin/binary
             >>,
+    format_export_response(AccountId, UserId, ?ATT_QRCODE(<<"hotp">>), Token, ExportType).
 
+-spec format_export_response(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', binary()}.
+format_export_response(_AccountId, _UserId, _QRCodeType, Token, ?EXPORT_TYPE_URL) ->
+    {ok, Token};
+format_export_response(AccountId, UserId, QRCodeType, Token, ?EXPORT_TYPE_IMAGE) ->
     QRCode = qrcode:encode(Token),
     PNG = simple_png_encode(QRCode),
 
-    {'ok', _} = kz_datamgr:put_attachment(AccountId, UserId, ?ATT_QRCODE(<<"hotp">>), PNG),
+    {'ok', _} = kz_datamgr:put_attachment(AccountId, UserId, QRCodeType, PNG),
     {'ok', PNG}.
 
 %% Very simple PNG encoder for demo purposes
