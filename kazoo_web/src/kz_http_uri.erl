@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2025, 2600Hz
+%%% @copyright (C) 2015-2026, 2600Hz
 %%% @doc HTTP helper functions for Kazoo
 %%% @author Luis Azedo
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -16,6 +16,7 @@
 -type hex_uri() :: string() | binary(). %% Hexadecimal encoded URI.
 -type maybe_hex_uri() :: string() | binary(). %% A possibly hexadecimal encoded URI.
 
+%% known as RFC-3986 serialization
 -spec encode(uri()) -> hex_uri().
 encode(URI) when is_list(URI) ->
     Reserved = reserved(),

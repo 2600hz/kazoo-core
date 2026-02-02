@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2025, 2600Hz
+%%% @copyright (C) 2011-2026, 2600Hz
 %%% @doc
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -177,13 +177,185 @@ json_to_querystring_test_() ->
             ,{<<"{\"Poppy\": \"\"}">>, ?ENC(<<"Poppy=">>)}
             ,{<<"{\"Poppy\": \"\", \"Hyacinth\": true}">>, ?ENC(<<"Poppy=&Hyacinth=true">>)}
             ],
-    [?_assertEqual(QS, kz_term:to_binary(
-                         kz_http_util:json_to_querystring(
-                           kz_json:decode(JSON)
-                          )
-                        )
-                  )
-     || {JSON, QS} <- Tests
+    [[?_assertEqual(QS, kz_term:to_binary(
+                          kz_http_util:json_to_querystring(
+                            kz_json:decode(JSON)
+                           )
+                         )
+                   )
+      || {JSON, QS} <- Tests
+     ]
+    | advanced_qs_encodes()
+    ].
+
+advanced_qs_encodes() ->
+    %% Some of these tests are from https://github.com/ljharb/qs
+    %% we tests both json_to_querystring and props_to_query_string as they may hit different
+    %% path before recursive calling.
+    [{"qs encode options", chech_encode_options()}
+    ,{"qs encode nested falsy values", encode_nested_falsy_values()}
+    ,{"qs encode nested objects", encode_nested_objects()}
+    ,{"qs encode simple array", encode_simple_array()}
+    ,{"qs encode complex arrays and objects", encode_complex_arrays_and_objects()}
+    ].
+
+chech_encode_options() ->
+    [{"add_query_prefix: even_on_empty on empty object prints ?"
+     ,?_assertEqual(<<"?">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\": {}}">>), #{return => 'binary', add_query_prefix => 'even_on_empty'}))
+     }
+    ,{"add_query_prefix adds ?"
+     ,?_assertEqual(<<"?a=1">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\": 1}">>), #{return => 'binary', add_query_prefix => 'even_on_empty'}))
+     }
+    ,{"add_query_prefix adds ?"
+     ,?_assertEqual(<<"?a=1">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\": 1}">>), #{return => 'binary', add_query_prefix => 'true'}))
+     }
+
+    ,?_assertEqual(<<"">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":\"\"}">>), #{return => 'binary', allow_empty_strings => 'false'}))
+    ,?_assertEqual(<<"">>, kz_http_util:props_to_querystring([{<<"a">>, <<>>}], #{return => 'binary', allow_empty_strings => 'false'}))
+    ,?_assertEqual(<<"a=">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":\"\"}">>), #{return => 'binary', allow_empty_strings => 'true'}))
+    ,?_assertEqual(<<"a=">>, kz_http_util:props_to_querystring([{<<"a">>, <<>>}], #{return => 'binary', allow_empty_strings => 'true'}))
+
+     %% the weirdness begins
+    ,{"encode keys and values"
+     ,[?_assertEqual(<<"my%20weird%20field=~q1%212%22%27w%245%267%2Fz8%29%3F">>
+                    ,kz_http_util:json_to_querystring(kz_json:decode(<<"{\"my weird field\": \"~q1!2\\\"'w$5&7/z8)?\" }">>), #{return => 'binary'})
+                    )
+      ,?_assertEqual(<<"my%20weird%20field=~q1%212%22%27w%245%267%2Fz8%29%3F">>
+                    ,kz_http_util:props_to_querystring([{<<"my weird field">>, <<"~q1!2\"'w$5&7/z8)?">>}], #{return => 'binary'})
+                    )
+      ,?_assertEqual(<<"my weird field=~q1!2\"'w$5&7/z8)?">>
+                    ,kz_http_util:json_to_querystring(kz_json:decode(<<"{\"my weird field\": \"~q1!2\\\"'w$5&7/z8)?\" }">>), #{return => 'binary', encode_keys => 'false', encode_values => 'false'})
+                    )
+      ,?_assertEqual(<<"my weird field=~q1!2\"'w$5&7/z8)?">>
+                    ,kz_http_util:props_to_querystring([{<<"my weird field">>, <<"~q1!2\"'w$5&7/z8)?">>}], #{return => 'binary', encode_keys => 'false', encode_values => 'false'})
+                    )
+      ]
+     }
+    ].
+
+encode_nested_falsy_values() ->
+    [?_assertEqual(<<"a[b][c]=null">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":{\"b\":{\"c\":null}}}">>), #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"a[b][c]=null">>, kz_http_util:props_to_querystring([{<<"a">>, [{<<"b">>, [{<<"c">>, 'null'}]}]}], #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<>>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":{\"b\":{\"c\":null}}}">>), #{return => 'binary', keep_null => 'false'}))
+    ,?_assertEqual(<<>>, kz_http_util:props_to_querystring([{<<"a">>, [{<<"b">>, [{<<"c">>, 'null'}]}]}], #{return => 'binary', keep_null => 'false'}))
+
+    ,{"drop keys with a value of undefined"
+     ,?_assertEqual(<<>>, kz_http_util:props_to_querystring([{<<"a">>, [{<<"b">>, [{<<"c">>, 'undefined'}]}]}], #{return => 'binary'}))
+     }
+
+    ,?_assertEqual(<<"a[b][c]=false">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":{\"b\":{\"c\":false}}}">>), #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"a[b][c]=false">>, kz_http_util:props_to_querystring([{<<"a">>, [{<<"b">>, [{<<"c">>, 'false'}]}]}], #{return => 'binary', encode_keys => 'false'}))
+    ].
+
+encode_nested_objects() ->
+    [?_assertEqual(<<"a[b][c]=d">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":{\"b\":{\"c\":\"d\"}}}">>), #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"a[b][c][]=d&a[b][c][]=e">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":{\"b\":{\"c\":[\"d\", \"e\"]}}}">>), #{return => 'binary', encode_keys => 'false'}))
+    ].
+
+encode_simple_array() ->
+    [?_assertEqual(<<"a[0]=b">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[\"b\"]}">>), #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+    ,?_assertEqual(<<"a[0]=b">>, kz_http_util:props_to_querystring([{<<"a">>, [<<"b">>]}], #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+
+    ,?_assertEqual(<<"a=b">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[\"b\"]}">>), #{return => 'binary', encode_keys => 'false', array_format => 'repeat'}))
+    ,?_assertEqual(<<"a=b">>, kz_http_util:props_to_querystring([{<<"a">>, [<<"b">>]}], #{return => 'binary', encode_keys => 'false', array_format => 'repeat'}))
+
+    ,?_assertEqual(<<"a[]=b">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[\"b\"]}">>), #{return => 'binary', encode_keys => 'false', array_format => 'brackets'}))
+    ,?_assertEqual(<<"a[]=b">>, kz_http_util:props_to_querystring([{<<"a">>, [<<"b">>]}], #{return => 'binary', encode_keys => 'false', array_format => 'brackets'}))
+    ,?_assertEqual(<<"a[]=b">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[\"b\"]}">>), #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"a[]=b">>, kz_http_util:props_to_querystring([{<<"a">>, [<<"b">>]}], #{return => 'binary', encode_keys => 'false'}))
+
+    ,?_assertEqual(<<"a[0]=b&a[1]=c">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[\"b\",\"c\"]}">>), #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+    ,?_assertEqual(<<"a[0]=b&a[1]=c">>, kz_http_util:props_to_querystring([{<<"a">>, [<<"b">>, <<"c">>]}], #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+
+    ,?_assertEqual(<<"a=b&a=c">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[\"b\",\"c\"]}">>), #{return => 'binary', encode_keys => 'false', array_format => 'repeat'}))
+    ,?_assertEqual(<<"a=b&a=c">>, kz_http_util:props_to_querystring([{<<"a">>, [<<"b">>, <<"c">>]}], #{return => 'binary', encode_keys => 'false', array_format => 'repeat'}))
+
+    ,?_assertEqual(<<"a[]=b&a[]=c">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[\"b\",\"c\"]}">>), #{return => 'binary', encode_keys => 'false', array_format => 'brackets'}))
+    ,?_assertEqual(<<"a[]=b&a[]=c">>, kz_http_util:props_to_querystring([{<<"a">>, [<<"b">>, <<"c">>]}], #{return => 'binary', encode_keys => 'false', array_format => 'brackets'}))
+    ,?_assertEqual(<<"a[]=b&a[]=c">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[\"b\",\"c\"]}">>), #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"a[]=b&a[]=c">>, kz_http_util:props_to_querystring([{<<"a">>, [<<"b">>, <<"c">>]}], #{return => 'binary', encode_keys => 'false'}))
+
+    ,?_assertEqual(<<>>, kz_http_util:props_to_querystring([{<<"a">>, []}], #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<>>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[]}">>), #{return => 'binary', encode_keys => 'false'}))
+
+    ,?_assertEqual(<<"b=c">>, kz_http_util:props_to_querystring([{<<"a">>, []}, {<<"b">>, <<"c">>}], #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"b=c">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[],\"b\":\"c\"}">>), #{return => 'binary', encode_keys => 'false'}))
+
+    ].
+
+encode_complex_arrays_and_objects() ->
+    [?_assertEqual(<<"a[][][][]=b">>, kz_http_util:props_to_querystring([{<<"a">>, [[[[<<"b">>]]]]}], #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"a[][][][]=b">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\": [[[[\"b\"]]]]}">>), #{return => 'binary', encode_keys => 'false'}))
+
+    ,?_assertEqual(<<"">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\": [[[[]]]]}">>), #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"">>, kz_http_util:props_to_querystring([{<<"a">>, [[[[]]]]}], #{return => 'binary', encode_keys => 'false'}))
+
+    ,?_assertEqual(<<"a[b][0]=c&a[b][1]=d">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{ \"a\": {\"b\": [\"c\", \"d\"] } }">>), #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+    ,?_assertEqual(<<"a[b][0]=c&a[b][1]=d">>, kz_http_util:props_to_querystring([{<<"a">>, [{<<"b">>, [<<"c">>, <<"d">>]}]}], #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+    ,?_assertEqual(<<"a[b][]=c&a[b][]=d">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{ \"a\": {\"b\": [\"c\", \"d\"] } }">>), #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"a[b][]=c&a[b][]=d">>, kz_http_util:props_to_querystring([{<<"a">>, [{<<"b">>, [<<"c">>, <<"d">>]}]}], #{return => 'binary', encode_keys => 'false'}))
+
+    ,{"comma in values"
+     ,[?_assertEqual(<<"a[0]=%2C&a[1]=&a[2]=c%2Cd%25">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[\",\",\"\",\"c,d%\"]}">>), #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+      ,?_assertEqual(<<"a[0]=%2C&a[1]=&a[2]=c%2Cd%25">>, kz_http_util:props_to_querystring([{<<"a">>, [<<",">>, <<>>, <<"c,d%">>] }], #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+      ]
+     }
+
+    ,{"mixed array with object"
+     ,[?_assertEqual(<<"a[0][b]=1&a[1]=2&a[2]=3">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\":[{\"b\":1},2,3]}">>), #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+      ,?_assertEqual(<<"a[0][b]=1&a[1]=2&a[2]=3">>, kz_http_util:props_to_querystring([{ 'a', [[{ 'b', 1 }], 2, 3] }], #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+
+      ,?_assertEqual(<<"a[0][b][c][0]=1">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{ \"a\": [{ \"b\": { \"c\": [1] } }] }">>), #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+      ,?_assertEqual(<<"a[0][b][c][0]=1">>, kz_http_util:props_to_querystring([{'a', [ [{'b', [{ 'c', [1]}] }] ]}], #{return => 'binary', encode_keys => 'false', array_format => 'indices'}))
+      ]
+     }
+
+    ,?_assertEqual(<<"ips[][port]=5060&ips[][proto]=udp">>, kz_http_util:json_to_querystring(kz_json:decode(<<"{\"ips\":[{\"port\":5060,\"proto\":\"udp\"}]}">>), #{return => 'binary', encode_keys => 'false'}))
+    ,?_assertEqual(<<"ips[][port]=5060&ips[][proto]=udp">>, kz_http_util:props_to_querystring([{<<"ips">>, [[{<<"port">>, 5060}, {<<"proto">>, <<"udp">>}]]}], #{return => 'binary', encode_keys => 'false'}))
+
+    ,{"encode key a legacy"
+     ,?_assertEqual(<<"my+weird+field=~q1%212%22%27w%245%267%2Fz8%29%3F">>
+                   ,kz_http_util:props_to_querystring([{<<"my weird field">>, <<"~q1!2\"'w$5&7/z8)?">>}], #{return => 'binary', encode_keys_type => 'legacy'})
+                   )
+     }
+
+    ,{"encode key in object with an array value"
+     ,[?_assertEqual(<<"my%20weird%20field%5B%5D=b">>
+                    ,kz_http_util:json_to_querystring(kz_json:decode(<<"{\"my weird field\": [\"b\"] }">>), #{return => 'binary'})
+                    )
+      ,?_assertEqual(<<"my%20weird%20field%5B%5D=b">>
+                    ,kz_http_util:props_to_querystring([{<<"my weird field">>, [<<"b">>]}], #{return => 'binary'})
+                    )
+      ]
+     }
+    ,{"encode key in nested object with array value"
+     ,[?_assertEqual(<<"a%5Bmy%20weird%20field%5D%5B%5D=b">>
+                    ,kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\": {\"my weird field\": [\"b\"]}}">>), #{return => 'binary'})
+                    )
+      ,?_assertEqual(<<"a%5Bmy%20weird%20field%5D%5B%5D=b">>
+                    ,kz_http_util:props_to_querystring([{<<"a">>, [{<<"my weird field">>, [<<"b">>]}]}], #{return => 'binary'})
+                    )
+      ]
+     }
+    ,{"encode key in deeper nested object with array value"
+     ,[?_assertEqual(<<"a%5Bb%5D%5Bmy%20weird%20field%5D%5B%5D=c">>
+                    ,kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\": {\"b\": {\"my weird field\": [\"c\"]}}}">>), #{return => 'binary'})
+                    )
+      ,?_assertEqual(<<"a%5Bb%5D%5Bmy%20weird%20field%5D%5B%5D=c">>
+                    ,kz_http_util:props_to_querystring([{<<"a">>, [{<<"b">>, [{<<"my weird field">>, [<<"c">>]}]}]}], #{return => 'binary'})
+                    )
+
+      ]
+     }
+    ,{"encode key in dobject in array"
+     ,[?_assertEqual(<<"a%5B%5D%5Bmy%20weird%20field%5D=b">>
+                    ,kz_http_util:json_to_querystring(kz_json:decode(<<"{\"a\": [{\"my weird field\": \"b\"}]}">>), #{return => 'binary'})
+                    )
+      ,?_assertEqual(<<"a%5B%5D%5Bmy%20weird%20field%5D=b">>
+                    ,kz_http_util:props_to_querystring([{<<"a">>, [[{<<"my weird field">>, <<"b">>}]]}], #{return => 'binary'})
+                    )
+      ]
+     }
     ].
 
 props_to_querystring_test_() ->

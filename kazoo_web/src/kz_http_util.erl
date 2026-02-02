@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2015-2025, 2600Hz
+%%% @copyright (C) 2015-2026, 2600Hz
 %%% @doc HTTP helper functions for Kazoo
 %%% @author Mark Magnusson
 %%% This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,8 +18,8 @@
         ,urlsplit/1
         ,urlunsplit/1
         ,location_host/1, location_port/1, location_username/1, location_password/1
-        ,json_to_querystring/1
-        ,props_to_querystring/1
+        ,json_to_querystring/1, json_to_querystring/2
+        ,props_to_querystring/1, props_to_querystring/2
         ,http_code_to_status_line/1
         ,get_resp_header/2, get_resp_header/3
         ,encode_multipart/1, encode_multipart/2
@@ -87,8 +87,8 @@ urldecode(URL) -> urldecode(URL, 'rfc').
 %%------------------------------------------------------------------------------
 %% @doc 'legacy' vs 'rfc'.
 %%
-%% 'legacy' treats '+' as a space (in addition to %20)
-%% 'rfc' only treats %20 as a space.
+%% 'legacy' treats '+' as a space (in addition to %20) RFC-1738
+%% 'rfc' only treats %20 as a space, RFC-3986.
 %% @end
 %%------------------------------------------------------------------------------
 -spec urldecode(kz_term:text(), 'rfc' | 'legacy') -> kz_term:text().
@@ -109,8 +109,10 @@ urlencode(URL) -> urlencode(URL, 'rfc').
 
 -spec urlencode(kz_term:text(), 'rfc' | 'legacy') -> kz_term:text().
 urlencode(URL, 'rfc') ->
+    %% alsk known as RFC-3986 spaces serialization
     urlencode_percent20(URL);
 urlencode(URL, 'legacy') ->
+    %% also known as RFC-1738 serialization
     urlencode_plus(kz_term:to_binary(URL)).
 
 -spec urlencode_percent20(kz_term:text()) -> kz_term:text().
@@ -559,31 +561,88 @@ location_to_binary({Host, <<Username/binary>>, <<Password/binary>>}) ->
 %% `key=val&key2[]=v2_1&key2[]=v2_2&key3[key3_1]=v3_1'
 %% @end
 %%------------------------------------------------------------------------------
+
+-define(DEFAULT_ENCODE_QS_OPTS, #{keep_null => 'true' %% old behaviour
+                                 ,array_format => 'brackets'
+                                 ,array_index_start => 0
+                                 ,encode_keys => 'true'
+                                 ,encode_values => 'true'
+                                 ,encode_keys_type => 'rfc' %% old bahviour
+                                 ,encode_values_type => 'legacy' %% old bahviour
+                                 ,allow_empty_strings => 'true' %% old behaviour
+                                 ,add_query_prefix => 'false'
+                                 ,return => 'list' %% old behaviour
+                                 }
+       ).
+%% See https://github.com/ljharb/qs
+%% implementing these features remains open to the reader (add the feature to parser too):
+%% - 'array_format: comman': a=b,c,d
+%%     - comma_round_trip
+%% - allow_empty_arrays: foo[]&bar=baz
+%% - allowDots and encodeDotInKeys
+%% - delimiter (none of our parser support any delimiterr other than &)
+%% - null handling
+%%     - our parser doesn't strictNullHandling like qs does, it treats it as empty string
+%%       even cow_qs doesn't support it: `a&b=lol' parses as `[{<<"a">>, true},{<<"b">>, <<"lol">>}]'
+-type qs_encode_opts() :: #{keep_null => boolean()
+                           ,array_format => 'indices' | 'brackets' | 'repeat' %% | 'comma'
+                           ,array_index_start => non_neg_integer()
+                           ,encode_keys => boolean()
+                           ,encode_values => boolean()
+                           ,encode_keys_type => 'legacy' | 'rfc'
+                           ,encode_values_type => 'legacy' | 'rfc'
+                           ,allow_empty_strings => boolean()
+                           ,add_query_prefix => boolean() | 'even_on_empty'
+                           ,return => 'list' | 'binary'
+                           }.
+
 -spec json_to_querystring(object()) -> iodata().
-json_to_querystring(JObj) -> json_to_querystring(JObj, <<>>).
+json_to_querystring(JObj) -> json_to_querystring(JObj, #{}, []).
 
 %% if Prefix is empty, don't wrap keys in array tags, otherwise Prefix[key]=value
--spec json_to_querystring(object(), iodata()) -> iodata().
-json_to_querystring(JObj, Prefix) ->
+-spec json_to_querystring(object(), qs_encode_opts()) -> iodata().
+json_to_querystring(JObj, Options) ->
+    json_to_querystring(JObj, Options, []).
+
+-spec json_to_querystring(object(), qs_encode_opts(), list()) -> iodata().
+json_to_querystring(JObj, Opts0, Prefix) ->
+    Options = maps:merge(?DEFAULT_ENCODE_QS_OPTS, Opts0),
     {Vs, Ks} = kz_json:get_values(JObj),
-    fold_kvs(Ks, Vs, Prefix, []).
+    maybe_add_prefix(Options, fold_kvs(Options, Ks, Vs, Prefix, [])).
 
 -spec props_to_querystring(kz_term:proplist()) -> iodata().
 props_to_querystring(Props) ->
-    props_to_querystring(Props, <<>>).
+    props_to_querystring(Props, #{}, []).
 
--spec props_to_querystring(kz_term:proplist(), binary() | kz_term:ne_binaries()) -> iodata().
-props_to_querystring(Props, Prefix) ->
+-spec props_to_querystring(kz_term:proplist(), qs_encode_opts()) -> iodata().
+props_to_querystring(Props, Options) ->
+    props_to_querystring(Props, Options, []).
+
+-spec props_to_querystring(kz_term:proplist(), qs_encode_opts(), list()) -> iodata().
+props_to_querystring(Props, Opts0, Prefix) ->
+    Options = maps:merge(?DEFAULT_ENCODE_QS_OPTS, Opts0),
     {Vs, Ks} = props:get_values_and_keys(Props),
-    fold_kvs([kz_term:to_binary(K) || K <- Ks], Vs, Prefix, []).
+    maybe_add_prefix(Options, fold_kvs(Options, [kz_term:to_binary(K) || K <- Ks], Vs, Prefix, [])).
+
+maybe_add_prefix(#{add_query_prefix := QueryPrefix}=Options, Encoded) ->
+    case {QueryPrefix, kz_term:to_binary(Encoded)} of
+        {'even_on_empty', <<>>} -> return_as(Options, [<<"?">> | Encoded]);
+        {'even_on_empty', _Bin} -> return_as(Options, [<<"?">> | Encoded]);
+        {'true', <<>>} -> return_as(Options, Encoded);
+        {'true', _Bin} -> return_as(Options, [<<"?">> | Encoded]);
+        {_, _Bin} -> return_as(Options, Encoded)
+    end.
+
+return_as(#{return := 'binary'}, Encoded) -> kz_term:to_binary(Encoded);
+return_as(#{return := 'list'}, Encoded) -> Encoded.
 
 %% foreach key/value pair, encode the key/value with the prefix and prepend the &
 %% if the last key/value pair, encode the key/value with the prefix, prepend to accumulator
 %% and reverse the list (putting the key/value at the end of the list)
--spec fold_kvs(keys(), json_terms(), binary() | iolist(), iodata()) -> iodata().
-fold_kvs([], [], _, Acc) -> Acc;
-fold_kvs([K], [V], Prefix, Acc) ->
-    case encode_kv(Prefix, K, V) of
+-spec fold_kvs(qs_encode_opts(), keys(), json_terms(), list(), iodata()) -> iodata().
+fold_kvs(_Options, [], [], _, Acc) -> Acc;
+fold_kvs(Options, [K], [V], Prefix, Acc) ->
+    case encode_kv(Options, Prefix, K, V) of
         ?DEFAULT_EMPTY ->
             case Acc of
                 [<<"&">> | A] -> lists:reverse(A);
@@ -591,50 +650,138 @@ fold_kvs([K], [V], Prefix, Acc) ->
             end;
         Encoded -> lists:reverse([Encoded | Acc])
     end;
-fold_kvs([K|Ks], [V|Vs], Prefix, Acc) ->
-    case encode_kv(Prefix, K, V) of
+fold_kvs(Options, [K|Ks], [V|Vs], Prefix, Acc) ->
+    case encode_kv(Options, Prefix, K, V) of
         ?DEFAULT_EMPTY ->
-            fold_kvs(Ks, Vs, Prefix, Acc);
+            fold_kvs(Options, Ks, Vs, Prefix, Acc);
         Encoded ->
-            fold_kvs(Ks, Vs, Prefix, [<<"&">>, Encoded | Acc])
+            fold_kvs(Options, Ks, Vs, Prefix, [<<"&">>, Encoded | Acc])
     end.
 
-%% If a list of values, use the []= as a separator between the key and each value
--spec encode_kv(iolist() | binary(), key(), json_term() | json_terms()) -> iodata() | ?DEFAULT_EMPTY.
-encode_kv(_, _, []) -> ?DEFAULT_EMPTY;
-encode_kv(Prefix, K, Vs) when is_list(Vs) ->
-    EncodedKey = list_to_binary([kz_http_uri:encode(<<"[]">>), <<"=">>]),
-    encode_kv(Prefix, kz_term:to_binary(K), Vs, EncodedKey, []);
-%% if the value is a "simple" value, just encode it (url-encoded)
-encode_kv(Prefix, K, V) when is_binary(V);
-                             is_number(V) ->
-    encode_kv(Prefix, K, <<"=">>, urlencode(V, 'legacy'));
-encode_kv(Prefix, K, 'true') ->
-    encode_kv(Prefix, K, <<"=">>, <<"true">>);
-encode_kv(Prefix, K, 'false') ->
-    encode_kv(Prefix, K, <<"=">>, <<"false">>);
+-define(ARRAY_PLACEHOLDER(Index), {'array', Index}).
+-define(NESTED_ARRAY, {'nested'}).
 
-%% key:{k1:v1, k2:v2} => key[k1]=v1&key[k2]=v2
-%% if no prefix is present, use just key to prefix the key/value pairs in the jobj
-encode_kv(_, _, ?EMPTY_JSON_OBJECT) -> ?DEFAULT_EMPTY;
-encode_kv(<<>>, K, ?JSON_WRAPPER(_)=JObj) -> json_to_querystring(JObj, [K]);
-%% if a prefix is defined, nest the key in square brackets
-encode_kv(Prefix, K, ?JSON_WRAPPER(_)=JObj) ->
-    EncodedKey = kz_http_uri:encode(list_to_binary([<<"[">>, K, <<"]">>])),
-    json_to_querystring(JObj, [Prefix, EncodedKey]).
+-spec encode_kv(qs_encode_opts(), list(), key() | {'nested'}, json_term() | json_terms() | kz_term:proplist()) -> iodata() | ?DEFAULT_EMPTY.
+%% array values
+encode_kv(_, _, _, []) -> ?DEFAULT_EMPTY;
+encode_kv(Options, Prefix0, K, [{_, _}|_]=Props) -> props_to_querystring(Props, Options, add_to_prefix(Options, Prefix0, K));
+encode_kv(#{array_index_start := Index}=Options, Prefix0, K, Vs) when is_list(Vs) ->
+    Prefix = add_to_prefix(Options, Prefix0, K),
+    encode_array(Options, Prefix, Index, Vs, []);
 
--spec encode_kv(iolist() | binary(), key(), kz_term:ne_binary(), string() | binary()) -> iodata().
-encode_kv(<<>>, K, Sep, V) -> [kz_term:to_binary(K), Sep, kz_term:to_binary(V)];
-encode_kv(Prefix, K, Sep, V) ->
-    EncodedKey = kz_http_uri:encode(list_to_binary([<<"[">>, kz_term:to_binary(K), <<"]">>])),
-    [Prefix, EncodedKey, Sep, kz_term:to_binary(V)].
+%% scalar values, just encode it (url-encoded)
+encode_kv(#{allow_empty_strings := 'true'}=Options, Prefix, K, <<>>) ->
+    final_encode_kv(Options, Prefix, K, <<"=">>, <<>>);
+encode_kv(_Options, _Prefix, _K, <<>>) -> ?DEFAULT_EMPTY;
+encode_kv(Options, Prefix, K, V) when is_binary(V) -> final_encode_kv(Options, Prefix, K, <<"=">>, V);
+encode_kv(Options, Prefix, K, V) when is_number(V) -> final_encode_kv(Options, Prefix, K, <<"=">>, V);
+encode_kv(Options, Prefix, K, 'true') -> final_encode_kv(Options, Prefix, K, <<"=">>, <<"true">>);
+encode_kv(Options, Prefix, K, 'false') -> final_encode_kv(Options, Prefix, K, <<"=">>, <<"false">>);
+encode_kv(_, _, _, 'undefined') -> ?DEFAULT_EMPTY;
+encode_kv(#{keep_null := 'true'}=Options, Prefix, K, 'null') ->
+    final_encode_kv(Options, Prefix, K, <<"=">>, <<"null">>);
+encode_kv(_, _, _, 'null') -> ?DEFAULT_EMPTY;
+encode_kv(Options, Prefix, K, V) when is_atom(V) ->
+    final_encode_kv(Options, Prefix, K, <<"=">>, V);
 
--spec encode_kv(iolist() | binary(), key(), [string()], kz_term:ne_binary(), iolist()) -> iodata().
-encode_kv(Prefix, K, [V], Sep, Acc) ->
-    lists:reverse([encode_kv(Prefix, K, Sep, urlencode(V, 'legacy')) | Acc]);
-encode_kv(Prefix, K, [V|Vs], Sep, Acc) ->
-    encode_kv(Prefix, K, Vs, Sep, [ <<"&">>, encode_kv(Prefix, K, Sep, urlencode(V, 'legacy')) | Acc]);
-encode_kv(_, _, [], _, Acc) -> lists:reverse(Acc).
+%% JObj values
+encode_kv(_, _, _, ?EMPTY_JSON_OBJECT) -> ?DEFAULT_EMPTY;
+encode_kv(Options, Prefix, K, ?JSON_WRAPPER(_)=JObj) ->
+    json_to_querystring(JObj, Options, add_to_prefix(Options, Prefix, K)).
+
+add_to_prefix(_, Prefix, ?NESTED_ARRAY) -> Prefix;
+add_to_prefix(_, [], K) ->
+    %% key:{k1:v1, k2:v2} => key[k1]=v1&key[k2]=v2
+    %% if no prefix is present, use just key to prefix the key/value pairs in the jobj
+    [K];
+add_to_prefix(Options, Prefix, K) ->
+    %% if a prefix is defined, nest the key in square brackets
+    Prefix ++ [format_array(Options, K)].
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec final_encode_kv(qs_encode_opts(), list() | binary(), key() | binary() | {'nested'}, kz_term:ne_binary(), string() | binary() | atom() | number()) -> iodata().
+final_encode_kv(Options, Prefix0, K, Sep, V) ->
+    Value = encode_value(Options, V),
+    case encode_prefix(Options, lists:flatten(Prefix0), []) of
+        <<>> -> [encode_key(Options, K), Sep, Value];
+        EncodedPrefix -> [EncodedPrefix, make_format_array(Options, K), Sep, Value]
+    end.
+
+make_format_array(_, ?NESTED_ARRAY) -> <<>>;
+make_format_array(Options, K) -> encode_key(Options, format_array(Options, K)).
+
+encode_prefix(_, [], Acc) -> kz_term:to_binary(lists:reverse(Acc));
+encode_prefix(Options, [<<>>|Bins], Acc) ->
+    encode_prefix(Options, Bins, Acc);
+encode_prefix(Options, [?ARRAY_PLACEHOLDER(Index)|Bins], Acc) ->
+    EncodedKey = encode_key(Options, format_array(Options, ?ARRAY_PLACEHOLDER(Index))),
+    encode_prefix(Options, Bins, [EncodedKey|Acc]);
+encode_prefix(Options, [Bin|Bins], Acc) ->
+    encode_prefix(Options, Bins, [encode_key(Options, Bin)|Acc]).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec encode_array(qs_encode_opts(), list(), any(), [string()|kz_term:proplist_property()|kz_json:object()], iolist()) -> iodata().
+encode_array(Options, Prefix, Index, [V], []) ->
+    maybe_nested_array(Options, Prefix, Index, V);
+encode_array(Options, Prefix, Index, [V], Acc) ->
+    case maybe_nested_array(Options, Prefix, Index, V) of
+        ?DEFAULT_EMPTY -> lists:reverse(Acc);
+        NestedEncoded -> lists:reverse([NestedEncoded | Acc])
+    end;
+encode_array(Options, Prefix, Index, [V|Vs], Acc) ->
+    case maybe_nested_array(Options, Prefix, Index, V) of
+        ?DEFAULT_EMPTY -> encode_array(Options, Prefix, Index, Vs, Acc);
+        Encoded -> encode_array(Options, Prefix, Index+1, Vs, [<<"&">>, Encoded | Acc])
+    end;
+encode_array(_, _, _, [], Acc) -> lists:reverse(Acc).
+
+maybe_nested_array(_, _, _, []) ->
+    ?DEFAULT_EMPTY;
+maybe_nested_array(Options, Prefix, Index, Vs) when is_list(Vs) ->
+    encode_kv(Options, Prefix ++ [?ARRAY_PLACEHOLDER(Index)], ?NESTED_ARRAY, Vs);
+maybe_nested_array(Options, Prefix, Index, {InnerK, InnerV}) ->
+    %% element of a nested proplist
+    encode_kv(Options, Prefix ++ [?ARRAY_PLACEHOLDER(Index)], InnerK, InnerV);
+maybe_nested_array(Options, Prefix, Index, V) ->
+    encode_kv(Options, Prefix ++ [?ARRAY_PLACEHOLDER(Index)], ?NESTED_ARRAY, V).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+format_array(#{array_format := 'indices'}, ?ARRAY_PLACEHOLDER(Index)) ->
+    %% a[0]=b&a[1]=c
+    kz_term:to_binary([<<"[">>, kz_term:to_binary(Index), <<"]">>]);
+format_array(#{array_format := 'repeat'}, ?ARRAY_PLACEHOLDER(_Index)) ->
+    %% a=b&a=c
+    <<>>;
+%% format_array(#{array_format := 'comma'}, ?ARRAY_PLACEHOLDER(_Index)) ->
+%%     %% we don't support comma array format, lazy to write it :(
+%%     %% a=b,c
+format_array(_Options, ?ARRAY_PLACEHOLDER(_Index)) ->
+    %% default to 'brackets', the old behaviour
+    %% a[]=b&a[]=c
+    <<"[]">>;
+format_array(_Options, V) ->
+    kz_term:to_binary([<<"[">>, kz_term:to_binary(V), <<"]">>]).
+
+encode_key(#{encode_keys := 'true'}=Options, V) ->
+    kz_term:to_binary(urlencode(kz_term:to_binary(V), encode_type(Options, 'encode_keys_type')));
+encode_key(_O, V) ->
+    kz_term:to_binary(V).
+
+encode_value(#{encode_values := 'true'}=Options, V) ->
+    kz_term:to_binary(urlencode(kz_term:to_binary(V), encode_type(Options, 'encode_values_type')));
+encode_value(_O, V) ->
+    kz_term:to_binary(V).
+
+encode_type(Options, K) -> maps:get(K, Options, 'legacy').
 
 %%------------------------------------------------------------------------------
 %% @doc Converts HTTP status code to reason.
