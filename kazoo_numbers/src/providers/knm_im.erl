@@ -109,7 +109,7 @@ update_im(Type, PN) ->
                 'false' ->
                     PN;
                 'true' ->
-                    activate(Type, PN, Feature)
+                    maybe_activate(Type, PN, Feature)
             end
     end.
 
@@ -167,6 +167,25 @@ carrier_settings(Type, Config) ->
             ,{?FEATURE_ACTIVATION, carrier_feature(Type, ?FEATURE_ACTIVATION, Config, <<"auto">>)}
             ],
     kz_json:from_list(Props).
+
+
+maybe_activate(Type, PN, Feature) ->
+    case tcr_provider_module(PN) of
+        'undefined' ->
+            activate(Type, PN, Feature);
+        TCRMod ->
+            %% throws when tcr is not valid
+            'true' = TCRMod:verify(PN),
+            activate(Type, PN, Feature)
+    end.
+
+tcr_provider_module(PN) ->
+    Account = knm_phone_number:assigned_to(PN),
+    TCRMod = knm_providers:provider_module(?FEATURE_TCR, Account),
+    case kz_module:is_exported(TCRMod, 'verify', 1) of
+        'true' -> kz_term:to_atom(TCRMod, 'true');
+        'false' -> 'undefined'
+    end.
 
 activate(Type, PN, Feature) ->
     PN1 = knm_providers:activate_feature(PN, {?KEY, Feature}),

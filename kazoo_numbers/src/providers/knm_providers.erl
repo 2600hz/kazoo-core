@@ -19,6 +19,7 @@
 -export([available_features/1
         ,available_features/2
         ,service_name/2
+        ,provider_module/2
         ]).
 -export([e911_caller_name/2]).
 -export([features_denied/1]).
@@ -43,6 +44,9 @@
 
 -define(E911_PROVIDER(AccountId)
        ,kapps_account_config:get_from_reseller(AccountId, ?KNM_CONFIG_CAT, <<"e911_provider">>, <<"knm_intrado_e911">>)
+       ).
+-define(TCR_PROVIDER(AccountId)
+       ,kapps_account_config:get_from_reseller(AccountId, ?KNM_CONFIG_CAT, <<"tcr_provider">>, 'undefined')
        ).
 
 -define(SYSTEM_PROVIDERS, kapps_config:get_ne_binaries(?KNM_CONFIG_CAT, <<"providers">>)).
@@ -149,6 +153,8 @@ service_name(?FEATURE_E911, AccountId) ->
     service_name(?E911_PROVIDER(AccountId));
 service_name(?FEATURE_CNAM, AccountId) ->
     service_name(?CNAM_PROVIDER(AccountId));
+service_name(?FEATURE_TCR, AccountId) ->
+    service_name(?TCR_PROVIDER(AccountId));
 service_name(Feature, _) ->
     service_name(Feature).
 
@@ -185,6 +191,7 @@ service_name(<<"knm_vitelity_e911">>) -> ?LEGACY_VITELITY_E911;
 service_name(<<"knm_cnam_notifier">>) -> <<"cnam">>;
 service_name(<<"knm_telnyx_cnam">>) -> <<"telnyx_cnam">>;
 service_name(<<"knm_vitelity_cnam">>) -> <<"vitelity_cnam">>;
+service_name(<<"knm_trunkingio_tcr">>) -> <<"trunkingio_tcr">>;
 service_name(Feature) -> Feature.
 
 -spec list_available_features(feature_parameters()) -> kz_term:ne_binaries().
@@ -466,6 +473,8 @@ provider_module(?FEATURE_CNAM_OUTBOUND, AccountId) ->
     provider_module(?FEATURE_CNAM, AccountId);
 provider_module(?FEATURE_E911, ?MATCH_ACCOUNT_RAW(AccountId)) ->
     ?E911_PROVIDER(AccountId);
+provider_module(?FEATURE_TCR, AccountId) ->
+    ?TCR_PROVIDER(AccountId);
 provider_module(?FEATURE_PREPEND, _) ->
     <<"knm_prepend">>;
 provider_module(?FEATURE_PORT, _) ->
