@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2025, 2600Hz
+%%% @copyright (C) 2011-2026, 2600Hz
 %%% @doc Handle a host's connection/channels.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
@@ -525,6 +525,11 @@ establish_prechannel(#kz_amqp_connection{broker=Broker
                                         }=Connection
                     ) ->
     case open_channel(Connection) of
+        {'error', 'out_of_channel_numbers'} ->
+            lager:warning("unable to establish prechannel to ~s, out_of_channel_numbers: keeping connection"
+                         ,[Broker]
+                         ),
+            Connection;
         {'error', _R} ->
             lager:critical("unable to establish prechannel to ~s, assuming connection is invalid: ~p"
                           ,[Broker, _R]
@@ -547,6 +552,8 @@ open_channel(#kz_amqp_connection{connection=Pid}) ->
         'closing' ->
             lager:info("unable to open channel, connection is closing", []),
             {'error', 'closing'};
+        {'error', 'out_of_channel_numbers'}=E ->
+            E;
         {'error', _R}=E ->
             lager:critical("failed to open AMQP channel: ~p", [_R]),
             E;
