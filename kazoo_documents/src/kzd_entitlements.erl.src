@@ -1,13 +1,13 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2025, 2600Hz
+%%% @copyright (C) 2010-2026, 2600Hz
 %%% @doc Accessors for `entitlements' document.
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kzd_entitlements).
 
 -export([new/0]).
--export([capabilitie/2, capabilitie/3, set_capabilitie/3]).
 -export([capabilities/1, capabilities/2, set_capabilities/2]).
+-export([capability/2, capability/3, set_capability/3]).
 -export([enrollment/2, enrollment/3, set_enrollment/3]).
 -export([enrollments/1, enrollments/2, set_enrollments/2]).
 
@@ -23,18 +23,6 @@
 new() ->
     kz_json_schema:default_object(?SCHEMA).
 
--spec capabilitie(doc(), kz_json:key()) -> any().
-capabilitie(Doc, Capabilitie) ->
-    capabilitie(Doc, Capabilitie, 'undefined').
-
--spec capabilitie(doc(), kz_json:key(), Default) -> any() | Default.
-capabilitie(Doc, Capabilitie, Default) ->
-    kz_json:get_value([<<"capabilities">>, Capabilitie], Doc, Default).
-
--spec set_capabilitie(doc(), kz_json:key(), any()) -> doc().
-set_capabilitie(Doc, Capabilitie, Value) ->
-    kz_json:set_value([<<"capabilities">>, Capabilitie], Value, Doc).
-
 -spec capabilities(doc()) -> kz_term:api_object().
 capabilities(Doc) ->
     capabilities(Doc, 'undefined').
@@ -47,15 +35,27 @@ capabilities(Doc, Default) ->
 set_capabilities(Doc, Capabilities) ->
     kz_json:set_value([<<"capabilities">>], Capabilities, Doc).
 
--spec enrollment(doc(), kz_json:key()) -> any().
+-spec capability(doc(), kz_json:key()) -> kz_term:api_object().
+capability(Doc, Capability) ->
+    capability(Doc, Capability, 'undefined').
+
+-spec capability(doc(), kz_json:key(), Default) -> kz_json:object() | Default.
+capability(Doc, Capability, Default) ->
+    kz_json:get_json_value([<<"capabilities">>, Capability], Doc, Default).
+
+-spec set_capability(doc(), kz_json:key(), kz_json:object()) -> doc().
+set_capability(Doc, Capability, Value) ->
+    kz_json:set_value([<<"capabilities">>, Capability], Value, Doc).
+
+-spec enrollment(doc(), kz_json:key()) -> kz_term:api_object().
 enrollment(Doc, Enrollment) ->
     enrollment(Doc, Enrollment, 'undefined').
 
--spec enrollment(doc(), kz_json:key(), Default) -> any() | Default.
+-spec enrollment(doc(), kz_json:key(), Default) -> kz_json:object() | Default.
 enrollment(Doc, Enrollment, Default) ->
-    kz_json:get_value([<<"enrollments">>, Enrollment], Doc, Default).
+    kz_json:get_json_value([<<"enrollments">>, Enrollment], Doc, Default).
 
--spec set_enrollment(doc(), kz_json:key(), any()) -> doc().
+-spec set_enrollment(doc(), kz_json:key(), kz_json:object()) -> doc().
 set_enrollment(Doc, Enrollment, Value) ->
     kz_json:set_value([<<"enrollments">>, Enrollment], Value, Doc).
 
