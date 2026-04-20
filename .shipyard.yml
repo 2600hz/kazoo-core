@@ -1,7 +1,7 @@
 name: kazoo-core
 custom_files: null
 exposure: private
-base_branch: origin/5.4
+base_branch: origin/master
 base_core: null
 template: kazoo-core.spec.tmpl
 package:
