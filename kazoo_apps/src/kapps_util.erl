@@ -3,6 +3,7 @@
 %%% @doc Utilities shared by a subset of `kapps'.
 %%% @author James Aimonetti
 %%% @author Karl Anderson
+%%% @author Ruel Tmeizeh (RuhNet https://ruhnet.co)
 %%%
 %%% This Source Code Form is subject to the terms of the Mozilla Public
 %%% License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -80,6 +81,8 @@
         ,arch_type/0
         ,c_compiler/0
         ]).
+
+-export([sanitize_uri/1, sanitize_uri/2]).
 
 -include("kazoo_apps.hrl").
 
@@ -889,4 +892,82 @@ c_compiler() ->
         Else ->
             lager:debug("failed to retrieve c-compiler : ~p", [Else]),
             'undefined'
+    end.
+
+%%%-----------------------------------------------------------------------------
+%%% @doc sanitize_uri can be used for logging so that passwords and keys or
+%%% tokens can be stripped from the URI before spitting out to logs.
+%%% @end
+%%%-----------------------------------------------------------------------------
+
+-spec sanitize_uri(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+sanitize_uri(SecretURI) ->
+    sanitize_uri('all', SecretURI).
+
+-spec sanitize_uri(kz_term:ne_binary() | atom(), kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
+sanitize_uri('all', SecretURI) ->
+    lists:foldl(fun sanitize_uri/2, SecretURI, ['userpass'
+                                               ,<<"secretkey">>
+                                               ,<<"SecretKey">>
+                                               ,<<"secretKey">>
+                                               ,<<"Secretkey">>
+                                               ,<<"secret">>
+                                               ,<<"Secret">>
+                                               ,<<"token">>
+                                               ,<<"Token">>
+                                               ,<<"authorization">>
+                                               ,<<"Authorization">>
+                                               ,<<"authkey">>
+                                               ,<<"AuthKey">>
+                                               ,<<"authKey">>
+                                               ,<<"Authkey">>
+                                               ,<<"auth">>
+                                               ,<<"Auth">>
+                                               ,<<"key">>
+                                               ,<<"Key">>
+                                               ]
+               );
+sanitize_uri(SanitizeType, SecretURI) ->
+    case binary:split(SecretURI, <<"://">>) of %% [<<"http">>, <<"user:pass@hostname:port/path">>]
+        [Scheme, CredsHostPath] -> sanitize_uri(Scheme, CredsHostPath, SanitizeType);
+        _ -> SecretURI %% not a proper URI
+    end.
+
+-spec sanitize_uri(kz_term:ne_binary(), kz_term:ne_binary(), atom() | binary()) -> kz_term:api_ne_binary().
+sanitize_uri(Scheme, CredsHostPath, 'userpass') ->
+    case binary:split(CredsHostPath, <<"@">>) of %% [<<"user:pass">>, <<"hostname:port/path">>]
+        [_Creds, HostPath] -> <<Scheme/binary, "://****:****@", HostPath/binary>>;
+        _NoCreds -> <<Scheme/binary, "://", CredsHostPath/binary>> %% no credentials in URI
+    end;
+sanitize_uri(Scheme, RestOfURI, <<>>) -> <<Scheme/binary, "://", RestOfURI/binary>>;
+sanitize_uri(Scheme, RestOfURI, <<SecretParam/binary>>) ->
+    case binary:split(RestOfURI, <<"?">>) of
+        [SafePath, Query] ->
+            SanitizedParams = sanitize_parameters(Query, SecretParam),
+            <<Scheme/binary, "://", SafePath/binary, "?", SanitizedParams/binary>>;
+        _NoParam -> <<Scheme/binary, "://", RestOfURI/binary>> %% has no query part, so just return the URI
+    end;
+sanitize_uri(Scheme, RestOfURI, _) -> <<Scheme/binary, "://", RestOfURI/binary>>. %% catches other atoms for sanitization type
+
+-spec sanitize_parameters(binary() | kz_term:binaries(), kz_term:ne_binary()) -> binary().
+sanitize_parameters(Params, SecretKey) when is_list(Params) ->
+    sanitize_parameters(Params, SecretKey, []);
+sanitize_parameters(Query, SecretKey) ->
+    SplitParams = binary:split(Query, <<"&">>, ['global']),
+    sanitize_parameters(SplitParams, SecretKey).
+
+-spec sanitize_parameters(kz_term:binaries(), kz_term:ne_binary(), kz_term:binaries()) -> binary().
+sanitize_parameters([], _SecretKey, Acc) when is_list(Acc) -> kz_binary:join(Acc, <<"&">>);
+sanitize_parameters([Param|Rest], SecretKey, Acc) ->
+    io:format("~nsanitize_parameters with Param: ~p Rest: ~p SecretKey: ~p, Acc: ~p~n", [Param, Rest, SecretKey, Acc]),
+    Sanitized = sanitize_parameter(Param, SecretKey),
+    sanitize_parameters(Rest, SecretKey, Acc ++ [Sanitized]).
+
+-spec sanitize_parameter(binary(), kz_term:ne_binary()) -> binary().
+sanitize_parameter(Param, SecretKey) -> %% (<<"token=SeCreT">>, <<"token">>)
+    io:format("~nsanitize_parameter with ~p ~p~n", [Param, SecretKey]),
+    case binary:split(Param, <<SecretKey/binary, "=">>) of
+        [<<>>, <<>>] -> Param; %% empty parameter, return as-is
+        [<<>>, _Value] -> <<SecretKey/binary, "=****">>; %% match! [<<>>, <<"SeCreT">>] -> <<"token=****">>
+        _ -> Param
     end.
