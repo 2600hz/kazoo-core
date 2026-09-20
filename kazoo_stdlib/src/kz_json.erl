@@ -19,9 +19,11 @@
 -export([recursive_to_proplist/1]).
 
 -export([get_first_defined/2, get_first_defined/3]).
+-export([get_ne_first_defined/2, get_ne_first_defined/3]).
 -export([get_binary_boolean/2, get_binary_boolean/3]).
 -export([get_boolean_value/2, get_boolean_value/3]).
 -export([get_integer_value/2, get_integer_value/3]).
+-export([get_ne_integer_value/2, get_ne_integer_value/3]).
 -export([get_number_value/2, get_number_value/3]).
 -export([get_float_value/2, get_float_value/3]).
 -export([get_binary_value/2, get_binary_value/3]).
@@ -1390,6 +1392,21 @@ get_integer_value(Key, JObj, Default) ->
         Value -> kz_term:safe_cast(Value, Default, fun kz_term:to_integer/1)
     end.
 
+-spec get_ne_integer_value(get_key(), object() | objects()) -> kz_term:api_integer().
+get_ne_integer_value(Key, JObj) ->
+    get_integer_value(Key, JObj, 'undefined').
+
+-spec get_ne_integer_value(get_key(), object() | objects(), Default) -> integer() | Default.
+get_ne_integer_value(Key, JObj, Default) ->
+    Int = case get_value(Key, JObj) of
+              'undefined' -> Default;
+              Value -> kz_term:safe_cast(Value, Default, fun kz_term:to_integer/1)
+          end,
+    case kz_term:is_empty(Int) of
+        'true' -> Default;
+        'false' -> Int
+    end.
+
 -spec get_number_value(get_key(), object() | objects()) -> kz_term:api_number().
 get_number_value(Key, JObj) ->
     get_number_value(Key, JObj, 'undefined').
@@ -1581,6 +1598,27 @@ get_first_defined([H|T], JObj, Default) ->
         V -> V
     catch
         'error':'badarg' -> get_first_defined(T, JObj, Default)
+    end.
+
+-spec get_ne_first_defined(keys() | paths(), object()) -> json_term() | 'undefined'.
+get_ne_first_defined(Keys, JObj) ->
+    get_ne_first_defined(Keys, JObj, 'undefined').
+
+-spec get_ne_first_defined(keys() | paths(), object(), Default) -> json_term() | Default.
+get_ne_first_defined([], _JObj, Default) -> Default;
+get_ne_first_defined([H|T], JObj, Default) ->
+    try get_value(H, JObj) of
+        'undefined' ->
+            get_ne_first_defined(T, JObj, Default);
+        ?EMPTY_JSON_OBJECT ->
+            get_ne_first_defined(T, JObj, Default);
+        Value ->
+            case kz_term:is_empty(Value) of
+                'true' -> get_ne_first_defined(T, JObj, Default);
+                'false' -> Value
+            end
+    catch
+        'error':'badarg' -> get_ne_first_defined(T, JObj, Default)
     end.
 
 -type take_return() :: 'false' |
